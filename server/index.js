@@ -50,7 +50,7 @@ const adminMiddleware = (req, res, next) => {
   next();
 };
 
-router.post('/auth/register', async (req, res) => {
+router.post('/auth/signup', async (req, res) => {
   const { username, password, rsn } = req.body;
   try {
     const salt = await bcrypt.genSalt(10);

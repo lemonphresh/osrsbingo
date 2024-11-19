@@ -2,8 +2,8 @@ import axios from 'axios';
 import React, { useEffect } from 'react';
 import AuthProvider from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
-import NavBar from './components/NavBar';
-import Footer from './components/Footer';
+import NavBar from './molecules/NavBar';
+import Footer from './molecules/Footer';
 import { Flex } from '@chakra-ui/react';
 import theme from './theme';
 

@@ -3,7 +3,7 @@ import React from 'react';
 import theme from '../theme';
 import Cashapp from '../assets/cashapp.png';
 import GemLogo from '../assets/gemlogo.png';
-import GitHub from '../assets/github.png';
+import Discord from '../assets/discord.png';
 
 const Footer = () => (
   <Flex
@@ -27,13 +27,16 @@ const Footer = () => (
       <Text display={['none', 'block']} marginRight="8px">
         discord
       </Text>
-      <Box
-        border="3px black solid"
+      <Flex
+        alignItems="center"
+        border="2px black solid"
         backgroundColor={theme.colors.teal[400]}
-        borderRadius={['8px', '4px']}
+        borderRadius="8px"
+        height={['48px', '28px']}
+        padding="2px"
       >
-        <Image aria-hidden height={['42px', '22px']} src={GitHub} width={['42px', '22px']} />
-      </Box>
+        <Image aria-hidden src={Discord} width={['40px', '20px']} />
+      </Flex>
     </Link>
     <Box backgroundColor={theme.colors.teal[400]} padding="10px" borderRadius="50%">
       <Image aria-hidden height={['60px', '80px']} src={GemLogo} width={['60px', '80px']} />

@@ -1,6 +1,9 @@
 import ErrorPage from './pages/ErrorPage';
-import LandingPage from './pages/LandingPage';
+import Faq from './pages/Faq';
+import Landing from './pages/Landing';
+import LogIn from './pages/LogIn';
 import NoMatch from './pages/NoMatch';
+import SignUp from './pages/SignUp';
 import Root from './Root';
 
 const routes = [
@@ -11,24 +14,24 @@ const routes = [
     children: [
       {
         index: true,
-        element: <LandingPage />,
+        element: <Landing />,
         errorElement: <ErrorPage />,
       },
-      // {
-      //   path: '/login',
-      //   element: <LoginUser />,
-      //   errorElement: <ErrorPage />,
-      // },
-      // {
-      //   path: '/register',
-      //   element: <RegisterUser />,
-      //   errorElement: <ErrorPage />,
-      // },
-      // {
-      //   path: '/faq',
-      //   element: <Faq />,
-      //   errorElement: <ErrorPage />,
-      // },
+      {
+        path: '/login',
+        element: <LogIn />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/signup',
+        element: <SignUp />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/faq',
+        element: <Faq />,
+        errorElement: <ErrorPage />,
+      },
       // {
       //   path: '/pantry/:userId',
       //   element: <UserPantry />,
