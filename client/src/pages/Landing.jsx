@@ -7,10 +7,6 @@ import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
 import { NavLink } from 'react-router-dom';
 
-/* 
-  
-*/
-
 const Landing = () => {
   const { user } = useAuth();
   // zz check if user, if so, redirect to /user/[:userId]
@@ -91,7 +87,7 @@ const Landing = () => {
         <Text color={theme.colors.gray[400]} marginBottom="24px">
           This project uses an API courtesy of:{' '}
         </Text>
-        <Image maxWidth="450px" src={OsrsWikiLogo} />
+        <Image maxWidth="450px" src={OsrsWikiLogo} width={['225px', '325px', '450px']} />
       </Flex>
     </Flex>
   );

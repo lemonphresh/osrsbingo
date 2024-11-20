@@ -1,5 +1,6 @@
 import React from 'react';
 import { Flex, Heading, Text } from '@chakra-ui/react';
+import UserList from '../molecules/UserList';
 
 const UserDetails = () => {
   return (
@@ -12,6 +13,7 @@ const UserDetails = () => {
     >
       <Heading>UserDetails!</Heading>
       <Text>Heyo.</Text>
+      <UserList />
     </Flex>
   );
 };

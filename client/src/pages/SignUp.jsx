@@ -9,15 +9,17 @@ import {
   Input,
   Text,
 } from '@chakra-ui/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { InfoIcon, WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
 import theme from '../theme';
 import { useAuth } from '../providers/AuthProvider';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import { useMutation } from '@apollo/client';
+import { CREATE_USER } from '../graphql/mutations';
+import bcrypt from 'bcryptjs';
 
 const validatePasswords = (p1, p2) => p1 === p2;
 
@@ -26,52 +28,50 @@ const totalFormValidation = (values) =>
   values.confirmedPassword?.length > 0 &&
   validatePasswords(values.password, values.confirmedPassword) &&
   // zz validate length of username
-  values.email?.length > 0 &&
   values.username?.length !== 0;
 
 const SignUp = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState([]);
-  const [registerUserCb, setRegisterUserCb] = useState(null);
-  const [res, setRes] = useState();
 
-  const { onChange, onSubmit, values } = useForm(registerUserCb, {
-    username: null,
-    email: null,
-    password: null,
-    confirmedPassword: null,
+  const [createUser, { loading }] = useMutation(CREATE_USER, {
+    onCompleted: (data) => {
+      login(data.createUser);
+      navigate(`/user/${data.createUser.id}`);
+    },
+    onError: (err) => {
+      setErrors([err.message]);
+    },
   });
 
-  useEffect(() => {
-    if (totalFormValidation(values)) {
-      const callback = async () => {
-        setIsLoading(true);
-        const response = await axios.post(`/auth/signup`, values);
+  const { onChange, onSubmit, values } = useForm(
+    async () => {
+      if (totalFormValidation(values)) {
+        // const hashedPassword = await bcrypt.hash(values.password, 10); // Hash password with a salt factor of 10
 
-        if (response.data.errors) {
-          setErrors(response.data.errors);
-          return;
+        const { data } = await createUser({
+          variables: {
+            username: values.username,
+            password: values.password,
+            rsn: values.rsn || '',
+            permissions: 'user',
+          },
+        });
+
+        if (data?.createUser?.token) {
+          localStorage.setItem('token', data.createUser.token);
         }
-
-        if (response.data) {
-          setRes(response.data);
-          login(response.data);
-        }
-      };
-
-      setRegisterUserCb(() => callback);
+      }
+    },
+    {
+      username: '',
+      password: '',
+      confirmedPassword: '',
+      rsn: '',
+      permissions: 'user',
     }
-  }, [login, values]);
-
-  useEffect(() => {
-    if (res) {
-      // zz get user id in response
-      setIsLoading(false);
-      navigate(`/user/${res.id}`);
-    }
-  }, [navigate, res]);
+  );
 
   const usernameError = useCallback(() => console.log(values.username), [values.username]);
   const passwordError = useCallback(
@@ -125,11 +125,11 @@ const SignUp = () => {
             <Alert
               backgroundColor={theme.colors.pink[100]}
               borderRadius="8px"
-              key={error.message}
+              key={error.message + 'a'}
               marginY="16px"
               textAlign="center"
             >
-              <Text>
+              <Text color={theme.colors.pink[500]}>
                 <WarningIcon
                   alignSelf={['flex-start', undefined]}
                   color={theme.colors.pink[500]}
@@ -163,6 +163,28 @@ const SignUp = () => {
                 width="14px"
               />
               Enter a username. (Max length of 16 characters.)
+            </FormHelperText>
+          </FormControl>
+          <FormControl isInvalid={values.RSN?.length === 0}>
+            <FormLabel>RSN</FormLabel>
+            <Input
+              backgroundColor={theme.colors.gray[300]}
+              color={theme.colors.gray[700]}
+              maxLength={16}
+              onChange={onChange}
+              name="rsn"
+              type="text"
+            />
+            <FormHelperText color={theme.colors.gray[400]}>
+              <InfoIcon
+                alignSelf={['flex-start', undefined]}
+                color={theme.colors.green[400]}
+                marginX="8px"
+                marginBottom="4px"
+                height="14px"
+                width="14px"
+              />
+              Enter your RSN. (Optional, but helpful.)
             </FormHelperText>
           </FormControl>
           <FormControl isInvalid={passwordError() && values.password?.length === 0} isRequired>
@@ -204,7 +226,7 @@ const SignUp = () => {
               <FormErrorMessage>Passwords must match.</FormErrorMessage>
             )}
           </FormControl>
-          {isLoading && errors.length === 0 && (
+          {loading && errors.length === 0 && (
             <Flex alignSelf="center" gridGap="16px" justifySelf="center">
               Loading
             </Flex>

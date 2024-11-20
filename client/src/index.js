@@ -11,17 +11,41 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import routes from './routes';
 import theme from './theme';
 import AuthProvider from './providers/AuthProvider';
+import { ApolloClient, ApolloLink, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
+
+const httpLink = new HttpLink({ uri: `${process.env.REACT_APP_SERVER_URL}/graphql` });
+
+const authLink = new ApolloLink((operation, forward) => {
+  const token = localStorage.getItem('token');
+  operation.setContext({
+    headers: {
+      Authorization: token ? `Bearer ${token}` : '',
+    },
+  });
+  return forward(operation);
+});
+
+const client = new ApolloClient({
+  link: authLink.concat(httpLink),
+  cache: new InMemoryCache(),
+  cors: {
+    origin: 'http://localhost:3000',
+    credentials: true,
+  },
+});
 
 const router = createBrowserRouter(routes);
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
-  <AuthProvider>
-    <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
-      <React.StrictMode>
-        <RouterProvider router={router} />
-      </React.StrictMode>
-    </ChakraProvider>
-  </AuthProvider>
+  <ApolloProvider client={client}>
+    <AuthProvider>
+      <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
+        <React.StrictMode>
+          <RouterProvider router={router} />
+        </React.StrictMode>
+      </ChakraProvider>
+    </AuthProvider>
+  </ApolloProvider>
 );
