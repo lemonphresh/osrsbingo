@@ -4,7 +4,6 @@ const PORT = 5000;
 const { Pool } = require('pg');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { graphqlHTTP } = require('express-graphql');
 const { makeExecutableSchema } = require('graphql-tools');
 const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
@@ -16,7 +15,6 @@ dotenv.config();
 
 /*  START setup  */
 const schema = makeExecutableSchema({ typeDefs, resolvers });
-app.use(express.json());
 
 const cors = require('cors');
 app.use(
@@ -25,14 +23,7 @@ app.use(
     credentials: true, // allows cookies
   })
 );
-
-app.use(
-  '/graphql',
-  graphqlHTTP({
-    schema,
-    graphiql: true,
-  })
-);
+app.use(express.json());
 
 const path = require('path');
 app.use(express.static(path.join(__dirname, 'public')));
@@ -45,29 +36,26 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-const SECRET = process.env.JWTSECRETKEY;
-
-// Apollo Server Setup
 const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => {
     const token = req.headers.authorization || '';
     let user = null;
+    const SECRET = process.env.JWTSECRETKEY;
 
-    console.log('abababa', SECRET);
-
-    // Verify the token if provided
+    if (!SECRET) {
+      throw new Error('❌ JWT secret key is missing!');
+    }
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
         user = { id: decoded.userId };
       } catch (err) {
-        console.error('Invalid or expired token');
+        console.error('❌ Invalid or expired token');
       }
     }
-
-    // Pass the user to resolvers (for authentication in other parts of the app)
+    console.log({ user });
     return { user, jwtSecret: SECRET };
   },
   formatResponse: (response) => {
@@ -81,7 +69,7 @@ const server = new ApolloServer({
 });
 
 sequelize.sync({ alter: true }).then(() => {
-  console.log('Database synced!');
+  console.log('📊 Database synced!');
 });
 
 app.get('/api', (req, res) => {
@@ -104,13 +92,6 @@ const authMiddleware = (req, res, next) => {
   } catch (err) {
     res.status(401).json({ msg: 'Invalid token' });
   }
-};
-
-const adminMiddleware = (req, res, next) => {
-  if (req.user.permissions !== 'admin') {
-    return res.status(403).json({ msg: 'Admin access required' });
-  }
-  next();
 };
 
 router.post('/auth/signup', async (req, res) => {
@@ -159,12 +140,6 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 
-router.post('/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ msg: 'Logged out' });
-});
-/*  END auth  */
-
 app.get('/auth/user', authMiddleware, async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id); // Fetch user from DB based on token payload
@@ -177,22 +152,17 @@ app.get('/auth/user', authMiddleware, async (req, res) => {
   }
 });
 
-// example for middleware?
-// app.get('/api/user', authMiddleware, (req, res) => {
-//     const userId = req.user.id;
-//     pool.query('SELECT * FROM users WHERE id = $1', [userId], (err, result) => {
-//         if (err) {
-//             return res.status(500).json({ error: 'Server error' });
-//         }
-//         res.json(result.rows[0]);
-//     });
-// });
+router.post('/auth/logout', (req, res) => {
+  res.clearCookie('token');
+  res.json({ msg: 'Logged out' });
+});
+/*  END auth  */
 
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql' });
   app.listen(PORT, () => {
     console.log(
-      `Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`
+      `🚀🚀🚀 Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`
     );
   });
 });

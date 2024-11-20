@@ -1,49 +1,60 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+import { useQuery } from '@apollo/client';
+import { GET_USER } from '../graphql/queries';
+import { jwtDecode } from 'jwt-decode';
 
 export const AuthContext = createContext();
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null);
+
+  const token = localStorage.getItem('authToken');
 
   useEffect(() => {
-    const checkAuth = async () => {
+    if (token) {
       try {
-        const token = localStorage.getItem('authToken'); // Retrieve token from storage
-        if (!token) throw new Error('No token found');
-
-        const res = await axios.get(`${process.env.REACT_APP_SERVER_URL}/auth/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`, // Send token in Authorization header
-          },
-        });
-
-        setUser(res.data); // Set user data if authenticated
+        const decodedToken = jwtDecode(token);
+        console.log({ decodedToken });
+        setUserId(decodedToken?.userId);
       } catch (err) {
-        console.error('User not authenticated:', err.message);
-        setUser(null); // Clear user state if not authenticated
+        console.error('Failed to decode token', err);
+        console.log('setting to null');
+        setUserId(null);
       }
-    };
+    }
+  }, [token]);
 
-    checkAuth();
-  }, []);
+  useQuery(GET_USER, {
+    skip: !token,
+    variables: { id: userId },
+    onCompleted: (data) => {
+      if (data && data.getUser) {
+        setUser(data.getUser);
+      } else {
+        setUser(null);
+      }
+    },
+    onError: (error) => {
+      setUser(null);
+    },
+  });
 
   const login = async (credentials) => {
+    console.log({ credentials });
     try {
-      const res = await axios.post(`${process.env.REACT_APP_SERVER_URL}/auth/login`, credentials);
+      localStorage.setItem('authToken', credentials.token);
 
-      // Save token in local storage or cookies
-      localStorage.setItem('authToken', res.data.token);
-
-      setUser(res.data.user); // Assuming the server sends user data along with the token
+      setUser(credentials.user || credentials); // todo this is messy but it's working for now
     } catch (error) {
       console.error('Login failed:', error.message);
+      console.log('setting to null in login');
       setUser(null);
     }
   };
 
   const logout = async () => {
-    await axios.post(`${process.env.REACT_APP_SERVER_URL}/auth/logout`);
+    localStorage.removeItem('authToken');
     setUser(null);
   };
 

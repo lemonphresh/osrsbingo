@@ -1,15 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Flex, Image, Text } from '@chakra-ui/react';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import OsrsWikiLogo from '../assets/osrswikilogo.png';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
+
+/* 
+  current todo (11/20):
+    * fix form validation
+    * clean up server files
+
+*/
 
 const Landing = () => {
   const { user } = useAuth();
-  // zz check if user, if so, redirect to /user/[:userId]
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      console.log('helloooo', user);
+      navigate(`/user/${user.id}`);
+    }
+  }, [navigate, user]);
 
   return (
     <Flex

@@ -19,7 +19,6 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { useMutation } from '@apollo/client';
 import { CREATE_USER } from '../graphql/mutations';
-import bcrypt from 'bcryptjs';
 
 const validatePasswords = (p1, p2) => p1 === p2;
 
@@ -60,7 +59,7 @@ const SignUp = () => {
         });
 
         if (data?.createUser?.token) {
-          localStorage.setItem('token', data.createUser.token);
+          localStorage.setItem('authToken', data.createUser.token);
         }
       }
     },

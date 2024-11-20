@@ -26,12 +26,11 @@ const Login = () => {
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
 
-  const [loginUserMutation, { data, loading, error }] = useMutation(LOGIN_USER);
+  const [loginUser, { data, loading, error }] = useMutation(LOGIN_USER);
 
   const { onChange, onSubmit, values } = useForm(
     () => {
-      console.log({ values });
-      loginUserMutation({
+      loginUser({
         variables: { username: values.username, password: values.password },
       });
     },
@@ -47,11 +46,11 @@ const Login = () => {
       setErrors([{ message: error.message }]);
     }
     if (data) {
-      localStorage.setItem('token', data.loginUser.token);
+      console.log({ data });
+      localStorage.setItem('authToken', data.loginUser.token);
 
       login(data.loginUser);
-
-      navigate(`/user/${data.loginUser.id}`);
+      navigate(`/user/${data.loginUser.user.id}`);
     }
   }, [data, error, login, navigate]);
 

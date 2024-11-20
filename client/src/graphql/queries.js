@@ -10,3 +10,12 @@ export const GET_USERS = gql`
     }
   }
 `;
+
+export const GET_USER = gql`
+  query GetUser($id: ID!) {
+    getUser(id: $id) {
+      id
+      username
+    }
+  }
+`;

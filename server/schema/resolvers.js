@@ -1,6 +1,12 @@
+const { ApolloError } = require('apollo-server-express');
 const User = require('../db/models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
+/*
+    todo: pull resolvers into specific files, like User.js, BingoBoard.js, 
+        etc and import + spread here
+*/
 
 const resolvers = {
   Query: {
@@ -9,12 +15,11 @@ const resolvers = {
     },
     getUsers: async () => {
       try {
-        // Fetch all users
-        const users = await User.findAll(); // This should work if User is defined correctly
+        const users = await User.findAll();
         return users;
       } catch (err) {
         console.error('Error fetching users:', err);
-        throw new Error('Failed to fetch users');
+        throw new ApolloError('Failed to fetch users');
       }
     },
   },
@@ -41,23 +46,23 @@ const resolvers = {
         };
       } catch (error) {
         console.error('Error creating user:', error);
-        throw new Error('Failed to create user');
+        throw new ApolloError('Failed to create user');
       }
     },
-    loginUser: async (_, { username, password }, { jwtSecret }) => {
+    loginUser: async (_, { username, password }, context) => {
       let user;
-      console.log({ jwtSecret });
+      console.log({ username, password });
       try {
         user = await User.findOne({ where: { username } });
       } catch (error) {
         console.error('Error during Sequelize query:', error);
       }
 
+      console.log({ id: user.id });
+
       if (!user) {
         throw new Error('User not found');
       }
-
-      console.log(password, user.password);
 
       const valid = await bcrypt.compare(password, user.password);
 
@@ -65,7 +70,7 @@ const resolvers = {
         throw new Error('Incorrect password');
       }
 
-      const token = jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: '1d' });
+      const token = jwt.sign({ userId: user.id }, context.jwtSecret, { expiresIn: '1d' });
 
       return {
         user,

@@ -54,14 +54,9 @@ const NavBar = () => {
         </NavLink>
       </Flex>
 
-      <Link
-        alignItems="center"
-        display="flex"
-        href={user ? `/user/${user.id}` : '/login'}
-        target="_blank"
-      >
+      <Link alignItems="center" display="flex" href={user ? `/user/${user.id}` : '/login'}>
         <Text display={['none', 'block']} marginRight="8px">
-          {user ? user.name : 'log in'}
+          {user ? user.username : 'log in'}
         </Text>
         <Image
           aria-hidden
