@@ -47,8 +47,6 @@ const SignUp = () => {
   const { onChange, onSubmit, values } = useForm(
     async () => {
       if (totalFormValidation(values)) {
-        // const hashedPassword = await bcrypt.hash(values.password, 10); // Hash password with a salt factor of 10
-
         const { data } = await createUser({
           variables: {
             username: values.username,
@@ -64,14 +62,15 @@ const SignUp = () => {
       }
     },
     {
-      username: '',
-      password: '',
-      confirmedPassword: '',
-      rsn: '',
+      username: null,
+      password: null,
+      confirmedPassword: null,
+      rsn: null,
       permissions: 'user',
     }
   );
 
+  // todo: figure out what makes a username bad
   const usernameError = useCallback(() => console.log(values.username), [values.username]);
   const passwordError = useCallback(
     () => validatePasswords(values.password, values.confirmedPassword),

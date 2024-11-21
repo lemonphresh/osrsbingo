@@ -35,8 +35,8 @@ const Login = () => {
       });
     },
     {
-      username: '',
-      password: '',
+      username: null,
+      password: null,
     }
   );
   // zz todo

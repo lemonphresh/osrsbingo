@@ -14,7 +14,7 @@ const UserList = () => {
     <ul>
       {data.getUsers.map((u) => (
         <li key={u.id}>
-          {u === user?.username ? `!!!!! ${u.username}` : u.username} ({u.rsn})
+          {u.username === user?.username ? `!!!!! ${u.username}` : u.username} ({u.rsn})
         </li>
       ))}
     </ul>

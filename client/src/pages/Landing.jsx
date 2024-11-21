@@ -9,7 +9,10 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 /* 
   current todo (11/20):
-    * fix form validation
+    * populate user details page
+    * add logout button to user details page
+  
+    * figure out username validation conditions 
     * clean up server files
 
 */
