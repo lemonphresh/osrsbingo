@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Button, Flex, Input, Text } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
@@ -72,7 +72,7 @@ const EditField = ({ fieldName, onSave, userId, value }) => {
 };
 
 const UserDetails = () => {
-  const { isCheckingAuth, setUser, user } = useAuth();
+  const { isCheckingAuth, logout, setUser, user } = useAuth();
   const navigate = useNavigate();
   const params = useParams();
   const [isCurrentUser, setIsCurrentUser] = useState(
@@ -93,6 +93,7 @@ const UserDetails = () => {
       setShownUser(null);
     },
   });
+
   useEffect(() => {
     if (!isCheckingAuth && !user) {
       navigate('/');
@@ -102,6 +103,10 @@ const UserDetails = () => {
   useEffect(() => {
     setIsCurrentUser(user && parseInt(user.id) === parseInt(params.userId, 10));
   }, [isCurrentUser, params.userId, user]);
+
+  useEffect(() => {
+    setShownUser(user);
+  }, [user]);
 
   return (
     <Flex
@@ -241,6 +246,21 @@ const UserDetails = () => {
           </Flex>
         </Section>
       </Section>
+      {isCurrentUser && (
+        <Text
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          marginBottom="1px"
+          marginTop="48px"
+          textAlign="center"
+        >
+          <Link onClick={logout} to="/">
+            Logout
+          </Link>
+        </Text>
+      )}
     </Flex>
   );
 };
