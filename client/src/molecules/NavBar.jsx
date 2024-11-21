@@ -49,7 +49,7 @@ const NavBar = () => {
         transform="translate(-50%, -50%)"
         width={['125px', '100px']}
       >
-        <NavLink to="/">
+        <NavLink to={user ? `/user/${user.id}` : '/'}>
           <Image aria-hidden height={['110px', '80px']} src={GemLogo} width={['110px', '80px']} />
         </NavLink>
       </Flex>

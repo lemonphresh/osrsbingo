@@ -46,7 +46,6 @@ const Login = () => {
       setErrors([{ message: error.message }]);
     }
     if (data) {
-      console.log({ data });
       localStorage.setItem('authToken', data.loginUser.token);
 
       login(data.loginUser);

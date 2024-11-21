@@ -57,8 +57,6 @@ const resolvers = {
         console.error('Error during Sequelize query:', error);
       }
 
-      console.log({ id: user.id });
-
       if (!user) {
         throw new Error('User not found');
       }

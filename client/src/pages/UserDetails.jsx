@@ -90,7 +90,6 @@ const UserDetails = () => {
       setShownUser(data?.getUser || null);
     },
     onError: () => {
-      console.log('onerror');
       setShownUser(null);
     },
   });
@@ -120,12 +119,14 @@ const UserDetails = () => {
             {isCurrentUser ? `Howdy, ${user?.username}!` : `${shownUser?.username}'s Profile`}
           </GemTitle>
           <Text fontSize="22px" textAlign="center">
-            Welcome to your Bingo Hub. Kick your feet up.
+            {isCurrentUser
+              ? 'Welcome to your Bingo Hub. Kick your feet up.'
+              : 'Oh, snooping, I see. Enjoy the view.'}
           </Text>
           <Section
             flexDirection="column"
             gridGap="4px"
-            key={shownUser}
+            key={user}
             margin="0 auto"
             marginY="16px"
             maxWidth={['100%', '100%', '75%', '50%']}

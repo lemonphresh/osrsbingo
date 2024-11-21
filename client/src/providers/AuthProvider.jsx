@@ -16,7 +16,6 @@ const AuthProvider = ({ children }) => {
     if (token && !user) {
       try {
         const decodedToken = jwtDecode(token);
-        console.log({ decodedToken });
         setUserId(decodedToken?.userId);
       } catch (err) {
         console.error('Failed to decode token', err);
@@ -29,18 +28,15 @@ const AuthProvider = ({ children }) => {
     variables: { id: userId },
     onCompleted: (data) => {
       setUser(data?.getUser || null);
-      console.log('onclompleted');
       setIsCheckingAuth(false); // Stop checking once user is fetched
     },
     onError: () => {
-      console.log('onerror');
       setUser(null);
       setIsCheckingAuth(false); // Stop checking on error
     },
   });
 
   const login = async (credentials) => {
-    console.log({ credentials });
     try {
       localStorage.setItem('authToken', credentials.token);
 

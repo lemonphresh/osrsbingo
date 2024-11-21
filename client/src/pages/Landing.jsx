@@ -9,7 +9,6 @@ import { NavLink, useNavigate } from 'react-router-dom';
 
 /* 
   current todo (11/20):
-    * populate user details page
     * add logout button to user details page
   
     * figure out username validation conditions 

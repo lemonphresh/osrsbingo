@@ -1,5 +1,4 @@
-import axios from 'axios';
-import React, { useEffect } from 'react';
+import React from 'react';
 import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
@@ -29,10 +28,6 @@ const AuthConsumer = () => {
 };
 
 const Root = () => {
-  useEffect(() => {
-    axios.get('/api').then((res) => console.log(res.data));
-  }, []);
-
   return (
     <AuthProvider>
       <Flex
