@@ -20,3 +20,46 @@ export const GET_USER = gql`
     }
   }
 `;
+
+export const GET_BOARD = gql`
+  query GetBingoBoard($id: ID!) {
+    getBingoBoard(id: $id) {
+      id
+      type
+      layout
+      isPublic
+      editors
+      team
+      totalValue
+      totalValueCompleted
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
+      tiles {
+        id
+        name
+        isComplete
+        value
+      }
+    }
+  }
+`;
+
+export const GET_TILE = gql`
+  query GetBingoTile($id: ID!) {
+    getBingoTile(id: $id) {
+      id
+      name
+      isComplete
+      value
+      icon
+      dateCompleted
+      completedBy
+      board
+    }
+  }
+`;

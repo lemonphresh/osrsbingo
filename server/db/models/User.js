@@ -1,37 +1,41 @@
-const { DataTypes } = require('sequelize');
-const sequelize = require('../db');
+'use strict';
+const { Model, DataTypes } = require('sequelize');
 
-const User = sequelize.define('User', {
-  id: {
-    type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true,
-  },
-  username: {
-    type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  rsn: {
-    type: DataTypes.STRING,
-    allowNull: true,
-  },
-  //   //   permissions: {
-  //   //     type: DataTypes.JSONB,
-  //   //     allowNull: true,
-  //   //   },
-  //   teams: {
-  //     type: DataTypes.JSONB,
-  //     allowNull: true,
-  //   },
-});
+module.exports = (sequelize) => {
+  class User extends Model {
+    static associate(models) {
+      User.hasMany(models.BingoBoard, {
+        foreignKey: 'userId',
+        as: 'bingoBoards',
+      });
+    }
+  }
 
-sequelize.sync({ alter: true }).catch((error) => {
-  console.error('Error during database synchronization:', error);
-});
+  User.init(
+    {
+      username: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      rsn: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      teams: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+      },
+    },
+    {
+      sequelize,
+      modelName: 'User',
+    }
+  );
 
-module.exports = User;
+  return User;
+};

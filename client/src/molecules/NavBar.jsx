@@ -9,7 +9,6 @@ import { useAuth } from '../providers/AuthProvider';
 
 const NavBar = () => {
   const { user } = useAuth();
-  console.log({ user });
 
   return (
     <Flex

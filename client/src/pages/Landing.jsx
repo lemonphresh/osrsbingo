@@ -22,7 +22,6 @@ const Landing = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('helloooo', user);
       navigate(`/user/${user.id}`);
     }
   }, [navigate, user]);

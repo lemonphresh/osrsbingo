@@ -34,3 +34,40 @@ export const UPDATE_USER = gql`
     }
   }
 `;
+
+export const CREATE_BOARD = gql`
+  mutation CreateBingoBoard(
+    $type: BingoBoardType!
+    $isPublic: Boolean
+    $editors: [ID]
+    $team: ID
+    $bonusSettings: BonusSettingsInput!
+  ) {
+    createBingoBoard(
+      type: $type
+      isPublic: $isPublic
+      editors: $editors
+      team: $team
+      bonusSettings: $bonusSettings
+    ) {
+      id
+      type
+      layout
+    }
+  }
+`;
+
+export const UPDATE_TILE = gql`
+  mutation EditBingoTile($id: ID!, $input: UpdateBingoTileInput!) {
+    editBingoTile(id: $id, input: $input) {
+      id
+      isComplete
+      name
+      icon
+      dateCompleted
+      completedBy
+      board
+      value
+    }
+  }
+`;

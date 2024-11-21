@@ -55,7 +55,6 @@ const server = new ApolloServer({
         console.error('❌ Invalid or expired token');
       }
     }
-    console.log({ user });
     return { user, jwtSecret: SECRET };
   },
   formatResponse: (response) => {
