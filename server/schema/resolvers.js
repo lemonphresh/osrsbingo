@@ -51,7 +51,6 @@ const resolvers = {
     },
     loginUser: async (_, { username, password }, context) => {
       let user;
-      console.log({ username, password });
       try {
         user = await User.findOne({ where: { username } });
       } catch (error) {
@@ -76,6 +75,19 @@ const resolvers = {
         user,
         token,
       };
+    },
+    updateUser: async (_, { id, fields }) => {
+      try {
+        const user = await User.findByPk(id);
+        user.set({
+          ...fields,
+        });
+        await user.save();
+        const updatedUser = user.reload();
+        return updatedUser;
+      } catch (error) {
+        throw new Error('Failed to update user');
+      }
     },
   },
 };

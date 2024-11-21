@@ -16,6 +16,7 @@ export const GET_USER = gql`
     getUser(id: $id) {
       id
       username
+      rsn
     }
   }
 `;

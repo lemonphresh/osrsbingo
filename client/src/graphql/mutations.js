@@ -19,7 +19,18 @@ export const LOGIN_USER = gql`
       user {
         id
         username
+        rsn
       }
+    }
+  }
+`;
+
+export const UPDATE_USER = gql`
+  mutation UpdateUser($id: ID!, $fields: UserUpdateInput!) {
+    updateUser(id: $id, fields: $fields) {
+      id
+      username
+      rsn
     }
   }
 `;

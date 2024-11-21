@@ -8,35 +8,34 @@ export const AuthContext = createContext();
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const token = localStorage.getItem('authToken');
 
   useEffect(() => {
-    if (token) {
+    if (token && !user) {
       try {
         const decodedToken = jwtDecode(token);
         console.log({ decodedToken });
         setUserId(decodedToken?.userId);
       } catch (err) {
         console.error('Failed to decode token', err);
-        console.log('setting to null');
         setUserId(null);
       }
     }
-  }, [token]);
+  }, [token, user]);
 
   useQuery(GET_USER, {
-    skip: !token,
     variables: { id: userId },
     onCompleted: (data) => {
-      if (data && data.getUser) {
-        setUser(data.getUser);
-      } else {
-        setUser(null);
-      }
+      setUser(data?.getUser || null);
+      console.log('onclompleted');
+      setIsCheckingAuth(false); // Stop checking once user is fetched
     },
-    onError: (error) => {
+    onError: () => {
+      console.log('onerror');
       setUser(null);
+      setIsCheckingAuth(false); // Stop checking on error
     },
   });
 
@@ -48,7 +47,6 @@ const AuthProvider = ({ children }) => {
       setUser(credentials.user || credentials); // todo this is messy but it's working for now
     } catch (error) {
       console.error('Login failed:', error.message);
-      console.log('setting to null in login');
       setUser(null);
     }
   };
@@ -58,7 +56,11 @@ const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  return <AuthContext.Provider value={{ user, login, logout }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ isCheckingAuth, login, logout, setUser, user }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
 export const useAuth = () => {

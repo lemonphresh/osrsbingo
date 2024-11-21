@@ -1,11 +1,32 @@
 import axios from 'axios';
 import React, { useEffect } from 'react';
-import AuthProvider from './providers/AuthProvider';
+import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
-import { Flex } from '@chakra-ui/react';
+import { Flex, Spinner } from '@chakra-ui/react';
 import theme from './theme';
+
+const AuthConsumer = () => {
+  const { isCheckingAuth } = useAuth();
+
+  if (isCheckingAuth) {
+    return (
+      <Flex
+        alignItems="center"
+        flexDirection="column"
+        height="100%"
+        minHeight="72vh"
+        justifyContent="center"
+        width="100%"
+      >
+        <Spinner color="white" size="xl" />
+      </Flex>
+    );
+  }
+
+  return <Outlet />;
+};
 
 const Root = () => {
   useEffect(() => {
@@ -23,7 +44,7 @@ const Root = () => {
         width="100vw"
       >
         <NavBar />
-        <Outlet />
+        <AuthConsumer />
         <Footer />
       </Flex>
     </AuthProvider>
