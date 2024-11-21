@@ -202,7 +202,7 @@ const UserDetails = () => {
         <Flex flexDirection={['column', 'column', 'column', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="orange" size="sm">
-              Your Bingo Boards
+              {isCurrentUser ? 'Your' : 'Their'} Bingo Boards
             </GemTitle>
             <Flex flexDirection="column">
               <Text textAlign="center">
@@ -214,7 +214,7 @@ const UserDetails = () => {
           </Section>
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="green" size="sm">
-              Your Teams
+              {isCurrentUser ? 'Your' : 'Their'} Teams
             </GemTitle>
             <Flex flexDirection="column">
               <Text textAlign="center">
@@ -228,7 +228,7 @@ const UserDetails = () => {
         </Flex>
         <Section flexDirection="column" width="100%">
           <GemTitle gemColor="blue" size="sm">
-            Your Events
+            {isCurrentUser ? 'Your' : 'Their'} Events
           </GemTitle>
           <Flex flexDirection="column">
             <Text textAlign="center">
