@@ -5,19 +5,19 @@ import {
   FormControl,
   FormErrorMessage,
   FormLabel,
-  Heading,
   Input,
   Text,
 } from '@chakra-ui/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
 import theme from '../theme';
 import { useAuth } from '../providers/AuthProvider';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import { LOGIN_USER } from '../graphql/mutations';
+import { useMutation } from '@apollo/client';
 
 const validatePassword = (pass) => !!pass && pass.length >= 7;
 
@@ -25,36 +25,33 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
-  const [loginUserCb, setLoginUserCb] = useState(null);
 
-  const { onChange, onSubmit, values } = useForm(loginUserCb, {
-    email: null,
-    password: null,
-  });
+  const [loginUser, { data, loading, error }] = useMutation(LOGIN_USER);
 
+  const { onChange, onSubmit, values } = useForm(
+    () => {
+      loginUser({
+        variables: { username: values.username, password: values.password },
+      });
+    },
+    {
+      username: null,
+      password: null,
+    }
+  );
   // zz todo
   const usernameError = useCallback(() => console.log(values.username), [values.username]);
-
   useEffect(() => {
-    if (values.name) {
-      const callback = async () => {
-        const response = await axios.post('/auth/login', values);
-
-        if (response.data.errors) {
-          setErrors(response.data.errors);
-          return;
-        }
-
-        if (response.data) {
-          // zz return user id in response.date
-          login(response.data);
-          navigate(`/user/${response.data.id}`);
-        }
-      };
-
-      setLoginUserCb(() => callback);
+    if (error) {
+      setErrors([{ message: error.message }]);
     }
-  }, [login, navigate, values]);
+    if (data) {
+      localStorage.setItem('authToken', data.loginUser.token);
+
+      login(data.loginUser);
+      navigate(`/user/${data.loginUser.user.id}`);
+    }
+  }, [data, error, login, navigate]);
 
   return (
     <Flex
@@ -89,7 +86,7 @@ const Login = () => {
               marginY="16px"
               textAlign="center"
             >
-              <Text>
+              <Text color={theme.colors.pink[500]}>
                 <WarningIcon
                   alignSelf={['flex-start', undefined]}
                   color={theme.colors.pink[500]}

@@ -9,6 +9,7 @@ import { useAuth } from '../providers/AuthProvider';
 
 const NavBar = () => {
   const { user } = useAuth();
+  console.log({ user });
 
   return (
     <Flex
@@ -48,19 +49,14 @@ const NavBar = () => {
         transform="translate(-50%, -50%)"
         width={['125px', '100px']}
       >
-        <NavLink to="/">
+        <NavLink to={user ? `/user/${user.id}` : '/'}>
           <Image aria-hidden height={['110px', '80px']} src={GemLogo} width={['110px', '80px']} />
         </NavLink>
       </Flex>
 
-      <Link
-        alignItems="center"
-        display="flex"
-        href={user ? `/user/${user.id}` : '/login'}
-        target="_blank"
-      >
+      <Link alignItems="center" display="flex" href={user ? `/user/${user.id}` : '/login'}>
         <Text display={['none', 'block']} marginRight="8px">
-          {user ? user.name : 'log in'}
+          {user ? user.username : 'log in'}
         </Text>
         <Image
           aria-hidden
