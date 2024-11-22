@@ -5,16 +5,18 @@ const jwt = require('jsonwebtoken');
 
 module.exports = {
   Mutation: {
-    editBingoTile: async (_, { id, ...fields }, { dataSources }) => {
+    editBingoTile: async (_, { id, input }) => {
       try {
         const tile = await BingoTile.findByPk(id);
+        console.log({ tile, input });
         tile.set({
-          ...fields,
+          ...input,
         });
         await tile.save();
         const updatedTile = tile.reload();
         return updatedTile;
       } catch (error) {
+        console.log({ error });
         throw new Error('Failed to update tile');
       }
     },

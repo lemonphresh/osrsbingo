@@ -69,7 +69,7 @@ const BoardDetails = () => {
             </Text>
           </Section>
 
-          <Flex flexDirection="column" marginTop="24px">
+          <Flex flexDirection="column" marginTop="36px">
             <BingoBoard isEditor={isEditor} layout={board.layout} />
           </Flex>
         </>

@@ -1,76 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, Flex, Input, Text } from '@chakra-ui/react';
+import { Button, Flex, Text } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
-import { useMutation, useQuery } from '@apollo/client';
-import { UPDATE_USER } from '../graphql/mutations';
-import { WarningIcon } from '@chakra-ui/icons';
+import { useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import InternalLinkList from '../molecules/InternalLinkList';
-
-const EditField = ({ fieldName, onSave, userId, value }) => {
-  const [val, setVal] = useState(value);
-  const [updateUser, { loading, error }] = useMutation(UPDATE_USER);
-
-  const handleSave = async () => {
-    const updatedUser = await updateUser({
-      variables: {
-        id: userId,
-        fields: { [fieldName]: val },
-      },
-    });
-    onSave(updatedUser.data.updateUser);
-  };
-
-  return (
-    <>
-      <Flex>
-        <Input
-          onChange={(e) => setVal(e.target.value)}
-          placeholder={value}
-          name={fieldName}
-          type="text"
-          value={val}
-        />{' '}
-        <Button
-          _hover={{ backgroundColor: theme.colors.orange[800] }}
-          color={theme.colors.orange[300]}
-          isLoading={loading}
-          marginLeft="16px"
-          onClick={handleSave}
-          textDecoration="underline"
-          variant="ghost"
-        >
-          Save
-        </Button>
-      </Flex>
-      {error && (
-        <Alert
-          backgroundColor={theme.colors.pink[100]}
-          borderRadius="8px"
-          key={error.message + 'a'}
-          marginY="16px"
-          textAlign="center"
-        >
-          <Text color={theme.colors.pink[500]}>
-            <WarningIcon
-              alignSelf={['flex-start', undefined]}
-              color={theme.colors.pink[500]}
-              marginRight="8px"
-              marginBottom="4px"
-              height="14px"
-              width="14px"
-            />
-            Failed to save changes.
-          </Text>
-        </Alert>
-      )}
-    </>
-  );
-};
+import EditField from '../molecules/EditField';
+import { UPDATE_USER } from '../graphql/mutations';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -190,18 +129,20 @@ const UserDetails = () => {
               </Flex>
             ) : (
               <EditField
+                entityId={user.id}
                 fieldName="rsn"
-                onSave={(updatedUser) => {
+                MUTATION={UPDATE_USER}
+                onSave={(data) => {
+                  console.log(data);
                   setUser({
                     token: user.token,
-                    ...updatedUser,
+                    ...data.updateUser,
                   });
                   setFieldsEditing({
                     ...fieldsEditing,
                     rsn: false,
                   });
                 }}
-                userId={user.id}
                 value={user.rsn}
               />
             )}

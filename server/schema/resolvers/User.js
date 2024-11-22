@@ -61,7 +61,7 @@ module.exports = {
         token,
       };
     },
-    updateUser: async (_, { id, fields }) => {
+    updateUser: async (_, { id, input }) => {
       try {
         const user = await User.findByPk(id, {
           include: {
@@ -70,9 +70,9 @@ module.exports = {
           },
         });
         const allowedFields = ['username', 'email', 'rsn', 'team']; // List allowed fields
-        const validFields = Object.keys(fields).reduce((acc, key) => {
+        const validFields = Object.keys(input).reduce((acc, key) => {
           if (allowedFields.includes(key)) {
-            acc[key] = fields[key];
+            acc[key] = input[key];
           }
           return acc;
         }, {});

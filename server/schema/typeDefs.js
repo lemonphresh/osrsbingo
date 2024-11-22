@@ -60,7 +60,7 @@ const typeDefs = gql`
     name: String!
     icon: String
     dateCompleted: String
-    completedBy: ID
+    completedBy: String
     board: ID!
     value: Int!
   }

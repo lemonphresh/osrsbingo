@@ -28,7 +28,7 @@ module.exports = (sequelize) => {
         type: DataTypes.DATE,
       },
       completedBy: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
       },
       value: {
         type: DataTypes.INTEGER,

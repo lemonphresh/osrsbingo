@@ -24,18 +24,31 @@ const BingoTile = ({ colIndex, isEditor, tile }) => {
         flexDirection="column"
         height={size}
         justifyContent="center"
-        key={colIndex}
+        key={tile}
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         padding="8px"
+        transition="all ease 0.2s"
         width={size}
       >
         {!isHovered ? (
           <>
-            {icon ? <Image height="30px" src={icon} width="30px" /> : <ViewIcon />}
-            <Text display={['none', 'none', 'inline']} marginTop="8px">
+            {icon ? <Image height="30px" src={icon} width="30px" /> : <ViewIcon boxSize="30px" />}
+            <Text
+              display={['none', 'none', '-webkit-box']}
+              marginTop="8px"
+              overflow="hidden"
+              textOverflow="ellipsis"
+              maxWidth="100%"
+              textAlign="center"
+              whiteSpace="normal"
+              css={`
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+              `}
+            >
               {name || 'N/A'}
             </Text>
           </>
@@ -45,7 +58,7 @@ const BingoTile = ({ colIndex, isEditor, tile }) => {
           <ViewIcon boxSize="32px" />
         )}
       </Flex>
-      <BingoTileDetails isOpen={isOpen} onClose={onClose} tile={tile} />
+      <BingoTileDetails isEditor={isEditor} isOpen={isOpen} onClose={onClose} tile={tile} />
     </>
   );
 };
