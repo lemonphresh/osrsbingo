@@ -22,7 +22,7 @@ module.exports = (sequelize) => {
         allowNull: false,
       },
       icon: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
       },
       dateCompleted: {
         type: DataTypes.DATE,

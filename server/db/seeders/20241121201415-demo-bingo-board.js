@@ -2,16 +2,15 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    // Create a BingoBoard
     const board = await queryInterface.bulkInsert(
       'BingoBoards',
       [
         {
           type: 'FIVE', // 'FIVE' for 5x5 board or 'SEVEN' for 7x7 board
           isPublic: true,
-          editors: '{1}', // Use PostgreSQL array literal syntax
+          editors: '{1}',
           name: 'Awesome Board',
-          layout: JSON.stringify([]), // Initialize empty; will populate below
+          layout: JSON.stringify([]),
           team: 1,
           totalValue: 100,
           totalValueCompleted: 0,
@@ -22,7 +21,7 @@ module.exports = {
             diagonalBonus: 20,
             blackoutBonus: 50,
           }),
-          userId: 1, // Replace with the appropriate user ID
+          userId: 1,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -30,11 +29,9 @@ module.exports = {
       { returning: true }
     );
 
-    // Get the board ID (since `bulkInsert` returns an array)
     const boardId = board[0].id;
 
-    // Generate tiles and layout
-    const size = 5; // Change to 7 if the type is 'SEVEN'
+    const size = 5;
     const tiles = [];
     const layout = [];
 
@@ -56,17 +53,17 @@ module.exports = {
           updatedAt: new Date(),
         };
         tiles.push(tile);
-        layoutRow.push(null); // Placeholder for tile IDs, populated below
+        layoutRow.push(null); // placeholder for tile IDs, populated below
       }
       layout.push(layoutRow);
     }
 
-    // Insert the tiles into the database
+    // insert the tiles into the database
     const createdTiles = await queryInterface.bulkInsert('BingoTiles', tiles, {
       returning: true,
     });
 
-    // Update the layout with the created tile IDs
+    // update the layout with the created tile IDs
     for (let i = 0; i < createdTiles.length; i++) {
       const tile = createdTiles[i];
       const row = Math.floor(i / size);
@@ -74,7 +71,7 @@ module.exports = {
       layout[row][col] = tile.id;
     }
 
-    // Update the board with the populated layout
+    // update the board with the populated layout
     await queryInterface.bulkUpdate(
       'BingoBoards',
       { layout: JSON.stringify(layout) },
@@ -83,7 +80,6 @@ module.exports = {
   },
 
   async down(queryInterface, Sequelize) {
-    // Delete all BingoTiles and BingoBoards
     await queryInterface.bulkDelete('BingoTiles', null, {});
     await queryInterface.bulkDelete('BingoBoards', null, {});
   },
