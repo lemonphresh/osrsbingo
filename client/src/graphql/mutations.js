@@ -20,6 +20,20 @@ export const LOGIN_USER = gql`
         id
         username
         rsn
+        bingoBoards {
+          id
+          name
+          type
+          layout
+          isPublic
+          bonusSettings {
+            allowDiagonals
+            horizontalBonus
+            verticalBonus
+            diagonalBonus
+            blackoutBonus
+          }
+        }
       }
     }
   }
@@ -31,28 +45,36 @@ export const UPDATE_USER = gql`
       id
       username
       rsn
+      bingoBoards {
+        id
+        name
+        type
+        layout
+        isPublic
+        bonusSettings {
+          allowDiagonals
+          horizontalBonus
+          verticalBonus
+          diagonalBonus
+          blackoutBonus
+        }
+      }
     }
   }
 `;
 
 export const CREATE_BOARD = gql`
-  mutation CreateBingoBoard(
-    $type: BingoBoardType!
-    $isPublic: Boolean
-    $editors: [ID]
-    $team: ID
-    $bonusSettings: BonusSettingsInput!
-  ) {
-    createBingoBoard(
-      type: $type
-      isPublic: $isPublic
-      editors: $editors
-      team: $team
-      bonusSettings: $bonusSettings
-    ) {
+  mutation CreateBingoBoard($input: CreateBingoBoardInput!) {
+    createBingoBoard(input: $input) {
       id
       type
       layout
+      isPublic
+      tiles {
+        id
+        name
+        value
+      }
     }
   }
 `;

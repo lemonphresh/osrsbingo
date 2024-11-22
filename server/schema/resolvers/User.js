@@ -33,7 +33,13 @@ module.exports = {
     loginUser: async (_, { username, password }, context) => {
       let user;
       try {
-        user = await User.findOne({ where: { username } });
+        user = await User.findOne({
+          where: { username },
+          include: {
+            model: BingoBoard,
+            as: 'bingoBoards',
+          },
+        });
       } catch (error) {
         console.error('Error during Sequelize query:', error);
       }
@@ -57,10 +63,21 @@ module.exports = {
     },
     updateUser: async (_, { id, fields }) => {
       try {
-        const user = await User.findByPk(id);
-        user.set({
-          ...fields,
+        const user = await User.findByPk(id, {
+          include: {
+            model: BingoBoard,
+            as: 'bingoBoards',
+          },
         });
+        const allowedFields = ['username', 'email', 'rsn', 'team']; // List allowed fields
+        const validFields = Object.keys(fields).reduce((acc, key) => {
+          if (allowedFields.includes(key)) {
+            acc[key] = fields[key];
+          }
+          return acc;
+        }, {});
+
+        user.set(validFields);
         await user.save();
         const updatedUser = user.reload();
         return updatedUser;

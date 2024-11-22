@@ -8,7 +8,18 @@ const typeDefs = gql`
     permissions: [String]
     token: String
     teams: [String]
-    boards: [BingoBoardType]
+    bingoBoards: [BingoBoard!]!
+  }
+
+  input CreateBingoBoardInput {
+    type: BingoBoardType!
+    layout: [[Int!]!]!
+    isPublic: Boolean
+    team: Int
+    totalValue: Int!
+    totalValueCompleted: Int!
+    bonusSettings: BonusSettingsInput!
+    userId: ID!
   }
 
   type BingoBoard {
@@ -16,6 +27,7 @@ const typeDefs = gql`
     type: BingoBoardType!
     layout: [[ID]]! # 2D array of BingoTile IDs
     isPublic: Boolean!
+    name: String!
     editors: [ID!]! # List of user IDs
     team: ID
     totalValue: Int!
@@ -30,11 +42,11 @@ const typeDefs = gql`
   }
 
   type BonusSettings {
-    allowDiagonals: Boolean!
-    horizontalBonus: Int!
-    verticalBonus: Int!
-    diagonalBonus: Int!
-    blackoutBonus: Int!
+    allowDiagonals: Boolean
+    horizontalBonus: Int
+    verticalBonus: Int
+    diagonalBonus: Int
+    blackoutBonus: Int
   }
 
   type AuthPayload {

@@ -1,3 +1,4 @@
+import BoardDetails from './pages/BoardDetails';
 import ErrorPage from './pages/ErrorPage';
 import Faq from './pages/Faq';
 import Landing from './pages/Landing';
@@ -42,25 +43,16 @@ const routes = [
         //     path: '/pantry/:userId/home',
         //     element: <PantryIntro />,
         //   },
+        // ],
+      },
+      {
+        path: '/boards/:boardId',
+        element: <BoardDetails />,
+        errorElement: <ErrorPage />,
+        // children: [
         //   {
-        //     path: '/pantry/:userId/inventory/edit',
-        //     element: <EditInventory />,
-        //     errorElement: <ErrorPage />,
-        //   },
-        //   {
-        //     path: '/pantry/:userId/inventory/view',
-        //     element: <ViewInventory />,
-        //     errorElement: <ErrorPage />,
-        //   },
-        //   {
-        //     path: '/pantry/:userId/recipes/edit',
-        //     element: <EditRecipes />,
-        //     errorElement: <ErrorPage />,
-        //   },
-        //   {
-        //     path: '/pantry/:userId/recipes/view',
-        //     element: <ViewRecipes />,
-        //     errorElement: <ErrorPage />,
+        //     path: '/pantry/:userId/home',
+        //     element: <PantryIntro />,
         //   },
         // ],
       },

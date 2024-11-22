@@ -22,6 +22,15 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM('FIVE', 'SEVEN'),
         allowNull: false,
       },
+      editors: {
+        type: DataTypes.ARRAY(DataTypes.INTEGER), // Assuming 'editors' is an array of user IDs
+        allowNull: true,
+        defaultValue: [],
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
       layout: {
         type: DataTypes.JSON,
         allowNull: false,

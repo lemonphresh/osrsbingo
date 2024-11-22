@@ -9,6 +9,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { UPDATE_USER } from '../graphql/mutations';
 import { WarningIcon } from '@chakra-ui/icons';
 import { GET_USER } from '../graphql/queries';
+import InternalLinkList from '../molecules/InternalLinkList';
 
 const EditField = ({ fieldName, onSave, userId, value }) => {
   const [val, setVal] = useState(value);
@@ -98,13 +99,14 @@ const UserDetails = () => {
     if (!isCheckingAuth && !user) {
       navigate('/');
     }
-  }, [isCheckingAuth, navigate, user]);
+  }, [isCheckingAuth, navigate, shownUser, user]);
 
   useEffect(() => {
     setIsCurrentUser(user && parseInt(user.id) === parseInt(params.userId, 10));
   }, [isCurrentUser, params.userId, user]);
 
   useEffect(() => {
+    console.log(user);
     setShownUser(user);
   }, [user]);
 
@@ -211,11 +213,15 @@ const UserDetails = () => {
               {isCurrentUser ? 'Your' : 'Their'} Bingo Boards
             </GemTitle>
             <Flex flexDirection="column">
-              <Text textAlign="center">
-                {!shownUser?.boards || shownUser.boards.length === 0
-                  ? `Looks like ${isCurrentUser ? 'you' : 'they'} haven't made any boards yet.`
-                  : 'todo bingo board list'}
-              </Text>
+              {!shownUser?.bingoBoards || shownUser.bingoBoards.length === 0 ? (
+                <Text textAlign="center">
+                  Looks like {isCurrentUser ? 'you' : 'they'} haven't made any boards yet.
+                </Text>
+              ) : (
+                <Flex padding="16px">
+                  <InternalLinkList list={shownUser.bingoBoards} type="boards" />
+                </Flex>
+              )}
             </Flex>
           </Section>
           <Section flexDirection="column" width="100%">

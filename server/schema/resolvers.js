@@ -1,13 +1,16 @@
-const { ApolloError } = require('apollo-server-express');
 const UserResolvers = require('./resolvers/User');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const BingoBoardResolvers = require('./resolvers/BingoBoard');
+const BingoTileResolvers = require('./resolvers/BingoTile');
 
 const resolvers = {
   Query: {
+    ...BingoBoardResolvers.Query,
+    ...BingoTileResolvers.Query,
     ...UserResolvers.Query,
   },
   Mutation: {
+    ...BingoBoardResolvers.Mutation,
+    ...BingoTileResolvers.Mutation,
     ...UserResolvers.Mutation,
   },
 };

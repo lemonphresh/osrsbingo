@@ -17,6 +17,20 @@ export const GET_USER = gql`
       id
       username
       rsn
+      bingoBoards {
+        id
+        name
+        type
+        layout
+        isPublic
+        bonusSettings {
+          allowDiagonals
+          horizontalBonus
+          verticalBonus
+          diagonalBonus
+          blackoutBonus
+        }
+      }
     }
   }
 `;
@@ -29,6 +43,7 @@ export const GET_BOARD = gql`
       layout
       isPublic
       editors
+      name
       team
       totalValue
       totalValueCompleted
@@ -41,8 +56,11 @@ export const GET_BOARD = gql`
       }
       tiles {
         id
+        icon
         name
         isComplete
+        dateCompleted
+        completedBy
         value
       }
     }

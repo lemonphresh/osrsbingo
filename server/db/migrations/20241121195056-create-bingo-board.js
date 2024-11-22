@@ -7,40 +7,40 @@ module.exports = {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       type: {
-        type: Sequelize.STRING
+        type: Sequelize.STRING,
       },
       layout: {
-        type: Sequelize.JSON
+        type: Sequelize.JSON,
       },
       isPublic: {
-        type: Sequelize.BOOLEAN
+        type: Sequelize.BOOLEAN,
       },
       team: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       totalValue: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       totalValueCompleted: {
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       bonusSettings: {
-        type: Sequelize.JSON
+        type: Sequelize.JSON,
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
       },
       updatedAt: {
         allowNull: false,
-        type: Sequelize.DATE
-      }
+        type: Sequelize.DATE,
+      },
     });
   },
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('BingoBoards');
-  }
+  },
 };
