@@ -1,5 +1,5 @@
 const express = require('express');
-const app = express();
+const axios = require('axios');
 const PORT = 5000;
 const { Pool } = require('pg');
 const router = express.Router();
@@ -7,9 +7,11 @@ const jwt = require('jsonwebtoken');
 const { makeExecutableSchema } = require('graphql-tools');
 const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
+const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
 const User = require('./db/models/User');
+const app = express();
 
 dotenv.config();
 
@@ -36,11 +38,67 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+app.get('/api/items', async (req, res) => {
+  try {
+    const { alpha } = req.query;
+
+    const response = await axios.get(
+      'https://raw.githubusercontent.com/osrsbox/osrsbox-db/refs/heads/master/docs/items-complete.json'
+    );
+
+    let itemsData;
+    try {
+      itemsData = response.data;
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError.message);
+      return res.status(500).json({ error: 'Failed to parse data from OSRSBox API' });
+    }
+    const items = Object.values(itemsData);
+
+    // fuse options
+    const options = {
+      includeScore: true,
+      threshold: 0.3, // lower value = stricter matching
+      keys: ['wiki_name'],
+    };
+
+    const fuse = new Fuse(items, options);
+    const result = fuse.search(alpha);
+
+    const seenImageUrls = new Set();
+    const uniqueResults = [];
+
+    // format and remove dupes
+    result.forEach((resultItem) => {
+      const imageUrl = resultItem.item.icon
+        ? `data:image/png;base64,${resultItem.item.icon}`
+        : `https://oldschool.runescape.wiki/images/${encodeURIComponent(
+            resultItem.item.wiki_name.replace(/ /g, '_')
+          )}.png`;
+
+      // if imageUrl not in Set, add it to the final results and Set
+      if (!seenImageUrls.has(imageUrl)) {
+        seenImageUrls.add(imageUrl);
+        uniqueResults.push({
+          name: resultItem.item.wiki_name || resultItem.item.name,
+          wikiUrl: resultItem.item.wiki_url,
+          imageUrl: imageUrl,
+        });
+      }
+    });
+
+    res.json(uniqueResults);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch data from RuneScape API' });
+  }
+});
+
 const server = new ApolloServer({
   typeDefs,
   resolvers,
   context: ({ req }) => {
-    const token = req.headers.authorization || '';
+    const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
     const SECRET = process.env.JWTSECRETKEY;
 
@@ -77,22 +135,6 @@ app.get('/api', (req, res) => {
 /*  END setup  */
 
 /*  START auth  */
-const authMiddleware = (req, res, next) => {
-  const token = req.cookies.token;
-
-  if (!token) {
-    return res.status(401).json({ msg: 'Unauthorized' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ msg: 'Invalid token' });
-  }
-};
-
 router.post('/auth/signup', async (req, res) => {
   const { username, password, rsn } = req.body;
   try {
@@ -137,23 +179,6 @@ router.post('/auth/login', async (req, res) => {
     console.error(err);
     res.status(500).send('Server error');
   }
-});
-
-app.get('/auth/user', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findByPk(req.user.id); // Fetch user from DB based on token payload
-    if (!user) {
-      return res.status(404).send({ message: 'User not found' });
-    }
-    res.status(200).send(user);
-  } catch (error) {
-    res.status(500).send({ message: 'Internal Server Error' });
-  }
-});
-
-router.post('/auth/logout', (req, res) => {
-  res.clearCookie('token');
-  res.json({ msg: 'Logged out' });
 });
 /*  END auth  */
 

@@ -40,6 +40,7 @@ module.exports = {
             as: 'bingoBoards',
           },
         });
+        console.log({ user });
       } catch (error) {
         console.error('Error during Sequelize query:', error);
       }

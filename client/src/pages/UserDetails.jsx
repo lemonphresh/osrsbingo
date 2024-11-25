@@ -45,7 +45,6 @@ const UserDetails = () => {
   }, [isCurrentUser, params.userId, user]);
 
   useEffect(() => {
-    console.log(user);
     setShownUser(user);
   }, [user]);
 

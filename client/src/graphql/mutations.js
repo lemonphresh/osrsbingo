@@ -93,3 +93,12 @@ export const UPDATE_TILE = gql`
     }
   }
 `;
+
+export const DELETE_BOARD = gql`
+  mutation DeleteBingoBoard($id: ID!) {
+    deleteBingoBoard(id: $id) {
+      success
+      message
+    }
+  }
+`;

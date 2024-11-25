@@ -8,7 +8,6 @@ module.exports = {
     editBingoTile: async (_, { id, input }) => {
       try {
         const tile = await BingoTile.findByPk(id);
-        console.log({ tile, input });
         tile.set({
           ...input,
         });

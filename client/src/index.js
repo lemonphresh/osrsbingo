@@ -18,7 +18,7 @@ const httpLink = new HttpLink({ uri: `${process.env.REACT_APP_SERVER_URL}/graphq
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem('authToken');
   // return the headers to the context so httpLink can read them
   return {
     headers: {

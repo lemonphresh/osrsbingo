@@ -33,13 +33,11 @@ module.exports = {
         }
         const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        console.log({ createdTiles });
         // step 2: make le layout
         const layout = [];
         for (let row = 0; row < size; row++) {
           layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
         }
-        console.log(layout);
         // step 3: update le board
         newBingoBoard.layout = layout;
         await newBingoBoard.save();
@@ -48,6 +46,34 @@ module.exports = {
       } catch (error) {
         console.error('Error creating BingoBoard:', error);
         throw new ApolloError('Failed to create BingoBoard');
+      }
+    },
+    deleteBingoBoard: async (_, { id }, context) => {
+      try {
+        const bingoBoard = await BingoBoard.findByPk(id, {
+          include: [{ model: BingoTile, as: 'tiles' }],
+        });
+
+        if (!bingoBoard) {
+          throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        console.log({ context });
+
+        const isEditor = bingoBoard.editors.includes(context.user.id);
+
+        if (!isEditor) {
+          throw new ApolloError('Unauthorized to delete this BingoBoard', 'UNAUTHORIZED');
+        }
+
+        await BingoTile.destroy({ where: { board: id } });
+
+        await BingoBoard.destroy({ where: { id } });
+
+        return { success: true, message: 'Bingo board deleted successfully' };
+      } catch (error) {
+        console.error('Error deleting BingoBoard:', error);
+        throw new ApolloError('Failed to delete BingoBoard');
       }
     },
   },
