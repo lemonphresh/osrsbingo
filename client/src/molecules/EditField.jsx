@@ -1,8 +1,7 @@
 import { useMutation } from '@apollo/client';
-import { Alert, Button, Flex, Input, Text, Textarea } from '@chakra-ui/react';
+import { Button, Flex, Input, Textarea } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import theme from '../theme';
-import { WarningIcon } from '@chakra-ui/icons';
 import { useToastContext } from '../providers/ToastProvider';
 
 const EditField = ({

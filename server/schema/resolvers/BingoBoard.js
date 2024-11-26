@@ -76,6 +76,59 @@ module.exports = {
         throw new ApolloError('Failed to update BingoBoard');
       }
     },
+    duplicateBingoBoard: async (_, { boardId }, context) => {
+      try {
+        const originalBoard = await BingoBoard.findByPk(boardId, {
+          include: [{ model: BingoTile, as: 'tiles' }],
+        });
+
+        if (!originalBoard) {
+          throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        const duplicatedBoard = await BingoBoard.create({
+          description: originalBoard.description,
+          name: `${originalBoard.name} (Copy)`,
+          type: originalBoard.type,
+          isPublic: false,
+          editors: [context.user.id],
+          team: null,
+          bonusSettings: originalBoard.bonusSettings,
+          layout: [],
+          userId: context.user.id,
+          totalValue: originalBoard.totalValue,
+          totalValueCompleted: originalBoard.totalValueCompleted,
+        });
+
+        const newTiles = originalBoard.tiles.map((tile) => ({
+          icon: tile.icon,
+          name: tile.name,
+          isComplete: false, // reset completion
+          value: tile.value,
+          board: duplicatedBoard.id,
+        }));
+
+        const createdTiles = await BingoTile.bulkCreate(newTiles, { returning: true });
+
+        const layout = [];
+        for (let row of originalBoard.layout) {
+          layout.push(
+            row.map((tileId) => {
+              const originalTile = originalBoard.tiles.find((tile) => tile.id === tileId);
+              return createdTiles.find((newTile) => newTile.name === originalTile.name).id;
+            })
+          );
+        }
+        duplicatedBoard.tiles = createdTiles;
+        duplicatedBoard.layout = layout;
+        await duplicatedBoard.save();
+
+        return duplicatedBoard;
+      } catch (error) {
+        console.error('Error duplicating BingoBoard:', error);
+        throw new ApolloError('Failed to duplicate BingoBoard');
+      }
+    },
     deleteBingoBoard: async (_, { id }, context) => {
       try {
         const bingoBoard = await BingoBoard.findByPk(id, {

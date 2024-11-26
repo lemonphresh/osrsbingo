@@ -125,3 +125,28 @@ export const UPDATE_BOARD = gql`
     }
   }
 `;
+
+export const DUPLICATE_BINGO_BOARD = gql`
+  mutation DuplicateBingoBoard($boardId: ID!) {
+    duplicateBingoBoard(boardId: $boardId) {
+      id
+      name
+      type
+      layout
+      isPublic
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
+      tiles {
+        id
+        name
+        isComplete
+        value
+      }
+    }
+  }
+`;

@@ -12,7 +12,7 @@ import { setContext } from '@apollo/client/link/context';
 import routes from './routes';
 import theme from './theme';
 import AuthProvider from './providers/AuthProvider';
-import { ApolloClient, ApolloLink, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
+import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
 import { ToastProvider } from './providers/ToastProvider';
 
 const httpLink = new HttpLink({ uri: `${process.env.REACT_APP_SERVER_URL}/graphql` });

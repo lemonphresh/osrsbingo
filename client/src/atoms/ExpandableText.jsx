@@ -9,7 +9,7 @@ const ExpandableText = ({ text, limit = 150 }) => {
 
   return (
     <Flex flexDirection="column" maxWidth="720px" width="100%">
-      <Collapse startingHeight="8rem" in={isExpanded}>
+      <Collapse animateOpacity startingHeight="8rem" in={isExpanded}>
         <Markdown text={text} />
       </Collapse>
       {text.length > limit && (

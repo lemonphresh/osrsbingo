@@ -26,7 +26,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
 
-  const [loginUser, { data, loading, error }] = useMutation(LOGIN_USER);
+  const [loginUser, { data, error }] = useMutation(LOGIN_USER);
 
   const { onChange, onSubmit, values } = useForm(
     () => {

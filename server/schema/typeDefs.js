@@ -123,6 +123,7 @@ const typeDefs = gql`
     ): BingoBoard
 
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
+    duplicateBingoBoard(boardId: ID!): BingoBoard!
 
     deleteBingoBoard(id: ID!): MutationResponse
     createBingoTile(board: ID!, name: String!, value: Int!, icon: String): BingoTile

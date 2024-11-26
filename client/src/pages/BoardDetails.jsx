@@ -14,7 +14,7 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_BOARD } from '../graphql/queries';
 import Section from '../atoms/Section';
@@ -23,11 +23,11 @@ import theme from '../theme';
 import BingoBoard from '../molecules/BingoBoard';
 import { useAuth } from '../providers/AuthProvider';
 import useBingoCompletion from '../hooks/useBingoCompletion';
-import { DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { DELETE_BOARD, UPDATE_BOARD } from '../graphql/mutations';
-import Markdown from '../atoms/Markdown';
+import { CopyIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
+import { DELETE_BOARD, DUPLICATE_BINGO_BOARD, UPDATE_BOARD } from '../graphql/mutations';
 import EditField from '../molecules/EditField';
 import ExpandableText from '../atoms/ExpandableText';
+import { useToastContext } from '../providers/ToastProvider';
 
 const BoardDetails = () => {
   const { user } = useAuth();
@@ -35,11 +35,22 @@ const BoardDetails = () => {
   const { data, loading } = useQuery(GET_BOARD, {
     variables: { id: params.boardId },
   });
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const { showToast } = useToastContext();
+  const {
+    isOpen: isDeleteAlertOpen,
+    onOpen: onOpenDeleteAlert,
+    onClose: onCloseDeleteAlert,
+  } = useDisclosure();
+  const {
+    isOpen: isDupeAlertOpen,
+    onOpen: onOpenDupeAlert,
+    onClose: onCloseDupeAlert,
+  } = useDisclosure();
   const [board, setBoard] = useState(null);
   const [isEditor, setIsEditor] = useState(false);
   const [fieldsEditing, setFieldsEditing] = useState({
     description: false,
+    name: false,
   });
   const [isEditMode, setIsEditMode] = useState(false);
   const handleToggle = () => setIsEditMode(!isEditMode);
@@ -49,6 +60,7 @@ const BoardDetails = () => {
   const { completedPatterns, score } = useBingoCompletion(board?.layout, board?.bonusSettings);
 
   const [deleteBoard] = useMutation(DELETE_BOARD);
+  const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
 
   const onDelete = useCallback(async () => {
     const { data } = await deleteBoard({
@@ -59,9 +71,20 @@ const BoardDetails = () => {
 
     if (data?.deleteBingoBoard?.success) {
       navigate(`/user/${user?.id}`);
-      onClose();
+      onCloseDeleteAlert();
     }
-  }, [board?.id, deleteBoard, navigate, onClose, user?.id]);
+  }, [board?.id, deleteBoard, navigate, onCloseDeleteAlert, user?.id]);
+
+  const handleDuplicate = useCallback(async () => {
+    try {
+      const { data } = await duplicateBoard({ variables: { boardId: board?.id } });
+      navigate(`/boards/${data.duplicateBingoBoard?.id}`);
+      onCloseDupeAlert();
+      showToast('Duplicated board successfully!', 'success');
+    } catch (error) {
+      console.error('Error duplicating board:', error.message);
+    }
+  }, [board?.id, duplicateBoard, navigate, onCloseDupeAlert, showToast]);
 
   useEffect(() => {
     if (data?.getBingoBoard) {
@@ -114,7 +137,48 @@ const BoardDetails = () => {
       {board && (
         <>
           <Section flexDirection="column">
-            <GemTitle marginBottom={isEditMode ? '16px' : undefined}>{board.name}</GemTitle>
+            {fieldsEditing.name ? (
+              <EditField
+                defaultValue={board.name}
+                entityId={board.id}
+                fieldName="name"
+                MUTATION={UPDATE_BOARD}
+                onSave={(data, val) => {
+                  setBoard({
+                    ...data.updateBingoBoard,
+                    ...board,
+                    name: val,
+                  });
+                  setFieldsEditing({
+                    ...fieldsEditing,
+                    name: false,
+                  });
+                }}
+                value={board.name}
+              />
+            ) : (
+              isEditor &&
+              isEditMode && (
+                <Button
+                  _hover={{ backgroundColor: theme.colors.green[800] }}
+                  color={theme.colors.green[300]}
+                  margin="0 auto"
+                  marginBottom="8px"
+                  onClick={() =>
+                    setFieldsEditing({
+                      ...fieldsEditing,
+                      name: true,
+                    })
+                  }
+                  textDecoration="underline"
+                  variant="ghost"
+                  width="fit-content"
+                >
+                  Edit Name
+                </Button>
+              )
+            )}
+            {!fieldsEditing.name && <GemTitle marginBottom="16px">{board.name}</GemTitle>}
             {/* todo: get list of board editor names from list of user ids  */}
             {/* <Text width="100%">
               <Text
@@ -144,17 +208,21 @@ const BoardDetails = () => {
                           description: true,
                         })
                       }
-                      position="absolute"
+                      position={!board?.description ? 'static' : 'absolute'}
                       right="0"
                       textDecoration="underline"
-                      top="16px"
+                      top="0px"
                       variant="ghost"
                       width="fit-content"
                     >
-                      <EditIcon />
+                      {!board?.description ? 'Add description' : <EditIcon />}
                     </Button>
                   )}
-                  {board?.description && <ExpandableText limit={350} text={board?.description} />}
+                  {board?.description && (
+                    <Section>
+                      <ExpandableText limit={350} text={board?.description} />
+                    </Section>
+                  )}
                 </Flex>
               </>
             ) : (
@@ -222,7 +290,7 @@ const BoardDetails = () => {
                   leftIcon={<DeleteIcon />}
                   marginBottom="1px"
                   marginTop="48px"
-                  onClick={onOpen}
+                  onClick={onOpenDeleteAlert}
                   padding="6px"
                   textAlign="center"
                   variant="unstyled"
@@ -230,19 +298,21 @@ const BoardDetails = () => {
                 >
                   Delete Board
                 </Button>
-                <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose}>
+                <AlertDialog
+                  isOpen={isDeleteAlertOpen}
+                  leastDestructiveRef={cancelRef}
+                  onClose={onCloseDeleteAlert}
+                >
                   <AlertDialogOverlay>
                     <AlertDialogContent>
                       <AlertDialogHeader fontSize="lg" fontWeight="bold">
                         Delete Bingo Board
                       </AlertDialogHeader>
-
                       <AlertDialogBody>
                         Are you sure? You can't undo this action afterwards.
                       </AlertDialogBody>
-
                       <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onClose}>
+                        <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
                           Cancel
                         </Button>
                         <Button colorScheme="red" onClick={onDelete} ml={3}>
@@ -254,6 +324,49 @@ const BoardDetails = () => {
                 </AlertDialog>
               </>
             )}
+            <>
+              <Button
+                _hover={{
+                  border: `1px solid ${theme.colors.yellow[400]}`,
+                  padding: '4px',
+                }}
+                color={theme.colors.yellow[400]}
+                leftIcon={<CopyIcon />}
+                marginBottom="1px"
+                marginTop="24px"
+                onClick={onOpenDupeAlert}
+                padding="6px"
+                textAlign="center"
+                variant="unstyled"
+                width="fit-content"
+              >
+                Duplicate Board
+              </Button>
+              <AlertDialog
+                isOpen={isDupeAlertOpen}
+                leastDestructiveRef={cancelRef}
+                onClose={onCloseDupeAlert}
+              >
+                <AlertDialogOverlay>
+                  <AlertDialogContent>
+                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                      Duplicate Bingo Board
+                    </AlertDialogHeader>
+                    <AlertDialogBody>
+                      Copy an incomplete version of this board to your own collection?
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                      <Button ref={cancelRef} onClick={onCloseDupeAlert}>
+                        Cancel
+                      </Button>
+                      <Button colorScheme="green" onClick={handleDuplicate} ml={3}>
+                        Copy
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialogOverlay>
+              </AlertDialog>
+            </>
           </Flex>
         </>
       )}
