@@ -159,7 +159,7 @@ const UserDetails = () => {
                   Looks like {isCurrentUser ? 'you' : 'they'} haven't made any boards yet.
                 </Text>
               ) : (
-                <Flex padding="16px">
+                <Flex key={shownUser.bingoBoards} padding="16px">
                   <InternalLinkList list={shownUser.bingoBoards} type="boards" />
                 </Flex>
               )}

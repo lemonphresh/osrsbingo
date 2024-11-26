@@ -7,6 +7,7 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   Button,
+  Checkbox,
   Flex,
   FormControl,
   FormLabel,
@@ -16,7 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
-import { GET_BOARD } from '../graphql/queries';
+import { GET_BOARD, GET_USER } from '../graphql/queries';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
@@ -59,8 +60,16 @@ const BoardDetails = () => {
   // todo use score from here
   const { completedPatterns, score } = useBingoCompletion(board?.layout, board?.bonusSettings);
 
-  const [deleteBoard] = useMutation(DELETE_BOARD);
+  const [deleteBoard] = useMutation(DELETE_BOARD, {
+    refetchQueries: [
+      {
+        query: GET_USER,
+        variables: { id: user.id },
+      },
+    ],
+  });
   const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
+  const [updateBingoBoard] = useMutation(UPDATE_BOARD);
 
   const onDelete = useCallback(async () => {
     const { data } = await deleteBoard({
@@ -263,6 +272,46 @@ const BoardDetails = () => {
                 />
               </>
             )}
+            <Text alignItems="center" display="flex" justifyContent="center" width="100%">
+              <Text
+                as="span"
+                color={theme.colors.green[300]}
+                display="inline"
+                fontWeight="bold"
+                marginRight="8px"
+                marginTop="16px"
+              >
+                Is Public:
+              </Text>
+              {isEditor && isEditMode ? (
+                <Checkbox
+                  colorScheme="green"
+                  borderColor={theme.colors.green[300]}
+                  defaultChecked={board.isPublic}
+                  marginRight="16px"
+                  marginTop="16px"
+                  onChange={async () => {
+                    const { data } = await updateBingoBoard({
+                      variables: {
+                        id: board.id,
+                        input: {
+                          isPublic: !board.isPublic,
+                        },
+                      },
+                    });
+
+                    setBoard({
+                      ...data.updateBingoBoard,
+                      ...board,
+                      isPublic: !board.isPublic,
+                    });
+                  }}
+                  size="lg"
+                />
+              ) : (
+                <Text marginTop="16px">{board.isPublic ? 'Yes' : 'No'}</Text>
+              )}
+            </Text>
           </Section>
 
           <Flex alignItems="center" flexDirection="column" justifyContent="center" marginTop="36px">
@@ -284,9 +333,10 @@ const BoardDetails = () => {
               <>
                 <Button
                   _hover={{
-                    border: '1px solid white',
+                    border: `1px solid ${theme.colors.red[300]}`,
                     padding: '4px',
                   }}
+                  color={theme.colors.red[300]}
                   leftIcon={<DeleteIcon />}
                   marginBottom="1px"
                   marginTop="48px"

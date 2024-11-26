@@ -1,5 +1,6 @@
 import { Flex } from '@chakra-ui/react';
 import React from 'react';
+import theme from '../theme';
 
 const Section = ({ children, ...props }) => {
   return (
@@ -7,6 +8,7 @@ const Section = ({ children, ...props }) => {
       backgroundColor="rgba(93, 61, 172, 0.3)"
       borderRadius="8px"
       boxShadow="4px 4px 8px 2px rgba(0, 0, 0, 0.07)"
+      fontFamily={theme.fonts.introText}
       padding="24px"
       {...props}
     >

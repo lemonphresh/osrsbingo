@@ -57,6 +57,7 @@ const Markdown = ({ text }) => {
           <code
             style={{
               backgroundColor: 'rgba(255, 255, 255,0.1)',
+              fontFamily: theme.fonts.mono,
               padding: '1px',
               borderRadius: '5px',
             }}
