@@ -24,21 +24,24 @@ const UserDetails = () => {
   });
   const [shownUser, setShownUser] = useState(null);
 
-  useQuery(GET_USER, {
+  const { loading } = useQuery(GET_USER, {
     variables: { id: parseInt(params.userId, 10) },
     onCompleted: (data) => {
-      setShownUser(data?.getUser || null);
+      setShownUser(data?.getUser || 'Not found');
     },
     onError: () => {
-      setShownUser(null);
+      setShownUser('Not found');
     },
   });
 
   useEffect(() => {
+    console.log({ isCheckingAuth, loading, user, shownUser });
     if (!isCheckingAuth && !user) {
       navigate('/');
+    } else if (shownUser === 'Not found') {
+      navigate('/error');
     }
-  }, [isCheckingAuth, navigate, shownUser, user]);
+  }, [isCheckingAuth, loading, navigate, shownUser, user]);
 
   useEffect(() => {
     setIsCurrentUser(user && parseInt(user.id) === parseInt(params.userId, 10));

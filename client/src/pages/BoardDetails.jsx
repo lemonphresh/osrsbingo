@@ -26,7 +26,7 @@ import { DELETE_BOARD } from '../graphql/mutations';
 const BoardDetails = () => {
   const { user } = useAuth();
   const params = useParams();
-  const { data } = useQuery(GET_BOARD, {
+  const { data, loading } = useQuery(GET_BOARD, {
     variables: { id: params.boardId },
   });
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -75,10 +75,14 @@ const BoardDetails = () => {
   }, [board, user?.id]);
 
   useEffect(() => {
-    if (board && !isEditor && !board.isPublic) {
-      navigate('/');
+    if ((board && !isEditor && !board.isPublic) || (!board && !loading)) {
+      navigate('/error');
     }
-  }, [isEditor, board, navigate]);
+
+    // if (!board && !loading) {
+    //   navigate('/')
+    // }
+  }, [isEditor, board, navigate, loading]);
 
   return (
     <Flex

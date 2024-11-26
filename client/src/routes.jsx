@@ -60,6 +60,10 @@ const routes = [
         path: '*',
         element: <NoMatch />,
       },
+      {
+        path: '/error',
+        element: <NoMatch />,
+      },
     ],
   },
 ];
