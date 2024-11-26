@@ -15,7 +15,6 @@ module.exports = {
         const updatedTile = tile.reload();
         return updatedTile;
       } catch (error) {
-        console.log({ error });
         throw new Error('Failed to update tile');
       }
     },

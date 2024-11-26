@@ -40,7 +40,7 @@ const Login = () => {
     }
   );
   // zz todo
-  const usernameError = useCallback(() => console.log(values.username), [values.username]);
+  const usernameError = useCallback(() => {}, []);
   useEffect(() => {
     if (error) {
       setErrors([{ message: error.message }]);

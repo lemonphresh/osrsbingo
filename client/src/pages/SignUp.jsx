@@ -71,7 +71,7 @@ const SignUp = () => {
   );
 
   // todo: figure out what makes a username bad
-  const usernameError = useCallback(() => console.log(values.username), [values.username]);
+  const usernameError = useCallback(() => {}, []);
   const passwordError = useCallback(
     () => validatePasswords(values.password, values.confirmedPassword),
     [values.password, values.confirmedPassword]

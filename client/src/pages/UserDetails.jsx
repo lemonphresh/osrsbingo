@@ -35,7 +35,6 @@ const UserDetails = () => {
   });
 
   useEffect(() => {
-    console.log({ isCheckingAuth, loading, user, shownUser });
     if (!isCheckingAuth && !user) {
       navigate('/');
     } else if (shownUser === 'Not found') {
@@ -135,7 +134,6 @@ const UserDetails = () => {
                 fieldName="rsn"
                 MUTATION={UPDATE_USER}
                 onSave={(data) => {
-                  console.log(data);
                   setUser({
                     token: user.token,
                     ...data.updateUser,

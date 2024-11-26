@@ -24,6 +24,7 @@ export const LOGIN_USER = gql`
           id
           name
           type
+          description
           layout
           isPublic
           bonusSettings {
@@ -49,6 +50,7 @@ export const UPDATE_USER = gql`
         id
         name
         type
+        description
         layout
         isPublic
         bonusSettings {
@@ -70,6 +72,7 @@ export const CREATE_BOARD = gql`
       type
       layout
       isPublic
+      description
       tiles {
         id
         name
@@ -99,6 +102,26 @@ export const DELETE_BOARD = gql`
     deleteBingoBoard(id: $id) {
       success
       message
+    }
+  }
+`;
+
+export const UPDATE_BOARD = gql`
+  mutation UpdateBingoBoard($id: ID!, $input: UpdateBingoBoardInput!) {
+    updateBingoBoard(id: $id, input: $input) {
+      id
+      name
+      type
+      description
+      layout
+      isPublic
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
     }
   }
 `;

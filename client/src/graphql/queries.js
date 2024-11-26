@@ -21,6 +21,7 @@ export const GET_USER = gql`
         id
         name
         type
+        description
         layout
         isPublic
         bonusSettings {
@@ -43,6 +44,7 @@ export const GET_BOARD = gql`
       layout
       isPublic
       editors
+      description
       name
       team
       totalValue

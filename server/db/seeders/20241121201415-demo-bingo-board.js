@@ -12,6 +12,7 @@ module.exports = {
           name: 'Awesome Board',
           layout: JSON.stringify([]),
           team: 1,
+          description: 'This is a description for this awesome board',
           totalValue: 100,
           totalValueCompleted: 0,
           bonusSettings: JSON.stringify({

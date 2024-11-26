@@ -48,6 +48,34 @@ module.exports = {
         throw new ApolloError('Failed to create BingoBoard');
       }
     },
+    updateBingoBoard: async (_, { id, input }, context) => {
+      try {
+        const bingoBoard = await BingoBoard.findByPk(id);
+
+        if (!bingoBoard) {
+          throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        const isEditor = bingoBoard.editors.includes(context.user.id);
+
+        if (!isEditor) {
+          throw new ApolloError('Unauthorized to update this BingoBoard', 'UNAUTHORIZED');
+        }
+
+        Object.keys(input).forEach((key) => {
+          if (key in bingoBoard) {
+            bingoBoard[key] = input[key];
+          }
+        });
+
+        await bingoBoard.save();
+
+        return bingoBoard;
+      } catch (error) {
+        console.error('Error updating BingoBoard:', error);
+        throw new ApolloError('Failed to update BingoBoard');
+      }
+    },
     deleteBingoBoard: async (_, { id }, context) => {
       try {
         const bingoBoard = await BingoBoard.findByPk(id, {
@@ -57,8 +85,6 @@ module.exports = {
         if (!bingoBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
-
-        console.log({ context });
 
         const isEditor = bingoBoard.editors.includes(context.user.id);
 

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 
 const useCompletedTileGlow = (direction) => {
   const [glowColor, setGlowColor] = useState('');
-  console.log({ direction });
+
   useEffect(() => {
     switch (direction) {
       case 'horizontal':

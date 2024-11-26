@@ -13,6 +13,7 @@ import routes from './routes';
 import theme from './theme';
 import AuthProvider from './providers/AuthProvider';
 import { ApolloClient, ApolloLink, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
+import { ToastProvider } from './providers/ToastProvider';
 
 const httpLink = new HttpLink({ uri: `${process.env.REACT_APP_SERVER_URL}/graphql` });
 
@@ -43,12 +44,14 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
   <ApolloProvider client={client}>
-    <AuthProvider>
-      <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
-        <React.StrictMode>
-          <RouterProvider router={router} />
-        </React.StrictMode>
-      </ChakraProvider>
-    </AuthProvider>
+    <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
+      <ToastProvider>
+        <AuthProvider>
+          <React.StrictMode>
+            <RouterProvider router={router} />
+          </React.StrictMode>
+        </AuthProvider>
+      </ToastProvider>
+    </ChakraProvider>
   </ApolloProvider>
 );
