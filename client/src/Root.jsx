@@ -36,7 +36,6 @@ const Root = () => {
         flexDirection="column"
         fontFamily={theme.fonts.body}
         minHeight="100vh"
-        width="100vw"
       >
         <NavBar />
         <AuthConsumer />

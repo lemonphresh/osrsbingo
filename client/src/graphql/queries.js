@@ -19,6 +19,7 @@ export const GET_USER = gql`
       rsn
       bingoBoards {
         id
+        createdAt
         name
         type
         description
@@ -64,6 +65,20 @@ export const GET_BOARD = gql`
         dateCompleted
         completedBy
         value
+      }
+    }
+  }
+`;
+
+export const GET_PUBLIC_BOARDS = gql`
+  query GetPublicBoards {
+    getPublicBoards {
+      id
+      name
+      layout
+      tiles {
+        id
+        isComplete
       }
     }
   }

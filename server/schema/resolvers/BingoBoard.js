@@ -5,16 +5,31 @@ const jwt = require('jsonwebtoken');
 
 module.exports = {
   Mutation: {
-    createBingoBoard: async (_, { type, isPublic, editors, team, bonusSettings }, context) => {
+    createBingoBoard: async (_, { input }, context) => {
+      const {
+        name,
+        description,
+        type,
+        isPublic,
+        editors,
+        team,
+        bonusSettings,
+        totalValue,
+        totalValueCompleted,
+      } = input;
       try {
         const size = type === 'FIVE' ? 5 : 7;
 
         const newBingoBoard = await BingoBoard.create({
+          name,
+          description,
           type,
           isPublic,
           editors: editors || [context.user.id],
           team,
           bonusSettings,
+          totalValue,
+          totalValueCompleted,
           userId: context.user.id,
           layout: [],
         });
@@ -42,7 +57,11 @@ module.exports = {
         newBingoBoard.layout = layout;
         await newBingoBoard.save();
 
-        return newBingoBoard;
+        const populatedBingoBoard = await BingoBoard.findByPk(newBingoBoard.id, {
+          include: [{ model: BingoTile, as: 'tiles' }],
+        });
+
+        return populatedBingoBoard;
       } catch (error) {
         console.error('Error creating BingoBoard:', error);
         throw new ApolloError('Failed to create BingoBoard');
@@ -98,6 +117,7 @@ module.exports = {
           userId: context.user.id,
           totalValue: originalBoard.totalValue,
           totalValueCompleted: originalBoard.totalValueCompleted,
+          createdAt: new Date(Date.now()).toISOString(),
         });
 
         const newTiles = originalBoard.tiles.map((tile) => ({
@@ -176,6 +196,26 @@ module.exports = {
       } catch (error) {
         console.error('Error fetching BingoBoard:', error);
         throw new ApolloError('Failed to fetch BingoBoard');
+      }
+    },
+    getPublicBoards: async () => {
+      try {
+        const publicBoards = await BingoBoard.findAll({
+          where: { isPublic: true },
+          attributes: ['id', 'name', 'layout'],
+          include: [
+            {
+              model: BingoTile,
+              as: 'tiles',
+              attributes: ['id', 'isComplete'],
+            },
+          ],
+          order: [['createdAt', 'DESC']],
+        });
+        return publicBoards;
+      } catch (error) {
+        console.error('Error fetching public boards:', error);
+        throw new ApolloError('Failed to fetch public boards');
       }
     },
   },

@@ -8,8 +8,8 @@ const ExpandableText = ({ text, limit = 150 }) => {
   const toggleExpansion = () => setIsExpanded(!isExpanded);
 
   return (
-    <Flex flexDirection="column" maxWidth="720px" width="100%">
-      <Collapse animateOpacity startingHeight="8rem" in={isExpanded}>
+    <Flex flexDirection="column" maxWidth={['100%', '720px']} width="100%">
+      <Collapse animateOpacity startingHeight="8rem" in={isExpanded} width="100%">
         <Markdown text={text} />
       </Collapse>
       {text.length > limit && (

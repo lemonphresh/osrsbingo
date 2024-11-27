@@ -37,6 +37,7 @@ const EditField = ({
       <Flex flexDirection={flexDirection} width="100%">
         {inputType === 'text' && (
           <Input
+            autocomplete="off"
             onChange={(e) => setVal(e.target.value)}
             placeholder={value}
             name={fieldName}
@@ -46,11 +47,12 @@ const EditField = ({
         )}
         {inputType === 'textarea' && (
           <Textarea
+            autocomplete="off"
             defaultValue={val}
             onChange={(e) => setVal(e.target.value)}
             placeholder={value}
             name={fieldName}
-            minWidth={['100%', '350px', '500px', '720px']}
+            minWidth={['100%', '350px', '500px', '650px']}
           />
         )}
         <Button

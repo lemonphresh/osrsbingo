@@ -69,10 +69,20 @@ export const CREATE_BOARD = gql`
   mutation CreateBingoBoard($input: CreateBingoBoardInput!) {
     createBingoBoard(input: $input) {
       id
-      type
-      layout
-      isPublic
+      name
       description
+      type
+      isPublic
+      editors
+      team
+      layout
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
       tiles {
         id
         name

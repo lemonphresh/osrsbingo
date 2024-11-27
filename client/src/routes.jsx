@@ -1,4 +1,6 @@
+import BoardCreation from './pages/BoardCreation';
 import BoardDetails from './pages/BoardDetails';
+import BoardViewAll from './pages/BoardViewAll';
 import ErrorPage from './pages/ErrorPage';
 import Faq from './pages/Faq';
 import Landing from './pages/Landing';
@@ -38,23 +40,21 @@ const routes = [
         path: '/user/:userId',
         element: <UserDetails />,
         errorElement: <ErrorPage />,
-        // children: [
-        //   {
-        //     path: '/pantry/:userId/home',
-        //     element: <PantryIntro />,
-        //   },
-        // ],
+      },
+      {
+        path: '/boards',
+        element: <BoardViewAll />,
+        errorElement: <ErrorPage />,
       },
       {
         path: '/boards/:boardId',
         element: <BoardDetails />,
         errorElement: <ErrorPage />,
-        // children: [
-        //   {
-        //     path: '/pantry/:userId/home',
-        //     element: <PantryIntro />,
-        //   },
-        // ],
+      },
+      {
+        path: '/boards/create',
+        element: <BoardCreation />,
+        errorElement: <ErrorPage />,
       },
       {
         path: '*',

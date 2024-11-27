@@ -13,7 +13,10 @@ const typeDefs = gql`
 
   input CreateBingoBoardInput {
     type: BingoBoardType!
-    layout: [[Int!]!]!
+    name: String!
+    editors: [ID!]
+    description: String
+    layout: [[Int!]!]
     isPublic: Boolean
     team: Int
     totalValue: Int!
@@ -24,6 +27,7 @@ const typeDefs = gql`
 
   type BingoBoard {
     id: ID!
+    createdAt: String
     type: BingoBoardType!
     layout: [[ID]]! # 2D array of BingoTile IDs
     isPublic: Boolean!
@@ -98,6 +102,7 @@ const typeDefs = gql`
     name: String
     type: String
     description: String
+    editors: [ID!]
     isPublic: Boolean
     bonusSettings: BonusSettingsInput
   }
@@ -107,20 +112,14 @@ const typeDefs = gql`
     getUsers: [User!]
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
+    getPublicBoards: [BingoBoard!]!
   }
 
   type Mutation {
     createUser(username: String!, password: String!, rsn: String, permissions: String!): User
     updateUser(id: ID!, input: UserUpdateInput!): User
     loginUser(username: String!, password: String!): AuthPayload
-
-    createBingoBoard(
-      type: BingoBoardType!
-      isPublic: Boolean
-      editors: [ID]
-      team: ID
-      bonusSettings: BonusSettingsInput!
-    ): BingoBoard
+    createBingoBoard(input: CreateBingoBoardInput!): BingoBoard
 
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
     duplicateBingoBoard(boardId: ID!): BingoBoard!

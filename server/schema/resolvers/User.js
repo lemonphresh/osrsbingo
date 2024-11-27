@@ -48,6 +48,15 @@ module.exports = {
         throw new Error('User not found');
       }
 
+      const sortedBoards = await BingoBoard.findAll({
+        where: { userId: user.id },
+        order: [['createdAt', 'DESC']],
+      });
+
+      user.dataValues.bingoBoards = sortedBoards;
+
+      user.save();
+
       const valid = await bcrypt.compare(password, user.password);
 
       if (!valid) {
@@ -69,7 +78,19 @@ module.exports = {
             as: 'bingoBoards',
           },
         });
-        const allowedFields = ['username', 'email', 'rsn', 'team']; // List allowed fields
+
+        if (!user) {
+          throw new ApolloError('User not found', 'NOT_FOUND');
+        }
+
+        const sortedBoards = await BingoBoard.findAll({
+          where: { userId: user.id },
+          order: [['createdAt', 'DESC']],
+        });
+
+        user.dataValues.bingoBoards = sortedBoards;
+
+        const allowedFields = ['username', 'email', 'rsn', 'team']; // list allowed fields
         const validFields = Object.keys(input).reduce((acc, key) => {
           if (allowedFields.includes(key)) {
             acc[key] = input[key];
@@ -90,11 +111,27 @@ module.exports = {
     getUser: async (_, { id }) => {
       try {
         const user = await User.findByPk(id, {
-          include: {
-            model: BingoBoard,
-            as: 'bingoBoards',
-          },
+          include: [
+            {
+              model: BingoBoard,
+              as: 'bingoBoards',
+            },
+          ],
         });
+
+        if (!user) {
+          throw new ApolloError('User not found', 'NOT_FOUND');
+        }
+
+        const sortedBoards = await BingoBoard.findAll({
+          where: { userId: user.id },
+          order: [['createdAt', 'DESC']],
+        });
+
+        user.dataValues.bingoBoards = sortedBoards;
+
+        user.save();
+
         return user;
       } catch (error) {
         console.error('Error fetching user:', error);

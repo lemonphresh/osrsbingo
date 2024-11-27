@@ -11,11 +11,12 @@ import {
   Flex,
   FormControl,
   FormLabel,
+  Spinner,
   Switch,
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_BOARD, GET_USER } from '../graphql/queries';
 import Section from '../atoms/Section';
@@ -33,6 +34,7 @@ import { useToastContext } from '../providers/ToastProvider';
 const BoardDetails = () => {
   const { user } = useAuth();
   const params = useParams();
+  const location = useLocation();
   const { data, loading } = useQuery(GET_BOARD, {
     variables: { id: params.boardId },
   });
@@ -61,12 +63,27 @@ const BoardDetails = () => {
   const { completedPatterns, score } = useBingoCompletion(board?.layout, board?.bonusSettings);
 
   const [deleteBoard] = useMutation(DELETE_BOARD, {
-    refetchQueries: [
-      {
+    update(cache, { data: { deleteBingoBoard } }) {
+      const existingData = cache.readQuery({
         query: GET_USER,
         variables: { id: user.id },
-      },
-    ],
+      });
+
+      if (existingData) {
+        cache.writeQuery({
+          query: GET_USER,
+          variables: { id: user.id },
+          data: {
+            getUser: {
+              ...existingData.getUser,
+              bingoBoards: existingData.getUser.bingoBoards.filter(
+                (board) => board.id !== deleteBingoBoard.id
+              ),
+            },
+          },
+        });
+      }
+    },
   });
   const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
   const [updateBingoBoard] = useMutation(UPDATE_BOARD);
@@ -118,6 +135,13 @@ const BoardDetails = () => {
   }, [board, user?.id]);
 
   useEffect(() => {
+    if (location.state?.isEditMode) {
+      setIsEditMode(true);
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  useEffect(() => {
     if (!loading) {
       if (!data?.getBingoBoard) {
         navigate('/error');
@@ -143,9 +167,26 @@ const BoardDetails = () => {
       paddingY={['72px', '112px']}
       width="100%"
     >
-      {board && (
+      <Flex alignItems="flex-start" marginBottom="24px" maxWidth="720px" width="100%">
+        <Text
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          fontWeight="bold"
+          marginBottom="1px"
+        >
+          <Link to="/boards">→ View All Boards</Link>
+        </Text>
+      </Flex>
+      {board && board.name ? (
         <>
-          <Section flexDirection="column">
+          <Section
+            flexDirection="column"
+            maxWidth="720px"
+            width="100%
+          "
+          >
             {fieldsEditing.name ? (
               <EditField
                 defaultValue={board.name}
@@ -316,7 +357,7 @@ const BoardDetails = () => {
 
           <Flex alignItems="center" flexDirection="column" justifyContent="center" marginTop="36px">
             {isEditor && (
-              <FormControl alignItems="center" display="flex" marginBottom="4px" marginLeft="8px">
+              <FormControl alignItems="center" display="flex" marginBottom="16px" marginLeft="8px">
                 <FormLabel htmlFor="edit-mode" marginBottom="0">
                   Edit Mode:
                 </FormLabel>
@@ -329,96 +370,100 @@ const BoardDetails = () => {
               isEditor={isEditor && isEditMode}
               layout={board.layout}
             />
-            {isEditor && isEditMode && (
+            <Flex alignItems="center" justifyContent="space-between" marginTop="16px" width="100%">
+              {isEditor && isEditMode ? (
+                <>
+                  <Button
+                    _hover={{
+                      border: `1px solid ${theme.colors.red[300]}`,
+                      padding: '4px',
+                    }}
+                    color={theme.colors.red[300]}
+                    leftIcon={<DeleteIcon />}
+                    marginBottom="1px"
+                    onClick={onOpenDeleteAlert}
+                    padding="6px"
+                    textAlign="center"
+                    variant="unstyled"
+                    width="fit-content"
+                  >
+                    Delete Board
+                  </Button>
+                  <AlertDialog
+                    isOpen={isDeleteAlertOpen}
+                    leastDestructiveRef={cancelRef}
+                    onClose={onCloseDeleteAlert}
+                  >
+                    <AlertDialogOverlay>
+                      <AlertDialogContent>
+                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                          Delete Bingo Board
+                        </AlertDialogHeader>
+                        <AlertDialogBody>
+                          Are you sure? You can't undo this action afterwards.
+                        </AlertDialogBody>
+                        <AlertDialogFooter>
+                          <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
+                            Cancel
+                          </Button>
+                          <Button colorScheme="red" onClick={onDelete} ml={3}>
+                            Delete
+                          </Button>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialogOverlay>
+                  </AlertDialog>
+                </>
+              ) : (
+                <Flex />
+              )}
               <>
                 <Button
                   _hover={{
-                    border: `1px solid ${theme.colors.red[300]}`,
+                    border: `1px solid #f2d202`,
                     padding: '4px',
                   }}
-                  color={theme.colors.red[300]}
-                  leftIcon={<DeleteIcon />}
+                  color="#f2d202"
+                  leftIcon={<CopyIcon />}
                   marginBottom="1px"
-                  marginTop="48px"
-                  onClick={onOpenDeleteAlert}
+                  onClick={onOpenDupeAlert}
                   padding="6px"
                   textAlign="center"
                   variant="unstyled"
                   width="fit-content"
                 >
-                  Delete Board
+                  Duplicate Board
                 </Button>
                 <AlertDialog
-                  isOpen={isDeleteAlertOpen}
+                  isOpen={isDupeAlertOpen}
                   leastDestructiveRef={cancelRef}
-                  onClose={onCloseDeleteAlert}
+                  onClose={onCloseDupeAlert}
                 >
                   <AlertDialogOverlay>
                     <AlertDialogContent>
                       <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                        Delete Bingo Board
+                        Duplicate Bingo Board
                       </AlertDialogHeader>
                       <AlertDialogBody>
-                        Are you sure? You can't undo this action afterwards.
+                        Copy an incomplete version of this board to your own collection?
                       </AlertDialogBody>
                       <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
+                        <Button ref={cancelRef} onClick={onCloseDupeAlert}>
                           Cancel
                         </Button>
-                        <Button colorScheme="red" onClick={onDelete} ml={3}>
-                          Delete
+                        <Button colorScheme="green" onClick={handleDuplicate} ml={3}>
+                          Copy
                         </Button>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialogOverlay>
                 </AlertDialog>
               </>
-            )}
-            <>
-              <Button
-                _hover={{
-                  border: `1px solid ${theme.colors.yellow[400]}`,
-                  padding: '4px',
-                }}
-                color={theme.colors.yellow[400]}
-                leftIcon={<CopyIcon />}
-                marginBottom="1px"
-                marginTop="24px"
-                onClick={onOpenDupeAlert}
-                padding="6px"
-                textAlign="center"
-                variant="unstyled"
-                width="fit-content"
-              >
-                Duplicate Board
-              </Button>
-              <AlertDialog
-                isOpen={isDupeAlertOpen}
-                leastDestructiveRef={cancelRef}
-                onClose={onCloseDupeAlert}
-              >
-                <AlertDialogOverlay>
-                  <AlertDialogContent>
-                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                      Duplicate Bingo Board
-                    </AlertDialogHeader>
-                    <AlertDialogBody>
-                      Copy an incomplete version of this board to your own collection?
-                    </AlertDialogBody>
-                    <AlertDialogFooter>
-                      <Button ref={cancelRef} onClick={onCloseDupeAlert}>
-                        Cancel
-                      </Button>
-                      <Button colorScheme="green" onClick={handleDuplicate} ml={3}>
-                        Copy
-                      </Button>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialogOverlay>
-              </AlertDialog>
-            </>
+            </Flex>
           </Flex>
         </>
+      ) : (
+        <Spinner />
       )}
     </Flex>
   );

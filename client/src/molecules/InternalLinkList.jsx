@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import theme from '../theme';
 
 const InternalLinkList = ({ list, type }) => {
+  console.log({ list });
   const formattedList = list.map((item, idx) => (
-    <Link key={idx + item.name} to={`/${type}/${item.id}`}>
-      ➡️
+    <Link key={item.id} to={`/${type}/${item.id}`}>
+      →
       <Text
         _hover={{
           textDecoration: 'underline',

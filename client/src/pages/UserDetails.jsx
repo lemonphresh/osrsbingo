@@ -26,8 +26,16 @@ const UserDetails = () => {
 
   const { loading } = useQuery(GET_USER, {
     variables: { id: parseInt(params.userId, 10) },
+    fetchPolicy: 'network-only',
     onCompleted: (data) => {
-      setShownUser(data?.getUser || 'Not found');
+      if (data?.getUser) {
+        const sortedBoards = data.getUser.bingoBoards.sort((a, b) => {
+          return parseInt(a.createdAt) - parseInt(b.createdAt);
+        });
+        setShownUser({ ...data.getUser, bingoBoards: sortedBoards });
+      } else {
+        setShownUser('Not found');
+      }
     },
     onError: () => {
       setShownUser('Not found');
@@ -57,9 +65,21 @@ const UserDetails = () => {
       flexDirection="column"
       height="100%"
       paddingX={['16px', '24px', '64px']}
-      paddingY={['72px', '112px']}
+      paddingY={['48px', '88px']}
       width="100%"
     >
+      <Flex alignItems="flex-start" marginBottom="24px" maxWidth="860px" width="100%">
+        <Text
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          fontWeight="bold"
+          marginBottom="1px"
+        >
+          <Link to="/boards">→ View All Boards</Link>
+        </Text>
+      </Flex>
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
           <GemTitle>
@@ -159,7 +179,7 @@ const UserDetails = () => {
                   Looks like {isCurrentUser ? 'you' : 'they'} haven't made any boards yet.
                 </Text>
               ) : (
-                <Flex key={shownUser.bingoBoards} padding="16px">
+                <Flex padding="16px">
                   <InternalLinkList list={shownUser.bingoBoards} type="boards" />
                 </Flex>
               )}
