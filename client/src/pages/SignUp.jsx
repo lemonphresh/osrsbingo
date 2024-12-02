@@ -106,7 +106,7 @@ const SignUp = () => {
           <Text>
             Already have an account?{' '}
             <NavLink to="/login">
-              <span style={{ color: theme.colors.blue[400], textDecoration: 'underline' }}>
+              <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
                 Log in here
               </span>
               .

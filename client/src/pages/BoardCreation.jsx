@@ -62,10 +62,8 @@ const BoardCreation = () => {
       });
       navigate(`/boards/${response.data.createBingoBoard.id}`, { state: { isEditMode: true } });
       showToast('Board successfully created!', 'success');
-      console.log('Board created:', response.data.createBingoBoard);
     } catch (err) {
       showToast('Failed to create board.', 'error');
-      console.error('Error creating bingo board:', err);
     }
   };
 

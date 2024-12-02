@@ -36,15 +36,26 @@ module.exports = {
       try {
         user = await User.findOne({
           where: { username },
-          include: {
-            model: BingoBoard,
-            as: 'bingoBoards',
-            include: {
-              model: User,
-              as: 'editors',
-              required: false,
+          include: [
+            {
+              model: BingoBoard,
+              as: 'bingoBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
             },
-          },
+            {
+              model: BingoBoard,
+              as: 'editorBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
+            },
+          ],
         });
       } catch (error) {
         console.error('Error during Sequelize query:', error);
@@ -79,27 +90,31 @@ module.exports = {
     updateUser: async (_, { id, input }) => {
       try {
         const user = await User.findByPk(id, {
-          include: {
-            model: BingoBoard,
-            as: 'bingoBoards',
-            include: {
-              model: User,
-              as: 'editors',
-              required: false,
+          include: [
+            {
+              model: BingoBoard,
+              as: 'bingoBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
             },
-          },
+            {
+              model: BingoBoard,
+              as: 'editorBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
+            },
+          ],
         });
 
         if (!user) {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
-
-        const sortedBoards = await BingoBoard.findAll({
-          where: { userId: user.id },
-          order: [['createdAt', 'DESC']],
-        });
-
-        user.dataValues.bingoBoards = sortedBoards;
 
         const allowedFields = ['username', 'email', 'rsn', 'team']; // list allowed fields
         const validFields = Object.keys(input).reduce((acc, key) => {
@@ -111,8 +126,21 @@ module.exports = {
 
         user.set(validFields);
         await user.save();
-        const updatedUser = user.reload();
-        return updatedUser;
+        await user.reload();
+
+        const ownerBoards = user.bingoBoards || [];
+        const editorBoards = user.editorBoards || [];
+        const bingoBoards = [
+          ...ownerBoards,
+          ...editorBoards.filter(
+            (editorBoard) => !ownerBoards.some((board) => board.id === editorBoard.id)
+          ),
+        ].sort((a, b) => parseInt(a.createdAt) - parseInt(b.createdAt));
+
+        return {
+          ...user.toJSON(),
+          bingoBoards,
+        };
       } catch (error) {
         throw new Error('Failed to update user');
       }
@@ -126,6 +154,15 @@ module.exports = {
             {
               model: BingoBoard,
               as: 'bingoBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
+            },
+            {
+              model: BingoBoard,
+              as: 'editorBoards',
               include: {
                 model: User,
                 as: 'editors',

@@ -38,6 +38,15 @@ export const GET_USER = gql`
           blackoutBonus
         }
       }
+      editorBoards {
+        id
+        name
+        editors {
+          id
+          username
+          rsn
+        }
+      }
     }
   }
 `;

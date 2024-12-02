@@ -28,13 +28,13 @@ const Landing = () => {
     >
       <Flex flexDirection={['column', 'column', 'column', 'row']} gridGap="32px">
         <Section flexDirection="column" width="100%">
-          <GemTitle>OSRS Bingo Hub</GemTitle>
+          <GemTitle gemColor="purple">OSRS Bingo Hub</GemTitle>
           <Text marginX={['0px', '16px', '56px', '16px']}>
             Are you an OSRS gamer and are looking to manage a personal/clan-wide bingo board? Cool,
             I built a tool for you. <br />
             <br />
-            Browse public boards for ideas, follow of your friends' and clanmates' progress, and
-            create your own bingo boards to keep track of your gamer goals!
+            Browse public boards for ideas, follow your friends' and clanmates' progress, and create
+            your own bingo boards to keep track of your exciting gamer goals!
           </Text>
           <Flex alignItems="center" justifyContent="center" marginTop="16px">
             <Image

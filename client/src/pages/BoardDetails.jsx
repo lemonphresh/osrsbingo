@@ -131,7 +131,6 @@ const BoardDetails = () => {
   }, [data?.getBingoBoard, setBoard]);
 
   useEffect(() => {
-    console.log(board?.editors);
     if (board?.editors?.some((editor) => editor.id === user?.id)) {
       setIsEditor(true);
     }
@@ -335,7 +334,7 @@ const BoardDetails = () => {
               </Text>
               <Text>
                 {board.editors.map((editor, idx) => (
-                  <Link to={`/users/${editor.id}`}>
+                  <Link to={`/user/${editor.id}`}>
                     {idx !== 0 ? ', ' : ''}
                     {editor.username}
                   </Link>

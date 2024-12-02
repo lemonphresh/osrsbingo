@@ -1,12 +1,13 @@
-import { Flex, Image, Link, Text } from '@chakra-ui/react';
+import { Flex, Image, Text } from '@chakra-ui/react';
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import theme from '../theme';
 import Cashapp from '../assets/cashapp.png';
 import GemLogo from '../assets/gemlogo.png';
 import GnomeChild from '../assets/gnomechild.png';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
+import { QuestionOutlineIcon } from '@chakra-ui/icons';
 
 const NavBar = () => {
   const { user } = useAuth();
@@ -23,21 +24,15 @@ const NavBar = () => {
       paddingY="16px"
       position="relative"
     >
-      <Link
-        alignItems="center"
-        display="flex"
-        href="https://cash.app/$lemonlikesgirls/5.00"
-        target="_blank"
-      >
-        <Image
+      <Link style={{ display: 'flex', alignItems: 'center' }} to="/faq">
+        <QuestionOutlineIcon
           aria-hidden
+          color={theme.colors.blue[300]}
           height={['48px', '32px']}
-          filter="invert(0.75)"
-          src={Cashapp}
           width={['48px', '32px']}
         />
         <Text display={['none', 'block']} fontWeight="semibold" marginLeft="8px">
-          donate
+          faq
         </Text>
       </Link>
       <Flex
@@ -50,8 +45,6 @@ const NavBar = () => {
           background: ${theme.colors.teal[600]};
           border-radius: 50%;
           overflow: hidden;
-          width: 300px;
-          height: 200px;
           cursor: pointer;
 
           &::before {
@@ -110,7 +103,10 @@ const NavBar = () => {
         </NavLink>
       </Flex>
 
-      <Link alignItems="center" display="flex" href={user ? `/user/${user.id}` : '/login'}>
+      <Link
+        style={{ display: 'flex', alignItems: 'center' }}
+        to={user ? `/user/${user.id}` : '/login'}
+      >
         <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
           {user ? user.username : 'log in'}
         </Text>

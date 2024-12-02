@@ -44,7 +44,7 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
   }
 
   return (
-    <Flex alignItems="flex-start" justifyContent="space-between" marginBottom="24px" {...props}>
+    <Flex alignItems="flex-start" justifyContent="space-between" marginBottom="16px" {...props}>
       <Image
         aria-hidden
         filter={imgFilter}
@@ -57,8 +57,24 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
       <Heading
         color={theme.colors.white}
         fontSize={fontSize}
-        textAlign="center"
         wordBreak="break-word"
+        paddingBottom="16px"
+        position="relative"
+        width="fit-content"
+        zIndex="0"
+        _after={{
+          backgroundColor:
+            gemColor !== 'default' ? theme.colors[gemColor][400] : theme.colors.pink[300],
+          bottom: '6px',
+          opacity: 0.7,
+          content: `""`,
+          height: fontSize,
+          left: '90%',
+          position: 'absolute',
+          transform: 'skew(-12deg) translateX(-90%)',
+          width: '80%',
+          zIndex: -1,
+        }}
       >
         {children}
       </Heading>

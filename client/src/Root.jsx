@@ -5,6 +5,7 @@ import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
 import { Flex, Spinner } from '@chakra-ui/react';
 import theme from './theme';
+import ScrollToTop from './atoms/ScrollToTop';
 
 const AuthConsumer = () => {
   const { isCheckingAuth } = useAuth();
@@ -37,6 +38,7 @@ const Root = () => {
         fontFamily={theme.fonts.body}
         minHeight="100vh"
       >
+        <ScrollToTop />
         <NavBar />
         <AuthConsumer />
         <Footer />

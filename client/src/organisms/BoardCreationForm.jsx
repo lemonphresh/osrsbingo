@@ -86,6 +86,20 @@ const BoardCreationForm = ({ onSubmit }) => {
 
         <FormControl>
           <FormLabel fontWeight="bold">Description: </FormLabel>
+          <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
+            Note: you can use{' '}
+            <a
+              href="https://www.markdownguide.org/basic-syntax/"
+              style={{
+                color: theme.colors.cyan[300],
+              }}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Markdown
+            </a>
+            !
+          </Text>
           <Textarea
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}

@@ -2,7 +2,7 @@ import { useQuery } from '@apollo/client';
 import { GET_PUBLIC_BOARDS } from '../graphql/queries';
 
 const usePublicBoardsWithThumbnails = () => {
-  const { data, loading, error } = useQuery(GET_PUBLIC_BOARDS);
+  const { data, loading, error } = useQuery(GET_PUBLIC_BOARDS, { fetchPolicy: 'network-only' });
 
   const boardsWithGrid = data?.getPublicBoards.map((board) => {
     const tileStatusMap = board.tiles.reduce((acc, tile) => {

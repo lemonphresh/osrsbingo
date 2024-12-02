@@ -215,7 +215,6 @@ module.exports = {
       const board = await BingoBoard.findByPk(boardId, {
         include: [{ model: User, as: 'editors' }],
       });
-      console.log('helloooooo', board);
 
       if (!board) {
         throw new Error('Board not found');

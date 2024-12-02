@@ -141,7 +141,7 @@ const Login = () => {
         <Text marginTop="16px">
           New here? Go to{' '}
           <NavLink to="/signup">
-            <span style={{ color: theme.colors.blue[400], textDecoration: 'underline' }}>
+            <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
               the sign up page
             </span>
             .

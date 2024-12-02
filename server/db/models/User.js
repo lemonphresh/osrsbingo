@@ -10,7 +10,7 @@ module.exports = (sequelize) => {
       });
       User.belongsToMany(models.BingoBoard, {
         through: 'BoardEditors',
-        as: 'boards',
+        as: 'editorBoards',
         foreignKey: 'userId',
       });
     }

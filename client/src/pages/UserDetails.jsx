@@ -10,6 +10,7 @@ import { GET_USER } from '../graphql/queries';
 import InternalLinkList from '../molecules/InternalLinkList';
 import EditField from '../molecules/EditField';
 import { UPDATE_USER } from '../graphql/mutations';
+import { AddIcon } from '@chakra-ui/icons';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -29,10 +30,17 @@ const UserDetails = () => {
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       if (data?.getUser) {
-        const sortedBoards = data.getUser.bingoBoards.sort((a, b) => {
-          return parseInt(a.createdAt) - parseInt(b.createdAt);
-        });
-        setShownUser({ ...data.getUser, bingoBoards: sortedBoards });
+        const ownerBoards = data.getUser.bingoBoards || [];
+        const editorBoards = data.getUser.editorBoards || [];
+
+        const bingoBoards = [
+          ...ownerBoards,
+          ...editorBoards.filter(
+            (editorBoard) => !ownerBoards.some((board) => board.id === editorBoard.id)
+          ),
+        ].sort((a, b) => parseInt(a.createdAt) - parseInt(b.createdAt));
+
+        setShownUser({ ...data.getUser, bingoBoards });
       } else {
         setShownUser('Not found');
       }
@@ -171,47 +179,98 @@ const UserDetails = () => {
         <Flex flexDirection={['column', 'column', 'column', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="orange" size="sm">
-              {isCurrentUser ? 'Your' : 'Their'} Bingo Boards
+              {isCurrentUser ? 'Your' : 'Their Public'} Bingo Boards
             </GemTitle>
             <Flex flexDirection="column">
               {!shownUser?.bingoBoards || shownUser.bingoBoards.length === 0 ? (
-                <Text textAlign="center">
-                  Looks like {isCurrentUser ? 'you' : 'they'} haven't made any boards yet.
-                </Text>
+                <>
+                  <Text textAlign="center">
+                    Looks like {isCurrentUser ? 'you' : 'they'} haven't made or been added as an
+                    editor to any boards yet.
+                  </Text>
+
+                  {isCurrentUser && (
+                    <Text
+                      _hover={{
+                        borderBottom: `1px solid ${theme.colors.pink[200]}`,
+                        marginBottom: '0px',
+                      }}
+                      color={theme.colors.pink[200]}
+                      fontWeight="bold"
+                      margin="0 auto"
+                      marginBottom="1px"
+                      marginTop="16px"
+                    >
+                      <Link
+                        style={{ display: 'inline-flex', alignItems: 'center' }}
+                        to="/boards/create"
+                      >
+                        <AddIcon marginRight="8px" /> Create a Board
+                      </Link>
+                    </Text>
+                  )}
+                </>
               ) : (
-                <Flex padding="16px">
-                  <InternalLinkList list={shownUser.bingoBoards} type="boards" />
+                <Flex flexDirection="column" padding="16px">
+                  <InternalLinkList
+                    list={
+                      isCurrentUser
+                        ? shownUser.bingoBoards
+                        : shownUser.bingoBoards.filter((item) => item.isPublic !== false)
+                    }
+                    type="boards"
+                  />
+                  {isCurrentUser && (
+                    <Text
+                      _hover={{
+                        borderBottom: `1px solid ${theme.colors.pink[200]}`,
+                        marginBottom: '0px',
+                      }}
+                      color={theme.colors.pink[200]}
+                      fontWeight="bold"
+                      margin="0 auto"
+                      marginBottom="1px"
+                      marginTop="16px"
+                    >
+                      <Link
+                        style={{ display: 'inline-flex', alignItems: 'center' }}
+                        to="/boards/create"
+                      >
+                        <AddIcon marginRight="8px" /> Create a Board
+                      </Link>
+                    </Text>
+                  )}
                 </Flex>
               )}
             </Flex>
           </Section>
-          <Section flexDirection="column" width="100%">
+          {/* <Section flexDirection="column" width="100%">
             <GemTitle gemColor="green" size="sm">
               {isCurrentUser ? 'Your' : 'Their'} Teams
             </GemTitle>
             <Flex flexDirection="column">
               <Text textAlign="center">
                 Coming soon!
-                {/* {!shownUser?.teams || shownUser.teams.length === 0
+                {!shownUser?.teams || shownUser.teams.length === 0
                   ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not a part of any teams yet.'
-                  : 'todo user team list'} */}
+                  : 'todo user team list'}
+              </Text>
+            </Flex>
+          </Section> */}
+          <Section flexDirection="column" width="100%">
+            <GemTitle gemColor="blue" size="sm">
+              {isCurrentUser ? 'Your' : 'Their'} Events
+            </GemTitle>
+            <Flex flexDirection="column">
+              <Text textAlign="center">
+                Coming soon!
+                {/* {!shownUser?.events || shownUser.events.length === 0
+                ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not associated with any events yet.'
+                : 'todo event list'} */}
               </Text>
             </Flex>
           </Section>
         </Flex>
-        <Section flexDirection="column" width="100%">
-          <GemTitle gemColor="blue" size="sm">
-            {isCurrentUser ? 'Your' : 'Their'} Events
-          </GemTitle>
-          <Flex flexDirection="column">
-            <Text textAlign="center">
-              Coming soon!
-              {/* {!shownUser?.events || shownUser.events.length === 0
-                ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not associated with any events yet.'
-                : 'todo event list'} */}
-            </Text>
-          </Flex>
-        </Section>
       </Section>
       {isCurrentUser && (
         <Text

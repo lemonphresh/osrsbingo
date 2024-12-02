@@ -61,7 +61,6 @@ const BoardEditors = ({ boardId, onSubmit }) => {
   };
 
   useEffect(() => {
-    console.log({ boardData });
     if (boardData && boardData.getBingoBoard) {
       const boardOwnerId = boardData.getBingoBoard.userId;
       const currentEditors = boardData.getBingoBoard.editors.map((editor) => editor.id);

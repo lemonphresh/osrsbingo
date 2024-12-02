@@ -9,6 +9,7 @@ const typeDefs = gql`
     token: String
     teams: [String]
     bingoBoards: [BingoBoard!]!
+    editorBoards: [BingoBoard!]
   }
 
   input CreateBingoBoardInput {
