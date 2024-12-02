@@ -21,6 +21,11 @@ export const GET_USER = gql`
         id
         createdAt
         name
+        editors {
+          id
+          rsn
+          username
+        }
         type
         description
         layout
@@ -44,8 +49,13 @@ export const GET_BOARD = gql`
       type
       layout
       isPublic
-      editors
+      editors {
+        id
+        rsn
+        username
+      }
       description
+      userId
       name
       team
       totalValue
@@ -95,6 +105,26 @@ export const GET_TILE = gql`
       dateCompleted
       completedBy
       board
+    }
+  }
+`;
+
+export const SEARCH_USERS = gql`
+  query SearchUsers($search: String!) {
+    searchUsers(search: $search) {
+      id
+      username
+      rsn
+    }
+  }
+`;
+
+export const SEARCH_USERS_BY_IDS = gql`
+  query SearchUsersByIds($ids: [ID!]!) {
+    searchUsersByIds(ids: $ids) {
+      id
+      username
+      rsn
     }
   }
 `;

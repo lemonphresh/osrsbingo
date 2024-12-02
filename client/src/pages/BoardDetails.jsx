@@ -30,6 +30,7 @@ import { DELETE_BOARD, DUPLICATE_BINGO_BOARD, UPDATE_BOARD } from '../graphql/mu
 import EditField from '../molecules/EditField';
 import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
+import BoardEditors from '../organisms/BoardEditors';
 
 const BoardDetails = () => {
   const { user } = useAuth();
@@ -53,6 +54,7 @@ const BoardDetails = () => {
   const [isEditor, setIsEditor] = useState(false);
   const [fieldsEditing, setFieldsEditing] = useState({
     description: false,
+    editors: false,
     name: false,
   });
   const [isEditMode, setIsEditMode] = useState(false);
@@ -129,7 +131,8 @@ const BoardDetails = () => {
   }, [data?.getBingoBoard, setBoard]);
 
   useEffect(() => {
-    if (board?.editors?.includes(user?.id)) {
+    console.log(board?.editors);
+    if (board?.editors?.some((editor) => editor.id === user?.id)) {
       setIsEditor(true);
     }
   }, [board, user?.id]);
@@ -151,6 +154,8 @@ const BoardDetails = () => {
         const renderedLayout = layout.map((row) =>
           row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
         );
+
+        console.log(data.getBingoBoard);
 
         setBoard({ ...data.getBingoBoard, layout: renderedLayout });
       }
@@ -313,6 +318,63 @@ const BoardDetails = () => {
                 />
               </>
             )}
+
+            <Text
+              alignItems="center"
+              display="flex"
+              justifyContent="center"
+              marginTop="16px"
+              width="100%"
+            >
+              <Text
+                as="span"
+                color={theme.colors.green[300]}
+                display="inline"
+                fontWeight="bold"
+                marginRight="8px"
+              >
+                Editor(s):
+              </Text>
+              <Text>
+                {board.editors.map((editor, idx) => (
+                  <Link to={`/users/${editor.id}`}>
+                    {idx !== 0 ? ', ' : ''}
+                    {editor.username}
+                  </Link>
+                ))}
+              </Text>
+              {isEditor && isEditMode && (
+                <Button
+                  _hover={{ backgroundColor: theme.colors.green[800] }}
+                  color={theme.colors.green[300]}
+                  marginLeft="8px"
+                  onClick={() =>
+                    setFieldsEditing({
+                      ...fieldsEditing,
+                      editors: true,
+                    })
+                  }
+                  textDecoration="underline"
+                  variant="ghost"
+                  width="fit-content"
+                >
+                  <EditIcon />
+                </Button>
+              )}
+            </Text>
+            {isEditMode && isEditor && fieldsEditing.editors ? (
+              <>
+                <BoardEditors
+                  boardId={board.id}
+                  onSubmit={() =>
+                    setFieldsEditing({
+                      ...fieldsEditing,
+                      editors: false,
+                    })
+                  }
+                />
+              </>
+            ) : null}
             <Text alignItems="center" display="flex" justifyContent="center" width="100%">
               <Text
                 as="span"
@@ -371,7 +433,7 @@ const BoardDetails = () => {
               layout={board.layout}
             />
             <Flex alignItems="center" justifyContent="space-between" marginTop="16px" width="100%">
-              {isEditor && isEditMode ? (
+              {user?.id === board.userId && isEditMode ? (
                 <>
                   <Button
                     _hover={{

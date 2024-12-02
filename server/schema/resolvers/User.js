@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { BingoBoard, User } = require('../../db/models');
+const { Op } = require('sequelize');
 
 module.exports = {
   Mutation: {
@@ -38,6 +39,11 @@ module.exports = {
           include: {
             model: BingoBoard,
             as: 'bingoBoards',
+            include: {
+              model: User,
+              as: 'editors',
+              required: false,
+            },
           },
         });
       } catch (error) {
@@ -76,6 +82,11 @@ module.exports = {
           include: {
             model: BingoBoard,
             as: 'bingoBoards',
+            include: {
+              model: User,
+              as: 'editors',
+              required: false,
+            },
           },
         });
 
@@ -115,6 +126,11 @@ module.exports = {
             {
               model: BingoBoard,
               as: 'bingoBoards',
+              include: {
+                model: User,
+                as: 'editors',
+                required: false,
+              },
             },
           ],
         });
@@ -145,6 +161,57 @@ module.exports = {
       } catch (err) {
         console.error('Error fetching users:', err);
         throw new ApolloError('Failed to fetch users');
+      }
+    },
+    async searchUsers(_, { search }, context) {
+      if (!context.user) {
+        throw new AuthenticationError('You must be logged in to perform this action.');
+      }
+
+      if (!search || search.trim().length < 2) {
+        throw new UserInputError('Search term must be at least 2 characters long.');
+      }
+
+      try {
+        const users = await User.findAll({
+          where: {
+            [Op.or]: [
+              { username: { [Op.iLike]: `%${search}%` } },
+              { rsn: { [Op.iLike]: `%${search}%` } },
+            ],
+          },
+          limit: 10,
+          attributes: ['id', 'username', 'rsn'],
+        });
+
+        return users.map((user) => ({
+          id: user.id,
+          username: user.username,
+          rsn: user.rsn,
+        }));
+      } catch (err) {
+        console.error(err);
+        throw new ApolloError('An error occurred while searching for users.');
+      }
+    },
+    searchUsersByIds: async (_, { ids }) => {
+      if (!ids || ids.length === 0) {
+        throw new Error('No IDs provided');
+      }
+
+      try {
+        const users = await User.findAll({
+          where: {
+            id: {
+              [Op.in]: ids,
+            },
+          },
+        });
+
+        return users;
+      } catch (err) {
+        console.error(err);
+        throw new Error('Failed to fetch users by IDs');
       }
     },
   },

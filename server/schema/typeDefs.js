@@ -33,8 +33,9 @@ const typeDefs = gql`
     isPublic: Boolean!
     name: String!
     description: String
-    editors: [ID!]! # List of user IDs
+    editors: [User!]!
     team: ID
+    userId: ID!
     totalValue: Int!
     totalValueCompleted: Int!
     bonusSettings: BonusSettings!
@@ -102,7 +103,6 @@ const typeDefs = gql`
     name: String
     type: String
     description: String
-    editors: [ID!]
     isPublic: Boolean
     bonusSettings: BonusSettingsInput
   }
@@ -113,6 +113,8 @@ const typeDefs = gql`
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
     getPublicBoards: [BingoBoard!]!
+    searchUsers(search: String!): [User]
+    searchUsersByIds(ids: [ID!]): [User]
   }
 
   type Mutation {
@@ -121,6 +123,7 @@ const typeDefs = gql`
     loginUser(username: String!, password: String!): AuthPayload
     createBingoBoard(input: CreateBingoBoardInput!): BingoBoard
 
+    updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
     duplicateBingoBoard(boardId: ID!): BingoBoard!
 

@@ -8,6 +8,11 @@ module.exports = (sequelize) => {
         foreignKey: 'userId',
         as: 'bingoBoards',
       });
+      User.belongsToMany(models.BingoBoard, {
+        through: 'BoardEditors',
+        as: 'boards',
+        foreignKey: 'userId',
+      });
     }
   }
 

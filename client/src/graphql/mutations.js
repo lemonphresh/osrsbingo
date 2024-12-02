@@ -73,7 +73,11 @@ export const CREATE_BOARD = gql`
       description
       type
       isPublic
-      editors
+      editors {
+        id
+        username
+        rsn
+      }
       team
       layout
       bonusSettings {
@@ -156,6 +160,20 @@ export const DUPLICATE_BINGO_BOARD = gql`
         name
         isComplete
         value
+      }
+    }
+  }
+`;
+
+export const UPDATE_BOARD_EDITORS = gql`
+  mutation updateBoardEditors($boardId: ID!, $editorIds: [ID!]!) {
+    updateBoardEditors(boardId: $boardId, editorIds: $editorIds) {
+      id
+      name
+      editors {
+        id
+        username
+        rsn
       }
     }
   }

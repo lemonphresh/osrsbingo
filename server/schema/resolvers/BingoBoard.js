@@ -17,6 +17,7 @@ module.exports = {
         totalValue,
         totalValueCompleted,
       } = input;
+
       try {
         const size = type === 'FIVE' ? 5 : 7;
 
@@ -25,7 +26,6 @@ module.exports = {
           description,
           type,
           isPublic,
-          editors: editors || [context.user.id],
           team,
           bonusSettings,
           totalValue,
@@ -34,7 +34,11 @@ module.exports = {
           layout: [],
         });
 
-        // step 1: make le tiles
+        const editorsToAdd = [context.user.id, ...(editors || [])];
+
+        await newBingoBoard.setEditors(editorsToAdd);
+
+        // Step 1: create the tiles
         const tiles = [];
         for (let row = 0; row < size; row++) {
           for (let col = 0; col < size; col++) {
@@ -48,17 +52,21 @@ module.exports = {
         }
         const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        // step 2: make le layout
+        // Step 2: create the layout
         const layout = [];
         for (let row = 0; row < size; row++) {
           layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
         }
-        // step 3: update le board
+
+        // Step 3: update the board with the layout
         newBingoBoard.layout = layout;
         await newBingoBoard.save();
 
         const populatedBingoBoard = await BingoBoard.findByPk(newBingoBoard.id, {
-          include: [{ model: BingoTile, as: 'tiles' }],
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
         });
 
         return populatedBingoBoard;
@@ -75,17 +83,30 @@ module.exports = {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
 
-        const isEditor = bingoBoard.editors.includes(context.user.id);
+        const isEditor = bingoBoard.editors?.some((editor) => editor.id === context.user?.id);
 
         if (!isEditor) {
           throw new ApolloError('Unauthorized to update this BingoBoard', 'UNAUTHORIZED');
         }
 
-        Object.keys(input).forEach((key) => {
-          if (key in bingoBoard) {
+        const allowedFields = [
+          'name',
+          'description',
+          'isPublic',
+          'team',
+          'bonusSettings',
+          'totalValue',
+          'totalValueCompleted',
+        ];
+        allowedFields.forEach((key) => {
+          if (key in input) {
             bingoBoard[key] = input[key];
           }
         });
+
+        if (input.editors) {
+          await bingoBoard.setEditors(input.editors);
+        }
 
         await bingoBoard.save();
 
@@ -110,7 +131,6 @@ module.exports = {
           name: `${originalBoard.name} (Copy)`,
           type: originalBoard.type,
           isPublic: false,
-          editors: [context.user.id],
           team: null,
           bonusSettings: originalBoard.bonusSettings,
           layout: [],
@@ -142,8 +162,16 @@ module.exports = {
         duplicatedBoard.tiles = createdTiles;
         duplicatedBoard.layout = layout;
         await duplicatedBoard.save();
+        await duplicatedBoard.addEditors([context.user.id]);
 
-        return duplicatedBoard;
+        const populatedDuplicatedBoard = await BingoBoard.findByPk(duplicatedBoard.id, {
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
+        });
+
+        return populatedDuplicatedBoard;
       } catch (error) {
         console.error('Error duplicating BingoBoard:', error);
         throw new ApolloError('Failed to duplicate BingoBoard');
@@ -152,14 +180,17 @@ module.exports = {
     deleteBingoBoard: async (_, { id }, context) => {
       try {
         const bingoBoard = await BingoBoard.findByPk(id, {
-          include: [{ model: BingoTile, as: 'tiles' }],
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
         });
 
         if (!bingoBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
 
-        const isEditor = bingoBoard.editors.includes(context.user.id);
+        const isEditor = bingoBoard.editors.some((editor) => editor.id === context.user?.id);
 
         if (!isEditor) {
           throw new ApolloError('Unauthorized to delete this BingoBoard', 'UNAUTHORIZED');
@@ -175,12 +206,46 @@ module.exports = {
         throw new ApolloError('Failed to delete BingoBoard');
       }
     },
+    updateBoardEditors: async (_, { boardId, editorIds }) => {
+      const board = await BingoBoard.findByPk(boardId, {
+        include: [{ model: User, as: 'editors' }],
+      });
+      console.log('helloooooo', board);
+
+      if (!board) {
+        throw new Error('Board not found');
+      }
+
+      const editorsToAdd = await User.findAll({
+        where: { id: editorIds },
+      });
+
+      if (editorsToAdd.length !== editorIds.length) {
+        const missingIds = editorIds.filter(
+          (id) => !editorsToAdd.some((editor) => editor.id === id)
+        );
+        throw new Error(`Users not found for IDs: ${missingIds.join(', ')}`);
+      }
+
+      await board.setEditors(editorsToAdd);
+
+      const updatedBoard = await BingoBoard.findByPk(boardId, {
+        include: [
+          { model: User, as: 'editors' },
+          { model: User, as: 'user', attributes: ['id', 'username', 'rsn'] },
+          { model: BingoTile, as: 'tiles' },
+        ],
+      });
+
+      return updatedBoard;
+    },
   },
   Query: {
     getBingoBoard: async (_, { id }) => {
       try {
         const bingoBoard = await BingoBoard.findByPk(id, {
           include: [
+            { model: User, as: 'editors', attributes: ['id', 'username', 'rsn'] },
             { model: User, as: 'user', attributes: ['id', 'username', 'rsn'] },
             { model: BingoTile, as: 'tiles' },
           ],
@@ -189,7 +254,7 @@ module.exports = {
         if (bingoBoard) {
           return {
             ...bingoBoard.dataValues,
-            layout: bingoBoard.layout, // Assuming it's stored as an array or raw JSON
+            layout: bingoBoard.layout,
           };
         }
         return bingoBoard;
@@ -209,6 +274,7 @@ module.exports = {
               as: 'tiles',
               attributes: ['id', 'isComplete'],
             },
+            { model: User, as: 'editors', attributes: ['id', 'username', 'rsn'] },
           ],
           order: [['createdAt', 'DESC']],
         });

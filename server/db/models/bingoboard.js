@@ -13,6 +13,13 @@ module.exports = (sequelize) => {
         foreignKey: 'board',
         as: 'tiles',
       });
+
+      BingoBoard.belongsToMany(models.User, {
+        through: 'BoardEditors',
+        as: 'editors',
+        foreignKey: 'boardId',
+        otherKey: 'userId',
+      });
     }
   }
 
@@ -21,11 +28,6 @@ module.exports = (sequelize) => {
       type: {
         type: DataTypes.ENUM('FIVE', 'SEVEN'),
         allowNull: false,
-      },
-      editors: {
-        type: DataTypes.ARRAY(DataTypes.INTEGER), // Assuming 'editors' is an array of user IDs
-        allowNull: true,
-        defaultValue: [],
       },
       description: {
         type: DataTypes.TEXT,
