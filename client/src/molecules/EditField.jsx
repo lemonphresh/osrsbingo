@@ -38,6 +38,8 @@ const EditField = ({
         {inputType === 'text' && (
           <Input
             autocomplete="off"
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
             onChange={(e) => setVal(e.target.value)}
             placeholder={value}
             name={fieldName}
@@ -48,6 +50,8 @@ const EditField = ({
         {inputType === 'textarea' && (
           <Textarea
             autocomplete="off"
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
             defaultValue={val}
             onChange={(e) => setVal(e.target.value)}
             placeholder={value}

@@ -19,23 +19,24 @@ const QAList = [
     q: <Text>What if I would like to request a feature?</Text>,
     a: (
       <Text>
-        I would encourage you to{' '}
-        <Link color={theme.colors.pink[300]} fontWeight="bold" href="mailto:lemon.tsx@gmail.com">
-          contact me
-        </Link>
-        .
+        I would encourage you to DM me on the{' '}
+        <Link
+          color={theme.colors.teal[300]}
+          fontWeight="bold"
+          href="https://www.discord.gg/eternalgems"
+        >
+          Eternal Gems Discord Server
+        </Link>{' '}
+        @buttlid and let me know. No guarantees, though. XP loss and all, you know.
       </Text>
     ),
   },
   {
-    q: <Text>Are you available for freelancing?</Text>,
+    q: <Text>How do I get removed from an editors list?</Text>,
     a: (
       <Text>
-        I sure am!{' '}
-        <Link color={theme.colors.pink[300]} fontWeight="bold" href="mailto:lemon.tsx@gmail.com">
-          Let&apos;s get in touch
-        </Link>
-        .
+        You'll have to contact the board owner to get removed from an editors list. If they've
+        gotten hit by a bus, I suppose I could help remove you, too.
       </Text>
     ),
   },
@@ -45,7 +46,7 @@ const QAList = [
       <Text>
         First of all, thank you. Secondly,{' '}
         <Link
-          color={theme.colors.pink[300]}
+          color={theme.colors.teal[300]}
           fontWeight="bold"
           href="https://cash.app/$lemonlikesgirls/5.00"
           target="_blank"
@@ -74,7 +75,7 @@ const Faq = () => (
         width="100%"
       >
         {QAList.map((i, idx) => (
-          <AccordionItem backgroundColor={theme.colors.pink[700]} borderRadius="12px" marginY="8px">
+          <AccordionItem backgroundColor={theme.colors.teal[700]} borderRadius="12px" marginY="8px">
             <AccordionButton height="64px">
               <Flex flex="1">
                 <Heading size="sm" textAlign="left">

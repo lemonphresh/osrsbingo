@@ -132,8 +132,8 @@ const UserDetails = () => {
                 </Text>
                 {isCurrentUser && (
                   <Button
-                    _hover={{ backgroundColor: theme.colors.green[800] }}
-                    color={theme.colors.green[300]}
+                    _hover={{ backgroundColor: theme.colors.teal[800] }}
+                    color={theme.colors.teal[300]}
                     marginLeft="16px"
                     onClick={() =>
                       setFieldsEditing({

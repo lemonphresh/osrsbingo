@@ -109,7 +109,7 @@ const BoardEditors = ({ boardId, onSubmit }) => {
                   {u.id === user?.id ? (
                     <span
                       style={{
-                        color: theme.colors.green[500],
+                        color: theme.colors.teal[500],
                       }}
                     >
                       (you)

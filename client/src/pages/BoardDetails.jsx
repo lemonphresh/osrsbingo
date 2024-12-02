@@ -155,8 +155,6 @@ const BoardDetails = () => {
           row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
         );
 
-        console.log(data.getBingoBoard);
-
         setBoard({ ...data.getBingoBoard, layout: renderedLayout });
       }
     }
@@ -215,8 +213,8 @@ const BoardDetails = () => {
               isEditor &&
               isEditMode && (
                 <Button
-                  _hover={{ backgroundColor: theme.colors.green[800] }}
-                  color={theme.colors.green[300]}
+                  _hover={{ backgroundColor: theme.colors.teal[800] }}
+                  color={theme.colors.teal[300]}
                   margin="0 auto"
                   marginBottom="8px"
                   onClick={() =>
@@ -254,8 +252,8 @@ const BoardDetails = () => {
                 <Flex position="relative" flexDirection="column" marginX={['0px', '16px']}>
                   {isEditor && isEditMode && (
                     <Button
-                      _hover={{ backgroundColor: theme.colors.green[800] }}
-                      color={theme.colors.green[300]}
+                      _hover={{ backgroundColor: theme.colors.teal[800] }}
+                      color={theme.colors.teal[300]}
                       margin="0 auto"
                       onClick={() =>
                         setFieldsEditing({
@@ -328,7 +326,7 @@ const BoardDetails = () => {
             >
               <Text
                 as="span"
-                color={theme.colors.green[300]}
+                color={theme.colors.teal[300]}
                 display="inline"
                 fontWeight="bold"
                 marginRight="8px"
@@ -345,8 +343,8 @@ const BoardDetails = () => {
               </Text>
               {isEditor && isEditMode && (
                 <Button
-                  _hover={{ backgroundColor: theme.colors.green[800] }}
-                  color={theme.colors.green[300]}
+                  _hover={{ backgroundColor: theme.colors.teal[800] }}
+                  color={theme.colors.teal[300]}
                   marginLeft="8px"
                   onClick={() =>
                     setFieldsEditing({
@@ -378,7 +376,7 @@ const BoardDetails = () => {
             <Text alignItems="center" display="flex" justifyContent="center" width="100%">
               <Text
                 as="span"
-                color={theme.colors.green[300]}
+                color={theme.colors.teal[300]}
                 display="inline"
                 fontWeight="bold"
                 marginRight="8px"
@@ -388,8 +386,8 @@ const BoardDetails = () => {
               </Text>
               {isEditor && isEditMode ? (
                 <Checkbox
-                  colorScheme="green"
-                  borderColor={theme.colors.green[300]}
+                  colorScheme="teal"
+                  borderColor={theme.colors.teal[300]}
                   defaultChecked={board.isPublic}
                   marginRight="16px"
                   marginTop="16px"
@@ -513,7 +511,7 @@ const BoardDetails = () => {
                         <Button ref={cancelRef} onClick={onCloseDupeAlert}>
                           Cancel
                         </Button>
-                        <Button colorScheme="green" onClick={handleDuplicate} ml={3}>
+                        <Button colorScheme="teal" onClick={handleDuplicate} ml={3}>
                           Copy
                         </Button>
                       </AlertDialogFooter>

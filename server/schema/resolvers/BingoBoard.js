@@ -77,7 +77,12 @@ module.exports = {
     },
     updateBingoBoard: async (_, { id, input }, context) => {
       try {
-        const bingoBoard = await BingoBoard.findByPk(id);
+        const bingoBoard = await BingoBoard.findByPk(id, {
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
+        });
 
         if (!bingoBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
