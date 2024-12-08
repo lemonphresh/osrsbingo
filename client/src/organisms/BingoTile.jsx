@@ -11,7 +11,7 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
   const { icon, isComplete, name } = tile;
   const [updatedCompletedPatterns, setUpdatedCompletedPatterns] = useState(completedPatterns);
   const [isPartOfCompletedGroup, setIsPartOfCompletedGroup] = useState(
-    completedPatterns.some((group) => group.includes(tile.id))
+    completedPatterns.some((group) => group.tiles.includes(tile.id))
   );
 
   useEffect(() => {
@@ -20,7 +20,7 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
 
   useEffect(() => {
     setIsPartOfCompletedGroup(
-      updatedCompletedPatterns.some((group) => group.some((item) => item.id === tile.id))
+      updatedCompletedPatterns.some((group) => group.tiles.some((item) => item.id === tile.id))
     );
   }, [tile.id, updatedCompletedPatterns]);
 
@@ -49,11 +49,13 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
         key={tile}
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
+        // zz make onEnter open thse too
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         padding="8px"
         transition="all ease 0.2s"
         width={size}
+        tabIndex={0}
       >
         {!isHovered ? (
           <>

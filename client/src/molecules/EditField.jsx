@@ -1,5 +1,15 @@
 import { useMutation } from '@apollo/client';
-import { Button, Flex, Input, Textarea } from '@chakra-ui/react';
+import {
+  Button,
+  Flex,
+  Input,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Textarea,
+} from '@chakra-ui/react';
 import React, { useState } from 'react';
 import theme from '../theme';
 import { useToastContext } from '../providers/ToastProvider';
@@ -11,6 +21,8 @@ const EditField = ({
   inputType = 'text',
   MUTATION,
   onSave,
+  max,
+  step,
   value,
 }) => {
   const [val, setVal] = useState(value);
@@ -34,10 +46,10 @@ const EditField = ({
 
   return (
     <>
-      <Flex flexDirection={flexDirection} width="100%">
+      <Flex flexDirection={flexDirection} marginY="16px" width="100%">
         {inputType === 'text' && (
           <Input
-            autocomplete="off"
+            autoComplete="off"
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
             onChange={(e) => setVal(e.target.value)}
@@ -47,9 +59,25 @@ const EditField = ({
             value={val}
           />
         )}
+        {inputType === 'number' && (
+          <NumberInput
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
+            max={max}
+            min={0}
+            onChange={(num) => setVal(parseInt(num))}
+            step={step}
+          >
+            <NumberInputField autoComplete="off" name={fieldName} placeholder={value} value={val} />
+            <NumberInputStepper>
+              <NumberIncrementStepper />
+              <NumberDecrementStepper />
+            </NumberInputStepper>
+          </NumberInput>
+        )}
         {inputType === 'textarea' && (
           <Textarea
-            autocomplete="off"
+            autoComplete="off"
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
             defaultValue={val}

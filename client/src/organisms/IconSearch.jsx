@@ -53,7 +53,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
   return (
     <Flex flexDirection="column" width="100%" padding="8px">
       <Input
-        autocomplete="off"
+        autoComplete="off"
         borderColor={theme.colors.purple[200]}
         placeholder="Search OSRS items..."
         value={query}

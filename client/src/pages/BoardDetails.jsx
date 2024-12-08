@@ -31,6 +31,12 @@ import EditField from '../molecules/EditField';
 import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
 import BoardEditors from '../organisms/BoardEditors';
+import BonusSettingsModal from '../molecules/BonusSettingsModal';
+
+const removeTypename = (obj) => {
+  const { __typename, ...rest } = obj;
+  return rest;
+};
 
 const BoardDetails = () => {
   const { user } = useAuth();
@@ -50,6 +56,12 @@ const BoardDetails = () => {
     onOpen: onOpenDupeAlert,
     onClose: onCloseDupeAlert,
   } = useDisclosure();
+  const {
+    isOpen: isBonusSettingsModalOpen,
+    onOpen: onOpenBonusSettingsModal,
+    onClose: onCloseBonusSettingsModal,
+  } = useDisclosure();
+
   const [board, setBoard] = useState(null);
   const [isEditor, setIsEditor] = useState(false);
   const [fieldsEditing, setFieldsEditing] = useState({
@@ -61,8 +73,11 @@ const BoardDetails = () => {
   const handleToggle = () => setIsEditMode(!isEditMode);
   const navigate = useNavigate();
   const cancelRef = useRef();
-  // todo use score from here
-  const { completedPatterns, score } = useBingoCompletion(board?.layout, board?.bonusSettings);
+
+  const { completedPatterns, score, totalPossibleScore } = useBingoCompletion(
+    board?.layout,
+    board?.bonusSettings
+  );
 
   const [deleteBoard] = useMutation(DELETE_BOARD, {
     update(cache, { data: { deleteBingoBoard } }) {
@@ -87,6 +102,7 @@ const BoardDetails = () => {
       }
     },
   });
+
   const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
   const [updateBingoBoard] = useMutation(UPDATE_BOARD);
 
@@ -134,7 +150,7 @@ const BoardDetails = () => {
     if (board?.editors?.some((editor) => editor.id === user?.id)) {
       setIsEditor(true);
     }
-  }, [board, user?.id]);
+  }, [board, score, user?.id]);
 
   useEffect(() => {
     if (location.state?.isEditMode) {
@@ -169,7 +185,14 @@ const BoardDetails = () => {
       paddingY={['72px', '112px']}
       width="100%"
     >
-      <Flex alignItems="flex-start" marginBottom="24px" maxWidth="720px" width="100%">
+      <Flex
+        alignItems="center"
+        flexDirection={['column', 'row', 'row']}
+        justifyContent="space-between"
+        marginBottom="16px"
+        maxWidth="720px"
+        width="100%"
+      >
         <Text
           _hover={{
             borderBottom: '1px solid white',
@@ -180,7 +203,48 @@ const BoardDetails = () => {
         >
           <Link to="/boards">→ View All Boards</Link>
         </Text>
+        {isEditor && isEditMode && (
+          <Button
+            _hover={{ backgroundColor: theme.colors.teal[800] }}
+            color={theme.colors.teal[300]}
+            onClick={onOpenBonusSettingsModal}
+            textDecoration="underline"
+            variant="ghost"
+            width="fit-content"
+          >
+            Edit Board Bonus Settings
+          </Button>
+        )}
       </Flex>
+      {board && (
+        <BonusSettingsModal
+          board={board}
+          isOpen={isBonusSettingsModalOpen}
+          onOpen={onOpenBonusSettingsModal}
+          onClose={onCloseBonusSettingsModal}
+          onUpdateField={async (val) => {
+            const { data } = await updateBingoBoard({
+              variables: {
+                id: board.id,
+                input: {
+                  bonusSettings: {
+                    ...val,
+                  },
+                },
+              },
+            });
+
+            setBoard({
+              ...data.updateBingoBoard,
+              ...board,
+              bonusSettings: {
+                ...removeTypename(data?.updateBingoBoard?.bonusSettings),
+                ...val,
+              },
+            });
+          }}
+        />
+      )}
       {board && board.name ? (
         <>
           <Section
@@ -415,6 +479,9 @@ const BoardDetails = () => {
           </Section>
 
           <Flex alignItems="center" flexDirection="column" justifyContent="center" marginTop="36px">
+            <Flex marginBottom="16px">
+              Score: {score}/{totalPossibleScore}
+            </Flex>
             {isEditor && (
               <FormControl alignItems="center" display="flex" marginBottom="16px" marginLeft="8px">
                 <FormLabel htmlFor="edit-mode" marginBottom="0">
@@ -424,12 +491,21 @@ const BoardDetails = () => {
                 <Text marginLeft="8px">{isEditMode ? 'Enabled' : 'Disabled'}</Text>
               </FormControl>
             )}
-            <BingoBoard
-              completedPatterns={completedPatterns}
-              isEditor={isEditor && isEditMode}
-              layout={board.layout}
-            />
-            <Flex alignItems="center" justifyContent="space-between" marginTop="16px" width="100%">
+            {board && (
+              <BingoBoard
+                boardId={board.id}
+                completedPatterns={completedPatterns}
+                isEditor={isEditor && isEditMode}
+                layout={board.layout}
+              />
+            )}
+            <Flex
+              alignItems="center"
+              flexDirection={['column', 'column', 'row']}
+              justifyContent="space-between"
+              marginTop="16px"
+              width="100%"
+            >
               {user?.id === board.userId && isEditMode ? (
                 <>
                   <Button
@@ -476,6 +552,7 @@ const BoardDetails = () => {
               ) : (
                 <Flex />
               )}
+
               <>
                 <Button
                   _hover={{

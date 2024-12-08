@@ -32,6 +32,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
     icon: false,
     isComplete: false,
     name: false,
+    value: false,
   });
   const [tileState, setTileState] = useState({
     ...tile,
@@ -126,6 +127,62 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 }}
                 entityId={tile.id}
                 value={tileState.name}
+              />
+            )}
+
+            {!fieldsEditing.value ? (
+              <Flex alignItems="center" flexDirection="space-between" width="100%">
+                <Text width="100%">
+                  <Text
+                    as="span"
+                    color={theme.colors.purple[600]}
+                    display="inline"
+                    fontWeight="bold"
+                    marginRight="8px"
+                  >
+                    Value:
+                  </Text>
+                  {tileState.value}
+                </Text>
+                {isEditor && (
+                  <Button
+                    _hover={{ backgroundColor: theme.colors.purple[100] }}
+                    color={theme.colors.purple[300]}
+                    marginLeft="16px"
+                    onClick={() =>
+                      setFieldsEditing({
+                        ...fieldsEditing,
+                        value: true,
+                      })
+                    }
+                    textDecoration="underline"
+                    variant="ghost"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </Flex>
+            ) : (
+              <EditField
+                entityId={tile.id}
+                fieldName="value"
+                inputType="number"
+                MUTATION={UPDATE_TILE}
+                onSave={(data, val) => {
+                  setTileState({
+                    ...tileState,
+                    ...data.editBingoTile,
+                    dateCompleted: tileState.dateCompleted,
+                    value: val,
+                  });
+                  setFieldsEditing({
+                    ...fieldsEditing,
+                    value: false,
+                  });
+                }}
+                max={100}
+                step={5}
+                value={tileState.value}
               />
             )}
             <Flex flexDirection="column">

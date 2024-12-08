@@ -1,87 +1,145 @@
 import { useMemo } from 'react';
 
+// Helper function to calculate the score for a completed line
+const calculateLineScore = (line, bonusMultiplier) => {
+  const lineValue = line.reduce((score, tile) => score + (tile.value || 0), 0);
+  return lineValue * bonusMultiplier;
+};
+
 const useBingoCompletion = (layout, bonusSettings = {}) => {
-  const {
-    allowDiagonals = false,
-    horizontalBonus = 0,
-    verticalBonus = 0,
-    diagonalBonus = 0,
-    blackoutBonus = 0,
-  } = bonusSettings;
+  const { allowDiagonals, horizontalBonus, verticalBonus, diagonalBonus, blackoutBonus } =
+    bonusSettings;
 
-  const { completedPatterns, score } = useMemo(() => {
-    if (!layout || layout.length === 0) return { completedPatterns: [], score: 0 };
+  const completedPatterns = useMemo(() => {
+    if (!layout || layout.length === 0) return [];
 
-    const patterns = {
-      rows: [],
-      columns: Array(layout[0].length)
-        .fill([])
-        .map(() => []), // column creation
-      diagonals: allowDiagonals ? { main: [], anti: [] } : null,
-    };
+    const completedRows = [];
+    const completedCols = [];
+    const completedDiags = [];
 
-    layout.forEach((row, rowIndex) => {
-      let rowCompleted = true;
+    const rows = layout.length;
+    const cols = layout[0]?.length || 0;
 
-      row.forEach((tile, colIndex) => {
-        if (!tile.isComplete) {
-          rowCompleted = false;
-        } else {
-          patterns.columns[colIndex].push(tile);
-        }
-      });
-
-      if (rowCompleted) {
-        patterns.rows.push(row);
+    // Check rows for completion
+    for (let i = 0; i < rows; i++) {
+      const row = layout[i];
+      const isCompleted = row.every((tile) => tile.isComplete);
+      if (isCompleted) {
+        completedRows.push({ tiles: row, direction: 'row' });
       }
-    });
+    }
 
-    // diagonals if allowed
+    // Check columns for completion
+    for (let j = 0; j < cols; j++) {
+      const col = layout.map((row) => row[j]);
+      const isCompleted = col.every((tile) => tile.isComplete);
+      if (isCompleted) {
+        completedCols.push({ tiles: col, direction: 'column' });
+      }
+    }
+
+    // Check diagonals for completion (if allowed)
     if (allowDiagonals) {
-      let mainDiagonalCompleted = true;
-      let antiDiagonalCompleted = true;
+      const leftDiag = [];
+      const rightDiag = [];
+      for (let i = 0; i < rows; i++) {
+        leftDiag.push(layout[i][i]);
+        rightDiag.push(layout[i][cols - 1 - i]);
+      }
+      const leftDiagCompleted = leftDiag.every((tile) => tile.isComplete);
+      const rightDiagCompleted = rightDiag.every((tile) => tile.isComplete);
 
-      layout.forEach((row, rowIndex) => {
-        if (!row[rowIndex]?.isComplete) mainDiagonalCompleted = false; // Main diagonal
-        if (!row[row.length - rowIndex - 1]?.isComplete) antiDiagonalCompleted = false; // Anti-diagonal
+      if (leftDiagCompleted) {
+        completedDiags.push({ tiles: leftDiag, direction: 'diagonal' });
+      }
+      if (rightDiagCompleted) {
+        completedDiags.push({ tiles: rightDiag, direction: 'diagonal' });
+      }
+    }
+
+    // Combine all completed patterns
+    return [...completedRows, ...completedCols, ...completedDiags];
+  }, [layout, allowDiagonals]);
+
+  const score = useMemo(() => {
+    let totalScore = 0;
+    const completedTiles = new Set();
+
+    if (layout) {
+      // Calculate score for completed patterns
+      completedPatterns.forEach((pattern) => {
+        const { tiles, direction } = pattern;
+        const bonusMultiplier =
+          direction === 'row'
+            ? horizontalBonus
+            : direction === 'column'
+            ? verticalBonus
+            : diagonalBonus;
+
+        totalScore += calculateLineScore(tiles, bonusMultiplier);
+
+        tiles.forEach((tile) => {
+          completedTiles.add(tile);
+        });
       });
 
-      if (mainDiagonalCompleted) patterns.diagonals.main = layout.map((row, index) => row[index]);
-      if (antiDiagonalCompleted)
-        patterns.diagonals.anti = layout.map((row, index) => row[row.length - index - 1]);
+      // Add score for individually completed tiles that are not part of any completed pattern
+      layout.forEach((row) => {
+        row.forEach((tile) => {
+          if (!completedTiles.has(tile) && tile.isComplete) {
+            totalScore += tile.value || 0;
+          }
+        });
+      });
+
+      // Apply blackout bonus if the board is fully completed
+      if (layout.every((row) => row.every((tile) => tile.isComplete))) {
+        totalScore += blackoutBonus;
+      }
     }
 
-    // getting score based on patterns
-    let totalScore = 0;
+    return totalScore;
+  }, [completedPatterns, layout, horizontalBonus, verticalBonus, diagonalBonus, blackoutBonus]);
 
-    totalScore += patterns.rows.length * horizontalBonus;
-    totalScore +=
-      patterns.columns.filter((col) => col.length === layout.length).length * verticalBonus;
+  const totalPossibleScore = useMemo(() => {
+    let possibleScore = 0;
 
-    if (allowDiagonals) {
-      if (patterns.diagonals.main.length === layout.length) totalScore += diagonalBonus;
-      if (patterns.diagonals.anti.length === layout.length) totalScore += diagonalBonus;
+    if (layout) {
+      const rows = layout.length;
+      const cols = layout[0]?.length || 0;
+
+      // Apply row bonuses
+      for (let i = 0; i < rows; i++) {
+        const row = layout[i];
+        possibleScore += calculateLineScore(row, horizontalBonus);
+      }
+
+      // Apply column bonuses
+      for (let j = 0; j < cols; j++) {
+        const col = layout.map((row) => row[j]);
+        possibleScore += calculateLineScore(col, verticalBonus);
+      }
+
+      // Apply diagonal bonuses (if allowed)
+      if (allowDiagonals) {
+        const leftDiag = [];
+        const rightDiag = [];
+        for (let i = 0; i < rows; i++) {
+          leftDiag.push(layout[i][i]);
+          rightDiag.push(layout[i][cols - 1 - i]);
+        }
+        possibleScore += calculateLineScore(leftDiag, diagonalBonus);
+        possibleScore += calculateLineScore(rightDiag, diagonalBonus);
+      }
+
+      // Apply blackout bonus
+      possibleScore += blackoutBonus;
     }
 
-    if (
-      patterns.rows.length === layout.length &&
-      patterns.columns.every((col) => col.length === layout.length)
-    ) {
-      totalScore += blackoutBonus;
-    }
+    return possibleScore;
+  }, [layout, horizontalBonus, verticalBonus, diagonalBonus, blackoutBonus, allowDiagonals]);
 
-    const completedPatterns = [
-      ...patterns.rows,
-      ...patterns.columns.filter((col) => col.length === layout.length),
-      ...(patterns.diagonals
-        ? Object.values(patterns.diagonals).filter((diag) => diag.length > 0)
-        : []),
-    ];
-
-    return { completedPatterns, score: totalScore };
-  }, [layout, allowDiagonals, horizontalBonus, verticalBonus, diagonalBonus, blackoutBonus]);
-
-  return { completedPatterns, score };
+  return { completedPatterns, score, totalPossibleScore };
 };
 
 export default useBingoCompletion;

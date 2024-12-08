@@ -50,9 +50,9 @@ const typeDefs = gql`
 
   type BonusSettings {
     allowDiagonals: Boolean
-    horizontalBonus: Int
-    verticalBonus: Int
-    diagonalBonus: Int
+    horizontalBonus: Float
+    verticalBonus: Float
+    diagonalBonus: Float
     blackoutBonus: Int
   }
 
@@ -85,9 +85,9 @@ const typeDefs = gql`
 
   input BonusSettingsInput {
     allowDiagonals: Boolean!
-    horizontalBonus: Int!
-    verticalBonus: Int!
-    diagonalBonus: Int!
+    horizontalBonus: Float!
+    verticalBonus: Float!
+    diagonalBonus: Float!
     blackoutBonus: Int!
   }
 

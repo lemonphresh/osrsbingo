@@ -52,9 +52,9 @@ const BoardCreation = () => {
             totalValue: 0,
             bonusSettings: {
               allowDiagonals: true,
-              horizontalBonus: 10,
-              verticalBonus: 10,
-              diagonalBonus: 20,
+              horizontalBonus: 1,
+              verticalBonus: 1,
+              diagonalBonus: 1,
               blackoutBonus: 50,
             },
           },
