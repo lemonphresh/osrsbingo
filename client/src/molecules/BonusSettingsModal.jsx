@@ -20,12 +20,23 @@ import {
 import theme from '../theme';
 
 const removeTypename = (obj) => {
-  const { __typename, ...rest } = obj;
-  return rest;
+  if (obj?.__typename) {
+    const { __typename, ...rest } = obj;
+    return rest;
+  }
+  return obj;
 };
 
 const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
-  const [localSettings, setLocalSettings] = useState(board?.bonusSettings);
+  const [localSettings, setLocalSettings] = useState(
+    board?.bonusSettings || {
+      allowDiagonals: false,
+      horizontalBonus: 1,
+      verticalBonus: 1,
+      diagonalBonus: 1,
+      blackoutBonus: 0,
+    }
+  );
 
   const handleChange = (fieldName, fieldValue) => {
     setLocalSettings((prev) => ({
@@ -40,7 +51,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
   };
 
   useEffect(() => {
-    setLocalSettings(removeTypename(board.bonusSettings));
+    setLocalSettings(removeTypename(board?.bonusSettings));
   }, [board]);
 
   return (
@@ -55,12 +66,19 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Allow Diagonal Bonus</Text>
               <Checkbox
+                colorScheme="purple"
                 isChecked={localSettings?.allowDiagonals}
                 onChange={(e) => handleChange('allowDiagonals', e.target.checked)}
               />
             </Flex>
 
-            <Text fontWeight="bold">Multipliers</Text>
+            <Text color={theme.colors.purple[600]} fontWeight="bold">
+              Multipliers
+            </Text>
+            <Text color={theme.colors.purple[600]} fontSize="12px">
+              The amount that a group of tiles is multiplied by when all are completed. (1x to 2x,
+              by 0.1 intervals)
+            </Text>
             {/* Horizontal Bonus */}
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Row Bonus</Text>
@@ -139,7 +157,12 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               </Flex>
             )}
 
-            <Text fontWeight="bold">Point Bonus</Text>
+            <Text color={theme.colors.purple[600]} fontWeight="bold">
+              Point Bonus
+            </Text>
+            <Text color={theme.colors.purple[600]} fontSize="12px">
+              Amount added to total when board is filled out completely. (Min: 0, Max: 250)
+            </Text>
             {/* Blackout Bonus */}
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Blackout Bonus</Text>
@@ -166,8 +189,8 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
             </Flex>
           </Flex>
         </ModalBody>
-        <ModalFooter>
-          <Button onClick={handleSaveAndClose} colorScheme="blue">
+        <ModalFooter margin="8px">
+          <Button colorScheme="purple" onClick={handleSaveAndClose}>
             Save & Close
           </Button>
         </ModalFooter>

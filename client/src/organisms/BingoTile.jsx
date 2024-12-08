@@ -8,7 +8,7 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const size = ['56px', '64px', '96px', '120px'];
   const [isHovered, setIsHovered] = useState(false);
-  const { icon, isComplete, name } = tile;
+  const { icon, isComplete, name, value } = tile;
   const [updatedCompletedPatterns, setUpdatedCompletedPatterns] = useState(completedPatterns);
   const [isPartOfCompletedGroup, setIsPartOfCompletedGroup] = useState(
     completedPatterns.some((group) => group.tiles.includes(tile.id))
@@ -85,6 +85,24 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
             >
               {name || 'N/A'}
             </Text>
+            {value > 0 ? (
+              <Text
+                display={['none', 'none', '-webkit-box']}
+                marginTop="8px"
+                overflow="hidden"
+                textOverflow="ellipsis"
+                maxWidth="100%"
+                textAlign="center"
+                fontSize="12px"
+                whiteSpace="normal"
+                css={`
+                  -webkit-box-orient: vertical;
+                  -webkit-line-clamp: 2;
+                `}
+              >
+                ({value} pts)
+              </Text>
+            ) : null}
           </>
         ) : isEditor ? (
           <EditIcon boxSize="32px" />

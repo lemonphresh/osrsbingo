@@ -55,7 +55,7 @@ const BoardCreation = () => {
               horizontalBonus: 1,
               verticalBonus: 1,
               diagonalBonus: 1,
-              blackoutBonus: 50,
+              blackoutBonus: 0,
             },
           },
         },

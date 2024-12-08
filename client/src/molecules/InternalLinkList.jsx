@@ -19,7 +19,11 @@ const InternalLinkList = ({ list, type }) => {
       </Text>
     </Link>
   ));
-  return <Flex flexDirection="column">{formattedList}</Flex>;
+  return (
+    <Flex flexDirection="column" margin="0 auto">
+      {formattedList}
+    </Flex>
+  );
 };
 
 export default InternalLinkList;

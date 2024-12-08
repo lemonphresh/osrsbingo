@@ -11,9 +11,11 @@ import {
   Flex,
   FormControl,
   FormLabel,
+  ListItem,
   Spinner,
   Switch,
   Text,
+  UnorderedList,
   useDisclosure,
 } from '@chakra-ui/react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -216,7 +218,7 @@ const BoardDetails = () => {
           </Button>
         )}
       </Flex>
-      {board && (
+      {board && board.bonusSettings && (
         <BonusSettingsModal
           board={board}
           isOpen={isBonusSettingsModalOpen}
@@ -233,15 +235,16 @@ const BoardDetails = () => {
                 },
               },
             });
-
-            setBoard({
-              ...data.updateBingoBoard,
-              ...board,
-              bonusSettings: {
-                ...removeTypename(data?.updateBingoBoard?.bonusSettings),
-                ...val,
-              },
-            });
+            if (data.updateBingoBoard) {
+              setBoard({
+                ...data.updateBingoBoard,
+                ...board,
+                bonusSettings: {
+                  ...removeTypename(data?.updateBingoBoard?.bonusSettings),
+                  ...val,
+                },
+              });
+            }
           }}
         />
       )}
@@ -423,6 +426,55 @@ const BoardDetails = () => {
                 </Button>
               )}
             </Text>
+            <Text
+              alignItems="center"
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+              marginTop="16px"
+              width="100%"
+            >
+              <Text
+                as="span"
+                color={theme.colors.teal[300]}
+                display="inline"
+                fontWeight="bold"
+                marginRight="8px"
+              >
+                Active bonuses:
+              </Text>
+              <UnorderedList>
+                {Object.entries(removeTypename(board?.bonusSettings || {}))
+                  .filter(
+                    ([key, value]) =>
+                      value !== 0 && value !== false && value !== null && value !== undefined
+                  )
+                  .map(([key, value]) => (
+                    <ListItem key={key}>
+                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
+                      {value.toString()}
+                    </ListItem>
+                  )).length > 0 ? (
+                  Object.entries(removeTypename(board?.bonusSettings || {}))
+                    .filter(
+                      ([key, value]) =>
+                        value !== 0 &&
+                        value !== false &&
+                        value !== true &&
+                        value !== null &&
+                        value !== undefined
+                    )
+                    .map(([key, value]) => (
+                      <ListItem key={key}>
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
+                        {value.toString()}
+                      </ListItem>
+                    ))
+                ) : (
+                  <ListItem>None</ListItem>
+                )}
+              </UnorderedList>
+            </Text>
             {isEditMode && isEditor && fieldsEditing.editors ? (
               <>
                 <BoardEditors
@@ -479,9 +531,17 @@ const BoardDetails = () => {
           </Section>
 
           <Flex alignItems="center" flexDirection="column" justifyContent="center" marginTop="36px">
-            <Flex marginBottom="16px">
-              Score: {score}/{totalPossibleScore}
-            </Flex>
+            {totalPossibleScore > 0 && (
+              <Flex marginBottom="24px">
+                <Text fontSize="24px">
+                  Score:{' '}
+                  <span style={{ color: score > 0 ? theme.colors.green[200] : 'inherit' }}>
+                    {score}
+                  </span>{' '}
+                  / {totalPossibleScore}
+                </Text>
+              </Flex>
+            )}
             {isEditor && (
               <FormControl alignItems="center" display="flex" marginBottom="16px" marginLeft="8px">
                 <FormLabel htmlFor="edit-mode" marginBottom="0">
