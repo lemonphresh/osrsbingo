@@ -257,19 +257,19 @@ const UserDetails = () => {
               </Text>
             </Flex>
           </Section> */}
-          <Section flexDirection="column" width="100%">
+          {/* <Section flexDirection="column" width="100%">
             <GemTitle gemColor="blue" size="sm">
               {isCurrentUser ? 'Your' : 'Their'} Events
             </GemTitle>
             <Flex flexDirection="column">
               <Text textAlign="center">
                 Coming soon!
-                {/* {!shownUser?.events || shownUser.events.length === 0
+                {!shownUser?.events || shownUser.events.length === 0
                 ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not associated with any events yet.'
-                : 'todo event list'} */}
+                : 'todo event list'}
               </Text>
             </Flex>
-          </Section>
+          </Section> */}
         </Flex>
       </Section>
       {isCurrentUser && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { Button, Input, List, ListItem, Text, Flex, Checkbox, useToast } from '@chakra-ui/react';
+import { Button, Input, List, ListItem, Text, Flex, Checkbox } from '@chakra-ui/react';
 import debounce from 'lodash.debounce';
 import { SEARCH_USERS } from '../graphql/queries';
 import { UPDATE_BOARD_EDITORS } from '../graphql/mutations';
@@ -135,7 +135,7 @@ const BoardEditors = ({ boardId, onSubmit }) => {
       <Button
         margin="0 auto"
         onClick={handleSubmit}
-        colorScheme="blue"
+        colorScheme="green"
         mt={4}
         isDisabled={selectedEditors.length === 0}
         maxWidth="250px"

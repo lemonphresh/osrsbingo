@@ -298,21 +298,6 @@ const BoardDetails = () => {
               )
             )}
             {!fieldsEditing.name && <GemTitle marginBottom="16px">{board.name}</GemTitle>}
-            {/* todo: get list of board editor names from list of user ids  */}
-            {/* <Text width="100%">
-              <Text
-                as="span"
-                color={theme.colors.teal[300]}
-                display="inline"
-                fontWeight="bold"
-                marginRight="4px"
-              >
-                Editors:
-              </Text>
-              {board.editors.join(', ')}
-            </Text> */}
-            {/* entityId, fieldName, inputType = 'text', MUTATION, onSave, value */}
-
             {!fieldsEditing.description ? (
               <>
                 <Flex position="relative" flexDirection="column" marginX={['0px', '16px']}>
@@ -426,6 +411,19 @@ const BoardDetails = () => {
                 </Button>
               )}
             </Text>
+            {isEditMode && isEditor && fieldsEditing.editors ? (
+              <>
+                <BoardEditors
+                  boardId={board.id}
+                  onSubmit={() =>
+                    setFieldsEditing({
+                      ...fieldsEditing,
+                      editors: false,
+                    })
+                  }
+                />
+              </>
+            ) : null}
             <Text
               alignItems="center"
               display="flex"
@@ -439,11 +437,11 @@ const BoardDetails = () => {
                 color={theme.colors.teal[300]}
                 display="inline"
                 fontWeight="bold"
-                marginRight="8px"
+                marginBottom="4px"
               >
                 Active bonuses:
               </Text>
-              <UnorderedList>
+              <UnorderedList marginBottom="8px">
                 {Object.entries(removeTypename(board?.bonusSettings || {}))
                   .filter(
                     ([key, value]) =>
@@ -475,20 +473,14 @@ const BoardDetails = () => {
                 )}
               </UnorderedList>
             </Text>
-            {isEditMode && isEditor && fieldsEditing.editors ? (
-              <>
-                <BoardEditors
-                  boardId={board.id}
-                  onSubmit={() =>
-                    setFieldsEditing({
-                      ...fieldsEditing,
-                      editors: false,
-                    })
-                  }
-                />
-              </>
-            ) : null}
-            <Text alignItems="center" display="flex" justifyContent="center" width="100%">
+
+            <Text
+              alignItems="center"
+              display="flex"
+              marginBottom="8px"
+              justifyContent="center"
+              width="100%"
+            >
               <Text
                 as="span"
                 color={theme.colors.teal[300]}

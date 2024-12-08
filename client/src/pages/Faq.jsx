@@ -59,6 +59,10 @@ const QAList = [
       </Text>
     ),
   },
+  {
+    q: <Text>Was this website crafted by gnomes?</Text>,
+    a: <Text>You are goddamn right.</Text>,
+  },
   //   {
   //     q: <Text>stuff</Text>,
   //     a: <Text>stuff</Text>,
@@ -98,13 +102,7 @@ const Faq = () => (
               </Flex>
               <AccordionIcon />
             </AccordionButton>
-            <AccordionPanel
-              alignItems="center"
-              display="flex"
-              flexDirection="column"
-              paddingY={4}
-              textAlign="left"
-            >
+            <AccordionPanel display="flex" flexDirection="column" paddingY={4} textAlign="left">
               {i.a}
             </AccordionPanel>
           </AccordionItem>

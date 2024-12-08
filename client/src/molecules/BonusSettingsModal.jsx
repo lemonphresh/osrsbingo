@@ -62,7 +62,6 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
         <ModalCloseButton />
         <ModalBody paddingX={['16px', '32px', '56px']} width="100%">
           <Flex direction="column" gap="16px">
-            {/* Allow Diagonals */}
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Allow Diagonal Bonus</Text>
               <Checkbox
@@ -79,7 +78,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               The amount that a group of tiles is multiplied by when all are completed. (1x to 2x,
               by 0.1 intervals)
             </Text>
-            {/* Horizontal Bonus */}
+
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Row Bonus</Text>
               <NumberInput
@@ -104,7 +103,6 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               </NumberInput>
             </Flex>
 
-            {/* Vertical Bonus */}
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Column Bonus </Text>
               <NumberInput
@@ -130,7 +128,6 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               </NumberInput>
             </Flex>
 
-            {/* Diagonal Bonus */}
             {localSettings.allowDiagonals && (
               <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
                 <Text>Diagonal Bonus</Text>
@@ -163,7 +160,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
             <Text color={theme.colors.purple[600]} fontSize="12px">
               Amount added to total when board is filled out completely. (Min: 0, Max: 250)
             </Text>
-            {/* Blackout Bonus */}
+
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
               <Text>Blackout Bonus</Text>
               <NumberInput

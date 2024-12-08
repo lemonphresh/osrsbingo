@@ -50,8 +50,8 @@ const Landing = () => {
         <Section flexDirection="column" width="100%">
           <GemTitle>Get Started</GemTitle>
           <Text marginBottom="8px" marginX={['0px', '16px', '56px', '16px']}>
-            Log in or sign up to access the collection of boards, your private board collection, and
-            your teams.
+            Log in or sign up to access the collection of boards and your private collection of
+            boards.
           </Text>
           <Flex
             height="100%"

@@ -2,7 +2,6 @@ import { Flex, Image, Text } from '@chakra-ui/react';
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import theme from '../theme';
-import Cashapp from '../assets/cashapp.png';
 import GemLogo from '../assets/gemlogo.png';
 import GnomeChild from '../assets/gnomechild.png';
 import { useAuth } from '../providers/AuthProvider';

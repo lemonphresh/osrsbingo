@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 
-// Helper function to calculate the score for a completed line
 const calculateLineScore = (line, bonusMultiplier) => {
   const lineValue = line.reduce((score, tile) => score + (tile.value || 0), 0);
   return lineValue * bonusMultiplier;
@@ -20,7 +19,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
     const rows = layout.length;
     const cols = layout[0]?.length || 0;
 
-    // Check rows for completion
+    // check rows for completion
     for (let i = 0; i < rows; i++) {
       const row = layout[i];
       const isCompleted = row.every((tile) => tile.isComplete);
@@ -29,7 +28,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
       }
     }
 
-    // Check columns for completion
+    // check columns for completion
     for (let j = 0; j < cols; j++) {
       const col = layout.map((row) => row[j]);
       const isCompleted = col.every((tile) => tile.isComplete);
@@ -38,7 +37,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
       }
     }
 
-    // Check diagonals for completion (if allowed)
+    // check diagonals for completion (if allowed)
     if (allowDiagonals) {
       const leftDiag = [];
       const rightDiag = [];
@@ -57,7 +56,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
       }
     }
 
-    // Combine all completed patterns
+    // combine all completed patterns
     return [...completedRows, ...completedCols, ...completedDiags];
   }, [layout, allowDiagonals]);
 
@@ -66,7 +65,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
     const completedTiles = new Set();
 
     if (layout) {
-      // Calculate score for completed patterns
+      // calculate score for completed patterns
       completedPatterns.forEach((pattern) => {
         const { tiles, direction } = pattern;
         const bonusMultiplier =
@@ -83,7 +82,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
         });
       });
 
-      // Add score for individually completed tiles that are not part of any completed pattern
+      // add score for individually completed tiles that are not part of any completed pattern
       layout.forEach((row) => {
         row.forEach((tile) => {
           if (!completedTiles.has(tile) && tile.isComplete) {
@@ -92,7 +91,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
         });
       });
 
-      // Apply blackout bonus if the board is fully completed
+      // apply blackout bonus if the board is fully completed
       if (layout.every((row) => row.every((tile) => tile.isComplete))) {
         totalScore += blackoutBonus;
       }
@@ -108,19 +107,19 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
       const rows = layout.length;
       const cols = layout[0]?.length || 0;
 
-      // Apply row bonuses
+      // apply row bonuses
       for (let i = 0; i < rows; i++) {
         const row = layout[i];
         possibleScore += calculateLineScore(row, horizontalBonus);
       }
 
-      // Apply column bonuses
+      // apply column bonuses
       for (let j = 0; j < cols; j++) {
         const col = layout.map((row) => row[j]);
         possibleScore += calculateLineScore(col, verticalBonus);
       }
 
-      // Apply diagonal bonuses (if allowed)
+      // apply diagonal bonuses (if allowed)
       if (allowDiagonals) {
         const leftDiag = [];
         const rightDiag = [];
@@ -132,7 +131,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
         possibleScore += calculateLineScore(rightDiag, diagonalBonus);
       }
 
-      // Apply blackout bonus
+      // apply blackout bonus
       possibleScore += blackoutBonus;
     }
 

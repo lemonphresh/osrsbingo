@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../providers/AuthProvider';
 import { useParams } from 'react-router-dom';
 
-// todo: make this accept a value to compare to i guess
 const useIsCurrentUser = () => {
   const { user } = useAuth();
   const params = useParams();

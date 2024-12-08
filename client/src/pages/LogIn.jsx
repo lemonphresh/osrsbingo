@@ -1,14 +1,5 @@
-import {
-  Alert,
-  Button,
-  Flex,
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
-  Input,
-  Text,
-} from '@chakra-ui/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Flex, FormControl, FormLabel, Input, Text } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
@@ -39,8 +30,7 @@ const Login = () => {
       password: null,
     }
   );
-  // zz todo
-  const usernameError = useCallback(() => {}, []);
+
   useEffect(() => {
     if (error) {
       setErrors([{ message: error.message }]);
@@ -108,7 +98,6 @@ const Login = () => {
               name="username"
               type="text"
             />
-            {usernameError() && <FormErrorMessage>Username is required.</FormErrorMessage>}
           </FormControl>
           <FormControl isRequired>
             <FormLabel>Password</FormLabel>
