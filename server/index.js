@@ -196,7 +196,7 @@ router.post('/auth/login', async (req, res) => {
   }
 });
 /*  END auth  */
-
+const PORT = process.env.PORT || 5000;
 // Starting the Apollo server and Express server
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql' });
