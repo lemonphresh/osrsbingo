@@ -21,8 +21,7 @@ const schema = makeExecutableSchema({ typeDefs, resolvers });
 const cors = require('cors');
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-    methods: ['GET', 'POST', 'OPTIONS'],
+    origin: process.env.DATABASE_URL || 'http://localhost:3000',
     credentials: true, // allows cookies
   })
 );
@@ -31,6 +30,11 @@ app.use(express.json());
 const path = require('path');
 
 if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../client/build')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+  });
 } else {
   app.use(express.static(path.join(__dirname, 'public')));
 }
@@ -194,6 +198,8 @@ router.post('/auth/login', async (req, res) => {
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql' });
   app.listen(PORT, () => {
-    console.log(`🚀🚀🚀 Server running!!`);
+    console.log(
+      `🚀🚀🚀 Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`
+    );
   });
 });

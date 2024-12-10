@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "cd ./server && npm i && node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "install-all": "npm install --prefix client && npm install --prefix server",
+    "heroku-postbuild": "npm run build-client",
+    "start": "npm run start --prefix server",
+    "build-client": "npm run build --prefix client"
   },
   "keywords": [],
   "author": "",
