@@ -21,7 +21,7 @@ const schema = makeExecutableSchema({ typeDefs, resolvers });
 const cors = require('cors');
 app.use(
   cors({
-    origin: 'http://localhost:3000',
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
     credentials: true, // allows cookies
   })
 );
@@ -30,12 +30,6 @@ app.use(express.json());
 const path = require('path');
 
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'client/build')));
-
-  // Fallback routing for React
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
-  });
 } else {
   app.use(express.static(path.join(__dirname, 'public')));
 }
