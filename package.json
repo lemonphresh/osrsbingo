@@ -1,16 +1,11 @@
 {
   "name": "osrs-bingo",
   "version": "1.0.0",
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "^5.0.1"
-  },
   "scripts": {
-    "install-all": "npm install --prefix client && npm install --prefix server",
+    "install-all": "cd client && npm install && cd ../server && npm install",
     "heroku-postbuild": "npm run build-client",
     "start": "npm run start --prefix server",
-    "build-client": "npm run build --prefix client"
+    "build-client": "cd client && npm run build"
   },
   "keywords": [],
   "author": "",
