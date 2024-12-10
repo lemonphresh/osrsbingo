@@ -19,23 +19,26 @@ const QAList = [
     q: <Text>What if I would like to request a feature?</Text>,
     a: (
       <Text>
-        I would encourage you to{' '}
-        <Link color={theme.colors.pink[300]} fontWeight="bold" href="mailto:lemon.tsx@gmail.com">
-          contact me
-        </Link>
-        .
+        I would encourage you to DM me on the{' '}
+        <Link
+          color={theme.colors.teal[300]}
+          fontWeight="bold"
+          href="https://www.discord.gg/eternalgems"
+        >
+          Eternal Gems Discord Server
+        </Link>{' '}
+        @buttlid and let me know. No guarantees, though. XP loss and all, you know.
       </Text>
     ),
   },
   {
-    q: <Text>Are you available for freelancing?</Text>,
+    q: <Text>How do I get removed from an editors list?</Text>,
     a: (
       <Text>
-        I sure am!{' '}
-        <Link color={theme.colors.pink[300]} fontWeight="bold" href="mailto:lemon.tsx@gmail.com">
-          Let&apos;s get in touch
-        </Link>
-        .
+        You'll have to contact the board owner to get removed from an editors list. If they've
+        mysteriously disappeared, I suppose I could help remove you, too. However, if you're the
+        owner, you can't remove yourself from an editors list, though that is typical CEO behavior
+        of you to try.
       </Text>
     ),
   },
@@ -45,7 +48,7 @@ const QAList = [
       <Text>
         First of all, thank you. Secondly,{' '}
         <Link
-          color={theme.colors.pink[300]}
+          color={theme.colors.teal[300]}
           fontWeight="bold"
           href="https://cash.app/$lemonlikesgirls/5.00"
           target="_blank"
@@ -56,6 +59,14 @@ const QAList = [
       </Text>
     ),
   },
+  {
+    q: <Text>Was this website crafted by gnomes?</Text>,
+    a: <Text>You are goddamn right.</Text>,
+  },
+  {
+    q: <Text>Why the ads?</Text>,
+    a: <Text>I just want to make enough to host this bad boy. Please be nice to me.</Text>,
+  },
   //   {
   //     q: <Text>stuff</Text>,
   //     a: <Text>stuff</Text>,
@@ -63,7 +74,14 @@ const QAList = [
 ];
 
 const Faq = () => (
-  <Flex alignItems="center" flex="1" flexDirection="column" justifyContent="center" width="100%">
+  <Flex
+    alignItems="center"
+    flex="1"
+    flexDirection="column"
+    justifyContent="flex-start"
+    paddingY={['72px', '112px']}
+    width="100%"
+  >
     <Section flexDirection="column">
       <GemTitle>FAQ</GemTitle>
       <Accordion
@@ -74,7 +92,12 @@ const Faq = () => (
         width="100%"
       >
         {QAList.map((i, idx) => (
-          <AccordionItem backgroundColor={theme.colors.pink[700]} borderRadius="12px" marginY="8px">
+          <AccordionItem
+            backgroundColor={theme.colors.teal[700]}
+            borderRadius="12px"
+            marginY="8px"
+            key={idx}
+          >
             <AccordionButton height="64px">
               <Flex flex="1">
                 <Heading size="sm" textAlign="left">
@@ -83,13 +106,7 @@ const Faq = () => (
               </Flex>
               <AccordionIcon />
             </AccordionButton>
-            <AccordionPanel
-              alignItems="center"
-              display="flex"
-              flexDirection="column"
-              paddingY={4}
-              textAlign="left"
-            >
+            <AccordionPanel display="flex" flexDirection="column" paddingY={4} textAlign="left">
               {i.a}
             </AccordionPanel>
           </AccordionItem>

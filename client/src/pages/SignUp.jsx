@@ -70,8 +70,6 @@ const SignUp = () => {
     }
   );
 
-  // todo: figure out what makes a username bad
-  const usernameError = useCallback(() => console.log(values.username), [values.username]);
   const passwordError = useCallback(
     () => validatePasswords(values.password, values.confirmedPassword),
     [values.password, values.confirmedPassword]
@@ -106,7 +104,7 @@ const SignUp = () => {
           <Text>
             Already have an account?{' '}
             <NavLink to="/login">
-              <span style={{ color: theme.colors.blue[400], textDecoration: 'underline' }}>
+              <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
                 Log in here
               </span>
               .

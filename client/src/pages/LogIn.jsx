@@ -1,14 +1,5 @@
-import {
-  Alert,
-  Button,
-  Flex,
-  FormControl,
-  FormErrorMessage,
-  FormLabel,
-  Input,
-  Text,
-} from '@chakra-ui/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, Button, Flex, FormControl, FormLabel, Input, Text } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
@@ -26,7 +17,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
 
-  const [loginUser, { data, loading, error }] = useMutation(LOGIN_USER);
+  const [loginUser, { data, error }] = useMutation(LOGIN_USER);
 
   const { onChange, onSubmit, values } = useForm(
     () => {
@@ -39,8 +30,7 @@ const Login = () => {
       password: null,
     }
   );
-  // zz todo
-  const usernameError = useCallback(() => console.log(values.username), [values.username]);
+
   useEffect(() => {
     if (error) {
       setErrors([{ message: error.message }]);
@@ -108,7 +98,6 @@ const Login = () => {
               name="username"
               type="text"
             />
-            {usernameError() && <FormErrorMessage>Username is required.</FormErrorMessage>}
           </FormControl>
           <FormControl isRequired>
             <FormLabel>Password</FormLabel>
@@ -141,7 +130,7 @@ const Login = () => {
         <Text marginTop="16px">
           New here? Go to{' '}
           <NavLink to="/signup">
-            <span style={{ color: theme.colors.blue[400], textDecoration: 'underline' }}>
+            <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
               the sign up page
             </span>
             .

@@ -2,6 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import { jwtDecode } from 'jwt-decode';
+import { useToastContext } from './ToastProvider';
 
 export const AuthContext = createContext();
 
@@ -9,47 +10,82 @@ const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userId, setUserId] = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-
   const token = localStorage.getItem('authToken');
+  const { showToast } = useToastContext();
 
   useEffect(() => {
-    if (token && !user) {
+    if (token) {
       try {
         const decodedToken = jwtDecode(token);
+        const currentTime = Math.floor(Date.now() / 1000);
+
+        if (decodedToken?.exp && decodedToken.exp < currentTime) {
+          console.error('Token has expired, logging out...');
+          localStorage.removeItem('authToken');
+          setUser(null);
+          setUserId(null);
+          setIsCheckingAuth(false);
+          showToast('Session expired, please log in again', 'error');
+          return;
+        }
+
         setUserId(decodedToken?.userId);
       } catch (err) {
-        console.error('Failed to decode token', err);
+        console.error('Failed to decode token, logging out...', err);
+        localStorage.removeItem('authToken');
+        setUser(null);
         setUserId(null);
+        setIsCheckingAuth(false);
+        showToast('Invalid session, please log in again', 'error');
       }
+    } else {
+      setIsCheckingAuth(false);
     }
-  }, [token, user]);
+  }, [token, showToast]);
 
   useQuery(GET_USER, {
     variables: { id: userId },
+    skip: !userId,
     onCompleted: (data) => {
       setUser(data?.getUser || null);
-      setIsCheckingAuth(false); // Stop checking once user is fetched
+      setIsCheckingAuth(false);
     },
     onError: () => {
       setUser(null);
-      setIsCheckingAuth(false); // Stop checking on error
+      setIsCheckingAuth(false);
     },
   });
 
   const login = async (credentials) => {
     try {
       localStorage.setItem('authToken', credentials.token);
+      const decodedToken = jwtDecode(credentials.token);
 
-      setUser(credentials.user || credentials); // todo this is messy but it's working for now
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (decodedToken?.exp && decodedToken.exp < currentTime) {
+        console.error('Token has expired, logging out...');
+        localStorage.removeItem('authToken');
+        setUser(null);
+        setUserId(null);
+        showToast('Session expired, please log in again', 'error');
+        return;
+      }
+
+      setUserId(decodedToken?.userId);
+      setUser(credentials.user || null);
+      showToast('Successfully logged in', 'success');
     } catch (error) {
       console.error('Login failed:', error.message);
       setUser(null);
+      showToast('Login failed, please try again', 'error');
     }
   };
 
   const logout = async () => {
     localStorage.removeItem('authToken');
     setUser(null);
+    setUserId(null);
+    showToast('Successfully logged out', 'success');
   };
 
   return (
@@ -61,7 +97,9 @@ const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('AuthContext must be used with AuthContextProvider!');
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
   return context;
 };
 

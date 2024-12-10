@@ -3,18 +3,10 @@ import { Button, Flex, Image, Text } from '@chakra-ui/react';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import OsrsWikiLogo from '../assets/osrswikilogo.png';
+import ExampleBoard from '../assets/ExampleBoard.png';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
 import { NavLink, useNavigate } from 'react-router-dom';
-
-/* 
-  current todo (11/20):
-    * add logout button to user details page
-  
-    * figure out username validation conditions 
-    * clean up server files
-
-*/
 
 const Landing = () => {
   const { user } = useAuth();
@@ -22,7 +14,6 @@ const Landing = () => {
 
   useEffect(() => {
     if (user) {
-      console.log('helloooo', user);
       navigate(`/user/${user.id}`);
     }
   }, [navigate, user]);
@@ -37,23 +28,30 @@ const Landing = () => {
     >
       <Flex flexDirection={['column', 'column', 'column', 'row']} gridGap="32px">
         <Section flexDirection="column" width="100%">
-          <GemTitle>OSRS Bingo Hub</GemTitle>
+          <GemTitle gemColor="purple">OSRS Bingo Hub</GemTitle>
           <Text marginX={['0px', '16px', '56px', '16px']}>
-            There should be some intro text here describing briefly what this website has to offer.
-            Beneath this will be a little image of an example bingo board when I can take one. Have
-            a frog instead.
+            Are you an OSRS gamer and are looking to manage a personal/clan-wide bingo board? Cool,
+            I built a tool for you. <br />
+            <br />
+            Browse public boards for ideas, follow your friends' and clanmates' progress, and create
+            your own bingo boards to keep track of your exciting gamer goals!
           </Text>
-          <Image
-            margin="0 auto"
-            maxHeight="124px"
-            maxWidth="124px"
-            src="https://png.pngtree.com/png-vector/20240122/ourmid/pngtree-green-toad-frog-png-image_11454296.png"
-          />
+          <Flex alignItems="center" justifyContent="center" marginTop="16px">
+            <Image
+              backgroundColor={theme.colors.gray[900]}
+              borderRadius="8px"
+              maxHeight="200px"
+              maxWidth="200px"
+              padding="8px"
+              src={ExampleBoard}
+            />
+          </Flex>
         </Section>
         <Section flexDirection="column" width="100%">
           <GemTitle>Get Started</GemTitle>
           <Text marginBottom="8px" marginX={['0px', '16px', '56px', '16px']}>
-            Log in or sign up to access the wonderful world of OSRS bingo, you damn sweat.
+            Log in or sign up to access the collection of boards and your private collection of
+            boards.
           </Text>
           <Flex
             height="100%"
@@ -101,7 +99,7 @@ const Landing = () => {
         width="100%"
       >
         <Text color={theme.colors.gray[400]} marginBottom="24px">
-          This project uses an API courtesy of:{' '}
+          This project uses assets courtesy of:{' '}
         </Text>
         <Image maxWidth="450px" src={OsrsWikiLogo} width={['225px', '325px', '450px']} />
       </Flex>

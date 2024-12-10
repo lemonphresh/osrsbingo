@@ -5,6 +5,7 @@ import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
 import { Flex, Spinner } from '@chakra-ui/react';
 import theme from './theme';
+import ScrollToTop from './atoms/ScrollToTop';
 
 const AuthConsumer = () => {
   const { isCheckingAuth } = useAuth();
@@ -36,8 +37,19 @@ const Root = () => {
         flexDirection="column"
         fontFamily={theme.fonts.body}
         minHeight="100vh"
-        width="100vw"
       >
+        <ScrollToTop />
+        {/* <Flex
+          as="section"
+          color="black"
+          justifyContent="center"
+          alignItems="center"
+          width="100%"
+          height="90px"
+          backgroundColor={theme.colors.gray[200]}
+        >
+         Banner Ad Placeholder
+        </Flex> */}
         <NavBar />
         <AuthConsumer />
         <Footer />
