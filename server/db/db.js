@@ -1,7 +1,9 @@
 const { Sequelize } = require('sequelize');
 
-const sequelize = process.env.DATABASE_URL
-  ? new Sequelize(process.env.DATABASE_URL, {
+const dbUrl = process.env.HEROKU_POSTGRESQL_BLUE_URL || process.env.DATABASE_URL;
+
+const sequelize = dbUrl
+  ? new Sequelize(dbUrl, {
       dialect: 'postgres',
       protocol: 'postgres',
       logging: console.log,
