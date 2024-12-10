@@ -1,3 +1,5 @@
+console.log({ PLEASE: process.env.DATABASE_URL });
+console.log({ PLEASE2: process.env.HEROKU_POSTGRESQL_BLUE_URL });
 const express = require('express');
 const axios = require('axios');
 const PORT = process.env.PORT || 5000;
@@ -12,8 +14,7 @@ const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
 const User = require('./db/models/User');
 const app = express();
-console.log({ PLEASE: process.env.DATABASE_URL });
-console.log({ PLEASE2: process.env.HEROKU_POSTGRESQL_BLUE_URL });
+
 dotenv.config();
 
 /*  START setup  */
