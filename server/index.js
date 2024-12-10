@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const PORT = process.env.PORT || 5000;
+const path = require('path');
 const { Pool } = require('pg');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -10,6 +10,7 @@ const sequelize = require('./db/db');
 const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
+const bcrypt = require('bcrypt');
 const User = require('./db/models/User');
 const app = express();
 
@@ -27,13 +28,13 @@ app.use(
 );
 app.use(express.json());
 
-const path = require('path');
-
+// Serve static files from the React app (client build directory)
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../client/build')));
+  app.use(express.static(path.join(__dirname, 'public'))); // Serve from the correct location
 
+  // Catch-all handler for routing all other requests to the React app's index.html
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 } else {
   app.use(express.static(path.join(__dirname, 'public')));
@@ -47,10 +48,12 @@ const pool = new Pool({
   },
 });
 
+// Example root endpoint
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// Example API route to fetch items from OSRSBox API
 app.get('/api/items', async (req, res) => {
   try {
     const { alpha } = req.query;
@@ -68,7 +71,7 @@ app.get('/api/items', async (req, res) => {
     }
     const items = Object.values(itemsData);
 
-    // fuse options
+    // Fuse.js options for searching
     const options = {
       includeScore: true,
       threshold: 0.3, // lower value = stricter matching
@@ -81,7 +84,6 @@ app.get('/api/items', async (req, res) => {
     const seenImageUrls = new Set();
     const uniqueResults = [];
 
-    // format and remove dupes
     result.forEach((resultItem) => {
       const imageUrl = resultItem.item.icon
         ? `data:image/png;base64,${resultItem.item.icon}`
@@ -89,7 +91,6 @@ app.get('/api/items', async (req, res) => {
             resultItem.item.wiki_name.replace(/ /g, '_')
           )}.png`;
 
-      // if imageUrl not in Set, add it to the final results and Set
       if (!seenImageUrls.has(imageUrl)) {
         seenImageUrls.add(imageUrl);
         uniqueResults.push({
@@ -107,6 +108,7 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
+// GraphQL Server setup
 const server = new ApolloServer({
   typeDefs,
   resolvers,
@@ -195,6 +197,7 @@ router.post('/auth/login', async (req, res) => {
 });
 /*  END auth  */
 
+// Starting the Apollo server and Express server
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql' });
   app.listen(PORT, () => {
