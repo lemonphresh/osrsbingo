@@ -2,8 +2,8 @@
   "name": "osrs-bingo",
   "version": "1.0.0",
   "scripts": {
-    "install-all": "cd client && npm install && cd ../server && npm install",
-    "heroku-postbuild": "npm run build-client",
+    "install-all": "npm install --prefix client && npm install --prefix server",
+    "heroku-postbuild": "npm install --prefix client && npm run build-client",
     "start": "npm run start --prefix server",
     "build-client": "cd client && npm run build"
   },
