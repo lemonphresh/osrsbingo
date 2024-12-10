@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 const { Pool } = require('pg');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -28,10 +28,24 @@ app.use(
 app.use(express.json());
 
 const path = require('path');
-app.use(express.static(path.join(__dirname, 'public')));
+
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client/build')));
+
+  // Fallback routing for React
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  });
+} else {
+  app.use(express.static(path.join(__dirname, 'public')));
+}
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  ssl: {
+    require: true,
+    rejectUnauthorized: false,
+  },
 });
 
 app.get('/', (req, res) => {
