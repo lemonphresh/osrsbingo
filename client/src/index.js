@@ -15,7 +15,10 @@ import AuthProvider from './providers/AuthProvider';
 import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache } from '@apollo/client';
 import { ToastProvider } from './providers/ToastProvider';
 
-const httpLink = new HttpLink({ uri: `${process.env.REACT_APP_SERVER_URL}/graphql` });
+const URI = process.env.REACT_APP_SERVER_URL
+  ? `${process.env.REACT_APP_SERVER_URL}/graphql`
+  : '/graphql';
+const httpLink = new HttpLink({ uri: URI });
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
@@ -33,7 +36,7 @@ const client = new ApolloClient({
   link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
   cors: {
-    origin: 'http://localhost:3000',
+    origin: process.env.REACT_APP_SERVER_URL || 'http://localhost:3000',
     credentials: true,
   },
 });

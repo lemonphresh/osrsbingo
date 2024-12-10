@@ -55,13 +55,18 @@ const BoardViewAll = () => {
                 >
                   <Flex flexDirection="column">
                     <Text
+                      display={['-webkit-box']}
                       fontSize="lg"
                       fontWeight="bold"
                       mb={2}
-                      width="fit-content"
-                      whiteSpace="nowrap"
                       overflow="hidden"
                       textOverflow="ellipsis"
+                      maxWidth="100%"
+                      whiteSpace="normal"
+                      css={`
+                        -webkit-box-orient: vertical;
+                        -webkit-line-clamp: 2;
+                      `}
                     >
                       {board.name}
                     </Text>
