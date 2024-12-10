@@ -1,6 +1,6 @@
 const { Sequelize } = require('sequelize');
 
-const dbUrl = process.env.HEROKU_POSTGRESQL_BLUE_URL || process.env.DATABASE_URL;
+const dbUrl = process.env.DATABASE_URL || process.env.HEROKU_POSTGRESQL_BLUE_URL;
 
 const sequelize = dbUrl
   ? new Sequelize(dbUrl, {

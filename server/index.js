@@ -1,5 +1,3 @@
-console.log({ PLEASE: process.env.DATABASE_URL });
-console.log({ PLEASE2: process.env.HEROKU_POSTGRESQL_BLUE_URL });
 const express = require('express');
 const axios = require('axios');
 const PORT = process.env.PORT || 5000;
@@ -195,8 +193,6 @@ router.post('/auth/login', async (req, res) => {
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql' });
   app.listen(PORT, () => {
-    console.log(
-      `🚀🚀🚀 Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`
-    );
+    console.log(`🚀🚀🚀 Server running!!`);
   });
 });
