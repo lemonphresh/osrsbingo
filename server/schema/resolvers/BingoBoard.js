@@ -220,12 +220,22 @@ module.exports = {
         throw new Error('Board not found');
       }
 
+      const boardOwnerId = board.userId;
+
+      const updatedEditorIds = [...new Set([boardOwnerId, ...editorIds])].filter(
+        (id) => id !== null
+      );
+
+      if (!updatedEditorIds.includes(boardOwnerId)) {
+        updatedEditorIds.unshift(boardOwnerId);
+      }
+
       const editorsToAdd = await User.findAll({
-        where: { id: editorIds },
+        where: { id: updatedEditorIds },
       });
 
-      if (editorsToAdd.length !== editorIds.length) {
-        const missingIds = editorIds.filter(
+      if (editorsToAdd.length !== updatedEditorIds.length) {
+        const missingIds = updatedEditorIds.filter(
           (id) => !editorsToAdd.some((editor) => editor.id === id)
         );
         throw new Error(`Users not found for IDs: ${missingIds.join(', ')}`);

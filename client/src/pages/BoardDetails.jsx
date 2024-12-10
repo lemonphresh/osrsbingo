@@ -451,7 +451,11 @@ const BoardDetails = () => {
                 {Object.entries(removeTypename(board?.bonusSettings || {}))
                   .filter(
                     ([key, value]) =>
-                      value !== 0 && value !== false && value !== null && value !== undefined
+                      value !== 0 &&
+                      value !== false &&
+                      value !== null &&
+                      value !== undefined &&
+                      !(board?.bonusSettings?.allowDiagonals === false && key === 'diagonalBonus')
                   )
                   .map(([key, value]) => (
                     <ListItem key={key}>
@@ -466,7 +470,8 @@ const BoardDetails = () => {
                         value !== false &&
                         value !== true &&
                         value !== null &&
-                        value !== undefined
+                        value !== undefined &&
+                        !(board?.bonusSettings?.allowDiagonals === false && key === 'diagonalBonus')
                     )
                     .map(([key, value]) => (
                       <ListItem key={key}>
