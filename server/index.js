@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.HEROKU_POSTGRESQL_BLUE_URL,
+  connectionString: process.env.DATABASE_URL,
   ssl: {
     require: true,
     rejectUnauthorized: false,
