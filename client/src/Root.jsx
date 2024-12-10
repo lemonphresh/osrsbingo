@@ -39,6 +39,17 @@ const Root = () => {
         minHeight="100vh"
       >
         <ScrollToTop />
+        {/* <Flex
+          as="section"
+          color="black"
+          justifyContent="center"
+          alignItems="center"
+          width="100%"
+          height="90px"
+          backgroundColor={theme.colors.gray[200]}
+        >
+         Banner Ad Placeholder
+        </Flex> */}
         <NavBar />
         <AuthConsumer />
         <Footer />

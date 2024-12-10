@@ -63,6 +63,10 @@ const QAList = [
     q: <Text>Was this website crafted by gnomes?</Text>,
     a: <Text>You are goddamn right.</Text>,
   },
+  {
+    q: <Text>Why the ads?</Text>,
+    a: <Text>I just want to make enough to host this bad boy. Please be nice to me.</Text>,
+  },
   //   {
   //     q: <Text>stuff</Text>,
   //     a: <Text>stuff</Text>,

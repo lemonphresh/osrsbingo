@@ -8,8 +8,7 @@ const typeDefs = gql`
     permissions: [String]
     token: String
     teams: [String]
-    bingoBoards: [BingoBoard!]!
-    editorBoards: [BingoBoard!]
+    editorBoards: [BingoBoard!]!
   }
 
   input CreateBingoBoardInput {
@@ -108,12 +107,17 @@ const typeDefs = gql`
     bonusSettings: BonusSettingsInput
   }
 
+  type PaginatedBoards {
+    boards: [BingoBoard!]!
+    totalCount: Int!
+  }
+
   type Query {
     getUser(id: ID!): User
     getUsers: [User!]
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
-    getPublicBoards: [BingoBoard!]!
+    getPublicBoards(limit: Int, offset: Int): PaginatedBoards!
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
   }

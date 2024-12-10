@@ -20,13 +20,17 @@ export const LOGIN_USER = gql`
         id
         username
         rsn
-        bingoBoards {
+        editorBoards {
           id
           name
           type
           description
           layout
           isPublic
+          tiles {
+            id
+            isComplete
+          }
           bonusSettings {
             allowDiagonals
             horizontalBonus
@@ -46,13 +50,17 @@ export const UPDATE_USER = gql`
       id
       username
       rsn
-      bingoBoards {
+      editorBoards {
         id
         name
         type
         description
         layout
         isPublic
+        tiles {
+          id
+          isComplete
+        }
         bonusSettings {
           allowDiagonals
           horizontalBonus

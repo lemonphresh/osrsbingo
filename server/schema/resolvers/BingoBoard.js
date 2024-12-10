@@ -267,11 +267,15 @@ module.exports = {
         throw new ApolloError('Failed to fetch BingoBoard');
       }
     },
-    getPublicBoards: async () => {
+    getPublicBoards: async (_, { limit, offset }) => {
       try {
-        const publicBoards = await BingoBoard.findAll({
+        const totalCount = await BingoBoard.count({
           where: { isPublic: true },
-          attributes: ['id', 'name', 'layout'],
+        });
+
+        const boards = await BingoBoard.findAll({
+          where: { isPublic: true },
+          attributes: ['id', 'createdAt', 'name', 'layout'],
           include: [
             {
               model: BingoTile,
@@ -281,8 +285,14 @@ module.exports = {
             { model: User, as: 'editors', attributes: ['id', 'username', 'rsn'] },
           ],
           order: [['createdAt', 'DESC']],
+          limit,
+          offset,
         });
-        return publicBoards;
+
+        return {
+          boards: boards || [],
+          totalCount,
+        };
       } catch (error) {
         console.error('Error fetching public boards:', error);
         throw new ApolloError('Failed to fetch public boards');

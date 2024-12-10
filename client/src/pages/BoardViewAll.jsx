@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, Spinner, Text, VStack } from '@chakra-ui/react';
+import { Flex, Spinner, Text, VStack, Button } from '@chakra-ui/react';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import usePublicBoardsWithThumbnails from '../hooks/usePublicBoardsWithThumbnails';
@@ -8,8 +8,7 @@ import { Link } from 'react-router-dom';
 import theme from '../theme';
 
 const BoardViewAll = () => {
-  const { boards, loading } = usePublicBoardsWithThumbnails();
-
+  const { boards, loading, loadMore, hasMore } = usePublicBoardsWithThumbnails();
   return (
     <Flex
       alignItems="center"
@@ -32,7 +31,7 @@ const BoardViewAll = () => {
           This is a collection of all the public boards created by users of OSRS Bingo Hub. Take a
           look around!
         </Text>
-        {loading ? (
+        {loading && boards.length === 0 ? (
           <Spinner />
         ) : boards.length === 0 ? (
           <Text>Sorry, no boards here.</Text>
@@ -54,23 +53,31 @@ const BoardViewAll = () => {
                   transition="0.2s ease all"
                   width="100%"
                 >
-                  <Text
-                    fontSize="lg"
-                    fontWeight="bold"
-                    mb={2}
-                    width="fit-content"
-                    whiteSpace="nowrap"
-                    overflow="hidden"
-                    textOverflow="ellipsis"
-                  >
-                    {board.name}
-                  </Text>
+                  <Flex flexDirection="column">
+                    <Text
+                      fontSize="lg"
+                      fontWeight="bold"
+                      mb={2}
+                      width="fit-content"
+                      whiteSpace="nowrap"
+                      overflow="hidden"
+                      textOverflow="ellipsis"
+                    >
+                      {board.name}
+                    </Text>
+                    <Text fontSize="14px">Created by: {board.editors[0].username}</Text>
+                  </Flex>
                   <Flex backgroundColor={theme.colors.gray[800]} borderRadius="8px" padding="6px">
                     <MiniBingoBoard grid={board.grid} />
                   </Flex>
                 </Section>
               </Link>
             ))}
+            {hasMore && (
+              <Button onClick={loadMore} isLoading={loading}>
+                Load More
+              </Button>
+            )}
           </VStack>
         )}
       </Section>

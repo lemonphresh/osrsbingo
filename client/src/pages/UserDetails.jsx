@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Flex, Text } from '@chakra-ui/react';
+import {
+  Button,
+  Flex,
+  Heading,
+  Icon,
+  Image,
+  ListItem,
+  Text,
+  UnorderedList,
+} from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Section from '../atoms/Section';
@@ -7,10 +16,13 @@ import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
 import { useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
-import InternalLinkList from '../molecules/InternalLinkList';
+import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
 import { UPDATE_USER } from '../graphql/mutations';
 import { AddIcon } from '@chakra-ui/icons';
+import MiniBingoBoard from '../atoms/MiniBingoBoard';
+import getMiniBoardGrid from '../utils/getMiniBoardGrid';
+import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -24,23 +36,25 @@ const UserDetails = () => {
     username: false,
   });
   const [shownUser, setShownUser] = useState(null);
+  const [shownBoard, setShownBoard] = useState({
+    board: null,
+    grid: null,
+  });
+
+  const navigateToBoard = ({ asEditor, boardId }) => {
+    if (asEditor) {
+      navigate(`/boards/${boardId}`, { state: { isEditMode: true } });
+    } else {
+      navigate(`/boards/${boardId}`);
+    }
+  };
 
   const { loading } = useQuery(GET_USER, {
     variables: { id: parseInt(params.userId, 10) },
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       if (data?.getUser) {
-        const ownerBoards = data.getUser.bingoBoards || [];
-        const editorBoards = data.getUser.editorBoards || [];
-
-        const bingoBoards = [
-          ...ownerBoards,
-          ...editorBoards.filter(
-            (editorBoard) => !ownerBoards.some((board) => board.id === editorBoard.id)
-          ),
-        ].sort((a, b) => parseInt(a.createdAt) - parseInt(b.createdAt));
-
-        setShownUser({ ...data.getUser, bingoBoards });
+        setShownUser({ ...data.getUser });
       } else {
         setShownUser('Not found');
       }
@@ -66,6 +80,15 @@ const UserDetails = () => {
     setShownUser(user);
   }, [user]);
 
+  useEffect(() => {
+    const grid = getMiniBoardGrid(shownBoard.board);
+    setShownBoard((prev) => ({
+      ...prev,
+      grid,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shownBoard.board]);
+
   return (
     <Flex
       alignItems="center"
@@ -78,14 +101,18 @@ const UserDetails = () => {
     >
       <Flex alignItems="flex-start" marginBottom="24px" maxWidth="860px" width="100%">
         <Text
+          alignItems="center"
+          display="inline-flex"
           _hover={{
             borderBottom: '1px solid white',
             marginBottom: '0px',
           }}
           fontWeight="bold"
+          justifyContent="center"
           marginBottom="1px"
         >
-          <Link to="/boards">→ View All Boards</Link>
+          <Icon as={MdOutlineStorage} marginRight="8px" />
+          <Link to="/boards"> View All Boards</Link>
         </Text>
       </Flex>
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
@@ -176,13 +203,13 @@ const UserDetails = () => {
             )}
           </Section>
         </Flex>
-        <Flex flexDirection={['column', 'column', 'column', 'row']} gridGap="16px">
+        <Flex flexDirection={['column-reverse', 'column-reverse', 'row', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="orange" size="sm">
+            <GemTitle gemColor="purple" size="sm" textAlign="center">
               {isCurrentUser ? 'Your' : 'Their Public'} Bingo Boards
             </GemTitle>
             <Flex flexDirection="column">
-              {!shownUser?.bingoBoards || shownUser.bingoBoards.length === 0 ? (
+              {!shownUser?.editorBoards || shownUser.editorBoards.length === 0 ? (
                 <>
                   <Text textAlign="center">
                     Looks like {isCurrentUser ? 'you' : 'they'} haven't made or been added as an
@@ -212,14 +239,60 @@ const UserDetails = () => {
                 </>
               ) : (
                 <Flex flexDirection="column" padding="16px">
-                  <InternalLinkList
-                    list={
-                      isCurrentUser
-                        ? shownUser.bingoBoards
-                        : shownUser.bingoBoards.filter((item) => item.isPublic !== false)
-                    }
-                    type="boards"
-                  />
+                  <UnorderedList
+                    css={`
+                      scrollbar-width: thin; /* Firefox */
+                      scrollbar-color: ${theme.colors.purple[400]} rgba(255, 255, 255, 0.1); /* Firefox */
+
+                      ::-webkit-scrollbar {
+                        width: 8px;
+                        height: 8px;
+                      }
+
+                      ::-webkit-scrollbar-thumb {
+                        background: ${theme.colors.purple[400]};
+                        border-radius: 4px;
+                      }
+
+                      t::-webkit-scrollbar-track {
+                        background: rgba(255, 255, 255, 0.1);
+                      }
+                    `}
+                    maxHeight="212px"
+                    margin="0 auto"
+                    overflowY="auto"
+                    paddingX="16px"
+                  >
+                    {shownUser.editorBoards
+                      .filter((item) => {
+                        if (isCurrentUser) {
+                          return true;
+                        } else {
+                          return item.isPublic !== false;
+                        }
+                      })
+                      .map((item) => (
+                        <ListItem
+                          _hover={{
+                            borderBottom: `1px solid white`,
+                            marginBottom: 0,
+                          }}
+                          color={theme.colors.white}
+                          cursor="pointer"
+                          marginBottom="1px"
+                          paddingTop="3px"
+                          onClick={() =>
+                            setShownBoard((prev) => ({
+                              ...prev,
+                              board: item,
+                            }))
+                          }
+                          width="fit-content"
+                        >
+                          {item.name}
+                        </ListItem>
+                      ))}
+                  </UnorderedList>
                   {isCurrentUser && (
                     <Text
                       _hover={{
@@ -230,7 +303,7 @@ const UserDetails = () => {
                       fontWeight="bold"
                       margin="0 auto"
                       marginBottom="1px"
-                      marginTop="16px"
+                      marginTop="24px"
                     >
                       <Link
                         style={{ display: 'inline-flex', alignItems: 'center' }}
@@ -244,19 +317,66 @@ const UserDetails = () => {
               )}
             </Flex>
           </Section>
-          {/* <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="green" size="sm">
-              {isCurrentUser ? 'Your' : 'Their'} Teams
-            </GemTitle>
-            <Flex flexDirection="column">
-              <Text textAlign="center">
-                Coming soon!
-                {!shownUser?.teams || shownUser.teams.length === 0
-                  ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not a part of any teams yet.'
-                  : 'todo user team list'}
-              </Text>
+
+          <Section flexDirection="column" width="100%">
+            <Flex flexDirection="column" justifyContent="space-between" height="100%">
+              <Heading marginBottom="32px" marginTop="8px" size="sm" textAlign="center">
+                {shownBoard.board?.name
+                  ? `Preview: ${shownBoard.board.name}`
+                  : 'Click a board from the list to preview it.'}
+              </Heading>
+              <Flex flexDirection="column" height="100%">
+                <Flex
+                  alignItems="center"
+                  backgroundColor={
+                    shownBoard.board?.name ? theme.colors.gray[700] : theme.colors.teal[800]
+                  }
+                  borderRadius="10px"
+                  flexDirection="column"
+                  justifyContent="center"
+                  margin="0 auto"
+                  padding="8px"
+                >
+                  {shownBoard.board !== null ? (
+                    <MiniBingoBoard grid={shownBoard.grid} />
+                  ) : (
+                    <Image height="100px" src={GnomeChild} width="100px" />
+                  )}
+                </Flex>
+                {shownBoard.board !== null ? (
+                  <Flex
+                    alignItems="center"
+                    flexDirection={['column', 'row', 'row']}
+                    gridGap={['16px', '24px']}
+                    justifyContent="center"
+                    marginY={['24px', '32px']}
+                  >
+                    <Button
+                      colorScheme="green"
+                      onClick={() =>
+                        navigateToBoard({ boardId: shownBoard.board.id, asEditor: false })
+                      }
+                    >
+                      View Details
+                    </Button>{' '}
+                    {isCurrentUser && (
+                      <Button
+                        colorScheme="pink"
+                        onClick={() =>
+                          navigateToBoard({ boardId: shownBoard.board.id, asEditor: true })
+                        }
+                      >
+                        Edit Board
+                      </Button>
+                    )}
+                  </Flex>
+                ) : (
+                  <Flex height="48px" />
+                )}
+              </Flex>
             </Flex>
-          </Section> */}
+          </Section>
+
           {/* <Section flexDirection="column" width="100%">
             <GemTitle gemColor="blue" size="sm">
               {isCurrentUser ? 'Your' : 'Their'} Events
@@ -274,14 +394,19 @@ const UserDetails = () => {
       </Section>
       {isCurrentUser && (
         <Text
+          alignItems="center"
+          display="inline-flex"
           _hover={{
             borderBottom: '1px solid white',
             marginBottom: '0px',
           }}
+          fontSize="18px"
           marginBottom="1px"
           marginTop="48px"
+          justifyContent="center"
           textAlign="center"
         >
+          <Icon as={MdDoorBack} marginRight="8px" />
           <Link onClick={logout} to="/">
             Logout
           </Link>

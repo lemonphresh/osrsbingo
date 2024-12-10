@@ -11,6 +11,7 @@ import {
   Flex,
   FormControl,
   FormLabel,
+  Icon,
   ListItem,
   Spinner,
   Switch,
@@ -34,6 +35,7 @@ import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
 import BoardEditors from '../organisms/BoardEditors';
 import BonusSettingsModal from '../molecules/BonusSettingsModal';
+import { MdOutlineStorage } from 'react-icons/md';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -196,14 +198,18 @@ const BoardDetails = () => {
         width="100%"
       >
         <Text
+          alignItems="center"
+          display="inline-flex"
           _hover={{
             borderBottom: '1px solid white',
             marginBottom: '0px',
           }}
           fontWeight="bold"
+          justifyContent="center"
           marginBottom="1px"
         >
-          <Link to="/boards">→ View All Boards</Link>
+          <Icon as={MdOutlineStorage} marginRight="8px" />
+          <Link to="/boards"> View All Boards</Link>
         </Text>
         {isEditor && isEditMode && (
           <Button
@@ -561,12 +567,14 @@ const BoardDetails = () => {
               {user?.id === board.userId && isEditMode ? (
                 <>
                   <Button
+                    display="inline-flex"
                     _hover={{
                       border: `1px solid ${theme.colors.red[300]}`,
                       padding: '4px',
                     }}
                     color={theme.colors.red[300]}
                     leftIcon={<DeleteIcon />}
+                    justifyContent="center"
                     marginBottom="1px"
                     onClick={onOpenDeleteAlert}
                     padding="6px"
@@ -607,6 +615,7 @@ const BoardDetails = () => {
 
               <>
                 <Button
+                  display="inline-flex"
                   _hover={{
                     border: `1px solid #f2d202`,
                     padding: '4px',
@@ -615,6 +624,7 @@ const BoardDetails = () => {
                   leftIcon={<CopyIcon />}
                   marginBottom="1px"
                   onClick={onOpenDupeAlert}
+                  justifyContent="center"
                   padding="6px"
                   textAlign="center"
                   variant="unstyled"

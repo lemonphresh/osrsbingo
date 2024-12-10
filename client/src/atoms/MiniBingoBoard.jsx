@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, SimpleGrid } from '@chakra-ui/react';
 
 const MiniBingoBoard = ({ grid }) => {
-  const gridSize = grid.length;
+  const gridSize = grid?.length;
   const tileSize = gridSize === 5 ? ['calc(20px * 0.8)', '20px'] : ['calc(14px * 0.8)', '14px'];
 
   return (

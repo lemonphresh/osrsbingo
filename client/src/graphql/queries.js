@@ -17,34 +17,19 @@ export const GET_USER = gql`
       id
       username
       rsn
-      bingoBoards {
-        id
-        createdAt
-        name
-        editors {
-          id
-          rsn
-          username
-        }
-        type
-        description
-        layout
-        isPublic
-        bonusSettings {
-          allowDiagonals
-          horizontalBonus
-          verticalBonus
-          diagonalBonus
-          blackoutBonus
-        }
-      }
       editorBoards {
         id
         name
+        isPublic
+        layout
         editors {
           id
           username
           rsn
+        }
+        tiles {
+          id
+          isComplete
         }
       }
     }
@@ -90,15 +75,21 @@ export const GET_BOARD = gql`
 `;
 
 export const GET_PUBLIC_BOARDS = gql`
-  query GetPublicBoards {
-    getPublicBoards {
-      id
-      name
-      layout
-      tiles {
+  query GetPublicBoards($limit: Int, $offset: Int) {
+    getPublicBoards(limit: $limit, offset: $offset) {
+      boards {
         id
-        isComplete
+        name
+        layout
+        tiles {
+          id
+          isComplete
+        }
+        editors {
+          username
+        }
       }
+      totalCount
     }
   }
 `;
