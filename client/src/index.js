@@ -33,7 +33,7 @@ const client = new ApolloClient({
   link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
   cors: {
-    origin: 'http://localhost:3000',
+    origin: process.env.REACT_APP_SERVER_URL || 'http://localhost:3000',
     credentials: true,
   },
 });
