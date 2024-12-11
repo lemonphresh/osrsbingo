@@ -16,6 +16,7 @@ module.exports = {
         bonusSettings,
         totalValue,
         totalValueCompleted,
+        baseTileValue,
       } = input;
 
       try {
@@ -38,27 +39,27 @@ module.exports = {
 
         await newBingoBoard.setEditors(editorsToAdd);
 
-        // Step 1: create the tiles
+        // step 1: create the tiles
         const tiles = [];
         for (let row = 0; row < size; row++) {
           for (let col = 0; col < size; col++) {
             tiles.push({
               name: `Tile ${row * size + col + 1}`,
               isComplete: false,
-              value: 0,
+              value: baseTileValue || 0,
               board: newBingoBoard.id,
             });
           }
         }
         const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        // Step 2: create the layout
+        // step 2: create the layout
         const layout = [];
         for (let row = 0; row < size; row++) {
           layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
         }
 
-        // Step 3: update the board with the layout
+        // step 3: update the board with the layout
         newBingoBoard.layout = layout;
         await newBingoBoard.save();
 

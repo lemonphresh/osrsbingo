@@ -44,6 +44,7 @@ const BoardCreation = () => {
             userId: user.id,
             name: values.name,
             description: values.description,
+            baseTileValue: values.baseTileValue,
             type: values.type,
             isPublic: values.isPublic,
             editors: [user.id],
