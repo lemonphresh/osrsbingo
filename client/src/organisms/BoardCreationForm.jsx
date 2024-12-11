@@ -5,6 +5,11 @@ import {
   FormControl,
   FormLabel,
   Input,
+  NumberDecrementStepper,
+  NumberIncrementStepper,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
   Select,
   Switch,
   Text,
@@ -36,6 +41,7 @@ const BoardCreationForm = ({ onSubmit }) => {
     isPublic: false,
     description: '',
     type: 'FIVE',
+    baseTileValue: 0,
   });
 
   const handleChange = (e) => {
@@ -122,6 +128,37 @@ const BoardCreationForm = ({ onSubmit }) => {
             <option value="FIVE">5x5</option>
             <option value="SEVEN">7x7</option>
           </Select>
+        </FormControl>
+
+        <FormControl>
+          <FormLabel fontWeight="bold">Base Tile Value:</FormLabel>
+          <NumberInput
+            color={theme.colors.gray[700]}
+            colorScheme="purple"
+            max={100}
+            maxWidth="80px"
+            min={0}
+            onChange={(val) =>
+              setFormData((prevData) => ({
+                ...prevData,
+                baseTileValue: parseInt(val),
+              }))
+            }
+            name="baseTileValue"
+            step={5}
+            width="100%"
+          >
+            <NumberInputField
+              autoComplete="off"
+              backgroundColor={theme.colors.gray[300]}
+              placeholder={formData.baseTileValue || 0}
+              value={formData.baseTileValue || 0}
+            />
+            <NumberInputStepper>
+              <NumberIncrementStepper />
+              <NumberDecrementStepper />
+            </NumberInputStepper>
+          </NumberInput>
         </FormControl>
 
         <Flex

@@ -29,7 +29,7 @@ app.use(
 app.use(express.json());
 
 // Serve static files from the React app (client build directory)
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
   app.use(express.static(path.join(__dirname, 'public'))); // Serve from the correct location
 
   // Catch-all handler for routing all other requests to the React app's index.html
