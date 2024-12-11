@@ -23,6 +23,7 @@ const typeDefs = gql`
     totalValueCompleted: Int!
     bonusSettings: BonusSettingsInput!
     userId: ID!
+    baseTileValue: Int
   }
 
   type BingoBoard {
