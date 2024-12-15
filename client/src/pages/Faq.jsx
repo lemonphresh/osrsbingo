@@ -35,10 +35,10 @@ const QAList = [
     q: <Text>How do I get removed from an editors list?</Text>,
     a: (
       <Text>
-        You'll have to contact the board owner to get removed from an editors list. If they've
-        mysteriously disappeared, I suppose I could help remove you, too. However, if you're the
-        owner, you can't remove yourself from an editors list, though that is typical CEO behavior
-        of you to try.
+        You'll have to contact the board owner or a fellow editor of a board to get removed from an
+        editors list. If they've mysteriously disappeared, I suppose I could help remove you, too.
+        However, if you're the owner, you can't remove yourself from an editors list, though that is
+        typical CEO behavior of you to try.
       </Text>
     ),
   },
