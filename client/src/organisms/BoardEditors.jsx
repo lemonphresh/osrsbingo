@@ -68,14 +68,6 @@ const BoardEditors = ({ boardId, onSubmit }) => {
         },
       });
     }
-
-    const editorIds = [...selectedEditors, ...pendingInvitations];
-    await updateBoardEditors({
-      variables: {
-        boardId,
-        editorIds: Array.from(new Set(editorIds)),
-      },
-    });
   };
 
   const handleRemoveEditor = (userId) => {
