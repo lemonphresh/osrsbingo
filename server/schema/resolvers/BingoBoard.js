@@ -223,13 +223,16 @@ module.exports = {
 
       const boardOwnerId = board.userId;
 
-      const updatedEditorIds = [...new Set([boardOwnerId, ...editorIds])].filter(
-        (id) => id !== null
-      );
-
-      if (!updatedEditorIds.includes(boardOwnerId)) {
-        updatedEditorIds.unshift(boardOwnerId);
-      }
+      // ensure all IDs are integers and unique
+      const updatedEditorIds = [...new Set([boardOwnerId, ...editorIds])]
+        .filter((id) => id !== null)
+        .map((id) => {
+          const parsedId = parseInt(id, 10);
+          if (isNaN(parsedId)) {
+            throw new Error(`Invalid ID: ${id}`);
+          }
+          return parsedId;
+        });
 
       const editorsToAdd = await User.findAll({
         where: { id: updatedEditorIds },
@@ -239,7 +242,10 @@ module.exports = {
         const missingIds = updatedEditorIds.filter(
           (id) => !editorsToAdd.some((editor) => editor.id === id)
         );
-        throw new Error(`Users not found for IDs: ${missingIds.join(', ')}`);
+
+        if (missingIds.length > 0) {
+          throw new Error(`Users not found for IDs: ${missingIds.join(', ')}`);
+        }
       }
 
       await board.setEditors(editorsToAdd);

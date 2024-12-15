@@ -23,6 +23,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
+import InvitationSection from '../organisms/InvitationsSection';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -202,6 +203,7 @@ const UserDetails = () => {
               />
             )}
           </Section>
+          {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
         </Flex>
         <Flex flexDirection={['column-reverse', 'column-reverse', 'row', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
@@ -258,6 +260,7 @@ const UserDetails = () => {
                         background: rgba(255, 255, 255, 0.1);
                       }
                     `}
+                    key={shownUser}
                     maxHeight="212px"
                     margin="0 auto"
                     overflowY="auto"
@@ -279,6 +282,7 @@ const UserDetails = () => {
                           }}
                           color={theme.colors.white}
                           cursor="pointer"
+                          key={item.id}
                           marginBottom="1px"
                           paddingTop="3px"
                           onClick={() =>

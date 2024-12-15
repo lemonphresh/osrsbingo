@@ -20,6 +20,12 @@ module.exports = (sequelize) => {
         foreignKey: 'boardId',
         otherKey: 'userId',
       });
+
+      // editor invitations for this board
+      BingoBoard.hasMany(models.EditorInvitation, {
+        foreignKey: 'boardId',
+        as: 'editorInvitations',
+      });
     }
   }
 
