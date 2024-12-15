@@ -40,14 +40,9 @@ const InvitationSection = ({ setShownUser }) => {
   }, [userData, userData?.getUser, setShownUser]);
 
   return (
-    data?.pendingInvitations.length > 1 && (
-      <Section>
-        <PendingInvitations
-          invitations={data?.pendingInvitations || []}
-          onRespond={handleRespond}
-        />
-      </Section>
-    )
+    <Section>
+      <PendingInvitations invitations={data?.pendingInvitations || []} onRespond={handleRespond} />
+    </Section>
   );
 };
 

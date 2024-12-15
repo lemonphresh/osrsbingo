@@ -40,7 +40,6 @@ const BoardEditors = ({ boardId, onSubmit }) => {
   const [updateBoardEditors] = useMutation(UPDATE_BOARD_EDITORS, {
     onCompleted: (data) => {
       showToast('Editors updated successfully.', 'success');
-      onSubmit();
     },
     onError: () => {
       showToast('Error updating editors.', 'error');
