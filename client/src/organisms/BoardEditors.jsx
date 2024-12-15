@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
-import { Button, Input, List, ListItem, Text, Flex, Checkbox } from '@chakra-ui/react';
+import { Button, Input, List, ListItem, Text, Flex, Checkbox, IconButton } from '@chakra-ui/react';
 import debounce from 'lodash.debounce';
 import { SEARCH_USERS } from '../graphql/queries';
-import { SEND_EDITOR_INVITATIONS } from '../graphql/mutations';
+import { SEND_EDITOR_INVITATIONS, UPDATE_BOARD_EDITORS } from '../graphql/mutations';
 import { GET_BOARD } from '../graphql/queries';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
 import { useToastContext } from '../providers/ToastProvider';
+import { CloseIcon } from '@chakra-ui/icons';
 
 const BoardEditors = ({ boardId, onSubmit }) => {
   const { user } = useAuth();
@@ -25,22 +26,32 @@ const BoardEditors = ({ boardId, onSubmit }) => {
     variables: { id: boardId },
   });
 
-  const handleSearchChange = debounce((e) => {
-    const query = e.target.value;
-    setSearchTerm(query);
-    searchUsers();
-  }, 500);
-
   const [sendEditorInvitations] = useMutation(SEND_EDITOR_INVITATIONS, {
     onCompleted: () => {
       showToast('Invitations sent successfully.', 'success');
-      setPendingInvitations([]); // clear pending invitations after successful submission
+      setPendingInvitations([]);
       onSubmit();
     },
     onError: () => {
       showToast('Error sending invitations.', 'error');
     },
   });
+
+  const [updateBoardEditors] = useMutation(UPDATE_BOARD_EDITORS, {
+    onCompleted: (data) => {
+      showToast('Editors updated successfully.', 'success');
+      onSubmit();
+    },
+    onError: () => {
+      showToast('Error updating editors.', 'error');
+    },
+  });
+
+  const handleSearchChange = debounce((e) => {
+    const query = e.target.value;
+    setSearchTerm(query);
+    searchUsers();
+  }, 500);
 
   const handleEditorSelect = (userId) => {
     setPendingInvitations((prev) =>
@@ -57,6 +68,25 @@ const BoardEditors = ({ boardId, onSubmit }) => {
         },
       });
     }
+
+    const editorIds = [...selectedEditors, ...pendingInvitations];
+    await updateBoardEditors({
+      variables: {
+        boardId,
+        editorIds: Array.from(new Set(editorIds)),
+      },
+    });
+  };
+
+  const handleRemoveEditor = (userId) => {
+    const updatedEditors = selectedEditors.filter((id) => id !== userId);
+    setSelectedEditors(updatedEditors);
+    updateBoardEditors({
+      variables: {
+        boardId,
+        editorIds: updatedEditors,
+      },
+    });
   };
 
   useEffect(() => {
@@ -99,7 +129,7 @@ const BoardEditors = ({ boardId, onSubmit }) => {
                 mr={2}
                 isDisabled={isDisabledAndChecked(u.id)}
               />
-              <Text>
+              <Text flex="1">
                 {u.username} {u.rsn ? `(${u.rsn})` : ''}{' '}
                 {u.id === user?.id ? (
                   <span
@@ -113,6 +143,16 @@ const BoardEditors = ({ boardId, onSubmit }) => {
                   ''
                 )}
               </Text>
+              {selectedEditors.includes(u.id) && u.id !== user?.id && (
+                <IconButton
+                  aria-label="Remove editor"
+                  icon={<CloseIcon />}
+                  onClick={() => handleRemoveEditor(u.id)}
+                  colorScheme="red"
+                  size="sm"
+                  variant="ghost"
+                />
+              )}
             </ListItem>
           ))}
         </List>
