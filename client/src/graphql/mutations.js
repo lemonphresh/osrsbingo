@@ -186,3 +186,21 @@ export const UPDATE_BOARD_EDITORS = gql`
     }
   }
 `;
+
+export const RESPOND_TO_INVITATION = gql`
+  mutation RespondToInvitation($invitationId: ID!, $response: String!) {
+    respondToInvitation(invitationId: $invitationId, response: $response) {
+      id
+      status
+    }
+  }
+`;
+
+export const SEND_EDITOR_INVITATIONS = gql`
+  mutation SendEditorInvitations($boardId: ID!, $invitedUserIds: [ID!]!) {
+    sendEditorInvitations(boardId: $boardId, invitedUserIds: $invitedUserIds) {
+      success
+      message
+    }
+  }
+`;

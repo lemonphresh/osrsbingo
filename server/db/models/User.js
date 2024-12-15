@@ -13,6 +13,17 @@ module.exports = (sequelize) => {
         as: 'editorBoards',
         foreignKey: 'userId',
       });
+      // invitations sent by this user
+      User.hasMany(models.EditorInvitation, {
+        foreignKey: 'inviterUserId',
+        as: 'sentInvitations',
+      });
+
+      // invitations received by this user
+      User.hasMany(models.EditorInvitation, {
+        foreignKey: 'invitedUserId',
+        as: 'receivedInvitations',
+      });
     }
   }
 

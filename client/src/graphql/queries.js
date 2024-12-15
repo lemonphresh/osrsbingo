@@ -109,6 +109,23 @@ export const GET_TILE = gql`
   }
 `;
 
+export const GET_PENDING_INVITATIONS = gql`
+  query {
+    pendingInvitations {
+      id
+      boardId
+      boardDetails {
+        name
+        id
+      }
+      inviterUser {
+        username
+      }
+      status
+    }
+  }
+`;
+
 export const SEARCH_USERS = gql`
   query SearchUsers($search: String!) {
     searchUsers(search: $search) {
