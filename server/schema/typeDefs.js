@@ -26,6 +26,17 @@ const typeDefs = gql`
     baseTileValue: Int
   }
 
+  type EditorInvitation {
+    id: ID!
+    boardId: ID!
+    invitedUser: User!
+    inviterUser: User!
+    status: String!
+    createdAt: String!
+    updatedAt: String!
+    boardDetails: BingoBoard!
+  }
+
   type BingoBoard {
     id: ID!
     createdAt: String
@@ -113,6 +124,12 @@ const typeDefs = gql`
     totalCount: Int!
   }
 
+  type BatchInvitationResponse {
+    success: Boolean!
+    message: String
+    failedUserIds: [ID!] # Optional: IDs for users whose invitations failed
+  }
+
   type Query {
     getUser(id: ID!): User
     getUsers: [User!]
@@ -121,6 +138,7 @@ const typeDefs = gql`
     getPublicBoards(limit: Int, offset: Int): PaginatedBoards!
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
+    pendingInvitations: [EditorInvitation!]!
   }
 
   type Mutation {
@@ -136,6 +154,10 @@ const typeDefs = gql`
     deleteBingoBoard(id: ID!): MutationResponse
     createBingoTile(board: ID!, name: String!, value: Int!, icon: String): BingoTile
     editBingoTile(id: ID!, input: UpdateBingoTileInput!): BingoTile
+
+    sendEditorInvitation(boardId: ID!, invitedUserId: ID!): EditorInvitation!
+    sendEditorInvitations(boardId: ID!, invitedUserIds: [ID!]!): BatchInvitationResponse!
+    respondToInvitation(invitationId: ID!, response: String!): EditorInvitation!
   }
 `;
 
