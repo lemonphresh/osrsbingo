@@ -50,8 +50,6 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
     debouncedSearch(value);
   };
 
-  console.log({ results });
-
   return (
     <Flex flexDirection="column" width="100%" padding="8px">
       <Input

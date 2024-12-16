@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Flex, Button, Collapse } from '@chakra-ui/react';
 import Markdown from './Markdown';
 import { MdArrowDownward, MdArrowUpward } from 'react-icons/md';
-import theme from '../theme';
 
 const ExpandableText = ({ text, limit = 180, startingHeight = 110 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
