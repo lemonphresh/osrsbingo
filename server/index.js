@@ -54,7 +54,7 @@ app.get('/api/items', async (req, res) => {
     const { alpha } = req.query;
 
     const response = await axios.get(
-      'https://raw.githubusercontent.com/osrsbox/osrsbox-db/refs/heads/master/docs/items-complete.json'
+      'https://raw.githubusercontent.com/0xNeffarion/osrsreboxed-db/master/docs/items-complete.json'
     );
 
     let itemsData;
