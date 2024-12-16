@@ -72,23 +72,24 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
             )}
             <Text
               display={['none', 'none', '-webkit-box']}
-              marginTop="8px"
+              fontSize={['14px', '14px', '14px', '16px']}
+              marginTop={['2px', '2px', '2px', '4px']}
               overflow="hidden"
               textOverflow="ellipsis"
               maxWidth="100%"
               textAlign="center"
               whiteSpace="normal"
-              css={`
-                -webkit-box-orient: vertical;
-                -webkit-line-clamp: 2;
-              `}
+              sx={{
+                '-webkit-box-orient': 'vertical',
+                '-webkit-line-clamp': ['1', '1', '1', '2'],
+              }}
             >
               {name || 'N/A'}
             </Text>
             {value > 0 ? (
               <Text
                 display={['none', 'none', '-webkit-box']}
-                marginTop="8px"
+                marginTop={['0px', '0px', '0px', '8px']}
                 overflow="hidden"
                 textOverflow="ellipsis"
                 maxWidth="100%"

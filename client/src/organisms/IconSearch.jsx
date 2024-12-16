@@ -76,7 +76,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
           paddingY="8px"
           spacing={0}
         >
-          {results.map((item) => (
+          {results?.map((item) => (
             <ListItem
               alignItems="center"
               key={item.id}
