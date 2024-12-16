@@ -50,6 +50,8 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
     debouncedSearch(value);
   };
 
+  console.log({ results });
+
   return (
     <Flex flexDirection="column" width="100%" padding="8px">
       <Input
@@ -76,7 +78,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
           paddingY="8px"
           spacing={0}
         >
-          {results.map((item) => (
+          {results?.map((item) => (
             <ListItem
               alignItems="center"
               key={item.id}
