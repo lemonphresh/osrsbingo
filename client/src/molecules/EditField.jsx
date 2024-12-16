@@ -9,6 +9,7 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   Textarea,
+  Text,
 } from '@chakra-ui/react';
 import React, { useState } from 'react';
 import theme from '../theme';
@@ -28,6 +29,7 @@ const EditField = ({
   const [val, setVal] = useState(value);
   const [mutation, { loading }] = useMutation(MUTATION);
   const { showToast } = useToastContext();
+  const [characterCount, setCharacterCount] = useState(value?.length || 0);
 
   const handleSave = async () => {
     try {
@@ -76,16 +78,24 @@ const EditField = ({
           </NumberInput>
         )}
         {inputType === 'textarea' && (
-          <Textarea
-            autoComplete="off"
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
-            defaultValue={val}
-            onChange={(e) => setVal(e.target.value)}
-            placeholder={value}
-            name={fieldName}
-            minWidth={['100%', '350px', '500px', '650px']}
-          />
+          <>
+            <Textarea
+              autoComplete="off"
+              backgroundColor={theme.colors.gray[300]}
+              color={theme.colors.gray[700]}
+              defaultValue={val}
+              onChange={(e) => {
+                setVal(e.target.value);
+                setCharacterCount(e.target.value?.length || 0);
+              }}
+              placeholder={value}
+              name={fieldName}
+              minWidth={['100%', '350px', '500px', '650px']}
+            />
+            <Text fontSize="12px" textAlign="right">
+              {characterCount} characters
+            </Text>
+          </>
         )}
         <Button
           _hover={{ backgroundColor: theme.colors.orange[800] }}

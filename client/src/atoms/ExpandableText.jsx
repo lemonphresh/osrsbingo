@@ -1,33 +1,46 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Flex, Button, Collapse } from '@chakra-ui/react';
 import Markdown from './Markdown';
+import { MdArrowDownward, MdArrowUpward } from 'react-icons/md';
+import theme from '../theme';
 
-const ExpandableText = ({ text, limit = 150 }) => {
+const ExpandableText = ({ text, limit = 180, startingHeight = 110 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showButton, setShowButton] = useState(false);
   const contentRef = useRef(null);
 
   const toggleExpansion = () => setIsExpanded(!isExpanded);
 
-  const checkContentHeight = useCallback(() => {
+  const checkLimit = useCallback(() => {
     if (contentRef.current) {
       const contentHeight = contentRef.current.scrollHeight;
-      setShowButton(contentHeight > limit);
+      const exceedsHeight = contentHeight > startingHeight;
+      const exceedsTextLimit = text.length > limit;
+
+      setShowButton(exceedsHeight || exceedsTextLimit);
     }
-  }, [limit]);
+  }, [text, limit, startingHeight]);
 
   useEffect(() => {
-    checkContentHeight();
-  }, [text, checkContentHeight]);
+    checkLimit();
+
+    const images = contentRef.current?.querySelectorAll('img') || [];
+    const handleImageLoad = () => checkLimit();
+
+    images.forEach((img) => img.addEventListener('load', handleImageLoad));
+    return () => {
+      images.forEach((img) => img.removeEventListener('load', handleImageLoad));
+    };
+  }, [text, checkLimit]);
 
   return (
     <Flex flexDirection="column" maxWidth={['100%', '720px']} width="100%">
       <Collapse
         css={{
-          maxHeight: isExpanded ? 'none' : '8rem',
+          maxHeight: isExpanded ? 'none' : `${startingHeight}px`,
         }}
         animateOpacity
-        startingHeight="8rem"
+        startingHeight={`${startingHeight}px`}
         in={isExpanded}
         width="100%"
       >
@@ -36,8 +49,19 @@ const ExpandableText = ({ text, limit = 150 }) => {
         </div>
       </Collapse>
       {showButton && (
-        <Button onClick={toggleExpansion} margin="0 auto" marginTop="24px" size="sm">
-          {isExpanded ? '⬆️ Show Less' : '⬇️ Read More'}
+        <Button
+          _hover={{
+            color: 'white',
+          }}
+          color="white"
+          leftIcon={isExpanded ? <MdArrowUpward /> : <MdArrowDownward />}
+          onClick={toggleExpansion}
+          margin="0 auto"
+          marginTop="24px"
+          size="sm"
+          variant="outline"
+        >
+          {isExpanded ? 'Show Less' : 'Read More'}
         </Button>
       )}
     </Flex>
