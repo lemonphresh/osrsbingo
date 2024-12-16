@@ -330,7 +330,7 @@ const BoardDetails = () => {
                   )}
                   {board?.description && (
                     <Section>
-                      <ExpandableText limit={350} text={board?.description} />
+                      <ExpandableText text={board?.description} />
                     </Section>
                   )}
                 </Flex>
