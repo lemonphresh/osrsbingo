@@ -164,7 +164,13 @@ const typeDefs = gql`
   }
 
   type Mutation {
-    createUser(username: String!, password: String!, rsn: String, permissions: String!): User
+    createUser(
+      username: String!
+      displayName: String!
+      password: String!
+      rsn: String
+      permissions: String!
+    ): User
     updateUser(id: ID!, input: UserUpdateInput!): User
     loginUser(username: String!, password: String!): AuthPayload
     createBingoBoard(input: CreateBingoBoardInput!): BingoBoard
