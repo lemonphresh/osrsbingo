@@ -164,7 +164,7 @@ const SignUp = () => {
             </FormHelperText>
           </FormControl>
           <FormControl isInvalid={values.displayName?.length === 0} isRequired>
-            <FormLabel>Username</FormLabel>
+            <FormLabel>Display Name</FormLabel>
             <Input
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
