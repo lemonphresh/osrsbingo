@@ -506,7 +506,6 @@ const BoardDetails = () => {
                 maxWidth="196px"
                 name="category"
                 onChange={async (e) => {
-                  console.log(e.target.value);
                   const { data } = await updateBingoBoard({
                     variables: {
                       id: board.id,
