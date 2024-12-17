@@ -60,7 +60,7 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
         {!isHovered ? (
           <>
             {icon ? (
-              <Image height="30px" src={icon} width="30px" />
+              <Image aria-hidden height="30px" src={icon} width="30px" loading="lazy" />
             ) : isComplete ? (
               <CheckCircleIcon boxSize="30px" color={theme.colors.green[600]} />
             ) : (

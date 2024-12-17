@@ -98,7 +98,13 @@ const NavBar = () => {
           }}
           to={user ? `/user/${user.id}` : '/'}
         >
-          <Image aria-hidden height={['110px', '80px']} src={GemLogo} width={['110px', '80px']} />
+          <Image
+            aria-hidden
+            height={['110px', '80px']}
+            src={GemLogo}
+            width={['110px', '80px']}
+            loading="lazy"
+          />
         </NavLink>
       </Flex>
 
