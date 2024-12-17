@@ -13,6 +13,7 @@ import {
   FormLabel,
   Icon,
   ListItem,
+  Select,
   Spinner,
   Switch,
   Text,
@@ -394,7 +395,7 @@ const BoardDetails = () => {
                 {board.editors.map((editor, idx) => (
                   <Link to={`/user/${editor.id}`}>
                     {idx !== 0 ? ', ' : ''}
-                    {editor.username}
+                    {editor.displayName}
                   </Link>
                 ))}
               </Text>
@@ -486,6 +487,83 @@ const BoardDetails = () => {
                 )}
               </UnorderedList>
             </Text>
+
+            <Text
+              as="span"
+              color={theme.colors.teal[300]}
+              display="inline"
+              fontWeight="bold"
+              marginTop="8px"
+              textAlign="center"
+            >
+              Category:
+            </Text>
+            {isEditor && isEditMode && fieldsEditing.category ? (
+              <Select
+                backgroundColor={theme.colors.gray[300]}
+                color={theme.colors.gray[700]}
+                margin="0 auto"
+                maxWidth="196px"
+                name="category"
+                onChange={async (e) => {
+                  const { data } = await updateBingoBoard({
+                    variables: {
+                      id: board.id,
+                      input: {
+                        category: e.target.value,
+                      },
+                    },
+                  });
+
+                  setBoard({
+                    ...data.updateBingoBoard,
+                    ...board,
+                    category: e.target.value,
+                  });
+
+                  setFieldsEditing({
+                    ...fieldsEditing,
+                    category: false,
+                  });
+                }}
+                defaultValue={board.category}
+              >
+                {user.admin && <option value="Featured">Featured</option>}
+                <option value="PvM">PvM</option>
+                <option value="PvP">PvP</option>
+                <option value="Skilling">Skilling</option>
+                <option value="Social">Social</option>
+                <option value="Other">Other</option>
+              </Select>
+            ) : (
+              <Text
+                alignItems="center"
+                display="flex"
+                justifyContent="center"
+                marginTop="8px"
+                width="100%"
+              >
+                <Text>{board.category}</Text>
+                {isEditor && isEditMode && (
+                  <Button
+                    _hover={{ backgroundColor: theme.colors.teal[800] }}
+                    color={theme.colors.teal[300]}
+                    marginLeft="8px"
+                    onClick={() =>
+                      setFieldsEditing({
+                        ...fieldsEditing,
+                        category: true,
+                      })
+                    }
+                    textDecoration="underline"
+                    variant="ghost"
+                    width="fit-content"
+                  >
+                    <EditIcon />
+                  </Button>
+                )}
+              </Text>
+            )}
 
             <Text
               alignItems="center"

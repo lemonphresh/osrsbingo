@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 
 module.exports = {
   Mutation: {
@@ -97,6 +98,7 @@ module.exports = {
 
         const allowedFields = [
           'name',
+          'category',
           'description',
           'isPublic',
           'team',
@@ -253,7 +255,7 @@ module.exports = {
       const updatedBoard = await BingoBoard.findByPk(boardId, {
         include: [
           { model: User, as: 'editors' },
-          { model: User, as: 'user', attributes: ['id', 'username', 'rsn'] },
+          { model: User, as: 'user', attributes: ['id', 'displayName', 'username', 'rsn'] },
           { model: BingoTile, as: 'tiles' },
         ],
       });
@@ -266,8 +268,8 @@ module.exports = {
       try {
         const bingoBoard = await BingoBoard.findByPk(id, {
           include: [
-            { model: User, as: 'editors', attributes: ['id', 'username', 'rsn'] },
-            { model: User, as: 'user', attributes: ['id', 'username', 'rsn'] },
+            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
+            { model: User, as: 'user', attributes: ['id', 'displayName', 'username', 'rsn'] },
             { model: BingoTile, as: 'tiles' },
           ],
         });
@@ -284,22 +286,55 @@ module.exports = {
         throw new ApolloError('Failed to fetch BingoBoard');
       }
     },
-    getPublicBoards: async (_, { limit, offset }) => {
+    getPublicBoards: async (_, { limit, offset, category, searchQuery = '' }) => {
       try {
+        const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
+
         const totalCount = await BingoBoard.count({
-          where: { isPublic: true },
+          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
         });
 
         const boards = await BingoBoard.findAll({
-          where: { isPublic: true },
-          attributes: ['id', 'createdAt', 'name', 'layout'],
+          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
+          attributes: ['id', 'createdAt', 'category', 'name', 'layout'],
           include: [
             {
               model: BingoTile,
               as: 'tiles',
               attributes: ['id', 'isComplete'],
             },
-            { model: User, as: 'editors', attributes: ['id', 'username', 'rsn'] },
+            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
+          ],
+          order: [['createdAt', 'DESC']],
+          limit: limit || 10,
+          offset: offset || 0,
+        });
+
+        return {
+          boards: boards || [],
+          totalCount,
+        };
+      } catch (error) {
+        console.error('Error fetching public boards:', error);
+        throw new ApolloError('Failed to fetch public boards');
+      }
+    },
+    getFeaturedBoards: async (_, { limit, offset }) => {
+      try {
+        const totalCount = await BingoBoard.count({
+          where: { isPublic: true, category: 'Featured' },
+        });
+
+        const boards = await BingoBoard.findAll({
+          where: { isPublic: true, category: 'Featured' },
+          attributes: ['id', 'createdAt', 'category', 'name', 'layout'],
+          include: [
+            {
+              model: BingoTile,
+              as: 'tiles',
+              attributes: ['id', 'isComplete'],
+            },
+            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
           ],
           order: [['createdAt', 'DESC']],
           limit,

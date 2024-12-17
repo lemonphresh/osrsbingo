@@ -49,8 +49,10 @@ const PendingInvitations = ({ invitations, onRespond }) => {
             >
               <Text>
                 <EmailIcon color={theme.colors.blue[100]} boxSize={5} marginRight="16px" />
-                <span style={{ fontWeight: 'bold' }}>{invitation.inviterUser?.username}</span> has
-                invited you to edit the board{' '}
+                <span style={{ fontWeight: 'bold' }}>
+                  {invitation.inviterUser?.displayName}
+                </span>{' '}
+                has invited you to edit the board{' '}
                 <Link to={`/boards/${invitation.boardDetails?.id}`}>
                   <span
                     style={{

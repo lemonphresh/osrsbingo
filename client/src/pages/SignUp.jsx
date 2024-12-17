@@ -50,6 +50,7 @@ const SignUp = () => {
         const { data } = await createUser({
           variables: {
             username: values.username,
+            displayName: values.displayName,
             password: values.password,
             rsn: values.rsn || '',
             permissions: 'user',
@@ -63,6 +64,7 @@ const SignUp = () => {
     },
     {
       username: null,
+      displayName: null,
       password: null,
       confirmedPassword: null,
       rsn: null,
@@ -159,6 +161,28 @@ const SignUp = () => {
                 width="14px"
               />
               Enter a username. (Max length of 16 characters.)
+            </FormHelperText>
+          </FormControl>
+          <FormControl isInvalid={values.displayName?.length === 0} isRequired>
+            <FormLabel>Username</FormLabel>
+            <Input
+              backgroundColor={theme.colors.gray[300]}
+              color={theme.colors.gray[700]}
+              maxLength={16}
+              onChange={onChange}
+              name="displayName"
+              type="text"
+            />
+            <FormHelperText color={theme.colors.gray[400]}>
+              <InfoIcon
+                alignSelf={['flex-start', undefined]}
+                color={theme.colors.green[400]}
+                marginX="8px"
+                marginBottom="4px"
+                height="14px"
+                width="14px"
+              />
+              Enter a PUBLIC display name. (Max length of 16 characters.)
             </FormHelperText>
           </FormControl>
           <FormControl isInvalid={values.RSN?.length === 0}>

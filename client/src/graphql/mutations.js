@@ -4,6 +4,8 @@ export const CREATE_USER = gql`
   mutation CreateUser($username: String!, $password: String!, $rsn: String, $permissions: String!) {
     createUser(username: $username, password: $password, rsn: $rsn, permissions: $permissions) {
       id
+      admin
+      displayName
       username
       rsn
       permissions
@@ -18,11 +20,14 @@ export const LOGIN_USER = gql`
       token
       user {
         id
+        admin
+        displayName
         username
         rsn
         editorBoards {
           id
           name
+          category
           type
           description
           layout
@@ -48,11 +53,14 @@ export const UPDATE_USER = gql`
   mutation UpdateUser($id: ID!, $input: UserUpdateInput!) {
     updateUser(id: $id, input: $input) {
       id
+      admin
+      displayName
       username
       rsn
       editorBoards {
         id
         name
+        category
         type
         description
         layout
@@ -78,11 +86,13 @@ export const CREATE_BOARD = gql`
     createBingoBoard(input: $input) {
       id
       name
+      category
       description
       type
       isPublic
       editors {
         id
+        displayName
         username
         rsn
       }
@@ -134,6 +144,7 @@ export const UPDATE_BOARD = gql`
       id
       name
       type
+      category
       description
       layout
       isPublic
@@ -153,6 +164,7 @@ export const DUPLICATE_BINGO_BOARD = gql`
     duplicateBingoBoard(boardId: $boardId) {
       id
       name
+      category
       type
       layout
       isPublic
@@ -180,6 +192,7 @@ export const UPDATE_BOARD_EDITORS = gql`
       name
       editors {
         id
+        displayName
         username
         rsn
       }
