@@ -30,7 +30,7 @@ module.exports = {
           token,
         };
       } catch (error) {
-        console.error('Error creating user:', error);
+        console.error('Error creating user.');
         throw new ApolloError('Failed to create user');
       }
     },
