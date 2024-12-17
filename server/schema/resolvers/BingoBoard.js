@@ -286,14 +286,16 @@ module.exports = {
         throw new ApolloError('Failed to fetch BingoBoard');
       }
     },
-    getPublicBoards: async (_, { limit, offset }) => {
+    getPublicBoards: async (_, { limit, offset, category, searchQuery = '' }) => {
       try {
+        const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
+
         const totalCount = await BingoBoard.count({
-          where: { isPublic: true, category: { [Op.ne]: 'Featured' } },
+          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
         });
 
         const boards = await BingoBoard.findAll({
-          where: { isPublic: true, category: { [Op.ne]: 'Featured' } },
+          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
           attributes: ['id', 'createdAt', 'category', 'name', 'layout'],
           include: [
             {
@@ -304,8 +306,8 @@ module.exports = {
             { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
           ],
           order: [['createdAt', 'DESC']],
-          limit,
-          offset,
+          limit: limit || 10,
+          offset: offset || 0,
         });
 
         return {

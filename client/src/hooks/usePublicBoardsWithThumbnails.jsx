@@ -3,12 +3,17 @@ import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 import { useQuery } from '@apollo/client';
 import { GET_PUBLIC_BOARDS, GET_PUBLIC_FEATURED_BOARDS } from '../graphql/queries';
 
-const usePublicBoardsWithThumbnails = () => {
+const usePublicBoardsWithThumbnails = ({ category = 'All', searchQuery = '' }) => {
   const [boards, setBoards] = useState([]);
   const [featuredBoards, setFeaturedBoards] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const { data, loading, fetchMore } = useQuery(GET_PUBLIC_BOARDS, {
-    variables: { limit: 10, offset: 0 },
+    variables: {
+      limit: 10,
+      offset: 0,
+      category: category === 'All' ? null : category,
+      searchQuery,
+    },
     fetchPolicy: 'network-only',
   });
 
@@ -42,7 +47,12 @@ const usePublicBoardsWithThumbnails = () => {
     if (boards.length < totalCount && fetchMore) {
       try {
         const { data: moreData } = await fetchMore({
-          variables: { limit: 10, offset: boards.length },
+          variables: {
+            limit: 10,
+            offset: boards.length,
+            category: category === 'All' ? null : category,
+            searchQuery,
+          },
         });
 
         if (moreData) {

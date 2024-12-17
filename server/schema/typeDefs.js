@@ -151,7 +151,12 @@ const typeDefs = gql`
     getUsers: [User!]
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
-    getPublicBoards(limit: Int, offset: Int): PaginatedBoards!
+    getPublicBoards(
+      limit: Int
+      offset: Int
+      category: String
+      searchQuery: String
+    ): PaginatedBoards!
     getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]

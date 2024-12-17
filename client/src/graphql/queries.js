@@ -82,8 +82,13 @@ export const GET_BOARD = gql`
 `;
 
 export const GET_PUBLIC_BOARDS = gql`
-  query GetPublicBoards($limit: Int, $offset: Int) {
-    getPublicBoards(limit: $limit, offset: $offset) {
+  query GetPublicBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
+    getPublicBoards(
+      limit: $limit
+      offset: $offset
+      category: $category
+      searchQuery: $searchQuery
+    ) {
       boards {
         id
         category

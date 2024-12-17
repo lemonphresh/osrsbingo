@@ -14,7 +14,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
-import { useQuery } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
@@ -41,6 +41,8 @@ const UserDetails = () => {
     board: null,
     grid: null,
   });
+
+  const [updateUser] = useMutation(UPDATE_USER);
 
   const navigateToBoard = ({ asEditor, boardId }) => {
     if (asEditor) {
@@ -139,6 +141,34 @@ const UserDetails = () => {
               <Flex alignItems="baseline" gridGap="8px" justifyContent="center" width="100%">
                 <StarIcon color={theme.colors.yellow[400]} /> Admin
               </Flex>
+            ) : null}
+            {user?.admin && !isCurrentUser ? (
+              <Button
+                gridGap="8px"
+                justifyContent="center"
+                onClick={async () => {
+                  const { data } = await updateUser({
+                    variables: {
+                      id: shownUser?.id,
+                      input: {
+                        admin: !shownUser?.admin,
+                      },
+                    },
+                  });
+                  if (data.updateUser) {
+                    setShownUser({
+                      ...data.updateUser,
+                      ...shownUser,
+                      admin: !shownUser?.admin,
+                    });
+                  }
+                }}
+                width="100%"
+                variant="ghost"
+              >
+                <StarIcon color={theme.colors.gray[300]} />{' '}
+                {shownUser?.admin ? 'Remove as' : 'Make'} Admin
+              </Button>
             ) : null}
             {isCurrentUser && (
               <Flex alignItems="center" height="40px" flexDirection="space-between" width="100%">

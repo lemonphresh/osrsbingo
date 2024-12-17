@@ -91,7 +91,7 @@ module.exports = {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
 
-        const allowedFields = ['displayName', 'username', 'email', 'rsn', 'team'];
+        const allowedFields = ['displayName', 'admin', 'username', 'email', 'rsn', 'team'];
         const validFields = Object.keys(input).reduce((acc, key) => {
           if (allowedFields.includes(key)) {
             acc[key] = input[key];
