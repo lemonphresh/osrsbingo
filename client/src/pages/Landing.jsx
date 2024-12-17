@@ -38,12 +38,14 @@ const Landing = () => {
           </Text>
           <Flex alignItems="center" justifyContent="center" marginTop="16px">
             <Image
+              alt="Example Old School RuneScape bingo board, some tiles are complete and some are not."
               backgroundColor={theme.colors.gray[900]}
               borderRadius="8px"
               maxHeight="200px"
               maxWidth="200px"
               padding="8px"
               src={ExampleBoard}
+              loading="lazy"
             />
           </Flex>
         </Section>
@@ -101,7 +103,13 @@ const Landing = () => {
         <Text color={theme.colors.gray[400]} marginBottom="24px">
           This project uses assets courtesy of:{' '}
         </Text>
-        <Image maxWidth="450px" src={OsrsWikiLogo} width={['225px', '325px', '450px']} />
+        <Image
+          alt="Old School RuneScape Wiki logo"
+          maxWidth="450px"
+          src={OsrsWikiLogo}
+          width={['225px', '325px', '450px']}
+          loading="lazy"
+        />
       </Flex>
     </Flex>
   );

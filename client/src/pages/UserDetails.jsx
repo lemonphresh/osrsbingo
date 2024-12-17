@@ -431,7 +431,7 @@ const UserDetails = () => {
                   {shownBoard.board !== null ? (
                     <MiniBingoBoard grid={shownBoard.grid} />
                   ) : (
-                    <Image height="100px" src={GnomeChild} width="100px" />
+                    <Image height="100px" src={GnomeChild} width="100px" loading="lazy" />
                   )}
                 </Flex>
                 {shownBoard.board !== null ? (

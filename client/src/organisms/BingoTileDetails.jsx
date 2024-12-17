@@ -71,7 +71,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
               padding="16px"
               width="fit-content"
             >
-              <Image height="30px" src={tileState.icon} width="30px" />
+              <Image aria-hidden height="30px" src={tileState.icon} width="30px" loading="lazy" />
             </Flex>
           ) : (
             <></>

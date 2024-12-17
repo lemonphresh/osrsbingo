@@ -35,11 +35,17 @@ const Footer = () => (
         height={['48px', '28px']}
         padding="2px"
       >
-        <Image aria-hidden src={Discord} width={['40px', '20px']} />
+        <Image alt="Discord logo" src={Discord} width={['40px', '20px']} loading="lazy" />
       </Flex>
     </Link>
     <Box backgroundColor={theme.colors.teal[400]} padding="10px" borderRadius="50%">
-      <Image aria-hidden height={['60px', '80px']} src={GemLogo} width={['60px', '80px']} />
+      <Image
+        aria-hidden
+        height={['60px', '80px']}
+        src={GemLogo}
+        width={['60px', '80px']}
+        loading="lazy"
+      />
     </Box>
     <Link
       alignItems="center"
@@ -48,7 +54,13 @@ const Footer = () => (
       target="_blank"
     >
       <Box backgroundColor={theme.colors.teal[400]} borderRadius={['16px', '8px']}>
-        <Image aria-hidden height={['44px', '28px']} src={Cashapp} width={['44px', '28px']} />
+        <Image
+          alt="Cashapp logo"
+          height={['44px', '28px']}
+          src={Cashapp}
+          width={['44px', '28px']}
+          loading="lazy"
+        />
       </Box>
       <Text display={['none', 'block']} marginLeft="8px">
         donate
