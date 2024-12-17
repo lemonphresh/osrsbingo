@@ -461,6 +461,7 @@ const BoardDetails = () => {
                     <ListItem key={key}>
                       {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
                       {value.toString()}
+                      {key.toString().includes('black') ? ' pts' : 'x'}
                     </ListItem>
                   )).length > 0 ? (
                   Object.entries(removeTypename(board?.bonusSettings || {}))
@@ -477,6 +478,7 @@ const BoardDetails = () => {
                       <ListItem key={key}>
                         {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
                         {value.toString()}
+                        {key.toString().includes('black') ? ' pts' : 'x'}
                       </ListItem>
                     ))
                 ) : (
