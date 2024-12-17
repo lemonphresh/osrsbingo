@@ -121,7 +121,7 @@ const BoardEditors = ({ boardId, onSubmit }) => {
                 isDisabled={isDisabledAndChecked(u.id)}
               />
               <Text flex="1">
-                {u.username} {u.rsn ? `(${u.rsn})` : ''}{' '}
+                {u.displayName} {u.rsn ? `(${u.rsn})` : ''}{' '}
                 {u.id === user?.id ? (
                   <span
                     style={{

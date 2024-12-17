@@ -42,6 +42,7 @@ const BoardCreationForm = ({ onSubmit }) => {
     description: '',
     type: 'FIVE',
     baseTileValue: 0,
+    category: 'Other',
   });
 
   const handleChange = (e) => {
@@ -127,6 +128,23 @@ const BoardCreationForm = ({ onSubmit }) => {
           >
             <option value="FIVE">5x5</option>
             <option value="SEVEN">7x7</option>
+          </Select>
+        </FormControl>
+
+        <FormControl isRequired>
+          <FormLabel fontWeight="bold">Category:</FormLabel>
+          <Select
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
+            name="category"
+            onChange={handleChange}
+            value={formData.category}
+          >
+            <option value="PvM">PvM</option>
+            <option value="PvP">PvP</option>
+            <option value="Skilling">Skilling</option>
+            <option value="Social">Social</option>
+            <option value="Other">Other</option>
           </Select>
         </FormControl>
 

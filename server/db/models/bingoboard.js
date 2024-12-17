@@ -75,6 +75,17 @@ module.exports = (sequelize) => {
         },
         onDelete: 'CASCADE',
       },
+      category: {
+        type: DataTypes.ENUM('PvM', 'PvP', 'Skilling', 'Social', 'Featured', 'Other'),
+        allowNull: false,
+        defaultValue: 'Other',
+        validate: {
+          isIn: {
+            args: [['PvM', 'PvP', 'Skilling', 'Social', 'Featured', 'Other']],
+            msg: 'Invalid category value',
+          },
+        },
+      },
     },
     {
       sequelize,
