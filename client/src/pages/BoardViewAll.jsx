@@ -45,7 +45,7 @@ const BoardViewAll = () => {
           flexDirection="column"
           justifyContent="center"
           marginBottom="24px"
-          maxWidth="720px"
+          maxWidth="900px"
           width="100%"
         >
           <GemTitle gemColor="blue">Featured Boards</GemTitle>
@@ -103,7 +103,10 @@ const BoardViewAll = () => {
                     >
                       {board.name}
                     </Text>
-                    <Text fontSize="14px">By: {board.editors[0].displayName}</Text>
+                    <Text fontSize="14px">
+                      By: {board.editors[0].displayName}{' '}
+                      {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
+                    </Text>
                   </Flex>
                   <Flex
                     backgroundColor={theme.colors.gray[800]}
