@@ -46,6 +46,15 @@ module.exports = (sequelize) => {
         type: DataTypes.JSONB,
         allowNull: true,
       },
+      displayName: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      admin: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
     },
     {
       sequelize,

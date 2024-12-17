@@ -19,7 +19,7 @@ import { GET_USER } from '../graphql/queries';
 import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
 import { UPDATE_USER } from '../graphql/mutations';
-import { AddIcon } from '@chakra-ui/icons';
+import { AddIcon, StarIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
@@ -119,7 +119,7 @@ const UserDetails = () => {
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
           <GemTitle>
-            {isCurrentUser ? `Howdy, ${user?.username}!` : `${shownUser?.username}'s Profile`}
+            {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
           </GemTitle>
           <Text fontSize="22px" textAlign="center">
             {isCurrentUser
@@ -135,22 +135,79 @@ const UserDetails = () => {
             maxWidth={['100%', '100%', '75%', '50%']}
             minWidth={['100%', '325px']}
           >
-            <Flex alignItems="center" flexDirection="space-between" width="100%">
-              <Text width="100%">
-                <Text
-                  as="span"
-                  color={theme.colors.teal[300]}
-                  display="inline"
-                  fontWeight="bold"
-                  marginRight="4px"
-                >
-                  Username:
+            {shownUser?.admin ? (
+              <Flex alignItems="baseline" gridGap="8px" justifyContent="center" width="100%">
+                <StarIcon color={theme.colors.yellow[400]} /> Admin
+              </Flex>
+            ) : null}
+            {isCurrentUser && (
+              <Flex alignItems="center" height="40px" flexDirection="space-between" width="100%">
+                <Text width="100%">
+                  <Text
+                    as="span"
+                    color={theme.colors.teal[300]}
+                    display="inline"
+                    fontWeight="bold"
+                    marginRight="4px"
+                  >
+                    Username:
+                  </Text>
+                  {'  '}
+                  {shownUser?.username}
                 </Text>
-                {'  '}
-                {shownUser?.username}
-              </Text>
-            </Flex>
-
+              </Flex>
+            )}
+            {!fieldsEditing.displayName ? (
+              <Flex alignItems="center" flexDirection="space-between" width="100%">
+                <Text width="100%">
+                  <Text
+                    as="span"
+                    color={theme.colors.teal[300]}
+                    display="inline"
+                    fontWeight="bold"
+                    marginRight="4px"
+                  >
+                    Public Display Name:
+                  </Text>
+                  {'  '}
+                  {shownUser?.displayName ? shownUser.displayName : 'N/A'}
+                </Text>
+                {isCurrentUser && (
+                  <Button
+                    _hover={{ backgroundColor: theme.colors.teal[800] }}
+                    color={theme.colors.teal[300]}
+                    marginLeft="16px"
+                    onClick={() =>
+                      setFieldsEditing({
+                        ...fieldsEditing,
+                        displayName: true,
+                      })
+                    }
+                    textDecoration="underline"
+                    variant="ghost"
+                  >
+                    Edit
+                  </Button>
+                )}
+              </Flex>
+            ) : (
+              <EditField
+                entityId={user.id}
+                fieldName="displayName"
+                MUTATION={UPDATE_USER}
+                onSave={(data) => {
+                  setUser({
+                    token: user.token,
+                    ...data.updateUser,
+                  });
+                  setFieldsEditing({
+                    ...fieldsEditing,
+                    displayName: false,
+                  });
+                }}
+                value={user.displayName}
+              />
+            )}
             {!fieldsEditing.rsn ? (
               <Flex alignItems="center" flexDirection="space-between" width="100%">
                 <Text width="100%">

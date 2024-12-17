@@ -6,12 +6,13 @@ const { Op } = require('sequelize');
 
 module.exports = {
   Mutation: {
-    createUser: async (_, { username, password, rsn, permissions }) => {
+    createUser: async (_, { displayName, username, password, rsn, permissions }) => {
       try {
         const hashedPassword = await bcrypt.hash(password, 10);
         const jwtSecret = process.env.JWTSECRETKEY;
 
         const newUser = await User.create({
+          displayName,
           username,
           password: hashedPassword,
           rsn,
@@ -24,6 +25,7 @@ module.exports = {
 
         return {
           id: newUser.id,
+          displayName: newUser.displayName,
           username: newUser.username,
           token,
         };
@@ -89,7 +91,7 @@ module.exports = {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
 
-        const allowedFields = ['username', 'email', 'rsn', 'team'];
+        const allowedFields = ['displayName', 'username', 'email', 'rsn', 'team'];
         const validFields = Object.keys(input).reduce((acc, key) => {
           if (allowedFields.includes(key)) {
             acc[key] = input[key];
@@ -169,12 +171,12 @@ module.exports = {
         const users = await User.findAll({
           where: {
             [Op.or]: [
-              { username: { [Op.iLike]: `%${search}%` } },
+              { displayName: { [Op.iLike]: `%${search}%` } },
               { rsn: { [Op.iLike]: `%${search}%` } },
             ],
           },
           limit: 10,
-          attributes: ['id', 'username', 'rsn'],
+          attributes: ['id', 'displayName', 'username', 'rsn'],
         });
 
         return users;

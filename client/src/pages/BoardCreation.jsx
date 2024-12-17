@@ -43,6 +43,7 @@ const BoardCreation = () => {
           input: {
             userId: user.id,
             name: values.name,
+            category: values.category,
             description: values.description,
             baseTileValue: values.baseTileValue,
             type: values.type,

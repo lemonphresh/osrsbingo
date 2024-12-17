@@ -3,7 +3,9 @@ const { gql } = require('graphql-tag');
 const typeDefs = gql`
   type User {
     id: ID!
+    admin: Boolean
     username: String!
+    displayName: String!
     rsn: String
     permissions: [String]
     token: String
@@ -13,6 +15,7 @@ const typeDefs = gql`
 
   input CreateBingoBoardInput {
     type: BingoBoardType!
+    category: BingoBoardCategory
     name: String!
     editors: [ID!]
     description: String
@@ -39,6 +42,7 @@ const typeDefs = gql`
 
   type BingoBoard {
     id: ID!
+    category: BingoBoardCategory!
     createdAt: String
     type: BingoBoardType!
     layout: [[ID]]! # 2D array of BingoTile IDs
@@ -57,6 +61,15 @@ const typeDefs = gql`
   enum BingoBoardType {
     FIVE
     SEVEN
+  }
+
+  enum BingoBoardCategory {
+    PvP
+    PvM
+    Skilling
+    Social
+    Featured
+    Other
   }
 
   type BonusSettings {
@@ -90,6 +103,8 @@ const typeDefs = gql`
 
   input UserUpdateInput {
     username: String
+    admin: Boolean
+    displayName: String
     password: String
     rsn: String
   }
@@ -113,6 +128,7 @@ const typeDefs = gql`
 
   input UpdateBingoBoardInput {
     name: String
+    category: BingoBoardCategory
     type: String
     description: String
     isPublic: Boolean
@@ -136,6 +152,7 @@ const typeDefs = gql`
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
     getPublicBoards(limit: Int, offset: Int): PaginatedBoards!
+    getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
     pendingInvitations: [EditorInvitation!]!
