@@ -197,6 +197,32 @@ export const DUPLICATE_BINGO_BOARD = gql`
   }
 `;
 
+export const REPLACE_BINGO_BOARD_LAYOUT = gql`
+  mutation ReplaceLayout($boardId: ID!, $newType: String!) {
+    replaceLayout(boardId: $boardId, newType: $newType) {
+      id
+      name
+      category
+      type
+      layout
+      isPublic
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
+      tiles {
+        id
+        name
+        isComplete
+        value
+      }
+    }
+  }
+`;
+
 export const UPDATE_BOARD_EDITORS = gql`
   mutation updateBoardEditors($boardId: ID!, $editorIds: [ID!]!) {
     updateBoardEditors(boardId: $boardId, editorIds: $editorIds) {
