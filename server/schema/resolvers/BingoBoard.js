@@ -120,6 +120,60 @@ module.exports = {
         throw new ApolloError('Failed to update BingoBoard');
       }
     },
+    replaceLayout: async (_, { boardId, newType }, context) => {
+      try {
+        const board = await BingoBoard.findByPk(boardId, {
+          include: [{ model: BingoTile, as: 'tiles' }],
+        });
+
+        if (!board) {
+          throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        const size = newType === 'FIVE' ? 5 : 7;
+
+        // step 1: remove old tiles and layout
+        await BingoTile.destroy({ where: { board: boardId } });
+
+        // step 2: create new tiles with default values (reset completion status, etc.)
+        const tiles = [];
+        for (let row = 0; row < size; row++) {
+          for (let col = 0; col < size; col++) {
+            tiles.push({
+              name: `Tile ${row * size + col + 1}`,
+              isComplete: false, // reset completion
+              value: 0, // default value, can be changed if needed
+              board: board.id,
+            });
+          }
+        }
+        const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
+
+        // step 3: create the new layout
+        const layout = [];
+        for (let row = 0; row < size; row++) {
+          layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
+        }
+
+        // step 4: update the board with the new layout and type
+        board.layout = layout;
+        board.type = newType;
+        await board.save();
+
+        // step 5: fetch the updated board with new tiles and editors
+        const updatedBoard = await BingoBoard.findByPk(board.id, {
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
+        });
+
+        return updatedBoard;
+      } catch (error) {
+        console.error('Error replacing BingoBoard layout:', error);
+        throw new ApolloError('Failed to replace BingoBoard layout');
+      }
+    },
     duplicateBingoBoard: async (_, { boardId }, context) => {
       try {
         const originalBoard = await BingoBoard.findByPk(boardId, {

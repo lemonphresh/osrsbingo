@@ -30,7 +30,12 @@ import BingoBoard from '../molecules/BingoBoard';
 import { useAuth } from '../providers/AuthProvider';
 import useBingoCompletion from '../hooks/useBingoCompletion';
 import { CopyIcon, DeleteIcon, EditIcon } from '@chakra-ui/icons';
-import { DELETE_BOARD, DUPLICATE_BINGO_BOARD, UPDATE_BOARD } from '../graphql/mutations';
+import {
+  DELETE_BOARD,
+  DUPLICATE_BINGO_BOARD,
+  REPLACE_BINGO_BOARD_LAYOUT,
+  UPDATE_BOARD,
+} from '../graphql/mutations';
 import EditField from '../molecules/EditField';
 import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
@@ -55,6 +60,11 @@ const BoardDetails = () => {
     isOpen: isDeleteAlertOpen,
     onOpen: onOpenDeleteAlert,
     onClose: onCloseDeleteAlert,
+  } = useDisclosure();
+  const {
+    isOpen: isSwapAlertOpen,
+    onOpen: onOpenSwapAlert,
+    onClose: onCloseSwapAlert,
   } = useDisclosure();
   const {
     isOpen: isDupeAlertOpen,
@@ -110,6 +120,23 @@ const BoardDetails = () => {
 
   const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
   const [updateBingoBoard] = useMutation(UPDATE_BOARD);
+  const [swapBoardLayout] = useMutation(REPLACE_BINGO_BOARD_LAYOUT);
+
+  const onSwap = useCallback(
+    async (newType) => {
+      const { data } = await swapBoardLayout({
+        variables: {
+          boardId: board?.id,
+          newType,
+        },
+      });
+
+      if (data?.replaceLayout) {
+        onCloseSwapAlert();
+      }
+    },
+    [board?.id, onCloseSwapAlert, swapBoardLayout]
+  );
 
   const onDelete = useCallback(async () => {
     const { data } = await deleteBoard({
@@ -304,7 +331,11 @@ const BoardDetails = () => {
                 </Button>
               )
             )}
-            {!fieldsEditing.name && <GemTitle marginBottom="16px">{board.name}</GemTitle>}
+            {!fieldsEditing.name && (
+              <GemTitle marginBottom="16px" textAlign="center">
+                {board.name}
+              </GemTitle>
+            )}
             {!fieldsEditing.description ? (
               <>
                 <Flex position="relative" flexDirection="column" marginX={['0px', '16px']}>
@@ -688,6 +719,62 @@ const BoardDetails = () => {
                           </Button>
                           <Button colorScheme="red" onClick={onDelete} ml={3}>
                             Delete
+                          </Button>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialogOverlay>
+                  </AlertDialog>
+                </>
+              ) : (
+                <Flex />
+              )}
+
+              {isEditor && isEditMode ? (
+                <>
+                  <Button
+                    display="inline-flex"
+                    _hover={{
+                      border: `1px solid ${theme.colors.purple[300]}`,
+                      padding: '4px',
+                    }}
+                    color={theme.colors.purple[300]}
+                    leftIcon={<EditIcon />}
+                    justifyContent="center"
+                    marginBottom="1px"
+                    onClick={onOpenSwapAlert}
+                    padding="6px"
+                    textAlign="center"
+                    variant="unstyled"
+                    width="fit-content"
+                  >
+                    Swap to {board.type === 'FIVE' ? '7x7' : '5x5'} Board
+                  </Button>
+                  <AlertDialog
+                    isOpen={isSwapAlertOpen}
+                    leastDestructiveRef={cancelRef}
+                    onClose={onCloseSwapAlert}
+                  >
+                    <AlertDialogOverlay>
+                      <AlertDialogContent>
+                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                          Swap Board Type and Replace Tiles
+                        </AlertDialogHeader>
+                        <AlertDialogBody>
+                          Are you sure? You can't undo this action afterwards, and it will erase any
+                          tile data you've changed so far.
+                        </AlertDialogBody>
+                        <AlertDialogFooter>
+                          <Button ref={cancelRef} onClick={onCloseSwapAlert}>
+                            Cancel
+                          </Button>
+                          <Button
+                            colorScheme="purple"
+                            onClick={async () =>
+                              await onSwap(board.type === 'FIVE' ? 'SEVEN' : 'FIVE')
+                            }
+                            ml={3}
+                          >
+                            Swap
                           </Button>
                         </AlertDialogFooter>
                       </AlertDialogContent>

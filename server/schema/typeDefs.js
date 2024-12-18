@@ -178,6 +178,7 @@ const typeDefs = gql`
     updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
     duplicateBingoBoard(boardId: ID!): BingoBoard!
+    replaceLayout(boardId: ID!, newType: String!): BingoBoard!
 
     deleteBingoBoard(id: ID!): MutationResponse
     createBingoTile(board: ID!, name: String!, value: Int!, icon: String): BingoTile
