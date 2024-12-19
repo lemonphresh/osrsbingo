@@ -50,11 +50,21 @@
     />
 
     <meta name="monetag" content="e9acf31e513fcb1b4fcede86f263c3f5" />
-
+    <script>
+      fetch('%PUBLIC_URL%/ads.html')
+        .then((response) => response.text())
+        .then((html) => {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          document.head.appendChild(tempDiv.firstChild);
+        })
+        .catch((err) => console.error('Failed to load ads.html:', err));
+    </script>
     <!-- Page Title -->
     <title>OSRS Bingo Hub - Create and Share Bingo Boards</title>
   </head>
   <body style="height: 100vh">
+    <div id="ads-container"></div>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>
