@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta name="monetag" content="e9acf31e513fcb1b4fcede86f263c3f5" />
+    <script src="%PUBLIC_URL%/ads.html" async></script>
+
     <!-- Basic Metadata -->
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -48,19 +51,6 @@
       href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
       rel="stylesheet"
     />
-
-    <meta name="monetag" content="e9acf31e513fcb1b4fcede86f263c3f5" />
-    <script>
-      fetch('%PUBLIC_URL%/ads.html')
-        .then((response) => response.text())
-        .then((html) => {
-          const adsContainer = document.getElementById('ads-container');
-          if (adsContainer) {
-            adsContainer.innerHTML = html;
-          }
-        })
-        .catch((err) => console.error('Failed to load ads.html:', err));
-    </script>
     <!-- Page Title -->
     <title>OSRS Bingo Hub - Create and Share Bingo Boards</title>
   </head>
