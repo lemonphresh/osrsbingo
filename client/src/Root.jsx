@@ -41,14 +41,14 @@ const Root = () => {
         <ScrollToTop />
         {/* <Flex
           as="section"
+          backgroundColor={`rgba(50, 104, 107, 1)`}
           color="black"
           justifyContent="center"
           alignItems="center"
           width="100%"
-          height="90px"
-          backgroundColor={theme.colors.gray[200]}
+          minHeight="90px"
+          zIndex="2"
         >
-         Banner Ad Placeholder
         </Flex> */}
         <NavBar />
         <AuthConsumer />
