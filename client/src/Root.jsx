@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
@@ -39,17 +39,23 @@ const Root = () => {
         minHeight="100vh"
       >
         <ScrollToTop />
-        {/* <Flex
+        <Flex
           as="section"
+          backgroundColor={`rgba(50, 104, 107, 1)`}
           color="black"
           justifyContent="center"
           alignItems="center"
           width="100%"
-          height="90px"
-          backgroundColor={theme.colors.gray[200]}
+          minHeight="90px"
+          zIndex="2"
         >
-         Banner Ad Placeholder
-        </Flex> */}
+          <script
+            async="async"
+            data-cfasync="false"
+            src="//pl25326045.profitablecpmrate.com/9661909fe261affb884a7d2e4472c685/invoke.js"
+          ></script>
+          <div id="container-9661909fe261affb884a7d2e4472c685"></div>
+        </Flex>
         <NavBar />
         <AuthConsumer />
         <Footer />
