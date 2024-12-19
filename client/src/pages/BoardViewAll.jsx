@@ -44,91 +44,93 @@ const BoardViewAll = () => {
       ) : boards.length === 0 ? (
         <Text>Sorry, no boards here.</Text>
       ) : (
-        featuredBoards.length >= 1 &&
         selectedCategory === 'All' &&
         debouncedSearchQuery === '' && (
           <>
-            <Section
-              alignItems="center"
-              flexDirection="column"
-              justifyContent="center"
-              marginBottom="24px"
-              maxWidth="900px"
-              width="100%"
-            >
-              <GemTitle gemColor="blue">Featured Boards</GemTitle>
-              <Flex
-                width="100%"
+            {featuredBoards.length >= 1 && (
+              <Section
                 alignItems="center"
-                gridGap="16px"
-                flexWrap="wrap"
-                justifyContent={['flex-start', 'flex-start', 'space-between']}
-                marginTop="8px"
+                flexDirection="column"
+                justifyContent="center"
+                marginBottom="24px"
+                maxWidth="900px"
+                width="100%"
               >
-                {featuredBoards.slice(0, 4).map((board, index) => (
-                  <Section
-                    alignItems="center"
-                    _hover={{
-                      backgroundColor: theme.colors.teal[500],
-                    }}
-                    flexDirection="row"
-                    gap="16px"
-                    justifyContent="space-between"
-                    margin="0 auto"
-                    padding="16px"
-                    transition="0.2s ease all"
-                    width={['100%', '100%', 'calc(50% - 8px)']}
-                  >
-                    <Link
-                      key={board.id}
-                      style={{
-                        alignItems: 'center',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        textDecoration: 'none',
+                <GemTitle gemColor="blue">Featured Boards</GemTitle>
+                <Flex
+                  width="100%"
+                  alignItems="center"
+                  gridGap="16px"
+                  flexWrap="wrap"
+                  justifyContent={['flex-start', 'flex-start', 'space-between']}
+                  marginTop="8px"
+                >
+                  {featuredBoards.slice(0, 4).map((board, index) => (
+                    <Section
+                      alignItems="center"
+                      _hover={{
+                        backgroundColor: theme.colors.teal[500],
                       }}
-                      to={`/boards/${board.id}`}
+                      flexDirection="row"
+                      gap="16px"
+                      justifyContent="space-between"
+                      key={index}
+                      margin="0 auto"
+                      padding="16px"
+                      transition="0.2s ease all"
+                      width={['100%', '100%', 'calc(50% - 8px)']}
                     >
-                      <Flex
-                        flexDirection="column"
-                        maxWidth={['125px', '185px', 'calc(50% - 8px)']}
-                        width="100%"
+                      <Link
+                        key={board.id}
+                        style={{
+                          alignItems: 'center',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          width: '100%',
+                          textDecoration: 'none',
+                        }}
+                        to={`/boards/${board.id}`}
                       >
-                        <Text
-                          display="-webkit-box"
-                          fontSize="lg"
-                          fontWeight="bold"
-                          mb={2}
-                          overflow="hidden"
-                          textOverflow="ellipsis"
-                          maxWidth="100%"
-                          whiteSpace="normal"
-                          css={{
-                            '-webkit-box-orient': 'vertical',
-                            '-webkit-line-clamp': '1',
-                          }}
+                        <Flex
+                          flexDirection="column"
+                          maxWidth={['125px', '185px', 'calc(50% - 8px)']}
+                          width="100%"
                         >
-                          {board.name}
-                        </Text>
-                        <Text fontSize="14px">
-                          By: {board.editors[0].displayName}{' '}
-                          {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
-                        </Text>
-                      </Flex>
-                      <Flex
-                        backgroundColor={theme.colors.gray[800]}
-                        borderRadius="8px"
-                        height="fit-content"
-                        padding="6px"
-                      >
-                        <MiniBingoBoard grid={board.grid} />
-                      </Flex>
-                    </Link>
-                  </Section>
-                ))}
-              </Flex>
-            </Section>
+                          <Text
+                            display="-webkit-box"
+                            fontSize="lg"
+                            fontWeight="bold"
+                            mb={2}
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            maxWidth="100%"
+                            whiteSpace="normal"
+                            css={{
+                              '-webkit-box-orient': 'vertical',
+                              '-webkit-line-clamp': '1',
+                            }}
+                          >
+                            {board.name}
+                          </Text>
+                          <Text fontSize="14px">
+                            By: {board.editors[0].displayName}{' '}
+                            {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
+                          </Text>
+                        </Flex>
+                        <Flex
+                          backgroundColor={theme.colors.gray[800]}
+                          borderRadius="8px"
+                          height="fit-content"
+                          padding="6px"
+                        >
+                          <MiniBingoBoard grid={board.grid} />
+                        </Flex>
+                      </Link>
+                    </Section>
+                  ))}
+                </Flex>
+              </Section>
+            )}
 
             <Input
               type="text"
