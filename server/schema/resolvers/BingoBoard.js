@@ -254,8 +254,6 @@ module.exports = {
 
         const isAdmin = context.user?.admin;
 
-        console.log({ isAdmin, a: context.user });
-
         if (!isAdmin && !isEditor) {
           throw new ApolloError('Unauthorized to delete this BingoBoard', 'UNAUTHORIZED');
         }
