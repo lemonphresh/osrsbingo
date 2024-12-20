@@ -179,10 +179,10 @@ const BoardDetails = () => {
   }, [data?.getBingoBoard, setBoard]);
 
   useEffect(() => {
-    if (board?.editors?.some((editor) => editor.id === user?.id)) {
+    if (board?.editors?.some((editor) => editor.id === user?.id) || user.admin) {
       setIsEditor(true);
     }
-  }, [board, score, user?.id]);
+  }, [board, score, user?.admin, user?.id]);
 
   useEffect(() => {
     if (location.state?.isEditMode) {

@@ -11,7 +11,8 @@ module.exports = {
       // check if the inviter has permission to invite editors
       const board = await BingoBoard.findByPk(boardId);
       if (!board) throw new Error('Bingo board not found.');
-      if (!board.editors.includes(inviterUserId)) throw new Error("You don't have permission.");
+      if (!board.editors.includes(inviterUserId) || !context.user.admin)
+        throw new Error("You don't have permission.");
 
       // create invitation
       const invitation = await EditorInvitation.create({

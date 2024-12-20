@@ -6,7 +6,7 @@ import BingoTileDetails from './BingoTileDetails';
 
 const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const size = ['56px', '64px', '96px', '120px'];
+  const size = ['48px', '64px', '96px', '120px'];
   const [isHovered, setIsHovered] = useState(false);
   const { icon, isComplete, name, value } = tile;
   const [updatedCompletedPatterns, setUpdatedCompletedPatterns] = useState(completedPatterns);
@@ -50,9 +50,9 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
         // zz make onEnter open thse too
-        onPointerEnter={() => setIsHovered(true)}
-        onPointerLeave={() => setIsHovered(false)}
-        padding="8px"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        padding={['4px', '8px']}
         transition="all ease 0.2s"
         width={size}
         tabIndex={0}
