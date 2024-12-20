@@ -19,9 +19,13 @@ module.exports = {
           permissions,
         });
 
-        const token = jwt.sign({ userId: newUser.id, username: newUser.username }, jwtSecret, {
-          expiresIn: '3d',
-        });
+        const token = jwt.sign(
+          { userId: newUser.id, admin: newUser.admin, username: newUser.username },
+          jwtSecret,
+          {
+            expiresIn: '3d',
+          }
+        );
 
         return {
           id: newUser.id,
@@ -60,7 +64,9 @@ module.exports = {
           throw new ApolloError('Incorrect password', 'UNAUTHORIZED');
         }
 
-        const token = jwt.sign({ userId: user.id }, context.jwtSecret, { expiresIn: '1d' });
+        const token = jwt.sign({ userId: user.id, admin: user.admin }, context.jwtSecret, {
+          expiresIn: '1d',
+        });
 
         return {
           user,
