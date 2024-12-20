@@ -118,7 +118,7 @@ const server = new ApolloServer({
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
-        user = { id: decoded.userId };
+        user = { id: decoded.userId, admin: decoded.admin };
       } catch (err) {
         console.error('❌ Invalid or expired token');
       }

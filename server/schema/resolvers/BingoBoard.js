@@ -92,7 +92,9 @@ module.exports = {
 
         const isEditor = bingoBoard.editors?.some((editor) => editor.id === context.user?.id);
 
-        if (!isEditor) {
+        const isAdmin = context.user?.admin;
+
+        if (!isAdmin && !isEditor) {
           throw new ApolloError('Unauthorized to update this BingoBoard', 'UNAUTHORIZED');
         }
 
@@ -250,7 +252,9 @@ module.exports = {
 
         const isEditor = bingoBoard.editors.some((editor) => editor.id === context.user?.id);
 
-        if (!isEditor) {
+        const isAdmin = context.user?.admin;
+
+        if (!isAdmin && !isEditor) {
           throw new ApolloError('Unauthorized to delete this BingoBoard', 'UNAUTHORIZED');
         }
 
