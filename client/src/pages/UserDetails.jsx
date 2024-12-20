@@ -1,5 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogOverlay,
   Button,
   Flex,
   Heading,
@@ -8,6 +14,7 @@ import {
   ListItem,
   Text,
   UnorderedList,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -18,15 +25,24 @@ import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
-import { UPDATE_USER } from '../graphql/mutations';
-import { AddIcon, StarIcon } from '@chakra-ui/icons';
+import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
+import { AddIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
+import { useToastContext } from '../providers/ToastProvider';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
+  const { showToast } = useToastContext();
+  const {
+    isOpen: isDeleteAlertOpen,
+    onOpen: onOpenDeleteAlert,
+    onClose: onCloseDeleteAlert,
+  } = useDisclosure();
+  const cancelRef = useRef();
+
   const navigate = useNavigate();
   const params = useParams();
   const [isCurrentUser, setIsCurrentUser] = useState(
@@ -43,6 +59,23 @@ const UserDetails = () => {
   });
 
   const [updateUser] = useMutation(UPDATE_USER);
+  const [deleteUser] = useMutation(DELETE_USER);
+
+  const onDelete = useCallback(async () => {
+    if (shownUser?.id !== user?.id) {
+      const { data } = await deleteUser({
+        variables: {
+          id: shownUser?.id,
+        },
+      });
+
+      if (data?.deleteUser?.success) {
+        navigate(`/user/${user?.id}`);
+        onCloseDeleteAlert();
+        showToast('Deleted user successfully!', 'success');
+      }
+    }
+  }, [deleteUser, navigate, onCloseDeleteAlert, showToast, shownUser?.id, user?.id]);
 
   const navigateToBoard = ({ asEditor, boardId }) => {
     if (asEditor) {
@@ -498,6 +531,44 @@ const UserDetails = () => {
           </Section> */}
         </Flex>
       </Section>
+      {!isCurrentUser && user?.admin && (
+        <>
+          <Button
+            colorScheme="red"
+            leftIcon={<DeleteIcon />}
+            marginTop="48px"
+            onClick={onOpenDeleteAlert}
+          >
+            Delete User
+          </Button>
+
+          <AlertDialog
+            isOpen={isDeleteAlertOpen}
+            leastDestructiveRef={cancelRef}
+            onClose={onCloseDeleteAlert}
+          >
+            <AlertDialogOverlay>
+              <AlertDialogContent>
+                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                  Delete User
+                </AlertDialogHeader>
+                <AlertDialogBody>
+                  Are you sure? This will also delete their associated Bingo Boards and any
+                  invitations they've sent. You can't undo this action afterwards.
+                </AlertDialogBody>
+                <AlertDialogFooter>
+                  <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
+                    Cancel
+                  </Button>
+                  <Button colorScheme="red" onClick={onDelete} ml={3}>
+                    Delete
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialogOverlay>
+          </AlertDialog>
+        </>
+      )}
       {isCurrentUser && (
         <Text
           alignItems="center"
