@@ -98,8 +98,8 @@ const EditField = ({
           </>
         )}
         <Button
-          _hover={{ backgroundColor: theme.colors.orange[800] }}
-          color={theme.colors.orange[300]}
+          _hover={{ backgroundColor: theme.colors.purple[100] }}
+          color={theme.colors.purple[300]}
           isLoading={loading}
           margin={flexDirection !== 'column' ? 'auto' : '0 auto'}
           marginLeft={flexDirection !== 'column' ? '16px' : null}

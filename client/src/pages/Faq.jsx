@@ -6,6 +6,7 @@ import {
   AccordionPanel,
   Flex,
   Heading,
+  Icon,
   Link,
   Text,
 } from '@chakra-ui/react';
@@ -13,22 +14,33 @@ import React from 'react';
 import theme from '../theme';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import { MdOutlineChildCare } from 'react-icons/md';
 
 const QAList = [
   {
     q: <Text>What if I would like to request a feature?</Text>,
     a: (
-      <Text>
-        I would encourage you to DM me on the{' '}
-        <Link
-          color={theme.colors.teal[300]}
-          fontWeight="bold"
-          href="https://www.discord.gg/eternalgems"
-        >
-          Eternal Gems Discord Server
-        </Link>{' '}
-        @buttlid and let me know. No guarantees, though. XP loss and all, you know.
-      </Text>
+      <>
+        <Text>
+          I would encourage you to DM me on the{' '}
+          <Link
+            color={theme.colors.teal[300]}
+            fontWeight="bold"
+            href="https://www.discord.gg/eternalgems"
+          >
+            Eternal Gems Discord Server
+          </Link>{' '}
+          @buttlid and let me know. No guarantees, though. XP loss and all, you know.
+        </Text>
+        <Icon
+          aria-hidden
+          as={MdOutlineChildCare}
+          color={theme.colors.yellow[300]}
+          height={['48px', '32px']}
+          margin="0 auto"
+          width={['48px', '32px']}
+        />
+      </>
     ),
   },
   {
@@ -63,10 +75,10 @@ const QAList = [
     q: <Text>Was this website crafted by gnomes?</Text>,
     a: <Text>You are goddamn right.</Text>,
   },
-  {
-    q: <Text>Why the ads?</Text>,
-    a: <Text>I just want to make enough to host this bad boy. Please be nice to me.</Text>,
-  },
+  // {
+  //   q: <Text>Why the ads?</Text>,
+  //   a: <Text>I just want to make enough to host this bad boy. Please be nice to me.</Text>,
+  // },
   //   {
   //     q: <Text>stuff</Text>,
   //     a: <Text>stuff</Text>,

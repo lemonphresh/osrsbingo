@@ -1,4 +1,4 @@
-import { Flex, Image, Text } from '@chakra-ui/react';
+import { Flex, Icon, Image, Text } from '@chakra-ui/react';
 import React from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import theme from '../theme';
@@ -6,7 +6,7 @@ import GemLogo from '../assets/gemlogo.png';
 import GnomeChild from '../assets/gnomechild.png';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
-import { QuestionOutlineIcon } from '@chakra-ui/icons';
+import { MdContactSupport } from 'react-icons/md';
 
 const NavBar = () => {
   const { user } = useAuth();
@@ -24,8 +24,9 @@ const NavBar = () => {
       position="relative"
     >
       <Link style={{ display: 'flex', alignItems: 'center' }} to="/faq">
-        <QuestionOutlineIcon
+        <Icon
           aria-hidden
+          as={MdContactSupport}
           color={theme.colors.blue[300]}
           height={['48px', '32px']}
           width={['48px', '32px']}
@@ -115,16 +116,7 @@ const NavBar = () => {
         <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
           {user ? user.username : 'log in'}
         </Text>
-        <Image
-          aria-hidden
-          filter={`drop-shadow(1px 0 0 ${theme.colors.gray[400]}) 
-        drop-shadow(0 1px 0 ${theme.colors.gray[400]})
-        drop-shadow(-1px 0 0 ${theme.colors.gray[400]}) 
-        drop-shadow(0 -1px 0 ${theme.colors.gray[400]})`}
-          height={['48px', '32px']}
-          src={GnomeChild}
-          width={['48px', '32px']}
-        />
+        <Image aria-hidden height={['48px', '32px']} src={GnomeChild} width={['48px', '32px']} />
       </Link>
     </Flex>
   );
