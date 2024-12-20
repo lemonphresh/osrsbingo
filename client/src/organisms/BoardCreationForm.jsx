@@ -84,13 +84,6 @@ const BoardCreationForm = ({ onSubmit }) => {
           />
         </FormControl>
 
-        <FormControl display="flex" alignItems="center">
-          <FormLabel fontWeight="bold" mb="0">
-            Public Board:
-          </FormLabel>
-          <Switch name="isPublic" isChecked={formData.isPublic} onChange={handleChange} />
-        </FormControl>
-
         <FormControl>
           <FormLabel fontWeight="bold">Description: </FormLabel>
           <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
@@ -118,20 +111,6 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel fontWeight="bold">Board Type:</FormLabel>
-          <Select
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
-            name="type"
-            onChange={handleChange}
-            value={formData.type}
-          >
-            <option value="FIVE">5x5</option>
-            <option value="SEVEN">7x7</option>
-          </Select>
-        </FormControl>
-
-        <FormControl isRequired>
           <FormLabel fontWeight="bold">Category:</FormLabel>
           <Select
             backgroundColor={theme.colors.gray[300]}
@@ -148,8 +127,26 @@ const BoardCreationForm = ({ onSubmit }) => {
           </Select>
         </FormControl>
 
+        <FormControl isRequired>
+          <FormLabel fontWeight="bold">Board Type:</FormLabel>
+          <Select
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
+            name="type"
+            onChange={handleChange}
+            value={formData.type}
+          >
+            <option value="FIVE">5x5</option>
+            <option value="SEVEN">7x7</option>
+          </Select>
+        </FormControl>
+
         <FormControl>
           <FormLabel fontWeight="bold">Base Tile Value:</FormLabel>
+          <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
+            This will apply to every tile upon board creation. You can change individual tile values
+            later!
+          </Text>
           <NumberInput
             color={theme.colors.gray[700]}
             colorScheme="purple"
@@ -179,6 +176,18 @@ const BoardCreationForm = ({ onSubmit }) => {
           </NumberInput>
         </FormControl>
 
+        <FormControl display="flex" justifyContent="center" flexDirection="column">
+          <Flex>
+            <FormLabel fontWeight="bold" mb="0">
+              Public Board:
+            </FormLabel>
+            <Switch name="isPublic" isChecked={formData.isPublic} onChange={handleChange} />
+          </Flex>
+          <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
+            This means others will be able to view your board. You can change this later!
+          </Text>
+        </FormControl>
+
         <Flex
           alignItems="center"
           flexDirection="column"
@@ -187,7 +196,9 @@ const BoardCreationForm = ({ onSubmit }) => {
           marginBottom="16px"
         >
           <Text fontSize="14px">Example layout: </Text>
-          <MiniBingoBoard grid={exampleGrids[formData.type]} />
+          <Flex backgroundColor={theme.colors.gray[800]} borderRadius="8px" padding="6px">
+            <MiniBingoBoard grid={exampleGrids[formData.type]} />
+          </Flex>
         </Flex>
         <Button colorScheme="purple" type="submit" width="full">
           Create Board

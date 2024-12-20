@@ -87,12 +87,12 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
               <Flex
                 alignItems="center"
                 backgroundColor={
-                  tile.icon === item.imageUrl ? theme.colors.yellow[100] : 'transparent'
+                  tile.icon === item.imageUrl ? theme.colors.orange[200] : 'transparent'
                 }
                 borderRadius="50%"
                 flexDirection="column"
                 justifyContent="center"
-                padding="3px"
+                padding="4px"
               >
                 <Image
                   alt={item.name}
@@ -101,13 +101,13 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                     await updateTile({
                       variables: {
                         id: tile.id,
-                        input: { icon: item.imageUrl },
+                        input: { icon: item.imageUrl === tile.icon ? null : item.imageUrl },
                       },
                     });
                     setTileState({
                       ...tile,
                       ...tileState,
-                      icon: item.imageUrl,
+                      icon: item.imageUrl === tile.icon ? null : item.imageUrl,
                     });
                   }}
                   src={item.imageUrl}

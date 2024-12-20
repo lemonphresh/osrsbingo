@@ -50,8 +50,8 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
         // zz make onEnter open thse too
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onPointerEnter={() => setIsHovered(true)}
+        onPointerLeave={() => setIsHovered(false)}
         padding="8px"
         transition="all ease 0.2s"
         width={size}

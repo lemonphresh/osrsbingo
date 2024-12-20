@@ -129,6 +129,7 @@ const UserDetails = () => {
               : 'Oh, snooping, I see. Enjoy the view.'}
           </Text>
           <Section
+            backgroundColor="rgba(0, 225, 200, 0.4)"
             flexDirection="column"
             gridGap="4px"
             key={user}
@@ -175,7 +176,7 @@ const UserDetails = () => {
                 <Text width="100%">
                   <Text
                     as="span"
-                    color={theme.colors.teal[300]}
+                    color={theme.colors.teal[200]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="4px"
@@ -192,7 +193,7 @@ const UserDetails = () => {
                 <Text width="100%">
                   <Text
                     as="span"
-                    color={theme.colors.teal[300]}
+                    color={theme.colors.teal[200]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="4px"
@@ -205,7 +206,7 @@ const UserDetails = () => {
                 {isCurrentUser && (
                   <Button
                     _hover={{ backgroundColor: theme.colors.teal[800] }}
-                    color={theme.colors.teal[300]}
+                    color={theme.colors.teal[200]}
                     marginLeft="16px"
                     onClick={() =>
                       setFieldsEditing({
@@ -243,7 +244,7 @@ const UserDetails = () => {
                 <Text width="100%">
                   <Text
                     as="span"
-                    color={theme.colors.teal[300]}
+                    color={theme.colors.teal[200]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="4px"
@@ -256,7 +257,7 @@ const UserDetails = () => {
                 {isCurrentUser && (
                   <Button
                     _hover={{ backgroundColor: theme.colors.teal[800] }}
-                    color={theme.colors.teal[300]}
+                    color={theme.colors.teal[200]}
                     marginLeft="16px"
                     onClick={() =>
                       setFieldsEditing({
@@ -327,7 +328,12 @@ const UserDetails = () => {
                   )}
                 </>
               ) : (
-                <Flex flexDirection="column" padding="16px">
+                <Flex
+                  backgroundColor="rgba(0, 0, 0, 0.1)"
+                  borderRadius="16px"
+                  flexDirection="column"
+                  padding="8px"
+                >
                   <UnorderedList
                     css={`
                       scrollbar-width: thin; /* Firefox */
@@ -385,24 +391,33 @@ const UserDetails = () => {
                       ))}
                   </UnorderedList>
                   {isCurrentUser && (
-                    <Text
-                      _hover={{
-                        borderBottom: `1px solid ${theme.colors.pink[200]}`,
-                        marginBottom: '0px',
+                    <Link
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                       }}
-                      color={theme.colors.pink[200]}
-                      fontWeight="bold"
-                      margin="0 auto"
-                      marginBottom="1px"
-                      marginTop="24px"
+                      to="/boards/create"
                     >
-                      <Link
-                        style={{ display: 'inline-flex', alignItems: 'center' }}
-                        to="/boards/create"
+                      <Text
+                        _hover={{
+                          backgroundColor: theme.colors.purple[300],
+                        }}
+                        backgroundColor={theme.colors.purple[400]}
+                        borderRadius="8px"
+                        color={theme.colors.pink[900]}
+                        cursor="pointer"
+                        fontWeight="bold"
+                        margin="0 auto"
+                        marginTop="8px"
+                        opacity="0.85"
+                        paddingY="8px"
+                        textAlign="center"
+                        width="100%"
                       >
                         <AddIcon marginRight="8px" /> Create a Board
-                      </Link>
-                    </Text>
+                      </Text>
+                    </Link>
                   )}
                 </Flex>
               )}

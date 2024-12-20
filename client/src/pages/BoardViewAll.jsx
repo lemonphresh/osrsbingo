@@ -7,6 +7,7 @@ import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import { Link } from 'react-router-dom';
 import theme from '../theme';
 import { debounce } from 'lodash';
+import { StarIcon } from '@chakra-ui/icons';
 
 const BoardViewAll = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -50,13 +51,14 @@ const BoardViewAll = () => {
             {featuredBoards.length >= 1 && (
               <Section
                 alignItems="center"
+                backgroundColor="rgba(0, 225, 200, 0.5)"
                 flexDirection="column"
                 justifyContent="center"
                 marginBottom="24px"
                 maxWidth="900px"
                 width="100%"
               >
-                <GemTitle gemColor="blue">Featured Boards</GemTitle>
+                <GemTitle gemColor="green">Featured Boards</GemTitle>
                 <Flex
                   width="100%"
                   alignItems="center"
@@ -68,9 +70,11 @@ const BoardViewAll = () => {
                   {featuredBoards.slice(0, 4).map((board, index) => (
                     <Section
                       alignItems="center"
+                      backgroundColor="rgba(0, 225, 200, 0.4)"
                       _hover={{
-                        backgroundColor: theme.colors.teal[500],
+                        backgroundColor: theme.colors.green[500],
                       }}
+                      cursor="pointer"
                       flexDirection="row"
                       gap="16px"
                       justifyContent="space-between"
@@ -91,11 +95,7 @@ const BoardViewAll = () => {
                         }}
                         to={`/boards/${board.id}`}
                       >
-                        <Flex
-                          flexDirection="column"
-                          maxWidth={['125px', '185px', 'calc(50% - 8px)']}
-                          width="100%"
-                        >
+                        <Flex flexDirection="column" minHeight="72px" width="100%">
                           <Text
                             display="-webkit-box"
                             fontSize="lg"
@@ -110,20 +110,13 @@ const BoardViewAll = () => {
                               '-webkit-line-clamp': '1',
                             }}
                           >
+                            <StarIcon color={theme.colors.orange[300]} marginRight="8px" />
                             {board.name}
                           </Text>
                           <Text fontSize="14px">
                             By: {board.editors[0].displayName}{' '}
                             {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
                           </Text>
-                        </Flex>
-                        <Flex
-                          backgroundColor={theme.colors.gray[800]}
-                          borderRadius="8px"
-                          height="fit-content"
-                          padding="6px"
-                        >
-                          <MiniBingoBoard grid={board.grid} />
                         </Flex>
                       </Link>
                     </Section>
@@ -173,7 +166,7 @@ const BoardViewAll = () => {
               maxWidth="720px"
               width="100%"
             >
-              <GemTitle>All Boards</GemTitle>
+              <GemTitle gemColor="blue">All Boards</GemTitle>
               <Text marginX={['0px', '16px', '56px', '16px']} marginBottom="24px">
                 This is a collection of all the public boards created by users of OSRS Bingo Hub.
                 Take a look around!
