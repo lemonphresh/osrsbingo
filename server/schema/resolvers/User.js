@@ -115,6 +115,45 @@ module.exports = {
         throw new ApolloError('Failed to update user');
       }
     },
+    deleteUser: async (_, { id }, context) => {
+      try {
+        // Ensure the requester is authenticated and is an admin
+        if (!context.user || !context.user.admin || context.user.id === id) {
+          throw new ApolloError('Unauthorized to delete user', 'UNAUTHORIZED');
+        }
+
+        // Find the user to be deleted
+        const user = await User.findByPk(id, {
+          include: [
+            { model: BingoBoard, as: 'bingoBoards', include: { model: BingoTile, as: 'tiles' } },
+            { model: BingoBoard, as: 'editorBoards' },
+          ],
+        });
+
+        if (!user) {
+          throw new ApolloError('User not found', 'NOT_FOUND');
+        }
+
+        // Delete all bingo boards created by the user, including their tiles
+        if (user.bingoBoards && user.bingoBoards.length > 0) {
+          for (const board of user.bingoBoards) {
+            await BingoTile.destroy({ where: { board: board.id } }); // Delete tiles of the board
+            await board.destroy(); // Delete the board itself
+          }
+        }
+
+        // Delete the user
+        await user.destroy();
+
+        return {
+          success: true,
+          message: `User with ID ${id} and their associated bingo boards were deleted successfully.`,
+        };
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        throw new ApolloError('Failed to delete user');
+      }
+    },
   },
 
   Query: {

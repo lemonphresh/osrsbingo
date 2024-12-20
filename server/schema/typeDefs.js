@@ -163,6 +163,11 @@ const typeDefs = gql`
     pendingInvitations: [EditorInvitation!]!
   }
 
+  type DeleteUserResponse {
+    success: Boolean!
+    message: String!
+  }
+
   type Mutation {
     createUser(
       username: String!
@@ -173,6 +178,8 @@ const typeDefs = gql`
     ): User
     updateUser(id: ID!, input: UserUpdateInput!): User
     loginUser(username: String!, password: String!): AuthPayload
+    deleteUser(id: ID!): DeleteUserResponse!
+
     createBingoBoard(input: CreateBingoBoardInput!): BingoBoard
 
     updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
