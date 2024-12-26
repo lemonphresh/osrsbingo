@@ -179,7 +179,7 @@ const BoardDetails = () => {
   }, [data?.getBingoBoard, setBoard]);
 
   useEffect(() => {
-    if (board?.editors?.some((editor) => editor.id === user?.id) || user.admin) {
+    if (board?.editors?.some((editor) => editor.id === user?.id) || user?.admin) {
       setIsEditor(true);
     }
   }, [board, score, user?.admin, user?.id]);
@@ -559,7 +559,7 @@ const BoardDetails = () => {
                 }}
                 defaultValue={board.category}
               >
-                {user.admin && <option value="Featured">Featured</option>}
+                {user?.admin && <option value="Featured">Featured</option>}
                 <option value="PvM">PvM</option>
                 <option value="PvP">PvP</option>
                 <option value="Skilling">Skilling</option>
