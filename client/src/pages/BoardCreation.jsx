@@ -50,6 +50,7 @@ const BoardCreation = () => {
             isPublic: values.isPublic,
             editors: [user.id],
             team: values.team,
+            theme: values.theme,
             totalValueCompleted: 0,
             totalValue: 0,
             bonusSettings: {

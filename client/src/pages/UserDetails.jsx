@@ -153,7 +153,7 @@ const UserDetails = () => {
       </Flex>
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
-          <GemTitle>
+          <GemTitle textAlign="center">
             {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
           </GemTitle>
           <Text fontSize="22px" textAlign="center">
@@ -326,7 +326,7 @@ const UserDetails = () => {
           </Section>
           {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
         </Flex>
-        <Flex flexDirection={['column-reverse', 'column-reverse', 'row', 'row']} gridGap="16px">
+        <Flex flexDirection={['column', 'column', 'row', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="purple" size="sm" textAlign="center">
               {isCurrentUser ? 'Your' : 'Their Public'} Bingo Boards
@@ -462,7 +462,9 @@ const UserDetails = () => {
               <Heading marginBottom="32px" marginTop="8px" size="sm" textAlign="center">
                 {shownBoard.board?.name
                   ? `Preview: ${shownBoard.board.name}`
-                  : 'Click a board from the list to preview it.'}
+                  : `Click a board from the "${
+                      isCurrentUser ? 'Your' : 'Their Public'
+                    } Bingo Boards" list to preview it.`}
               </Heading>
               <Flex flexDirection="column" height="100%">
                 <Flex
@@ -477,7 +479,7 @@ const UserDetails = () => {
                   padding="8px"
                 >
                   {shownBoard.board !== null ? (
-                    <MiniBingoBoard grid={shownBoard.grid} />
+                    <MiniBingoBoard grid={shownBoard.grid} themeName={shownBoard.board.theme} />
                   ) : (
                     <Image height="100px" src={GnomeChild} width="100px" loading="lazy" />
                   )}

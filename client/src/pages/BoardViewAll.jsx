@@ -40,15 +40,12 @@ const BoardViewAll = () => {
       paddingX={['16px', '24px', '64px']}
       paddingY={['72px', '112px']}
     >
-      {loading && boards.length === 0 ? (
+      {loading ? (
         <Spinner />
-      ) : boards.length === 0 ? (
-        <Text>Sorry, no boards here.</Text>
       ) : (
-        selectedCategory === 'All' &&
         debouncedSearchQuery === '' && (
           <>
-            {featuredBoards.length >= 1 && (
+            {featuredBoards.length >= 1 && selectedCategory === 'All' && (
               <Section
                 alignItems="center"
                 backgroundColor="rgba(0, 225, 200, 0.5)"
@@ -172,60 +169,64 @@ const BoardViewAll = () => {
                 Take a look around!
               </Text>
 
-              <VStack spacing={4} width="100%">
-                {boards.map((board) => (
-                  <Link
-                    key={board.id}
-                    style={{ width: '100%', textDecoration: 'none' }}
-                    to={`/boards/${board.id}`}
-                  >
-                    <Section
-                      alignItems="center"
-                      _hover={{
-                        backgroundColor: theme.colors.teal[500],
-                      }}
-                      gap="16px"
-                      justifyContent="space-between"
-                      padding={['16px', '16px', '16px', '24px']}
-                      transition="0.2s ease all"
-                      width="100%"
+              {boards.length === 0 ? (
+                <Text>Sorry, no boards here.</Text>
+              ) : (
+                <VStack spacing={4} width="100%">
+                  {boards.map((board) => (
+                    <Link
+                      key={board.id}
+                      style={{ width: '100%', textDecoration: 'none' }}
+                      to={`/boards/${board.id}`}
                     >
-                      <Flex flexDirection="column">
-                        <Text
-                          display={['-webkit-box']}
-                          fontSize="lg"
-                          fontWeight="bold"
-                          mb={2}
-                          overflow="hidden"
-                          textOverflow="ellipsis"
-                          maxWidth="100%"
-                          whiteSpace="normal"
-                          css={`
-                            -webkit-box-orient: vertical;
-                            -webkit-line-clamp: 2;
-                          `}
-                        >
-                          {board.name}
-                        </Text>
-                        <Text fontSize="14px">By: {board.editors[0].displayName}</Text>
-                        <Text fontSize="14px">Category: {board.category}</Text>
-                      </Flex>
-                      <Flex
-                        backgroundColor={theme.colors.gray[800]}
-                        borderRadius="8px"
-                        padding="6px"
+                      <Section
+                        alignItems="center"
+                        _hover={{
+                          backgroundColor: theme.colors.teal[500],
+                        }}
+                        gap="16px"
+                        justifyContent="space-between"
+                        padding={['16px', '16px', '16px', '24px']}
+                        transition="0.2s ease all"
+                        width="100%"
                       >
-                        <MiniBingoBoard grid={board.grid} />
-                      </Flex>
-                    </Section>
-                  </Link>
-                ))}
-                {hasMore && (
-                  <Button onClick={loadMore} isLoading={loading}>
-                    Load More
-                  </Button>
-                )}
-              </VStack>
+                        <Flex flexDirection="column">
+                          <Text
+                            display={['-webkit-box']}
+                            fontSize="lg"
+                            fontWeight="bold"
+                            mb={2}
+                            overflow="hidden"
+                            textOverflow="ellipsis"
+                            maxWidth="100%"
+                            whiteSpace="normal"
+                            css={`
+                              -webkit-box-orient: vertical;
+                              -webkit-line-clamp: 2;
+                            `}
+                          >
+                            {board.name}
+                          </Text>
+                          <Text fontSize="14px">By: {board.editors[0].displayName}</Text>
+                          <Text fontSize="14px">Category: {board.category}</Text>
+                        </Flex>
+                        <Flex
+                          backgroundColor={theme.colors.gray[800]}
+                          borderRadius="8px"
+                          padding="6px"
+                        >
+                          <MiniBingoBoard grid={board.grid} themeName={board.theme} />
+                        </Flex>
+                      </Section>
+                    </Link>
+                  ))}
+                  {hasMore && (
+                    <Button onClick={loadMore} isLoading={loading}>
+                      Load More
+                    </Button>
+                  )}
+                </VStack>
+              )}
             </Section>
           </>
         )

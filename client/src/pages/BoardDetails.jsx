@@ -34,6 +34,7 @@ import {
   DELETE_BOARD,
   DUPLICATE_BINGO_BOARD,
   REPLACE_BINGO_BOARD_LAYOUT,
+  SHUFFLE_BINGO_BOARD_LAYOUT,
   UPDATE_BOARD,
 } from '../graphql/mutations';
 import EditField from '../molecules/EditField';
@@ -41,7 +42,7 @@ import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
 import BoardEditors from '../organisms/BoardEditors';
 import BonusSettingsModal from '../molecules/BonusSettingsModal';
-import { MdOutlineStorage } from 'react-icons/md';
+import { MdOutlineStorage, MdShuffle } from 'react-icons/md';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -76,10 +77,16 @@ const BoardDetails = () => {
     onOpen: onOpenBonusSettingsModal,
     onClose: onCloseBonusSettingsModal,
   } = useDisclosure();
+  const {
+    isOpen: isShuffleModalOpen,
+    onOpen: onOpenShuffleModal,
+    onClose: onCloseShuffleModal,
+  } = useDisclosure();
 
   const [board, setBoard] = useState(null);
   const [isEditor, setIsEditor] = useState(false);
   const [fieldsEditing, setFieldsEditing] = useState({
+    category: false,
     description: false,
     editors: false,
     name: false,
@@ -121,6 +128,7 @@ const BoardDetails = () => {
   const [duplicateBoard] = useMutation(DUPLICATE_BINGO_BOARD);
   const [updateBingoBoard] = useMutation(UPDATE_BOARD);
   const [swapBoardLayout] = useMutation(REPLACE_BINGO_BOARD_LAYOUT);
+  const [shuffle] = useMutation(SHUFFLE_BINGO_BOARD_LAYOUT);
 
   const onSwap = useCallback(
     async (newType) => {
@@ -161,6 +169,17 @@ const BoardDetails = () => {
       console.error('Error duplicating board:', error.message);
     }
   }, [board?.id, duplicateBoard, navigate, onCloseDupeAlert, showToast]);
+
+  const handleShuffle = useCallback(async () => {
+    try {
+      const { data } = await shuffle({ variables: { boardId: board?.id } });
+      navigate(`/boards/${data.shuffleBingoBoardLayout?.id}`);
+      onCloseShuffleModal();
+      showToast('Shuffled board successfully!', 'success');
+    } catch (error) {
+      console.error('Error shuffling board:', error.message);
+    }
+  }, [board?.id, shuffle, navigate, onCloseShuffleModal, showToast]);
 
   useEffect(() => {
     if (data?.getBingoBoard) {
@@ -534,6 +553,7 @@ const BoardDetails = () => {
                 backgroundColor={theme.colors.gray[300]}
                 color={theme.colors.gray[700]}
                 margin="0 auto"
+                marginTop="8px"
                 maxWidth="196px"
                 name="category"
                 onChange={async (e) => {
@@ -567,13 +587,7 @@ const BoardDetails = () => {
                 <option value="Other">Other</option>
               </Select>
             ) : (
-              <Text
-                alignItems="center"
-                display="flex"
-                justifyContent="center"
-                marginTop="8px"
-                width="100%"
-              >
+              <Text alignItems="center" display="flex" justifyContent="center" width="100%">
                 <Text>{board.category}</Text>
                 {isEditor && isEditMode && (
                   <Button
@@ -594,6 +608,56 @@ const BoardDetails = () => {
                   </Button>
                 )}
               </Text>
+            )}
+
+            {isEditor && isEditMode && (
+              <>
+                <Text
+                  as="span"
+                  color={theme.colors.teal[300]}
+                  display="inline"
+                  fontWeight="bold"
+                  marginY="8px"
+                  textAlign="center"
+                >
+                  Color Scheme:
+                </Text>
+                <Select
+                  backgroundColor={theme.colors.gray[300]}
+                  color={theme.colors.gray[700]}
+                  margin="0 auto"
+                  maxWidth="196px"
+                  name="category"
+                  onChange={async (e) => {
+                    const { data } = await updateBingoBoard({
+                      variables: {
+                        id: board.id,
+                        input: {
+                          theme: e.target.value,
+                        },
+                      },
+                    });
+
+                    setBoard({
+                      ...data.updateBingoBoard,
+                      ...board,
+                      theme: e.target.value,
+                    });
+                  }}
+                  defaultValue={board.theme}
+                >
+                  <option value="DEFAULT">Default</option>
+                  <option value="purple">Purple</option>
+                  <option value="blue">Blue</option>
+                  <option value="cyan">Cyan</option>
+                  <option value="green">Green</option>
+                  <option value="yellow">Yellow</option>
+                  <option value="orange">Orange</option>
+                  <option value="pink">Pink</option>
+                  <option value="red">Red</option>
+                  <option value="gray">Gray</option>
+                </Select>
+              </>
             )}
 
             <Text
@@ -671,6 +735,7 @@ const BoardDetails = () => {
                 completedPatterns={completedPatterns}
                 isEditor={isEditor && isEditMode}
                 layout={board.layout}
+                themeName={board.theme}
               />
             )}
             <Flex
@@ -829,6 +894,51 @@ const BoardDetails = () => {
                   </AlertDialogOverlay>
                 </AlertDialog>
               </>
+            </Flex>
+
+            <Flex margin="0 auto" marginTop="16px">
+              <Button
+                display="inline-flex"
+                _hover={{
+                  border: `1px solid ${theme.colors.cyan[200]}`,
+                  padding: '4px',
+                }}
+                color={theme.colors.cyan[200]}
+                leftIcon={<MdShuffle />}
+                marginBottom="1px"
+                onClick={onOpenShuffleModal}
+                justifyContent="center"
+                padding="6px"
+                textAlign="center"
+                variant="unstyled"
+                width="fit-content"
+              >
+                Shuffle Board
+              </Button>
+              <AlertDialog
+                isOpen={isShuffleModalOpen}
+                leastDestructiveRef={cancelRef}
+                onClose={onCloseShuffleModal}
+              >
+                <AlertDialogOverlay>
+                  <AlertDialogContent>
+                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                      Shuffle Bingo Board
+                    </AlertDialogHeader>
+                    <AlertDialogBody>
+                      Are you sure you want to shuffle your board tiles? You can't undo this.
+                    </AlertDialogBody>
+                    <AlertDialogFooter>
+                      <Button ref={cancelRef} onClick={onCloseShuffleModal}>
+                        Cancel
+                      </Button>
+                      <Button colorScheme="teal" onClick={handleShuffle} ml={3}>
+                        Shuffle
+                      </Button>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialogOverlay>
+              </AlertDialog>
             </Flex>
           </Flex>
         </>

@@ -2,7 +2,7 @@ import { Flex } from '@chakra-ui/react';
 import React from 'react';
 import BingoTile from '../organisms/BingoTile';
 
-const BingoBoard = ({ completedPatterns, isEditor, layout }) => {
+const BingoBoard = ({ completedPatterns, isEditor, layout, themeName }) => {
   return (
     layout &&
     layout.map((row, rowIndex) => (
@@ -14,6 +14,7 @@ const BingoBoard = ({ completedPatterns, isEditor, layout }) => {
             isEditor={isEditor}
             key={rowIndex + colIndex}
             tile={tile}
+            themeName={themeName}
           />
         ))}
       </Flex>
