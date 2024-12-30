@@ -745,7 +745,7 @@ const BoardDetails = () => {
               marginTop="16px"
               width="100%"
             >
-              {user?.id === board.userId && isEditMode ? (
+              {(user?.id === board.userId || user?.admin) && isEditMode ? (
                 <>
                   <Button
                     display="inline-flex"
@@ -790,9 +790,7 @@ const BoardDetails = () => {
                     </AlertDialogOverlay>
                   </AlertDialog>
                 </>
-              ) : (
-                <Flex />
-              )}
+              ) : null}
 
               {isEditor && isEditMode ? (
                 <>

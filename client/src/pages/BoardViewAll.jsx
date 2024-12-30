@@ -207,7 +207,10 @@ const BoardViewAll = () => {
                           >
                             {board.name}
                           </Text>
-                          <Text fontSize="14px">By: {board.editors[0].displayName}</Text>
+                          <Text fontSize="14px">
+                            By: {board.editors[0].displayName}{' '}
+                            {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
+                          </Text>
                           <Text fontSize="14px">Category: {board.category}</Text>
                         </Flex>
                         <Flex
