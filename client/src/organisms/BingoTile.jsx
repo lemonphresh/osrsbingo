@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import theme from '../theme';
 import { Flex, Image, Text, useDisclosure } from '@chakra-ui/react';
 import { CheckCircleIcon, EditIcon, ViewIcon } from '@chakra-ui/icons';
 import BingoTileDetails from './BingoTileDetails';
+import useBingoTileTheme from '../hooks/useBingoTileTheme';
 
-const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
+const BingoTile = ({ colIndex, completedPatterns, isEditor, tile, themeName }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const size = ['48px', '64px', '96px', '120px'];
   const [isHovered, setIsHovered] = useState(false);
@@ -13,6 +13,15 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
   const [isPartOfCompletedGroup, setIsPartOfCompletedGroup] = useState(
     completedPatterns.some((group) => group.tiles.includes(tile.id))
   );
+
+  const {
+    hoverBackgroundColor,
+    backgroundColor,
+    completeBackgroundColor,
+    completeHoverBackgroundColor,
+    textColor,
+    completeTextColor,
+  } = useBingoTileTheme(themeName);
 
   useEffect(() => {
     setUpdatedCompletedPatterns(completedPatterns);
@@ -28,11 +37,11 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
     <>
       <Flex
         _hover={{
-          backgroundColor: !isComplete ? theme.colors.blue[500] : theme.colors.green[300],
+          backgroundColor: isComplete ? completeHoverBackgroundColor : hoverBackgroundColor,
           cursor: 'pointer',
         }}
         alignItems="center"
-        backgroundColor={!isComplete ? theme.colors.blue[600] : theme.colors.green[400]}
+        backgroundColor={isComplete ? completeBackgroundColor : backgroundColor}
         borderRadius={['8px', '12px']}
         boxShadow={
           isPartOfCompletedGroup
@@ -42,14 +51,13 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
             0 0 16px rgba(255, 120, 140, 0.4)`
             : 'none'
         }
-        color={!isComplete ? theme.colors.white : theme.colors.gray[800]}
+        color={isComplete ? completeTextColor : textColor}
         flexDirection="column"
         height={size}
         justifyContent="center"
         key={tile}
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
-        // zz make onEnter open thse too
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         padding={['4px', '8px']}
@@ -62,7 +70,7 @@ const BingoTile = ({ colIndex, completedPatterns, isEditor, tile }) => {
             {icon ? (
               <Image aria-hidden height="30px" src={icon} width="30px" loading="lazy" />
             ) : isComplete ? (
-              <CheckCircleIcon boxSize="30px" color={theme.colors.green[600]} />
+              <CheckCircleIcon boxSize="30px" color="rgba(0,0,0,0.3)" />
             ) : (
               <Image
                 height="32px"

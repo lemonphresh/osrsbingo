@@ -23,7 +23,7 @@ module.exports = {
           { userId: newUser.id, admin: newUser.admin, username: newUser.username },
           jwtSecret,
           {
-            expiresIn: '3d',
+            expiresIn: '7d',
           }
         );
 
@@ -65,7 +65,7 @@ module.exports = {
         }
 
         const token = jwt.sign({ userId: user.id, admin: user.admin }, context.jwtSecret, {
-          expiresIn: '1d',
+          expiresIn: '7d',
         });
 
         return {

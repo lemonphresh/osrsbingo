@@ -48,6 +48,7 @@ export const LOGIN_USER = gql`
         editorBoards {
           id
           name
+          theme
           category
           type
           description
@@ -82,6 +83,7 @@ export const UPDATE_USER = gql`
         id
         name
         category
+        theme
         type
         description
         layout
@@ -111,6 +113,7 @@ export const CREATE_BOARD = gql`
       description
       type
       isPublic
+      theme
       editors {
         id
         displayName
@@ -167,6 +170,7 @@ export const UPDATE_BOARD = gql`
       type
       category
       description
+      theme
       layout
       isPublic
       bonusSettings {
@@ -189,6 +193,34 @@ export const DUPLICATE_BINGO_BOARD = gql`
       type
       layout
       isPublic
+      theme
+      bonusSettings {
+        allowDiagonals
+        horizontalBonus
+        verticalBonus
+        diagonalBonus
+        blackoutBonus
+      }
+      tiles {
+        id
+        name
+        isComplete
+        value
+      }
+    }
+  }
+`;
+
+export const SHUFFLE_BINGO_BOARD_LAYOUT = gql`
+  mutation ShuffleBingoBoardLayout($boardId: ID!) {
+    shuffleBingoBoardLayout(boardId: $boardId) {
+      id
+      name
+      category
+      type
+      layout
+      isPublic
+      theme
       bonusSettings {
         allowDiagonals
         horizontalBonus
@@ -214,6 +246,7 @@ export const REPLACE_BINGO_BOARD_LAYOUT = gql`
       category
       type
       layout
+      theme
       isPublic
       bonusSettings {
         allowDiagonals

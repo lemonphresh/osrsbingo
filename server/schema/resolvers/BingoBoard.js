@@ -10,6 +10,7 @@ module.exports = {
       const {
         name,
         description,
+        category,
         type,
         isPublic,
         editors,
@@ -18,6 +19,7 @@ module.exports = {
         totalValue,
         totalValueCompleted,
         baseTileValue,
+        theme,
       } = input;
 
       try {
@@ -25,6 +27,7 @@ module.exports = {
 
         const newBingoBoard = await BingoBoard.create({
           name,
+          category,
           description,
           type,
           isPublic,
@@ -34,6 +37,7 @@ module.exports = {
           totalValueCompleted,
           userId: context.user.id,
           layout: [],
+          theme,
         });
 
         const editorsToAdd = [context.user.id, ...(editors || [])];
@@ -107,6 +111,7 @@ module.exports = {
           'bonusSettings',
           'totalValue',
           'totalValueCompleted',
+          'theme',
         ];
         allowedFields.forEach((key) => {
           if (key in input) {
@@ -198,6 +203,7 @@ module.exports = {
           totalValue: originalBoard.totalValue,
           totalValueCompleted: originalBoard.totalValueCompleted,
           createdAt: new Date(Date.now()).toISOString(),
+          theme: originalBoard.theme,
         });
 
         const newTiles = originalBoard.tiles.map((tile) => ({
@@ -316,6 +322,47 @@ module.exports = {
 
       return updatedBoard;
     },
+    shuffleBingoBoardLayout: async (_, { boardId }, context) => {
+      try {
+        const board = await BingoBoard.findByPk(boardId);
+
+        if (!board) {
+          throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        const isEditor = board.editors?.some((editor) => editor.id === context.user?.id);
+        const isAdmin = context.user?.admin;
+        if (!isAdmin && !isEditor) {
+          throw new ApolloError('Unauthorized to shuffle this BingoBoard', 'UNAUTHORIZED');
+        }
+
+        // flatten the layout array, shuffle the IDs, and reconstruct the layout
+        const flattenedLayout = board.layout.flat();
+        const shuffledIds = flattenedLayout
+          .map((id) => ({ id, sort: Math.random() }))
+          .sort((a, b) => a.sort - b.sort)
+          .map(({ id }) => id);
+
+        const size = board.layout.length;
+        const shuffledLayout = [];
+        for (let i = 0; i < size; i++) {
+          shuffledLayout.push(shuffledIds.slice(i * size, (i + 1) * size));
+        }
+
+        // update the board with the shuffled layout
+        board.layout = shuffledLayout;
+        await board.save();
+
+        const updatedBoard = await BingoBoard.findByPk(boardId, {
+          include: [{ model: BingoTile, as: 'tiles' }],
+        });
+
+        return updatedBoard;
+      } catch (error) {
+        console.error('Error shuffling BingoBoard layout:', error);
+        throw new ApolloError('Failed to shuffle BingoBoard layout');
+      }
+    },
   },
   Query: {
     getBingoBoard: async (_, { id }) => {
@@ -350,7 +397,7 @@ module.exports = {
 
         const boards = await BingoBoard.findAll({
           where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
-          attributes: ['id', 'createdAt', 'category', 'name', 'layout'],
+          attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme'],
           include: [
             {
               model: BingoTile,
@@ -381,7 +428,7 @@ module.exports = {
 
         const boards = await BingoBoard.findAll({
           where: { isPublic: true, category: 'Featured' },
-          attributes: ['id', 'createdAt', 'category', 'name', 'layout'],
+          attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme'],
           include: [
             {
               model: BingoTile,
