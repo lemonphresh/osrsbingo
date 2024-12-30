@@ -896,50 +896,52 @@ const BoardDetails = () => {
               </>
             </Flex>
 
-            <Flex margin="0 auto" marginTop="16px">
-              <Button
-                display="inline-flex"
-                _hover={{
-                  border: `1px solid ${theme.colors.cyan[200]}`,
-                  padding: '4px',
-                }}
-                color={theme.colors.cyan[200]}
-                leftIcon={<MdShuffle />}
-                marginBottom="1px"
-                onClick={onOpenShuffleModal}
-                justifyContent="center"
-                padding="6px"
-                textAlign="center"
-                variant="unstyled"
-                width="fit-content"
-              >
-                Shuffle Board
-              </Button>
-              <AlertDialog
-                isOpen={isShuffleModalOpen}
-                leastDestructiveRef={cancelRef}
-                onClose={onCloseShuffleModal}
-              >
-                <AlertDialogOverlay>
-                  <AlertDialogContent>
-                    <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                      Shuffle Bingo Board
-                    </AlertDialogHeader>
-                    <AlertDialogBody>
-                      Are you sure you want to shuffle your board tiles? You can't undo this.
-                    </AlertDialogBody>
-                    <AlertDialogFooter>
-                      <Button ref={cancelRef} onClick={onCloseShuffleModal}>
-                        Cancel
-                      </Button>
-                      <Button colorScheme="teal" onClick={handleShuffle} ml={3}>
-                        Shuffle
-                      </Button>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialogOverlay>
-              </AlertDialog>
-            </Flex>
+            {isEditor && isEditMode && (
+              <Flex margin="0 auto" marginTop="16px">
+                <Button
+                  display="inline-flex"
+                  _hover={{
+                    border: `1px solid ${theme.colors.cyan[200]}`,
+                    padding: '4px',
+                  }}
+                  color={theme.colors.cyan[200]}
+                  leftIcon={<MdShuffle />}
+                  marginBottom="1px"
+                  onClick={onOpenShuffleModal}
+                  justifyContent="center"
+                  padding="6px"
+                  textAlign="center"
+                  variant="unstyled"
+                  width="fit-content"
+                >
+                  Shuffle Board
+                </Button>
+                <AlertDialog
+                  isOpen={isShuffleModalOpen}
+                  leastDestructiveRef={cancelRef}
+                  onClose={onCloseShuffleModal}
+                >
+                  <AlertDialogOverlay>
+                    <AlertDialogContent>
+                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                        Shuffle Bingo Board
+                      </AlertDialogHeader>
+                      <AlertDialogBody>
+                        Are you sure you want to shuffle your board tiles? You can't undo this.
+                      </AlertDialogBody>
+                      <AlertDialogFooter>
+                        <Button ref={cancelRef} onClick={onCloseShuffleModal}>
+                          Cancel
+                        </Button>
+                        <Button colorScheme="teal" onClick={handleShuffle} ml={3}>
+                          Shuffle
+                        </Button>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialogOverlay>
+                </AlertDialog>
+              </Flex>
+            )}
           </Flex>
         </>
       ) : (
