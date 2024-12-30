@@ -43,6 +43,7 @@ const BoardCreationForm = ({ onSubmit }) => {
     type: 'FIVE',
     baseTileValue: 0,
     category: 'Other',
+    theme: 'DEFAULT',
   });
 
   const handleChange = (e) => {
@@ -128,6 +129,28 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl isRequired>
+          <FormLabel fontWeight="bold">Color Scheme:</FormLabel>
+          <Select
+            backgroundColor={theme.colors.gray[300]}
+            color={theme.colors.gray[700]}
+            name="theme"
+            onChange={handleChange}
+            value={formData.theme}
+          >
+            <option value="DEFAULT">Default</option>
+            <option value="purple">Purple</option>
+            <option value="blue">Blue</option>
+            <option value="cyan">Cyan</option>
+            <option value="green">Green</option>
+            <option value="yellow">Yellow</option>
+            <option value="orange">Orange</option>
+            <option value="pink">Pink</option>
+            <option value="red">Red</option>
+            <option value="gray">Gray</option>
+          </Select>
+        </FormControl>
+
+        <FormControl isRequired>
           <FormLabel fontWeight="bold">Board Type:</FormLabel>
           <Select
             backgroundColor={theme.colors.gray[300]}
@@ -197,7 +220,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         >
           <Text fontSize="14px">Example layout: </Text>
           <Flex backgroundColor={theme.colors.gray[800]} borderRadius="8px" padding="6px">
-            <MiniBingoBoard grid={exampleGrids[formData.type]} />
+            <MiniBingoBoard grid={exampleGrids[formData.type]} themeName={formData.theme} />
           </Flex>
         </Flex>
         <Button colorScheme="purple" type="submit" width="full">

@@ -27,6 +27,7 @@ const typeDefs = gql`
     bonusSettings: BonusSettingsInput!
     userId: ID!
     baseTileValue: Int
+    theme: String
   }
 
   type EditorInvitation {
@@ -56,6 +57,7 @@ const typeDefs = gql`
     totalValueCompleted: Int!
     bonusSettings: BonusSettings!
     tiles: [BingoTile!]! # Populated with full tile details
+    theme: String
   }
 
   enum BingoBoardType {
@@ -132,6 +134,7 @@ const typeDefs = gql`
     type: String
     description: String
     isPublic: Boolean
+    theme: String
     bonusSettings: BonusSettingsInput
   }
 
@@ -185,6 +188,7 @@ const typeDefs = gql`
     updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
     duplicateBingoBoard(boardId: ID!): BingoBoard!
+    shuffleBingoBoardLayout(boardId: ID!): BingoBoard!
     replaceLayout(boardId: ID!, newType: String!): BingoBoard!
 
     deleteBingoBoard(id: ID!): MutationResponse

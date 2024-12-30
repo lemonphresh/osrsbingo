@@ -26,6 +26,7 @@ export const GET_USER = gql`
         name
         isPublic
         layout
+        theme
         editors {
           id
           displayName
@@ -58,6 +59,7 @@ export const GET_BOARD = gql`
       description
       userId
       name
+      theme
       team
       totalValue
       totalValueCompleted
@@ -94,6 +96,7 @@ export const GET_PUBLIC_BOARDS = gql`
         category
         name
         layout
+        theme
         tiles {
           id
           isComplete
@@ -116,6 +119,7 @@ export const GET_PUBLIC_FEATURED_BOARDS = gql`
         category
         name
         layout
+        theme
         tiles {
           id
           isComplete

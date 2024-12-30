@@ -75,6 +75,11 @@ module.exports = (sequelize) => {
         },
         onDelete: 'CASCADE',
       },
+      theme: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 'DEFAULT',
+      },
       category: {
         type: DataTypes.ENUM('PvM', 'PvP', 'Skilling', 'Social', 'Featured', 'Other'),
         allowNull: false,
