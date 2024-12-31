@@ -324,7 +324,12 @@ module.exports = {
     },
     shuffleBingoBoardLayout: async (_, { boardId }, context) => {
       try {
-        const board = await BingoBoard.findByPk(boardId);
+        const board = await BingoBoard.findByPk(boardId, {
+          include: [
+            { model: BingoTile, as: 'tiles' },
+            { model: User, as: 'editors' },
+          ],
+        });
 
         if (!board) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
