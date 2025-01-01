@@ -54,6 +54,7 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
             : 'none'
         }
         color={isComplete ? completeTextColor : textColor}
+        cursor={cursor}
         flexDirection="column"
         height={size}
         justifyContent="center"
@@ -61,7 +62,6 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
         padding={['4px', '8px']}
-        cursor={cursor}
         position="relative"
         transition="all ease 0.2s"
         width={size}

@@ -4,7 +4,14 @@ import { Flex } from '@chakra-ui/react';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import BingoTileWrapper from '../atoms/BingoTileWrapper';
 
-const BingoBoard = ({ layout, completedPatterns, isEditor, themeName, onTileSwap }) => (
+const BingoBoard = ({
+  layout,
+  lastDroppedTile,
+  completedPatterns,
+  isEditor,
+  themeName,
+  onTileSwap,
+}) => (
   <DndProvider backend={HTML5Backend}>
     {layout.map((row, rowIndex) => (
       <Flex key={rowIndex} position="relative">
@@ -17,6 +24,7 @@ const BingoBoard = ({ layout, completedPatterns, isEditor, themeName, onTileSwap
             onTileSwap={onTileSwap}
             completedPatterns={completedPatterns}
             isEditor={isEditor}
+            isDropped={rowIndex === lastDroppedTile?.row && colIndex === lastDroppedTile?.col}
             themeName={themeName}
           />
         ))}
@@ -25,4 +33,11 @@ const BingoBoard = ({ layout, completedPatterns, isEditor, themeName, onTileSwap
   </DndProvider>
 );
 
-export default BingoBoard;
+export default React.memo(BingoBoard, (prevProps, nextProps) => {
+  return (
+    prevProps.layout === nextProps.layout &&
+    prevProps.completedPatterns === nextProps.completedPatterns &&
+    prevProps.isEditor === nextProps.isEditor &&
+    prevProps.themeName === nextProps.themeName
+  );
+});

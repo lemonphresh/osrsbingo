@@ -133,6 +133,7 @@ const BoardDetails = () => {
   }, [board?.id, shuffle, navigate, showToast]);
 
   const [localLayout, setLocalLayout] = useState([]);
+  const [droppedTile, setDroppedTile] = useState(null); // last dropped tile
 
   useEffect(() => {
     if (data?.getBingoBoard) {
@@ -150,6 +151,9 @@ const BoardDetails = () => {
   }, [data?.getBingoBoard, setBoard]);
 
   const onTileSwap = async (source, target) => {
+    // Ensure source and target coordinates are valid
+    if (source.row === target.row && source.col === target.col) return; // No swap needed if source and target are the same
+
     // clone the current layout for optimistic update
     const previousLayout = [...localLayout];
     const updatedLayout = [...localLayout];
@@ -162,6 +166,7 @@ const BoardDetails = () => {
 
     // optimistically update local layout state
     setLocalLayout(updatedLayout);
+    setDroppedTile({ row: target.row, col: target.col });
 
     // prepare the layout for the backend (convert to just IDs)
     const backendLayout = updatedLayout.map((row) => row.map((tile) => parseInt(tile.id)));
@@ -189,6 +194,7 @@ const BoardDetails = () => {
       // revert to the previous layout if the update fails
       setLocalLayout(previousLayout);
     }
+    setTimeout(() => setDroppedTile(null), 500);
   };
 
   useEffect(() => {
@@ -448,6 +454,7 @@ const BoardDetails = () => {
                 boardId={board.id}
                 completedPatterns={completedPatterns}
                 isEditor={isEditor && isEditMode}
+                lastDroppedTile={droppedTile}
                 layout={localLayout}
                 themeName={board.theme}
                 onTileSwap={onTileSwap}
