@@ -108,6 +108,7 @@ module.exports = {
           'description',
           'isPublic',
           'team',
+          'layout',
           'bonusSettings',
           'totalValue',
           'totalValueCompleted',

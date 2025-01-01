@@ -1,30 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogOverlay,
-  Button,
-  Checkbox,
-  Flex,
-  FormControl,
-  FormLabel,
-  Icon,
-  ListItem,
-  Select,
-  Spinner,
-  Switch,
-  Text,
-  UnorderedList,
-  useDisclosure,
-} from '@chakra-ui/react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Flex, FormControl, FormLabel, Icon, Spinner, Switch, Text } from '@chakra-ui/react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_BOARD, GET_USER } from '../graphql/queries';
 import Section from '../atoms/Section';
-import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
 import BingoBoard from '../molecules/BingoBoard';
 import { useAuth } from '../providers/AuthProvider';
@@ -37,12 +16,17 @@ import {
   SHUFFLE_BINGO_BOARD_LAYOUT,
   UPDATE_BOARD,
 } from '../graphql/mutations';
-import EditField from '../molecules/EditField';
-import ExpandableText from '../atoms/ExpandableText';
 import { useToastContext } from '../providers/ToastProvider';
-import BoardEditors from '../organisms/BoardEditors';
-import BonusSettingsModal from '../molecules/BonusSettingsModal';
 import { MdOutlineStorage, MdShuffle } from 'react-icons/md';
+import AlertModal from '../molecules/AlertModal';
+import Description from '../molecules/EditField/Description';
+import Category from '../molecules/EditField/Category';
+import ColorScheme from '../molecules/EditField/ColorScheme';
+import Name from '../molecules/EditField/Name';
+import ActiveBonusesList from '../atoms/ActiveBonusesList';
+import BoardEditorsField from '../molecules/EditField/BoardEditorsField';
+import IsPublic from '../molecules/EditField/IsPublic';
+import BonusSettings from '../molecules/EditField/BonusSettings';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -57,31 +41,6 @@ const BoardDetails = () => {
     variables: { id: params.boardId },
   });
   const { showToast } = useToastContext();
-  const {
-    isOpen: isDeleteAlertOpen,
-    onOpen: onOpenDeleteAlert,
-    onClose: onCloseDeleteAlert,
-  } = useDisclosure();
-  const {
-    isOpen: isSwapAlertOpen,
-    onOpen: onOpenSwapAlert,
-    onClose: onCloseSwapAlert,
-  } = useDisclosure();
-  const {
-    isOpen: isDupeAlertOpen,
-    onOpen: onOpenDupeAlert,
-    onClose: onCloseDupeAlert,
-  } = useDisclosure();
-  const {
-    isOpen: isBonusSettingsModalOpen,
-    onOpen: onOpenBonusSettingsModal,
-    onClose: onCloseBonusSettingsModal,
-  } = useDisclosure();
-  const {
-    isOpen: isShuffleModalOpen,
-    onOpen: onOpenShuffleModal,
-    onClose: onCloseShuffleModal,
-  } = useDisclosure();
 
   const [board, setBoard] = useState(null);
   const [isEditor, setIsEditor] = useState(false);
@@ -94,7 +53,6 @@ const BoardDetails = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const handleToggle = () => setIsEditMode(!isEditMode);
   const navigate = useNavigate();
-  const cancelRef = useRef();
 
   const { completedPatterns, score, totalPossibleScore } = useBingoCompletion(
     board?.layout,
@@ -132,18 +90,14 @@ const BoardDetails = () => {
 
   const onSwap = useCallback(
     async (newType) => {
-      const { data } = await swapBoardLayout({
+      await swapBoardLayout({
         variables: {
           boardId: board?.id,
           newType,
         },
       });
-
-      if (data?.replaceLayout) {
-        onCloseSwapAlert();
-      }
     },
-    [board?.id, onCloseSwapAlert, swapBoardLayout]
+    [board?.id, swapBoardLayout]
   );
 
   const onDelete = useCallback(async () => {
@@ -155,47 +109,87 @@ const BoardDetails = () => {
 
     if (data?.deleteBingoBoard?.success) {
       navigate(`/user/${user?.id}`);
-      onCloseDeleteAlert();
     }
-  }, [board?.id, deleteBoard, navigate, onCloseDeleteAlert, user?.id]);
+  }, [board?.id, deleteBoard, navigate, user?.id]);
 
   const handleDuplicate = useCallback(async () => {
     try {
       const { data } = await duplicateBoard({ variables: { boardId: board?.id } });
       navigate(`/boards/${data.duplicateBingoBoard?.id}`);
-      onCloseDupeAlert();
       showToast('Duplicated board successfully!', 'success');
     } catch (error) {
       console.error('Error duplicating board:', error.message);
     }
-  }, [board?.id, duplicateBoard, navigate, onCloseDupeAlert, showToast]);
+  }, [board?.id, duplicateBoard, navigate, showToast]);
 
   const handleShuffle = useCallback(async () => {
     try {
       const { data } = await shuffle({ variables: { boardId: board?.id } });
       navigate(`/boards/${data.shuffleBingoBoardLayout?.id}`);
-      onCloseShuffleModal();
       showToast('Shuffled board successfully!', 'success');
     } catch (error) {
       console.error('Error shuffling board:', error.message);
     }
-  }, [board?.id, shuffle, navigate, onCloseShuffleModal, showToast]);
+  }, [board?.id, shuffle, navigate, showToast]);
+
+  const [localLayout, setLocalLayout] = useState([]);
 
   useEffect(() => {
     if (data?.getBingoBoard) {
       const { layout, tiles } = data.getBingoBoard;
 
-      // replace IDs in layout with full tile details
       const renderedLayout = layout.map((row) =>
         row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
       );
 
-      // update the board with the processed layout
       setBoard({ ...data.getBingoBoard, layout: renderedLayout });
+      setLocalLayout(renderedLayout); // separate layout for drag-and-drop
     } else {
       setBoard('Not Found');
     }
   }, [data?.getBingoBoard, setBoard]);
+
+  const onTileSwap = async (source, target) => {
+    // clone the current layout for optimistic update
+    const previousLayout = [...localLayout];
+    const updatedLayout = [...localLayout];
+
+    // perform the tile swap
+    const sourceTile = updatedLayout[source.row][source.col];
+    const targetTile = updatedLayout[target.row][target.col];
+    updatedLayout[source.row][source.col] = targetTile;
+    updatedLayout[target.row][target.col] = sourceTile;
+
+    // optimistically update local layout state
+    setLocalLayout(updatedLayout);
+
+    // prepare the layout for the backend (convert to just IDs)
+    const backendLayout = updatedLayout.map((row) => row.map((tile) => parseInt(tile.id)));
+
+    try {
+      // send the updated layout to the backend
+      const response = await updateBingoBoard({
+        variables: {
+          id: board.id,
+          input: {
+            layout: backendLayout,
+          },
+        },
+      });
+
+      if (response.errors) {
+        console.error('Error updating layout on backend:', response.errors);
+        // revert to the previous layout if the update fails
+        setLocalLayout(previousLayout);
+      } else {
+        console.log('Board layout successfully updated on backend.');
+      }
+    } catch (error) {
+      console.error('Failed to update board layout on backend:', error);
+      // revert to the previous layout if the update fails
+      setLocalLayout(previousLayout);
+    }
+  };
 
   useEffect(() => {
     if (board?.editors?.some((editor) => editor.id === user?.id) || user?.admin) {
@@ -258,25 +252,10 @@ const BoardDetails = () => {
           <Icon as={MdOutlineStorage} marginRight="8px" />
           <Link to="/boards"> View All Boards</Link>
         </Text>
-        {isEditor && isEditMode && (
-          <Button
-            _hover={{ backgroundColor: theme.colors.teal[800] }}
-            color={theme.colors.teal[300]}
-            onClick={onOpenBonusSettingsModal}
-            textDecoration="underline"
-            variant="ghost"
-            width="fit-content"
-          >
-            Edit Board Bonus Settings
-          </Button>
-        )}
-      </Flex>
-      {board && board.bonusSettings && (
-        <BonusSettingsModal
+
+        <BonusSettings
           board={board}
-          isOpen={isBonusSettingsModalOpen}
-          onOpen={onOpenBonusSettingsModal}
-          onClose={onCloseBonusSettingsModal}
+          canEdit={isEditor && isEditMode}
           onUpdateField={async (val) => {
             const { data } = await updateBingoBoard({
               variables: {
@@ -300,412 +279,147 @@ const BoardDetails = () => {
             }
           }}
         />
-      )}
+      </Flex>
+
       {board && board.name ? (
         <>
-          <Section
-            flexDirection="column"
-            maxWidth="720px"
-            width="100%
-          "
-          >
-            {fieldsEditing.name ? (
-              <EditField
-                defaultValue={board.name}
-                entityId={board.id}
-                fieldName="name"
-                MUTATION={UPDATE_BOARD}
-                onSave={(data, val) => {
-                  setBoard({
-                    ...data.updateBingoBoard,
-                    ...board,
-                    name: val,
-                  });
-                  setFieldsEditing({
-                    ...fieldsEditing,
-                    name: false,
-                  });
-                }}
-                value={board.name}
-              />
-            ) : (
-              isEditor &&
-              isEditMode && (
-                <Button
-                  _hover={{ backgroundColor: theme.colors.teal[800] }}
-                  color={theme.colors.teal[300]}
-                  margin="0 auto"
-                  marginBottom="8px"
-                  onClick={() =>
-                    setFieldsEditing({
-                      ...fieldsEditing,
-                      name: true,
-                    })
-                  }
-                  textDecoration="underline"
-                  variant="ghost"
-                  width="fit-content"
-                >
-                  Edit Name
-                </Button>
-              )
-            )}
-            {!fieldsEditing.name && (
-              <GemTitle marginBottom="16px" textAlign="center">
-                {board.name}
-              </GemTitle>
-            )}
-            {!fieldsEditing.description ? (
-              <>
-                <Flex position="relative" flexDirection="column" marginX={['0px', '16px']}>
-                  {isEditor && isEditMode && (
-                    <Button
-                      _hover={{ backgroundColor: theme.colors.teal[800] }}
-                      color={theme.colors.teal[300]}
-                      margin="0 auto"
-                      onClick={() =>
-                        setFieldsEditing({
-                          ...fieldsEditing,
-                          description: true,
-                        })
-                      }
-                      position={!board?.description ? 'static' : 'absolute'}
-                      right="0"
-                      textDecoration="underline"
-                      top="0px"
-                      variant="ghost"
-                      width="fit-content"
-                    >
-                      {!board?.description ? 'Add description' : <EditIcon />}
-                    </Button>
-                  )}
-                  {board?.description && (
-                    <Section>
-                      <ExpandableText text={board?.description} />
-                    </Section>
-                  )}
-                </Flex>
-              </>
-            ) : (
-              <>
-                <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
-                  Note: you can use{' '}
-                  <a
-                    href="https://www.markdownguide.org/basic-syntax/"
-                    style={{
-                      color: theme.colors.cyan[300],
-                    }}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Markdown
-                  </a>
-                  !
-                </Text>
-                <EditField
-                  defaultValue={board.description}
-                  flexDirection="column"
-                  entityId={board.id}
-                  fieldName="description"
-                  inputType="textarea"
-                  MUTATION={UPDATE_BOARD}
-                  onSave={(data, val) => {
-                    setBoard({
-                      ...data.updateBingoBoard,
-                      ...board,
-                      description: val,
-                    });
-                    setFieldsEditing({
-                      ...fieldsEditing,
-                      description: false,
-                    });
-                  }}
-                  value={board.description}
-                />
-              </>
-            )}
+          <Section flexDirection="column" maxWidth="720px" width="100%">
+            <Name
+              board={board}
+              canEdit={isEditor && isEditMode}
+              fieldActive={fieldsEditing.name}
+              MUTATION={UPDATE_BOARD}
+              onSave={(data, val) => {
+                setBoard({
+                  ...data.updateBingoBoard,
+                  ...board,
+                  name: val,
+                });
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  name: false,
+                });
+              }}
+              onClickEdit={() =>
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  name: true,
+                })
+              }
+            />
+            <Description
+              board={board}
+              canEdit={isEditor && isEditMode}
+              fieldActive={fieldsEditing.description}
+              MUTATION={UPDATE_BOARD}
+              onClickEdit={() => {
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  description: true,
+                });
+              }}
+              onSave={(data, val) => {
+                setBoard({
+                  ...data.updateBingoBoard,
+                  ...board,
+                  description: val,
+                });
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  description: false,
+                });
+              }}
+            />
 
-            <Text
-              alignItems="center"
-              display="flex"
-              justifyContent="center"
-              marginTop="16px"
-              width="100%"
-            >
-              <Text
-                as="span"
-                color={theme.colors.teal[300]}
-                display="inline"
-                fontWeight="bold"
-                marginRight="8px"
-              >
-                Editor(s):
-              </Text>
-              <Text>
-                {board.editors.map((editor, idx) => (
-                  <Link to={`/user/${editor.id}`}>
-                    {idx !== 0 ? ', ' : ''}
-                    {editor.displayName}
-                  </Link>
-                ))}
-              </Text>
-              {isEditor && isEditMode && (
-                <Button
-                  _hover={{ backgroundColor: theme.colors.teal[800] }}
-                  color={theme.colors.teal[300]}
-                  marginLeft="8px"
-                  onClick={() =>
-                    setFieldsEditing({
-                      ...fieldsEditing,
-                      editors: true,
-                    })
-                  }
-                  textDecoration="underline"
-                  variant="ghost"
-                  width="fit-content"
-                >
-                  <EditIcon />
-                </Button>
-              )}
-            </Text>
-            {isEditMode && isEditor && fieldsEditing.editors ? (
-              <>
-                <BoardEditors
-                  boardId={board.id}
-                  onSubmit={() =>
-                    setFieldsEditing({
-                      ...fieldsEditing,
-                      editors: false,
-                    })
-                  }
-                />
-              </>
-            ) : null}
-            <Text
-              alignItems="center"
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              marginTop="16px"
-              width="100%"
-            >
-              <Text
-                as="span"
-                color={theme.colors.teal[300]}
-                display="inline"
-                fontWeight="bold"
-                marginBottom="4px"
-              >
-                Active bonuses:
-              </Text>
-              <UnorderedList marginBottom="8px">
-                {Object.entries(removeTypename(board?.bonusSettings || {}))
-                  .filter(
-                    ([key, value]) =>
-                      value !== 0 &&
-                      value !== false &&
-                      value !== null &&
-                      value !== undefined &&
-                      !(board?.bonusSettings?.allowDiagonals === false && key === 'diagonalBonus')
-                  )
-                  .map(([key, value]) => (
-                    <ListItem key={key}>
-                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
-                      {value.toString()}
-                      {key.toString().includes('black') ? ' pts' : 'x'}
-                    </ListItem>
-                  )).length > 0 ? (
-                  Object.entries(removeTypename(board?.bonusSettings || {}))
-                    .filter(
-                      ([key, value]) =>
-                        value !== 0 &&
-                        value !== false &&
-                        value !== true &&
-                        value !== null &&
-                        value !== undefined &&
-                        !(board?.bonusSettings?.allowDiagonals === false && key === 'diagonalBonus')
-                    )
-                    .map(([key, value]) => (
-                      <ListItem key={key}>
-                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
-                        {value.toString()}
-                        {key.toString().includes('black') ? ' pts' : 'x'}
-                      </ListItem>
-                    ))
-                ) : (
-                  <ListItem>None</ListItem>
-                )}
-              </UnorderedList>
-            </Text>
-
-            <Text
-              as="span"
-              color={theme.colors.teal[300]}
-              display="inline"
-              fontWeight="bold"
-              marginTop="8px"
-              textAlign="center"
-            >
-              Category:
-            </Text>
-            {isEditor && isEditMode && fieldsEditing.category ? (
-              <Select
-                backgroundColor={theme.colors.gray[300]}
-                color={theme.colors.gray[700]}
-                margin="0 auto"
-                marginTop="8px"
-                maxWidth="196px"
-                name="category"
-                onChange={async (e) => {
-                  const { data } = await updateBingoBoard({
-                    variables: {
-                      id: board.id,
-                      input: {
-                        category: e.target.value,
-                      },
+            <BoardEditorsField
+              board={board}
+              canEdit={isEditor && isEditMode}
+              fieldActive={fieldsEditing.editors}
+              onClickEdit={() =>
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  editors: true,
+                })
+              }
+              onSave={() =>
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  editors: false,
+                })
+              }
+            />
+            <ActiveBonusesList board={board} />
+            <Category
+              board={board}
+              canEdit={isEditor && isEditMode}
+              fieldActive={fieldsEditing.category}
+              onChange={async (e) => {
+                const { data } = await updateBingoBoard({
+                  variables: {
+                    id: board.id,
+                    input: {
+                      category: e.target.value,
                     },
-                  });
+                  },
+                });
 
-                  setBoard({
-                    ...data.updateBingoBoard,
-                    ...board,
-                    category: e.target.value,
-                  });
-
-                  setFieldsEditing({
-                    ...fieldsEditing,
-                    category: false,
-                  });
-                }}
-                defaultValue={board.category}
-              >
-                {user?.admin && <option value="Featured">Featured</option>}
-                <option value="PvM">PvM</option>
-                <option value="PvP">PvP</option>
-                <option value="Skilling">Skilling</option>
-                <option value="Social">Social</option>
-                <option value="Other">Other</option>
-              </Select>
-            ) : (
-              <Text alignItems="center" display="flex" justifyContent="center" width="100%">
-                <Text>{board.category}</Text>
-                {isEditor && isEditMode && (
-                  <Button
-                    _hover={{ backgroundColor: theme.colors.teal[800] }}
-                    color={theme.colors.teal[300]}
-                    marginLeft="8px"
-                    onClick={() =>
-                      setFieldsEditing({
-                        ...fieldsEditing,
-                        category: true,
-                      })
-                    }
-                    textDecoration="underline"
-                    variant="ghost"
-                    width="fit-content"
-                  >
-                    <EditIcon />
-                  </Button>
-                )}
-              </Text>
-            )}
-
-            {isEditor && isEditMode && (
-              <>
-                <Text
-                  as="span"
-                  color={theme.colors.teal[300]}
-                  display="inline"
-                  fontWeight="bold"
-                  marginY="8px"
-                  textAlign="center"
-                >
-                  Color Scheme:
-                </Text>
-                <Select
-                  backgroundColor={theme.colors.gray[300]}
-                  color={theme.colors.gray[700]}
-                  margin="0 auto"
-                  maxWidth="196px"
-                  name="category"
-                  onChange={async (e) => {
-                    const { data } = await updateBingoBoard({
-                      variables: {
-                        id: board.id,
-                        input: {
-                          theme: e.target.value,
-                        },
-                      },
-                    });
-
-                    setBoard({
-                      ...data.updateBingoBoard,
-                      ...board,
+                setBoard({
+                  ...data.updateBingoBoard,
+                  ...board,
+                  category: e.target.value,
+                });
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  category: false,
+                });
+              }}
+              onClickEdit={() =>
+                setFieldsEditing({
+                  ...fieldsEditing,
+                  category: true,
+                })
+              }
+              user={user}
+            />
+            <ColorScheme
+              board={board}
+              canEdit={isEditor && isEditMode}
+              onChange={async (e) => {
+                const { data } = await updateBingoBoard({
+                  variables: {
+                    id: board.id,
+                    input: {
                       theme: e.target.value,
-                    });
-                  }}
-                  defaultValue={board.theme}
-                >
-                  <option value="DEFAULT">Default</option>
-                  <option value="purple">Purple</option>
-                  <option value="blue">Blue</option>
-                  <option value="cyan">Cyan</option>
-                  <option value="green">Green</option>
-                  <option value="yellow">Yellow</option>
-                  <option value="orange">Orange</option>
-                  <option value="pink">Pink</option>
-                  <option value="red">Red</option>
-                  <option value="gray">Gray</option>
-                </Select>
-              </>
-            )}
-
-            <Text
-              alignItems="center"
-              display="flex"
-              marginBottom="8px"
-              justifyContent="center"
-              width="100%"
-            >
-              <Text
-                as="span"
-                color={theme.colors.teal[300]}
-                display="inline"
-                fontWeight="bold"
-                marginRight="8px"
-                marginTop="16px"
-              >
-                Is Public:
-              </Text>
-              {isEditor && isEditMode ? (
-                <Checkbox
-                  colorScheme="teal"
-                  borderColor={theme.colors.teal[300]}
-                  defaultChecked={board.isPublic}
-                  marginRight="16px"
-                  marginTop="16px"
-                  onChange={async () => {
-                    const { data } = await updateBingoBoard({
-                      variables: {
-                        id: board.id,
-                        input: {
-                          isPublic: !board.isPublic,
-                        },
-                      },
-                    });
-
-                    setBoard({
-                      ...data.updateBingoBoard,
-                      ...board,
+                    },
+                  },
+                });
+                setBoard({
+                  ...data.updateBingoBoard,
+                  ...board,
+                  theme: e.target.value,
+                });
+              }}
+            />
+            <IsPublic
+              board={board}
+              canEdit={isEditor && isEditMode}
+              onChange={async () => {
+                const { data } = await updateBingoBoard({
+                  variables: {
+                    id: board.id,
+                    input: {
                       isPublic: !board.isPublic,
-                    });
-                  }}
-                  size="lg"
-                />
-              ) : (
-                <Text marginTop="16px">{board.isPublic ? 'Yes' : 'No'}</Text>
-              )}
-            </Text>
+                    },
+                  },
+                });
+
+                setBoard({
+                  ...data.updateBingoBoard,
+                  ...board,
+                  isPublic: !board.isPublic,
+                });
+              }}
+            />
           </Section>
 
           <Flex alignItems="center" flexDirection="column" justifyContent="center" marginTop="36px">
@@ -734,8 +448,9 @@ const BoardDetails = () => {
                 boardId={board.id}
                 completedPatterns={completedPatterns}
                 isEditor={isEditor && isEditMode}
-                layout={board.layout}
+                layout={localLayout}
                 themeName={board.theme}
+                onTileSwap={onTileSwap}
               />
             )}
             <Flex
@@ -746,198 +461,52 @@ const BoardDetails = () => {
               width="100%"
             >
               {(user?.id === board.userId || user?.admin) && isEditMode ? (
-                <>
-                  <Button
-                    display="inline-flex"
-                    _hover={{
-                      border: `1px solid ${theme.colors.red[300]}`,
-                      padding: '4px',
-                    }}
-                    color={theme.colors.red[300]}
-                    leftIcon={<DeleteIcon />}
-                    justifyContent="center"
-                    marginBottom="1px"
-                    onClick={onOpenDeleteAlert}
-                    padding="6px"
-                    textAlign="center"
-                    variant="unstyled"
-                    width="fit-content"
-                  >
-                    Delete Board
-                  </Button>
-                  <AlertDialog
-                    isOpen={isDeleteAlertOpen}
-                    leastDestructiveRef={cancelRef}
-                    onClose={onCloseDeleteAlert}
-                  >
-                    <AlertDialogOverlay>
-                      <AlertDialogContent>
-                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                          Delete Bingo Board
-                        </AlertDialogHeader>
-                        <AlertDialogBody>
-                          Are you sure? You can't undo this action afterwards.
-                        </AlertDialogBody>
-                        <AlertDialogFooter>
-                          <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
-                            Cancel
-                          </Button>
-                          <Button colorScheme="red" onClick={onDelete} ml={3}>
-                            Delete
-                          </Button>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialogOverlay>
-                  </AlertDialog>
-                </>
+                <AlertModal
+                  actionButtonText="Delete"
+                  buttonText="Delete Board"
+                  dialogHeader="Delete Bingo Board"
+                  dialogBody="Are you sure? You can't undo this action afterwards."
+                  icon={<DeleteIcon />}
+                  onClickAction={onDelete}
+                />
               ) : null}
 
               {isEditor && isEditMode ? (
-                <>
-                  <Button
-                    display="inline-flex"
-                    _hover={{
-                      border: `1px solid ${theme.colors.purple[300]}`,
-                      padding: '4px',
-                    }}
-                    color={theme.colors.purple[300]}
-                    leftIcon={<EditIcon />}
-                    justifyContent="center"
-                    marginBottom="1px"
-                    onClick={onOpenSwapAlert}
-                    padding="6px"
-                    textAlign="center"
-                    variant="unstyled"
-                    width="fit-content"
-                  >
-                    Swap to {board.type === 'FIVE' ? '7x7' : '5x5'} Board
-                  </Button>
-                  <AlertDialog
-                    isOpen={isSwapAlertOpen}
-                    leastDestructiveRef={cancelRef}
-                    onClose={onCloseSwapAlert}
-                  >
-                    <AlertDialogOverlay>
-                      <AlertDialogContent>
-                        <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                          Swap Board Type and Replace Tiles
-                        </AlertDialogHeader>
-                        <AlertDialogBody>
-                          Are you sure? You can't undo this action afterwards, and it will erase any
-                          tile data you've changed so far.
-                        </AlertDialogBody>
-                        <AlertDialogFooter>
-                          <Button ref={cancelRef} onClick={onCloseSwapAlert}>
-                            Cancel
-                          </Button>
-                          <Button
-                            colorScheme="purple"
-                            onClick={async () =>
-                              await onSwap(board.type === 'FIVE' ? 'SEVEN' : 'FIVE')
-                            }
-                            ml={3}
-                          >
-                            Swap
-                          </Button>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialogOverlay>
-                  </AlertDialog>
-                </>
+                <AlertModal
+                  actionButtonText="Swap"
+                  buttonText={`Swap to ${board.type === 'FIVE' ? '7x7' : '5x5'} Board`}
+                  colorScheme="purple"
+                  dialogHeader="Swap Board Type and Replace Tiles"
+                  dialogBody="Are you sure? You can't undo this action afterwards, and it will erase any
+                          tile data you've changed so far."
+                  icon={<EditIcon />}
+                  onClickAction={async () => await onSwap(board.type === 'FIVE' ? 'SEVEN' : 'FIVE')}
+                />
               ) : (
                 <Flex />
               )}
 
-              <>
-                <Button
-                  display="inline-flex"
-                  _hover={{
-                    border: `1px solid #f2d202`,
-                    padding: '4px',
-                  }}
-                  color="#f2d202"
-                  leftIcon={<CopyIcon />}
-                  marginBottom="1px"
-                  onClick={onOpenDupeAlert}
-                  justifyContent="center"
-                  padding="6px"
-                  textAlign="center"
-                  variant="unstyled"
-                  width="fit-content"
-                >
-                  Duplicate Board
-                </Button>
-                <AlertDialog
-                  isOpen={isDupeAlertOpen}
-                  leastDestructiveRef={cancelRef}
-                  onClose={onCloseDupeAlert}
-                >
-                  <AlertDialogOverlay>
-                    <AlertDialogContent>
-                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                        Duplicate Bingo Board
-                      </AlertDialogHeader>
-                      <AlertDialogBody>
-                        Copy an incomplete version of this board to your own collection?
-                      </AlertDialogBody>
-                      <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onCloseDupeAlert}>
-                          Cancel
-                        </Button>
-                        <Button colorScheme="teal" onClick={handleDuplicate} ml={3}>
-                          Copy
-                        </Button>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialogOverlay>
-                </AlertDialog>
-              </>
+              <AlertModal
+                actionButtonText="Duplicate"
+                buttonText="Duplicate Board"
+                colorScheme="yellow"
+                dialogHeader="Duplicate Bingo Board"
+                dialogBody="Copy an incomplete version of this board to your own collection?"
+                icon={<CopyIcon />}
+                onClickAction={handleDuplicate}
+              />
             </Flex>
-
             {isEditor && isEditMode && (
               <Flex margin="0 auto" marginTop="16px">
-                <Button
-                  display="inline-flex"
-                  _hover={{
-                    border: `1px solid ${theme.colors.cyan[200]}`,
-                    padding: '4px',
-                  }}
-                  color={theme.colors.cyan[200]}
-                  leftIcon={<MdShuffle />}
-                  marginBottom="1px"
-                  onClick={onOpenShuffleModal}
-                  justifyContent="center"
-                  padding="6px"
-                  textAlign="center"
-                  variant="unstyled"
-                  width="fit-content"
-                >
-                  Shuffle Board
-                </Button>
-                <AlertDialog
-                  isOpen={isShuffleModalOpen}
-                  leastDestructiveRef={cancelRef}
-                  onClose={onCloseShuffleModal}
-                >
-                  <AlertDialogOverlay>
-                    <AlertDialogContent>
-                      <AlertDialogHeader fontSize="lg" fontWeight="bold">
-                        Shuffle Bingo Board
-                      </AlertDialogHeader>
-                      <AlertDialogBody>
-                        Are you sure you want to shuffle your board tiles? You can't undo this.
-                      </AlertDialogBody>
-                      <AlertDialogFooter>
-                        <Button ref={cancelRef} onClick={onCloseShuffleModal}>
-                          Cancel
-                        </Button>
-                        <Button colorScheme="teal" onClick={handleShuffle} ml={3}>
-                          Shuffle
-                        </Button>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialogOverlay>
-                </AlertDialog>
+                <AlertModal
+                  actionButtonText="Shuffle"
+                  buttonText="Shuffle Tiles"
+                  colorScheme="cyan"
+                  dialogHeader="Shuffle Bingo Board"
+                  dialogBody="Are you sure you want to shuffle your board tiles? You can't undo this."
+                  icon={<MdShuffle />}
+                  onClickAction={handleShuffle}
+                />
               </Flex>
             )}
           </Flex>
