@@ -133,6 +133,7 @@ const typeDefs = gql`
     category: BingoBoardCategory
     type: String
     description: String
+    layout: [[Int!]!]
     isPublic: Boolean
     theme: String
     bonusSettings: BonusSettingsInput
