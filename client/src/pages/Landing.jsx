@@ -6,7 +6,7 @@ import OsrsWikiLogo from '../assets/osrswikilogo.png';
 import ExampleBoard from '../assets/ExampleBoard.png';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Link, NavLink, useNavigate } from 'react-router-dom';
 
 const Landing = () => {
   const { user } = useAuth();
@@ -52,8 +52,8 @@ const Landing = () => {
         <Section flexDirection="column" width="100%">
           <GemTitle>Get Started</GemTitle>
           <Text marginBottom="8px" marginX={['0px', '16px', '56px', '16px']}>
-            Log in or sign up to access the collection of boards and your private collection of
-            boards.
+            Log in or sign up to participate in events, access your private collection of boards,
+            and more!
           </Text>
           <Flex
             height="100%"
@@ -80,6 +80,22 @@ const Landing = () => {
                 Sign Up
               </Button>
             </NavLink>
+
+            <hr />
+
+            <Flex
+              _hover={{
+                color: theme.colors.yellow[300],
+              }}
+              alignItems="center"
+              fontSize="18px"
+              fontWeight="bold"
+              justifyContent="center"
+              textAlign="center"
+              textDecoration="underline"
+            >
+              <Link to="/boards">Browse Public Boards</Link>
+            </Flex>
           </Flex>
         </Section>
       </Flex>

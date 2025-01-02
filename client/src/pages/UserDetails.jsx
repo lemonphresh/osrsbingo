@@ -387,7 +387,7 @@ const UserDetails = () => {
                       }
                     `}
                     key={shownUser}
-                    maxHeight="212px"
+                    maxHeight={['132px', '212px']}
                     margin="0 auto"
                     overflowY="auto"
                     paddingX="16px"
@@ -426,6 +426,7 @@ const UserDetails = () => {
                   {isCurrentUser && (
                     <Link
                       style={{
+                        cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -459,7 +460,7 @@ const UserDetails = () => {
 
           <Section flexDirection="column" width="100%">
             <Flex flexDirection="column" justifyContent="space-between" height="100%">
-              <Heading marginBottom="32px" marginTop="8px" size="sm" textAlign="center">
+              <Heading marginBottom="24px" size="sm" textAlign="center">
                 {shownBoard.board?.name
                   ? `Preview: ${shownBoard.board.name}`
                   : `Click a board from the "${
@@ -487,10 +488,9 @@ const UserDetails = () => {
                 {shownBoard.board !== null ? (
                   <Flex
                     alignItems="center"
-                    flexDirection={['column', 'row', 'row']}
                     gridGap={['16px', '24px']}
                     justifyContent="center"
-                    marginY={['24px', '32px']}
+                    marginY="16px"
                   >
                     <Button
                       colorScheme="green"
@@ -498,7 +498,7 @@ const UserDetails = () => {
                         navigateToBoard({ boardId: shownBoard.board.id, asEditor: false })
                       }
                     >
-                      View Details
+                      View
                     </Button>{' '}
                     {isCurrentUser && (
                       <Button
@@ -507,12 +507,12 @@ const UserDetails = () => {
                           navigateToBoard({ boardId: shownBoard.board.id, asEditor: true })
                         }
                       >
-                        Edit Board
+                        Edit
                       </Button>
                     )}
                   </Flex>
                 ) : (
-                  <Flex height="48px" />
+                  <Flex />
                 )}
               </Flex>
             </Flex>

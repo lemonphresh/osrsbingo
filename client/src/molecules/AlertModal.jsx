@@ -55,7 +55,7 @@ const AlertModal = ({
                 Cancel
               </Button>
               <Button
-                colorScheme="red"
+                colorScheme={colorScheme}
                 onClick={() => {
                   onClickAction();
                   onClose();
