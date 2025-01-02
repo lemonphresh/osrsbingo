@@ -34,7 +34,7 @@ const removeTypename = (obj) => {
 };
 
 const BoardDetails = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const params = useParams();
   const location = useLocation();
   const { data, loading } = useQuery(GET_BOARD, {
@@ -494,13 +494,19 @@ const BoardDetails = () => {
               )}
 
               <AlertModal
-                actionButtonText="Duplicate"
+                actionButtonText={isAuthenticated() ? 'Duplicate' : 'Okay'}
                 buttonText="Duplicate Board"
                 colorScheme="yellow"
-                dialogHeader="Duplicate Bingo Board"
-                dialogBody="Copy an incomplete version of this board to your own collection?"
+                dialogHeader={
+                  isAuthenticated() ? 'Duplicate Bingo Board' : 'You must log in to do that.'
+                }
+                dialogBody={
+                  isAuthenticated()
+                    ? 'Copy an incomplete version of this board to your own collection?'
+                    : 'Log in to manage your own boards!'
+                }
                 icon={<CopyIcon />}
-                onClickAction={handleDuplicate}
+                onClickAction={isAuthenticated() ? handleDuplicate : () => {}}
               />
             </Flex>
             {isEditor && isEditMode && (

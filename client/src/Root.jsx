@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
@@ -8,7 +8,13 @@ import theme from './theme';
 import ScrollToTop from './atoms/ScrollToTop';
 
 const AuthConsumer = () => {
-  const { isCheckingAuth } = useAuth();
+  const { isCheckingAuth, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    if (!isCheckingAuth) {
+      isAuthenticated();
+    }
+  }, [isAuthenticated, isCheckingAuth]);
 
   if (isCheckingAuth) {
     return (

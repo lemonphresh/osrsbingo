@@ -88,8 +88,37 @@ const AuthProvider = ({ children }) => {
     showToast('Successfully logged out', 'success');
   };
 
+  const isAuthenticated = () => {
+    if (!token) {
+      return false;
+    }
+
+    try {
+      const decodedToken = jwtDecode(token);
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (decodedToken?.exp && decodedToken.exp < currentTime) {
+        showToast('Session expired, please log in again', 'error');
+        localStorage.removeItem('authToken');
+        setUser(null);
+        setUserId(null);
+        return false;
+      }
+      if (!user) {
+        showToast('User data not available. Please log in again.', 'error');
+        return false;
+      }
+      return true;
+    } catch (err) {
+      showToast('Invalid session, please log in again', 'error');
+      localStorage.removeItem('authToken');
+      setUser(null);
+      setUserId(null);
+      return false;
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ isCheckingAuth, login, logout, setUser, user }}>
+    <AuthContext.Provider value={{ isAuthenticated, isCheckingAuth, login, logout, setUser, user }}>
       {children}
     </AuthContext.Provider>
   );
