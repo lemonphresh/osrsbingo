@@ -426,6 +426,39 @@ module.exports = {
         throw new ApolloError('Failed to fetch public boards');
       }
     },
+    getAllBoards: async (_, { limit, offset, category, searchQuery = '' }) => {
+      try {
+        const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
+
+        const totalCount = await BingoBoard.count({
+          where: { name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
+        });
+
+        const boards = await BingoBoard.findAll({
+          where: { name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
+          attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme', 'isPublic'],
+          include: [
+            {
+              model: BingoTile,
+              as: 'tiles',
+              attributes: ['id', 'isComplete'],
+            },
+            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
+          ],
+          order: [['createdAt', 'DESC']],
+          limit: limit || 10,
+          offset: offset || 0,
+        });
+
+        return {
+          boards: boards || [],
+          totalCount,
+        };
+      } catch (error) {
+        console.error('Error fetching boards:', error);
+        throw new ApolloError('Failed to fetch boards');
+      }
+    },
     getFeaturedBoards: async (_, { limit, offset }) => {
       try {
         const totalCount = await BingoBoard.count({

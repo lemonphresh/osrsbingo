@@ -161,6 +161,7 @@ const typeDefs = gql`
       category: String
       searchQuery: String
     ): PaginatedBoards!
+    getAllBoards(limit: Int, offset: Int, category: String, searchQuery: String): PaginatedBoards!
     getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]

@@ -221,10 +221,14 @@ const BoardDetails = () => {
           row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
         );
 
-        setBoard({ ...data.getBingoBoard, layout: renderedLayout });
+        if (data.getBingoBoard.isPublic || user?.admin) {
+          setBoard({ ...data.getBingoBoard, layout: renderedLayout });
+        } else {
+          navigate('/');
+        }
       }
     }
-  }, [data, loading, navigate]);
+  }, [data, loading, navigate, user?.admin]);
 
   return (
     <Flex

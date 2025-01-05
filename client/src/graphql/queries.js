@@ -111,6 +111,30 @@ export const GET_PUBLIC_BOARDS = gql`
   }
 `;
 
+export const GET_ALL_BOARDS = gql`
+  query GetAllBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
+    getAllBoards(limit: $limit, offset: $offset, category: $category, searchQuery: $searchQuery) {
+      boards {
+        id
+        category
+        name
+        isPublic
+        layout
+        theme
+        tiles {
+          id
+          isComplete
+        }
+        editors {
+          displayName
+          username
+        }
+      }
+      totalCount
+    }
+  }
+`;
+
 export const GET_PUBLIC_FEATURED_BOARDS = gql`
   query GetFeaturedBoards($limit: Int, $offset: Int) {
     getFeaturedBoards(limit: $limit, offset: $offset) {

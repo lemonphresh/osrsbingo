@@ -1,6 +1,7 @@
 import BoardCreation from './pages/BoardCreation';
 import BoardDetails from './pages/BoardDetails';
 import BoardViewAll from './pages/BoardViewAll';
+import BoardViewAllAdmin from './pages/BoardViewAllAdmin';
 import ErrorPage from './pages/ErrorPage';
 import Faq from './pages/Faq';
 import Landing from './pages/Landing';
@@ -44,6 +45,11 @@ const routes = [
       {
         path: '/boards',
         element: <BoardViewAll />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/boards/admin',
+        element: <BoardViewAllAdmin />,
         errorElement: <ErrorPage />,
       },
       {
