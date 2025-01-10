@@ -228,7 +228,7 @@ const BoardDetails = () => {
         }
       }
     }
-  }, [data, loading, navigate, user?.admin]);
+  }, [data, isEditor, loading, navigate, user?.admin]);
 
   return (
     <Flex
