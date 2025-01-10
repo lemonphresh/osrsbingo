@@ -198,10 +198,16 @@ const BoardDetails = () => {
   };
 
   useEffect(() => {
-    if (board?.editors?.some((editor) => editor.id === user?.id) || user?.admin) {
-      setIsEditor(true);
+    if (board) {
+      if (board?.editors?.some((editor) => editor.id === user?.id) || user?.admin) {
+        setIsEditor(true);
+      } else {
+        if (user && data?.getBingoBoard.isPublic === false) {
+          navigate('/');
+        }
+      }
     }
-  }, [board, score, user?.admin, user?.id]);
+  }, [board, data?.getBingoBoard.isPublic, navigate, score, user, user?.admin, user?.id]);
 
   useEffect(() => {
     if (location.state?.isEditMode) {
@@ -221,14 +227,10 @@ const BoardDetails = () => {
           row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
         );
 
-        if (data.getBingoBoard.isPublic || isEditor || user?.admin) {
-          setBoard({ ...data.getBingoBoard, layout: renderedLayout });
-        } else {
-          navigate('/');
-        }
+        setBoard({ ...data.getBingoBoard, layout: renderedLayout });
       }
     }
-  }, [data, isEditor, loading, navigate, user?.admin]);
+  }, [data, isEditor, loading, navigate, user, user?.admin]);
 
   return (
     <Flex
