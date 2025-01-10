@@ -221,7 +221,7 @@ const BoardDetails = () => {
           row.map((tileId) => tiles.find((tile) => tile?.id === tileId))
         );
 
-        if (data.getBingoBoard.isPublic || user?.admin) {
+        if (data.getBingoBoard.isPublic || isEditor || user?.admin) {
           setBoard({ ...data.getBingoBoard, layout: renderedLayout });
         } else {
           navigate('/');
