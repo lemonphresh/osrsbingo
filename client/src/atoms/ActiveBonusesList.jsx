@@ -30,7 +30,6 @@ const ActiveBonusesList = ({ board }) => {
         {Object.entries(removeTypename(board?.bonusSettings || {}))
           .filter(
             ([key, value]) =>
-              value !== 0 &&
               value !== false &&
               value !== null &&
               value !== undefined &&
@@ -40,13 +39,12 @@ const ActiveBonusesList = ({ board }) => {
             <ListItem key={key}>
               {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
               {value.toString()}
-              {key.toString().includes('black') ? ' pts' : 'x'}
+              {' pts'}
             </ListItem>
           )).length > 0 ? (
           Object.entries(removeTypename(board?.bonusSettings || {}))
             .filter(
               ([key, value]) =>
-                value !== 0 &&
                 value !== false &&
                 value !== true &&
                 value !== null &&
@@ -57,7 +55,7 @@ const ActiveBonusesList = ({ board }) => {
               <ListItem key={key}>
                 {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}:{' '}
                 {value.toString()}
-                {key.toString().includes('black') ? ' pts' : 'x'}
+                {' pts'}
               </ListItem>
             ))
         ) : (
