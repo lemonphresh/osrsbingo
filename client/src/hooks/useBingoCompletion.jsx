@@ -12,7 +12,7 @@ const calculateLineScore = (line, scoredTiles) => {
 
 const useBingoCompletion = (layout, bonusSettings = {}) => {
   const {
-    allowDiagonals,
+    allowDiagonals = false,
     horizontalBonus = 0,
     verticalBonus = 0,
     diagonalBonus = 0,
@@ -75,16 +75,25 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
   const score = useMemo(() => {
     let totalScore = 0;
     const completedTiles = new Set();
-    let rowCount = 0;
-    let colCount = 0;
-    let diagCount = 0;
 
     if (Array.isArray(layout) && layout.length > 0) {
-      // calculate score for completed patterns
-      completedPatterns.forEach((pattern) => {
-        const { tiles, direction } = pattern;
+      // calculate score for each tile
+      layout.forEach((row) => {
+        row.forEach((tile) => {
+          if (tile.isComplete && !completedTiles.has(tile)) {
+            totalScore += tile.value || 0;
+            completedTiles.add(tile);
+          }
+        });
+      });
 
-        totalScore += calculateLineScore(tiles, completedTiles);
+      // calculate score for completed patterns
+      let rowCount = 0;
+      let colCount = 0;
+      let diagCount = 0;
+
+      completedPatterns.forEach((pattern) => {
+        const { direction } = pattern;
 
         if (direction === 'row') {
           rowCount++;
@@ -106,34 +115,34 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
   const totalPossibleScore = useMemo(() => {
     let possibleScore = 0;
     const scoredTiles = new Set();
-    let rowCount = 0;
-    let colCount = 0;
-    let diagCount = 0;
 
     if (Array.isArray(layout) && layout.length > 0) {
+      // calculate possible score for each tile
+      layout.forEach((row) => {
+        row.forEach((tile) => {
+          if (!scoredTiles.has(tile)) {
+            possibleScore += tile.value || 0;
+            scoredTiles.add(tile);
+          }
+        });
+      });
+
       // calculate possible score for rows
+      let rowCount = 0;
+      let colCount = 0;
+      let diagCount = 0;
+
       for (let row of layout) {
-        possibleScore += calculateLineScore(row, scoredTiles);
         rowCount++;
       }
 
       // calculate possible score for columns
       for (let colIndex = 0; colIndex < layout[0].length; colIndex++) {
-        const col = layout.map((row) => row[colIndex]);
-        possibleScore += calculateLineScore(col, scoredTiles);
         colCount++;
       }
 
       // calculate possible score for diagonals (if allowed)
       if (allowDiagonals) {
-        const leftDiag = [];
-        const rightDiag = [];
-        for (let i = 0; i < layout.length; i++) {
-          leftDiag.push(layout[i][i]);
-          rightDiag.push(layout[i][layout[0].length - 1 - i]);
-        }
-        possibleScore += calculateLineScore(leftDiag, scoredTiles);
-        possibleScore += calculateLineScore(rightDiag, scoredTiles);
         diagCount += 2; // two diagonals
       }
 
