@@ -75,8 +75,8 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               Multipliers
             </Text>
             <Text color={theme.colors.purple[600]} fontSize="12px">
-              The amount that a group of tiles is multiplied by when all are completed. (1x to 2x,
-              by 0.1 intervals)
+              The amount of bonus points awarded for a completed row, column or diagonal (when
+              applicable). (Min: 0, Max: 100)
             </Text>
 
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
@@ -84,11 +84,11 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               <NumberInput
                 color={theme.colors.gray[700]}
                 colorScheme="purple"
-                max={2}
+                max={100}
                 maxWidth="80px"
-                min={1}
+                min={0}
                 onChange={(val) => handleChange('horizontalBonus', parseFloat(val, 10) || 0)}
-                step={0.1}
+                step={1}
                 width="100%"
               >
                 <NumberInputField
@@ -109,11 +109,11 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                 variant="filled"
                 colorScheme="purple"
                 color={theme.colors.gray[700]}
-                max={2}
+                max={100}
                 maxWidth="80px"
-                min={1}
+                min={0}
                 onChange={(val) => handleChange('verticalBonus', parseFloat(val, 10) || 0)}
-                step={0.1}
+                step={1}
                 width="100%"
               >
                 <NumberInputField
@@ -134,11 +134,11 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                 <NumberInput
                   color={theme.colors.gray[700]}
                   colorScheme="purple"
-                  max={2}
+                  max={100}
                   maxWidth="80px"
-                  min={1}
+                  min={0}
                   onChange={(val) => handleChange('diagonalBonus', parseFloat(val, 10) || 0)}
-                  step={0.1}
+                  step={1}
                   width="100%"
                 >
                   <NumberInputField
@@ -158,7 +158,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               Point Bonus
             </Text>
             <Text color={theme.colors.purple[600]} fontSize="12px">
-              Amount added to total when board is filled out completely. (Min: 0, Max: 250)
+              Bonus points added to total when board is filled out completely. (Min: 0, Max: 250)
             </Text>
 
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
@@ -170,7 +170,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                 maxWidth="80px"
                 min={0}
                 onChange={(val) => handleChange('blackoutBonus', parseInt(val, 10) || 0)}
-                step={10}
+                step={1}
                 width="100%"
               >
                 <NumberInputField
