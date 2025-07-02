@@ -69,7 +69,7 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
       >
         <>
           {icon ? (
-            <Image aria-hidden height="30px" src={icon} width="30px" loading="lazy" />
+            <Image aria-hidden maxHeight="30px" maxWidth="30px" src={icon} loading="lazy" />
           ) : isComplete ? (
             <CheckCircleIcon boxSize="30px" color="rgba(0,0,0,0.3)" />
           ) : (
