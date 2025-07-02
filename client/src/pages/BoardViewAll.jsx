@@ -43,9 +43,10 @@ const BoardViewAll = () => {
       {loading ? (
         <Spinner />
       ) : (
-        debouncedSearchQuery === '' && (
-          <>
-            {featuredBoards.length >= 1 && selectedCategory === 'All' && (
+        <>
+          {featuredBoards.length >= 1 &&
+            selectedCategory === 'All' &&
+            debouncedSearchQuery === '' && (
               <Section
                 alignItems="center"
                 backgroundColor="rgba(0, 225, 200, 0.5)"
@@ -122,117 +123,118 @@ const BoardViewAll = () => {
               </Section>
             )}
 
-            <Input
-              type="text"
-              color={theme.colors.gray[800]}
-              value={searchQuery}
-              backgroundColor={theme.colors.gray[200]}
-              marginY="16px"
-              onChange={handleSearchChange}
-              placeholder="Search boards..."
-              style={{
-                padding: '8px',
-                borderRadius: '4px',
-                border: '1px solid #ccc',
-                marginLeft: '8px',
-                width: '200px',
-              }}
-            />
-            <Flex
-              alignItems="baseline"
-              justifyContent="center"
-              gap="8px"
-              marginBottom="24px"
-              flexWrap="wrap"
-            >
-              <Text>Filter by:</Text>
-              {['All', 'PvP', 'PvM', 'Skilling', 'Social', 'Other'].map((category) => (
-                <Button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  colorScheme={category === selectedCategory ? 'teal' : 'gray'}
-                >
-                  {category}
-                </Button>
-              ))}
-            </Flex>
-            <Section
-              alignItems="center"
-              flexDirection="column"
-              justifyContent="center"
-              maxWidth="720px"
-              width="100%"
-            >
-              <GemTitle gemColor="blue">All Boards</GemTitle>
-              <Text marginX={['0px', '16px', '56px', '16px']} marginBottom="24px">
-                This is a collection of all the public boards created by users of OSRS Bingo Hub.
-                Take a look around!
-              </Text>
+          <Input
+            type="text"
+            color={theme.colors.gray[800]}
+            value={searchQuery}
+            backgroundColor={theme.colors.gray[200]}
+            marginY="16px"
+            onChange={handleSearchChange}
+            placeholder="Search boards..."
+            style={{
+              padding: '8px',
+              borderRadius: '4px',
+              border: '1px solid #ccc',
+              marginLeft: '8px',
+              width: '200px',
+            }}
+          />
 
-              {boards.length === 0 ? (
-                <Text>Sorry, no boards here.</Text>
-              ) : (
-                <VStack spacing={4} width="100%">
-                  {boards.map((board) => (
-                    <Link
-                      key={board.id}
-                      style={{ width: '100%', textDecoration: 'none' }}
-                      to={`/boards/${board.id}`}
+          <Flex
+            alignItems="baseline"
+            justifyContent="center"
+            gap="8px"
+            marginBottom="24px"
+            flexWrap="wrap"
+          >
+            <Text>Filter by:</Text>
+            {['All', 'PvP', 'PvM', 'Skilling', 'Social', 'Other'].map((category) => (
+              <Button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                colorScheme={category === selectedCategory ? 'teal' : 'gray'}
+              >
+                {category}
+              </Button>
+            ))}
+          </Flex>
+
+          <Section
+            alignItems="center"
+            flexDirection="column"
+            justifyContent="center"
+            maxWidth="720px"
+            width="100%"
+          >
+            <GemTitle gemColor="blue">All Boards</GemTitle>
+            <Text marginX={['0px', '16px', '56px', '16px']} marginBottom="24px">
+              This is a collection of all the public boards created by users of OSRS Bingo Hub. Take
+              a look around!
+            </Text>
+
+            {boards.length === 0 ? (
+              <Text>Sorry, no boards here.</Text>
+            ) : (
+              <VStack spacing={4} width="100%">
+                {boards.map((board) => (
+                  <Link
+                    key={board.id}
+                    style={{ width: '100%', textDecoration: 'none' }}
+                    to={`/boards/${board.id}`}
+                  >
+                    <Section
+                      alignItems="center"
+                      _hover={{
+                        backgroundColor: theme.colors.teal[500],
+                      }}
+                      gap="16px"
+                      justifyContent="space-between"
+                      padding={['16px', '16px', '16px', '24px']}
+                      transition="0.2s ease all"
+                      width="100%"
                     >
-                      <Section
-                        alignItems="center"
-                        _hover={{
-                          backgroundColor: theme.colors.teal[500],
-                        }}
-                        gap="16px"
-                        justifyContent="space-between"
-                        padding={['16px', '16px', '16px', '24px']}
-                        transition="0.2s ease all"
-                        width="100%"
-                      >
-                        <Flex flexDirection="column">
-                          <Text
-                            display={['-webkit-box']}
-                            fontSize="lg"
-                            fontWeight="bold"
-                            mb={2}
-                            overflow="hidden"
-                            textOverflow="ellipsis"
-                            maxWidth="100%"
-                            whiteSpace="normal"
-                            css={`
-                              -webkit-box-orient: vertical;
-                              -webkit-line-clamp: 2;
-                            `}
-                          >
-                            {board.name}
-                          </Text>
-                          <Text fontSize="14px">
-                            By: {board.editors[0].displayName}{' '}
-                            {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
-                          </Text>
-                          <Text fontSize="14px">Category: {board.category}</Text>
-                        </Flex>
-                        <Flex
-                          backgroundColor={theme.colors.gray[800]}
-                          borderRadius="8px"
-                          padding="6px"
+                      <Flex flexDirection="column">
+                        <Text
+                          display={['-webkit-box']}
+                          fontSize="lg"
+                          fontWeight="bold"
+                          mb={2}
+                          overflow="hidden"
+                          textOverflow="ellipsis"
+                          maxWidth="100%"
+                          whiteSpace="normal"
+                          css={`
+                            -webkit-box-orient: vertical;
+                            -webkit-line-clamp: 2;
+                          `}
                         >
-                          <MiniBingoBoard grid={board.grid} themeName={board.theme} />
-                        </Flex>
-                      </Section>
-                    </Link>
-                  ))}
-                  {hasMore && (
-                    <Button onClick={loadMore} isLoading={loading}>
-                      Load More
-                    </Button>
-                  )}
-                </VStack>
-              )}
-            </Section>
-          </>
-        )
+                          {board.name}
+                        </Text>
+                        <Text fontSize="14px">
+                          By: {board.editors[0].displayName}{' '}
+                          {board.editors.length > 1 && ` & ${board.editors.length - 1} other(s)`}
+                        </Text>
+                        <Text fontSize="14px">Category: {board.category}</Text>
+                      </Flex>
+                      <Flex
+                        backgroundColor={theme.colors.gray[800]}
+                        borderRadius="8px"
+                        padding="6px"
+                      >
+                        <MiniBingoBoard grid={board.grid} themeName={board.theme} />
+                      </Flex>
+                    </Section>
+                  </Link>
+                ))}
+                {hasMore && (
+                  <Button onClick={loadMore} isLoading={loading}>
+                    Load More
+                  </Button>
+                )}
+              </VStack>
+            )}
+          </Section>
+        </>
       )}
     </Flex>
   );
