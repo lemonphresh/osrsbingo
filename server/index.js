@@ -13,6 +13,7 @@ const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
 const User = require('./db/models/User');
 const app = express();
+const cheerio = require('cheerio');
 
 dotenv.config();
 
@@ -48,7 +49,6 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Example API route to fetch items from OSRSBox API
 app.get('/api/items', async (req, res) => {
   try {
     const { alpha } = req.query;
@@ -57,52 +57,108 @@ app.get('/api/items', async (req, res) => {
       'https://raw.githubusercontent.com/0xNeffarion/osrsreboxed-db/master/docs/items-complete.json'
     );
 
-    let itemsData;
-    try {
-      itemsData = response.data;
-    } catch (parseError) {
-      console.error('Error parsing JSON:', parseError.message);
-      return res.status(500).json({ error: 'Failed to parse data from OSRSBox API' });
-    }
+    const itemsData = response.data;
     const items = Object.values(itemsData);
 
-    // Fuse.js options for searching
-    const options = {
+    const fuse = new Fuse(items, {
       includeScore: true,
-      threshold: 0.3, // lower value = stricter matching
+      threshold: 0.3,
       keys: ['wiki_name'],
-    };
-
-    const fuse = new Fuse(items, options);
-    const result = fuse.search(alpha);
-
-    const seenImageUrls = new Set();
-    const uniqueResults = [];
-
-    result.forEach((resultItem) => {
-      const imageUrl = resultItem.item.icon
-        ? `data:image/png;base64,${resultItem.item.icon}`
-        : `https://oldschool.runescape.wiki/images/${encodeURIComponent(
-            resultItem.item.wiki_name.replace(/ /g, '_')
-          )}.png`;
-
-      if (!seenImageUrls.has(imageUrl)) {
-        seenImageUrls.add(imageUrl);
-        uniqueResults.push({
-          name: resultItem.item.wiki_name || resultItem.item.name,
-          wikiUrl: resultItem.item.wiki_url,
-          imageUrl: imageUrl,
-        });
-      }
     });
 
-    res.json(uniqueResults);
+    const maxResults = 30;
+    const fuseResults = fuse.search(alpha).slice(0, maxResults);
+
+    // Fetch Wiki results in parallel
+    const wikiFallbackItems = await fetchWikiFallback(alpha);
+
+    // Process static JSON results
+    const staticItemPromises = fuseResults.map(async (resultItem) => {
+      const item = resultItem.item;
+      const imageUrl = await fetchInventoryIcon(item.wiki_name || item.name);
+
+      if (!imageUrl) return null;
+
+      return {
+        name: item.wiki_name || item.name,
+        wikiUrl: item.wiki_url,
+        imageUrl,
+      };
+    });
+
+    const staticResults = (await Promise.all(staticItemPromises)).filter(Boolean);
+
+    const seenNames = new Set();
+    const combined = [...wikiFallbackItems, ...staticResults].filter((item) => {
+      if (seenNames.has(item.name)) return false;
+      seenNames.add(item.name);
+      return true;
+    });
+
+    res.json(combined);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch data from RuneScape API' });
   }
 });
 
+const fetchInventoryIcon = async (itemName) => {
+  try {
+    const wikiUrl = `https://oldschool.runescape.wiki/w/${encodeURIComponent(
+      itemName.replace(/ /g, '_')
+    )}`;
+    const response = await axios.get(wikiUrl);
+    const $ = cheerio.load(response.data);
+
+    const iconElement = $('.infobox-image img').first();
+
+    if (iconElement.length) {
+      const src = iconElement.attr('src');
+      if (src.startsWith('//')) return `https:${src}`;
+      if (src.startsWith('/images/')) return `https://oldschool.runescape.wiki${src}`;
+      return src;
+    }
+    return null;
+  } catch (error) {
+    console.error(`Error scraping icon for ${itemName}:`, error.message);
+    return null;
+  }
+};
+
+// Wiki fallback returns multiple search matches, with proper sprite scraping
+const fetchWikiFallback = async (searchTerm) => {
+  try {
+    const response = await axios.get('https://oldschool.runescape.wiki/api.php', {
+      params: {
+        action: 'query',
+        list: 'search',
+        srsearch: `${searchTerm}*`,
+        format: 'json',
+        origin: '*',
+      },
+    });
+
+    const searchResults = response.data.query.search;
+
+    const fallbackItems = await Promise.all(
+      searchResults.map(async (result) => {
+        const imageUrl = await fetchInventoryIcon(result.title);
+        if (!imageUrl) return null;
+        return {
+          name: result.title,
+          wikiUrl: `https://oldschool.runescape.wiki/wiki/${encodeURIComponent(
+            result.title.replace(/ /g, '_')
+          )}`,
+          imageUrl: imageUrl || null,
+        };
+      })
+    );
+    return fallbackItems.filter(Boolean); // Filter out any null results
+  } catch (error) {
+    console.error('Wiki fallback failed:', error.message);
+    return [];
+  }
+};
 // GraphQL Server setup
 const server = new ApolloServer({
   typeDefs,

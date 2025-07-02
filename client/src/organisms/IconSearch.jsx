@@ -91,6 +91,8 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                 }
                 borderRadius="50%"
                 flexDirection="column"
+                height="30px"
+                width="30px"
                 justifyContent="center"
                 padding="4px"
               >
@@ -111,8 +113,8 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                     });
                   }}
                   src={item.imageUrl}
-                  width="30px"
-                  height="30px"
+                  maxHeight="30px"
+                  maxWidth="30px"
                 />
               </Flex>
             </ListItem>
