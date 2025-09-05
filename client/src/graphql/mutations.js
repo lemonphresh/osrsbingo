@@ -297,3 +297,81 @@ export const SEND_EDITOR_INVITATIONS = gql`
     }
   }
 `;
+
+export const AUTHENTICATE_CALENDAR = gql`
+  mutation AuthenticateCalendar($password: String!) {
+    authenticateCalendar(password: $password) {
+      ok
+    }
+  }
+`;
+
+export const CREATE_CAL_EVENT = gql`
+  mutation CreateCalendarEvent($input: CreateCalendarEventInput!) {
+    createCalendarEvent(input: $input) {
+      id
+      title
+      description
+      start
+      end
+      allDay
+      eventType
+    }
+  }
+`;
+
+export const UPDATE_CAL_EVENT = gql`
+  mutation UpdateCalendarEvent($id: ID!, $input: UpdateCalendarEventInput!) {
+    updateCalendarEvent(id: $id, input: $input) {
+      id
+      title
+      description
+      start
+      end
+      allDay
+      eventType
+    }
+  }
+`;
+
+export const DELETE_CAL_EVENT = gql`
+  mutation DeleteCalendarEvent($id: ID!) {
+    deleteCalendarEvent(id: $id)
+  }
+`;
+
+export const LIST_SAVED_CAL_EVENTS = gql`
+  query SavedCalendarEvents($offset: Int, $limit: Int) {
+    savedCalendarEvents(offset: $offset, limit: $limit) {
+      totalCount
+      items {
+        id
+        title
+        description
+        eventType
+        allDay
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const SAVE_CAL_EVENT = gql`
+  mutation SaveCalendarEvent($id: ID!) {
+    saveCalendarEvent(id: $id) {
+      id
+      status
+    }
+  }
+`;
+
+export const RESTORE_CAL_EVENT = gql`
+  mutation RestoreCalendarEvent($id: ID!, $start: DateTime!, $end: DateTime!) {
+    restoreCalendarEvent(id: $id, start: $start, end: $end) {
+      id
+      status
+      start
+      end
+    }
+  }
+`;

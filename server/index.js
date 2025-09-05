@@ -4,18 +4,21 @@ const path = require('path');
 const { Pool } = require('pg');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
-const { makeExecutableSchema } = require('graphql-tools');
+const { makeExecutableSchema } = require('@graphql-tools/schema');
 const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
 const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
-const User = require('./db/models/User');
 const app = express();
 const cheerio = require('cheerio');
+const cookieParser = require('cookie-parser');
+const calendarRoutes = require('./calendarRoutes');
 
 dotenv.config();
+
+const SECRET = process.env.JWTSECRETKEY;
 
 /*  START setup  */
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -48,6 +51,9 @@ const pool = new Pool({
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+app.use(cookieParser());
+app.use('/api/calendar', calendarRoutes);
 
 app.get('/api/items', async (req, res) => {
   try {
@@ -163,7 +169,7 @@ const fetchWikiFallback = async (searchTerm) => {
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req }) => {
+  context: ({ req, res }) => {
     const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
     const SECRET = process.env.JWTSECRETKEY;
@@ -179,7 +185,7 @@ const server = new ApolloServer({
         console.error('❌ Invalid or expired token');
       }
     }
-    return { user, jwtSecret: SECRET };
+    return { req, res, user, jwtSecret: SECRET };
   },
   formatResponse: (response) => {
     console.log('GraphQL Response:', response);
@@ -189,6 +195,7 @@ const server = new ApolloServer({
     console.error('GraphQL Error:', err);
     return err;
   },
+  plugins: [require('apollo-server-core').ApolloServerPluginLandingPageLocalDefault()],
 });
 
 sequelize.sync({ alter: true }).then(() => {
@@ -257,7 +264,7 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
 const PORT = process.env.PORT || 5000;
 // Starting the Apollo server and Express server
 server.start().then(() => {
-  server.applyMiddleware({ app, path: '/graphql' });
+  server.applyMiddleware({ app, path: '/graphql', cors: false });
   app.listen(PORT, () => {
     console.log(
       `🚀🚀🚀 Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`

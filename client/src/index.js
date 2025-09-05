@@ -18,7 +18,7 @@ import { ToastProvider } from './providers/ToastProvider';
 const URI = process.env.REACT_APP_SERVER_URL
   ? `${process.env.REACT_APP_SERVER_URL}/graphql`
   : '/graphql';
-const httpLink = new HttpLink({ uri: URI });
+const httpLink = new HttpLink({ uri: URI, credentials: 'include' });
 
 const authLink = setContext((_, { headers }) => {
   // get the authentication token from local storage if it exists
