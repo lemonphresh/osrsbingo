@@ -21,7 +21,7 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import Toolbar from '../organisms/CalendarToolbar';
 import PasswordGate from '../organisms/PasswordGate';
 import EventFormModal from '../organisms/EventFormModal';
-import { LIST_CAL_EVENTS, LIST_SAVED_CAL_EVENTS } from '../graphql/queries';
+import { LIST_CAL_EVENTS, LIST_SAVED_CAL_EVENTS, CALENDAR_VERSION } from '../graphql/queries';
 import {
   AUTHENTICATE_CALENDAR,
   CREATE_CAL_EVENT,
@@ -36,6 +36,8 @@ import EventViewModal from '../organisms/EventViewModal';
 import CalendarLegend from '../molecules/CalendarLegend';
 import SavedEventsPanel from '../organisms/SavedEventsPanel';
 import RescheduleModal from '../organisms/RescheduleModal';
+import UpdateBanner from '../molecules/UpdateBanner';
+import GemTitle from '../atoms/GemTitle';
 
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
@@ -87,7 +89,7 @@ function ChakraToolbar({ label, onNavigate, onView, views, view }) {
       <ButtonGroup size="sm" isAttached>
         {views.map((v) => (
           <Button
-            borderColor={'transparent'}
+            borderColor="transparent"
             key={v}
             variant={v === view ? 'solid' : 'outline'}
             onClick={() => onView(v)}
@@ -151,22 +153,6 @@ export default function CalendarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // // re-check on focus / visibility change
-  // const handleVisibilityOrFocus = useCallback(() => {
-  //   if (document.visibilityState === 'visible') {
-  //     checkAuth();
-  //   }
-  // }, [checkAuth]);
-
-  // useEffect(() => {
-  //   window.addEventListener('focus', handleVisibilityOrFocus);
-  //   document.addEventListener('visibilitychange', handleVisibilityOrFocus);
-  //   return () => {
-  //     window.removeEventListener('focus', handleVisibilityOrFocus);
-  //     document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-  //   };
-  // }, [handleVisibilityOrFocus]);
-
   // --- MAIN EVENTS QUERY (only when authed) ---
   const { data, loading, error, refetch } = useQuery(LIST_CAL_EVENTS, {
     fetchPolicy: 'network-only',
@@ -179,6 +165,43 @@ export default function CalendarPage() {
     },
   });
 
+  // --- Version tracking ---
+  const [baseline, setBaseline] = useState({
+    activeUpdatedAt: null,
+    savedUpdatedAt: null,
+  });
+  const [hasDrift, setHasDrift] = useState(false);
+
+  const { data: verData } = useQuery(CALENDAR_VERSION, {
+    skip: !authed,
+    pollInterval: 15000, // 15s; tune as you like
+    fetchPolicy: 'network-only',
+  });
+
+  // Use an effect so we read the *current* baseline, not a stale closure
+  useEffect(() => {
+    if (!authed || !verData) return;
+
+    const active = new Date(verData.calendarVersion.lastUpdated).getTime();
+    const saved = new Date(verData.savedCalendarVersion.lastUpdated).getTime();
+
+    const noBaseline = baseline.activeUpdatedAt === null && baseline.savedUpdatedAt === null;
+
+    if (noBaseline) {
+      // First version snapshot becomes our baseline
+      setBaseline({ activeUpdatedAt: active, savedUpdatedAt: saved });
+      setHasDrift(false);
+      return;
+    }
+
+    const drift =
+      (baseline.activeUpdatedAt && active > baseline.activeUpdatedAt) ||
+      (baseline.savedUpdatedAt && saved > baseline.savedUpdatedAt);
+
+    setHasDrift(!!drift);
+  }, [authed, verData, baseline]);
+
+  // Saved events (persistent)
   const {
     data: savedData,
     loading: savedLoading,
@@ -212,6 +235,53 @@ export default function CalendarPage() {
       eventType: e.eventType || 'MISC',
     }));
   }, [data]);
+
+  // keep baseline in sync when we do a full fetch of active items
+  useEffect(() => {
+    if (!loading && data?.calendarEvents?.items) {
+      const latest =
+        data.calendarEvents.items.reduce(
+          (max, e) => Math.max(max, new Date(e.updatedAt || e.start || 0).getTime()),
+          0
+        ) ||
+        baseline.activeUpdatedAt ||
+        0;
+      setBaseline((b) => ({
+        ...b,
+        activeUpdatedAt: Math.max(latest, b.activeUpdatedAt || 0),
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, data]);
+
+  // and when we fetch saved items
+  useEffect(() => {
+    if (!savedLoading && savedData?.savedCalendarEvents?.items) {
+      const latest =
+        savedData.savedCalendarEvents.items.reduce(
+          (max, e) => Math.max(max, new Date(e.updatedAt || 0).getTime()),
+          0
+        ) ||
+        baseline.savedUpdatedAt ||
+        0;
+      setBaseline((b) => ({
+        ...b,
+        savedUpdatedAt: Math.max(latest, b.savedUpdatedAt || 0),
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedLoading, savedData]);
+
+  const doRefreshLists = async () => {
+    await Promise.all([refetch(), refetchSaved()]);
+    if (verData) {
+      setBaseline({
+        activeUpdatedAt: new Date(verData.calendarVersion.lastUpdated).getTime(),
+        savedUpdatedAt: new Date(verData.savedCalendarVersion.lastUpdated).getTime(),
+      });
+    }
+    setHasDrift(false);
+  };
 
   const openToolbar = (eventData, domEvt) => {
     setSelected(eventData);
@@ -268,11 +338,23 @@ export default function CalendarPage() {
     });
   };
 
+  const handleDeleteSaved = async (ev) => {
+    await safeRun(async () => {
+      await deleteEvent({ variables: { id: ev.id } });
+      await refetchSaved(); // refresh saved list
+      toast({ status: 'success', title: 'Saved event deleted' });
+    });
+  };
+
   const submitPassword = async (pwd) => {
     await safeRun(async () => {
-      await doAuth({ variables: { password: pwd } });
-      setAuthed(true);
-      await refetch?.();
+      const res = await doAuth({ variables: { password: pwd } });
+      if (res?.data?.authenticateCalendar?.ok) {
+        setAuthed(true);
+        await refetch?.();
+      } else {
+        toast({ status: 'error', title: 'Incorrect password' });
+      }
     });
   };
 
@@ -286,13 +368,12 @@ export default function CalendarPage() {
   }
 
   if (!authed) {
-    console.log('not authed');
     return (
       <Flex align="center" justify="center" minHeight="60vh">
         <div style={{ width: 420 }}>
-          <Heading size="md" style={{ marginBottom: 16 }}>
+          <GemTitle gemColor="purple" size="md" style={{ marginBottom: 16 }}>
             Eternal Gems Events Calendar
-          </Heading>
+          </GemTitle>
           <PasswordGate onAuthed={() => {}} submitOverride={submitPassword} />
         </div>
       </Flex>
@@ -312,9 +393,15 @@ export default function CalendarPage() {
         paddingX={['16px', '24px', '64px']}
         paddingY={['72px', '112px']}
       >
-        <Heading maxW="1200px" width="100%" textAlign="left" paddingBottom="32px">
+        <GemTitle gemColor="purple" maxW="1200px" width="100%" paddingBottom="32px">
           Eternal Gems Events Calendar
-        </Heading>
+        </GemTitle>
+
+        {hasDrift && (
+          <div style={{ width: '100%', maxWidth: 1200, marginBottom: 12 }}>
+            <UpdateBanner onRefresh={doRefreshLists} onDismiss={() => setHasDrift(false)} />
+          </div>
+        )}
 
         <div
           style={{
@@ -433,6 +520,7 @@ export default function CalendarPage() {
             setSelected(ev);
             viewModal.onOpen();
           }}
+          onDelete={handleDeleteSaved}
         />
       </Flex>
 

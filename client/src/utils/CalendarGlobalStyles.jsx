@@ -25,7 +25,7 @@ export default function CalendarGlobal() {
 
         /* Today highlight */
         .rbc-today {
-          background: ${palette.yellow.light};
+          background: ${palette.sandyBrown.light};
         }
 
         /* Off-range days (previous/next month in grid) */

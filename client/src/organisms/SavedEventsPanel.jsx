@@ -10,6 +10,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import theme from '../theme';
+import { DeleteIcon } from '@chakra-ui/icons';
 
 const TYPE_LABEL = {
   PVM: 'PvM',
@@ -27,7 +28,7 @@ const TYPE_COLOR = {
   MIXED_CONTENT: theme.colors.dark.pink.dark,
 };
 
-export default function SavedEventsPanel({ items, onRestore, onView }) {
+export default function SavedEventsPanel({ items, onRestore, onView, onDelete }) {
   return (
     <Box minWidth="600px" maxW="800px" mt={16} mx="auto">
       <Heading size="md" mb={3}>
@@ -69,6 +70,16 @@ export default function SavedEventsPanel({ items, onRestore, onView }) {
                 </Button>
                 <Button backgroundColor={theme.colors.white} onClick={() => onRestore(e)}>
                   Add back
+                </Button>
+                <Button
+                  colorScheme="red"
+                  onClick={() => {
+                    if (window.confirm('Delete this saved event? This cannot be undone.')) {
+                      onDelete?.(e);
+                    }
+                  }}
+                >
+                  <DeleteIcon />
                 </Button>
               </ButtonGroup>
             </HStack>
