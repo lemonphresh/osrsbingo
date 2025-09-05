@@ -31,6 +31,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.set('trust proxy', 1);
 
 // Serve static files from the React app (client build directory)
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {

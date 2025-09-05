@@ -65,12 +65,16 @@ const calendarResolvers = {
       const token = jwt.sign({ scope: 'calendar' }, JWT_SECRET, { expiresIn: '7d' });
       ctx.res.cookie(COOKIE_NAME, token, {
         httpOnly: true,
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        sameSite:
+          process.env.NODE_ENV === 'production'
+            ? process.env.CORS_ORIGIN
+              ? 'none'
+              : 'lax' // 'none' if frontend is on a different domain
+            : 'lax',
+        secure: process.env.NODE_ENV === 'production', // must be true for SameSite=None
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
       });
-      return { ok: true };
     },
 
     async createCalendarEvent(_, { input }, ctx) {
