@@ -1,6 +1,21 @@
 const { gql } = require('graphql-tag');
 
 const typeDefs = gql`
+  scalar DateTime
+
+  enum CalendarEventType {
+    PVM
+    MASS
+    SKILLING
+    MISC
+    MIXED_CONTENT
+  }
+
+  enum CalendarEventStatus {
+    ACTIVE
+    SAVED
+  }
+
   type User {
     id: ID!
     admin: Boolean
@@ -173,6 +188,55 @@ const typeDefs = gql`
     message: String!
   }
 
+  type CalendarEvent {
+    id: ID!
+    title: String!
+    description: String
+    start: DateTime!
+    end: DateTime!
+    allDay: Boolean!
+    eventType: CalendarEventType!
+    status: CalendarEventStatus!
+    createdAt: DateTime!
+    updatedAt: DateTime!
+  }
+
+  type CalendarEventsPage {
+    items: [CalendarEvent!]!
+    totalCount: Int!
+  }
+
+  type CalendarAuthResult {
+    ok: Boolean!
+  }
+
+  extend type Query {
+    calendarEvents(
+      offset: Int = 0
+      limit: Int = 500
+      status: CalendarEventStatus = ACTIVE
+    ): CalendarEventsPage!
+    savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
+  }
+
+  input CreateCalendarEventInput {
+    title: String!
+    description: String
+    start: DateTime!
+    end: DateTime!
+    allDay: Boolean = false
+    eventType: CalendarEventType!
+  }
+
+  input UpdateCalendarEventInput {
+    title: String
+    description: String
+    start: DateTime
+    end: DateTime
+    allDay: Boolean
+    eventType: CalendarEventType
+  }
+
   type Mutation {
     createUser(
       username: String!
@@ -200,6 +264,13 @@ const typeDefs = gql`
     sendEditorInvitation(boardId: ID!, invitedUserId: ID!): EditorInvitation!
     sendEditorInvitations(boardId: ID!, invitedUserIds: [ID!]!): BatchInvitationResponse!
     respondToInvitation(invitationId: ID!, response: String!): EditorInvitation!
+    authenticateCalendar(password: String!): CalendarAuthResult!
+
+    createCalendarEvent(input: CreateCalendarEventInput!): CalendarEvent!
+    updateCalendarEvent(id: ID!, input: UpdateCalendarEventInput!): CalendarEvent!
+    deleteCalendarEvent(id: ID!): Boolean!
+    saveCalendarEvent(id: ID!): CalendarEvent!
+    restoreCalendarEvent(id: ID!, start: DateTime!, end: DateTime!): CalendarEvent!
   }
 `;
 
