@@ -5,6 +5,30 @@ const colors = {
     navAndFooter: '#171923',
     logoDarkText: '#1b1d1e',
     darkPine: '#1F271B',
+    purple: {
+      base: '#7D5FFF',
+      light: '#b3a6ff',
+      dark: '#4b2cbf',
+      logoDark: '#5a3fcf',
+    },
+    green: {
+      base: '#43AA8B',
+      light: '#a3d9c5',
+      dark: '#2d6b57',
+      logoDark: '#357a65',
+    },
+    red: {
+      base: '#FF4B5C',
+      light: '#ffb3ba',
+      dark: '#b22a36',
+      logoDark: '#c23a46',
+    },
+    pink: {
+      base: '#FF6F91',
+      light: '#ffc2d1',
+      dark: '#b23c5a',
+      logoDark: '#c24c6a',
+    },
     sapphire: {
       base: '#19647E',
       light: '#81b5c7',
@@ -36,6 +60,30 @@ const colors = {
     CTA: '#FC8181',
     navAndFooter: '#F7FAFC',
     darkPine: '#1F271B',
+    purple: {
+      base: '#7D5FFF',
+      light: '#b3a6ff',
+      dark: '#4b2cbf',
+      logoDark: '#5a3fcf',
+    },
+    green: {
+      base: '#43AA8B',
+      light: '#a3d9c5',
+      dark: '#2d6b57',
+      logoDark: '#357a65',
+    },
+    red: {
+      base: '#FF4B5C',
+      light: '#ffb3ba',
+      dark: '#b22a36',
+      logoDark: '#c23a46',
+    },
+    pink: {
+      base: '#FF6F91',
+      light: '#ffc2d1',
+      dark: '#b23c5a',
+      logoDark: '#c24c6a',
+    },
     sapphire: {
       base: '#19647E',
       light: '#81b5c7',

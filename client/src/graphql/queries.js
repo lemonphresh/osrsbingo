@@ -214,3 +214,36 @@ export const SEARCH_USERS_BY_IDS = gql`
     }
   }
 `;
+
+export const LIST_CAL_EVENTS = gql`
+  query CalendarEvents($offset: Int, $limit: Int) {
+    calendarEvents(offset: $offset, limit: $limit) {
+      totalCount
+      items {
+        id
+        title
+        description
+        start
+        end
+        allDay
+        eventType
+      }
+    }
+  }
+`;
+
+export const LIST_SAVED_CAL_EVENTS = gql`
+  query SavedCalendarEvents($offset: Int, $limit: Int) {
+    savedCalendarEvents(offset: $offset, limit: $limit) {
+      totalCount
+      items {
+        id
+        title
+        description
+        eventType
+        allDay
+        updatedAt
+      }
+    }
+  }
+`;

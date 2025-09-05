@@ -2,6 +2,7 @@ import BoardCreation from './pages/BoardCreation';
 import BoardDetails from './pages/BoardDetails';
 import BoardViewAll from './pages/BoardViewAll';
 import BoardViewAllAdmin from './pages/BoardViewAllAdmin';
+import Calendar from './pages/Calendar';
 import ErrorPage from './pages/ErrorPage';
 import Faq from './pages/Faq';
 import Landing from './pages/Landing';
@@ -61,6 +62,10 @@ const routes = [
         path: '/boards/create',
         element: <BoardCreation />,
         errorElement: <ErrorPage />,
+      },
+      {
+        path: '/calendar',
+        element: <Calendar />,
       },
       {
         path: '*',
