@@ -59,22 +59,47 @@ const calendarResolvers = {
   Mutation: {
     async authenticateCalendar(_, { password }, ctx) {
       const { JWT_SECRET, COOKIE_NAME, SHARED_CALENDAR_PASSWORD_HASH } = getEnv();
-      const ok = await bcrypt.compare(password, SHARED_CALENDAR_PASSWORD_HASH);
-      if (!ok) throw new AuthenticationError('Bad password');
 
-      const token = jwt.sign({ scope: 'calendar' }, JWT_SECRET, { expiresIn: '7d' });
+      // If the hash isn't configured, treat as bad password but do NOT throw
+      if (!SHARED_CALENDAR_PASSWORD_HASH) {
+        return { ok: false };
+      }
+
+      let ok = false;
+      try {
+        ok = await require('bcryptjs').compare(password, SHARED_CALENDAR_PASSWORD_HASH);
+      } catch {
+        // bcrypt compare failed unexpectedly; do not throw a GraphQL error
+        return { ok: false };
+      }
+
+      if (!ok) {
+        // Wrong password; do NOT throw, just return ok:false
+        return { ok: false };
+      }
+
+      // Success: issue cookie
+      const token = require('jsonwebtoken').sign({ scope: 'calendar' }, JWT_SECRET, {
+        expiresIn: '7d',
+      });
+
+      // Cross-site cookie settings (Heroku + separate frontend domain)
+      const sameSite =
+        process.env.NODE_ENV === 'production' ? (process.env.CORS_ORIGIN ? 'none' : 'lax') : 'lax';
+
+      // If ctx.res is missing for some reason, fail soft (return ok:false)
+      if (!ctx?.res) return { ok: false };
+
       ctx.res.cookie(COOKIE_NAME, token, {
         httpOnly: true,
-        sameSite:
-          process.env.NODE_ENV === 'production'
-            ? process.env.CORS_ORIGIN
-              ? 'none'
-              : 'lax' // 'none' if frontend is on a different domain
-            : 'lax',
-        secure: process.env.NODE_ENV === 'production', // must be true for SameSite=None
+        sameSite,
+        secure: process.env.NODE_ENV === 'production',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
       });
+
+      // IMPORTANT: always return a non-null object
+      return { ok: true };
     },
 
     async createCalendarEvent(_, { input }, ctx) {
