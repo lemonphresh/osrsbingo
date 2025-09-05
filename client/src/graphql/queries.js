@@ -247,3 +247,16 @@ export const LIST_SAVED_CAL_EVENTS = gql`
     }
   }
 `;
+
+export const CALENDAR_VERSION = gql`
+  query CalendarVersion {
+    calendarVersion {
+      lastUpdated
+      totalCount
+    }
+    savedCalendarVersion {
+      lastUpdated
+      totalCount
+    }
+  }
+`;

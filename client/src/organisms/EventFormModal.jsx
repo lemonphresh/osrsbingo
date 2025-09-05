@@ -80,7 +80,7 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
               <Textarea
                 value={v.description}
                 onChange={(e) => setV((s) => ({ ...s, description: e.target.value }))}
-                placeholder="Add any notes, requirements, links, etc."
+                placeholder="Add any notes, requirements, links to Discord threads, who is running the event, etc."
                 resize="vertical"
                 rows={5}
               />

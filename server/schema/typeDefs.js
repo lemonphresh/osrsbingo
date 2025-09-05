@@ -210,6 +210,11 @@ const typeDefs = gql`
     ok: Boolean!
   }
 
+  type CalendarVersion {
+    lastUpdated: DateTime!
+    totalCount: Int!
+  }
+
   extend type Query {
     calendarEvents(
       offset: Int = 0
@@ -217,6 +222,8 @@ const typeDefs = gql`
       status: CalendarEventStatus = ACTIVE
     ): CalendarEventsPage!
     savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
+    calendarVersion: CalendarVersion!
+    savedCalendarVersion: CalendarVersion!
   }
 
   input CreateCalendarEventInput {
