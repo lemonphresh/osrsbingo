@@ -54,6 +54,25 @@ const calendarResolvers = {
       });
       return { items: rows, totalCount: count };
     },
+
+    async calendarVersion(_, __, ctx) {
+      requireCalendarAuth(ctx);
+      const [lastUpdated, totalCount] = await Promise.all([
+        CalendarEvent.max('updatedAt', { where: { status: 'ACTIVE' } }),
+        CalendarEvent.count({ where: { status: 'ACTIVE' } }),
+      ]);
+      // Fallback to epoch start if table is empty
+      return { lastUpdated: lastUpdated || new Date(0), totalCount };
+    },
+
+    async savedCalendarVersion(_, __, ctx) {
+      requireCalendarAuth(ctx);
+      const [lastUpdated, totalCount] = await Promise.all([
+        CalendarEvent.max('updatedAt', { where: { status: 'SAVED' } }),
+        CalendarEvent.count({ where: { status: 'SAVED' } }),
+      ]);
+      return { lastUpdated: lastUpdated || new Date(0), totalCount };
+    },
   },
 
   Mutation: {
