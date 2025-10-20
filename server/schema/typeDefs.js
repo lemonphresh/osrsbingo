@@ -267,6 +267,8 @@ const typeDefs = gql`
     nodes: [TreasureNode!]
     creatorId: ID
     creator: User
+    adminIds: [ID!]
+    admins: [User!]
     createdAt: DateTime
     updatedAt: DateTime
   }
@@ -285,6 +287,8 @@ const typeDefs = gql`
     discordRoleId: String
     members: [String!]
     currentPot: String
+    buffHistory: JSON
+    activeBuffs: JSON
     keysHeld: JSON
     completedNodes: [String!]
     availableNodes: [String!]
@@ -403,6 +407,17 @@ const typeDefs = gql`
     createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
     updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
     deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
+
+    addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
+    removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
+    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
+
+    adminCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buff: JSON!): TreasureTeam!
+    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
 
     submitNodeCompletion(
       eventId: ID!

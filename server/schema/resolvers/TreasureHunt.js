@@ -1,28 +1,39 @@
-// resolvers/TreasureHunt.js - Fixed version with validation
 const { v4: uuidv4 } = require('uuid');
+const { Op } = require('sequelize');
 const {
   TreasureEvent,
   TreasureTeam,
   TreasureNode,
   TreasureSubmission,
+  User,
 } = require('../../db/models');
 const { generateMap } = require('../../utils/treasureMapGenerator');
+const { createBuff, canApplyBuff, applyBuffToObjective } = require('../../utils/buffHelpers');
 
 const TreasureHuntResolvers = {
   Query: {
     getTreasureEvent: async (_, { eventId }) => {
-      try {
-        const event = await TreasureEvent.findByPk(eventId, {
-          include: [
-            { model: TreasureTeam, as: 'teams' },
-            { model: TreasureNode, as: 'nodes' },
-          ],
+      const event = await TreasureEvent.findByPk(eventId, {
+        include: [
+          { model: TreasureTeam, as: 'teams' },
+          { model: TreasureNode, as: 'nodes' },
+        ],
+      });
+
+      if (!event) return null;
+
+      // Manually populate admins from adminIds array
+      if (event.adminIds && event.adminIds.length > 0) {
+        const admins = await User.findAll({
+          where: { id: event.adminIds },
+          attributes: ['id', 'displayName', 'username', 'rsn'],
         });
-        return event;
-      } catch (error) {
-        console.error('Error fetching treasure event:', error);
-        throw new Error(`Failed to fetch event: ${error.message}`);
+        event.admins = admins;
+      } else {
+        event.admins = [];
       }
+
+      return event;
     },
 
     getTreasureTeam: async (_, { eventId, teamId }) => {
@@ -146,6 +157,8 @@ const TreasureHuntResolvers = {
           eventConfig: config,
           derivedValues,
           creatorId: context.user.id,
+          adminIds: [context.user.id],
+
           status: 'DRAFT',
         });
 
@@ -376,6 +389,129 @@ const TreasureHuntResolvers = {
       }
     },
 
+    addEventAdmin: async (_, { eventId, userId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      // Check if requester is creator or existing admin
+      const isAdmin =
+        event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+
+      if (!isAdmin) throw new Error('Not authorized to add admins');
+
+      // Add user to adminIds if not already there
+      if (!event.adminIds?.includes(userId)) {
+        await event.update({
+          adminIds: [...(event.adminIds || []), userId],
+        });
+      }
+
+      // Fetch the updated event with teams and nodes
+      const updatedEvent = await TreasureEvent.findByPk(eventId, {
+        include: [
+          { model: TreasureTeam, as: 'teams' },
+          { model: TreasureNode, as: 'nodes' },
+        ],
+      });
+
+      // Manually populate admins
+      if (updatedEvent.adminIds && updatedEvent.adminIds.length > 0) {
+        const admins = await User.findAll({
+          where: { id: updatedEvent.adminIds },
+          attributes: ['id', 'displayName', 'username', 'rsn'],
+        });
+        updatedEvent.admins = admins;
+      } else {
+        updatedEvent.admins = [];
+      }
+
+      return updatedEvent;
+    },
+
+    removeEventAdmin: async (_, { eventId, userId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      // Check if requester is creator
+      if (event.creatorId !== context.user.id) {
+        throw new Error('Only the event creator can remove admins');
+      }
+
+      // Can't remove the creator
+      if (userId === event.creatorId) {
+        throw new Error('Cannot remove the event creator as admin');
+      }
+
+      await event.update({
+        adminIds: event.adminIds?.filter((id) => id !== userId) || [],
+      });
+
+      // Fetch the updated event
+      const updatedEvent = await TreasureEvent.findByPk(eventId, {
+        include: [
+          { model: TreasureTeam, as: 'teams' },
+          { model: TreasureNode, as: 'nodes' },
+        ],
+      });
+
+      // Manually populate admins
+      if (updatedEvent.adminIds && updatedEvent.adminIds.length > 0) {
+        const admins = await User.findAll({
+          where: { id: updatedEvent.adminIds },
+          attributes: ['id', 'displayName', 'username', 'rsn'],
+        });
+        updatedEvent.admins = admins;
+      } else {
+        updatedEvent.admins = [];
+      }
+
+      return updatedEvent;
+    },
+
+    updateEventAdmins: async (_, { eventId, adminIds }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      // Only creator can update full admin list
+      if (event.creatorId !== context.user.id) {
+        throw new Error('Only the event creator can update admins');
+      }
+
+      // Ensure creator is always in the list
+      const uniqueAdminIds = [...new Set([event.creatorId, ...adminIds])];
+
+      await event.update({
+        adminIds: uniqueAdminIds,
+      });
+
+      // Fetch the updated event
+      const updatedEvent = await TreasureEvent.findByPk(eventId, {
+        include: [
+          { model: TreasureTeam, as: 'teams' },
+          { model: TreasureNode, as: 'nodes' },
+        ],
+      });
+
+      // Manually populate admins
+      if (updatedEvent.adminIds && updatedEvent.adminIds.length > 0) {
+        const admins = await User.findAll({
+          where: { id: updatedEvent.adminIds },
+          attributes: ['id', 'displayName', 'username', 'rsn'],
+        });
+        updatedEvent.admins = admins;
+      } else {
+        updatedEvent.admins = [];
+      }
+
+      return updatedEvent;
+    },
+
     submitNodeCompletion: async (_, { eventId, teamId, nodeId, proofUrl, submittedBy }) => {
       try {
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
@@ -464,12 +600,482 @@ const TreasureHuntResolvers = {
             currentPot: currentPot.toString(),
             keysHeld,
           });
+
+          // NEW: Auto-deny other pending submissions for this same node from this team
+          await TreasureSubmission.update(
+            {
+              status: 'DENIED',
+              reviewedBy: reviewerId,
+              reviewedAt: new Date(),
+            },
+            {
+              where: {
+                teamId: team.teamId,
+                nodeId: submission.nodeId,
+                status: 'PENDING_REVIEW',
+                submissionId: { [Op.ne]: submissionId }, // Don't update the one we just approved
+              },
+            }
+          );
         }
 
         return submission;
       } catch (error) {
         console.error('Error reviewing submission:', error);
         throw new Error(`Failed to review submission: ${error.message}`);
+      }
+    },
+
+    // Complete replacement for adminCompleteNode in TreasureHunt.js
+    // This version includes comprehensive logging and validation
+
+    adminCompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        console.log(`\n=== ADMIN COMPLETE NODE ===`);
+        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
+
+        // Check if user is an admin of this event
+        const event = await TreasureEvent.findByPk(eventId);
+        if (!event) throw new Error('Event not found');
+
+        const isAdmin =
+          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+        if (!team) throw new Error('Team not found');
+
+        console.log(`Team before update:`, {
+          completedNodes: team.completedNodes,
+          availableNodes: team.availableNodes,
+          currentPot: team.currentPot,
+          keysHeld: team.keysHeld,
+          activeBuffs: team.activeBuffs?.length || 0,
+        });
+
+        // Get the node details
+        const node = await TreasureNode.findByPk(nodeId);
+        if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+        console.log(`Node details:`, {
+          nodeId: node.nodeId,
+          title: node.title,
+          rewards: node.rewards,
+          unlocks: node.unlocks,
+        });
+
+        // Check if already completed
+        if (team.completedNodes?.includes(nodeId)) {
+          throw new Error('Node is already completed');
+        }
+
+        // Add to completed nodes
+        const completedNodes = [...(team.completedNodes || []), nodeId];
+
+        // Remove from available nodes and add unlocked nodes
+        let availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+
+        // Add nodes that this node unlocks
+        if (node.unlocks && Array.isArray(node.unlocks)) {
+          node.unlocks.forEach((unlockedNode) => {
+            if (!availableNodes.includes(unlockedNode) && !completedNodes.includes(unlockedNode)) {
+              availableNodes.push(unlockedNode);
+              console.log(`Unlocked node: ${unlockedNode}`);
+            }
+          });
+        }
+
+        // Add GP rewards
+        const rewardGP = BigInt(node.rewards?.gp || 0);
+        const currentPot = BigInt(team.currentPot || 0) + rewardGP;
+        console.log(`GP: ${team.currentPot} + ${rewardGP} = ${currentPot}`);
+
+        // Add key rewards
+        const keysHeld = JSON.parse(JSON.stringify(team.keysHeld || [])); // Deep clone
+
+        if (
+          node.rewards?.keys &&
+          Array.isArray(node.rewards.keys) &&
+          node.rewards.keys.length > 0
+        ) {
+          console.log(`Processing ${node.rewards.keys.length} key reward(s):`);
+
+          node.rewards.keys.forEach((key) => {
+            if (!key || !key.color || typeof key.quantity !== 'number') {
+              console.warn(`Invalid key structure:`, key);
+              return;
+            }
+
+            console.log(`  - Adding ${key.quantity}x ${key.color} key`);
+
+            const existingKeyIndex = keysHeld.findIndex((k) => k.color === key.color);
+            if (existingKeyIndex >= 0) {
+              keysHeld[existingKeyIndex].quantity += key.quantity;
+              console.log(
+                `    Updated existing: now ${keysHeld[existingKeyIndex].quantity}x ${key.color}`
+              );
+            } else {
+              keysHeld.push({ color: key.color, quantity: key.quantity });
+              console.log(`    Added new: ${key.quantity}x ${key.color}`);
+            }
+          });
+        } else {
+          console.log(`No key rewards for this node`);
+        }
+
+        console.log(`Keys after processing:`, keysHeld);
+
+        // Add buff rewards
+        const activeBuffs = [...(team.activeBuffs || [])];
+
+        if (
+          node.rewards?.buffs &&
+          Array.isArray(node.rewards.buffs) &&
+          node.rewards.buffs.length > 0
+        ) {
+          console.log(`Processing ${node.rewards.buffs.length} buff reward(s):`);
+
+          node.rewards.buffs.forEach((buffReward) => {
+            try {
+              const newBuff = createBuff(buffReward.buffType);
+              activeBuffs.push(newBuff);
+              console.log(
+                `  - Added buff: ${newBuff.buffName} (${(newBuff.reduction * 100).toFixed(
+                  0
+                )}% reduction)`
+              );
+            } catch (error) {
+              console.warn(`Failed to create buff ${buffReward.buffType}:`, error.message);
+            }
+          });
+        } else {
+          console.log(`No buff rewards for this node`);
+        }
+
+        console.log(`Buffs after processing: ${activeBuffs.length} total`);
+
+        // Update the team with all rewards
+        await team.update({
+          completedNodes,
+          availableNodes,
+          currentPot: currentPot.toString(),
+          keysHeld,
+          activeBuffs,
+        });
+
+        // Reload the team to verify the update
+        await team.reload();
+
+        console.log(`Team after update:`, {
+          completedNodes: team.completedNodes,
+          availableNodes: team.availableNodes,
+          currentPot: team.currentPot,
+          keysHeld: team.keysHeld,
+          activeBuffs: team.activeBuffs?.length || 0,
+        });
+
+        console.log(`=== COMPLETE ===\n`);
+
+        return team;
+      } catch (error) {
+        console.error('Error in adminCompleteNode:', error);
+        throw new Error(`Failed to complete node: ${error.message}`);
+      }
+    },
+    adminUncompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        // Check if user is an admin of this event
+        const event = await TreasureEvent.findByPk(eventId, {
+          include: [{ model: TreasureNode, as: 'nodes' }],
+        });
+        if (!event) throw new Error('Event not found');
+
+        const isAdmin =
+          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+        if (!team) throw new Error('Team not found');
+
+        // Get the node details
+        const node = await TreasureNode.findByPk(nodeId);
+        if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+        // Check if actually completed
+        if (!team.completedNodes?.includes(nodeId)) {
+          throw new Error('Node is not completed');
+        }
+
+        // Remove from completed nodes
+        const completedNodes = team.completedNodes.filter((n) => n !== nodeId);
+
+        // Add back to available nodes
+        let availableNodes = [...(team.availableNodes || [])];
+        if (!availableNodes.includes(nodeId)) {
+          availableNodes.push(nodeId);
+        }
+
+        // Remove nodes that were unlocked by this node if they haven't been completed
+        if (node.unlocks && Array.isArray(node.unlocks)) {
+          availableNodes = availableNodes.filter((n) => {
+            // Keep if it's completed
+            if (completedNodes.includes(n)) return true;
+
+            // Check if any OTHER completed node unlocks this
+            const otherUnlockers = completedNodes.some((completedNodeId) => {
+              const completedNode = event.nodes?.find((nd) => nd.nodeId === completedNodeId);
+              return completedNode?.unlocks?.includes(n);
+            });
+
+            return otherUnlockers || !node.unlocks.includes(n);
+          });
+        }
+
+        // FIXED: Subtract rewards - handle BigInt properly
+        const currentPotBigInt = BigInt(team.currentPot || 0);
+        const rewardGpBigInt = BigInt(node.rewards?.gp || 0);
+        const newPotBigInt = currentPotBigInt - rewardGpBigInt;
+
+        // Ensure pot doesn't go negative and convert to string
+        const currentPot = newPotBigInt < 0n ? '0' : newPotBigInt.toString();
+
+        const keysHeld = [...(team.keysHeld || [])];
+
+        if (node.rewards?.keys && Array.isArray(node.rewards.keys)) {
+          node.rewards.keys.forEach((key) => {
+            const existingKey = keysHeld.find((k) => k.color === key.color);
+            if (existingKey) {
+              existingKey.quantity = Math.max(0, existingKey.quantity - key.quantity);
+            }
+          });
+        }
+
+        // Remove keys with 0 quantity
+        const filteredKeys = keysHeld.filter((k) => k.quantity > 0);
+
+        await team.update({
+          completedNodes,
+          availableNodes,
+          currentPot,
+          keysHeld: filteredKeys,
+        });
+
+        return team;
+      } catch (error) {
+        console.error('Error in adminUncompleteNode:', error);
+        throw new Error(`Failed to un-complete node: ${error.message}`);
+      }
+    },
+
+    applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        console.log(`\n=== APPLY BUFF TO NODE ===`);
+        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}, Buff: ${buffId}`);
+
+        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+        if (!team) throw new Error('Team not found');
+
+        const node = await TreasureNode.findByPk(nodeId);
+        if (!node) throw new Error('Node not found');
+
+        // Check if node is available to the team
+        if (!team.availableNodes?.includes(nodeId)) {
+          throw new Error('This node is not currently available to your team');
+        }
+
+        console.log(`Node objective:`, node.objective);
+
+        // Find the buff
+        const buffIndex = team.activeBuffs.findIndex((b) => b.buffId === buffId);
+        if (buffIndex === -1) throw new Error('Buff not found in team inventory');
+
+        const buff = team.activeBuffs[buffIndex];
+        console.log(`Found buff:`, buff);
+
+        // Check if buff can be applied to this objective type
+        if (!node.objective) {
+          throw new Error('This node does not have an objective');
+        }
+
+        if (!buff.objectiveTypes.includes(node.objective.type)) {
+          throw new Error(
+            `This buff (${buff.buffName}) cannot be applied to ${node.objective.type} objectives. ` +
+              `It can only be used on: ${buff.objectiveTypes.join(', ')}`
+          );
+        }
+
+        // Calculate the modified objective
+        const originalQuantity = node.objective.quantity;
+        const reducedQuantity = Math.ceil(originalQuantity * (1 - buff.reduction));
+        const saved = originalQuantity - reducedQuantity;
+
+        const modifiedObjective = {
+          type: node.objective.type,
+          target: node.objective.target,
+          quantity: reducedQuantity,
+          originalQuantity,
+          appliedBuff: {
+            buffId: buff.buffId,
+            buffName: buff.buffName,
+            reduction: buff.reduction,
+            savedAmount: saved,
+          },
+        };
+
+        console.log(`Modified objective:`, modifiedObjective);
+
+        // Update node with modified objective (this is stored temporarily)
+        await node.update({
+          objective: modifiedObjective,
+        });
+
+        // Update buff uses
+        const updatedBuffs = [...team.activeBuffs];
+        updatedBuffs[buffIndex].usesRemaining -= 1;
+
+        // Remove buff if no uses remaining
+        if (updatedBuffs[buffIndex].usesRemaining <= 0) {
+          console.log(`Buff depleted, removing from inventory`);
+          updatedBuffs.splice(buffIndex, 1);
+        } else {
+          console.log(`Buff has ${updatedBuffs[buffIndex].usesRemaining} uses remaining`);
+        }
+
+        // Add to buff history
+        const buffHistory = [
+          ...(team.buffHistory || []),
+          {
+            buffId: buff.buffId,
+            buffName: buff.buffName,
+            usedOn: nodeId,
+            usedAt: new Date().toISOString(),
+            originalRequirement: originalQuantity,
+            reducedRequirement: reducedQuantity,
+            benefit: `Saved ${saved} ${node.objective.type}`,
+          },
+        ];
+
+        await team.update({
+          activeBuffs: updatedBuffs,
+          buffHistory,
+        });
+
+        console.log(`Buff applied successfully`);
+        console.log(`=== COMPLETE ===\n`);
+
+        // Reload to get fresh data
+        await team.reload();
+
+        return team; // ← Just return the team directly
+      } catch (error) {
+        console.error('Error applying buff:', error);
+        throw new Error(`Failed to apply buff: ${error.message}`);
+      }
+    },
+
+    adminGiveBuff: async (_, { eventId, teamId, buffType }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        // Check admin permissions
+        const event = await TreasureEvent.findByPk(eventId);
+        if (!event) throw new Error('Event not found');
+
+        const isAdmin =
+          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+        if (!team) throw new Error('Team not found');
+
+        // Create buff using helper
+        const newBuff = createBuff(buffType);
+
+        const activeBuffs = [...(team.activeBuffs || []), newBuff];
+
+        await team.update({ activeBuffs });
+
+        console.log(`Admin gave ${buffType} buff to team ${teamId}`);
+
+        return team;
+      } catch (error) {
+        console.error('Error giving buff:', error);
+        throw new Error(`Failed to give buff: ${error.message}`);
+      }
+    },
+
+    adminRemoveBuff: async (_, { eventId, teamId, buffId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        // Check admin permissions
+        const event = await TreasureEvent.findByPk(eventId);
+        if (!event) throw new Error('Event not found');
+
+        const isAdmin =
+          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+        if (!team) throw new Error('Team not found');
+
+        const activeBuffs = (team.activeBuffs || []).filter((b) => b.buffId !== buffId);
+
+        if (activeBuffs.length === team.activeBuffs?.length) {
+          throw new Error('Buff not found');
+        }
+
+        await team.update({ activeBuffs });
+
+        console.log(`Admin removed buff ${buffId} from team ${teamId}`);
+
+        return team;
+      } catch (error) {
+        console.error('Error removing buff:', error);
+        throw new Error(`Failed to remove buff: ${error.message}`);
+      }
+    },
+
+    adminRemoveBuffFromNode: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      try {
+        // Check admin permissions
+        const event = await TreasureEvent.findByPk(eventId);
+        if (!event) throw new Error('Event not found');
+
+        const isAdmin =
+          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+        const node = await TreasureNode.findByPk(nodeId);
+        if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+        if (!node.objective?.appliedBuff) {
+          throw new Error('No buff applied to this node');
+        }
+
+        // Restore original objective
+        const originalObjective = {
+          type: node.objective.type,
+          target: node.objective.target,
+          quantity: node.objective.originalQuantity || node.objective.quantity,
+        };
+
+        await node.update({ objective: originalObjective });
+
+        console.log(`Admin removed buff from node ${nodeId}`);
+
+        return node;
+      } catch (error) {
+        console.error('Error removing buff from node:', error);
+        throw new Error(`Failed to remove buff from node: ${error.message}`);
       }
     },
 

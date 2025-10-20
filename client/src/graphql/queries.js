@@ -278,6 +278,8 @@ export const GET_TREASURE_EVENT = gql`
       createdAt
       updatedAt
       teams {
+        activeBuffs
+        buffHistory
         teamId
         teamName
         discordRoleId
@@ -286,6 +288,16 @@ export const GET_TREASURE_EVENT = gql`
         keysHeld
         completedNodes
         availableNodes
+        submissions {
+          submissionId
+          nodeId
+          submittedBy
+          proofUrl
+          status
+          reviewedBy
+          reviewedAt
+          submittedAt
+        }
       }
       nodes {
         nodeId
@@ -311,32 +323,13 @@ export const GET_TREASURE_TEAM = gql`
   query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
     getTreasureTeam(eventId: $eventId, teamId: $teamId) {
       teamId
-      eventId
       teamName
-      discordRoleId
-      members
       currentPot
       keysHeld
       completedNodes
       availableNodes
-      innTransactions
-      submissions {
-        submissionId
-        nodeId
-        submittedBy
-        proofUrl
-        status
-        reviewedBy
-        reviewedAt
-        submittedAt
-      }
-      event {
-        eventId
-        eventName
-        status
-        startDate
-        endDate
-      }
+      activeBuffs
+      buffHistory
     }
   }
 `;

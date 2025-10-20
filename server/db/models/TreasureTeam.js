@@ -36,6 +36,16 @@ module.exports = (sequelize) => {
         type: DataTypes.BIGINT,
         defaultValue: 0,
       },
+      activeBuffs: {
+        type: DataTypes.JSONB,
+        defaultValue: [],
+        comment: 'Active buffs that can be applied to objectives',
+      },
+      buffHistory: {
+        type: DataTypes.JSONB,
+        defaultValue: [],
+        comment: 'History of buff usage',
+      },
       keysHeld: DataTypes.JSONB,
       completedNodes: DataTypes.ARRAY(DataTypes.STRING),
       availableNodes: DataTypes.ARRAY(DataTypes.STRING),

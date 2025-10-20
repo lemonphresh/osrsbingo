@@ -395,6 +395,44 @@ export const CREATE_TREASURE_EVENT = gql`
   }
 `;
 
+export const ADD_EVENT_ADMIN = gql`
+  mutation AddEventAdmin($eventId: ID!, $userId: ID!) {
+    addEventAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_EVENT_ADMIN = gql`
+  mutation RemoveEventAdmin($eventId: ID!, $userId: ID!) {
+    removeEventAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+    }
+  }
+`;
+
+export const UPDATE_EVENT_ADMINS = gql`
+  mutation UpdateEventAdmins($eventId: ID!, $adminIds: [ID!]!) {
+    updateEventAdmins(eventId: $eventId, adminIds: $adminIds) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+      }
+    }
+  }
+`;
+
 export const DELETE_TREASURE_TEAM = gql`
   mutation DeleteTreasureTeam($eventId: ID!, $teamId: ID!) {
     deleteTreasureTeam(eventId: $eventId, teamId: $teamId) {
@@ -530,6 +568,74 @@ export const GENERATE_TREASURE_MAP = gql`
         innTier
         availableRewards
       }
+    }
+  }
+`;
+
+export const ADMIN_COMPLETE_NODE = gql`
+  mutation AdminCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminCompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+    }
+  }
+`;
+
+export const ADMIN_UNCOMPLETE_NODE = gql`
+  mutation AdminUncompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminUncompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+    }
+  }
+`;
+
+export const APPLY_BUFF_TO_NODE = gql`
+  mutation ApplyBuffToNode($eventId: ID!, $teamId: ID!, $nodeId: ID!, $buffId: ID!) {
+    applyBuffToNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, buffId: $buffId) {
+      teamId
+      teamName
+      activeBuffs
+      buffHistory
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+    }
+  }
+`;
+
+export const ADMIN_GIVE_BUFF = gql`
+  mutation AdminGiveBuff($eventId: ID!, $teamId: ID!, $buffType: String!) {
+    adminGiveBuff(eventId: $eventId, teamId: $teamId, buffType: $buffType) {
+      teamId
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const ADMIN_REMOVE_BUFF = gql`
+  mutation AdminRemoveBuff($eventId: ID!, $teamId: ID!, $buffId: ID!) {
+    adminRemoveBuff(eventId: $eventId, teamId: $teamId, buffId: $buffId) {
+      teamId
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
+  mutation AdminRemoveBuffFromNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRemoveBuffFromNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      nodeId
+      objective
     }
   }
 `;

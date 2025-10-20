@@ -52,6 +52,8 @@ import CreateTeamModal from '../organisms/CreateTreasureTeamModal';
 import EditEventModal from '../organisms/EditTreasureEventModal';
 import EditTeamModal from '../organisms/EditTreasureTeamModal';
 import MultiTeamTreasureMap from '../organisms/MultiTeamTreasureMapVisualization';
+import EventAdminManager from '../organisms/TreasureAdminManager';
+import { useAuth } from '../providers/AuthProvider';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -59,6 +61,7 @@ const TreasureEventView = () => {
   const navigate = useNavigate();
   const { showToast } = useToastContext();
   const [selectedTeam, setSelectedTeam] = useState(null);
+  const { user } = useAuth();
   const {
     isOpen: isEditTeamOpen,
     onOpen: onEditTeamOpen,
@@ -158,7 +161,7 @@ const TreasureEventView = () => {
         variables: {
           submissionId,
           approved,
-          reviewerId: 'admin', // TODO: Use actual user ID
+          reviewerId: user?.id || 'admin',
         },
       });
     } catch (error) {
@@ -181,6 +184,9 @@ const TreasureEventView = () => {
       </Container>
     );
   }
+
+  const isEventAdmin =
+    user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
 
   return (
     <Flex
@@ -215,24 +221,28 @@ const TreasureEventView = () => {
                 </Text>
               </HStack>
             </VStack>
-            <Button
-              display={['none', 'none', 'block']}
-              bg={currentColors.purple.base}
-              color="white"
-              _hover={{ bg: currentColors.purple.light }}
-              onClick={onEditEventOpen}
-            >
-              Edit Event
-            </Button>
-            <IconButton
-              display={['block', 'block', 'none']}
-              icon={<EditIcon />}
-              bg={currentColors.purple.base}
-              color="white"
-              _hover={{ bg: currentColors.purple.light }}
-              onClick={onEditEventOpen}
-              aria-label="Edit Event"
-            />
+            {isEventAdmin && (
+              <>
+                <Button
+                  display={['none', 'none', 'block']}
+                  bg={currentColors.purple.base}
+                  color="white"
+                  _hover={{ bg: currentColors.purple.light }}
+                  onClick={onEditEventOpen}
+                >
+                  Edit Event
+                </Button>
+                <IconButton
+                  display={['block', 'block', 'none']}
+                  icon={<EditIcon />}
+                  bg={currentColors.purple.base}
+                  color="white"
+                  _hover={{ bg: currentColors.purple.light }}
+                  onClick={onEditEventOpen}
+                  aria-label="Edit Event"
+                />
+              </>
+            )}
           </HStack>
 
           <StatGroup
@@ -280,31 +290,43 @@ const TreasureEventView = () => {
 
           {event.nodes && event.nodes.length > 0 && (
             <Box width="100%">
-              <Heading size="md" mb={4} color={currentColors.textColor}>
-                Event Map Overview
-              </Heading>
               <MultiTeamTreasureMap
                 nodes={event.nodes}
                 teams={teams}
                 onNodeClick={(node) => {
-                  // Optionally show node details modal
                   console.log('Clicked node:', node);
                 }}
+                showAllNodes={isEventAdmin}
               />
             </Box>
           )}
 
           <Tabs size="sm" position="relative" variant="soft-rounded" maxW="100%">
-            <TabList pb="6px" overflowY="hidden" overflowX="scroll">
+            <TabList
+              pb="6px"
+              overflowY="hidden"
+              overflowX="scroll"
+              css={{
+                '&::-webkit-scrollbar': {
+                  display: 'none',
+                },
+                '-ms-overflow-style': 'none',
+                'scrollbar-width': 'none',
+              }}
+            >
               <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
                 Leaderboard
               </Tab>
-              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Pending Submissions ({pendingSubmissions.length})
-              </Tab>
-              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Event Settings
-              </Tab>
+              {isEventAdmin && (
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  Pending Submissions ({pendingSubmissions.length})
+                </Tab>
+              )}
+              {isEventAdmin && (
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  Event Settings
+                </Tab>
+              )}
             </TabList>
 
             <TabPanels>
@@ -369,19 +391,21 @@ const TreasureEventView = () => {
                                 >
                                   View Map
                                 </Button>
-                                <IconButton
-                                  size="sm"
-                                  icon={<EditIcon />}
-                                  bg={currentColors.turquoise.base}
-                                  color="white"
-                                  _hover={{ opacity: 0.8 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedTeam(team);
-                                    onEditTeamOpen();
-                                  }}
-                                  aria-label="Edit team"
-                                />
+                                {isEventAdmin && (
+                                  <IconButton
+                                    size="sm"
+                                    icon={<EditIcon />}
+                                    bg={currentColors.turquoise.base}
+                                    color="white"
+                                    _hover={{ opacity: 0.8 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTeam(team);
+                                      onEditTeamOpen();
+                                    }}
+                                    aria-label="Edit team"
+                                  />
+                                )}
                               </HStack>
                             </Td>
                           </Tr>
@@ -392,113 +416,167 @@ const TreasureEventView = () => {
                 </Box>
               </TabPanel>
 
-              <TabPanel px={0}>
-                <VStack spacing={4} align="stretch">
-                  {pendingSubmissions.map((submission) => (
-                    <Card key={submission.submissionId} bg={currentColors.cardBg} borderWidth={1}>
-                      <CardBody>
-                        <VStack align="stretch" spacing={3}>
-                          <HStack justify="space-between">
-                            <VStack align="start" spacing={1}>
-                              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
-                                {submission.nodeId}
-                              </Text>
-                              <HStack>
-                                <Badge bg={currentColors.purple.base} color="white">
-                                  {submission.team?.teamName || 'Unknown Team'}
-                                </Badge>
-                                <Text
-                                  fontSize="sm"
-                                  color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                                >
-                                  by {submission.submittedBy}
-                                </Text>
-                              </HStack>
-                            </VStack>
-                            <Text
-                              fontSize="sm"
-                              color={colorMode === 'dark' ? 'gray.500' : 'gray.500'}
-                            >
-                              {new Date(submission.submittedAt).toLocaleString()}
-                            </Text>
-                          </HStack>
+              {isEventAdmin && (
+                // In TreasureEventPage.jsx, update the pending submissions tab:
 
-                          <HStack justify="space-between">
-                            <Button
-                              leftIcon={<ExternalLinkIcon />}
-                              size="sm"
-                              variant="outline"
-                              as="a"
-                              href={submission.proofUrl}
-                              target="_blank"
-                              color={currentColors.textColor}
-                            >
-                              View Proof
-                            </Button>
-                            <HStack>
-                              <Tooltip label="Deny Submission">
-                                <IconButton
-                                  icon={<CloseIcon />}
-                                  bg={currentColors.red.base}
-                                  color="white"
-                                  size="sm"
-                                  _hover={{ opacity: 0.8 }}
-                                  onClick={() =>
-                                    handleReviewSubmission(submission.submissionId, false)
-                                  }
-                                />
-                              </Tooltip>
-                              <Tooltip label="Approve Submission">
-                                <IconButton
-                                  icon={<CheckIcon />}
-                                  bg={currentColors.green.base}
-                                  color="white"
-                                  size="sm"
-                                  _hover={{ opacity: 0.8 }}
-                                  onClick={() =>
-                                    handleReviewSubmission(submission.submissionId, true)
-                                  }
-                                />
-                              </Tooltip>
-                            </HStack>
-                          </HStack>
-                        </VStack>
-                      </CardBody>
-                    </Card>
-                  ))}
-                </VStack>
-              </TabPanel>
-
-              <TabPanel>
-                <Card bg={currentColors.cardBg}>
-                  <CardBody>
-                    <VStack align="stretch" spacing={4}>
-                      <Heading size="md" color={currentColors.textColor}>
-                        Event Configuration
-                      </Heading>
-                      <Button
-                        leftIcon={<AddIcon />}
-                        bg={currentColors.turquoise.base}
-                        color="white"
-                        _hover={{ opacity: 0.8 }}
-                        onClick={onCreateTeamOpen}
-                      >
-                        Add Team
-                      </Button>
-                      <Button
-                        colorScheme="green"
-                        onClick={handleGenerateMap}
-                        isLoading={generateLoading}
-                      >
-                        {event.nodes && event.nodes.length > 0 ? 'Regenerate Map' : 'Generate Map'}
-                      </Button>
-                      <Text color={currentColors.textColor}>
-                        Event settings and configuration will go here.
+                <TabPanel px={0}>
+                  <VStack spacing={4} align="stretch">
+                    {pendingSubmissions.length === 0 ? (
+                      <Text color={currentColors.textColor} textAlign="center" py={8}>
+                        No pending submissions
                       </Text>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              </TabPanel>
+                    ) : (
+                      // Group submissions by node
+                      Object.entries(
+                        pendingSubmissions.reduce((acc, submission) => {
+                          if (!acc[submission.nodeId]) {
+                            acc[submission.nodeId] = [];
+                          }
+                          acc[submission.nodeId].push(submission);
+                          return acc;
+                        }, {})
+                      ).map(([nodeId, submissions]) => (
+                        <Card key={nodeId} bg={currentColors.cardBg} borderWidth={1}>
+                          <CardBody>
+                            <VStack align="stretch" spacing={3}>
+                              <HStack justify="space-between">
+                                <VStack align="start" spacing={1}>
+                                  <Text
+                                    fontWeight="bold"
+                                    fontSize="lg"
+                                    color={currentColors.textColor}
+                                  >
+                                    {nodeId}
+                                  </Text>
+                                  <HStack>
+                                    <Badge bg={currentColors.purple.base} color="white">
+                                      {submissions[0].team?.teamName || 'Unknown Team'}
+                                    </Badge>
+                                    <Badge colorScheme="orange">
+                                      {submissions.length} submission
+                                      {submissions.length > 1 ? 's' : ''}
+                                    </Badge>
+                                  </HStack>
+                                </VStack>
+                              </HStack>
+
+                              {/* Show each submission */}
+                              <VStack align="stretch" spacing={2}>
+                                {submissions.map((submission) => (
+                                  <Box
+                                    key={submission.submissionId}
+                                    p={3}
+                                    bg={colorMode === 'dark' ? '#1A202C' : '#F7FAFC'}
+                                    borderRadius="md"
+                                  >
+                                    <HStack justify="space-between" mb={2}>
+                                      <VStack align="start" spacing={0}>
+                                        <Text
+                                          fontSize="sm"
+                                          fontWeight="bold"
+                                          color={currentColors.textColor}
+                                        >
+                                          Submitted by {submission.submittedBy}
+                                        </Text>
+                                        <Text
+                                          fontSize="xs"
+                                          color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                                        >
+                                          {new Date(submission.submittedAt).toLocaleString()}
+                                        </Text>
+                                      </VStack>
+                                    </HStack>
+
+                                    <HStack justify="space-between">
+                                      <Button
+                                        leftIcon={<ExternalLinkIcon />}
+                                        size="sm"
+                                        variant="outline"
+                                        as="a"
+                                        href={submission.proofUrl}
+                                        target="_blank"
+                                        color={currentColors.textColor}
+                                      >
+                                        View Proof
+                                      </Button>
+                                      <HStack>
+                                        <Tooltip label="Deny Submission">
+                                          <IconButton
+                                            icon={<CloseIcon />}
+                                            bg={currentColors.red.base}
+                                            color="white"
+                                            size="sm"
+                                            _hover={{ opacity: 0.8 }}
+                                            onClick={() =>
+                                              handleReviewSubmission(submission.submissionId, false)
+                                            }
+                                          />
+                                        </Tooltip>
+                                        <Tooltip label="Approve Submission">
+                                          <IconButton
+                                            icon={<CheckIcon />}
+                                            bg={currentColors.green.base}
+                                            color="white"
+                                            size="sm"
+                                            _hover={{ opacity: 0.8 }}
+                                            onClick={() =>
+                                              handleReviewSubmission(submission.submissionId, true)
+                                            }
+                                          />
+                                        </Tooltip>
+                                      </HStack>
+                                    </HStack>
+                                  </Box>
+                                ))}
+                              </VStack>
+                            </VStack>
+                          </CardBody>
+                        </Card>
+                      ))
+                    )}
+                  </VStack>
+                </TabPanel>
+              )}
+
+              {isEventAdmin && (
+                <TabPanel>
+                  <Card bg={currentColors.cardBg}>
+                    <CardBody>
+                      <VStack align="stretch" spacing={4}>
+                        <Heading size="md" color={currentColors.textColor}>
+                          Event Configuration
+                        </Heading>
+                        <HStack gap={4}>
+                          <Button
+                            leftIcon={<AddIcon />}
+                            bg={currentColors.turquoise.base}
+                            color="white"
+                            _hover={{ opacity: 0.8 }}
+                            onClick={onCreateTeamOpen}
+                          >
+                            Add Team
+                          </Button>
+                          <Button
+                            colorScheme="green"
+                            onClick={handleGenerateMap}
+                            isLoading={generateLoading}
+                          >
+                            {event.nodes && event.nodes.length > 0
+                              ? 'Regenerate Map'
+                              : 'Generate Map'}
+                          </Button>
+                        </HStack>
+                        <EventAdminManager
+                          event={event}
+                          onUpdate={() => {
+                            window.location.reload();
+                          }}
+                        />
+                      </VStack>
+                    </CardBody>
+                  </Card>
+                </TabPanel>
+              )}
             </TabPanels>
           </Tabs>
         </VStack>
@@ -508,7 +586,6 @@ const TreasureEventView = () => {
         onClose={onCreateTeamClose}
         eventId={eventId}
         onSuccess={() => {
-          // Refetch event data to show new team
           window.location.reload();
         }}
       />
@@ -526,7 +603,7 @@ const TreasureEventView = () => {
         team={selectedTeam}
         eventId={eventId}
         onSuccess={() => {
-          window.location.reload(); // or use refetch
+          window.location.reload();
         }}
       />
 

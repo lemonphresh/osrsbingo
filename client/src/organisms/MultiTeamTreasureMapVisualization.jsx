@@ -11,6 +11,7 @@ import {
 import { Box, Badge, Text, VStack, HStack, Avatar, AvatarGroup } from '@chakra-ui/react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { RedactedText } from '../molecules/RedactedTreasureInfo';
 import theme from '../theme';
 
 // Component to handle map panning and pulsing
@@ -157,6 +158,7 @@ const MultiTeamTreasureMap = ({
   teams = [],
   mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
   onNodeClick,
+  showAllNodes = false, // Admin mode: if true, show all node details regardless of unlock status
 }) => {
   const [selectedTeams, setSelectedTeams] = useState(teams.map((t) => t.teamId));
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
@@ -190,6 +192,32 @@ const MultiTeamTreasureMap = ({
     return (gp / 1000000).toFixed(1) + 'M';
   };
 
+  // Calculate offset for overlapping nodes in a circular pattern
+  const getNodePosition = (node, allNodes) => {
+    const basePosition = convertCoordinates(node.coordinates.x, node.coordinates.y);
+
+    // Find all nodes at the same coordinates
+    const sameLocationNodes = allNodes.filter(
+      (n) => n.coordinates?.x === node.coordinates.x && n.coordinates?.y === node.coordinates.y
+    );
+
+    if (sameLocationNodes.length === 1) {
+      return basePosition;
+    }
+
+    // Get index of current node among overlapping nodes
+    const index = sameLocationNodes.findIndex((n) => n.nodeId === node.nodeId);
+    const totalNodes = sameLocationNodes.length;
+
+    // Calculate circular offset
+    const radius = 25; // pixels from center
+    const angle = (index * 2 * Math.PI) / totalNodes;
+    const offsetY = Math.sin(angle) * radius;
+    const offsetX = Math.cos(angle) * radius;
+
+    return [basePosition[0] + offsetY, basePosition[1] + offsetX];
+  };
+
   // Get color for team - uses preset colors first, then generates unlimited colors
   const getTeamColor = (teamIndex) => {
     if (teamIndex < PRESET_COLORS.length) {
@@ -207,7 +235,25 @@ const MultiTeamTreasureMap = ({
     return teamName.substring(0, 2).toUpperCase();
   };
 
-  // Build edges between nodes
+  // Calculate which teams have completed/can access which nodes
+  const getNodeAccessStatus = (nodeId) => {
+    // In admin mode, all nodes are considered unlocked
+    if (showAllNodes) return 'unlocked';
+
+    let anyTeamCompleted = false;
+    let anyTeamAvailable = false;
+
+    teams.forEach((team) => {
+      if (!selectedTeams.includes(team.teamId)) return;
+      if (team.completedNodes?.includes(nodeId)) anyTeamCompleted = true;
+      if (team.availableNodes?.includes(nodeId)) anyTeamAvailable = true;
+    });
+
+    if (anyTeamCompleted || anyTeamAvailable) return 'unlocked';
+    return 'locked';
+  };
+
+  // Build edges between nodes with better visibility for unlocked paths
   const edges = [];
   nodes.forEach((node) => {
     if (node.unlocks && Array.isArray(node.unlocks)) {
@@ -216,13 +262,32 @@ const MultiTeamTreasureMap = ({
         if (targetNode && node.coordinates && targetNode.coordinates) {
           const fromPos = convertCoordinates(node.coordinates.x, node.coordinates.y);
           const toPos = convertCoordinates(targetNode.coordinates.x, targetNode.coordinates.y);
-          edges.push({ from: fromPos, to: toPos });
+
+          // Check if any selected team has unlocked this path
+          const fromAccess = getNodeAccessStatus(node.nodeId);
+          const toAccess = getNodeAccessStatus(targetNode.nodeId);
+
+          let weight = 2;
+          let opacity = 0.4;
+          let dashArray = '8, 8';
+
+          // If either node is unlocked by any team, make path more visible
+          if (fromAccess === 'unlocked' && toAccess === 'unlocked' && !showAllNodes) {
+            weight = 4;
+            opacity = 0.7;
+            dashArray = null;
+          } else if ((fromAccess === 'unlocked' || toAccess === 'unlocked') && !showAllNodes) {
+            weight = 3;
+            opacity = 0.5;
+            dashArray = null;
+          }
+
+          edges.push({ from: fromPos, to: toPos, weight, opacity, dashArray });
         }
       });
     }
   });
 
-  // Calculate which teams have completed which nodes
   const nodeCompletionMap = {};
   nodes.forEach((node) => {
     nodeCompletionMap[node.nodeId] = {
@@ -345,8 +410,9 @@ const MultiTeamTreasureMap = ({
               key={`edge-${idx}`}
               positions={[edge.from, edge.to]}
               color="#718096"
-              weight={2}
-              opacity={0.3}
+              weight={edge.weight}
+              opacity={edge.opacity}
+              dashArray={edge.dashArray}
             />
           ))}
 
@@ -354,7 +420,7 @@ const MultiTeamTreasureMap = ({
           {nodes.map((node) => {
             if (!node.coordinates?.x || !node.coordinates?.y) return null;
 
-            const position = convertCoordinates(node.coordinates.x, node.coordinates.y);
+            const position = getNodePosition(node, nodes);
             const color = getNodeColor(node.nodeId, node.nodeType);
             const completion = nodeCompletionMap[node.nodeId];
             const hasCompletions = completion?.completed.length > 0;
@@ -372,63 +438,146 @@ const MultiTeamTreasureMap = ({
                 <Popup maxWidth={350}>
                   <VStack align="start" spacing={2} p={2}>
                     <HStack justify="space-between" w="full">
-                      <Text fontWeight="bold" fontSize="md" color="#1a1a1a">
-                        {node.title}
-                      </Text>
-                      <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
-                        {node.nodeType}
-                      </Badge>
+                      {getNodeAccessStatus(node.nodeId) === 'locked' ? (
+                        <>
+                          <RedactedText length="long" />
+                          <Badge colorScheme="gray">LOCKED</Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Text fontWeight="bold" fontSize="md" color="#1a1a1a">
+                            {node.title}
+                          </Text>
+                          <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
+                            {node.nodeType}
+                          </Badge>
+                        </>
+                      )}
                     </HStack>
 
-                    {node.description && (
-                      <Text fontSize="sm" color="#4a4a4a">
-                        {node.description}
-                      </Text>
-                    )}
+                    {getNodeAccessStatus(node.nodeId) === 'locked' ? (
+                      <VStack align="start" spacing={1} w="full">
+                        <RedactedText length="full" />
+                        <RedactedText length="medium" />
+                        <Box pt={2}>
+                          <Text fontSize="xs" color="#718096" fontStyle="italic">
+                            No teams have unlocked this node yet
+                          </Text>
+                        </Box>
+                      </VStack>
+                    ) : (
+                      <>
+                        {node.description && (
+                          <Text fontSize="sm" color="#4a4a4a">
+                            {node.description}
+                          </Text>
+                        )}
 
-                    {completion.completed.length > 0 && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
-                          Completed by:
-                        </Text>
-                        <VStack align="start" spacing={1}>
-                          {completion.completed.map(({ team, color }) => (
-                            <HStack key={team.teamId}>
-                              <Box w={3} h={3} bg={color} borderRadius="full" />
-                              <Text fontSize="xs">{team.teamName}</Text>
+                        {/* ADD THIS SECTION - Show objective for admin or unlocked nodes */}
+                        {node.objective && (
+                          <Box>
+                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                              Objective:
+                            </Text>
+                            <Text fontSize="xs" color="#4a5568">
+                              {node.objective.type}: {node.objective.quantity}{' '}
+                              {node.objective.target}
+                            </Text>
+                          </Box>
+                        )}
+
+                        {showAllNodes &&
+                          completion.completed.length === 0 &&
+                          completion.available.length === 0 && (
+                            <Badge colorScheme="orange" fontSize="xs" mb={2}>
+                              ADMIN VIEW - Not yet unlocked by any team
+                            </Badge>
+                          )}
+
+                        {completion.completed.length > 0 && (
+                          <Box>
+                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                              Completed by:
+                            </Text>
+                            <VStack align="start" spacing={1}>
+                              {completion.completed.map(({ team, color }) => (
+                                <HStack key={team.teamId}>
+                                  <Box w={3} h={3} bg={color} borderRadius="full" />
+                                  <Text fontSize="xs">{team.teamName}</Text>
+                                </HStack>
+                              ))}
+                            </VStack>
+                          </Box>
+                        )}
+
+                        {completion.available.length > 0 && completion.completed.length === 0 && (
+                          <Box>
+                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                              Available to:
+                            </Text>
+                            <VStack align="start" spacing={1}>
+                              {completion.available.map(({ team, color }) => (
+                                <HStack key={team.teamId}>
+                                  <Box w={3} h={3} bg={color} borderRadius="full" />
+                                  <Text fontSize="xs">{team.teamName}</Text>
+                                </HStack>
+                              ))}
+                            </VStack>
+                          </Box>
+                        )}
+
+                        {node.rewards && (
+                          <Box>
+                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                              Rewards:
+                            </Text>
+                            <HStack spacing={2}>
+                              <Badge colorScheme="green" fontSize="xs">
+                                {formatGP(node.rewards.gp)} GP
+                              </Badge>
+                              {node.rewards.keys?.map((key, idx) => (
+                                <Badge key={idx} colorScheme={key.color} fontSize="xs">
+                                  {key.quantity}x {key.color} key
+                                </Badge>
+                              ))}
                             </HStack>
-                          ))}
-                        </VStack>
-                      </Box>
-                    )}
 
-                    {completion.available.length > 0 && completion.completed.length === 0 && (
-                      <Box>
-                        <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
-                          Available to:
-                        </Text>
-                        <VStack align="start" spacing={1}>
-                          {completion.available.map(({ team, color }) => (
-                            <HStack key={team.teamId}>
-                              <Box w={3} h={3} bg={color} borderRadius="full" />
-                              <Text fontSize="xs">{team.teamName}</Text>
-                            </HStack>
-                          ))}
-                        </VStack>
-                      </Box>
-                    )}
-
-                    {node.rewards && (
-                      <HStack spacing={2}>
-                        <Badge colorScheme="green" fontSize="xs">
-                          {formatGP(node.rewards.gp)} GP
-                        </Badge>
-                        {node.rewards.keys?.map((key, idx) => (
-                          <Badge key={idx} colorScheme={key.color} fontSize="xs">
-                            {key.quantity}x {key.color}
-                          </Badge>
-                        ))}
-                      </HStack>
+                            {/* NEW: Buff rewards display */}
+                            {node.rewards.buffs &&
+                              node.rewards.buffs.length > 0 &&
+                              (getNodeAccessStatus(node.nodeId) !== 'locked' || showAllNodes) && (
+                                <Box mt={2} p={2} bg="purple.50" borderRadius="md">
+                                  <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                                    🎁 Buff Rewards:
+                                  </Text>
+                                  <VStack align="start" spacing={1}>
+                                    {node.rewards.buffs.map((buff, idx) => (
+                                      <HStack key={idx} spacing={1}>
+                                        <Badge
+                                          colorScheme={
+                                            buff.tier === 'major'
+                                              ? 'purple'
+                                              : buff.tier === 'moderate'
+                                              ? 'blue'
+                                              : buff.tier === 'universal'
+                                              ? 'yellow'
+                                              : 'green'
+                                          }
+                                          fontSize="xs"
+                                        >
+                                          {buff.tier.toUpperCase()}
+                                        </Badge>
+                                        <Text fontSize="xs" color="#4a5568">
+                                          {buff.buffType.replace(/_/g, ' ')}
+                                        </Text>
+                                      </HStack>
+                                    ))}
+                                  </VStack>
+                                </Box>
+                              )}
+                          </Box>
+                        )}
+                      </>
                     )}
                   </VStack>
                 </Popup>
@@ -498,6 +647,11 @@ const MultiTeamTreasureMap = ({
           maxH="400px"
           overflowY="auto"
         >
+          {showAllNodes && (
+            <Badge colorScheme="orange" fontSize="xs" mb={2} w="full" textAlign="center">
+              ADMIN MODE
+            </Badge>
+          )}
           <Text fontWeight="bold" fontSize="sm" mb={3} color="#2d3748">
             Legend
           </Text>

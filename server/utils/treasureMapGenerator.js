@@ -157,6 +157,82 @@ const OBJECTIVE_TYPES = [
   },
 ];
 
+// Replace your assignBuffRewards function in treasureMapGenerator.js
+
+function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
+  const { total_nodes } = derivedValues;
+
+  // Calculate how many nodes should have buffs (30% of standard nodes only)
+  const standardNodes = nodes.filter((n) => n.nodeType === 'STANDARD');
+  const numBuffNodes = Math.floor(standardNodes.length * 0.3);
+
+  console.log(`Assigning buffs to ${numBuffNodes} of ${standardNodes.length} standard nodes`);
+
+  // Categorize standard nodes by tier for buff distribution
+  const tier1_2_nodes = standardNodes.filter((n) => n.difficultyTier >= 1 && n.difficultyTier <= 2);
+  const tier3_4_nodes = standardNodes.filter((n) => n.difficultyTier >= 3 && n.difficultyTier <= 4);
+  const tier5_6_nodes = standardNodes.filter((n) => n.difficultyTier >= 5);
+
+  console.log(
+    `Tier distribution: T1-2: ${tier1_2_nodes.length}, T3-4: ${tier3_4_nodes.length}, T5-6: ${tier5_6_nodes.length}`
+  );
+
+  // Assign buffs
+  const buffAssignments = [
+    // Tier 1-2: Minor buffs (25% reduction)
+    ...selectRandomNodes(tier1_2_nodes, Math.floor(numBuffNodes * 0.5)).map((node) => ({
+      node,
+      buffs: [
+        {
+          buffType: getRandomBuffType('minor'),
+          tier: 'minor',
+        },
+      ],
+    })),
+
+    // Tier 3-4: Moderate buffs (50% reduction)
+    ...selectRandomNodes(tier3_4_nodes, Math.floor(numBuffNodes * 0.35)).map((node) => ({
+      node,
+      buffs: [
+        {
+          buffType: getRandomBuffType('moderate'),
+          tier: 'moderate',
+        },
+      ],
+    })),
+
+    // Tier 5-6: Major buffs (75% reduction) + Universal
+    ...selectRandomNodes(tier5_6_nodes, Math.floor(numBuffNodes * 0.15)).map((node, idx) => ({
+      node,
+      buffs:
+        idx % 3 === 0
+          ? [{ buffType: 'universal_reduction', tier: 'universal' }]
+          : [{ buffType: getRandomBuffType('major'), tier: 'major' }],
+    })),
+  ];
+
+  console.log(`Created ${buffAssignments.length} buff assignments`);
+
+  // Apply buff rewards to nodes
+  buffAssignments.forEach(({ node, buffs }) => {
+    if (!node.rewards) node.rewards = { gp: 0, keys: [] };
+    node.rewards.buffs = buffs;
+  });
+
+  return nodes;
+}
+
+function getRandomBuffType(tier) {
+  const types = ['kill_reduction', 'xp_reduction', 'item_reduction'];
+  const randomType = types[Math.floor(Math.random() * types.length)];
+  return `${randomType}_${tier}`;
+}
+
+function selectRandomNodes(nodes, count) {
+  const shuffled = [...nodes].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, nodes.length));
+}
+
 // generate a random objective based on difficulty
 function generateObjective(difficulty, difficultyMultiplier = 1.0) {
   const objectiveType = OBJECTIVE_TYPES[Math.floor(Math.random() * OBJECTIVE_TYPES.length)];
@@ -447,6 +523,15 @@ function generateMap(eventConfig, derivedValues) {
   console.log(`Generated ${nodes.length} total nodes`);
   console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
 
+  console.log(`Generated ${nodes.length} total nodes`);
+  console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
+
+  // MOVED HERE: Assign buffs to nodes AFTER all nodes are generated
+  console.log('Assigning buff rewards to nodes...');
+  assignBuffRewards(nodes, { eventConfig, derivedValues });
+
+  const nodesWithBuffs = nodes.filter((n) => n.rewards?.buffs && n.rewards.buffs.length > 0);
+  console.log(`Assigned buffs to ${nodesWithBuffs.length} nodes`);
   // update unlocks based on edges
   edges.forEach((edge) => {
     const fromNode = nodes.find((n) => n.nodeId === edge.from);
