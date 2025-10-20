@@ -9,6 +9,9 @@ import Landing from './pages/Landing';
 import LogIn from './pages/LogIn';
 import NoMatch from './pages/NoMatch';
 import SignUp from './pages/SignUp';
+import TreasureEventView from './pages/TreasureEventPage';
+import TreasureHuntDashboard from './pages/TreasureHuntDashboard';
+import TreasureTeamPage from './pages/TreasureTeamPage';
 import UserDetails from './pages/UserDetails';
 import Root from './Root';
 
@@ -66,6 +69,21 @@ const routes = [
       {
         path: '/calendar',
         element: <Calendar />,
+      },
+      {
+        path: '/treasure-hunt',
+        element: <TreasureHuntDashboard />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/treasure-hunt/:eventId',
+        element: <TreasureEventView />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/treasure-hunt/:eventId/team/:teamId',
+        element: <TreasureTeamPage />,
+        errorElement: <ErrorPage />,
       },
       {
         path: '*',
