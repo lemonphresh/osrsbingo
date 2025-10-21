@@ -375,3 +375,267 @@ export const RESTORE_CAL_EVENT = gql`
     }
   }
 `;
+
+export const CREATE_TREASURE_EVENT = gql`
+  mutation CreateTreasureEvent($input: CreateTreasureEventInput!) {
+    createTreasureEvent(input: $input) {
+      eventId
+      clanId
+      eventName
+      status
+      startDate
+      endDate
+      eventConfig
+      derivedValues
+      discordConfig
+      creatorId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const ADD_EVENT_ADMIN = gql`
+  mutation AddEventAdmin($eventId: ID!, $userId: ID!) {
+    addEventAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_EVENT_ADMIN = gql`
+  mutation RemoveEventAdmin($eventId: ID!, $userId: ID!) {
+    removeEventAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+    }
+  }
+`;
+
+export const UPDATE_EVENT_ADMINS = gql`
+  mutation UpdateEventAdmins($eventId: ID!, $adminIds: [ID!]!) {
+    updateEventAdmins(eventId: $eventId, adminIds: $adminIds) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+      }
+    }
+  }
+`;
+
+export const DELETE_TREASURE_TEAM = gql`
+  mutation DeleteTreasureTeam($eventId: ID!, $teamId: ID!) {
+    deleteTreasureTeam(eventId: $eventId, teamId: $teamId) {
+      success
+      message
+    }
+  }
+`;
+
+export const UPDATE_TREASURE_EVENT = gql`
+  mutation UpdateTreasureEvent($eventId: ID!, $input: UpdateTreasureEventInput!) {
+    updateTreasureEvent(eventId: $eventId, input: $input) {
+      eventId
+      clanId
+      eventName
+      status
+      startDate
+      endDate
+      eventConfig
+      derivedValues
+      mapStructure
+      discordConfig
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_TREASURE_EVENT = gql`
+  mutation DeleteTreasureEvent($eventId: ID!) {
+    deleteTreasureEvent(eventId: $eventId) {
+      success
+      message
+    }
+  }
+`;
+
+export const CREATE_TREASURE_TEAM = gql`
+  mutation CreateTreasureTeam($eventId: ID!, $input: CreateTreasureTeamInput!) {
+    createTreasureTeam(eventId: $eventId, input: $input) {
+      teamId
+      eventId
+      teamName
+      discordRoleId
+      members
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+    }
+  }
+`;
+
+export const UPDATE_TREASURE_TEAM = gql`
+  mutation UpdateTreasureTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
+    updateTreasureTeam(eventId: $eventId, teamId: $teamId, input: $input) {
+      teamId
+      teamName
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+      innTransactions
+    }
+  }
+`;
+
+export const SUBMIT_NODE_COMPLETION = gql`
+  mutation SubmitNodeCompletion(
+    $eventId: ID!
+    $teamId: ID!
+    $nodeId: ID!
+    $proofUrl: String!
+    $submittedBy: String!
+  ) {
+    submitNodeCompletion(
+      eventId: $eventId
+      teamId: $teamId
+      nodeId: $nodeId
+      proofUrl: $proofUrl
+      submittedBy: $submittedBy
+    ) {
+      submissionId
+      teamId
+      nodeId
+      submittedBy
+      proofUrl
+      status
+      submittedAt
+    }
+  }
+`;
+
+export const REVIEW_SUBMISSION = gql`
+  mutation ReviewSubmission($submissionId: ID!, $approved: Boolean!, $reviewerId: String!) {
+    reviewSubmission(submissionId: $submissionId, approved: $approved, reviewerId: $reviewerId) {
+      submissionId
+      status
+      reviewedBy
+      reviewedAt
+    }
+  }
+`;
+
+export const PURCHASE_INN_REWARD = gql`
+  mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
+    purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
+      teamId
+      currentPot
+      keysHeld
+      innTransactions
+    }
+  }
+`;
+
+export const GENERATE_TREASURE_MAP = gql`
+  mutation GenerateTreasureMap($eventId: ID!) {
+    generateTreasureMap(eventId: $eventId) {
+      eventId
+      mapStructure
+      nodes {
+        nodeId
+        nodeType
+        title
+        description
+        coordinates
+        mapLocation
+        prerequisites
+        unlocks
+        paths
+        objective
+        rewards
+        difficultyTier
+        innTier
+        availableRewards
+      }
+    }
+  }
+`;
+
+export const ADMIN_COMPLETE_NODE = gql`
+  mutation AdminCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminCompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+    }
+  }
+`;
+
+export const ADMIN_UNCOMPLETE_NODE = gql`
+  mutation AdminUncompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminUncompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+    }
+  }
+`;
+
+export const APPLY_BUFF_TO_NODE = gql`
+  mutation ApplyBuffToNode($eventId: ID!, $teamId: ID!, $nodeId: ID!, $buffId: ID!) {
+    applyBuffToNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, buffId: $buffId) {
+      teamId
+      teamName
+      activeBuffs
+      buffHistory
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+    }
+  }
+`;
+
+export const ADMIN_GIVE_BUFF = gql`
+  mutation AdminGiveBuff($eventId: ID!, $teamId: ID!, $buffType: String!) {
+    adminGiveBuff(eventId: $eventId, teamId: $teamId, buffType: $buffType) {
+      teamId
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const ADMIN_REMOVE_BUFF = gql`
+  mutation AdminRemoveBuff($eventId: ID!, $teamId: ID!, $buffId: ID!) {
+    adminRemoveBuff(eventId: $eventId, teamId: $teamId, buffId: $buffId) {
+      teamId
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
+  mutation AdminRemoveBuffFromNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRemoveBuffFromNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      nodeId
+      objective
+    }
+  }
+`;

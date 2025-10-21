@@ -260,3 +260,177 @@ export const CALENDAR_VERSION = gql`
     }
   }
 `;
+
+export const GET_TREASURE_EVENT = gql`
+  query GetTreasureEvent($eventId: ID!) {
+    getTreasureEvent(eventId: $eventId) {
+      eventId
+      clanId
+      eventName
+      status
+      startDate
+      endDate
+      eventConfig
+      derivedValues
+      mapStructure
+      discordConfig
+      creatorId
+      createdAt
+      updatedAt
+      admins {
+        id
+        displayName
+        username
+      }
+      adminIds
+      teams {
+        activeBuffs
+        buffHistory
+        teamId
+        teamName
+        discordRoleId
+        members
+        currentPot
+        keysHeld
+        completedNodes
+        availableNodes
+        submissions {
+          submissionId
+          nodeId
+          submittedBy
+          proofUrl
+          status
+          reviewedBy
+          reviewedAt
+          submittedAt
+        }
+      }
+      nodes {
+        nodeId
+        nodeType
+        title
+        description
+        coordinates
+        mapLocation
+        prerequisites
+        unlocks
+        paths
+        objective
+        rewards
+        difficultyTier
+        innTier
+        availableRewards
+      }
+    }
+  }
+`;
+
+export const GET_TREASURE_TEAM = gql`
+  query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
+    getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+      teamId
+      teamName
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const GET_ALL_TREASURE_EVENTS = gql`
+  query GetAllTreasureEvents($userId: ID) {
+    getAllTreasureEvents(userId: $userId) {
+      eventId
+      clanId
+      eventName
+      status
+      startDate
+      endDate
+      creatorId
+      createdAt
+      updatedAt
+      teams {
+        teamId
+        teamName
+        currentPot
+        completedNodes
+      }
+    }
+  }
+`;
+
+export const GET_MY_TREASURE_EVENTS = gql`
+  query GetMyTreasureEvents {
+    getMyTreasureEvents {
+      eventId
+      clanId
+      eventName
+      status
+      startDate
+      endDate
+      createdAt
+      updatedAt
+      teams {
+        teamId
+        teamName
+        currentPot
+        completedNodes
+      }
+    }
+  }
+`;
+
+export const GET_PENDING_SUBMISSIONS = gql`
+  query GetPendingSubmissions($eventId: ID!) {
+    getPendingSubmissions(eventId: $eventId) {
+      submissionId
+      teamId
+      nodeId
+      submittedBy
+      proofUrl
+      status
+      reviewedBy
+      reviewedAt
+      submittedAt
+      team {
+        teamId
+        teamName
+      }
+    }
+  }
+`;
+
+export const GET_TREASURE_EVENT_LEADERBOARD = gql`
+  query GetTreasureEventLeaderboard($eventId: ID!) {
+    getTreasureEventLeaderboard(eventId: $eventId) {
+      teamId
+      teamName
+      currentPot
+      completedNodes
+      keysHeld
+    }
+  }
+`;
+
+export const GET_ALL_SUBMISSIONS = gql`
+  query GetAllSubmissions($eventId: ID!) {
+    getAllSubmissions(eventId: $eventId) {
+      submissionId
+      teamId
+      nodeId
+      submittedBy
+      proofUrl
+      status
+      reviewedBy
+      reviewedAt
+      submittedAt
+      team {
+        teamId
+        teamName
+      }
+    }
+  }
+`;

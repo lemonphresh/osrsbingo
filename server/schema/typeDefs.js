@@ -2,6 +2,7 @@ const { gql } = require('graphql-tag');
 
 const typeDefs = gql`
   scalar DateTime
+  scalar JSON
 
   enum CalendarEventType {
     PVM
@@ -181,6 +182,13 @@ const typeDefs = gql`
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
     pendingInvitations: [EditorInvitation!]!
+    getTreasureEvent(eventId: ID!): TreasureEvent
+    getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
+    getAllTreasureEvents(userId: ID): [TreasureEvent!]
+    getMyTreasureEvents: [TreasureEvent!]
+    getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
+    getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
+    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
   }
 
   type DeleteUserResponse {
@@ -244,6 +252,120 @@ const typeDefs = gql`
     eventType: CalendarEventType
   }
 
+  # Treasure Hunt Types
+  type TreasureEvent {
+    eventId: ID!
+    clanId: String
+    eventName: String!
+    status: TreasureEventStatus!
+    startDate: DateTime
+    endDate: DateTime
+    eventConfig: JSON
+    derivedValues: JSON
+    mapStructure: JSON
+    discordConfig: JSON
+    teams: [TreasureTeam!]
+    nodes: [TreasureNode!]
+    creatorId: ID
+    creator: User
+    adminIds: [ID!]
+    admins: [User!]
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+
+  enum TreasureEventStatus {
+    DRAFT
+    ACTIVE
+    COMPLETED
+    ARCHIVED
+  }
+
+  type TreasureTeam {
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
+    discordRoleId: String
+    members: [String!]
+    currentPot: String
+    buffHistory: JSON
+    activeBuffs: JSON
+    keysHeld: JSON
+    completedNodes: [String!]
+    availableNodes: [String!]
+    submissions: [TreasureSubmission!]
+    innTransactions: JSON
+    event: TreasureEvent
+  }
+
+  type TreasureNode {
+    nodeId: ID!
+    eventId: ID!
+    nodeType: TreasureNodeType!
+    title: String!
+    description: String
+    coordinates: JSON
+    mapLocation: String
+    prerequisites: [String!]
+    unlocks: [String!]
+    paths: [String!]
+    objective: JSON
+    rewards: JSON
+    difficultyTier: Int
+    innTier: Int
+    availableRewards: JSON
+  }
+
+  enum TreasureNodeType {
+    START
+    STANDARD
+    INN
+    TREASURE
+  }
+
+  type TreasureSubmission {
+    submissionId: ID!
+    teamId: ID!
+    nodeId: ID!
+    submittedBy: String!
+    proofUrl: String
+    status: TreasureSubmissionStatus!
+    reviewedBy: String
+    reviewedAt: DateTime
+    submittedAt: DateTime!
+    team: TreasureTeam
+  }
+
+  enum TreasureSubmissionStatus {
+    PENDING_REVIEW
+    APPROVED
+    DENIED
+  }
+
+  input CreateTreasureEventInput {
+    eventName: String!
+    clanId: String
+    eventConfig: JSON!
+    startDate: DateTime
+    endDate: DateTime
+    discordConfig: JSON
+  }
+
+  input UpdateTreasureEventInput {
+    eventName: String
+    status: TreasureEventStatus
+    eventConfig: JSON
+    mapStructure: JSON
+    startDate: DateTime
+    endDate: DateTime
+  }
+
+  input CreateTreasureTeamInput {
+    teamName: String!
+    discordRoleId: String
+    members: [String!]
+  }
+
   type Mutation {
     createUser(
       username: String!
@@ -278,6 +400,43 @@ const typeDefs = gql`
     deleteCalendarEvent(id: ID!): Boolean!
     saveCalendarEvent(id: ID!): CalendarEvent!
     restoreCalendarEvent(id: ID!, start: DateTime!, end: DateTime!): CalendarEvent!
+
+    createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!
+    updateTreasureEvent(eventId: ID!, input: UpdateTreasureEventInput!): TreasureEvent!
+    deleteTreasureEvent(eventId: ID!): MutationResponse!
+
+    createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
+    updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
+    deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
+
+    addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
+    removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
+    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
+
+    adminCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
+    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
+
+    submitNodeCompletion(
+      eventId: ID!
+      teamId: ID!
+      nodeId: ID!
+      proofUrl: String!
+      submittedBy: String!
+    ): TreasureSubmission!
+
+    reviewSubmission(
+      submissionId: ID!
+      approved: Boolean!
+      reviewerId: String!
+    ): TreasureSubmission!
+
+    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+
+    generateTreasureMap(eventId: ID!): TreasureEvent!
   }
 `;
 
