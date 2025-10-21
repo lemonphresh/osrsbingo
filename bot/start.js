@@ -4,5 +4,5 @@ if (process.env.DISCORD_TOKEN) {
 } else {
   console.log('No Discord token found, skipping bot startup');
 
-  //   process.stdin.resume();
+  process.stdin.resume();
 }
