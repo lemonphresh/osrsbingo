@@ -12,8 +12,8 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import { useMutation, useQuery } from '@apollo/client';
-import { ADD_EVENT_ADMIN, REMOVE_EVENT_ADMIN } from '../graphql/mutations';
-import { SEARCH_USERS } from '../graphql/queries';
+import { ADD_EVENT_ADMIN, REMOVE_EVENT_ADMIN } from '../../graphql/mutations';
+import { SEARCH_USERS } from '../../graphql/queries';
 
 const EventAdminManager = ({ event }) => {
   const [searchQuery, setSearchQuery] = useState('');

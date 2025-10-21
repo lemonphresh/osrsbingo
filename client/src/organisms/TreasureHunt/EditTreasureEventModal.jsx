@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -18,13 +18,11 @@ import {
   useColorMode,
 } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
-import { CREATE_TREASURE_EVENT } from '../graphql/mutations';
-import { useToastContext } from '../providers/ToastProvider';
-import { useNavigate } from 'react-router-dom';
+import { UPDATE_TREASURE_EVENT } from '../../graphql/mutations';
+import { useToastContext } from '../../providers/ToastProvider';
 
-export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
+export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const { colorMode } = useColorMode();
-  const navigate = useNavigate();
   const { showToast } = useToastContext();
 
   const colors = {
@@ -44,28 +42,43 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
 
   const [formData, setFormData] = useState({
     eventName: '',
-    clanId: '',
-    prizePoolTotal: 5000000000,
-    numOfTeams: 10,
-    playersPerTeam: 5,
-    nodeToInnRatio: 5,
-    diffculty: 'normal',
+    status: 'DRAFT',
     startDate: '',
     endDate: '',
+    prizePoolTotal: 0,
+    numOfTeams: 0,
+    playersPerTeam: 0,
+    nodeToInnRatio: 5,
+    difficulty: 'normal',
   });
 
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
 
-  const [createEvent, { loading }] = useMutation(CREATE_TREASURE_EVENT, {
-    onCompleted: (data) => {
-      showToast('Event created successfully!', 'success');
-      if (onSuccess) onSuccess(); // Refetch the events list
-      navigate(`/treasure-hunt/${data.createTreasureEvent.eventId}`);
+  useEffect(() => {
+    if (event) {
+      setFormData({
+        eventName: event.eventName || '',
+        status: event.status || 'DRAFT',
+        startDate: event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : '',
+        endDate: event.endDate ? new Date(event.endDate).toISOString().split('T')[0] : '',
+        prizePoolTotal: event.eventConfig?.prize_pool_total || 0,
+        numOfTeams: event.eventConfig?.num_of_teams || 0,
+        playersPerTeam: event.eventConfig?.players_per_team || 0,
+        nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
+        difficulty: event.eventConfig?.difficulty || 'normal',
+      });
+    }
+  }, [event]);
+
+  const [updateEvent, { loading }] = useMutation(UPDATE_TREASURE_EVENT, {
+    onCompleted: () => {
+      showToast('Event updated successfully!', 'success');
+      if (onSuccess) onSuccess();
       onClose();
     },
     onError: (error) => {
-      showToast(`Error creating event: ${error.message}`, 'error');
+      showToast(`Error updating event: ${error.message}`, 'error');
     },
   });
 
@@ -73,7 +86,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleCreateEvent = async () => {
+  const handleUpdateEvent = async () => {
     // Validate dates
     if (!formData.startDate || !formData.endDate) {
       showToast('Please select both start and end dates', 'warning');
@@ -93,11 +106,12 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     const endDate = new Date(formData.endDate + 'T23:59:59').toISOString();
 
     try {
-      await createEvent({
+      await updateEvent({
         variables: {
+          eventId: event.eventId,
           input: {
             eventName: formData.eventName,
-            clanId: formData.clanId || null,
+            status: formData.status,
             startDate: startDate,
             endDate: endDate,
             eventConfig: {
@@ -118,7 +132,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         },
       });
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error('Error updating event:', error);
     }
   };
 
@@ -126,28 +140,32 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Create New Treasure Hunt Event</ModalHeader>
+        <ModalHeader color={currentColors.textColor}>Edit Event</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>Event Name</FormLabel>
               <Input
-                placeholder="October Treasure Hunt"
+                placeholder="My Treasure Hunt"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
                 color={currentColors.textColor}
               />
             </FormControl>
 
-            <FormControl>
-              <FormLabel color={currentColors.textColor}>Clan ID</FormLabel>
-              <Input
-                placeholder="cool_clan_123"
-                value={formData.clanId}
-                onChange={(e) => handleInputChange('clanId', e.target.value)}
+            <FormControl isRequired>
+              <FormLabel color={currentColors.textColor}>Status</FormLabel>
+              <Select
+                value={formData.status}
+                onChange={(e) => handleInputChange('status', e.target.value)}
                 color={currentColors.textColor}
-              />
+              >
+                <option value="DRAFT">Draft</option>
+                <option value="ACTIVE">Active</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ARCHIVED">Archived</option>
+              </Select>
             </FormControl>
 
             <SimpleGrid columns={2} spacing={4} w="full">
@@ -239,10 +257,10 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               color="white"
               _hover={{ bg: currentColors.purple.light }}
               w="full"
-              onClick={handleCreateEvent}
+              onClick={handleUpdateEvent}
               isLoading={loading}
             >
-              Create Event
+              Update Event
             </Button>
           </VStack>
         </ModalBody>

@@ -28,7 +28,7 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
     return (
       <Box bg={currentColors.cardBg} p={4} borderRadius="md" borderWidth={1}>
         <Text fontSize="sm" color="gray.500" textAlign="center">
-          No active buffs. Complete nodes to earn buffs!
+          No available buffs. Complete nodes to earn buffs!
         </Text>
       </Box>
     );

@@ -4,7 +4,7 @@ import { Box, Badge, Text, VStack, HStack, Button } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { RedactedText } from '../molecules/RedactedTreasureInfo';
+import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 
 const FitBoundsOnLoad = ({ nodes }) => {
   const map = useMap();
@@ -38,7 +38,7 @@ const FitBoundsOnLoad = ({ nodes }) => {
         hasSetBounds.current = true;
       }
     }
-  }, []); // FIXED: Empty dependency array - only run once
+  }, [map, nodes]);
 
   return null;
 };
@@ -133,6 +133,7 @@ const TreasureMapVisualization = ({
     yellow: '#F4D35E',
     turquoise: '#28AFB0',
     red: '#FF4B5C',
+    orange: '#FF914D',
     gray: '#718096',
   };
 
@@ -169,7 +170,7 @@ const TreasureMapVisualization = ({
     if (nodeType === 'START') return colors.purple;
     if (nodeType === 'INN') return colors.yellow;
     if (status === 'completed') return colors.green;
-    if (status === 'available') return colors.turquoise;
+    if (status === 'available') return colors.orange;
     return colors.gray;
   };
 
@@ -331,7 +332,7 @@ const TreasureMapVisualization = ({
                             status === 'completed'
                               ? 'green'
                               : status === 'available'
-                              ? 'blue'
+                              ? 'orange'
                               : 'gray'
                           }
                           fontSize="xs"
@@ -507,7 +508,7 @@ const TreasureMapVisualization = ({
             <Box
               w={4}
               h={4}
-              bg={colors.turquoise}
+              bg={colors.orange}
               borderRadius="full"
               border="2px solid white"
               position="relative"

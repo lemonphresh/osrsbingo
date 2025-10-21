@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
-import { ADMIN_GIVE_BUFF, ADMIN_REMOVE_BUFF } from '../graphql/mutations';
+import { ADMIN_GIVE_BUFF, ADMIN_REMOVE_BUFF } from '../../graphql/mutations';
 
 const BUFF_TYPES = {
   kill_reduction_minor: { label: "Slayer's Edge (25%)", icon: '⚔️' },

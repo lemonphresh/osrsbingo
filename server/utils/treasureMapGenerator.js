@@ -157,8 +157,6 @@ const OBJECTIVE_TYPES = [
   },
 ];
 
-// Replace your assignBuffRewards function in treasureMapGenerator.js
-
 function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
   const { total_nodes } = derivedValues;
 

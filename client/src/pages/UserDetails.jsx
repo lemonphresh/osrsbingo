@@ -15,6 +15,7 @@ import {
   Text,
   UnorderedList,
   useDisclosure,
+  VStack,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -29,7 +30,7 @@ import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
 import { AddIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
-import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
+import { MdDoorBack, MdOutlineMap, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
 
@@ -517,21 +518,62 @@ const UserDetails = () => {
               </Flex>
             </Flex>
           </Section>
-
-          {/* <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="blue" size="sm">
-              {isCurrentUser ? 'Your' : 'Their'} Events
+        </Flex>{' '}
+        {isCurrentUser && (
+          <Section flexDirection="column" width="100%">
+            <GemTitle gemColor="yellow" size="sm">
+              Treasure Hunt Creator
             </GemTitle>
-            <Flex flexDirection="column">
-              <Text textAlign="center">
-                Coming soon!
-                {!shownUser?.events || shownUser.events.length === 0
-                ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not associated with any events yet.'
-                : 'todo event list'}
-              </Text>
+            <Flex
+              flexDirection={['column', 'row']}
+              gridGap="16px"
+              alignItems="center"
+              justifyContent="space-around"
+            >
+              <Flex
+                alignItems="center"
+                backgroundColor={theme.colors.teal[800]}
+                borderRadius="10px"
+                flexDirection="column"
+                justifyContent="center"
+                h="100%"
+                w={['100%', '150px']}
+                padding="8px"
+              >
+                <Image
+                  src="https://oldschool.runescape.wiki/images/thumb/Pirate_map.png/1200px-Pirate_map.png?9b490"
+                  alt="Treasure Hunt Map"
+                  maxWidth="128px"
+                  maxHeight="128px"
+                  h="100%"
+                  w="100%"
+                  my={3}
+                  borderRadius="8px"
+                />
+              </Flex>
+              <VStack>
+                <Text fontSize="16px" lineHeight="1.5">
+                  Create and manage your own Treasure Hunt events!
+                </Text>
+                <Text
+                  alignItems="center"
+                  display="inline-flex"
+                  _hover={{
+                    borderBottom: `1px solid ${theme.colors.yellow[200]}`,
+                    marginBottom: '0px',
+                  }}
+                  color={theme.colors.yellow[200]}
+                  fontWeight="bold"
+                  justifyContent="center"
+                  marginBottom="1px"
+                >
+                  <Icon as={MdOutlineMap} marginRight="8px" />
+                  <Link to={`/treasure-hunt`}> Go to Treasure Hunt Dashboard</Link>
+                </Text>
+              </VStack>
             </Flex>
-          </Section> */}
-        </Flex>
+          </Section>
+        )}
       </Section>
       {!isCurrentUser && user?.admin && (
         <>

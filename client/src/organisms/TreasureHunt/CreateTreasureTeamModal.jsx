@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -15,25 +15,15 @@ import {
   Text,
   IconButton,
   HStack,
-  Divider,
-  useDisclosure,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
-  AlertDialogOverlay,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
-import { UPDATE_TREASURE_TEAM, DELETE_TREASURE_TEAM } from '../graphql/mutations';
-import { useToastContext } from '../providers/ToastProvider';
+import { CREATE_TREASURE_TEAM } from '../../graphql/mutations';
+import { useToastContext } from '../../providers/ToastProvider';
 
-export default function EditTeamModal({ isOpen, onClose, team, eventId, onSuccess }) {
+export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess }) {
   const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
-  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
-  const cancelRef = React.useRef();
 
   const colors = {
     dark: {
@@ -56,38 +46,25 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
     members: [''],
   });
 
-  useEffect(() => {
-    if (team) {
-      setFormData({
-        teamName: team.teamName || '',
-        discordRoleId: team.discordRoleId || '',
-        members: team.members && team.members.length > 0 ? team.members : [''],
-      });
-    }
-  }, [team]);
-
-  const [updateTeam, { loading }] = useMutation(UPDATE_TREASURE_TEAM, {
+  const [createTeam, { loading }] = useMutation(CREATE_TREASURE_TEAM, {
     onCompleted: () => {
-      showToast('Team updated successfully!', 'success');
+      showToast('Team created successfully!', 'success');
       if (onSuccess) onSuccess();
-      onClose();
+      handleClose();
     },
     onError: (error) => {
-      showToast(`Error updating team: ${error.message}`, 'error');
+      showToast(`Error creating team: ${error.message}`, 'error');
     },
   });
 
-  const [deleteTeam, { loading: deleteLoading }] = useMutation(DELETE_TREASURE_TEAM, {
-    onCompleted: () => {
-      showToast('Team deleted successfully!', 'success');
-      if (onSuccess) onSuccess();
-      onDeleteClose();
-      onClose();
-    },
-    onError: (error) => {
-      showToast(`Error deleting team: ${error.message}`, 'error');
-    },
-  });
+  const handleClose = () => {
+    setFormData({
+      teamName: '',
+      discordRoleId: '',
+      members: [''],
+    });
+    onClose();
+  };
 
   const handleAddMember = () => {
     setFormData((prev) => ({
@@ -110,7 +87,7 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
     }));
   };
 
-  const handleUpdateTeam = async () => {
+  const handleCreateTeam = async () => {
     if (!formData.teamName.trim()) {
       showToast('Please enter a team name', 'warning');
       return;
@@ -119,10 +96,9 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
     const members = formData.members.filter((m) => m.trim() !== '');
 
     try {
-      await updateTeam({
+      await createTeam({
         variables: {
           eventId,
-          teamId: team.teamId,
           input: {
             teamName: formData.teamName.trim(),
             discordRoleId: formData.discordRoleId.trim() || null,
@@ -131,28 +107,15 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
         },
       });
     } catch (error) {
-      console.error('Error updating team:', error);
-    }
-  };
-
-  const handleDeleteTeam = async () => {
-    try {
-      await deleteTeam({
-        variables: {
-          eventId,
-          teamId: team.teamId,
-        },
-      });
-    } catch (error) {
-      console.error('Error deleting team:', error);
+      console.error('Error creating team:', error);
     }
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} size="lg">
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Edit Team</ModalHeader>
+        <ModalHeader color={currentColors.textColor}>Create New Team</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack spacing={4}>
@@ -221,44 +184,14 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
               color="white"
               _hover={{ bg: currentColors.purple.light }}
               w="full"
-              onClick={handleUpdateTeam}
+              onClick={handleCreateTeam}
               isLoading={loading}
             >
-              Update Team
-            </Button>
-
-            <Divider />
-
-            <Button colorScheme="red" variant="outline" w="full" onClick={onDeleteOpen}>
-              Delete Team
+              Create Team
             </Button>
           </VStack>
         </ModalBody>
       </ModalContent>
-
-      <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={onDeleteClose}>
-        <AlertDialogOverlay>
-          <AlertDialogContent bg={currentColors.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
-              Delete Team
-            </AlertDialogHeader>
-
-            <AlertDialogBody color={currentColors.textColor}>
-              Are you sure you want to delete <strong>{team?.teamName}</strong>? This will remove
-              all team progress and cannot be undone.
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteClose}>
-                Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleDeleteTeam} ml={3} isLoading={deleteLoading}>
-                Delete
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
     </Modal>
   );
 }

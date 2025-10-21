@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
-import { PURCHASE_INN_REWARD } from '../graphql/mutations';
+import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
 
 export default function InnModal({ isOpen, onClose, node, team, eventId, onPurchaseComplete }) {
   const { colorMode } = useColorMode();

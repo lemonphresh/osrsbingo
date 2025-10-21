@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
 import {
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
   AlertDialog,
   AlertDialogBody,
   AlertDialogFooter,
@@ -38,22 +43,40 @@ import {
   Spinner,
   TableContainer,
   useDisclosure,
+  useToast,
+  Icon,
+  Switch,
 } from '@chakra-ui/react';
-import { AddIcon, CheckIcon, CloseIcon, EditIcon, ExternalLinkIcon } from '@chakra-ui/icons';
-import { useParams, useNavigate } from 'react-router-dom';
+import {
+  AddIcon,
+  CheckIcon,
+  CloseIcon,
+  EditIcon,
+  ExternalLinkIcon,
+  InfoIcon,
+} from '@chakra-ui/icons';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_TREASURE_EVENT, GET_PENDING_SUBMISSIONS } from '../graphql/queries';
-import { REVIEW_SUBMISSION, GENERATE_TREASURE_MAP } from '../graphql/mutations';
+import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
+import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
+import {
+  REVIEW_SUBMISSION,
+  GENERATE_TREASURE_MAP,
+  ADMIN_COMPLETE_NODE,
+} from '../graphql/mutations';
 import { useToastContext } from '../providers/ToastProvider';
 import Section from '../atoms/Section';
 import theme from '../theme';
 import GemTitle from '../atoms/GemTitle';
-import CreateTeamModal from '../organisms/CreateTreasureTeamModal';
-import EditEventModal from '../organisms/EditTreasureEventModal';
-import EditTeamModal from '../organisms/EditTreasureTeamModal';
-import MultiTeamTreasureMap from '../organisms/MultiTeamTreasureMapVisualization';
-import EventAdminManager from '../organisms/TreasureAdminManager';
+import CreateTeamModal from '../organisms/TreasureHunt/CreateTreasureTeamModal';
+import EditEventModal from '../organisms/TreasureHunt/EditTreasureEventModal';
+import EditTeamModal from '../organisms/TreasureHunt/EditTreasureTeamModal';
+import MultiTeamTreasureMap from '../organisms/TreasureHunt/MultiTeamTreasureMapVisualization';
+import EventAdminManager from '../organisms/TreasureHunt/TreasureAdminManager';
 import { useAuth } from '../providers/AuthProvider';
+import { MdOutlineArrowBack } from 'react-icons/md';
+import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
+import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -83,7 +106,15 @@ const TreasureEventView = () => {
     onOpen: onRegenerateOpen,
     onClose: onRegenerateClose,
   } = useDisclosure();
+  const {
+    isOpen: isDiscordSetupOpen,
+    onOpen: onDiscordSetupOpen,
+    onClose: onDiscordSetupClose,
+  } = useDisclosure();
+
   const cancelRef = React.useRef();
+  const [nodeToComplete, setNodeToComplete] = useState(null);
+  const cancelCompleteRef = React.useRef();
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_TREASURE_EVENT, {
     variables: { eventId },
@@ -93,7 +124,7 @@ const TreasureEventView = () => {
     data: submissionsData,
     loading: submissionsLoading,
     refetch: refetchSubmissions,
-  } = useQuery(GET_PENDING_SUBMISSIONS, {
+  } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
   });
 
@@ -126,6 +157,16 @@ const TreasureEventView = () => {
     },
   });
 
+  const [adminCompleteNode, { loading: completing }] = useMutation(ADMIN_COMPLETE_NODE, {
+    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
+    onError: (error) => {
+      // Error is already handled in the onClick, this is just a fallback
+      console.error('Error completing node:', error);
+    },
+  });
+
+  const toast = useToast();
+
   const colors = {
     dark: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -134,6 +175,7 @@ const TreasureEventView = () => {
       turquoise: { base: '#28AFB0' },
       textColor: '#F7FAFC',
       cardBg: '#2D3748',
+      orange: '#FF914D',
     },
     light: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -142,6 +184,7 @@ const TreasureEventView = () => {
       turquoise: { base: '#28AFB0' },
       textColor: '#171923',
       cardBg: 'white',
+      orange: '#FF914D',
     },
   };
 
@@ -149,7 +192,8 @@ const TreasureEventView = () => {
 
   const event = eventData?.getTreasureEvent;
   const teams = event?.teams || [];
-  const pendingSubmissions = submissionsData?.getPendingSubmissions || [];
+  const allSubmissions = submissionsData?.getAllSubmissions || [];
+  const pendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -169,6 +213,23 @@ const TreasureEventView = () => {
     }
   };
 
+  const isEventAdmin =
+    user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+
+  const {
+    isSupported: notificationsSupported,
+    notificationsEnabled,
+    permission: notificationPermission,
+    requestPermission: requestNotificationPermission,
+    disableNotifications,
+  } = useSubmissionNotifications(
+    allSubmissions.filter((s) => s.status === 'PENDING_REVIEW'),
+    isEventAdmin,
+    event?.eventName || 'Event',
+    refetchSubmissions, // pass the refetch function from useQuery
+    30000 // Poll every 30 seconds
+  );
+
   if (eventLoading) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -185,8 +246,86 @@ const TreasureEventView = () => {
     );
   }
 
-  const isEventAdmin =
-    user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+  // Add this to TreasureEventPage.jsx
+  // Place this check after the data is loaded and before rendering the main content
+
+  // Inside the TreasureEventView component, after the event is loaded:
+
+  if (eventLoading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Spinner size="xl" />
+      </Container>
+    );
+  }
+
+  if (!event) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Text color={currentColors.textColor}>Event not found</Text>
+      </Container>
+    );
+  }
+
+  // Check if event is draft and user is not admin
+  if (event.status === 'DRAFT' && !isEventAdmin) {
+    return (
+      <Flex
+        alignItems="center"
+        flex="1"
+        flexDirection="column"
+        height="100%"
+        paddingY={['40px', '56px']}
+        marginX={['12px', '36px']}
+      >
+        <Flex
+          alignItems="center"
+          flexDirection={['column', 'row', 'row']}
+          justifyContent="space-between"
+          marginBottom="16px"
+          maxWidth="1200px"
+          width="100%"
+        >
+          <Text
+            alignItems="center"
+            display="inline-flex"
+            _hover={{
+              borderBottom: '1px solid white',
+              marginBottom: '0px',
+            }}
+            fontWeight="bold"
+            justifyContent="center"
+            marginBottom="1px"
+          >
+            <Icon as={MdOutlineArrowBack} marginRight="8px" />
+            <Link to={`/treasure-hunt`}> Back to Events</Link>
+          </Text>
+        </Flex>
+
+        <Section maxWidth="600px" width="100%" py={8}>
+          <VStack spacing={6} align="center" textAlign="center">
+            <Box fontSize="6xl">🔒</Box>
+
+            <VStack spacing={2}>
+              <Heading size="lg" color={currentColors.textColor}>
+                Event Not Available...Yet!
+              </Heading>
+              <Text color={currentColors.textColor} fontSize="lg">
+                This event is currently in draft mode
+              </Text>
+            </VStack>
+
+            <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
+              <Text fontSize="sm" color={currentColors.textColor}>
+                This Treasure Hunt event is still being set up by the event organizers. It will
+                become visible once the admins publish it.
+              </Text>
+            </Box>
+          </VStack>
+        </Section>
+      </Flex>
+    );
+  }
 
   return (
     <Flex
@@ -197,53 +336,76 @@ const TreasureEventView = () => {
       paddingY={['40px', '56px']}
       marginX={['12px', '36px']}
     >
+      <Flex
+        alignItems="center"
+        flexDirection={['column', 'row', 'row']}
+        justifyContent="space-between"
+        marginBottom="16px"
+        maxWidth="1200px"
+        width="100%"
+      >
+        <Text
+          alignItems="center"
+          display="inline-flex"
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          fontWeight="bold"
+          justifyContent="center"
+          marginBottom="1px"
+        >
+          <Icon as={MdOutlineArrowBack} marginRight="8px" />
+          <Link to={`/treasure-hunt`}> Your Events</Link>
+        </Text>
+      </Flex>
       <Section maxWidth="1200px" width="100%" py={8}>
         <VStack spacing={8} align="stretch" width="100%">
-          <HStack justify="space-between">
-            <VStack align="start" spacing={1}>
-              <GemTitle size="xl" color={currentColors.textColor}>
-                {event.eventName}
-              </GemTitle>
-              <HStack>
-                <Badge
-                  bg={currentColors.green.base}
-                  color="white"
-                  px={2}
-                  py={1}
-                  borderRadius="md"
-                  fontSize="md"
-                >
-                  {event.status}
-                </Badge>
-                <Text color={theme.colors.gray[300]}>
-                  {new Date(event.startDate).toLocaleDateString()} -{' '}
-                  {new Date(event.endDate).toLocaleDateString()}
-                </Text>
-              </HStack>
-            </VStack>
-            {isEventAdmin && (
-              <>
-                <Button
-                  display={['none', 'none', 'block']}
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{ bg: currentColors.purple.light }}
-                  onClick={onEditEventOpen}
-                >
-                  Edit Event
-                </Button>
-                <IconButton
-                  display={['block', 'block', 'none']}
-                  icon={<EditIcon />}
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{ bg: currentColors.purple.light }}
-                  onClick={onEditEventOpen}
-                  aria-label="Edit Event"
-                />
-              </>
-            )}
-          </HStack>
+          <VStack position="relative" align="center" spacing={1}>
+            <GemTitle size="xl" color={currentColors.textColor}>
+              {event.eventName}
+            </GemTitle>
+            <HStack>
+              <Badge
+                bg={currentColors.green.base}
+                color="white"
+                px={2}
+                py={1}
+                borderRadius="md"
+                fontSize="md"
+              >
+                {event.status}
+              </Badge>
+              <Text color={theme.colors.gray[300]}>
+                {new Date(event.startDate).toLocaleDateString()} -{' '}
+                {new Date(event.endDate).toLocaleDateString()}
+              </Text>
+            </HStack>
+          </VStack>
+          {isEventAdmin && (
+            <>
+              <Button
+                position="absolute"
+                alignSelf="end"
+                display={['none', 'none', 'block']}
+                bg={currentColors.purple.base}
+                color="white"
+                _hover={{ bg: currentColors.purple.light }}
+                onClick={onEditEventOpen}
+              >
+                Edit Event
+              </Button>
+              <IconButton
+                display={['block', 'block', 'none']}
+                icon={<EditIcon />}
+                bg={currentColors.purple.base}
+                color="white"
+                _hover={{ bg: currentColors.purple.light }}
+                onClick={onEditEventOpen}
+                aria-label="Edit Event"
+              />
+            </>
+          )}
 
           <StatGroup
             alignSelf="center"
@@ -301,7 +463,13 @@ const TreasureEventView = () => {
             </Box>
           )}
 
-          <Tabs size="sm" position="relative" variant="soft-rounded" maxW="100%">
+          <Tabs
+            size="sm"
+            position="relative"
+            variant="soft-rounded"
+            maxW="100%"
+            defaultIndex={teams.length === 0 ? 2 : undefined}
+          >
             <TabList
               pb="6px"
               overflowY="hidden"
@@ -319,7 +487,7 @@ const TreasureEventView = () => {
               </Tab>
               {isEventAdmin && (
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  Pending Submissions ({pendingSubmissions.length})
+                  Submissions ({pendingSubmissions.length} Pending)
                 </Tab>
               )}
               {isEventAdmin && (
@@ -327,6 +495,9 @@ const TreasureEventView = () => {
                   Event Settings
                 </Tab>
               )}
+              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                Game Rules & Info
+              </Tab>
             </TabList>
 
             <TabPanels>
@@ -349,195 +520,462 @@ const TreasureEventView = () => {
                         </Tr>
                       </Thead>
                       <Tbody>
-                        {teams.map((team, idx) => (
-                          <Tr key={team.teamId}>
-                            <Td fontWeight="bold" color={currentColors.textColor}>
-                              {idx + 1}
-                            </Td>
-                            <Td color={currentColors.textColor} whiteSpace="nowrap">
-                              {team.teamName}
-                            </Td>
-                            <Td
-                              isNumeric
-                              fontWeight="bold"
-                              color={currentColors.green.base}
-                              whiteSpace="nowrap"
-                            >
-                              {formatGP(team.currentPot)}
-                            </Td>
-                            <Td isNumeric color={currentColors.textColor}>
-                              {team.completedNodes.length}
-                            </Td>
-                            <Td>
-                              <HStack spacing={2}>
-                                {team.keysHeld.map((key) => (
-                                  <Badge key={key.color} colorScheme={key.color}>
-                                    {key.quantity}
-                                  </Badge>
-                                ))}
-                              </HStack>
-                            </Td>
-                            <Td>
-                              <HStack spacing={2}>
-                                <Button
-                                  size="sm"
-                                  bg={currentColors.purple.base}
-                                  color="white"
-                                  _hover={{ bg: currentColors.purple.light }}
-                                  onClick={() =>
-                                    navigate(`/treasure-hunt/${event.eventId}/team/${team.teamId}`)
-                                  }
-                                  whiteSpace="nowrap"
-                                >
-                                  View Map
-                                </Button>
-                                {isEventAdmin && (
-                                  <IconButton
+                        {[...teams]
+                          .sort((a, b) => {
+                            // Sort by currentPot descending (highest first)
+                            const potA = Number(a.currentPot || 0);
+                            const potB = Number(b.currentPot || 0);
+                            if (potA > potB) return -1;
+                            if (potA < potB) return 1;
+                            // If pots are equal, sort by nodes completed
+                            return (
+                              (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0)
+                            );
+                          })
+                          .map((team, idx) => (
+                            <Tr key={team.teamId}>
+                              <Td fontWeight="bold" color={currentColors.textColor}>
+                                #{idx + 1}
+                              </Td>
+                              <Td color={currentColors.textColor} whiteSpace="nowrap">
+                                {team.teamName}
+                              </Td>
+                              <Td
+                                isNumeric
+                                fontWeight="bold"
+                                color={currentColors.green.base}
+                                whiteSpace="nowrap"
+                              >
+                                {formatGP(team.currentPot)}
+                              </Td>
+                              <Td isNumeric color={currentColors.textColor}>
+                                {team.completedNodes?.length || 0}
+                              </Td>
+                              <Td>
+                                <HStack spacing={2}>
+                                  {team.keysHeld && team.keysHeld.length > 0 ? (
+                                    team.keysHeld.map((key) => (
+                                      <Badge key={key.color} colorScheme={key.color}>
+                                        {key.quantity}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <Text fontSize="sm" color="gray.500">
+                                      None
+                                    </Text>
+                                  )}
+                                </HStack>
+                              </Td>
+                              <Td>
+                                <HStack spacing={2}>
+                                  <Button
                                     size="sm"
-                                    icon={<EditIcon />}
-                                    bg={currentColors.turquoise.base}
+                                    bg={currentColors.purple.base}
                                     color="white"
-                                    _hover={{ opacity: 0.8 }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedTeam(team);
-                                      onEditTeamOpen();
-                                    }}
-                                    aria-label="Edit team"
-                                  />
-                                )}
-                              </HStack>
-                            </Td>
-                          </Tr>
-                        ))}
+                                    _hover={{ bg: currentColors.purple.light }}
+                                    onClick={() =>
+                                      navigate(
+                                        `/treasure-hunt/${event.eventId}/team/${team.teamId}`
+                                      )
+                                    }
+                                    whiteSpace="nowrap"
+                                  >
+                                    View Map
+                                  </Button>
+                                  {isEventAdmin && (
+                                    <IconButton
+                                      size="sm"
+                                      icon={<EditIcon />}
+                                      bg={currentColors.turquoise.base}
+                                      color="white"
+                                      _hover={{ opacity: 0.8 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedTeam(team);
+                                        onEditTeamOpen();
+                                      }}
+                                      aria-label="Edit team"
+                                    />
+                                  )}
+                                </HStack>
+                              </Td>
+                            </Tr>
+                          ))}
                       </Tbody>
                     </Table>
                   </TableContainer>
                 </Box>
               </TabPanel>
-
               {isEventAdmin && (
-                // In TreasureEventPage.jsx, update the pending submissions tab:
-
                 <TabPanel px={0}>
                   <VStack spacing={4} align="stretch">
-                    {pendingSubmissions.length === 0 ? (
-                      <Text color={currentColors.textColor} textAlign="center" py={8}>
-                        No pending submissions
+                    {/* Instructions */}
+                    <Box bg={currentColors.turquoise.base} color="white" p={3} borderRadius="md">
+                      <Text fontWeight="bold" fontSize="sm" mb={1}>
+                        📋 Submission Review Workflow
                       </Text>
-                    ) : (
-                      // Group submissions by node
-                      Object.entries(
-                        pendingSubmissions.reduce((acc, submission) => {
-                          if (!acc[submission.nodeId]) {
-                            acc[submission.nodeId] = [];
-                          }
-                          acc[submission.nodeId].push(submission);
-                          return acc;
-                        }, {})
-                      ).map(([nodeId, submissions]) => (
-                        <Card key={nodeId} bg={currentColors.cardBg} borderWidth={1}>
-                          <CardBody>
-                            <VStack align="stretch" spacing={3}>
-                              <HStack justify="space-between">
-                                <VStack align="start" spacing={1}>
-                                  <Text
-                                    fontWeight="bold"
-                                    fontSize="lg"
-                                    color={currentColors.textColor}
-                                  >
-                                    {nodeId}
-                                  </Text>
-                                  <HStack>
-                                    <Badge bg={currentColors.purple.base} color="white">
-                                      {submissions[0].team?.teamName || 'Unknown Team'}
-                                    </Badge>
-                                    <Badge colorScheme="orange">
-                                      {submissions.length} submission
-                                      {submissions.length > 1 ? 's' : ''}
-                                    </Badge>
-                                  </HStack>
-                                </VStack>
-                              </HStack>
+                      <Text fontSize="xs">
+                        1. Review and approve/deny individual submissions below
+                        <br />
+                        2. Track progress toward node objectives
+                        <br />
+                        3. When cumulative goal is met, complete the node to grant rewards and
+                        unlock next nodes
+                      </Text>
+                    </Box>
 
-                              {/* Show each submission */}
-                              <VStack align="stretch" spacing={2}>
-                                {submissions.map((submission) => (
-                                  <Box
-                                    key={submission.submissionId}
-                                    p={3}
-                                    bg={colorMode === 'dark' ? '#1A202C' : '#F7FAFC'}
-                                    borderRadius="md"
+                    {(() => {
+                      // Group ALL submissions (pending + approved) by nodeId and teamId
+                      const groupedSubmissions = {};
+
+                      allSubmissions.forEach((submission) => {
+                        const key = `${submission.nodeId}_${submission.team?.teamId}`;
+                        if (!groupedSubmissions[key]) {
+                          groupedSubmissions[key] = [];
+                        }
+                        groupedSubmissions[key].push(submission);
+                      });
+
+                      // Filter to only show nodes that have pending submissions
+                      const relevantGroups = Object.entries(groupedSubmissions).filter(
+                        ([key, submissions]) => {
+                          const hasPending = submissions.some((s) => s.status === 'PENDING_REVIEW');
+                          const hasApproved = submissions.some((s) => s.status === 'APPROVED');
+
+                          return hasPending || hasApproved;
+                        }
+                      );
+
+                      if (relevantGroups.length === 0) {
+                        return (
+                          <Text color={currentColors.textColor} textAlign="center" py={8}>
+                            No pending submissions
+                          </Text>
+                        );
+                      }
+
+                      return (
+                        <Accordion allowMultiple>
+                          {relevantGroups.map(([key, submissions]) => {
+                            const nodeId = submissions[0].nodeId;
+                            const node = event.nodes?.find((n) => n.nodeId === nodeId);
+                            const nodeTitle = node ? node.title : nodeId;
+                            const nodeType = node ? node.nodeType : 'STANDARD';
+                            const teamId = submissions[0].team?.teamId;
+                            const team = event.teams?.find((t) => t.teamId === teamId);
+                            const isCompleted = team?.completedNodes?.includes(nodeId);
+
+                            const pendingSubmissions = submissions.filter(
+                              (s) => s.status === 'PENDING_REVIEW'
+                            );
+                            const approvedSubmissions = submissions.filter(
+                              (s) => s.status === 'APPROVED'
+                            );
+                            const deniedSubmissions = submissions.filter(
+                              (s) => s.status === 'DENIED'
+                            );
+
+                            return (
+                              <AccordionItem
+                                key={key}
+                                border="1px solid"
+                                borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
+                                borderRadius="md"
+                                mb={2}
+                                bg={currentColors.cardBg}
+                                opacity={isCompleted ? 0.75 : 1}
+                              >
+                                <h2>
+                                  <AccordionButton
+                                    _hover={{
+                                      bg: colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50',
+                                    }}
+                                    py={4}
                                   >
-                                    <HStack justify="space-between" mb={2}>
-                                      <VStack align="start" spacing={0}>
+                                    <HStack justify="space-between" align="start" flex={1}>
+                                      <VStack align="start" spacing={1} flex={1}>
+                                        <HStack>
+                                          <AccordionIcon color={currentColors.textColor} />
+                                          <Text
+                                            fontWeight="bold"
+                                            fontSize="lg"
+                                            color={currentColors.textColor}
+                                          >
+                                            {nodeType === 'INN' ? '🏠 ' : ''}
+                                            {nodeTitle}
+                                          </Text>
+                                          <Badge
+                                            bg={
+                                              nodeType === 'INN'
+                                                ? theme.colors.yellow.base
+                                                : nodeType === 'START'
+                                                ? currentColors.purple.base
+                                                : currentColors.turquoise.base
+                                            }
+                                            color="white"
+                                          >
+                                            {nodeType}
+                                          </Badge>
+                                          {isCompleted && (
+                                            <Badge colorScheme="green">✅ COMPLETED</Badge>
+                                          )}
+                                        </HStack>
+                                        <HStack ml={6}>
+                                          <Badge bg={currentColors.purple.base} color="white">
+                                            {submissions[0].team?.teamName || 'Unknown Team'}
+                                          </Badge>
+                                          {pendingSubmissions.length > 0 && (
+                                            <Badge colorScheme="orange">
+                                              {pendingSubmissions.length} pending
+                                            </Badge>
+                                          )}
+                                          {approvedSubmissions.length > 0 && (
+                                            <Badge colorScheme="green">
+                                              {approvedSubmissions.length} approved
+                                            </Badge>
+                                          )}
+                                          {deniedSubmissions.length > 0 && (
+                                            <Badge colorScheme="red">
+                                              {deniedSubmissions.length} denied
+                                            </Badge>
+                                          )}
+                                        </HStack>
+                                        <Text ml={6} fontSize="xs" color="gray.500">
+                                          Node ID: {nodeId}
+                                        </Text>
+                                      </VStack>
+
+                                      {/* Button to complete node */}
+                                      {!isCompleted && (
+                                        <VStack
+                                          spacing={1}
+                                          align="end"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <Button
+                                            size="sm"
+                                            colorScheme="green"
+                                            leftIcon={<CheckIcon />}
+                                            onClick={() => {
+                                              setNodeToComplete({
+                                                nodeId,
+                                                teamId,
+                                                nodeTitle,
+                                                teamName: submissions[0].team?.teamName,
+                                              });
+                                            }}
+                                          >
+                                            Complete Node
+                                          </Button>
+                                          <Text fontSize="xs" color="gray.500">
+                                            Grant rewards
+                                          </Text>
+                                        </VStack>
+                                      )}
+                                    </HStack>
+                                  </AccordionButton>
+                                </h2>
+
+                                <AccordionPanel pb={4}>
+                                  <VStack align="stretch" spacing={3}>
+                                    {/* Show node objective if available */}
+                                    {node?.objective && (
+                                      <Box
+                                        p={2}
+                                        bg={
+                                          colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'
+                                        }
+                                        borderRadius="md"
+                                      >
                                         <Text
-                                          fontSize="sm"
+                                          fontSize="xs"
                                           fontWeight="bold"
                                           color={currentColors.textColor}
                                         >
-                                          Submitted by {submission.submittedBy}
+                                          Objective:
                                         </Text>
                                         <Text
                                           fontSize="xs"
                                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                                         >
-                                          {new Date(submission.submittedAt).toLocaleString()}
+                                          {node.objective.type}: {node.objective.quantity}{' '}
+                                          {node.objective.target}
                                         </Text>
-                                      </VStack>
-                                    </HStack>
+                                        {node.objective.appliedBuff && (
+                                          <Badge colorScheme="blue" fontSize="xs" mt={1}>
+                                            ✨ Buff Applied: -
+                                            {(node.objective.appliedBuff.reduction * 100).toFixed(
+                                              0
+                                            )}
+                                            %
+                                          </Badge>
+                                        )}
+                                      </Box>
+                                    )}
 
-                                    <HStack justify="space-between">
-                                      <Button
-                                        leftIcon={<ExternalLinkIcon />}
-                                        size="sm"
-                                        variant="outline"
-                                        as="a"
-                                        href={submission.proofUrl}
-                                        target="_blank"
-                                        color={currentColors.textColor}
+                                    {isCompleted && (
+                                      <Box
+                                        p={2}
+                                        bg={currentColors.green.base}
+                                        color="white"
+                                        borderRadius="md"
                                       >
-                                        View Proof
-                                      </Button>
-                                      <HStack>
-                                        <Tooltip label="Deny Submission">
-                                          <IconButton
-                                            icon={<CloseIcon />}
-                                            bg={currentColors.red.base}
-                                            color="white"
-                                            size="sm"
-                                            _hover={{ opacity: 0.8 }}
-                                            onClick={() =>
-                                              handleReviewSubmission(submission.submissionId, false)
+                                        <Text fontSize="xs" fontWeight="bold">
+                                          ℹ️ This node is already completed. Submissions can still
+                                          be reviewed for record-keeping.
+                                        </Text>
+                                      </Box>
+                                    )}
+
+                                    {/* Show each submission - sorted by status */}
+                                    <VStack align="stretch" spacing={2}>
+                                      {submissions
+                                        .sort((a, b) => {
+                                          const order = {
+                                            PENDING_REVIEW: 0,
+                                            APPROVED: 1,
+                                            DENIED: 2,
+                                          };
+                                          return order[a.status] - order[b.status];
+                                        })
+                                        .map((submission) => (
+                                          <Box
+                                            key={submission.submissionId}
+                                            p={3}
+                                            bg={
+                                              submission.status === 'APPROVED'
+                                                ? colorMode === 'dark'
+                                                  ? 'green.900'
+                                                  : 'green.50'
+                                                : submission.status === 'DENIED'
+                                                ? colorMode === 'dark'
+                                                  ? 'red.900'
+                                                  : 'red.50'
+                                                : colorMode === 'dark'
+                                                ? '#1A202C'
+                                                : '#F7FAFC'
                                             }
-                                          />
-                                        </Tooltip>
-                                        <Tooltip label="Approve Submission">
-                                          <IconButton
-                                            icon={<CheckIcon />}
-                                            bg={currentColors.green.base}
-                                            color="white"
-                                            size="sm"
-                                            _hover={{ opacity: 0.8 }}
-                                            onClick={() =>
-                                              handleReviewSubmission(submission.submissionId, true)
+                                            borderRadius="md"
+                                            borderWidth={submission.status === 'APPROVED' ? 2 : 1}
+                                            borderColor={
+                                              submission.status === 'APPROVED'
+                                                ? currentColors.green.base
+                                                : submission.status === 'DENIED'
+                                                ? currentColors.red.base
+                                                : 'transparent'
                                             }
-                                          />
-                                        </Tooltip>
-                                      </HStack>
-                                    </HStack>
-                                  </Box>
-                                ))}
-                              </VStack>
-                            </VStack>
-                          </CardBody>
-                        </Card>
-                      ))
-                    )}
+                                          >
+                                            <HStack justify="space-between" mb={2}>
+                                              <VStack align="start" spacing={0}>
+                                                <HStack>
+                                                  <Text
+                                                    fontSize="sm"
+                                                    fontWeight="bold"
+                                                    color={currentColors.textColor}
+                                                  >
+                                                    Submitted by {submission.submittedBy}
+                                                  </Text>
+                                                  {submission.status !== 'PENDING_REVIEW' && (
+                                                    <Badge
+                                                      colorScheme={
+                                                        submission.status === 'APPROVED'
+                                                          ? 'green'
+                                                          : 'red'
+                                                      }
+                                                      fontSize="xs"
+                                                    >
+                                                      {submission.status}
+                                                    </Badge>
+                                                  )}
+                                                </HStack>
+                                                <Text
+                                                  fontSize="xs"
+                                                  color={
+                                                    colorMode === 'dark' ? 'gray.400' : 'gray.600'
+                                                  }
+                                                >
+                                                  {new Date(
+                                                    submission.submittedAt
+                                                  ).toLocaleString()}
+                                                </Text>
+                                                {submission.reviewedAt && (
+                                                  <Text
+                                                    fontSize="xs"
+                                                    color={
+                                                      colorMode === 'dark' ? 'gray.500' : 'gray.600'
+                                                    }
+                                                  >
+                                                    Reviewed:{' '}
+                                                    {new Date(
+                                                      submission.reviewedAt
+                                                    ).toLocaleString()}
+                                                  </Text>
+                                                )}
+                                              </VStack>
+                                            </HStack>
+
+                                            <HStack justify="space-between">
+                                              <Button
+                                                leftIcon={<ExternalLinkIcon />}
+                                                size="sm"
+                                                variant="outline"
+                                                as="a"
+                                                href={submission.proofUrl}
+                                                target="_blank"
+                                                color={currentColors.textColor}
+                                              >
+                                                View Proof
+                                              </Button>
+
+                                              {submission.status === 'PENDING_REVIEW' && (
+                                                <HStack>
+                                                  <Tooltip label="Deny Submission">
+                                                    <IconButton
+                                                      icon={<CloseIcon />}
+                                                      bg={currentColors.red.base}
+                                                      color="white"
+                                                      size="sm"
+                                                      _hover={{ opacity: 0.8 }}
+                                                      onClick={() =>
+                                                        handleReviewSubmission(
+                                                          submission.submissionId,
+                                                          false
+                                                        )
+                                                      }
+                                                    />
+                                                  </Tooltip>
+                                                  <Tooltip label="Approve Submission">
+                                                    <IconButton
+                                                      icon={<CheckIcon />}
+                                                      bg={currentColors.green.base}
+                                                      color="white"
+                                                      size="sm"
+                                                      _hover={{ opacity: 0.8 }}
+                                                      onClick={() =>
+                                                        handleReviewSubmission(
+                                                          submission.submissionId,
+                                                          true
+                                                        )
+                                                      }
+                                                    />
+                                                  </Tooltip>
+                                                </HStack>
+                                              )}
+                                            </HStack>
+                                          </Box>
+                                        ))}
+                                    </VStack>
+                                  </VStack>
+                                </AccordionPanel>
+                              </AccordionItem>
+                            );
+                          })}
+                        </Accordion>
+                      );
+                    })()}
                   </VStack>
                 </TabPanel>
               )}
-
               {isEventAdmin && (
                 <TabPanel>
                   <Card bg={currentColors.cardBg}>
@@ -546,16 +984,219 @@ const TreasureEventView = () => {
                         <Heading size="md" color={currentColors.textColor}>
                           Event Configuration
                         </Heading>
+
+                        {notificationsSupported && (
+                          <Card bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}>
+                            <CardBody>
+                              <VStack align="stretch" spacing={3}>
+                                <HStack justify="space-between" align="start">
+                                  <VStack align="start" spacing={2} flex={1}>
+                                    <HStack>
+                                      <Text fontSize="2xl">
+                                        {notificationsEnabled ? '🔔' : '🔕'}
+                                      </Text>
+                                      <Heading size="sm" color={currentColors.textColor}>
+                                        Submission Notifications
+                                      </Heading>
+                                      {notificationsEnabled && (
+                                        <Badge colorScheme="green" fontSize="xs">
+                                          ACTIVE
+                                        </Badge>
+                                      )}{' '}
+                                      <HStack
+                                        borderLeft="1px solid gray"
+                                        paddingLeft={3}
+                                        marginLeft={2}
+                                        spacing={2}
+                                      >
+                                        {notificationsEnabled ? (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              colorScheme="blue"
+                                              variant="outline"
+                                              onClick={() => {
+                                                // Send test notification with sound
+                                                if (Notification.permission === 'granted') {
+                                                  // Play sound
+                                                  if (
+                                                    localStorage.getItem(
+                                                      'treasureHunt_sound_enabled'
+                                                    ) !== 'false'
+                                                  ) {
+                                                    const audioContext = new (window.AudioContext ||
+                                                      window.webkitAudioContext)();
+                                                    const playTone = (
+                                                      frequency,
+                                                      duration,
+                                                      startTime
+                                                    ) => {
+                                                      const oscillator =
+                                                        audioContext.createOscillator();
+                                                      const gainNode = audioContext.createGain();
+                                                      oscillator.connect(gainNode);
+                                                      gainNode.connect(audioContext.destination);
+                                                      oscillator.frequency.value = frequency;
+                                                      oscillator.type = 'sine';
+                                                      gainNode.gain.setValueAtTime(0, startTime);
+                                                      gainNode.gain.linearRampToValueAtTime(
+                                                        0.3,
+                                                        startTime + 0.01
+                                                      );
+                                                      gainNode.gain.exponentialRampToValueAtTime(
+                                                        0.01,
+                                                        startTime + duration
+                                                      );
+                                                      oscillator.start(startTime);
+                                                      oscillator.stop(startTime + duration);
+                                                    };
+                                                    const now = audioContext.currentTime;
+                                                    playTone(800, 0.1, now);
+                                                    playTone(600, 0.15, now + 0.1);
+                                                  }
+
+                                                  // Show notification
+                                                  const testNotif = new Notification(
+                                                    'Test Notification',
+                                                    {
+                                                      body: 'If you can see this, notifications are working!',
+                                                      icon: '/favicon.ico',
+                                                      tag: 'manual-test',
+                                                      silent: true, // We play our own sound
+                                                    }
+                                                  );
+                                                  testNotif.onclick = () => {
+                                                    window.focus();
+                                                    testNotif.close();
+                                                  };
+                                                }
+                                              }}
+                                            >
+                                              Send Test
+                                            </Button>
+                                            <Button
+                                              size="sm"
+                                              colorScheme="red"
+                                              variant="outline"
+                                              onClick={disableNotifications}
+                                            >
+                                              Disable
+                                            </Button>
+                                          </>
+                                        ) : (
+                                          <Button
+                                            size="sm"
+                                            colorScheme="green"
+                                            onClick={requestNotificationPermission}
+                                            isDisabled={notificationPermission === 'denied'}
+                                          >
+                                            Enable Notifications
+                                          </Button>
+                                        )}
+                                      </HStack>
+                                    </HStack>
+                                    <Text
+                                      fontSize="sm"
+                                      color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                                    >
+                                      {notificationsEnabled
+                                        ? "You'll receive browser notifications when new submissions arrive"
+                                        : 'Enable notifications to get alerts for new submissions'}
+                                    </Text>
+                                    {notificationPermission === 'denied' && (
+                                      <Text fontSize="xs" color="red.500">
+                                        ⚠️ Notifications are blocked. Please enable them in your
+                                        browser settings.
+                                      </Text>
+                                    )}
+                                    {notificationPermission === 'default' &&
+                                      !notificationsEnabled && (
+                                        <Text
+                                          fontSize="xs"
+                                          color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
+                                        >
+                                          Click "Enable Notifications" and allow permission when
+                                          prompted
+                                        </Text>
+                                      )}
+
+                                    {/* Sound toggle - only show when notifications are enabled */}
+                                    {notificationsEnabled && (
+                                      <HStack
+                                        p={2}
+                                        bg={
+                                          colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'
+                                        }
+                                        borderRadius="md"
+                                        w="full"
+                                      >
+                                        <Text fontSize="2xl">🔊</Text>
+                                        <VStack align="start" spacing={0} flex={1}>
+                                          <Text
+                                            fontSize="sm"
+                                            fontWeight="bold"
+                                            color={currentColors.textColor}
+                                          >
+                                            Notification Sound
+                                          </Text>
+                                          <Text
+                                            fontSize="xs"
+                                            color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                                          >
+                                            Play a sound when new submissions arrive
+                                          </Text>
+                                        </VStack>
+                                        <Switch
+                                          colorScheme="purple"
+                                          defaultChecked={
+                                            localStorage.getItem('treasureHunt_sound_enabled') !==
+                                            'false'
+                                          }
+                                          onChange={(e) => {
+                                            localStorage.setItem(
+                                              'treasureHunt_sound_enabled',
+                                              e.target.checked.toString()
+                                            );
+                                            if (e.target.checked) {
+                                              // Play test sound
+                                              const audioContext = new (window.AudioContext ||
+                                                window.webkitAudioContext)();
+                                              const playTone = (frequency, duration, startTime) => {
+                                                const oscillator = audioContext.createOscillator();
+                                                const gainNode = audioContext.createGain();
+                                                oscillator.connect(gainNode);
+                                                gainNode.connect(audioContext.destination);
+                                                oscillator.frequency.value = frequency;
+                                                oscillator.type = 'sine';
+                                                gainNode.gain.setValueAtTime(0, startTime);
+                                                gainNode.gain.linearRampToValueAtTime(
+                                                  0.3,
+                                                  startTime + 0.01
+                                                );
+                                                gainNode.gain.exponentialRampToValueAtTime(
+                                                  0.01,
+                                                  startTime + duration
+                                                );
+                                                oscillator.start(startTime);
+                                                oscillator.stop(startTime + duration);
+                                              };
+                                              const now = audioContext.currentTime;
+                                              playTone(800, 0.1, now);
+                                              playTone(600, 0.15, now + 0.1);
+                                            }
+                                          }}
+                                        />
+                                      </HStack>
+                                    )}
+                                  </VStack>
+                                </HStack>
+                              </VStack>
+                            </CardBody>
+                          </Card>
+                        )}
+
+                        <hr />
                         <HStack gap={4}>
-                          <Button
-                            leftIcon={<AddIcon />}
-                            bg={currentColors.turquoise.base}
-                            color="white"
-                            _hover={{ opacity: 0.8 }}
-                            onClick={onCreateTeamOpen}
-                          >
-                            Add Team
-                          </Button>
                           <Button
                             colorScheme="green"
                             onClick={handleGenerateMap}
@@ -565,7 +1206,42 @@ const TreasureEventView = () => {
                               ? 'Regenerate Map'
                               : 'Generate Map'}
                           </Button>
+                          <Button
+                            leftIcon={<AddIcon />}
+                            bg={currentColors.turquoise.base}
+                            color="white"
+                            _hover={{ opacity: 0.8 }}
+                            onClick={onCreateTeamOpen}
+                          >
+                            Add Team
+                          </Button>
                         </HStack>
+
+                        <Card bg={currentColors.purple.base} color="white" borderRadius="md">
+                          <CardBody>
+                            <VStack align="start" spacing={3}>
+                              <HStack>
+                                <Icon as={InfoIcon} boxSize={5} />
+                                <Heading size="sm">Discord Integration</Heading>
+                              </HStack>
+                              <Text fontSize="sm">
+                                Connect your Discord server to let teams interact with the Treasure
+                                Hunt directly from Discord. They can view progress, submit
+                                completions, and use buffs!
+                              </Text>
+                              <Button
+                                size="sm"
+                                colorScheme="whiteAlpha"
+                                variant="solid"
+                                onClick={onDiscordSetupOpen}
+                                leftIcon={<InfoIcon />}
+                              >
+                                View Setup Instructions
+                              </Button>
+                            </VStack>
+                          </CardBody>
+                        </Card>
+                        <hr />
                         <EventAdminManager
                           event={event}
                           onUpdate={() => {
@@ -577,6 +1253,9 @@ const TreasureEventView = () => {
                   </Card>
                 </TabPanel>
               )}
+              <TabPanel px={0}>
+                <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
+              </TabPanel>
             </TabPanels>
           </Tabs>
         </VStack>
@@ -606,7 +1285,11 @@ const TreasureEventView = () => {
           window.location.reload();
         }}
       />
-
+      <DiscordSetupModal
+        isOpen={isDiscordSetupOpen}
+        onClose={onDiscordSetupClose}
+        eventId={eventId}
+      />
       <AlertDialog
         isOpen={isRegenerateOpen}
         leastDestructiveRef={cancelRef}
@@ -639,6 +1322,117 @@ const TreasureEventView = () => {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
+
+      {nodeToComplete && (
+        <AlertDialog
+          isOpen={!!nodeToComplete}
+          leastDestructiveRef={cancelCompleteRef}
+          onClose={() => setNodeToComplete(null)}
+        >
+          <AlertDialogOverlay>
+            <AlertDialogContent bg={currentColors.cardBg}>
+              <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
+                Complete Node
+              </AlertDialogHeader>
+
+              <AlertDialogBody color={currentColors.textColor}>
+                <VStack align="stretch" spacing={3}>
+                  <Text>
+                    Are you sure you want to complete{' '}
+                    <Text as="span" fontWeight="bold">
+                      "{nodeToComplete.nodeTitle}"
+                    </Text>{' '}
+                    for{' '}
+                    <Text as="span" fontWeight="bold">
+                      {nodeToComplete.teamName}
+                    </Text>
+                    ?
+                  </Text>
+
+                  <Box
+                    p={3}
+                    bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
+                    borderRadius="md"
+                    borderWidth={1}
+                    borderColor={currentColors.green.base}
+                  >
+                    <Text fontSize="sm" fontWeight="bold" mb={2}>
+                      This will:
+                    </Text>
+                    <VStack align="start" spacing={1} fontSize="sm">
+                      <HStack>
+                        <Text>✅</Text>
+                        <Text>Mark the node as completed</Text>
+                      </HStack>
+                      <HStack>
+                        <Text>💰</Text>
+                        <Text>Grant GP rewards to team pot</Text>
+                      </HStack>
+                      <HStack>
+                        <Text>🔑</Text>
+                        <Text>Add any key rewards to inventory</Text>
+                      </HStack>
+                      <HStack>
+                        <Text>✨</Text>
+                        <Text>Grant any buff rewards</Text>
+                      </HStack>
+                      <HStack>
+                        <Text>🔓</Text>
+                        <Text>Unlock connected nodes</Text>
+                      </HStack>
+                    </VStack>
+                  </Box>
+
+                  <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+                    You can undo this later using Admin Mode if needed.
+                  </Text>
+                </VStack>
+              </AlertDialogBody>
+
+              <AlertDialogFooter>
+                <Button ref={cancelCompleteRef} onClick={() => setNodeToComplete(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="green"
+                  onClick={async () => {
+                    try {
+                      await adminCompleteNode({
+                        variables: {
+                          eventId,
+                          teamId: nodeToComplete.teamId,
+                          nodeId: nodeToComplete.nodeId,
+                        },
+                      });
+                      await refetchSubmissions();
+                      toast({
+                        title: 'Node completed!',
+                        description: `${nodeToComplete.nodeTitle} has been marked as complete`,
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                      setNodeToComplete(null);
+                    } catch (error) {
+                      toast({
+                        title: 'Error',
+                        description: error.message,
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                      });
+                    }
+                  }}
+                  ml={3}
+                  isLoading={completing}
+                >
+                  Complete Node
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
+      )}
     </Flex>
   );
 };

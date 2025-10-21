@@ -22,9 +22,10 @@ import {
   FormLabel,
   useToast,
   Button,
+  Icon,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM } from '../graphql/queries';
 import {
@@ -32,16 +33,17 @@ import {
   ADMIN_UNCOMPLETE_NODE,
   APPLY_BUFF_TO_NODE,
 } from '../graphql/mutations';
-import NodeDetailModal from '../organisms/NodeDetailModal';
-import InnModal from '../organisms/TreasureInnModal';
-import BuffApplicationModal from '../organisms/TreasureBuffApplicationModal';
+import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
+import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
+import BuffApplicationModal from '../organisms/TreasureHunt/TreasureBuffApplicationModal';
 import Section from '../atoms/Section';
-import TreasureMapVisualization from '../organisms/TreasureMapVisualization';
+import TreasureMapVisualization from '../organisms/TreasureHunt/TreasureMapVisualization';
 import GemTitle from '../atoms/GemTitle';
-import BuffInventory from '../organisms/TreasureBuffInventory';
+import BuffInventory from '../organisms/TreasureHunt/TreasureBuffInventory';
 import theme from '../theme';
-import { RedactedText } from '../molecules/RedactedTreasureInfo';
+import { RedactedText } from '../molecules/TreasureHunt/RedactedTreasureInfo';
 import { useAuth } from '../providers/AuthProvider';
+import { MdOutlineArrowBack } from 'react-icons/md';
 
 const TreasureTeamView = () => {
   const { colorMode } = useColorMode();
@@ -85,6 +87,7 @@ const TreasureTeamView = () => {
       textColor: '#F7FAFC',
       cardBg: '#2D3748',
       redacted: '#1A202C',
+      orange: '#FF914D',
     },
     light: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -96,6 +99,7 @@ const TreasureTeamView = () => {
       textColor: '#171923',
       cardBg: 'white',
       redacted: '#E2E8F0',
+      orange: '#FF914D',
     },
   };
 
@@ -240,6 +244,65 @@ const TreasureTeamView = () => {
     );
   }
 
+  if (event.status === 'DRAFT' && !isAdmin) {
+    return (
+      <Flex
+        alignItems="center"
+        flex="1"
+        flexDirection="column"
+        height="100%"
+        paddingY={['40px', '56px']}
+        marginX={['12px', '36px']}
+      >
+        <Flex
+          alignItems="center"
+          flexDirection={['column', 'row', 'row']}
+          justifyContent="space-between"
+          marginBottom="16px"
+          maxWidth="1200px"
+          width="100%"
+        >
+          <Text
+            alignItems="center"
+            display="inline-flex"
+            _hover={{
+              borderBottom: '1px solid white',
+              marginBottom: '0px',
+            }}
+            fontWeight="bold"
+            justifyContent="center"
+            marginBottom="1px"
+          >
+            <Icon as={MdOutlineArrowBack} marginRight="8px" />
+            <Link to={`/treasure-hunt`}> Back to Events</Link>
+          </Text>
+        </Flex>
+
+        <Section maxWidth="600px" width="100%" py={8}>
+          <VStack spacing={6} align="center" textAlign="center">
+            <Box fontSize="6xl">🔒</Box>
+
+            <VStack spacing={2}>
+              <Heading size="lg" color={currentColors.textColor}>
+                Event Not Available...Yet!
+              </Heading>
+              <Text color={currentColors.textColor} fontSize="lg">
+                This event is currently in draft mode
+              </Text>
+            </VStack>
+
+            <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
+              <Text fontSize="sm" color={currentColors.textColor}>
+                This Treasure Hunt event is still being set up by the event organizers. It will
+                become visible once the admins publish it.
+              </Text>
+            </Box>
+          </VStack>
+        </Section>
+      </Flex>
+    );
+  }
+
   return (
     <Flex
       alignItems="center"
@@ -249,35 +312,55 @@ const TreasureTeamView = () => {
       paddingY={['40px', '56px']}
       marginX="12px"
     >
+      <Flex
+        alignItems="center"
+        flexDirection={['column', 'row', 'row']}
+        justifyContent="space-between"
+        marginBottom="16px"
+        maxWidth="1200px"
+        width="100%"
+      >
+        <Text
+          alignItems="center"
+          display="inline-flex"
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          fontWeight="bold"
+          justifyContent="center"
+          marginBottom="1px"
+        >
+          <Icon as={MdOutlineArrowBack} marginRight="8px" />
+          <Link to={`/treasure-hunt/${eventId}`}> Event Overview</Link>
+        </Text>
+      </Flex>
       <Section maxWidth="1200px" width="100%" py={8}>
-        <VStack spacing={8} align="stretch" width="100%">
-          <HStack justify="space-between">
-            <VStack align="start" spacing={1}>
-              <GemTitle size="xl" color={currentColors.textColor}>
-                {team.teamName}
-              </GemTitle>
-              <Text color={theme.colors.gray[200]}>Team Progress</Text>
-            </VStack>
-
-            {isAdmin && (
-              <FormControl display="flex" alignItems="center" w="auto">
-                <FormLabel
-                  htmlFor="admin-mode"
-                  mb="0"
-                  fontSize="sm"
-                  color={currentColors.textColor}
-                >
-                  Admin Mode
-                </FormLabel>
-                <Switch
-                  id="admin-mode"
-                  colorScheme="purple"
-                  isChecked={adminMode}
-                  onChange={(e) => setAdminMode(e.target.checked)}
-                />
-              </FormControl>
-            )}
-          </HStack>
+        <VStack position="relative" spacing={8} align="stretch" width="100%">
+          {isAdmin && (
+            <FormControl
+              position="absolute"
+              alignSelf="end"
+              display="flex"
+              alignItems="center"
+              w="auto"
+            >
+              <FormLabel htmlFor="admin-mode" mb="0" fontSize="sm" color={currentColors.white}>
+                Admin Mode
+              </FormLabel>
+              <Switch
+                id="admin-mode"
+                colorScheme="purple"
+                isChecked={adminMode}
+                onChange={(e) => setAdminMode(e.target.checked)}
+              />
+            </FormControl>
+          )}
+          <VStack align="start" spacing={1}>
+            <GemTitle m="0 auto" maxW="720px" size="xl" color={currentColors.textColor}>
+              {team.teamName}
+            </GemTitle>
+          </VStack>
 
           {adminMode && (
             <Box bg={currentColors.red.base} color="white" p={3} borderRadius="md" fontSize="sm">
@@ -351,16 +434,13 @@ const TreasureTeamView = () => {
               </StatNumber>
             </Stat>
           </StatGroup>
+          <hr />
 
-          {/* NEW: Active Buffs Section */}
           <Box>
-            <HStack justify="space-between" mb={4}>
-              <Heading size="md" color={currentColors.textColor}>
-                Active Buffs
-              </Heading>
-              <Badge colorScheme="purple" fontSize="sm">
-                {team.activeBuffs?.length || 0} available
-              </Badge>
+            <HStack w="100%" justify="center" mb={4}>
+              <GemTitle mb={1} gemColor="yellow" size="sm" color={currentColors.textColor}>
+                Available Buffs
+              </GemTitle>
             </HStack>
             <BuffInventory buffs={team.activeBuffs || []} colorMode={colorMode} />
             {team.activeBuffs && team.activeBuffs.length > 0 && (
@@ -369,16 +449,24 @@ const TreasureTeamView = () => {
               </Text>
             )}
           </Box>
+          <hr />
 
           <Box>
-            <Heading size="md" mb={4} color={currentColors.textColor}>
+            <GemTitle
+              m="0 auto"
+              w="fit-content"
+              gemColor="purple"
+              size="sm"
+              my={4}
+              color={currentColors.textColor}
+            >
               Treasure Map
-            </Heading>
-            <Text color={theme.colors.gray[200]} mb={6}>
+            </GemTitle>
+            <Text fontSize="sm" color={theme.colors.gray[200]} my={4} textAlign="center">
               Click on any available node to view details.
               {adminMode
                 ? ' (Admin Mode: Click nodes to manage completion)'
-                : ' Completed Inns can be visited to trade keys for GP.'}
+                : 'Completed Inns can be visited to trade keys for GP.'}
             </Text>
 
             <TreasureMapVisualization
@@ -440,7 +528,7 @@ const TreasureTeamView = () => {
                             )}
                             {isLocked && <LockIcon color="gray.400" boxSize={6} />}
                             {status === 'available' && (
-                              <QuestionIcon color={currentColors.turquoise.base} boxSize={6} />
+                              <QuestionIcon color={currentColors.orange} boxSize={6} />
                             )}
 
                             <VStack align="start" spacing={2} flex={1}>

@@ -188,6 +188,7 @@ const typeDefs = gql`
     getMyTreasureEvents: [TreasureEvent!]
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
+    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
   }
 
   type DeleteUserResponse {
@@ -415,9 +416,9 @@ const typeDefs = gql`
     adminCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
     applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
-    adminGiveBuff(eventId: ID!, teamId: ID!, buff: JSON!): TreasureTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
     adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
-    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
 
     submitNodeCompletion(
       eventId: ID!

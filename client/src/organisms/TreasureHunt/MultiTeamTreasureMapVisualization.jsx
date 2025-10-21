@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MapContainer,
   ImageOverlay,
@@ -8,26 +8,38 @@ import {
   Tooltip,
   useMap,
 } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack, Avatar, AvatarGroup } from '@chakra-ui/react';
+import { Box, Badge, Text, VStack, HStack } from '@chakra-ui/react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { RedactedText } from '../molecules/RedactedTreasureInfo';
-import theme from '../theme';
+import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
+import theme from '../../theme';
 
 // Component to handle map panning and pulsing
-const MapController = ({ pulsingNodeId, teams, nodes, convertCoordinates }) => {
+const MapController = ({ pulsingNodeId, nodes }) => {
   const map = useMap();
 
   useEffect(() => {
     if (pulsingNodeId) {
-      // Find the node to pan to
       const node = nodes.find((n) => n.nodeId === pulsingNodeId);
       if (node?.coordinates) {
-        const position = convertCoordinates(node.coordinates.x, node.coordinates.y);
-        map.flyTo(position, 1, { duration: 0.8 });
+        // Convert coordinates inline to avoid dependency issues
+        const osrsMinX = 1100;
+        const osrsMaxX = 3900;
+        const osrsMinY = 2500;
+        const osrsMaxY = 4100;
+        const mapWidth = 7168;
+        const mapHeight = 3904;
+
+        const normalizedX = (node.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
+        const normalizedY = (node.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
+        const pixelX = normalizedX * mapWidth;
+        const pixelY = normalizedY * mapHeight;
+        const position = [pixelY, pixelX];
+
+        map.flyTo(position, map.getZoom(), { animate: true, duration: 1.5 });
       }
     }
-  }, [pulsingNodeId, map, nodes, convertCoordinates]);
+  }, [pulsingNodeId, map, nodes]);
 
   return null;
 };
@@ -341,7 +353,7 @@ const MultiTeamTreasureMap = ({
     // If any selected team completed it, show green
     if (completion.completed.length > 0) return '#43AA8B';
     // If any selected team can access it, show turquoise
-    if (completion.available.length > 0) return '#28AFB0';
+    if (completion.available.length > 0) return '#FF914D';
 
     return '#718096';
   };
@@ -397,12 +409,7 @@ const MultiTeamTreasureMap = ({
         >
           <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={0.85} />
 
-          <MapController
-            pulsingNodeId={focusNodeId}
-            teams={teams}
-            nodes={nodes}
-            convertCoordinates={convertCoordinates}
-          />
+          <MapController pulsingNodeId={focusNodeId} nodes={nodes} />
 
           {/* Draw connection lines */}
           {edges.map((edge, idx) => (
@@ -435,9 +442,15 @@ const MultiTeamTreasureMap = ({
                   click: () => onNodeClick && onNodeClick(node),
                 }}
               >
-                <Popup maxWidth={350}>
+                <Popup
+                  maxWidth={350}
+                  autoPan={true}
+                  autoPanPaddingTopLeft={[10, 80]}
+                  autoPanPaddingBottomRight={[10, 10]}
+                  keepInView={true}
+                >
                   <VStack align="start" spacing={2} p={2}>
-                    <HStack justify="space-between" w="full">
+                    <HStack mb={2} justify="space-between" w="full">
                       {getNodeAccessStatus(node.nodeId) === 'locked' ? (
                         <>
                           <RedactedText length="long" />
@@ -445,7 +458,7 @@ const MultiTeamTreasureMap = ({
                         </>
                       ) : (
                         <>
-                          <Text fontWeight="bold" fontSize="md" color="#1a1a1a">
+                          <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
                             {node.title}
                           </Text>
                           <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
@@ -468,18 +481,23 @@ const MultiTeamTreasureMap = ({
                     ) : (
                       <>
                         {node.description && (
-                          <Text fontSize="sm" color="#4a4a4a">
+                          <Text fontSize="sm" m="0!important" pb={2} color="#4a4a4a">
                             {node.description}
                           </Text>
                         )}
 
-                        {/* ADD THIS SECTION - Show objective for admin or unlocked nodes */}
                         {node.objective && (
                           <Box>
-                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                            <Text
+                              fontSize="xs"
+                              m="0!important"
+                              fontWeight="bold"
+                              color="#2d3748"
+                              pb={1}
+                            >
                               Objective:
                             </Text>
-                            <Text fontSize="xs" color="#4a5568">
+                            <Text fontSize="xs" m="0!important" color="#4a5568">
                               {node.objective.type}: {node.objective.quantity}{' '}
                               {node.objective.target}
                             </Text>
@@ -496,14 +514,16 @@ const MultiTeamTreasureMap = ({
 
                         {completion.completed.length > 0 && (
                           <Box>
-                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" pb={1}>
                               Completed by:
                             </Text>
                             <VStack align="start" spacing={1}>
                               {completion.completed.map(({ team, color }) => (
                                 <HStack key={team.teamId}>
                                   <Box w={3} h={3} bg={color} borderRadius="full" />
-                                  <Text fontSize="xs">{team.teamName}</Text>
+                                  <Text m="0!important" fontSize="xs">
+                                    {team.teamName}
+                                  </Text>
                                 </HStack>
                               ))}
                             </VStack>
@@ -512,14 +532,22 @@ const MultiTeamTreasureMap = ({
 
                         {completion.available.length > 0 && completion.completed.length === 0 && (
                           <Box>
-                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                            <Text
+                              fontSize="xs"
+                              m="0!important"
+                              fontWeight="bold"
+                              color="#2d3748"
+                              pb={1}
+                            >
                               Available to:
                             </Text>
                             <VStack align="start" spacing={1}>
                               {completion.available.map(({ team, color }) => (
                                 <HStack key={team.teamId}>
                                   <Box w={3} h={3} bg={color} borderRadius="full" />
-                                  <Text fontSize="xs">{team.teamName}</Text>
+                                  <Text m="0!important" fontSize="xs">
+                                    {team.teamName}
+                                  </Text>
                                 </HStack>
                               ))}
                             </VStack>
@@ -528,7 +556,13 @@ const MultiTeamTreasureMap = ({
 
                         {node.rewards && (
                           <Box>
-                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                            <Text
+                              m="0!important"
+                              fontSize="xs"
+                              fontWeight="bold"
+                              color="#2d3748"
+                              pb={1}
+                            >
                               Rewards:
                             </Text>
                             <HStack spacing={2}>
@@ -542,12 +576,17 @@ const MultiTeamTreasureMap = ({
                               ))}
                             </HStack>
 
-                            {/* NEW: Buff rewards display */}
                             {node.rewards.buffs &&
                               node.rewards.buffs.length > 0 &&
                               (getNodeAccessStatus(node.nodeId) !== 'locked' || showAllNodes) && (
-                                <Box mt={2} p={2} bg="purple.50" borderRadius="md">
-                                  <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                                <Box my={2} p={2} bg="purple.50" borderRadius="md">
+                                  <Text
+                                    m="0!important"
+                                    pb={1}
+                                    fontSize="xs"
+                                    fontWeight="bold"
+                                    color="#2d3748"
+                                  >
                                     🎁 Buff Rewards:
                                   </Text>
                                   <VStack align="start" spacing={1}>
@@ -567,7 +606,7 @@ const MultiTeamTreasureMap = ({
                                         >
                                           {buff.tier.toUpperCase()}
                                         </Badge>
-                                        <Text fontSize="xs" color="#4a5568">
+                                        <Text m="0!important" fontSize="xs" color="#4a5568">
                                           {buff.buffType.replace(/_/g, ' ')}
                                         </Text>
                                       </HStack>
@@ -606,7 +645,13 @@ const MultiTeamTreasureMap = ({
                   isMultiple
                 )}
               >
-                <Popup maxWidth={250}>
+                <Popup
+                  maxWidth={250}
+                  autoPan={true}
+                  autoPanPaddingTopLeft={[10, 80]}
+                  autoPanPaddingBottomRight={[10, 10]}
+                  keepInView={true}
+                >
                   <VStack align="start" spacing={2}>
                     <Text fontWeight="bold" fontSize="sm" color="#1a1a1a">
                       Teams at this node:
@@ -615,10 +660,10 @@ const MultiTeamTreasureMap = ({
                       <HStack key={team.teamId}>
                         <Box w={4} h={4} bg={color} borderRadius="full" />
                         <VStack align="start" spacing={0}>
-                          <Text fontSize="sm" fontWeight="bold">
+                          <Text fontSize="sm" m="0!important" fontWeight="bold">
                             {team.teamName}
                           </Text>
-                          <Text fontSize="xs" color="#718096">
+                          <Text fontSize="xs" m="0!important" color="#718096">
                             {formatGP(team.currentPot)} • {team.completedNodes?.length || 0} nodes
                           </Text>
                         </VStack>
@@ -661,7 +706,7 @@ const MultiTeamTreasureMap = ({
               <Text color="#2d3748">Completed</Text>
             </HStack>
             <HStack>
-              <Box w={4} h={4} bg="#28AFB0" borderRadius="full" border="2px solid white" />
+              <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
               <Text color="#2d3748">Available</Text>
             </HStack>
             <HStack>
@@ -737,13 +782,13 @@ const MultiTeamTreasureMap = ({
               _hover={{ transform: 'translateX(4px)', boxShadow: 'md' }}
               onClick={() => handleTeamClick(team)}
             >
-              <HStack color={theme.colors.gray[800]}>
+              <HStack color="#2d3748">
                 <Box w={4} h={4} bg={getTeamColor(idx)} borderRadius="full" />
                 <Text fontWeight="bold" fontSize="sm">
                   {team.teamName}
                 </Text>
               </HStack>
-              <HStack spacing={4} color={theme.colors.gray[800]}>
+              <HStack spacing={4} color="#2d3748">
                 <VStack spacing={0} align="end">
                   <Text fontSize="xs" color="#718096">
                     Pot

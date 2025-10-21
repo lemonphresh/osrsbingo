@@ -277,6 +277,12 @@ export const GET_TREASURE_EVENT = gql`
       creatorId
       createdAt
       updatedAt
+      admins {
+        id
+        displayName
+        username
+      }
+      adminIds
       teams {
         activeBuffs
         buffHistory
@@ -405,6 +411,26 @@ export const GET_TREASURE_EVENT_LEADERBOARD = gql`
       currentPot
       completedNodes
       keysHeld
+    }
+  }
+`;
+
+export const GET_ALL_SUBMISSIONS = gql`
+  query GetAllSubmissions($eventId: ID!) {
+    getAllSubmissions(eventId: $eventId) {
+      submissionId
+      teamId
+      nodeId
+      submittedBy
+      proofUrl
+      status
+      reviewedBy
+      reviewedAt
+      submittedAt
+      team {
+        teamId
+        teamName
+      }
     }
   }
 `;

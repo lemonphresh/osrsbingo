@@ -208,7 +208,8 @@ export default function NodeDetailModal({
                 color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                 textAlign="center"
               >
-                Submit completion via Discord bot: <code>!submit {node.nodeId} [proof_link]</code>
+                Submit completion via Discord bot: <code>!submit {node.nodeId} [proof_link]</code>{' '}
+                or <code>!submit {node.nodeId} (attach image file)</code>
               </Text>
             )}
 

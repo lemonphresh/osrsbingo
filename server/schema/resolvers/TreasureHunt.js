@@ -112,6 +112,32 @@ const TreasureHuntResolvers = {
         throw new Error(`Failed to fetch leaderboard: ${error.message}`);
       }
     },
+    getAllSubmissions: async (_, { eventId }) => {
+      try {
+        const submissions = await TreasureSubmission.findAll({
+          where: {
+            status: {
+              [Op.in]: ['PENDING_REVIEW', 'APPROVED'],
+            },
+          },
+          include: [
+            {
+              model: TreasureTeam,
+              as: 'team',
+              where: { eventId },
+            },
+          ],
+          order: [
+            ['status', 'ASC'], // PENDING_REVIEW first
+            ['submittedAt', 'DESC'],
+          ],
+        });
+        return submissions;
+      } catch (error) {
+        console.error('Error fetching all submissions:', error);
+        throw new Error(`Failed to fetch submissions: ${error.message}`);
+      }
+    },
   },
 
   Mutation: {
@@ -518,7 +544,9 @@ const TreasureHuntResolvers = {
         if (!team) throw new Error('Team not found');
 
         if (!team.availableNodes.includes(nodeId)) {
-          throw new Error('This node is not available to your team yet');
+          throw new Error(
+            'This node is not available to your team. You have either completed it already or have not unlocked it yet.'
+          );
         }
 
         const submissionId = `sub_${uuidv4().substring(0, 8)}`;
@@ -554,70 +582,13 @@ const TreasureHuntResolvers = {
           reviewedAt: new Date(),
         });
 
-        if (approved) {
-          const team = submission.team;
-          const event = await TreasureEvent.findByPk(team.eventId, {
-            include: [{ model: TreasureNode, as: 'nodes' }],
-          });
+        console.log(
+          `Submission ${submissionId} ${status} by reviewer ${reviewerId}. ` +
+            `Node completion is handled separately by admin.`
+        );
 
-          const node = event.nodes.find((n) => n.nodeId === submission.nodeId);
-          if (!node) throw new Error('Node not found');
-
-          // Add completed node
-          const completedNodes = [...team.completedNodes, submission.nodeId];
-
-          // Remove from available and add unlocked nodes
-          const availableNodes = team.availableNodes.filter((n) => n !== submission.nodeId);
-          if (node.unlocks && Array.isArray(node.unlocks)) {
-            node.unlocks.forEach((unlockedNode) => {
-              if (
-                !availableNodes.includes(unlockedNode) &&
-                !completedNodes.includes(unlockedNode)
-              ) {
-                availableNodes.push(unlockedNode);
-              }
-            });
-          }
-
-          // Add rewards
-          const currentPot = BigInt(team.currentPot || 0) + BigInt(node.rewards?.gp || 0);
-          const keysHeld = [...(team.keysHeld || [])];
-
-          if (node.rewards?.keys && Array.isArray(node.rewards.keys)) {
-            node.rewards.keys.forEach((key) => {
-              const existingKey = keysHeld.find((k) => k.color === key.color);
-              if (existingKey) {
-                existingKey.quantity += key.quantity;
-              } else {
-                keysHeld.push({ ...key });
-              }
-            });
-          }
-
-          await team.update({
-            completedNodes,
-            availableNodes,
-            currentPot: currentPot.toString(),
-            keysHeld,
-          });
-
-          // NEW: Auto-deny other pending submissions for this same node from this team
-          await TreasureSubmission.update(
-            {
-              status: 'DENIED',
-              reviewedBy: reviewerId,
-              reviewedAt: new Date(),
-            },
-            {
-              where: {
-                teamId: team.teamId,
-                nodeId: submission.nodeId,
-                status: 'PENDING_REVIEW',
-                submissionId: { [Op.ne]: submissionId }, // Don't update the one we just approved
-              },
-            }
-          );
-        }
+        // That's it! Just update the submission status.
+        // The admin will use adminCompleteNode when the cumulative goal is met.
 
         return submission;
       } catch (error) {
@@ -788,6 +759,9 @@ const TreasureHuntResolvers = {
       if (!context.user) throw new Error('Not authenticated');
 
       try {
+        console.log(`\n=== ADMIN UNCOMPLETE NODE ===`);
+        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
+
         // Check if user is an admin of this event
         const event = await TreasureEvent.findByPk(eventId, {
           include: [{ model: TreasureNode, as: 'nodes' }],
@@ -801,9 +775,24 @@ const TreasureHuntResolvers = {
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
 
+        console.log(`Team before update:`, {
+          completedNodes: team.completedNodes,
+          availableNodes: team.availableNodes,
+          currentPot: team.currentPot,
+          keysHeld: team.keysHeld,
+          activeBuffs: team.activeBuffs?.length || 0,
+        });
+
         // Get the node details
         const node = await TreasureNode.findByPk(nodeId);
         if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+        console.log(`Node details:`, {
+          nodeId: node.nodeId,
+          title: node.title,
+          rewards: node.rewards,
+          unlocks: node.unlocks,
+        });
 
         // Check if actually completed
         if (!team.completedNodes?.includes(nodeId)) {
@@ -835,20 +824,24 @@ const TreasureHuntResolvers = {
           });
         }
 
-        // FIXED: Subtract rewards - handle BigInt properly
+        // Subtract GP rewards
         const currentPotBigInt = BigInt(team.currentPot || 0);
         const rewardGpBigInt = BigInt(node.rewards?.gp || 0);
         const newPotBigInt = currentPotBigInt - rewardGpBigInt;
 
         // Ensure pot doesn't go negative and convert to string
         const currentPot = newPotBigInt < 0n ? '0' : newPotBigInt.toString();
+        console.log(`GP: ${team.currentPot} - ${rewardGpBigInt} = ${currentPot}`);
 
+        // Remove key rewards
         const keysHeld = [...(team.keysHeld || [])];
 
         if (node.rewards?.keys && Array.isArray(node.rewards.keys)) {
+          console.log(`Removing ${node.rewards.keys.length} key reward(s):`);
           node.rewards.keys.forEach((key) => {
             const existingKey = keysHeld.find((k) => k.color === key.color);
             if (existingKey) {
+              console.log(`  - Removing ${key.quantity}x ${key.color} key`);
               existingKey.quantity = Math.max(0, existingKey.quantity - key.quantity);
             }
           });
@@ -857,12 +850,62 @@ const TreasureHuntResolvers = {
         // Remove keys with 0 quantity
         const filteredKeys = keysHeld.filter((k) => k.quantity > 0);
 
+        // Remove buff rewards that were gained from this node
+        let activeBuffs = [...(team.activeBuffs || [])];
+
+        if (
+          node.rewards?.buffs &&
+          Array.isArray(node.rewards.buffs) &&
+          node.rewards.buffs.length > 0
+        ) {
+          console.log(`Removing ${node.rewards.buffs.length} buff reward(s):`);
+
+          // For each buff reward the node gave, try to remove ONE matching buff
+          node.rewards.buffs.forEach((buffReward) => {
+            // Find first buff matching this type that hasn't been used
+            const buffIndex = activeBuffs.findIndex((buff) => {
+              // Match by type and ensure it has full uses (meaning it was recently added)
+              // This prevents removing buffs that the player has already partially used
+              return buff.buffType === buffReward.buffType && buff.usesRemaining === buff.maxUses;
+            });
+
+            if (buffIndex !== -1) {
+              console.log(
+                `  - Removed buff: ${activeBuffs[buffIndex].buffName} (${(
+                  activeBuffs[buffIndex].reduction * 100
+                ).toFixed(0)}% reduction)`
+              );
+              activeBuffs.splice(buffIndex, 1);
+            } else {
+              console.log(
+                `  - Could not find unused ${buffReward.buffType} buff to remove (may have been used)`
+              );
+            }
+          });
+        }
+
+        console.log(`Buffs after removal: ${activeBuffs.length} total`);
+
         await team.update({
           completedNodes,
           availableNodes,
           currentPot,
           keysHeld: filteredKeys,
+          activeBuffs,
         });
+
+        // Reload the team to verify the update
+        await team.reload();
+
+        console.log(`Team after update:`, {
+          completedNodes: team.completedNodes,
+          availableNodes: team.availableNodes,
+          currentPot: team.currentPot,
+          keysHeld: team.keysHeld,
+          activeBuffs: team.activeBuffs?.length || 0,
+        });
+
+        console.log(`=== COMPLETE ===\n`);
 
         return team;
       } catch (error) {
