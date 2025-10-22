@@ -174,6 +174,7 @@ const server = new ApolloServer({
     const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
     const SECRET = process.env.JWTSECRETKEY;
+    const discordUserId = req.headers['x-discord-user-id'];
 
     if (!SECRET) {
       throw new Error('❌ JWT secret key is missing!');
@@ -186,7 +187,7 @@ const server = new ApolloServer({
         console.error('❌ Invalid or expired token');
       }
     }
-    return { req, res, user, jwtSecret: SECRET };
+    return { req, res, user, jwtSecret: SECRET, discordUserId };
   },
   formatResponse: (response) => {
     console.log('GraphQL Response:', response);

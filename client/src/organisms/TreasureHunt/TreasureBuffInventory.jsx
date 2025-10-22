@@ -26,7 +26,7 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
 
   if (!buffs || buffs.length === 0) {
     return (
-      <Box bg={currentColors.cardBg} p={4} borderRadius="md" borderWidth={1}>
+      <Box bg={currentColors.cardBg} p={4} maxW="600px" borderRadius="md" borderWidth={1}>
         <Text fontSize="sm" color="gray.500" textAlign="center">
           No available buffs. Complete nodes to earn buffs!
         </Text>

@@ -3,7 +3,7 @@ const axios = require('axios');
 
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
 
-async function graphqlRequest(query, variables = {}) {
+async function graphqlRequest(query, variables = {}, discordUserId = null) {
   try {
     const response = await axios.post(
       GRAPHQL_ENDPOINT,
@@ -14,6 +14,8 @@ async function graphqlRequest(query, variables = {}) {
       {
         headers: {
           'Content-Type': 'application/json',
+          // Add Discord user ID as a header for authentication
+          ...(discordUserId && { 'X-Discord-User-Id': discordUserId }),
         },
       }
     );

@@ -22,6 +22,7 @@ const typeDefs = gql`
     admin: Boolean
     username: String!
     displayName: String!
+    discordUserId: String
     rsn: String
     permissions: [String]
     token: String
@@ -169,6 +170,7 @@ const typeDefs = gql`
   type Query {
     getUser(id: ID!): User
     getUsers: [User!]
+    getUserByDiscordId(discordUserId: String!): User
     getBingoBoard(id: ID!): BingoBoard
     getBingoTile(id: ID!): BingoTile
     getPublicBoards(
@@ -370,6 +372,9 @@ const typeDefs = gql`
 
   type Mutation {
     incrementVisit: Int!
+
+    linkDiscordAccount(userId: ID!, discordUserId: String!): User!
+    unlinkDiscordAccount(userId: ID!): User!
 
     createUser(
       username: String!

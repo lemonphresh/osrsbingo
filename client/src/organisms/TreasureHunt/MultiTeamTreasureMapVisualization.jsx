@@ -548,7 +548,7 @@ const MultiTeamTreasureMap = ({
           style={{ height: '100%', width: '100%', background: '#64769e' }}
           scrollWheelZoom={true}
         >
-          <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={0.85} />
+          <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={1} />
           <RecenterButton nodes={nodes} />
           <MapController pulsingNodeId={focusNodeId} nodes={nodes} />
 

@@ -35,6 +35,88 @@ function getDifficultyName(difficultyTier) {
   return tierMap[difficultyTier] || 'UNKNOWN';
 }
 
+async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
+  if (!discordUserId) return false;
+
+  const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+  if (!team) return false;
+
+  // Check if Discord ID is in team members
+  if (team.members?.includes(discordUserId)) return true;
+
+  // Also check if user's linked account is in team
+  const user = await User.findOne({
+    where: { discordUserId },
+    attributes: ['id'],
+  });
+
+  return false; // For now, only check Discord members list
+}
+
+// ==================== AUTHORIZATION HELPERS ====================
+
+/**
+ * Check if user is an admin of the event
+ */
+async function isEventAdmin(userId, eventId) {
+  if (!userId) return false;
+
+  const event = await TreasureEvent.findByPk(eventId);
+  if (!event) return false;
+
+  return event.creatorId === userId || event.adminIds?.includes(userId);
+}
+
+/**
+ * Check if Discord user is a member of the team
+ */
+async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
+  if (!discordUserId) return false;
+
+  const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+  if (!team) return false;
+
+  // Check if Discord ID is in team members
+  return team.members?.includes(discordUserId);
+}
+
+/**
+ * Check if user (by website ID) is linked to a Discord account on the team
+ */
+async function isWebUserOnTeam(userId, teamId, eventId) {
+  if (!userId) return false;
+
+  const user = await User.findByPk(userId);
+  if (!user?.discordUserId) return false;
+
+  return isDiscordUserOnTeam(user.discordUserId, teamId, eventId);
+}
+
+/**
+ * Main authorization check - returns true if user can perform team actions
+ */
+async function canPerformTeamAction(context, teamId, eventId) {
+  // Check if user is event admin
+  if (context.user) {
+    const isAdmin = await isEventAdmin(context.user.id, eventId);
+    if (isAdmin) return { authorized: true, reason: 'admin' };
+  }
+
+  // Check if Discord user (from bot) is on team
+  if (context.discordUserId) {
+    const isOnTeam = await isDiscordUserOnTeam(context.discordUserId, teamId, eventId);
+    if (isOnTeam) return { authorized: true, reason: 'discord_member' };
+  }
+
+  // Check if website user's linked Discord is on team
+  if (context.user) {
+    const isOnTeam = await isWebUserOnTeam(context.user.id, teamId, eventId);
+    if (isOnTeam) return { authorized: true, reason: 'linked_member' };
+  }
+
+  return { authorized: false, reason: 'not_authorized' };
+}
+
 const TreasureHuntResolvers = {
   Query: {
     getTreasureEvent: async (_, { eventId }) => {
@@ -657,14 +739,12 @@ const TreasureHuntResolvers = {
         console.log(`\n=== ADMIN COMPLETE NODE ===`);
         console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
 
-        // Check if user is an admin of this event
         const event = await TreasureEvent.findByPk(eventId, {
           include: [{ model: TreasureNode, as: 'nodes' }],
         });
         if (!event) throw new Error('Event not found');
 
-        const isAdmin =
-          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        const isAdmin = await isEventAdmin(context.user.id, eventId);
         if (!isAdmin) throw new Error('Not authorized. Admin access required.');
 
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
@@ -846,17 +926,12 @@ const TreasureHuntResolvers = {
       if (!context.user) throw new Error('Not authenticated');
 
       try {
-        console.log(`\n=== ADMIN UNCOMPLETE NODE ===`);
-        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
-
-        // Check if user is an admin of this event
         const event = await TreasureEvent.findByPk(eventId, {
           include: [{ model: TreasureNode, as: 'nodes' }],
         });
         if (!event) throw new Error('Event not found');
 
-        const isAdmin =
-          event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+        const isAdmin = await isEventAdmin(context.user.id, eventId);
         if (!isAdmin) throw new Error('Not authorized. Admin access required.');
 
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
@@ -1002,11 +1077,22 @@ const TreasureHuntResolvers = {
     },
 
     applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
-      if (!context.user) throw new Error('Not authenticated');
+      console.log('\n=== APPLY BUFF AUTHORIZATION ===');
+      console.log('Context:', {
+        userId: context.user?.id,
+        discordUserId: context.discordUserId,
+      });
 
       try {
-        console.log(`\n=== APPLY BUFF TO NODE ===`);
-        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}, Buff: ${buffId}`);
+        const authCheck = await canPerformTeamAction(context, teamId, eventId);
+
+        console.log('Authorization result:', authCheck);
+
+        if (!authCheck.authorized) {
+          throw new Error('Not authorized. You must be an event admin or a member of this team.');
+        }
+
+        console.log(`✅ Authorized as: ${authCheck.reason}`);
 
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
@@ -1060,7 +1146,7 @@ const TreasureHuntResolvers = {
 
         console.log(`Modified objective:`, modifiedObjective);
 
-        // Update node with modified objective (this is stored temporarily)
+        // Update node with modified objective
         await node.update({
           objective: modifiedObjective,
         });
@@ -1099,16 +1185,13 @@ const TreasureHuntResolvers = {
         console.log(`Buff applied successfully`);
         console.log(`=== COMPLETE ===\n`);
 
-        // Reload to get fresh data
         await team.reload();
-
-        return team; // ← Just return the team directly
+        return team;
       } catch (error) {
         console.error('Error applying buff:', error);
         throw new Error(`Failed to apply buff: ${error.message}`);
       }
     },
-
     adminGiveBuff: async (_, { eventId, teamId, buffType }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 
@@ -1209,8 +1292,18 @@ const TreasureHuntResolvers = {
       }
     },
 
-    purchaseInnReward: async (_, { eventId, teamId, rewardId }) => {
+    purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {
+      console.log('\n=== PURCHASE INN REWARD AUTHORIZATION ===');
+
       try {
+        const authCheck = await canPerformTeamAction(context, teamId, eventId);
+
+        if (!authCheck.authorized) {
+          throw new Error('Not authorized. You must be an event admin or a member of this team.');
+        }
+
+        console.log(`✅ Authorized as: ${authCheck.reason}`);
+
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
 
@@ -1277,6 +1370,7 @@ const TreasureHuntResolvers = {
           innTransactions,
         });
 
+        console.log(`✅ Purchase complete`);
         return team;
       } catch (error) {
         console.error('Error purchasing inn reward:', error);

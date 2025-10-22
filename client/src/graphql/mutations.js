@@ -498,6 +498,25 @@ export const UPDATE_TREASURE_TEAM = gql`
     }
   }
 `;
+export const LINK_DISCORD_ACCOUNT = gql`
+  mutation LinkDiscordAccount($userId: ID!, $discordUserId: String!) {
+    linkDiscordAccount(userId: $userId, discordUserId: $discordUserId) {
+      id
+      discordUserId
+      displayName
+    }
+  }
+`;
+
+export const UNLINK_DISCORD_ACCOUNT = gql`
+  mutation UnlinkDiscordAccount($userId: ID!) {
+    unlinkDiscordAccount(userId: $userId) {
+      id
+      discordUserId
+      displayName
+    }
+  }
+`;
 
 export const SUBMIT_NODE_COMPLETION = gql`
   mutation SubmitNodeCompletion(

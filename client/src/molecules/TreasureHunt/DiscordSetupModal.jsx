@@ -214,7 +214,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
 
                 <Box p={2} bg={currentColors.codeBg} borderRadius="md">
                   <Code bg="transparent" color={currentColors.orange.base}>
-                    !submit &lt;node_id&gt; imgur.com/screenshot.png
+                    !submit &lt;node_id&gt; link_to_screenshot_img
                   </Code>
                   <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
                     Submit node completion with proof (URL or attach image to message)
@@ -225,7 +225,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                       bg="transparent"
                       color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
                     >
-                      Option 1: !submit evt_abc_node_042 https://imgur.com/proof.png
+                      Option 1: !submit evt_abc_node_042 link_to_screenshot_img
                     </Code>
                     <Code
                       fontSize="xs"

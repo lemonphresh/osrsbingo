@@ -8,13 +8,13 @@ const {
 module.exports = {
   name: 'submit',
   description: 'Submit node completion',
-  usage: '!submit <node_id> imgur.com/screenshot.png OR attach an image',
+  usage: '!submit <node_id> link_to_screenshot_img OR attach an image',
   async execute(message, args) {
     if (args.length < 1) {
       return message.reply(
         '❌ Usage: `!submit <node_id> <proof_url>` OR `!submit <node_id>` with an attached image\n' +
           'Examples:\n' +
-          '• `!submit evt_abc_node_042 https://imgur.com/screenshot.png`\n' +
+          '• `!submit evt_abc_node_042 link_to_screenshot_img`\n' +
           '• `!submit evt_abc_node_042` (with image attached to your message)'
       );
     }
@@ -68,7 +68,7 @@ module.exports = {
 
       // Get node details to check location group
       const verifyQuery = `
-        query VerifyNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+        query VerifyNode($eventId: ID!, $teamId: ID!) {
           getTreasureEvent(eventId: $eventId) {
             mapStructure
             nodes {
@@ -89,7 +89,6 @@ module.exports = {
       const verifyData = await graphqlRequest2(verifyQuery, {
         eventId,
         teamId: team.teamId,
-        nodeId,
       });
 
       const node = verifyData.getTreasureEvent.nodes.find((n) => n.nodeId === nodeId);

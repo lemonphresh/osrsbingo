@@ -25,7 +25,15 @@ import { CheckIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
 
-export default function InnModal({ isOpen, onClose, node, team, eventId, onPurchaseComplete }) {
+export default function InnModal({
+  isOpen,
+  onClose,
+  node,
+  team,
+  eventId,
+  onPurchaseComplete,
+  currentUser, // NEW: Add current user prop
+}) {
   const { colorMode } = useColorMode();
   const toast = useToast();
   const [selectedReward, setSelectedReward] = useState(null);
@@ -51,6 +59,10 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
 
   if (!node || node.nodeType !== 'INN' || !team) return null;
 
+  // NEW: Check if current user is a member of this team
+  const isTeamMember =
+    currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
+
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
   };
@@ -73,6 +85,18 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
   };
 
   const handlePurchase = async (rewardId) => {
+    // NEW: Check team membership before allowing purchase
+    if (!isTeamMember) {
+      toast({
+        title: 'Not Authorized',
+        description: 'You must be a member of this team to make purchases',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
       await purchaseReward({
         variables: {
@@ -120,6 +144,19 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
             <Text color={currentColors.textColor}>{node.description}</Text>
 
             <Divider />
+
+            {/* NEW: Not a Team Member Alert */}
+            {!isTeamMember && (
+              <Alert status="warning" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>View Only</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    You are not a member of this team. Link your Discord account to make purchases.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
 
             {/* Already Purchased Alert */}
             {hasAlreadyPurchased && (
@@ -171,7 +208,8 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                 <VStack spacing={3} align="stretch">
                   {availableRewards.map((reward) => {
                     const affordable = canAfford(reward.key_cost);
-                    const isDisabled = !affordable || hasAlreadyPurchased;
+                    // NEW: Disable if not team member OR already purchased OR can't afford
+                    const isDisabled = !isTeamMember || !affordable || hasAlreadyPurchased;
 
                     return (
                       <Box
@@ -179,7 +217,9 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                         p={4}
                         borderWidth={2}
                         borderColor={
-                          affordable && !hasAlreadyPurchased ? currentColors.green.base : 'gray.500'
+                          affordable && !hasAlreadyPurchased && isTeamMember
+                            ? currentColors.green.base
+                            : 'gray.500'
                         }
                         borderRadius="md"
                         bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
@@ -207,7 +247,12 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                               </Text>
                             </HStack>
 
-                            {!affordable && !hasAlreadyPurchased && (
+                            {!isTeamMember && (
+                              <Text fontSize="xs" color="orange.500">
+                                Not a team member
+                              </Text>
+                            )}
+                            {isTeamMember && !affordable && !hasAlreadyPurchased && (
                               <Text fontSize="xs" color="red.500">
                                 Insufficient keys
                               </Text>

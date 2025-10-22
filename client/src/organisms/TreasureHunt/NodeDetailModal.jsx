@@ -23,10 +23,13 @@ export default function NodeDetailModal({
   isOpen,
   onClose,
   node,
+  team,
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
+  onApplyBuff,
   appliedBuff,
+  currentUser, // NEW: Add current user prop
 }) {
   const { colorMode } = useColorMode();
   const colors = {
@@ -50,6 +53,11 @@ export default function NodeDetailModal({
 
   if (!node) return null;
 
+  // NEW: Check if current user is a member of this team
+  const isTeamMember =
+    currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
+
+  console.log({ currentUser, isTeamMember, team });
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
   };
@@ -99,6 +107,13 @@ export default function NodeDetailModal({
   // Only show buff rewards if node is available or completed (not locked)
   const showBuffRewards =
     (!isLocked && node.rewards?.buffs && node.rewards.buffs?.length > 0) || adminMode;
+
+  // NEW: Check if user can apply buffs
+  const canApplyBuffs =
+    isAvailable &&
+    isTeamMember &&
+    !appliedBuff &&
+    team?.activeBuffs?.some((buff) => buff.objectiveTypes?.includes(node.objective?.type));
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -230,6 +245,20 @@ export default function NodeDetailModal({
               </Box>
             )}
 
+            {canApplyBuffs && (
+              <Button
+                colorScheme="purple"
+                size="md"
+                onClick={() => {
+                  onApplyBuff && onApplyBuff(node);
+                  onClose();
+                }}
+                leftIcon={<Text>✨</Text>}
+              >
+                Apply Buff to Reduce Requirement
+              </Button>
+            )}
+
             {isAvailable && !adminMode && (
               <Text
                 fontSize="sm"
@@ -242,7 +271,7 @@ export default function NodeDetailModal({
                 <Divider mb={2} />
                 Submit completion via Discord bot:
                 <br />
-                <code>!submit {node.nodeId} imgur.com/screenshot.png</code> <br />
+                <code>!submit {node.nodeId} link_to_screenshot_img</code> <br />
                 or
                 <br />
                 <code>!submit {node.nodeId} (attach image file)</code>
