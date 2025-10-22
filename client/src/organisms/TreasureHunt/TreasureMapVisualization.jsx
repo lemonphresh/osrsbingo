@@ -129,7 +129,7 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                     }
                     ${
                       status === 'completed'
-                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: #2d2b2bff; font-size: 24px;">✓</div>'
+                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); text-shadow: 1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black; color: #f36757ff; font-size: 24px;">✓</div>'
                         : ''
                     }
                      ${

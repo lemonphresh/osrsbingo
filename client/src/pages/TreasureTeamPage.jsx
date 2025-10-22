@@ -173,10 +173,10 @@ const TreasureTeamView = () => {
     if (status === 'locked') return colorMode === 'dark' ? '#4A5568' : '#CBD5E0';
     if (status === 'completed') return currentColors.green.base;
     // difficultyTier: 1 (easy), 3 (medium), 5 (hard)
-    const tier = Number(node.difficultyTier);
+    const tier = parseInt(node.difficultyTier);
 
     if (tier === 5) return currentColors.red; // hard = red
-    if (tier === 3) return currentColors.orange; // medium = orange (note: not .base)
+    if (tier === 3) return currentColors.orange;
     if (tier === 1) return currentColors.green.base; // easy = green
 
     // Fallbacks if tier missing
@@ -689,7 +689,7 @@ const TreasureTeamView = () => {
                       }
                       borderWidth={3}
                       borderColor={
-                        isLocationLocked ? 'orange.500' : getNodeBorderColor(status, node.nodeType)
+                        isLocationLocked ? 'orange.500' : getNodeBorderColor(status, node)
                       }
                       cursor={isLocked || isLocationLocked ? 'not-allowed' : 'pointer'}
                       opacity={isLocked || isLocationLocked ? 0.7 : 1}
