@@ -54,6 +54,7 @@ import { MdHome, MdOutlineArrowBack } from 'react-icons/md';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
 import { FaGem } from 'react-icons/fa';
 import { useCallback } from 'react';
+import TreasureHuntTutorial from '../organisms/TreasureHunt/TreasureHuntTutorial';
 
 const TreasureTeamView = () => {
   const { colorMode } = useColorMode();
@@ -531,6 +532,14 @@ const TreasureTeamView = () => {
               </StatNumber>
             </Stat>
           </StatGroup>
+          <hr />
+
+          {team.completedNodes?.length === 0 && !adminMode && (
+            <>
+              <TreasureHuntTutorial colorMode={colorMode} compact={false} />
+            </>
+          )}
+
           <hr />
 
           <Box>

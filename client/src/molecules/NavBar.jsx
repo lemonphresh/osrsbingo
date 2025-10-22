@@ -82,11 +82,11 @@ const NavBar = () => {
                   w="100%"
                   textAlign="left"
                 >
-                  <Link href="/treasure-team">Give it a shot!</Link>
+                  <Link to="/treasure-team">Give it a shot!</Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
                   Also I take{' '}
-                  <Link href="https://cash.app/$lemonlikesgirls/5.00" target="_blank">
+                  <Link to="https://cash.app/$lemonlikesgirls/5.00" target="_blank">
                     <u>donations</u>
                   </Link>
                   , hosting ain't cheap! ;-)

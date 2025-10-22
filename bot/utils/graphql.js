@@ -2,6 +2,7 @@
 const axios = require('axios');
 
 const GRAPHQL_ENDPOINT = process.env.GRAPHQL_ENDPOINT || 'http://localhost:4000/graphql';
+const VERBOSE_LOGGING = process.env.NODE_ENV !== 'production';
 
 async function graphqlRequest(query, variables = {}, discordUserId = null) {
   try {
@@ -29,6 +30,9 @@ async function graphqlRequest(query, variables = {}, discordUserId = null) {
   } catch (error) {
     if (error.response) {
       console.error('GraphQL Response Error:', error.response.data);
+      if (VERBOSE_LOGGING) {
+        console.error('Response data:', error.response.data);
+      }
     } else if (error.request) {
       console.error('GraphQL Request Error: No response received');
     } else {
@@ -72,7 +76,9 @@ async function findTeamForUser(eventId, userId, userRoles) {
 // Get event ID from channel topic
 function getEventIdFromChannel(channel) {
   const topic = channel.topic || '';
-  console.log('Channel topic:', topic);
+  if (VERBOSE_LOGGING) {
+    console.log('Channel topic:', topic);
+  }
   return topic;
 }
 
