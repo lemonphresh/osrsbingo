@@ -1,0 +1,280 @@
+import React from 'react';
+import {
+  Box,
+  VStack,
+  HStack,
+  Text,
+  Heading,
+  Badge,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  OrderedList,
+  ListItem,
+  Icon,
+  Code,
+  Divider,
+} from '@chakra-ui/react';
+import { InfoIcon, CheckCircleIcon } from '@chakra-ui/icons';
+
+/**
+ * Tutorial component explaining how to get started with the Treasure Hunt
+ * Shows when team has 0 completed nodes and START node is available
+ */
+export const TreasureHuntTutorial = ({ colorMode = 'dark', compact = false }) => {
+  const colors = {
+    dark: {
+      purple: '#7D5FFF',
+      green: '#43AA8B',
+      yellow: '#F4D35E',
+      textColor: '#F7FAFC',
+      cardBg: '#2D3748',
+    },
+    light: {
+      purple: '#7D5FFF',
+      green: '#43AA8B',
+      yellow: '#F4D35E',
+      textColor: '#171923',
+      cardBg: 'white',
+    },
+  };
+
+  const currentColors = colors[colorMode];
+
+  if (compact) {
+    return (
+      <Alert
+        status="info"
+        variant="left-accent"
+        borderRadius="md"
+        bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
+        borderColor={currentColors.purple}
+      >
+        <AlertIcon color={currentColors.purple} />
+        <Box flex="1">
+          <AlertTitle fontSize="sm" color={currentColors.textColor}>
+            🎯 Getting Started
+          </AlertTitle>
+          <AlertDescription fontSize="xs" color={currentColors.textColor}>
+            Complete the{' '}
+            <Badge colorScheme="purple" fontSize="xs">
+              START
+            </Badge>{' '}
+            node first to unlock your initial nodes and begin the treasure hunt!
+          </AlertDescription>
+        </Box>
+      </Alert>
+    );
+  }
+
+  return (
+    <Box
+      bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
+      borderWidth={2}
+      borderColor={currentColors.purple}
+      borderRadius="lg"
+      p={6}
+      mb={4}
+    >
+      <VStack align="stretch" spacing={4}>
+        <HStack>
+          <Icon as={InfoIcon} color={currentColors.purple} boxSize={6} />
+          <Heading size="md" color={currentColors.textColor}>
+            🗺️ Welcome to the Treasure Hunt!
+          </Heading>
+        </HStack>
+
+        <Text fontSize="sm" color={currentColors.textColor}>
+          Your adventure begins at the <Badge colorScheme="purple">START</Badge> node. Complete it
+          to unlock your first set of objectives and begin earning GP!
+        </Text>
+
+        <Divider borderColor={currentColors.purple} opacity={0.3} />
+
+        <Box>
+          <Heading size="sm" mb={3} color={currentColors.textColor}>
+            📋 How to Complete the START Node:
+          </Heading>
+          <OrderedList spacing={2} fontSize="sm" color={currentColors.textColor} pl={2}>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Find the START node
+              </Text>{' '}
+              in your map or available nodes list below
+            </ListItem>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Click on it
+              </Text>{' '}
+              to view the objective details
+            </ListItem>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Complete the objective
+              </Text>{' '}
+              in Old School RuneScape
+            </ListItem>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Take a screenshot
+              </Text>{' '}
+              as proof of completion
+            </ListItem>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Submit via Discord bot
+              </Text>{' '}
+              using one of these commands:
+              <VStack align="stretch" mt={2} spacing={1}>
+                <Code fontSize="xs" p={2} borderRadius="md">
+                  !submit [node_id] [screenshot_url]
+                </Code>
+                <Text fontSize="xs" color="gray.500" textAlign="center">
+                  or attach an image
+                </Text>
+                <Code fontSize="xs" p={2} borderRadius="md">
+                  !submit [node_id] (attach image file)
+                </Code>
+              </VStack>
+            </ListItem>
+            <ListItem>
+              <Text as="span" fontWeight="bold">
+                Wait for admin approval
+              </Text>{' '}
+              - your submission will be reviewed shortly
+            </ListItem>
+          </OrderedList>
+        </Box>
+
+        <Divider borderColor={currentColors.purple} opacity={0.3} />
+
+        <Box
+          bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
+          p={3}
+          borderRadius="md"
+          borderWidth={1}
+          borderColor={currentColors.green}
+        >
+          <HStack mb={2}>
+            <Icon as={CheckCircleIcon} color={currentColors.green} />
+            <Heading size="xs" color={currentColors.textColor}>
+              What Happens Next?
+            </Heading>
+          </HStack>
+          <VStack align="stretch" spacing={1} fontSize="sm" color={currentColors.textColor}>
+            <Text>✅ You'll earn GP and possibly keys</Text>
+            <Text>🔓 New nodes will unlock based on the map structure</Text>
+            <Text>🎯 You can begin completing harder objectives for bigger rewards</Text>
+            <Text>🏠 Complete Inn nodes to trade keys for bonus GP</Text>
+            <Text>✨ Earn buffs to reduce future objective requirements</Text>
+          </VStack>
+        </Box>
+
+        <Box
+          bg={colorMode === 'dark' ? 'yellow.900' : 'yellow.50'}
+          p={3}
+          borderRadius="md"
+          borderWidth={1}
+          borderColor={currentColors.yellow}
+        >
+          <HStack mb={2}>
+            <Text fontSize="lg">💡</Text>
+            <Heading size="xs" color={currentColors.textColor}>
+              Pro Tips
+            </Heading>
+          </HStack>
+          <VStack align="stretch" spacing={1} fontSize="xs" color={currentColors.textColor}>
+            <Text>
+              • Use <Code fontSize="xs">!nodes</Code> in Discord to see available nodes anytime
+            </Text>
+            <Text>
+              • Use <Code fontSize="xs">!team</Code> to check your current GP, keys, and buffs
+            </Text>
+            <Text>• Strategic use of buffs can save you hours of grinding - use them wisely!</Text>
+            <Text>• Check the leaderboard regularly to see how your team stacks up</Text>
+          </VStack>
+        </Box>
+      </VStack>
+    </Box>
+  );
+};
+
+/**
+ * Inline tutorial for START node modal
+ * More compact version for inside the modal
+ */
+export const StartNodeTutorial = ({ colorMode = 'dark', nodeId }) => {
+  const colors = {
+    dark: {
+      purple: '#7D5FFF',
+      textColor: '#F7FAFC',
+    },
+    light: {
+      purple: '#7D5FFF',
+      textColor: '#171923',
+    },
+  };
+
+  const currentColors = colors[colorMode];
+
+  return (
+    <Box
+      bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
+      p={4}
+      borderRadius="md"
+      borderWidth={1}
+      borderColor={currentColors.purple}
+    >
+      <VStack align="stretch" spacing={3}>
+        <HStack>
+          <Icon as={InfoIcon} color={currentColors.purple} />
+          <Heading size="sm" color={currentColors.textColor}>
+            🎯 First Steps
+          </Heading>
+        </HStack>
+
+        <Text fontSize="sm" color={currentColors.textColor}>
+          This is your <Badge colorScheme="purple">START</Badge> node - complete it to unlock your
+          first set of objectives!
+        </Text>
+
+        <Divider borderColor={currentColors.purple} opacity={0.3} />
+
+        <Box>
+          <Text fontSize="xs" fontWeight="bold" mb={2} color={currentColors.textColor}>
+            To submit completion:
+          </Text>
+          <VStack align="stretch" spacing={2}>
+            <Text fontSize="xs" color={currentColors.textColor}>
+              1. Complete the objective in-game
+            </Text>
+            <Text fontSize="xs" color={currentColors.textColor}>
+              2. Take a screenshot as proof
+            </Text>
+            <Text fontSize="xs" color={currentColors.textColor}>
+              3. Submit via Discord:
+            </Text>
+            <Code fontSize="xs" p={2} borderRadius="md">
+              !submit {nodeId} [screenshot_url]
+            </Code>
+            <Text fontSize="xs" color="gray.500" textAlign="center">
+              or
+            </Text>
+            <Code fontSize="xs" p={2} borderRadius="md">
+              !submit {nodeId} (attach image)
+            </Code>
+          </VStack>
+        </Box>
+
+        <Box bg={colorMode === 'dark' ? 'green.900' : 'green.50'} p={2} borderRadius="md">
+          <Text fontSize="xs" color={currentColors.textColor}>
+            ✅ Once approved, new nodes will automatically unlock and you'll be on your way!
+          </Text>
+        </Box>
+      </VStack>
+    </Box>
+  );
+};
+
+export default TreasureHuntTutorial;

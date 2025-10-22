@@ -108,8 +108,8 @@ module.exports = {
               : '')
         );
 
-      // Show truly available nodes first
-      trulyAvailable.slice(0, 8).forEach((node) => {
+      // FIXED: Limit to 5 nodes instead of 8 to reduce embed size
+      trulyAvailable.slice(0, 5).forEach((node) => {
         // Handle nodes without objectives (like START or INN nodes)
         if (!node.objective) {
           // Check if Inn is already traded
@@ -122,9 +122,9 @@ module.exports = {
               hasTransaction ? ' ✅' : ''
             }`,
             value:
-              `**Node Type:** ${node.nodeType}\n` +
+              `**Type:** ${node.nodeType}\n` +
               `${node.description || 'No objective required'}\n` +
-              (hasTransaction ? '✅ Already purchased from this Inn\n' : '') +
+              (hasTransaction ? '✅ Already purchased\n' : '') +
               `**ID:** \`${node.nodeId}\``,
             inline: false,
           });
@@ -144,55 +144,53 @@ module.exports = {
           ? ` [${getDifficultyName(node.difficultyTier)}]`
           : '';
 
+        // FIXED: Shortened field values to reduce embed size
         embed.addFields({
           name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${
             node.title
           }${difficultyBadge}${buffIndicator}`,
           value:
-            `**Objective:** ${objective.type}: ${objective.quantity} ${objective.target}\n` +
-            `**Rewards:** ${(rewards.gp / 1000000).toFixed(1)}M GP` +
+            `**Obj:** ${objective.type}: ${objective.quantity} ${objective.target}\n` +
+            `**Reward:** ${(rewards.gp / 1000000).toFixed(1)}M GP` +
             (rewards.keys && rewards.keys.length > 0
               ? `, ${rewards.keys.map((k) => `${k.quantity}x ${k.color}`).join(', ')}`
               : '') +
-            (rewards.buffs && rewards.buffs.length > 0
-              ? ` 🎁 +${rewards.buffs.length} buff(s)`
-              : '') +
+            (rewards.buffs && rewards.buffs.length > 0 ? ` 🎁 +${rewards.buffs.length}` : '') +
             `\n**ID:** \`${node.nodeId}\``,
           inline: false,
         });
       });
 
-      // Show blocked locations separately
+      // Show blocked locations separately (limit to 2)
       if (blockedByLocation.length > 0) {
         embed.addFields({
           name: '⚠️ Locations Already Completed',
           value: blockedByLocation
-            .slice(0, 3)
+            .slice(0, 2)
             .map((node) => {
               const completedNode = node.completedNodeInGroup;
               const completedDiff = completedNode
                 ? getDifficultyName(completedNode.difficultyTier)
                 : 'UNKNOWN';
               const thisDiff = getDifficultyName(node.difficultyTier);
-              return (
-                `🔒 **${node.mapLocation}** - ${thisDiff} difficulty\n` +
-                `   ✅ Already completed ${completedDiff} difficulty`
-              );
+              return `🔒 ${node.mapLocation} - ${thisDiff} (✅ ${completedDiff})`;
             })
-            .join('\n\n'),
+            .join('\n'),
           inline: false,
         });
       }
 
-      if (trulyAvailable.length > 8) {
+      // FIXED: Update footer message
+      if (trulyAvailable.length > 5) {
         embed.setFooter({
-          text: `Showing 8 of ${trulyAvailable.length} available nodes. Use the web dashboard to see all.`,
+          text: `Showing 5 of ${trulyAvailable.length} nodes. Use web dashboard for all.`,
         });
       }
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error:', error);
+      // FIXED: Reduced error logging to prevent log overflow
+      console.error('nodes command error:', error.message);
 
       // Provide more helpful errors
       if (error.message.includes('Not authenticated')) {

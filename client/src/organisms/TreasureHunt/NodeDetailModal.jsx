@@ -18,6 +18,7 @@ import {
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
+import { StartNodeTutorial } from './TreasureHuntTutorial';
 
 export default function NodeDetailModal({
   isOpen,
@@ -32,6 +33,7 @@ export default function NodeDetailModal({
   currentUser, // NEW: Add current user prop
 }) {
   const { colorMode } = useColorMode();
+  if (!node) return null;
   const colors = {
     dark: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -49,6 +51,10 @@ export default function NodeDetailModal({
     },
   };
 
+  const isStartNode = node?.nodeType === 'START';
+  const isFirstNode = team?.completedNodes?.length === 0;
+  const showStartTutorial = isStartNode && isFirstNode && !adminMode;
+
   const currentColors = colors[colorMode];
 
   if (!node) return null;
@@ -57,7 +63,6 @@ export default function NodeDetailModal({
   const isTeamMember =
     currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
 
-  console.log({ currentUser, isTeamMember, team });
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
   };
@@ -119,6 +124,12 @@ export default function NodeDetailModal({
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg}>
+        {showStartTutorial && (
+          <>
+            <StartNodeTutorial colorMode={colorMode} nodeId={node.nodeId} />
+            <Divider />
+          </>
+        )}
         <ModalHeader color={currentColors.textColor}>{node.title}</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
@@ -245,6 +256,7 @@ export default function NodeDetailModal({
               </Box>
             )}
 
+            {/* NEW: Apply Buff Button for Team Members */}
             {canApplyBuffs && (
               <Button
                 colorScheme="purple"
