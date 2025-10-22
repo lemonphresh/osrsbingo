@@ -79,6 +79,7 @@ import { MdOutlineArrowBack } from 'react-icons/md';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
+import { FaCog } from 'react-icons/fa';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -373,7 +374,7 @@ const TreasureEventView = () => {
 
             <HStack>
               <Badge
-                bg={currentColors.green.base}
+                bg={event.status === 'DRAFT' ? currentColors.red : currentColors.green.base}
                 color="white"
                 px={2}
                 py={1}
@@ -514,18 +515,21 @@ const TreasureEventView = () => {
 
           {event.nodes && event.nodes.length > 0 && (
             <Box width="100%">
-              {isEventAdmin && (
+              {isEventAdmin && event.status !== 'DRAFT' && (
                 <Card mb={4} bg={currentColors.cardBg} borderRadius="md">
                   <CardBody>
                     <HStack justify="space-between" align="center">
-                      <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
-                          Admin Map Controls
-                        </Text>
-                        <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
-                          Toggle to show/hide locked nodes on the map
-                        </Text>
-                      </VStack>
+                      <HStack>
+                        <Icon as={FaCog} boxSize={10} mr={2} color={currentColors.purple.base} />
+                        <VStack align="start" spacing={1}>
+                          <Text fontWeight="bold" color={currentColors.textColor}>
+                            Admin Map Controls
+                          </Text>
+                          <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
+                            Toggle to show/hide locked nodes on the map
+                          </Text>
+                        </VStack>
+                      </HStack>
                       <HStack spacing={3}>
                         <Text fontSize="sm" color={currentColors.textColor}>
                           Show All Nodes
@@ -658,20 +662,22 @@ const TreasureEventView = () => {
                               </Td>
                               <Td>
                                 <HStack spacing={2}>
-                                  <Button
-                                    size="sm"
-                                    bg={currentColors.purple.base}
-                                    color="white"
-                                    _hover={{ bg: currentColors.purple.light }}
-                                    onClick={() =>
-                                      navigate(
-                                        `/treasure-hunt/${event.eventId}/team/${team.teamId}`
-                                      )
-                                    }
-                                    whiteSpace="nowrap"
-                                  >
-                                    View Map
-                                  </Button>
+                                  {event.nodes && event.nodes.length > 0 && (
+                                    <Button
+                                      size="sm"
+                                      bg={currentColors.purple.base}
+                                      color="white"
+                                      _hover={{ bg: currentColors.purple.light }}
+                                      onClick={() =>
+                                        navigate(
+                                          `/treasure-hunt/${event.eventId}/team/${team.teamId}`
+                                        )
+                                      }
+                                      whiteSpace="nowrap"
+                                    >
+                                      View Map
+                                    </Button>
+                                  )}
                                   {isEventAdmin && (
                                     <IconButton
                                       size="sm"

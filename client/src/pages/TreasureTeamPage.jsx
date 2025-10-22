@@ -537,10 +537,9 @@ const TreasureTeamView = () => {
           {team.completedNodes?.length === 0 && !adminMode && (
             <>
               <TreasureHuntTutorial colorMode={colorMode} compact={false} />
+              <hr />
             </>
           )}
-
-          <hr />
 
           <Box>
             <HStack w="100%" justify="center" mb={4}>
@@ -572,7 +571,7 @@ const TreasureTeamView = () => {
               Click on any available node to view details.
               {adminMode
                 ? ' (Admin Mode: Click nodes to manage completion)'
-                : 'Completed Inns can be visited to trade keys for GP.'}
+                : ' Completed Inns can be visited to trade keys for GP.'}
             </Text>
 
             <TreasureMapVisualization

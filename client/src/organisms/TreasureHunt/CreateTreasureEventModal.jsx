@@ -27,6 +27,12 @@ import { CREATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useNavigate } from 'react-router-dom';
 
+const MAX_TOTAL_PLAYERS = 150;
+const MAX_GP = 20000000000; // 20 billion
+const MIN_NODES_PER_INN = 3;
+const MAX_NODES_PER_INN = 6;
+const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
+
 export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
@@ -64,6 +70,28 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
 
+  // Calculate maximum end date (1 month from start date)
+  const getMaxEndDate = () => {
+    if (!formData.startDate) return '';
+    const startDate = new Date(formData.startDate);
+    const maxEndDate = new Date(startDate);
+    maxEndDate.setDate(maxEndDate.getDate() + MAX_EVENT_DURATION_DAYS);
+    return maxEndDate.toISOString().split('T')[0];
+  };
+
+  // Calculate event duration in days
+  const getEventDuration = () => {
+    if (!formData.startDate || !formData.endDate) return 0;
+    const start = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const diffTime = Math.abs(end - start);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const eventDuration = getEventDuration();
+  const maxEndDate = getMaxEndDate();
+
   const [createEvent, { loading }] = useMutation(CREATE_TREASURE_EVENT, {
     onCompleted: (data) => {
       showToast('Event created successfully!', 'success');
@@ -76,8 +104,110 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     },
   });
 
+  // Calculate current total players
+  const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
+
+  // Calculate max values based on current inputs
+  const getMaxTeams = () => {
+    if (formData.playersPerTeam === 0) return 200;
+    return Math.floor(MAX_TOTAL_PLAYERS / formData.playersPerTeam);
+  };
+
+  const getMaxPlayersPerTeam = () => {
+    if (formData.numOfTeams === 0) return 200;
+    return Math.floor(MAX_TOTAL_PLAYERS / formData.numOfTeams);
+  };
+
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value };
+
+      // Enforce GP limit
+      if (field === 'prizePoolTotal' && value > MAX_GP) {
+        showToast(`Maximum prize pool is ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'warning');
+        return { ...prev, prizePoolTotal: MAX_GP };
+      }
+
+      // Enforce nodes per inn limits
+      if (field === 'nodeToInnRatio') {
+        if (value < MIN_NODES_PER_INN) {
+          return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
+        }
+        if (value > MAX_NODES_PER_INN) {
+          return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
+        }
+      }
+
+      // Enforce event duration limit
+      if (field === 'endDate' && prev.startDate) {
+        const start = new Date(prev.startDate);
+        const end = new Date(value);
+        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+        if (diffDays > MAX_EVENT_DURATION_DAYS) {
+          showToast(
+            `Maximum event duration is ${MAX_EVENT_DURATION_DAYS} days (1 month)`,
+            'warning'
+          );
+          // Auto-adjust to max allowed date
+          const maxDate = new Date(start);
+          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
+          return { ...prev, endDate: maxDate.toISOString().split('T')[0] };
+        }
+      }
+
+      // If start date changes, validate end date doesn't exceed max duration
+      if (field === 'startDate' && prev.endDate) {
+        const start = new Date(value);
+        const end = new Date(prev.endDate);
+        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+        if (diffDays > MAX_EVENT_DURATION_DAYS) {
+          // Auto-adjust end date to max allowed
+          const maxDate = new Date(start);
+          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
+          return {
+            ...prev,
+            startDate: value,
+            endDate: maxDate.toISOString().split('T')[0],
+          };
+        }
+      }
+
+      // Enforce total player limit
+      if (field === 'numOfTeams' || field === 'playersPerTeam') {
+        const newTotalPlayers =
+          field === 'numOfTeams' ? value * newData.playersPerTeam : newData.numOfTeams * value;
+
+        if (newTotalPlayers > MAX_TOTAL_PLAYERS) {
+          showToast(
+            `Maximum total players is ${MAX_TOTAL_PLAYERS}. Adjust teams or players per team.`,
+            'warning'
+          );
+
+          // Adjust the other field to stay within limit
+          if (field === 'numOfTeams') {
+            // Keep teams, adjust players per team
+            const maxPlayersPerTeam = Math.floor(MAX_TOTAL_PLAYERS / value);
+            return {
+              ...prev,
+              numOfTeams: value,
+              playersPerTeam: Math.min(prev.playersPerTeam, maxPlayersPerTeam),
+            };
+          } else {
+            // Keep players per team, adjust teams
+            const maxTeams = Math.floor(MAX_TOTAL_PLAYERS / value);
+            return {
+              ...prev,
+              playersPerTeam: value,
+              numOfTeams: Math.min(prev.numOfTeams, maxTeams),
+            };
+          }
+        }
+      }
+
+      return newData;
+    });
   };
 
   const handleCreateEvent = async () => {
@@ -92,6 +222,28 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
 
     if (end <= start) {
       showToast('End date must be after start date', 'warning');
+      return;
+    }
+
+    // Validate event duration
+    const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+    if (duration > MAX_EVENT_DURATION_DAYS) {
+      showToast(
+        `Event duration (${duration} days) exceeds maximum of ${MAX_EVENT_DURATION_DAYS} days`,
+        'error'
+      );
+      return;
+    }
+
+    // Validate total players
+    if (totalPlayers > MAX_TOTAL_PLAYERS) {
+      showToast(`Total players (${totalPlayers}) exceeds maximum of ${MAX_TOTAL_PLAYERS}`, 'error');
+      return;
+    }
+
+    // Validate GP
+    if (formData.prizePoolTotal > MAX_GP) {
+      showToast(`Prize pool exceeds maximum of ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'error');
       return;
     }
 
@@ -200,17 +352,31 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="End Date"
-                  tooltip="Final deadline for completing objectives. The map scales based on event duration."
+                  tooltip={`Final deadline for objectives. Maximum duration: ${MAX_EVENT_DURATION_DAYS} days (1 month)`}
                 />
                 <Input
                   type="date"
                   min={formData.startDate || today}
+                  max={maxEndDate || undefined}
                   value={formData.endDate}
                   onChange={(e) => handleInputChange('endDate', e.target.value)}
                   color={currentColors.textColor}
                 />
               </FormControl>
             </SimpleGrid>
+
+            {/* Event Duration Display */}
+            {formData.startDate && formData.endDate && (
+              <Text
+                fontSize="sm"
+                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.500' : 'gray.500'}
+                fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
+              >
+                Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} /{' '}
+                {MAX_EVENT_DURATION_DAYS} days max
+                {eventDuration > MAX_EVENT_DURATION_DAYS && ' ⚠️ Exceeds maximum!'}
+              </Text>
+            )}
 
             <FormControl isRequired>
               <LabelWithTooltip
@@ -232,19 +398,22 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Total Prize Pool (GP)"
-                tooltip="Total GP to be split among teams based on performance. Maximum pot per team is calculated automatically."
+                tooltip={`Total GP to be split among teams. Maximum: ${(
+                  MAX_GP / 1000000000
+                ).toFixed(0)}B GP`}
               />
               <NumberInput
                 value={formData.prizePoolTotal}
                 onChange={(_, val) => handleInputChange('prizePoolTotal', val)}
                 min={0}
+                max={MAX_GP}
               >
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
               <Text fontSize="xs" color="gray.500" mt={1}>
                 Per team max:{' '}
                 {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1000000).toFixed(1)}M
-                GP
+                GP • Max: {(MAX_GP / 1000000000).toFixed(0)}B total
               </Text>
             </FormControl>
 
@@ -252,13 +421,15 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="Number of Teams"
-                  tooltip="How many teams will compete. More teams = more competition!"
+                  tooltip={`How many teams will compete. Max: ${getMaxTeams()} teams with ${
+                    formData.playersPerTeam
+                  } players each`}
                 />
                 <NumberInput
                   value={formData.numOfTeams}
                   onChange={(_, val) => handleInputChange('numOfTeams', val)}
                   min={1}
-                  max={50}
+                  max={getMaxTeams()}
                 >
                   <NumberInputField color={currentColors.textColor} />
                 </NumberInput>
@@ -267,32 +438,47 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="Players per Team"
-                  tooltip="Team size affects map generation. More players = more nodes to complete."
+                  tooltip={`Team size affects map generation. Max: ${getMaxPlayersPerTeam()} players with ${
+                    formData.numOfTeams
+                  } teams`}
                 />
                 <NumberInput
                   value={formData.playersPerTeam}
                   onChange={(_, val) => handleInputChange('playersPerTeam', val)}
                   min={1}
-                  max={20}
+                  max={getMaxPlayersPerTeam()}
                 >
                   <NumberInputField color={currentColors.textColor} />
                 </NumberInput>
               </FormControl>
             </SimpleGrid>
 
+            {/* Total Players Counter */}
+            <Text
+              fontSize="sm"
+              color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.500' : 'gray.500'}
+              fontWeight={totalPlayers > MAX_TOTAL_PLAYERS ? 'bold' : 'normal'}
+            >
+              Total Players: {totalPlayers} / {MAX_TOTAL_PLAYERS}
+              {totalPlayers > MAX_TOTAL_PLAYERS && ' ⚠️ Exceeds maximum!'}
+            </Text>
+
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Nodes per Inn"
-                tooltip="How many objective nodes between each Inn checkpoint. Lower = more Inns to trade keys for GP. Recommended: 5"
+                tooltip={`How many objective nodes between each Inn checkpoint. Range: ${MIN_NODES_PER_INN}-${MAX_NODES_PER_INN}. Lower = more trading opportunities.`}
               />
               <NumberInput
                 value={formData.nodeToInnRatio}
                 onChange={(_, val) => handleInputChange('nodeToInnRatio', val)}
-                min={1}
-                max={20}
+                min={MIN_NODES_PER_INN}
+                max={MAX_NODES_PER_INN}
               >
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN} nodes per Inn
+              </Text>
             </FormControl>
 
             {/* Map Preview Stats */}
@@ -364,6 +550,9 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               onClick={handleCreateEvent}
               isLoading={loading}
               size="lg"
+              isDisabled={
+                totalPlayers > MAX_TOTAL_PLAYERS || eventDuration > MAX_EVENT_DURATION_DAYS
+              }
             >
               Create Event
             </Button>

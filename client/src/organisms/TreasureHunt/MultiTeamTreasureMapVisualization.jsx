@@ -726,7 +726,17 @@ const MultiTeamTreasureMap = ({
                         )}
 
                         {node.rewards && (
-                          <Box>
+                          <Box
+                            bg="orange.100"
+                            transition="all 0.3s ease"
+                            animation="pulseGlow 2s infinite alternate"
+                            sx={{
+                              '@keyframes pulseGlow': {
+                                from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                                to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                              },
+                            }}
+                          >
                             <Text
                               m="0!important"
                               fontSize="xs"
@@ -885,10 +895,6 @@ const MultiTeamTreasureMap = ({
             <HStack>
               <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
               <Text color="#2d3748">Available</Text>
-            </HStack>
-            <HStack>
-              <Box w={4} h={4} bg="#FF4B5C" borderRadius="full" border="2px solid white" />
-              <Text color="#2d3748">Unavailable</Text>
             </HStack>
             <HStack>
               <Box

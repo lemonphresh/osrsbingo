@@ -48,9 +48,30 @@ module.exports = {
       `;
 
       const data = await graphqlRequest(query, { eventId, teamId: team.teamId });
-      const nodes = data.getTreasureEvent.nodes;
+
+      // FIXED: Add null checks for data
+      if (!data || !data.getTreasureEvent) {
+        return message.reply(
+          `❌ Event not found with ID: \`${eventId}\`\n` +
+            `Make sure the event ID in the channel topic is correct.`
+        );
+      }
+
+      if (!data.getTreasureTeam) {
+        return message.reply(
+          `❌ Team data not found. Your team may have been deleted from this event.`
+        );
+      }
+
+      const event = data.getTreasureEvent;
       const teamData = data.getTreasureTeam;
-      const mapStructure = data.getTreasureEvent.mapStructure;
+      const nodes = event.nodes || [];
+      const mapStructure = event.mapStructure;
+
+      // FIXED: Check if nodes exist
+      if (nodes.length === 0) {
+        return message.reply(`❌ This event has no nodes configured yet. Contact an admin.`);
+      }
 
       // Helper to get difficulty name
       const getDifficultyName = (tier) => {
@@ -81,7 +102,7 @@ module.exports = {
 
       // Filter available nodes and check location groups
       const availableNodes = nodes
-        .filter((n) => teamData.availableNodes.includes(n.nodeId))
+        .filter((n) => teamData.availableNodes?.includes(n.nodeId))
         .map((node) => ({
           ...node,
           isLocationBlocked: isLocationGroupCompleted(node),
@@ -108,7 +129,7 @@ module.exports = {
               : '')
         );
 
-      // FIXED: Limit to 5 nodes instead of 8 to reduce embed size
+      // Limit to 5 nodes to reduce embed size
       trulyAvailable.slice(0, 5).forEach((node) => {
         // Handle nodes without objectives (like START or INN nodes)
         if (!node.objective) {
@@ -136,7 +157,7 @@ module.exports = {
 
         // Check if team has applicable buffs
         const hasBuffs = teamData.activeBuffs?.some((buff) =>
-          buff.objectiveTypes.includes(objective.type)
+          buff.objectiveTypes?.includes(objective.type)
         );
 
         const buffIndicator = hasBuffs ? ' ✨' : '';
@@ -144,7 +165,7 @@ module.exports = {
           ? ` [${getDifficultyName(node.difficultyTier)}]`
           : '';
 
-        // FIXED: Shortened field values to reduce embed size
+        // Shortened field values to reduce embed size
         embed.addFields({
           name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${
             node.title
@@ -180,7 +201,7 @@ module.exports = {
         });
       }
 
-      // FIXED: Update footer message
+      // Update footer message
       if (trulyAvailable.length > 5) {
         embed.setFooter({
           text: `Showing 5 of ${trulyAvailable.length} nodes. Use web dashboard for all.`,
@@ -189,7 +210,7 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      // FIXED: Reduced error logging to prevent log overflow
+      // Minimal error logging to prevent log overflow
       console.error('nodes command error:', error.message);
 
       // Provide more helpful errors
@@ -199,6 +220,14 @@ module.exports = {
 
       if (error.message.includes('not found')) {
         return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
+      // FIXED: Handle specific null reading errors
+      if (error.message.includes('Cannot read properties of null')) {
+        return message.reply(
+          '❌ Could not load event or team data. The event may be deleted or corrupted.\n' +
+            'Please verify the event ID in the channel topic.'
+        );
       }
 
       return message.reply(`❌ Error: ${error.message}`);

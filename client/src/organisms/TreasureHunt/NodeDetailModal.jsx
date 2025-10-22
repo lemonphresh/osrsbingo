@@ -157,14 +157,28 @@ export default function NodeDetailModal({
             )}
 
             <Box>
-              <HStack align="center" mb={2}>
+              <HStack
+                bg="orange.100"
+                p={2}
+                borderRadius="md"
+                transition="all 0.3s ease"
+                animation="pulseGlow 2s infinite alternate"
+                sx={{
+                  '@keyframes pulseGlow': {
+                    from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                    to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                  },
+                }}
+                align="center"
+                mb={2}
+              >
                 <VStack>
                   <Heading size="sm" color={currentColors.textColor}>
                     Rewards
                   </Heading>
                   <Image h="32px" src={Casket} />
                 </VStack>
-                <VStack ml={2} bg="orange.100" p={2} borderRadius="md" align="start" spacing={2}>
+                <VStack ml={2} align="start" spacing={2}>
                   <Text fontWeight="bold" color={currentColors.green.base}>
                     {formatGP(node.rewards?.gp || 0)} GP
                   </Text>

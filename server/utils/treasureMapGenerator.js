@@ -69,7 +69,6 @@ const OSRS_LOCATIONS = [
   { name: 'Rellekka', x: 2660, y: 3660 },
   { name: 'Neitiznot', x: 2331, y: 3804 },
   { name: 'Jatizso', x: 2416, y: 3802 },
-  { name: 'Keldagrim', x: 2845, y: 10210 },
   { name: 'Miscellania', x: 2512, y: 3860 },
   { name: 'Waterbirth Island', x: 2527, y: 3740 },
   { name: 'Mountain Camp', x: 2808, y: 3672 },

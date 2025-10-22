@@ -94,6 +94,7 @@ const TreasureHuntDashboard = () => {
       turquoise: { base: '#28AFB0' },
       textColor: '#F7FAFC',
       cardBg: '#2D3748',
+      red: '#FF4B5C',
     },
     light: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -102,6 +103,7 @@ const TreasureHuntDashboard = () => {
       turquoise: { base: '#28AFB0' },
       textColor: '#171923',
       cardBg: 'white',
+      red: '#FF4B5C',
     },
   };
 
@@ -114,7 +116,7 @@ const TreasureHuntDashboard = () => {
       case 'ACTIVE':
         return currentColors.green.base;
       case 'DRAFT':
-        return currentColors.sapphire.base;
+        return currentColors.red;
       case 'COMPLETED':
         return currentColors.turquoise.base;
       case 'ARCHIVED':
