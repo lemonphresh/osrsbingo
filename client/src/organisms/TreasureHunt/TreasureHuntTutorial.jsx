@@ -16,7 +16,7 @@ import {
   Code,
   Divider,
 } from '@chakra-ui/react';
-import { InfoIcon, CheckCircleIcon } from '@chakra-ui/icons';
+import { InfoIcon, CheckCircleIcon, WarningIcon } from '@chakra-ui/icons';
 
 /**
  * Tutorial component explaining how to get started with the Treasure Hunt
@@ -128,15 +128,29 @@ export const TreasureHuntTutorial = ({ colorMode = 'dark', compact = false }) =>
               using one of these commands:
               <VStack align="stretch" mt={2} spacing={1}>
                 <Code fontSize="xs" p={2} borderRadius="md">
-                  !submit [node_id] [screenshot_url]
+                  !submit node_abc123 https://i.imgur.com/example.png
                 </Code>
                 <Text fontSize="xs" color="gray.500" textAlign="center">
-                  or attach an image
+                  or attach an image directly
                 </Text>
                 <Code fontSize="xs" p={2} borderRadius="md">
-                  !submit [node_id] (attach image file)
+                  !submit node_abc123 (attach image file)
                 </Code>
               </VStack>
+              <Box
+                mt={2}
+                p={2}
+                bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
+                borderRadius="md"
+              >
+                <HStack spacing={1}>
+                  <Icon as={InfoIcon} boxSize={3} color="blue.400" />
+                  <Text fontSize="xs" color={currentColors.textColor}>
+                    <strong>Node ID:</strong> Found in the node details modal or by using{' '}
+                    <Code fontSize="xs">!nodes</Code>
+                  </Text>
+                </HStack>
+              </Box>
             </ListItem>
             <ListItem>
               <Text as="span" fontWeight="bold">
@@ -194,6 +208,27 @@ export const TreasureHuntTutorial = ({ colorMode = 'dark', compact = false }) =>
             <Text>• Strategic use of buffs can save you hours of grinding - use them wisely!</Text>
             <Text>• Check the leaderboard regularly to see how your team stacks up</Text>
           </VStack>
+        </Box>
+
+        {/* Important Notice */}
+        <Box
+          bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'}
+          p={3}
+          borderRadius="md"
+          borderWidth={1}
+          borderColor="orange.400"
+        >
+          <HStack mb={2}>
+            <Icon as={WarningIcon} color="orange.400" />
+            <Heading size="xs" color={currentColors.textColor}>
+              Important: Submit from Event Channel
+            </Heading>
+          </HStack>
+          <Text fontSize="xs" color={currentColors.textColor}>
+            Make sure to use the <Code fontSize="xs">!submit</Code> command in your event's Discord
+            channel. The bot reads the event ID from the channel topic, so submissions from other
+            channels won't work!
+          </Text>
         </Box>
       </VStack>
     </Box>
@@ -253,10 +288,10 @@ export const StartNodeTutorial = ({ colorMode = 'dark', nodeId }) => {
               2. Take a screenshot as proof
             </Text>
             <Text fontSize="xs" color={currentColors.textColor}>
-              3. Submit via Discord:
+              3. Submit via Discord <strong>(in your event channel)</strong>:
             </Text>
             <Code fontSize="xs" p={2} borderRadius="md">
-              !submit {nodeId} [screenshot_url]
+              !submit {nodeId} https://i.imgur.com/example.png
             </Code>
             <Text fontSize="xs" color="gray.500" textAlign="center">
               or
@@ -271,6 +306,16 @@ export const StartNodeTutorial = ({ colorMode = 'dark', nodeId }) => {
           <Text fontSize="xs" color={currentColors.textColor}>
             ✅ Once approved, new nodes will automatically unlock and you'll be on your way!
           </Text>
+        </Box>
+
+        <Box bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} p={2} borderRadius="md">
+          <HStack spacing={1}>
+            <Icon as={InfoIcon} boxSize={3} color="blue.400" />
+            <Text fontSize="xs" color={currentColors.textColor}>
+              <strong>Tip:</strong> Copy the node ID above or use <Code fontSize="xs">!nodes</Code>{' '}
+              to see all IDs
+            </Text>
+          </HStack>
         </Box>
       </VStack>
     </Box>

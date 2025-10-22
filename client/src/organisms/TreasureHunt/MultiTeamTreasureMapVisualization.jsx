@@ -8,11 +8,12 @@ import {
   Tooltip,
   useMap,
 } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack, Button } from '@chakra-ui/react';
+import { Box, Badge, Text, VStack, HStack, Button, Image } from '@chakra-ui/react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+import Casket from '../../assets/casket.png';
 
 const RecenterButton = ({ nodes }) => {
   const map = useMap();
@@ -652,7 +653,16 @@ const MultiTeamTreasureMap = ({
                     ) : (
                       <>
                         {node.description && (
-                          <Text fontSize="sm" m="0!important" pb={2} color="#4a4a4a">
+                          <Text
+                            w="100%"
+                            p={2}
+                            borderRadius="md"
+                            bg="gray.100"
+                            m="0!important"
+                            fontSize="sm"
+                            color="#4a4a4a"
+                            pb={2}
+                          >
                             {node.description}
                           </Text>
                         )}
@@ -726,17 +736,33 @@ const MultiTeamTreasureMap = ({
                         )}
 
                         {node.rewards && (
-                          <Box>
-                            <Text
-                              m="0!important"
-                              fontSize="xs"
-                              fontWeight="bold"
-                              color="#2d3748"
-                              pb={1}
-                            >
-                              Rewards:
-                            </Text>
-                            <HStack spacing={2}>
+                          <Box
+                            bg="orange.100"
+                            transition="all 0.3s ease"
+                            animation="pulseGlow 2s infinite alternate"
+                            p={2}
+                            borderRadius="md"
+                            m="0 auto"
+                            sx={{
+                              '@keyframes pulseGlow': {
+                                from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                                to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                              },
+                            }}
+                          >
+                            <VStack>
+                              <Text
+                                m="0!important"
+                                fontSize="xs"
+                                fontWeight="bold"
+                                color="#2d3748"
+                                pb={1}
+                              >
+                                Rewards:
+                              </Text>
+                              <Image h="32px" src={Casket} />
+                            </VStack>
+                            <HStack justifyContent="center" mt={2} spacing={2}>
                               <Badge colorScheme="green" fontSize="xs">
                                 {formatGP(node.rewards.gp)} GP
                               </Badge>
@@ -885,10 +911,6 @@ const MultiTeamTreasureMap = ({
             <HStack>
               <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
               <Text color="#2d3748">Available</Text>
-            </HStack>
-            <HStack>
-              <Box w={4} h={4} bg="#FF4B5C" borderRadius="full" border="2px solid white" />
-              <Text color="#2d3748">Unavailable</Text>
             </HStack>
             <HStack>
               <Box

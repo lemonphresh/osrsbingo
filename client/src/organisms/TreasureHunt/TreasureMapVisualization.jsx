@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, ImageOverlay, Marker, Polyline, Popup, useMap } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack, Button } from '@chakra-ui/react';
+import { Box, Badge, Text, VStack, HStack, Button, Image, Flex } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
-
+import Casket from '../../assets/casket.png';
 const RecenterButton = ({ nodes }) => {
   const map = useMap();
   const [isOffCenter, setIsOffCenter] = useState(false);
@@ -129,7 +129,7 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                     }
                     ${
                       status === 'completed'
-                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: #2d2b2bff; font-size: 24px;">✓</div>'
+                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); text-shadow: 1px 1px 0 black, -1px -1px 0 black, 1px -1px 0 black, -1px 1px 0 black; color: #f36757ff; font-size: 24px;">✓</div>'
                         : ''
                     }
                      ${
@@ -490,16 +490,36 @@ const TreasureMapVisualization = ({
                       )}
 
                       {node.rewards && (
-                        <Box>
-                          <Text
-                            m="0!important"
-                            fontSize="xs"
-                            fontWeight="bold"
-                            color="#2d3748"
-                            mb={1}
-                          >
-                            Rewards:
-                          </Text>
+                        <Flex
+                          p={2}
+                          borderRadius="md"
+                          flexDirection="column"
+                          alignItems="center"
+                          m="0 auto"
+                          mt={3}
+                          bg="orange.100"
+                          transition="all 0.3s ease"
+                          animation="pulseGlow 2s infinite alternate"
+                          sx={{
+                            '@keyframes pulseGlow': {
+                              from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                              to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                            },
+                          }}
+                        >
+                          <VStack mb={3}>
+                            <Text
+                              m="0!important"
+                              fontSize="xs"
+                              fontWeight="bold"
+                              color="#2d3748"
+                              mb={1}
+                            >
+                              Rewards:
+                            </Text>
+                            <Image h="32px" src={Casket} />
+                          </VStack>
+
                           <HStack spacing={2}>
                             <Badge colorScheme="green" fontSize="xs">
                               {formatGP(node.rewards.gp)} GP
@@ -514,13 +534,19 @@ const TreasureMapVisualization = ({
                           {node.rewards.buffs &&
                             node.rewards.buffs.length > 0 &&
                             (status !== 'locked' || adminMode) && (
-                              <Box mt={2} p={2} bg="purple.50" borderRadius="md">
-                                <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                              <Box mt={2} p={2} borderRadius="md">
+                                <Text
+                                  fontSize="xs"
+                                  m="0!important"
+                                  fontWeight="bold"
+                                  color="#2d3748"
+                                  mb={1}
+                                >
                                   🎁 Buff Rewards:
                                 </Text>
                                 <VStack align="start" spacing={1}>
                                   {node.rewards.buffs.map((buff, idx) => (
-                                    <HStack key={idx} spacing={1}>
+                                    <HStack mt={1} key={idx} spacing={1}>
                                       <Badge
                                         colorScheme={
                                           buff.tier === 'major'
@@ -535,7 +561,7 @@ const TreasureMapVisualization = ({
                                       >
                                         {buff.tier.toUpperCase()}
                                       </Badge>
-                                      <Text fontSize="xs" color="#4a5568">
+                                      <Text m="0!important" fontSize="xs" color="#4a5568">
                                         {buff.buffType.replace(/_/g, ' ')}
                                       </Text>
                                     </HStack>
@@ -543,7 +569,7 @@ const TreasureMapVisualization = ({
                                 </VStack>
                               </Box>
                             )}
-                        </Box>
+                        </Flex>
                       )}
 
                       {adminMode && (
@@ -654,10 +680,6 @@ const TreasureMapVisualization = ({
               position="relative"
             />
             <Text color="#2d3748">Available {!adminMode && '(click to view)'}</Text>
-          </HStack>
-          <HStack>
-            <Box w={4} h={4} bg={colors.red} borderRadius="full" border="2px solid white" />
-            <Text color="#2d3748">Unavailable</Text>
           </HStack>
           <HStack>
             <Box
