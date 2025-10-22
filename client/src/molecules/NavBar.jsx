@@ -82,7 +82,7 @@ const NavBar = () => {
                   w="100%"
                   textAlign="left"
                 >
-                  <Link to="/treasure-team">Give it a shot!</Link>
+                  <Link to="/treasure-hunt">Give it a shot!</Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
                   Also I take{' '}

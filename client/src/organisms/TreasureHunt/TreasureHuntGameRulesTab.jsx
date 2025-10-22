@@ -157,14 +157,17 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
 
                 <Box p={3} bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} borderRadius="md">
                   <HStack mb={1}>
-                    <Badge colorScheme="blue">STANDARD</Badge>
+                    <Badge colorScheme="green">EASY</Badge>
+                    <Badge colorScheme="yellow">MEDIUM</Badge>
+                    <Badge colorScheme="red">HARD</Badge>
                     <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
                       Challenge Nodes
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
                     The main nodes with objectives. Complete these to earn GP, keys, and sometimes
-                    buffs. Each one unlocks new nodes.
+                    buffs. Each one unlocks new nodes. You may only complete one difficulty at each
+                    location.
                   </Text>
                 </Box>
 
@@ -339,21 +342,21 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   </Text>
                   <VStack spacing={2} align="stretch">
                     <HStack>
-                      <Badge colorScheme="red">Mountain Path</Badge>
+                      <Badge colorScheme="red">HARD</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Hard difficulty - High risk, high reward
+                        High risk, high reward
                       </Text>
                     </HStack>
                     <HStack>
-                      <Badge colorScheme="blue">Trade Route</Badge>
+                      <Badge colorScheme="yellow">MEDIUM</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Medium difficulty - Balanced approach
+                        Balanced approach
                       </Text>
                     </HStack>
                     <HStack>
-                      <Badge colorScheme="green">Coastal Path</Badge>
+                      <Badge colorScheme="green">EASY</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Easy difficulty - Safer, steady progress
+                        Safer, steady progress
                       </Text>
                     </HStack>
                   </VStack>
