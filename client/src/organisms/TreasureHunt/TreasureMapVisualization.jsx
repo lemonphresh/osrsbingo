@@ -82,44 +82,6 @@ const RecenterButton = ({ nodes }) => {
   );
 };
 
-const FitBoundsOnLoad = ({ nodes }) => {
-  const map = useMap();
-  const hasSetBounds = useRef(false);
-
-  useEffect(() => {
-    if (nodes.length > 0 && !hasSetBounds.current && map) {
-      const positions = nodes
-        .filter((n) => n.coordinates?.x && n.coordinates?.y)
-        .map((n) => {
-          const x = n.coordinates.x;
-          const y = n.coordinates.y;
-          const osrsMinX = 1100;
-          const osrsMaxX = 3900;
-          const osrsMinY = 2500;
-          const osrsMaxY = 4100;
-          const mapWidth = 7168;
-          const mapHeight = 3904;
-
-          const normalizedX = (x - osrsMinX) / (osrsMaxX - osrsMinX);
-          const normalizedY = (y - osrsMinY) / (osrsMaxY - osrsMinY);
-          const pixelX = normalizedX * mapWidth;
-          const pixelY = normalizedY * mapHeight;
-
-          return [pixelY, pixelX];
-        });
-
-      if (positions.length > 0) {
-        const bounds = L.latLngBounds(positions);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 1 });
-        hasSetBounds.current = true;
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, nodes.length]);
-
-  return null;
-};
-
 const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuff) => {
   const isAvailable = status === 'available';
   const iconHtml = `
@@ -385,16 +347,15 @@ const TreasureMapVisualization = ({
     >
       <MapContainer
         center={[mapHeight / 2, mapWidth / 2]}
-        zoom={-1}
+        zoom={-2}
         minZoom={-3}
         maxZoom={2}
         crs={L.CRS.Simple}
         style={{ height: '100%', width: '100%', background: '#64769e' }}
         scrollWheelZoom={true}
       >
-        <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={0.85} />
+        <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={1} />
         <RecenterButton nodes={nodes} />
-        <FitBoundsOnLoad nodes={nodes} />
         {edges.map((edge, idx) => (
           <Polyline
             key={`edge-${idx}`}
@@ -466,7 +427,7 @@ const TreasureMapVisualization = ({
                         >
                           {status === 'unavailable'
                             ? 'UNAVAILABLE'
-                            : node.nodeType === 'INN'
+                            : node.nodeType === 'INN' && status === 'completed'
                             ? 'VISITED'
                             : status.toUpperCase()}
                         </Badge>
@@ -641,7 +602,7 @@ const TreasureMapVisualization = ({
                           <strong>Submit completion via Discord bot:</strong>
                           <br />
                           <code className="code">
-                            !submit {node.nodeId} imgur.com/screenshot.png
+                            !submit {node.nodeId} link_to_screenshot_img
                           </code>{' '}
                           <br />
                           or

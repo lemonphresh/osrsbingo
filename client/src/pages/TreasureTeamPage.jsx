@@ -965,6 +965,7 @@ const TreasureTeamView = () => {
           onNodeClose();
           handleOpenBuffModal(node);
         }}
+        currentUser={user}
         appliedBuff={selectedNode?.objective?.appliedBuff}
       />
 
@@ -973,6 +974,7 @@ const TreasureTeamView = () => {
         onClose={onInnClose}
         node={selectedNode}
         team={team}
+        currentUser={user}
         eventId={eventId}
         onPurchaseComplete={refetchTeam}
       />

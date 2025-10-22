@@ -38,6 +38,12 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      discordUserId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        unique: true,
+        comment: 'Discord user ID for linking Discord bot interactions',
+      },
       rsn: {
         type: DataTypes.STRING,
         allowNull: true,

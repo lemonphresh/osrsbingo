@@ -39,6 +39,74 @@ module.exports = {
       }
     },
 
+    linkDiscordAccount: async (_, { userId, discordUserId }, context) => {
+      // Allow if:
+      // 1. User is authenticated AND it's their own account
+      // 2. User is authenticated AND they're an admin
+      if (!context.user) {
+        throw new AuthenticationError('Not authenticated');
+      }
+
+      const isOwnAccount = context.user.id === parseInt(userId);
+      const isAdmin = context.user.admin;
+
+      if (!isOwnAccount && !isAdmin) {
+        throw new AuthenticationError('Not authorized to link this account');
+      }
+
+      try {
+        const user = await User.findByPk(userId);
+        if (!user) {
+          throw new ApolloError('User not found', 'NOT_FOUND');
+        }
+
+        // Check if Discord ID is already linked to another account
+        const existingLink = await User.findOne({ where: { discordUserId } });
+        if (existingLink && existingLink.id !== parseInt(userId)) {
+          throw new ApolloError(
+            'This Discord account is already linked to another user',
+            'ALREADY_LINKED'
+          );
+        }
+
+        user.discordUserId = discordUserId;
+        await user.save();
+
+        return user;
+      } catch (error) {
+        console.error('Error linking Discord account:', error);
+        throw error; // Re-throw the original error
+      }
+    },
+
+    unlinkDiscordAccount: async (_, { userId }, context) => {
+      if (!context.user) {
+        throw new AuthenticationError('Not authenticated');
+      }
+
+      const isOwnAccount = context.user.id === parseInt(userId);
+      const isAdmin = context.user.admin;
+
+      if (!isOwnAccount && !isAdmin) {
+        throw new AuthenticationError('Not authorized to unlink this account');
+      }
+
+      try {
+        const user = await User.findByPk(userId);
+        if (!user) {
+          throw new ApolloError('User not found', 'NOT_FOUND');
+        }
+
+        user.discordUserId = null;
+        await user.save();
+
+        return user;
+      } catch (error) {
+        console.error('Error unlinking Discord account:', error);
+        throw error;
+      }
+    },
+
     loginUser: async (_, { username, password }, context) => {
       try {
         const user = await User.findOne({
@@ -180,6 +248,19 @@ module.exports = {
       } catch (error) {
         console.error('Error fetching user:', error);
         throw new ApolloError('Failed to fetch user');
+      }
+    },
+    getUserByDiscordId: async (_, { discordUserId }) => {
+      try {
+        const user = await User.findOne({
+          where: { discordUserId },
+          attributes: ['id', 'displayName', 'username', 'rsn', 'discordUserId'],
+        });
+
+        return user;
+      } catch (error) {
+        console.error('Error fetching user by Discord ID:', error);
+        throw new ApolloError('Failed to fetch user by Discord ID');
       }
     },
 

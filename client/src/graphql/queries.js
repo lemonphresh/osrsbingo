@@ -21,6 +21,7 @@ export const GET_USER = gql`
       admin
       username
       rsn
+      discordUserId
       editorBoards {
         id
         name
@@ -333,6 +334,7 @@ export const GET_TREASURE_TEAM = gql`
       teamName
       currentPot
       keysHeld
+      members
       completedNodes
       availableNodes
       innTransactions

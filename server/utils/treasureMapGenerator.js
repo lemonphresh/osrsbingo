@@ -452,7 +452,7 @@ function generateMap(eventConfig, derivedValues) {
       const node = {
         nodeId,
         nodeType: 'STANDARD',
-        title: `${location.name} - ${objective.target} [${name.toUpperCase()}]`,
+        title: `${location.name} - ${objective.target}`,
         description: `${name.charAt(0).toUpperCase() + name.slice(1)} challenge: ${
           objective.target
         }`,
