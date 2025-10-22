@@ -51,6 +51,7 @@ import {
   AddIcon,
   CheckIcon,
   CloseIcon,
+  CopyIcon,
   EditIcon,
   ExternalLinkIcon,
   InfoIcon,
@@ -77,6 +78,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { MdOutlineArrowBack } from 'react-icons/md';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
+import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -115,6 +117,9 @@ const TreasureEventView = () => {
   const cancelRef = React.useRef();
   const [nodeToComplete, setNodeToComplete] = useState(null);
   const cancelCompleteRef = React.useRef();
+
+  // NEW: State for show all nodes toggle (defaults to true for admins)
+  const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_TREASURE_EVENT, {
     variables: { eventId },
@@ -362,9 +367,10 @@ const TreasureEventView = () => {
       <Section maxWidth="1200px" width="100%" py={8}>
         <VStack spacing={8} align="stretch" width="100%">
           <VStack position="relative" align="center" spacing={1}>
-            <GemTitle size="xl" color={currentColors.textColor}>
+            <GemTitle size="xl" mb="0" color={currentColors.textColor}>
               {event.eventName}
             </GemTitle>
+
             <HStack>
               <Badge
                 bg={currentColors.green.base}
@@ -381,6 +387,62 @@ const TreasureEventView = () => {
                 {new Date(event.endDate).toLocaleDateString()}
               </Text>
             </HStack>
+            <Tooltip label="Click to copy Event ID" hasArrow>
+              <HStack
+                spacing={2}
+                px={3}
+                py={1}
+                mt={2}
+                bg="whiteAlpha.100"
+                borderRadius="md"
+                cursor="pointer"
+                transition="all 0.2s"
+                _hover={{ bg: 'whiteAlpha.400' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(event.eventId);
+                  toast({
+                    title: 'Event ID Copied!',
+                    description: `Event ID: ${event.eventId}`,
+                    status: 'success',
+                    duration: 2000,
+                    isClosable: true,
+                  });
+                }}
+              >
+                <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
+                  ID: {event.eventId}
+                </Text>
+                <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
+              </HStack>
+            </Tooltip>
+            <Tooltip label="Click to copy shareable URL" hasArrow>
+              <HStack
+                spacing={2}
+                px={3}
+                py={1}
+                mt={2}
+                bg="whiteAlpha.100"
+                borderRadius="md"
+                cursor="pointer"
+                transition="all 0.2s"
+                _hover={{ bg: 'whiteAlpha.400' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  toast({
+                    title: 'Shareable URL Copied!',
+                    description: `URL: ${window.location.href}`,
+                    status: 'success',
+                    duration: 2000,
+                    isClosable: true,
+                  });
+                }}
+              >
+                <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
+                  URL: {window.location.href}
+                </Text>
+                <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
+              </HStack>
+            </Tooltip>
           </VStack>
           {isEventAdmin && (
             <>
@@ -452,13 +514,41 @@ const TreasureEventView = () => {
 
           {event.nodes && event.nodes.length > 0 && (
             <Box width="100%">
+              {isEventAdmin && (
+                <Card mb={4} bg={currentColors.cardBg} borderRadius="md">
+                  <CardBody>
+                    <HStack justify="space-between" align="center">
+                      <VStack align="start" spacing={1}>
+                        <Text fontWeight="bold" color={currentColors.textColor}>
+                          Admin Map Controls
+                        </Text>
+                        <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
+                          Toggle to show/hide locked nodes on the map
+                        </Text>
+                      </VStack>
+                      <HStack spacing={3}>
+                        <Text fontSize="sm" color={currentColors.textColor}>
+                          Show All Nodes
+                        </Text>
+                        <Switch
+                          size="lg"
+                          colorScheme="purple"
+                          isChecked={showAllNodesToggle}
+                          onChange={(e) => setShowAllNodesToggle(e.target.checked)}
+                        />
+                      </HStack>
+                    </HStack>
+                  </CardBody>
+                </Card>
+              )}
               <MultiTeamTreasureMap
                 nodes={event.nodes}
                 teams={teams}
+                event={event}
                 onNodeClick={(node) => {
                   console.log('Clicked node:', node);
                 }}
-                showAllNodes={isEventAdmin}
+                showAllNodes={isEventAdmin && showAllNodesToggle}
               />
             </Box>
           )}
@@ -798,8 +888,8 @@ const TreasureEventView = () => {
                                           fontSize="xs"
                                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                                         >
-                                          {node.objective.type}: {node.objective.quantity}{' '}
-                                          {node.objective.target}
+                                          {OBJECTIVE_TYPES[node.objective.type]}:{' '}
+                                          {node.objective.quantity} {node.objective.target}
                                         </Text>
                                         {node.objective.appliedBuff && (
                                           <Badge colorScheme="blue" fontSize="xs" mt={1}>

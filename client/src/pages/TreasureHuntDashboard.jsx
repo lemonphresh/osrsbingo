@@ -46,7 +46,12 @@ const TreasureHuntDashboard = () => {
   const { user } = useAuth();
 
   const { data, loading, refetch } = useQuery(GET_ALL_TREASURE_EVENTS, {
-    variables: { userId: user?.id },
+    variables: { userId: user.id },
+    onCompleted: (data) => {
+      if (!data.getAllTreasureEvents.some((event) => event.adminIds.includes(user.id))) {
+        showToast('You do not have admin access to any events.', 'warning');
+      }
+    },
     skip: !user,
   });
 

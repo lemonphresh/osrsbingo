@@ -39,7 +39,7 @@ module.exports = (sequelize) => {
       activeBuffs: {
         type: DataTypes.JSONB,
         defaultValue: [],
-        comment: 'Active buffs that can be applied to objectives',
+        comment: 'Available buffs that can be applied to objectives',
       },
       buffHistory: {
         type: DataTypes.JSONB,

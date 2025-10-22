@@ -1,10 +1,86 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, ImageOverlay, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import { Box, Badge, Text, VStack, HStack, Button } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
+import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+
+const RecenterButton = ({ nodes }) => {
+  const map = useMap();
+  const [isOffCenter, setIsOffCenter] = useState(false);
+
+  useEffect(() => {
+    const checkPosition = () => {
+      const center = map.getCenter();
+      const mapCenter = { lat: 1952, lng: 3584 }; // mapHeight/2, mapWidth/2
+
+      // Calculate distance from center
+      const distance = Math.sqrt(
+        Math.pow(center.lat - mapCenter.lat, 2) + Math.pow(center.lng - mapCenter.lng, 2)
+      );
+
+      // Show button if more than 500 pixels from center
+      setIsOffCenter(distance > 500);
+    };
+
+    map.on('moveend', checkPosition);
+    checkPosition(); // Initial check
+
+    return () => {
+      map.off('moveend', checkPosition);
+    };
+  }, [map]);
+
+  const handleRecenter = () => {
+    if (nodes.length > 0) {
+      // Fit bounds to all nodes
+      const positions = nodes
+        .filter((n) => n.coordinates?.x && n.coordinates?.y)
+        .map((n) => {
+          const osrsMinX = 1100;
+          const osrsMaxX = 3900;
+          const osrsMinY = 2500;
+          const osrsMaxY = 4100;
+          const mapWidth = 7168;
+          const mapHeight = 3904;
+
+          const normalizedX = (n.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
+          const normalizedY = (n.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
+          const pixelX = normalizedX * mapWidth;
+          const pixelY = normalizedY * mapHeight;
+
+          return [pixelY, pixelX];
+        });
+
+      if (positions.length > 0) {
+        const bounds = L.latLngBounds(positions);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 1, animate: true, duration: 1 });
+      }
+    }
+  };
+
+  if (!isOffCenter) return null;
+
+  return (
+    <Box position="absolute" bottom={4} right={4} zIndex={1000}>
+      <Button
+        size="sm"
+        colorScheme="green"
+        onClick={handleRecenter}
+        boxShadow="lg"
+        leftIcon={
+          <Box as="span" fontSize="lg">
+            🎯
+          </Box>
+        }
+      >
+        Recenter Map
+      </Button>
+    </Box>
+  );
+};
 
 const FitBoundsOnLoad = ({ nodes }) => {
   const map = useMap();
@@ -38,7 +114,8 @@ const FitBoundsOnLoad = ({ nodes }) => {
         hasSetBounds.current = true;
       }
     }
-  }, [map, nodes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, nodes.length]);
 
   return null;
 };
@@ -90,7 +167,7 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                     }
                     ${
                       status === 'completed'
-                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: white; font-size: 8px;">✅</div>'
+                        ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: #2d2b2bff; font-size: 24px;">✓</div>'
                         : ''
                     }
                      ${
@@ -121,6 +198,7 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
 const TreasureMapVisualization = ({
   nodes = [],
   team,
+  event, // NEW: Need event to check location groups
   mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
   onNodeClick,
   adminMode = false,
@@ -159,9 +237,40 @@ const TreasureMapVisualization = ({
     return [pixelY, pixelX];
   };
 
-  const getNodeStatus = (node) => {
+  // Helper function to get difficulty badge color from tier
+  const getDifficultyColor = (difficultyTier) => {
+    if (difficultyTier === 1) return 'green';
+    if (difficultyTier === 3) return 'orange';
+    if (difficultyTier === 5) return 'red';
+    return 'gray';
+  };
+
+  // Helper function to get difficulty name from tier
+  const getDifficultyName = (difficultyTier) => {
+    if (difficultyTier === 1) return 'EASY';
+    if (difficultyTier === 3) return 'MEDIUM';
+    if (difficultyTier === 5) return 'HARD';
+    return '';
+  };
+
+  // Helper to check if a location group has been completed (any node in the group)
+  const isLocationGroupCompleted = (node, event) => {
+    if (!node.locationGroupId || !event?.mapStructure?.locationGroups) return false;
+
+    const group = event.mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+    if (!group) return false;
+
+    // Check if any node in this group has been completed by this team
+    return group.nodeIds.some((nodeId) => team?.completedNodes?.includes(nodeId));
+  };
+
+  const getNodeStatus = (node, event) => {
     if (!team) return 'locked';
     if (team.completedNodes?.includes(node.nodeId)) return 'completed';
+
+    // NEW: Check if another node at this location has been completed
+    if (isLocationGroupCompleted(node, event)) return 'unavailable';
+
     if (team.availableNodes?.includes(node.nodeId)) return 'available';
     return 'locked';
   };
@@ -171,6 +280,7 @@ const TreasureMapVisualization = ({
     if (nodeType === 'INN') return colors.yellow;
     if (status === 'completed') return colors.green;
     if (status === 'available') return colors.orange;
+    if (status === 'unavailable') return colors.red; // Node at completed location
     return colors.gray;
   };
 
@@ -202,8 +312,8 @@ const TreasureMapVisualization = ({
   };
 
   const getPathColor = (fromNode, toNode) => {
-    const fromStatus = getNodeStatus(fromNode);
-    const toStatus = getNodeStatus(toNode);
+    const fromStatus = getNodeStatus(fromNode, event);
+    const toStatus = getNodeStatus(toNode, event);
 
     if (fromStatus === 'completed' && toStatus === 'completed') return colors.green;
     if (fromStatus === 'completed' && toStatus === 'available') return colors.turquoise;
@@ -212,8 +322,8 @@ const TreasureMapVisualization = ({
   };
 
   const getPathStyle = (fromNode, toNode) => {
-    const fromStatus = getNodeStatus(fromNode);
-    const toStatus = getNodeStatus(toNode);
+    const fromStatus = getNodeStatus(fromNode, event);
+    const toStatus = getNodeStatus(toNode, event);
 
     if (fromStatus === 'completed' && toStatus === 'completed') {
       return { weight: 4, opacity: 0.9, dashArray: null };
@@ -236,6 +346,20 @@ const TreasureMapVisualization = ({
       node.unlocks.forEach((targetNodeId) => {
         const targetNode = nodes.find((n) => n.nodeId === targetNodeId);
         if (targetNode && node.coordinates && targetNode.coordinates) {
+          // HIDE edges if either node is locked/unavailable (unless admin mode)
+          const fromStatus = getNodeStatus(node, event);
+          const toStatus = getNodeStatus(targetNode, event);
+
+          if (
+            !adminMode &&
+            (fromStatus === 'locked' ||
+              fromStatus === 'unavailable' ||
+              toStatus === 'locked' ||
+              toStatus === 'unavailable')
+          ) {
+            return; // Skip this edge
+          }
+
           const fromPos = convertCoordinates(node.coordinates.x, node.coordinates.y);
           const toPos = convertCoordinates(targetNode.coordinates.x, targetNode.coordinates.y);
           const style = getPathStyle(node, targetNode);
@@ -262,18 +386,15 @@ const TreasureMapVisualization = ({
       <MapContainer
         center={[mapHeight / 2, mapWidth / 2]}
         zoom={-1}
-        minZoom={-2}
+        minZoom={-3}
         maxZoom={2}
         crs={L.CRS.Simple}
-        style={{ height: '100%', width: '100%', background: '#0a0a0a' }}
-        maxBounds={mapBounds}
-        maxBoundsViscosity={1.0}
+        style={{ height: '100%', width: '100%', background: '#64769e' }}
         scrollWheelZoom={true}
       >
         <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={0.85} />
-
+        <RecenterButton nodes={nodes} />
         <FitBoundsOnLoad nodes={nodes} />
-
         {edges.map((edge, idx) => (
           <Polyline
             key={`edge-${idx}`}
@@ -284,14 +405,18 @@ const TreasureMapVisualization = ({
             dashArray={edge.dashArray}
           />
         ))}
-
         {nodes.map((node) => {
           if (!node.coordinates?.x || !node.coordinates?.y) return null;
 
-          const status = getNodeStatus(node);
+          const status = getNodeStatus(node, event);
+
+          // HIDE locked and unavailable nodes (unless in admin mode)
+          if (!adminMode && (status === 'locked' || status === 'unavailable')) {
+            return null;
+          }
+
           const color = getNodeColor(status, node.nodeType);
           const position = getNodePosition(node, nodes);
-          console.log(node.objective?.appliedBuff);
           return (
             <Marker
               key={node.nodeId}
@@ -303,28 +428,28 @@ const TreasureMapVisualization = ({
                 adminMode,
                 !!node.objective?.appliedBuff
               )}
-              eventHandlers={{
-                click: () => {
-                  // In admin mode, just open the popup - don't auto-complete
-                  if (!adminMode && onNodeClick && status !== 'locked') {
-                    onNodeClick(node);
-                  }
-                },
-              }}
             >
-              <Popup maxWidth={300}>
+              <Popup
+                maxWidth={350}
+                autoPan={true}
+                autoPanPaddingTopLeft={[10, 80]}
+                autoPanPaddingBottomRight={[10, 10]}
+              >
                 <VStack align="start" spacing={2} p={2}>
                   <HStack justify="space-between" w="full">
-                    {status === 'locked' && !adminMode ? (
+                    {(status === 'locked' || status === 'unavailable') && !adminMode ? (
                       <>
                         <RedactedText length="long" />
-                        <Badge colorScheme="gray" fontSize="xs">
-                          LOCKED
+                        <Badge
+                          colorScheme={status === 'unavailable' ? 'red' : 'gray'}
+                          fontSize="xs"
+                        >
+                          {status === 'unavailable' ? 'UNAVAILABLE' : 'LOCKED'}
                         </Badge>
                       </>
                     ) : (
                       <>
-                        <Text fontWeight="bold" fontSize="md" color="#1a1a1a">
+                        <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
                           {node.title}
                         </Text>
                         <Badge
@@ -333,48 +458,85 @@ const TreasureMapVisualization = ({
                               ? 'green'
                               : status === 'available'
                               ? 'orange'
+                              : status === 'unavailable'
+                              ? 'red'
                               : 'gray'
                           }
                           fontSize="xs"
                         >
-                          {status.toUpperCase()}
+                          {status === 'unavailable'
+                            ? 'UNAVAILABLE'
+                            : node.nodeType === 'INN'
+                            ? 'VISITED'
+                            : status.toUpperCase()}
                         </Badge>
+                        {node.difficultyTier && node.nodeType === 'STANDARD' && (
+                          <Badge
+                            colorScheme={getDifficultyColor(node.difficultyTier)}
+                            fontSize="xs"
+                          >
+                            {getDifficultyName(node.difficultyTier)}
+                          </Badge>
+                        )}
                       </>
                     )}
                   </HStack>
 
-                  {status === 'locked' && !adminMode ? (
+                  {(status === 'locked' || status === 'unavailable') && !adminMode ? (
                     <VStack align="start" spacing={1} w="full">
                       <RedactedText length="full" />
                       <RedactedText length="medium" />
                       <Box pt={2}>
                         <Text fontSize="xs" color="#718096" fontStyle="italic">
-                          Complete prerequisites to unlock
+                          {status === 'unavailable'
+                            ? 'Another difficulty at this location has already been completed. Only one node per location can be completed.'
+                            : 'Complete prerequisites to unlock'}
                         </Text>
                       </Box>
                     </VStack>
                   ) : (
                     <>
                       {node.description && (
-                        <Text fontSize="sm" color="#4a4a4a">
+                        <Text
+                          w="100%"
+                          p={2}
+                          borderRadius="md"
+                          bg="gray.100"
+                          m="0!important"
+                          fontSize="sm"
+                          color="#4a4a4a"
+                        >
                           {node.description}
                         </Text>
                       )}
 
                       {node.objective && (
                         <Box>
-                          <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                          <Text
+                            m="0!important"
+                            fontSize="xs"
+                            fontWeight="bold"
+                            color="#2d3748"
+                            mb={1}
+                          >
                             Objective:
                           </Text>
-                          <Text fontSize="xs" color="#4a5568">
-                            {node.objective.type}: {node.objective.quantity} {node.objective.target}
+                          <Text fontSize="xs" m="0!important" color="#4a5568">
+                            {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                            {node.objective.target}
                           </Text>
                         </Box>
                       )}
 
                       {node.rewards && (
                         <Box>
-                          <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+                          <Text
+                            m="0!important"
+                            fontSize="xs"
+                            fontWeight="bold"
+                            color="#2d3748"
+                            mb={1}
+                          >
                             Rewards:
                           </Text>
                           <HStack spacing={2}>
@@ -466,8 +628,25 @@ const TreasureMapVisualization = ({
                       )}
 
                       {!adminMode && status === 'available' && (
-                        <Text fontSize="xs" color="#4a5568" fontStyle="italic" mt={2}>
-                          Click marker or use Discord bot to submit completion
+                        <Text
+                          textAlign="center"
+                          fontSize="xs"
+                          color="#4a5568"
+                          fontStyle="italic"
+                          mt={2}
+                          sx={{
+                            code: { backgroundColor: '#e7ffeaff' },
+                          }}
+                        >
+                          <strong>Submit completion via Discord bot:</strong>
+                          <br />
+                          <code className="code">
+                            !submit {node.nodeId} imgur.com/screenshot.png
+                          </code>{' '}
+                          <br />
+                          or
+                          <br />
+                          <code className="code">!submit {node.nodeId} (attach image file)</code>
                         </Text>
                       )}
                     </>
@@ -516,6 +695,10 @@ const TreasureMapVisualization = ({
             <Text color="#2d3748">Available {!adminMode && '(click to view)'}</Text>
           </HStack>
           <HStack>
+            <Box w={4} h={4} bg={colors.red} borderRadius="full" border="2px solid white" />
+            <Text color="#2d3748">Unavailable</Text>
+          </HStack>
+          <HStack>
             <Box
               w={4}
               h={4}
@@ -535,14 +718,6 @@ const TreasureMapVisualization = ({
             <Text color="#2d3748">Start</Text>
           </HStack>
         </VStack>
-
-        {adminMode && (
-          <Box mt={3} pt={3} borderTop="1px solid #e2e8f0">
-            <Text fontSize="xs" color="#7D5FFF" fontWeight="bold">
-              Click any node to toggle completion
-            </Text>
-          </Box>
-        )}
 
         <Box mt={3} pt={3} borderTop="1px solid #e2e8f0">
           <Text fontSize="xs" color="#718096">

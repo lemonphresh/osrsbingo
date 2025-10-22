@@ -1,13 +1,14 @@
-// bot/commands/submit.js
-// Replace the entire file with this updated version
-
-const { EmbedBuilder } = require('discord.js');
-const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
+const { EmbedBuilder: EmbedBuilder2 } = require('discord.js');
+const {
+  graphqlRequest: graphqlRequest2,
+  findTeamForUser: findTeamForUser2,
+  getEventIdFromChannel: getEventIdFromChannel2,
+} = require('../utils/graphql');
 
 module.exports = {
   name: 'submit',
   description: 'Submit node completion',
-  usage: '!submit <node_id> [proof_url] OR attach an image',
+  usage: '!submit <node_id> imgur.com/screenshot.png OR attach an image',
   async execute(message, args) {
     if (args.length < 1) {
       return message.reply(
@@ -33,7 +34,11 @@ module.exports = {
 
       // Validate it's an image
       const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-      if (!validImageTypes.includes(attachment.contentType)) {
+      const isValidImage =
+        validImageTypes.includes(attachment.contentType) ||
+        /\.(png|jpe?g|gif|webp)$/i.test(attachment.name);
+
+      if (!isValidImage) {
         return message.reply(
           '❌ Please attach an image file (PNG, JPEG, GIF, or WebP)\n' +
             'Or provide an image URL as the second argument.'
@@ -48,17 +53,79 @@ module.exports = {
     }
 
     try {
-      const eventId = getEventIdFromChannel(message.channel);
+      const eventId = getEventIdFromChannel2(message.channel);
       console.log('Extracted eventId:', eventId);
       if (!eventId) {
         return message.reply('❌ This channel is not linked to a Treasure Hunt event.');
       }
 
       const userRoles = message.member.roles.cache.map((role) => role.id);
-      const team = await findTeamForUser(eventId, message.author.id, userRoles);
+      const team = await findTeamForUser2(eventId, message.author.id, userRoles);
 
       if (!team) {
         return message.reply('❌ You are not part of any team in this event.');
+      }
+
+      // Get node details to check location group
+      const verifyQuery = `
+        query VerifyNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+          getTreasureEvent(eventId: $eventId) {
+            mapStructure
+            nodes {
+              nodeId
+              title
+              locationGroupId
+              difficultyTier
+              mapLocation
+            }
+          }
+          getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+            availableNodes
+            completedNodes
+          }
+        }
+      `;
+
+      const verifyData = await graphqlRequest2(verifyQuery, {
+        eventId,
+        teamId: team.teamId,
+        nodeId,
+      });
+
+      const node = verifyData.getTreasureEvent.nodes.find((n) => n.nodeId === nodeId);
+      const teamData = verifyData.getTreasureTeam;
+      const mapStructure = verifyData.getTreasureEvent.mapStructure;
+
+      if (!node) {
+        return message.reply('❌ Node not found.');
+      }
+
+      if (!teamData.availableNodes.includes(nodeId)) {
+        return message.reply('❌ This node is not available to your team yet.');
+      }
+
+      // Check if location group is already completed
+      if (node.locationGroupId && mapStructure?.locationGroups) {
+        const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+        if (group) {
+          const completedNodeId = group.nodeIds.find((id) => teamData.completedNodes.includes(id));
+          if (completedNodeId) {
+            const completedNode = verifyData.getTreasureEvent.nodes.find(
+              (n) => n.nodeId === completedNodeId
+            );
+            const getDiffName = (tier) =>
+              tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
+            const completedDiff = getDiffName(completedNode?.difficultyTier);
+            const attemptedDiff = getDiffName(node.difficultyTier);
+
+            return message.reply(
+              `❌ **Location Already Completed**\n\n` +
+                `Your team has already completed the **${completedDiff}** difficulty at **${node.mapLocation}**.\n` +
+                `Completed: "${completedNode?.title}"\n\n` +
+                `You cannot submit the **${attemptedDiff}** difficulty. Only one difficulty per location is allowed.`
+            );
+          }
+        }
       }
 
       // Submit completion
@@ -84,7 +151,7 @@ module.exports = {
         }
       `;
 
-      const data = await graphqlRequest(mutation, {
+      const data = await graphqlRequest2(mutation, {
         eventId,
         teamId: team.teamId,
         nodeId,
@@ -94,11 +161,16 @@ module.exports = {
 
       const submission = data.submitNodeCompletion;
 
-      const embed = new EmbedBuilder()
+      const getDiffName = (tier) =>
+        tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
+      const difficultyBadge = node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : '';
+
+      const embed = new EmbedBuilder2()
         .setTitle('✅ Submission Received')
         .setColor('#43AA8B')
         .setDescription(`Your completion has been submitted for review!`)
         .addFields(
+          { name: 'Node', value: `${node.title}${difficultyBadge}`, inline: false },
           { name: 'Node ID', value: nodeId, inline: true },
           { name: 'Status', value: submission.status, inline: true },
           { name: 'Submission ID', value: submission.submissionId, inline: false }
@@ -114,7 +186,17 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error submitting:', error);
+      console.error('Error:', error);
+
+      // Provide more helpful errors
+      if (error.message.includes('Not authenticated')) {
+        return message.reply('❌ Bot authentication error. Please contact an admin.');
+      }
+
+      if (error.message.includes('not found')) {
+        return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

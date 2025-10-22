@@ -1,6 +1,9 @@
-// bot/commands/applybuff.js
-const { EmbedBuilder } = require('discord.js');
-const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
+const { EmbedBuilder: EmbedBuilder3 } = require('discord.js');
+const {
+  graphqlRequest: graphqlRequest3,
+  findTeamForUser: findTeamForUser3,
+  getEventIdFromChannel: getEventIdFromChannel3,
+} = require('../utils/graphql');
 
 module.exports = {
   name: 'applybuff',
@@ -17,19 +20,19 @@ module.exports = {
     const buffId = args[1];
 
     try {
-      const eventId = getEventIdFromChannel(message.channel);
+      const eventId = getEventIdFromChannel3(message.channel);
       if (!eventId) {
         return message.reply('❌ This channel is not linked to a Treasure Hunt event.');
       }
 
       const userRoles = message.member.roles.cache.map((role) => role.id);
-      const team = await findTeamForUser(eventId, message.author.id, userRoles);
+      const team = await findTeamForUser3(eventId, message.author.id, userRoles);
 
       if (!team) {
         return message.reply('❌ You are not part of any team in this event.');
       }
 
-      // Get node and team data
+      // Get node and team data - including difficultyTier
       const query = `
         query GetNodeAndTeam($eventId: ID!, $teamId: ID!) {
           getTreasureEvent(eventId: $eventId) {
@@ -37,6 +40,7 @@ module.exports = {
               nodeId
               title
               objective
+              difficultyTier
             }
           }
           getTreasureTeam(eventId: $eventId, teamId: $teamId) {
@@ -46,7 +50,7 @@ module.exports = {
         }
       `;
 
-      const data = await graphqlRequest(query, {
+      const data = await graphqlRequest3(query, {
         eventId,
         teamId: team.teamId,
       });
@@ -58,6 +62,15 @@ module.exports = {
         return message.reply('❌ Node not found.');
       }
 
+      if (node.objective?.appliedBuff) {
+        return message.reply(
+          `⚠️ A buff is already applied to this node!\n` +
+            `**Current buff:** ${node.objective.appliedBuff.buffName}\n` +
+            `**Reduction:** ${(node.objective.appliedBuff.reduction * 100).toFixed(0)}%\n\n` +
+            `Complete the node with the reduced objective, or ask an admin to remove the buff.`
+        );
+      }
+
       if (!teamData.availableNodes.includes(nodeId)) {
         return message.reply('❌ This node is not available to your team yet.');
       }
@@ -65,6 +78,10 @@ module.exports = {
       const applicableBuffs =
         teamData.activeBuffs?.filter((buff) => buff.objectiveTypes.includes(node.objective.type)) ||
         [];
+
+      const getDiffName = (tier) =>
+        tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
+      const difficultyBadge = node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : '';
 
       // If no buff_id provided, show applicable buffs
       if (!buffId) {
@@ -74,8 +91,8 @@ module.exports = {
           );
         }
 
-        const embed = new EmbedBuilder()
-          .setTitle(`🎯 ${node.title}`)
+        const embed = new EmbedBuilder3()
+          .setTitle(`🎯 ${node.title}${difficultyBadge}`)
           .setColor('#7D5FFF')
           .setDescription(
             `**Objective:** ${node.objective.type}: ${node.objective.quantity} ${node.objective.target}\n\n**Applicable Buffs:**`
@@ -120,7 +137,7 @@ module.exports = {
         }
       `;
 
-      const result = await graphqlRequest(mutation, {
+      const result = await graphqlRequest3(mutation, {
         eventId,
         teamId: team.teamId,
         nodeId,
@@ -130,10 +147,12 @@ module.exports = {
       const buff = applicableBuffs.find((b) => b.buffId === buffId);
       const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
 
-      const embed = new EmbedBuilder()
+      const embed = new EmbedBuilder3()
         .setTitle('✅ Buff Applied!')
         .setColor('#43AA8B')
-        .setDescription(`${buff.icon} **${buff.buffName}** has been applied to **${node.title}**`)
+        .setDescription(
+          `${buff.icon} **${buff.buffName}** has been applied to **${node.title}${difficultyBadge}**`
+        )
         .addFields(
           {
             name: 'Original Objective',
@@ -151,7 +170,17 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error applying buff:', error);
+      console.error('Error:', error);
+
+      // Provide more helpful errors
+      if (error.message.includes('Not authenticated')) {
+        return message.reply('❌ Bot authentication error. Please contact an admin.');
+      }
+
+      if (error.message.includes('not found')) {
+        return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

@@ -5,6 +5,7 @@ const EditorInvitationResolvers = require('./resolvers/EditorInvitation');
 const CalendarResolvers = require('./resolvers/Calendar');
 const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
 const { DateTimeResolver, JSONResolver } = require('graphql-scalars');
+const SiteStats = require('./resolvers/SiteStats');
 
 const resolvers = {
   DateTime: DateTimeResolver,
@@ -16,6 +17,7 @@ const resolvers = {
     ...EditorInvitationResolvers.Query,
     ...UserResolvers.Query,
     ...TreasureHuntResolvers.Query,
+    ...SiteStats.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -24,6 +26,7 @@ const resolvers = {
     ...EditorInvitationResolvers.Mutation,
     ...UserResolvers.Mutation,
     ...TreasureHuntResolvers.Mutation,
+    ...SiteStats.Mutation,
   },
 };
 

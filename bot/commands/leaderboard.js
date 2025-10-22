@@ -45,7 +45,17 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error fetching leaderboard:', error);
+      console.error('Error:', error);
+
+      // Provide more helpful errors
+      if (error.message.includes('Not authenticated')) {
+        return message.reply('❌ Bot authentication error. Please contact an admin.');
+      }
+
+      if (error.message.includes('not found')) {
+        return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

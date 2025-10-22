@@ -1,4 +1,3 @@
-// bot/commands/inns.js
 const { EmbedBuilder } = require('discord.js');
 const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
 
@@ -53,8 +52,8 @@ module.exports = {
         );
       }
 
-      // Get list of already purchased reward IDs
-      const purchasedRewardIds = new Set((teamData.innTransactions || []).map((t) => t.rewardId));
+      // NEW: Check which Inns have been traded at (one trade per Inn)
+      const tradedInnNodeIds = new Set((teamData.innTransactions || []).map((t) => t.nodeId));
 
       // Helper function to check if team can afford a reward
       const canAfford = (keysHeld, keyCost) => {
@@ -81,34 +80,40 @@ module.exports = {
         .setColor('#F4D35E')
         .setDescription(
           `**Your Keys:** ${keysText}\n\n` +
-            `Use \`!trade <inn_node_id> <reward_id>\` to make a trade!`
+            `Use \`!trade <inn_node_id> <reward_id>\` to make a trade!\n` +
+            `⚠️ You can only trade ONCE per Inn!`
         );
 
       let hasAnyAvailableTrades = false;
 
       completedInns.forEach((inn) => {
-        if (!inn.availableRewards || inn.availableRewards.length === 0) {
-          return; // Skip inns with no rewards
-        }
+        // Check if already traded at this Inn
+        const alreadyTraded = tradedInnNodeIds.has(inn.nodeId);
 
-        // Filter out already purchased rewards
-        const availableRewards = inn.availableRewards.filter(
-          (reward) => !purchasedRewardIds.has(reward.reward_id)
-        );
+        if (alreadyTraded) {
+          // Show Inn but mark as completed
+          const transaction = teamData.innTransactions.find((t) => t.nodeId === inn.nodeId);
+          const gpValue = transaction ? (transaction.payout / 1000000).toFixed(1) : '?';
 
-        if (availableRewards.length === 0) {
           embed.addFields({
             name: `🏠 ${inn.title}`,
-            value: `**Node ID:** \`${inn.nodeId}\`\n✅ All trades completed!`,
+            value:
+              `**Node ID:** \`${inn.nodeId}\`\n` +
+              `✅ **Already traded!** Received ${gpValue}M GP\n` +
+              `⚠️ No more trades available at this Inn`,
             inline: false,
           });
           return;
         }
 
+        if (!inn.availableRewards || inn.availableRewards.length === 0) {
+          return; // Skip inns with no rewards
+        }
+
         hasAnyAvailableTrades = true;
 
         let tradesText = '';
-        availableRewards.forEach((reward) => {
+        inn.availableRewards.forEach((reward) => {
           const keyCostText = reward.key_cost.map((k) => `${k.quantity}x ${k.color}`).join(' + ');
           const gpValue = (reward.payout / 1000000).toFixed(1);
           const affordable = canAfford(teamData.keysHeld, reward.key_cost);
@@ -131,12 +136,22 @@ module.exports = {
       }
 
       embed.setFooter({
-        text: '✅ = Can afford | ❌ = Need more keys | Already purchased trades are hidden',
+        text: '✅ = Can afford | ❌ = Need more keys | You can only trade once per Inn',
       });
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error fetching inns:', error);
+      console.error('Error:', error);
+
+      // Provide more helpful errors
+      if (error.message.includes('Not authenticated')) {
+        return message.reply('❌ Bot authentication error. Please contact an admin.');
+      }
+
+      if (error.message.includes('not found')) {
+        return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

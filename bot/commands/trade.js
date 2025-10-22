@@ -1,6 +1,9 @@
-// bot/commands/trade.js
-const { EmbedBuilder } = require('discord.js');
-const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
+const { EmbedBuilder: EmbedBuilder2 } = require('discord.js');
+const {
+  graphqlRequest: graphqlRequest2,
+  findTeamForUser: findTeamForUser2,
+  getEventIdFromChannel: getEventIdFromChannel2,
+} = require('../utils/graphql');
 
 module.exports = {
   name: 'trade',
@@ -19,13 +22,13 @@ module.exports = {
     const rewardId = args[1];
 
     try {
-      const eventId = getEventIdFromChannel(message.channel);
+      const eventId = getEventIdFromChannel2(message.channel);
       if (!eventId) {
         return message.reply('❌ This channel is not linked to a Treasure Hunt event.');
       }
 
       const userRoles = message.member.roles.cache.map((role) => role.id);
-      const team = await findTeamForUser(eventId, message.author.id, userRoles);
+      const team = await findTeamForUser2(eventId, message.author.id, userRoles);
 
       if (!team) {
         return message.reply('❌ You are not part of any team in this event.');
@@ -46,11 +49,12 @@ module.exports = {
             completedNodes
             keysHeld
             currentPot
+            innTransactions
           }
         }
       `;
 
-      const verifyData = await graphqlRequest(verifyQuery, {
+      const verifyData = await graphqlRequest2(verifyQuery, {
         eventId,
         teamId: team.teamId,
       });
@@ -68,6 +72,17 @@ module.exports = {
 
       if (!teamData.completedNodes.includes(innNodeId)) {
         return message.reply('❌ Your team has not completed this Inn yet!');
+      }
+
+      // NEW: Check if already traded at this Inn
+      const alreadyTraded = teamData.innTransactions?.some((t) => t.nodeId === innNodeId);
+      if (alreadyTraded) {
+        return message.reply(
+          `❌ **Already traded at this Inn!**\n\n` +
+            `Your team has already made a trade at **${inn.title}**.\n` +
+            `You can only trade ONCE per Inn.\n\n` +
+            `Use \`!inns\` to see other available Inns.`
+        );
       }
 
       // Find the reward
@@ -125,7 +140,7 @@ module.exports = {
         }
       `;
 
-      const result = await graphqlRequest(mutation, {
+      const result = await graphqlRequest2(mutation, {
         eventId,
         teamId: team.teamId,
         rewardId,
@@ -136,10 +151,12 @@ module.exports = {
       const oldPot = (teamData.currentPot / 1000000).toFixed(1);
       const newPot = (result.purchaseInnReward.currentPot / 1000000).toFixed(1);
 
-      const embed = new EmbedBuilder()
+      const embed = new EmbedBuilder2()
         .setTitle('✅ Trade Successful!')
         .setColor('#43AA8B')
-        .setDescription(`You traded keys at **${inn.title}**`)
+        .setDescription(
+          `You traded keys at **${inn.title}**\n` + `⚠️ You cannot trade at this Inn again!`
+        )
         .addFields(
           {
             name: '🔑 Keys Spent',
@@ -170,11 +187,17 @@ module.exports = {
         inline: false,
       });
 
-      embed.setFooter({ text: 'Use !inns to see more trades!' });
+      embed.setFooter({ text: 'Use !inns to see other Inns!' });
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
       console.error('Error executing trade:', error);
+
+      // Check for specific Inn transaction errors
+      if (error.message.includes('already') || error.message.includes('purchased')) {
+        return message.reply(`❌ ${error.message}`);
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

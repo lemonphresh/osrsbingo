@@ -2,34 +2,121 @@ const { v4: uuidv4 } = require('uuid');
 
 // OSRS locations for placing nodes on the map
 const OSRS_LOCATIONS = [
+  // Misthalin
   { name: 'Lumbridge', x: 3222, y: 3218 },
-  { name: 'Varrock', x: 3213, y: 3424 },
-  { name: 'Falador', x: 2965, y: 3378 },
   { name: 'Draynor Village', x: 3093, y: 3244 },
-  { name: 'Edgeville', x: 3087, y: 3496 },
-  { name: 'Ardougne', x: 2662, y: 3305 },
-  { name: 'Catherby', x: 2809, y: 3436 },
-  { name: 'Seers Village', x: 2725, y: 3484 },
-  { name: 'Yanille', x: 2606, y: 3093 },
+  { name: 'Al Kharid', x: 3293, y: 3174 },
+
+  // Asgarnia
+  { name: 'Falador', x: 2965, y: 3378 },
   { name: 'Port Sarim', x: 3012, y: 3217 },
   { name: 'Rimmington', x: 2957, y: 3214 },
   { name: 'Taverly', x: 2933, y: 3450 },
   { name: 'Burthorpe', x: 2899, y: 3544 },
+  { name: 'White Wolf Mountain', x: 2849, y: 3543 },
+  { name: 'Goblin Village', x: 2956, y: 3502 },
+
+  // Kandarin
+  { name: 'Catherby', x: 2809, y: 3436 },
+  { name: 'Seers Village', x: 2725, y: 3484 },
+  { name: 'Ardougne', x: 2662, y: 3305 },
+  { name: 'Yanille', x: 2606, y: 3093 },
+  { name: 'Tree Gnome Stronghold', x: 2461, y: 3444 },
+  { name: 'Tree Gnome Village', x: 2542, y: 3169 },
+  { name: 'Fishing Guild', x: 2611, y: 3393 },
+  { name: 'Barbarian Village', x: 3082, y: 3420 },
+  { name: 'Grand Tree', x: 2465, y: 3495 },
+
+  // Varrock & Surroundings
+  { name: 'Varrock', x: 3213, y: 3424 },
+  { name: 'Edgeville', x: 3087, y: 3496 },
+  { name: 'Grand Exchange', x: 3164, y: 3464 },
+  { name: 'Varrock Palace', x: 3211, y: 3458 },
+
+  // Wilderness
   { name: 'Wilderness - Edgeville', x: 3089, y: 3520 },
   { name: 'Wilderness - Bandit Camp', x: 3039, y: 3652 },
   { name: 'Wilderness - Lava Maze', x: 3060, y: 3880 },
+  { name: 'Wilderness - Mage Arena', x: 3105, y: 3933 },
+  { name: 'Wilderness - Dark Warriors Fortress', x: 3028, y: 3628 },
+  { name: 'Wilderness - Resource Area', x: 3184, y: 3944 },
+
+  // Morytania
   { name: 'Morytania - Canifis', x: 3493, y: 3488 },
   { name: 'Morytania - Port Phasmatys', x: 3686, y: 3502 },
   { name: 'Morytania - Burgh de Rott', x: 3496, y: 3211 },
+  { name: 'Morytania - Darkmeyer', x: 3623, y: 3367 },
+  { name: 'Morytania - Slepe', x: 3747, y: 3375 },
+  { name: 'Morytania - Barrows', x: 3565, y: 3289 },
+  { name: "Morytania - Mos Le'Harmless", x: 3686, y: 2973 },
+
+  // Karamja
   { name: 'Karamja - Brimhaven', x: 2758, y: 3151 },
   { name: 'Karamja - Shilo Village', x: 2852, y: 2953 },
-  { name: 'Al Kharid', x: 3293, y: 3174 },
+  { name: 'Karamja - Tai Bwo Wannai', x: 2789, y: 3065 },
+  { name: 'Karamja - Musa Point', x: 2914, y: 3176 },
+
+  // Desert (Kharidian)
   { name: 'Pollnivneach', x: 3359, y: 2963 },
+  { name: 'Nardah', x: 3428, y: 2916 },
+  { name: 'Sophanem', x: 3285, y: 2771 },
+  { name: 'Menaphos', x: 3233, y: 2813 },
+  { name: 'Uzer', x: 3493, y: 3090 },
+  { name: 'Bedabin Camp', x: 3180, y: 3044 },
+  { name: 'Desert Bandit Camp', x: 3176, y: 2987 },
+
+  // Fremennik Province
+  { name: 'Rellekka', x: 2660, y: 3660 },
   { name: 'Neitiznot', x: 2331, y: 3804 },
   { name: 'Jatizso', x: 2416, y: 3802 },
+  { name: 'Keldagrim', x: 2845, y: 10210 },
+  { name: 'Miscellania', x: 2512, y: 3860 },
+  { name: 'Waterbirth Island', x: 2527, y: 3740 },
+  { name: 'Mountain Camp', x: 2808, y: 3672 },
+
+  // Tirannwn (Elf Lands)
   { name: 'Prifddinas', x: 2225, y: 3300 },
-  { name: 'Gnome Stronghold', x: 2461, y: 3444 },
-  { name: 'Tree Gnome Village', x: 2542, y: 3169 },
+  { name: 'Lletya', x: 2353, y: 3172 },
+  { name: 'Zul-Andra', x: 2199, y: 3056 },
+  { name: 'Port Tyras', x: 2150, y: 3125 },
+  { name: 'Tirannwn - Gwenith', x: 2203, y: 3406 },
+
+  // KOUREND (Great Kourend)
+  { name: 'Kourend - Shayzien', x: 1504, y: 3615 },
+  { name: 'Kourend - Lovakengj', x: 1488, y: 3812 },
+  { name: 'Kourend - Arceuus', x: 1698, y: 3788 },
+  { name: 'Kourend - Hosidius', x: 1752, y: 3600 },
+  { name: 'Kourend - Piscarilius', x: 1824, y: 3726 },
+  { name: 'Kourend - Kourend Castle', x: 1612, y: 3681 },
+  { name: 'Kourend - Woodcutting Guild', x: 1591, y: 3479 },
+  { name: 'Kourend - Farming Guild', x: 1248, y: 3719 },
+  { name: "Kourend - Land's End", x: 1510, y: 3421 },
+  { name: 'Kourend - Wintertodt Camp', x: 1630, y: 3944 },
+  { name: 'Kourend - Mount Karuulm', x: 1310, y: 3817 },
+
+  // VARLAMORE
+  { name: 'Varlamore - Aldarin', x: 1528, y: 3087 },
+  { name: 'Varlamore - Civitas illa Fortis', x: 1728, y: 3149 },
+  { name: 'Varlamore - Hunter Guild', x: 1567, y: 3066 },
+  { name: 'Varlamore - Sunset Coast', x: 1419, y: 3050 },
+  { name: 'Varlamore - Cam Torum', x: 1444, y: 3184 },
+  { name: 'Varlamore - Fortis Colosseum', x: 1808, y: 3209 },
+  { name: 'Varlamore - The Teomat', x: 1572, y: 3222 },
+
+  // Fossil Island & Misc Islands
+  { name: 'Fossil Island', x: 3724, y: 3808 },
+  { name: 'Crandor', x: 2834, y: 3259 },
+  { name: 'Entrana', x: 2831, y: 3351 },
+  { name: 'Pest Control', x: 2658, y: 2660 },
+  { name: 'Lunar Isle', x: 2111, y: 3915 },
+  { name: 'Ape Atoll', x: 2755, y: 2784 },
+
+  // Dungeons & Special Areas (surface entrances)
+  { name: 'Duel Arena', x: 3366, y: 3266 },
+  { name: 'Champions Guild', x: 3191, y: 3364 },
+  { name: "Warrior's Guild", x: 2876, y: 3546 },
+  { name: 'Myths Guild', x: 2458, y: 2845 },
+  { name: 'Corsair Cove', x: 2570, y: 2862 },
 ];
 
 const DIFFICULTY_MULTIPLIERS = {
@@ -37,6 +124,13 @@ const DIFFICULTY_MULTIPLIERS = {
   normal: 1.0,
   hard: 1.4,
   sweatlord: 2.0,
+};
+
+// Mapping from difficultyTier to difficulty name
+const DIFFICULTY_TIER_NAMES = {
+  1: 'easy',
+  3: 'medium',
+  5: 'hard',
 };
 
 // objective types with difficulty ratings
@@ -304,6 +398,7 @@ function generateMap(eventConfig, derivedValues) {
 
   const nodes = [];
   const edges = [];
+  const locationGroups = []; // NEW: Track location groups
   const paths = [
     { path_id: 'mountain_path', key_color: 'red', difficulty: 'hard' },
     { path_id: 'trade_route', key_color: 'blue', difficulty: 'medium' },
@@ -338,12 +433,65 @@ function generateMap(eventConfig, derivedValues) {
     return id;
   };
 
+  // NEW: Helper to create a location group with 3 difficulty nodes
+  const createLocationGroup = (location, pathInfo, prerequisiteNodeIds, nodeCounter) => {
+    const groupId = `loc_${uuidv4().substring(0, 8)}`;
+    const difficulties = [
+      { name: 'easy', tier: 1 },
+      { name: 'medium', tier: 3 },
+      { name: 'hard', tier: 5 },
+    ];
+
+    const groupNodes = [];
+    const groupNodeIds = [];
+
+    difficulties.forEach(({ name, tier }) => {
+      const nodeId = generateNodeId(nodeCounter.value++);
+      const objective = generateObjective(name, difficultyMultiplier);
+
+      const node = {
+        nodeId,
+        nodeType: 'STANDARD',
+        title: `${location.name} - ${objective.target} [${name.toUpperCase()}]`,
+        description: `${name.charAt(0).toUpperCase() + name.slice(1)} challenge: ${
+          objective.target
+        }`,
+        coordinates: { x: location.x, y: location.y },
+        mapLocation: location.name,
+        locationGroupId: groupId, // NEW: Link nodes in same location
+        prerequisites: prerequisiteNodeIds,
+        unlocks: [],
+        paths: [pathInfo.path_id],
+        objective,
+        rewards: {
+          gp: calculateGPReward(tier, avg_gp_per_node),
+          keys: [{ color: pathInfo.key_color, quantity: name === 'hard' ? 2 : 1 }],
+        },
+        difficultyTier: tier,
+        innTier: null,
+        availableRewards: null,
+      };
+
+      groupNodes.push(node);
+      groupNodeIds.push(nodeId);
+    });
+
+    // Record location group
+    locationGroups.push({
+      groupId,
+      location: location.name,
+      nodeIds: groupNodeIds,
+    });
+
+    return groupNodes;
+  };
+
   // create start node
   const startLocation = getRandomLocation();
   const startNodeId = generateNodeId(0);
 
-  // Generate the initial path node IDs
-  const initialPathNodeIds = [generateNodeId(1), generateNodeId(2), generateNodeId(3)];
+  // Generate the initial path node IDs (will be location groups)
+  const initialPathNodeIds = [];
 
   nodes.push({
     nodeId: startNodeId,
@@ -352,8 +500,9 @@ function generateMap(eventConfig, derivedValues) {
     description: 'Your adventure starts here',
     coordinates: { x: startLocation.x, y: startLocation.y },
     mapLocation: startLocation.name,
+    locationGroupId: null, // Start node is not part of a group
     prerequisites: [],
-    unlocks: initialPathNodeIds,
+    unlocks: [], // Will be filled after creating initial location groups
     paths: paths.map((p) => p.path_id),
     objective: null,
     rewards: { gp: 0, keys: [] },
@@ -362,75 +511,58 @@ function generateMap(eventConfig, derivedValues) {
     availableRewards: null,
   });
 
-  let nodeCounter = 1;
+  let nodeCounter = { value: 1 }; // Use object to pass by reference
   let innCounter = 1;
   let nodesUntilNextInn = node_to_inn_ratio;
 
-  // track current nodes per path
+  // track current nodes per path (now tracks location groups)
   const pathHeads = {
     mountain_path: [],
     trade_route: [],
     coastal_path: [],
   };
 
-  // create initial path nodes (one for each path)
-  let initialNodeIndex = 0;
-  paths.forEach((path, pathIndex) => {
-    const nodeId = initialPathNodeIds[initialNodeIndex];
+  // Create initial location groups (one for each path)
+  paths.forEach((path) => {
     const location = getRandomLocation();
-    const difficulty = path.difficulty === 'hard' ? 5 : path.difficulty === 'medium' ? 3 : 1;
-    const objective = generateObjective(path.difficulty, difficultyMultiplier);
+    const groupNodes = createLocationGroup(location, path, [startNodeId], nodeCounter);
 
-    nodes.push({
-      nodeId,
-      nodeType: 'STANDARD',
-      title: `${location.name} - ${objective.target || 'Challenge'}`,
-      description: `A challenge awaits on the ${path.path_id.replace('_', ' ')}`,
-      coordinates: { x: location.x, y: location.y },
-      mapLocation: location.name,
-      prerequisites: [startNodeId],
-      unlocks: [],
-      paths: [path.path_id],
-      objective,
-      rewards: {
-        gp: calculateGPReward(difficulty, avg_gp_per_node),
-        keys: [{ color: path.key_color, quantity: 1 }],
-      },
-      difficultyTier: difficulty,
-      innTier: null,
-      availableRewards: null,
+    nodes.push(...groupNodes);
+
+    // All nodes in the group are potential heads, but we'll track the easy one as the primary head
+    const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
+    pathHeads[path.path_id].push(easyNode.nodeId);
+
+    // Add all nodes from this group to start node's unlocks
+    groupNodes.forEach((groupNode) => {
+      nodes.find((n) => n.nodeId === startNodeId).unlocks.push(groupNode.nodeId);
+
+      edges.push({
+        from: startNodeId,
+        to: groupNode.nodeId,
+        path: path.path_id,
+      });
     });
-
-    edges.push({
-      from: startNodeId,
-      to: nodeId,
-      path: path.path_id,
-    });
-
-    pathHeads[path.path_id].push(nodeId);
-    initialNodeIndex++;
   });
 
-  nodeCounter = 4; // Start after the 3 initial path nodes
-
   console.log(
-    `Created start node and ${paths.length} initial path nodes (counter at ${nodeCounter})`
+    `Created start node and ${paths.length} initial location groups (counter at ${nodeCounter.value})`
   );
 
-  // generate remaining nodes
+  // Generate remaining nodes as location groups
   let pathIndex = 0;
-  while (nodeCounter < total_nodes) {
-    nodesUntilNextInn--;
+  while (nodeCounter.value < total_nodes) {
+    nodesUntilNextInn -= 3; // Each location group has 3 nodes
 
-    // time for an inn?
+    // Time for an inn?
     if (nodesUntilNextInn <= 0 && innCounter <= num_of_inns) {
-      const nodeId = generateNodeId(nodeCounter);
+      const nodeId = generateNodeId(nodeCounter.value++);
       const location = getRandomLocation();
 
-      // inn is available from all current path heads
+      // Inn is available from all current path heads
       const prerequisites = Object.values(pathHeads).flat();
 
-      console.log(`Creating inn ${innCounter} at node ${nodeId} (counter: ${nodeCounter})`);
+      console.log(`Creating inn ${innCounter} at node ${nodeId} (counter: ${nodeCounter.value})`);
 
       nodes.push({
         nodeId,
@@ -439,6 +571,7 @@ function generateMap(eventConfig, derivedValues) {
         description: 'Rest and trade your keys for rewards',
         coordinates: { x: location.x, y: location.y },
         mapLocation: location.name,
+        locationGroupId: null, // Inns are not part of location groups
         prerequisites,
         unlocks: [],
         paths: paths.map((p) => p.path_id),
@@ -449,7 +582,7 @@ function generateMap(eventConfig, derivedValues) {
         availableRewards: generateInnRewards(innCounter, avg_gp_per_node, node_to_inn_ratio),
       });
 
-      // all paths connect to this inn
+      // All paths connect to this inn
       prerequisites.forEach((prereq) => {
         edges.push({
           from: prereq,
@@ -458,25 +591,36 @@ function generateMap(eventConfig, derivedValues) {
         });
       });
 
-      // update path heads to this inn
+      // Update path heads to this inn
       paths.forEach((path) => {
-        pathHeads[path.path_id] = [nodeId];
+        const location = getRandomLocation();
+        const groupNodes = createLocationGroup(location, path, [nodeId], nodeCounter);
+        nodes.push(...groupNodes);
+
+        // Connect inn to all nodes in this location group
+        groupNodes.forEach((groupNode) => {
+          edges.push({
+            from: nodeId,
+            to: groupNode.nodeId,
+            path: path.path_id,
+          });
+        });
+
+        // Update path head (only easy node as representative)
+        const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
+        pathHeads[path.path_id] = [easyNode.nodeId];
       });
 
       innCounter++;
       nodesUntilNextInn = node_to_inn_ratio;
-      nodeCounter++;
       continue;
     }
 
-    // create regular node for current path
+    // Create location group for current path
     const path = paths[pathIndex % paths.length];
-    const nodeId = generateNodeId(nodeCounter);
     const location = getRandomLocation();
-    const difficulty = path.difficulty === 'hard' ? 5 : path.difficulty === 'medium' ? 3 : 1;
-    const objective = generateObjective(path.difficulty, difficultyMultiplier);
 
-    // pick a random prerequisite from this path's heads
+    // Pick a random prerequisite from this path's heads
     const prerequisites = pathHeads[path.path_id];
     if (prerequisites.length === 0) {
       console.error(`No path heads available for ${path.path_id}`);
@@ -485,57 +629,68 @@ function generateMap(eventConfig, derivedValues) {
 
     const prerequisite = prerequisites[Math.floor(Math.random() * prerequisites.length)];
 
-    nodes.push({
-      nodeId,
-      nodeType: 'STANDARD',
-      title: `${location.name} - ${objective.target || 'Challenge'}`,
-      description: `Continue your journey on the ${path.path_id.replace('_', ' ')}`,
-      coordinates: { x: location.x, y: location.y },
-      mapLocation: location.name,
-      prerequisites: [prerequisite],
-      unlocks: [],
-      paths: [path.path_id],
-      objective,
-      rewards: {
-        gp: calculateGPReward(difficulty, avg_gp_per_node),
-        keys: [{ color: path.key_color, quantity: 1 }],
-      },
-      difficultyTier: difficulty,
-      innTier: null,
-      availableRewards: null,
+    const groupNodes = createLocationGroup(location, path, [prerequisite], nodeCounter);
+    nodes.push(...groupNodes);
+
+    // Connect prerequisite to all nodes in this location group
+    groupNodes.forEach((groupNode) => {
+      edges.push({
+        from: prerequisite,
+        to: groupNode.nodeId,
+        path: path.path_id,
+      });
     });
 
-    edges.push({
-      from: prerequisite,
-      to: nodeId,
-      path: path.path_id,
-    });
+    // FIXED: Only add the easy node as the path head (representative for the location group)
+    // But we'll handle the unlocks properly later when we connect the next location
+    const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
+    pathHeads[path.path_id].push(easyNode.nodeId);
 
-    // add to path heads
-    pathHeads[path.path_id].push(nodeId);
-
-    nodeCounter++;
     pathIndex++; // Move to next path
   }
 
-  console.log(`Generated ${nodes.length} total nodes`);
+  console.log(`Generated ${nodes.length} total nodes in ${locationGroups.length} location groups`);
   console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
 
-  console.log(`Generated ${nodes.length} total nodes`);
-  console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
-
-  // MOVED HERE: Assign buffs to nodes AFTER all nodes are generated
+  // Assign buffs to nodes AFTER all nodes are generated
   console.log('Assigning buff rewards to nodes...');
   assignBuffRewards(nodes, { eventConfig, derivedValues });
 
   const nodesWithBuffs = nodes.filter((n) => n.rewards?.buffs && n.rewards.buffs.length > 0);
   console.log(`Assigned buffs to ${nodesWithBuffs.length} nodes`);
-  // update unlocks based on edges
+
+  // Update unlocks based on edges
   edges.forEach((edge) => {
     const fromNode = nodes.find((n) => n.nodeId === edge.from);
     if (fromNode && !fromNode.unlocks.includes(edge.to)) {
       fromNode.unlocks.push(edge.to);
     }
+  });
+
+  // CRITICAL FIX: Make all nodes in a location group share the same unlocks
+  // This ensures completing ANY difficulty unlocks the next location group
+  locationGroups.forEach((group) => {
+    const groupNodesList = group.nodeIds.map((id) => nodes.find((n) => n.nodeId === id));
+
+    // Collect all unique unlocks from all nodes in the group
+    const allUnlocks = new Set();
+    groupNodesList.forEach((node) => {
+      if (node && node.unlocks) {
+        node.unlocks.forEach((unlock) => allUnlocks.add(unlock));
+      }
+    });
+
+    // Apply all unlocks to all nodes in the group
+    const unlocksArray = Array.from(allUnlocks);
+    groupNodesList.forEach((node) => {
+      if (node) {
+        node.unlocks = [...unlocksArray];
+      }
+    });
+
+    console.log(
+      `Synced unlocks for location group ${group.groupId}: ${unlocksArray.length} unlocks`
+    );
   });
 
   console.log('=== MAP GENERATION COMPLETE ===');
@@ -545,6 +700,7 @@ function generateMap(eventConfig, derivedValues) {
       start_node: startNodeId,
       paths,
       edges,
+      locationGroups, // NEW: Include location groups in map structure
     },
     nodes,
   };

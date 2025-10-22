@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -15,7 +14,9 @@ import {
   Button,
   Divider,
   useColorMode,
+  Image,
 } from '@chakra-ui/react';
+import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
 
 export default function NodeDetailModal({
@@ -25,9 +26,9 @@ export default function NodeDetailModal({
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
+  appliedBuff,
 }) {
   const { colorMode } = useColorMode();
-
   const colors = {
     dark: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -107,7 +108,16 @@ export default function NodeDetailModal({
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
-            <Text color={currentColors.textColor}>{node.description}</Text>
+            <Text
+              w="100%"
+              p={2}
+              borderRadius="md"
+              bg="gray.100"
+              m="0!important"
+              color={currentColors.textColor}
+            >
+              {node.description}
+            </Text>
 
             <Divider />
 
@@ -121,79 +131,84 @@ export default function NodeDetailModal({
             )}
 
             <Box>
-              <Heading size="sm" mb={2} color={currentColors.textColor}>
-                Rewards
-              </Heading>
-              <VStack align="start" spacing={2}>
-                <Text fontWeight="bold" color={currentColors.green.base}>
-                  {formatGP(node.rewards?.gp || 0)} GP
-                </Text>
-                {node.rewards?.keys && node.rewards.keys?.length > 0 && (
-                  <HStack>
-                    <Text fontSize="sm" color={currentColors.textColor}>
-                      Keys:
-                    </Text>
-                    {node.rewards.keys?.map((key, idx) => (
-                      <Badge key={idx} colorScheme={key.color}>
-                        {key.quantity} {key.color}
-                      </Badge>
-                    ))}
-                  </HStack>
-                )}
-
-                {showBuffRewards && (
-                  <Box w="full" mt={2}>
-                    <HStack mb={2}>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
-                        Buff Rewards:
+              <HStack align="center" mb={2}>
+                <VStack>
+                  <Heading size="sm" color={currentColors.textColor}>
+                    Rewards
+                  </Heading>
+                  <Image h="32px" src={Casket} />
+                </VStack>
+                <VStack ml={2} bg="orange.100" p={2} borderRadius="md" align="start" spacing={2}>
+                  <Text fontWeight="bold" color={currentColors.green.base}>
+                    {formatGP(node.rewards?.gp || 0)} GP
+                  </Text>
+                  {node.rewards?.keys && node.rewards.keys?.length > 0 && (
+                    <HStack>
+                      <Text fontSize="sm" color={currentColors.textColor}>
+                        Keys:
                       </Text>
-                      {node.rewards?.buffs?.length ? (
-                        <Badge colorScheme="purple" fontSize="xs">
-                          {node.rewards?.buffs?.length} buff
-                          {node.rewards?.buffs?.length > 1 ? 's' : ''}
+                      {node.rewards.keys?.map((key, idx) => (
+                        <Badge key={idx} colorScheme={key.color}>
+                          {key.quantity} {key.color}
                         </Badge>
-                      ) : (
-                        <Text>N/A</Text>
-                      )}
-                    </HStack>
-                    <VStack align="stretch" spacing={2}>
-                      {node.rewards?.buffs?.map((buff, idx) => (
-                        <Box
-                          key={idx}
-                          p={3}
-                          bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
-                          borderRadius="md"
-                          borderWidth={1}
-                          borderColor={`${getBuffTierColor(buff.tier)}.400`}
-                        >
-                          <HStack justify="space-between">
-                            <HStack>
-                              <Text fontSize="lg">{getBuffIcon(buff.buffType)}</Text>
-                              <VStack align="start" spacing={0}>
-                                <Text
-                                  fontSize="sm"
-                                  fontWeight="bold"
-                                  color={currentColors.textColor}
-                                >
-                                  {buff.buffType
-                                    .replace(/_/g, ' ')
-                                    .replace(/\b\w/g, (l) => l.toUpperCase())}
-                                </Text>
-                                <Text fontSize="xs" color="gray.500">
-                                  Reduces objective requirements
-                                </Text>
-                              </VStack>
-                            </HStack>
-                            <Badge colorScheme={getBuffTierColor(buff.tier)} fontSize="xs">
-                              {buff.tier.toUpperCase()}
-                            </Badge>
-                          </HStack>
-                        </Box>
                       ))}
-                    </VStack>
-                  </Box>
-                )}
-              </VStack>
+                    </HStack>
+                  )}
+
+                  {showBuffRewards && (
+                    <Box w="full" mt={2}>
+                      <HStack mb={2}>
+                        <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                          Buff Rewards:
+                        </Text>
+                        {node.rewards?.buffs?.length ? (
+                          <Badge colorScheme="purple" fontSize="xs">
+                            {node.rewards?.buffs?.length} buff
+                            {node.rewards?.buffs?.length > 1 ? 's' : ''}
+                          </Badge>
+                        ) : (
+                          <Text>N/A</Text>
+                        )}
+                      </HStack>
+                      <VStack align="stretch" spacing={2}>
+                        {node.rewards?.buffs?.map((buff, idx) => (
+                          <Box
+                            key={idx}
+                            p={3}
+                            bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
+                            borderRadius="md"
+                            borderWidth={1}
+                            borderColor={`${getBuffTierColor(buff.tier)}.400`}
+                          >
+                            <HStack justify="space-between">
+                              <HStack>
+                                <Text fontSize="lg">{getBuffIcon(buff.buffType)}</Text>
+                                <VStack align="start" spacing={0}>
+                                  <Text
+                                    fontSize="sm"
+                                    fontWeight="bold"
+                                    color={currentColors.textColor}
+                                  >
+                                    {buff.buffType
+                                      .replace(/_/g, ' ')
+                                      .replace(/\b\w/g, (l) => l.toUpperCase())}
+                                  </Text>
+                                  <Text fontSize="xs" color="gray.500">
+                                    Reduces objective requirements
+                                  </Text>
+                                </VStack>
+                              </HStack>
+                              <Badge colorScheme={getBuffTierColor(buff.tier)} fontSize="xs">
+                                {buff.tier.toUpperCase()}
+                              </Badge>
+                            </HStack>
+                          </Box>
+                        ))}
+                      </VStack>
+                    </Box>
+                  )}
+                </VStack>{' '}
+              </HStack>
             </Box>
 
             {isCompleted && !adminMode && (
@@ -202,14 +217,35 @@ export default function NodeDetailModal({
               </Badge>
             )}
 
+            {appliedBuff && (
+              <Box>
+                <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                  Buff Applied:
+                </Text>
+                <Badge colorScheme="blue" fontSize="xs" mt={1}>
+                  ✨ {appliedBuff.buffName} (-
+                  {(appliedBuff.reduction * 100).toFixed(0)}
+                  %)
+                </Badge>
+              </Box>
+            )}
+
             {isAvailable && !adminMode && (
               <Text
                 fontSize="sm"
                 color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                 textAlign="center"
+                sx={{
+                  code: { backgroundColor: '#e7ffeaff' },
+                }}
               >
-                Submit completion via Discord bot: <code>!submit {node.nodeId} [proof_link]</code>{' '}
-                or <code>!submit {node.nodeId} (attach image file)</code>
+                <Divider mb={2} />
+                Submit completion via Discord bot:
+                <br />
+                <code>!submit {node.nodeId} imgur.com/screenshot.png</code> <br />
+                or
+                <br />
+                <code>!submit {node.nodeId} (attach image file)</code>
               </Text>
             )}
 

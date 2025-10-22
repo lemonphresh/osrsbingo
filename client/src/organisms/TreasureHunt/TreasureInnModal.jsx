@@ -15,7 +15,10 @@ import {
   Divider,
   useColorMode,
   useToast,
-  SimpleGrid,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
   Heading,
 } from '@chakra-ui/react';
 import { CheckIcon } from '@chakra-ui/icons';
@@ -51,6 +54,9 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
   };
+
+  // Check if team has already purchased from this Inn
+  const hasAlreadyPurchased = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
 
   const availableRewards = node.availableRewards || [];
 
@@ -97,12 +103,6 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
       });
     }
   };
-  console.log('InnModal Debug:', {
-    nodeTitle: node.title,
-    availableRewards: node.availableRewards,
-    teamKeys: team.keysHeld,
-    buffHistory: team.buffHistory,
-  });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -120,6 +120,20 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
             <Text color={currentColors.textColor}>{node.description}</Text>
 
             <Divider />
+
+            {/* Already Purchased Alert */}
+            {hasAlreadyPurchased && (
+              <Alert status="success" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>Already Purchased!</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    You've already made a purchase from this Inn. Each Inn can only be visited once
+                    for rewards.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
 
             {/* Team's Current Keys */}
             <Box bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} p={3} borderRadius="md">
@@ -146,7 +160,7 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
             {/* Available Rewards */}
             <Box>
               <Heading size="sm" mb={3} color={currentColors.textColor}>
-                Available Trades
+                Shopkeep
               </Heading>
 
               {availableRewards.length === 0 ? (
@@ -157,16 +171,19 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                 <VStack spacing={3} align="stretch">
                   {availableRewards.map((reward) => {
                     const affordable = canAfford(reward.key_cost);
+                    const isDisabled = !affordable || hasAlreadyPurchased;
 
                     return (
                       <Box
                         key={reward.reward_id}
                         p={4}
                         borderWidth={2}
-                        borderColor={affordable ? currentColors.green.base : 'gray.500'}
+                        borderColor={
+                          affordable && !hasAlreadyPurchased ? currentColors.green.base : 'gray.500'
+                        }
                         borderRadius="md"
                         bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
-                        opacity={affordable ? 1 : 0.6}
+                        opacity={isDisabled ? 0.6 : 1}
                       >
                         <HStack justify="space-between" align="start">
                           <VStack align="start" spacing={2} flex={1}>
@@ -190,9 +207,14 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                               </Text>
                             </HStack>
 
-                            {!affordable && (
+                            {!affordable && !hasAlreadyPurchased && (
                               <Text fontSize="xs" color="red.500">
                                 Insufficient keys
+                              </Text>
+                            )}
+                            {hasAlreadyPurchased && (
+                              <Text fontSize="xs" color="green.500">
+                                Already purchased from this Inn
                               </Text>
                             )}
                           </VStack>
@@ -200,7 +222,7 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                           <Button
                             colorScheme="green"
                             size="sm"
-                            isDisabled={!affordable}
+                            isDisabled={isDisabled}
                             isLoading={purchasing && selectedReward === reward.reward_id}
                             onClick={() => {
                               setSelectedReward(reward.reward_id);
@@ -223,7 +245,7 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                 <Divider />
                 <Box>
                   <Heading size="xs" mb={2} color={currentColors.textColor}>
-                    Recent Transactions
+                    {hasAlreadyPurchased ? 'Your Transaction' : 'Recent Transactions'}
                   </Heading>
                   <VStack spacing={1} align="stretch">
                     {team.innTransactions
@@ -231,11 +253,27 @@ export default function InnModal({ isOpen, onClose, node, team, eventId, onPurch
                       .slice(-3)
                       .reverse()
                       .map((transaction, idx) => (
-                        <Text key={idx} fontSize="xs" color="gray.500">
-                          Traded{' '}
-                          {transaction.keysSpent.map((k) => `${k.quantity}x ${k.color}`).join(', ')}{' '}
-                          → {formatGP(transaction.payout)} GP
-                        </Text>
+                        <Box
+                          key={idx}
+                          p={2}
+                          bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
+                          borderRadius="md"
+                          borderWidth={1}
+                          borderColor="green.500"
+                        >
+                          <HStack justify="space-between">
+                            <Text fontSize="sm" color={currentColors.textColor}>
+                              <CheckIcon color="green.500" mr={2} />
+                              Traded{' '}
+                              {transaction.keysSpent
+                                .map((k) => `${k.quantity}x ${k.color}`)
+                                .join(', ')}
+                            </Text>
+                            <Text fontWeight="bold" color={currentColors.green.base}>
+                              +{formatGP(transaction.payout)} GP
+                            </Text>
+                          </HStack>
+                        </Box>
                       ))}
                   </VStack>
                 </Box>
