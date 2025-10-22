@@ -639,3 +639,9 @@ export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
     }
   }
 `;
+
+export const INCREMENT_VISIT = gql`
+  mutation IncrementVisit {
+    incrementVisit
+  }
+`;

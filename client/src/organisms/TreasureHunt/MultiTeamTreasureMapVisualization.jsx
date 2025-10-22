@@ -8,11 +8,86 @@ import {
   Tooltip,
   useMap,
 } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack } from '@chakra-ui/react';
+import { Box, Badge, Text, VStack, HStack, Button } from '@chakra-ui/react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
-import theme from '../../theme';
+import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+
+const RecenterButton = ({ nodes }) => {
+  const map = useMap();
+  const [isOffCenter, setIsOffCenter] = useState(false);
+
+  useEffect(() => {
+    const checkPosition = () => {
+      const center = map.getCenter();
+      const mapCenter = { lat: 1952, lng: 3584 }; // mapHeight/2, mapWidth/2
+
+      // Calculate distance from center
+      const distance = Math.sqrt(
+        Math.pow(center.lat - mapCenter.lat, 2) + Math.pow(center.lng - mapCenter.lng, 2)
+      );
+
+      // Show button if more than 500 pixels from center
+      setIsOffCenter(distance > 500);
+    };
+
+    map.on('moveend', checkPosition);
+    checkPosition(); // Initial check
+
+    return () => {
+      map.off('moveend', checkPosition);
+    };
+  }, [map]);
+
+  const handleRecenter = () => {
+    if (nodes.length > 0) {
+      // Fit bounds to all nodes
+      const positions = nodes
+        .filter((n) => n.coordinates?.x && n.coordinates?.y)
+        .map((n) => {
+          const osrsMinX = 1100;
+          const osrsMaxX = 3900;
+          const osrsMinY = 2500;
+          const osrsMaxY = 4100;
+          const mapWidth = 7168;
+          const mapHeight = 3904;
+
+          const normalizedX = (n.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
+          const normalizedY = (n.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
+          const pixelX = normalizedX * mapWidth;
+          const pixelY = normalizedY * mapHeight;
+
+          return [pixelY, pixelX];
+        });
+
+      if (positions.length > 0) {
+        const bounds = L.latLngBounds(positions);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 1, animate: true, duration: 1 });
+      }
+    }
+  };
+
+  if (!isOffCenter) return null;
+
+  return (
+    <Box position="absolute" bottom={4} right={4} zIndex={1000}>
+      <Button
+        size="sm"
+        colorScheme="green"
+        onClick={handleRecenter}
+        boxShadow="lg"
+        leftIcon={
+          <Box as="span" fontSize="lg">
+            🎯
+          </Box>
+        }
+      >
+        Recenter Map
+      </Button>
+    </Box>
+  );
+};
 
 // Component to handle map panning and pulsing
 const MapController = ({ pulsingNodeId, nodes }) => {
@@ -42,6 +117,22 @@ const MapController = ({ pulsingNodeId, nodes }) => {
   }, [pulsingNodeId, map, nodes]);
 
   return null;
+};
+
+// Helper function to get difficulty badge color from tier
+const getDifficultyColor = (difficultyTier) => {
+  if (difficultyTier === 1) return 'green';
+  if (difficultyTier === 3) return 'orange';
+  if (difficultyTier === 5) return 'red';
+  return 'gray';
+};
+
+// Helper function to get difficulty name from tier
+const getDifficultyName = (difficultyTier) => {
+  if (difficultyTier === 1) return 'EASY';
+  if (difficultyTier === 3) return 'MEDIUM';
+  if (difficultyTier === 5) return 'HARD';
+  return '';
 };
 
 // Generate unlimited distinct colors using HSL color space
@@ -168,6 +259,7 @@ const createTeamMarker = (teamColor, teamInitials, isMultiple = false) => {
 const MultiTeamTreasureMap = ({
   nodes = [],
   teams = [],
+  event, // NEW: Need event to check location groups
   mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
   onNodeClick,
   showAllNodes = false, // Admin mode: if true, show all node details regardless of unlock status
@@ -175,6 +267,11 @@ const MultiTeamTreasureMap = ({
   const [selectedTeams, setSelectedTeams] = useState(teams.map((t) => t.teamId));
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
   const [focusNodeId, setFocusNodeId] = useState(null);
+
+  // Determine if we should show all nodes based on event status
+  // DRAFT mode: show all nodes (for setup/testing)
+  // ACTIVE/COMPLETED/ARCHIVED: only show unlocked nodes (cleaner view)
+  const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
 
   const mapWidth = 7168;
   const mapHeight = 3904;
@@ -248,9 +345,37 @@ const MultiTeamTreasureMap = ({
   };
 
   // Calculate which teams have completed/can access which nodes
+  // Helper to check if a location group has been completed by ANY selected team
+  const isLocationGroupCompletedByAnyTeam = (node) => {
+    if (!node.locationGroupId || !event?.mapStructure?.locationGroups) return false;
+
+    const group = event.mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+    if (!group) return false;
+
+    // Check if any selected team has completed any node in this group
+    return teams.some((team) => {
+      if (!selectedTeams.includes(team.teamId)) return false;
+      return group.nodeIds.some((nodeId) => team.completedNodes?.includes(nodeId));
+    });
+  };
+
   const getNodeAccessStatus = (nodeId) => {
-    // In admin mode, all nodes are considered unlocked
-    if (showAllNodes) return 'unlocked';
+    // In admin mode OR draft mode, all nodes are considered unlocked
+    if (shouldShowAllNodes) return 'unlocked';
+
+    const node = nodes.find((n) => n.nodeId === nodeId);
+
+    // NEW: Check if this location has been completed by any team
+    if (node && isLocationGroupCompletedByAnyTeam(node)) {
+      // Check if THIS specific node was completed
+      const thisNodeCompleted = teams.some((team) => {
+        if (!selectedTeams.includes(team.teamId)) return false;
+        return team.completedNodes?.includes(nodeId);
+      });
+
+      // If this node wasn't completed, but the location was, mark as unavailable
+      if (!thisNodeCompleted) return 'unavailable';
+    }
 
     let anyTeamCompleted = false;
     let anyTeamAvailable = false;
@@ -272,23 +397,36 @@ const MultiTeamTreasureMap = ({
       node.unlocks.forEach((targetNodeId) => {
         const targetNode = nodes.find((n) => n.nodeId === targetNodeId);
         if (targetNode && node.coordinates && targetNode.coordinates) {
-          const fromPos = convertCoordinates(node.coordinates.x, node.coordinates.y);
-          const toPos = convertCoordinates(targetNode.coordinates.x, targetNode.coordinates.y);
-
-          // Check if any selected team has unlocked this path
           const fromAccess = getNodeAccessStatus(node.nodeId);
           const toAccess = getNodeAccessStatus(targetNode.nodeId);
+
+          // HIDE edges if either node is locked/unavailable (unless admin mode or draft status)
+          if (
+            !shouldShowAllNodes &&
+            (fromAccess === 'locked' ||
+              fromAccess === 'unavailable' ||
+              toAccess === 'locked' ||
+              toAccess === 'unavailable')
+          ) {
+            return; // Skip this edge
+          }
+
+          const fromPos = convertCoordinates(node.coordinates.x, node.coordinates.y);
+          const toPos = convertCoordinates(targetNode.coordinates.x, targetNode.coordinates.y);
 
           let weight = 2;
           let opacity = 0.4;
           let dashArray = '8, 8';
 
           // If either node is unlocked by any team, make path more visible
-          if (fromAccess === 'unlocked' && toAccess === 'unlocked' && !showAllNodes) {
+          if (fromAccess === 'unlocked' && toAccess === 'unlocked' && !shouldShowAllNodes) {
             weight = 4;
             opacity = 0.7;
             dashArray = null;
-          } else if ((fromAccess === 'unlocked' || toAccess === 'unlocked') && !showAllNodes) {
+          } else if (
+            (fromAccess === 'unlocked' || toAccess === 'unlocked') &&
+            !shouldShowAllNodes
+          ) {
             weight = 3;
             opacity = 0.5;
             dashArray = null;
@@ -345,15 +483,20 @@ const MultiTeamTreasureMap = ({
 
   const getNodeColor = (nodeId, nodeType) => {
     const completion = nodeCompletionMap[nodeId];
-    if (!completion) return '#718096';
+    const accessStatus = getNodeAccessStatus(nodeId);
+
+    if (!completion && accessStatus !== 'unavailable') return '#718096';
 
     if (nodeType === 'START') return '#7D5FFF';
     if (nodeType === 'INN') return '#F4D35E';
 
+    // NEW: If location is completed but not this specific node, show red
+    if (accessStatus === 'unavailable') return '#FF4B5C';
+
     // If any selected team completed it, show green
-    if (completion.completed.length > 0) return '#43AA8B';
-    // If any selected team can access it, show turquoise
-    if (completion.available.length > 0) return '#FF914D';
+    if (completion?.completed.length > 0) return '#43AA8B';
+    // If any selected team can access it, show orange
+    if (completion?.available.length > 0) return '#FF914D';
 
     return '#718096';
   };
@@ -399,16 +542,14 @@ const MultiTeamTreasureMap = ({
         <MapContainer
           center={[mapHeight / 2, mapWidth / 2]}
           zoom={-1}
-          minZoom={-2}
+          minZoom={-3}
           maxZoom={2}
           crs={L.CRS.Simple}
-          style={{ height: '100%', width: '100%', background: '#0a0a0a' }}
-          maxBounds={mapBounds}
-          maxBoundsViscosity={1.0}
+          style={{ height: '100%', width: '100%', background: '#64769e' }}
           scrollWheelZoom={true}
         >
           <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={0.85} />
-
+          <RecenterButton nodes={nodes} />
           <MapController pulsingNodeId={focusNodeId} nodes={nodes} />
 
           {/* Draw connection lines */}
@@ -426,6 +567,16 @@ const MultiTeamTreasureMap = ({
           {/* Node markers */}
           {nodes.map((node) => {
             if (!node.coordinates?.x || !node.coordinates?.y) return null;
+
+            const accessStatus = getNodeAccessStatus(node.nodeId);
+
+            // HIDE locked and unavailable nodes (unless admin mode or draft status)
+            if (
+              !shouldShowAllNodes &&
+              (accessStatus === 'locked' || accessStatus === 'unavailable')
+            ) {
+              return null;
+            }
 
             const position = getNodePosition(node, nodes);
             const color = getNodeColor(node.nodeId, node.nodeType);
@@ -451,10 +602,19 @@ const MultiTeamTreasureMap = ({
                 >
                   <VStack align="start" spacing={2} p={2}>
                     <HStack mb={2} justify="space-between" w="full">
-                      {getNodeAccessStatus(node.nodeId) === 'locked' ? (
+                      {getNodeAccessStatus(node.nodeId) === 'locked' ||
+                      getNodeAccessStatus(node.nodeId) === 'unavailable' ? (
                         <>
                           <RedactedText length="long" />
-                          <Badge colorScheme="gray">LOCKED</Badge>
+                          <Badge
+                            colorScheme={
+                              getNodeAccessStatus(node.nodeId) === 'unavailable' ? 'red' : 'gray'
+                            }
+                          >
+                            {getNodeAccessStatus(node.nodeId) === 'unavailable'
+                              ? 'UNAVAILABLE'
+                              : 'LOCKED'}
+                          </Badge>
                         </>
                       ) : (
                         <>
@@ -464,17 +624,28 @@ const MultiTeamTreasureMap = ({
                           <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
                             {node.nodeType}
                           </Badge>
+                          {node.difficultyTier && node.nodeType === 'STANDARD' && (
+                            <Badge
+                              colorScheme={getDifficultyColor(node.difficultyTier)}
+                              fontSize="xs"
+                            >
+                              {getDifficultyName(node.difficultyTier)}
+                            </Badge>
+                          )}
                         </>
                       )}
                     </HStack>
 
-                    {getNodeAccessStatus(node.nodeId) === 'locked' ? (
+                    {getNodeAccessStatus(node.nodeId) === 'locked' ||
+                    getNodeAccessStatus(node.nodeId) === 'unavailable' ? (
                       <VStack align="start" spacing={1} w="full">
                         <RedactedText length="full" />
                         <RedactedText length="medium" />
                         <Box pt={2}>
                           <Text fontSize="xs" color="#718096" fontStyle="italic">
-                            No teams have unlocked this node yet
+                            {getNodeAccessStatus(node.nodeId) === 'unavailable'
+                              ? 'A team has already completed another difficulty at this location. Only one node per location can be completed.'
+                              : 'No teams have unlocked this node yet'}
                           </Text>
                         </Box>
                       </VStack>
@@ -498,7 +669,7 @@ const MultiTeamTreasureMap = ({
                               Objective:
                             </Text>
                             <Text fontSize="xs" m="0!important" color="#4a5568">
-                              {node.objective.type}: {node.objective.quantity}{' '}
+                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
                               {node.objective.target}
                             </Text>
                           </Box>
@@ -697,6 +868,12 @@ const MultiTeamTreasureMap = ({
               ADMIN MODE
             </Badge>
           )}
+          {event?.status === 'DRAFT' && !showAllNodes && (
+            <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">
+              DRAFT MODE - Showing all nodes
+            </Badge>
+          )}
+
           <Text fontWeight="bold" fontSize="sm" mb={3} color="#2d3748">
             Legend
           </Text>
@@ -708,6 +885,10 @@ const MultiTeamTreasureMap = ({
             <HStack>
               <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
               <Text color="#2d3748">Available</Text>
+            </HStack>
+            <HStack>
+              <Box w={4} h={4} bg="#FF4B5C" borderRadius="full" border="2px solid white" />
+              <Text color="#2d3748">Unavailable</Text>
             </HStack>
             <HStack>
               <Box

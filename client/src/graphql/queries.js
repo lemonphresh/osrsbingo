@@ -311,13 +311,14 @@ export const GET_TREASURE_EVENT = gql`
         title
         description
         coordinates
+        locationGroupId
+        difficultyTier
         mapLocation
         prerequisites
         unlocks
         paths
         objective
         rewards
-        difficultyTier
         innTier
         availableRewards
       }
@@ -334,6 +335,7 @@ export const GET_TREASURE_TEAM = gql`
       keysHeld
       completedNodes
       availableNodes
+      innTransactions
       activeBuffs
       buffHistory
     }
@@ -352,6 +354,7 @@ export const GET_ALL_TREASURE_EVENTS = gql`
       creatorId
       createdAt
       updatedAt
+      adminIds
       teams {
         teamId
         teamName
@@ -432,5 +435,11 @@ export const GET_ALL_SUBMISSIONS = gql`
         teamName
       }
     }
+  }
+`;
+
+export const GET_VISIT_COUNT = gql`
+  query GetVisitCount {
+    getVisitCount
   }
 `;

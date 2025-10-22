@@ -1,9 +1,10 @@
 import { Box, Flex, Image, Link, Text } from '@chakra-ui/react';
 import React from 'react';
 import theme from '../theme';
-import Cashapp from '../assets/cashapp.png';
+// import Cashapp from '../assets/cashapp.png';
 import GemLogo from '../assets/gemlogo.png';
 import Discord from '../assets/discord.png';
+import WebCounter from './WebCounter';
 
 const Footer = () => (
   <Flex
@@ -47,7 +48,7 @@ const Footer = () => (
         loading="lazy"
       />
     </Box>
-    <Link
+    {/* <Link
       alignItems="center"
       display="flex"
       href="https://cash.app/$lemonlikesgirls/5.00"
@@ -65,7 +66,8 @@ const Footer = () => (
       <Text display={['none', 'block']} marginLeft="8px">
         donate
       </Text>
-    </Link>
+    </Link> */}
+    <WebCounter />
   </Flex>
 );
 

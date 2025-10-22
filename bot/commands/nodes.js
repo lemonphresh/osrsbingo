@@ -1,4 +1,3 @@
-// bot/commands/nodes.js
 const { EmbedBuilder } = require('discord.js');
 const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
 
@@ -21,11 +20,12 @@ module.exports = {
         return message.reply('❌ You are not part of any team in this event.');
       }
 
-      // Get event and node data
+      // Get event and node data - INCLUDING mapStructure for location groups
       const query = `
         query GetEventData($eventId: ID!, $teamId: ID!) {
           getTreasureEvent(eventId: $eventId) {
             eventName
+            mapStructure
             nodes {
               nodeId
               nodeType
@@ -33,11 +33,16 @@ module.exports = {
               description
               objective
               rewards
+              difficultyTier
+              locationGroupId
+              mapLocation
             }
           }
           getTreasureTeam(eventId: $eventId, teamId: $teamId) {
             availableNodes
+            completedNodes
             activeBuffs
+            innTransactions
           }
         }
       `;
@@ -45,10 +50,49 @@ module.exports = {
       const data = await graphqlRequest(query, { eventId, teamId: team.teamId });
       const nodes = data.getTreasureEvent.nodes;
       const teamData = data.getTreasureTeam;
+      const mapStructure = data.getTreasureEvent.mapStructure;
 
-      const availableNodes = nodes.filter((n) => teamData.availableNodes.includes(n.nodeId));
+      // Helper to get difficulty name
+      const getDifficultyName = (tier) => {
+        if (tier === 1) return 'EASY';
+        if (tier === 3) return 'MEDIUM';
+        if (tier === 5) return 'HARD';
+        return '';
+      };
 
-      if (availableNodes.length === 0) {
+      // Helper to check if location group is completed
+      const isLocationGroupCompleted = (node) => {
+        if (!node.locationGroupId || !mapStructure?.locationGroups) return false;
+        const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+        if (!group) return false;
+        return group.nodeIds.some((nodeId) => teamData.completedNodes.includes(nodeId));
+      };
+
+      // Helper to get completed node in group
+      const getCompletedNodeInGroup = (node) => {
+        if (!node.locationGroupId || !mapStructure?.locationGroups) return null;
+        const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+        if (!group) return null;
+        const completedId = group.nodeIds.find((nodeId) =>
+          teamData.completedNodes.includes(nodeId)
+        );
+        return nodes.find((n) => n.nodeId === completedId);
+      };
+
+      // Filter available nodes and check location groups
+      const availableNodes = nodes
+        .filter((n) => teamData.availableNodes.includes(n.nodeId))
+        .map((node) => ({
+          ...node,
+          isLocationBlocked: isLocationGroupCompleted(node),
+          completedNodeInGroup: getCompletedNodeInGroup(node),
+        }));
+
+      // Separate into truly available and blocked by location
+      const trulyAvailable = availableNodes.filter((n) => !n.isLocationBlocked);
+      const blockedByLocation = availableNodes.filter((n) => n.isLocationBlocked);
+
+      if (trulyAvailable.length === 0 && blockedByLocation.length === 0) {
         return message.reply(
           '✅ No available nodes! You may have completed everything or need to complete prerequisites.'
         );
@@ -57,16 +101,30 @@ module.exports = {
       const embed = new EmbedBuilder()
         .setTitle(`🗺️ Available Nodes - ${team.teamName}`)
         .setColor('#28AFB0')
-        .setDescription(`You have ${availableNodes.length} node(s) available to complete`);
+        .setDescription(
+          `**${trulyAvailable.length}** node(s) ready to complete` +
+            (blockedByLocation.length > 0
+              ? `\n**${blockedByLocation.length}** blocked by completed location`
+              : '')
+        );
 
-      availableNodes.slice(0, 10).forEach((node) => {
+      // Show truly available nodes first
+      trulyAvailable.slice(0, 8).forEach((node) => {
         // Handle nodes without objectives (like START or INN nodes)
         if (!node.objective) {
+          // Check if Inn is already traded
+          const hasTransaction =
+            node.nodeType === 'INN' &&
+            teamData.innTransactions?.some((t) => t.nodeId === node.nodeId);
+
           embed.addFields({
-            name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${node.title}`,
+            name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${node.title}${
+              hasTransaction ? ' ✅' : ''
+            }`,
             value:
-              `**Type:** ${node.nodeType}\n` +
+              `**Node Type:** ${node.nodeType}\n` +
               `${node.description || 'No objective required'}\n` +
+              (hasTransaction ? '✅ Already purchased from this Inn\n' : '') +
               `**ID:** \`${node.nodeId}\``,
             inline: false,
           });
@@ -82,29 +140,69 @@ module.exports = {
         );
 
         const buffIndicator = hasBuffs ? ' ✨' : '';
+        const difficultyBadge = node.difficultyTier
+          ? ` [${getDifficultyName(node.difficultyTier)}]`
+          : '';
 
         embed.addFields({
-          name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${node.title}${buffIndicator}`,
+          name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${
+            node.title
+          }${difficultyBadge}${buffIndicator}`,
           value:
             `**Objective:** ${objective.type}: ${objective.quantity} ${objective.target}\n` +
             `**Rewards:** ${(rewards.gp / 1000000).toFixed(1)}M GP` +
             (rewards.keys && rewards.keys.length > 0
               ? `, ${rewards.keys.map((k) => `${k.quantity}x ${k.color}`).join(', ')}`
               : '') +
+            (rewards.buffs && rewards.buffs.length > 0
+              ? ` 🎁 +${rewards.buffs.length} buff(s)`
+              : '') +
             `\n**ID:** \`${node.nodeId}\``,
           inline: false,
         });
       });
 
-      if (availableNodes.length > 10) {
+      // Show blocked locations separately
+      if (blockedByLocation.length > 0) {
+        embed.addFields({
+          name: '⚠️ Locations Already Completed',
+          value: blockedByLocation
+            .slice(0, 3)
+            .map((node) => {
+              const completedNode = node.completedNodeInGroup;
+              const completedDiff = completedNode
+                ? getDifficultyName(completedNode.difficultyTier)
+                : 'UNKNOWN';
+              const thisDiff = getDifficultyName(node.difficultyTier);
+              return (
+                `🔒 **${node.mapLocation}** - ${thisDiff} difficulty\n` +
+                `   ✅ Already completed ${completedDiff} difficulty`
+              );
+            })
+            .join('\n\n'),
+          inline: false,
+        });
+      }
+
+      if (trulyAvailable.length > 8) {
         embed.setFooter({
-          text: `Showing 10 of ${availableNodes.length} nodes. Use the web dashboard to see all.`,
+          text: `Showing 8 of ${trulyAvailable.length} available nodes. Use the web dashboard to see all.`,
         });
       }
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error fetching nodes:', error);
+      console.error('Error:', error);
+
+      // Provide more helpful errors
+      if (error.message.includes('Not authenticated')) {
+        return message.reply('❌ Bot authentication error. Please contact an admin.');
+      }
+
+      if (error.message.includes('not found')) {
+        return message.reply('❌ Data not found. The event may have been deleted.');
+      }
+
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

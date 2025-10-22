@@ -10,6 +10,31 @@ const {
 const { generateMap } = require('../../utils/treasureMapGenerator');
 const { createBuff, canApplyBuff, applyBuffToObjective } = require('../../utils/buffHelpers');
 
+function isLocationGroupCompleted(team, locationGroupId, event) {
+  if (!event.mapStructure?.locationGroups) return false;
+
+  const group = event.mapStructure.locationGroups.find((g) => g.groupId === locationGroupId);
+  if (!group) return false;
+
+  // Check if any node in this group has been completed
+  return group.nodeIds.some((nodeId) => team.completedNodes?.includes(nodeId));
+}
+
+// Helper function to get completed node in location group
+function getCompletedNodeInGroup(team, locationGroupId, event) {
+  if (!event.mapStructure?.locationGroups) return null;
+
+  const group = event.mapStructure.locationGroups.find((g) => g.groupId === locationGroupId);
+  if (!group) return null;
+
+  return group.nodeIds.find((nodeId) => team.completedNodes?.includes(nodeId));
+}
+
+function getDifficultyName(difficultyTier) {
+  const tierMap = { 1: 'EASY', 3: 'MEDIUM', 5: 'HARD' };
+  return tierMap[difficultyTier] || 'UNKNOWN';
+}
+
 const TreasureHuntResolvers = {
   Query: {
     getTreasureEvent: async (_, { eventId }) => {
@@ -248,6 +273,7 @@ const TreasureHuntResolvers = {
             description: node.description || '',
             coordinates: node.coordinates || { x: 3222, y: 3218 },
             mapLocation: node.mapLocation || 'Unknown',
+            locationGroupId: node.locationGroupId || null,
             prerequisites: Array.isArray(node.prerequisites) ? node.prerequisites : [],
             unlocks: Array.isArray(node.unlocks) ? node.unlocks : [],
             paths: Array.isArray(node.paths) ? node.paths : [],
@@ -540,6 +566,11 @@ const TreasureHuntResolvers = {
 
     submitNodeCompletion: async (_, { eventId, teamId, nodeId, proofUrl, submittedBy }) => {
       try {
+        const event = await TreasureEvent.findByPk(eventId, {
+          include: [{ model: TreasureNode, as: 'nodes' }],
+        });
+        if (!event) throw new Error('Event not found');
+
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
 
@@ -547,6 +578,25 @@ const TreasureHuntResolvers = {
           throw new Error(
             'This node is not available to your team. You have either completed it already or have not unlocked it yet.'
           );
+        }
+
+        const node = event.nodes.find((n) => n.nodeId === nodeId);
+
+        // NEW: Check if team already completed another node at this location
+        if (node?.locationGroupId) {
+          const completedNodeInGroup = getCompletedNodeInGroup(team, node.locationGroupId, event);
+          if (completedNodeInGroup) {
+            const completedNode = event.nodes.find((n) => n.nodeId === completedNodeInGroup);
+            const completedDifficulty = getDifficultyName(completedNode?.difficultyTier);
+            const attemptedDifficulty = getDifficultyName(node.difficultyTier);
+
+            throw new Error(
+              `Your team has already completed the ${completedDifficulty} difficulty ` +
+                `"${completedNode?.title}" at ${node.mapLocation}. ` +
+                `Only one difficulty per location can be completed. ` +
+                `You attempted to submit ${attemptedDifficulty} difficulty.`
+            );
+          }
         }
 
         const submissionId = `sub_${uuidv4().substring(0, 8)}`;
@@ -608,7 +658,9 @@ const TreasureHuntResolvers = {
         console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
 
         // Check if user is an admin of this event
-        const event = await TreasureEvent.findByPk(eventId);
+        const event = await TreasureEvent.findByPk(eventId, {
+          include: [{ model: TreasureNode, as: 'nodes' }],
+        });
         if (!event) throw new Error('Event not found');
 
         const isAdmin =
@@ -633,6 +685,8 @@ const TreasureHuntResolvers = {
         console.log(`Node details:`, {
           nodeId: node.nodeId,
           title: node.title,
+          locationGroupId: node.locationGroupId,
+          difficultyTier: node.difficultyTier,
           rewards: node.rewards,
           unlocks: node.unlocks,
         });
@@ -642,11 +696,43 @@ const TreasureHuntResolvers = {
           throw new Error('Node is already completed');
         }
 
+        // NEW: Check if another node in the same location group is already completed
+        if (node.locationGroupId) {
+          const completedNodeInGroup = getCompletedNodeInGroup(team, node.locationGroupId, event);
+          if (completedNodeInGroup) {
+            const completedNode = event.nodes.find((n) => n.nodeId === completedNodeInGroup);
+            const completedDifficulty = getDifficultyName(completedNode?.difficultyTier);
+            const attemptedDifficulty = getDifficultyName(node.difficultyTier);
+
+            throw new Error(
+              `Cannot complete this node. Team has already completed the ${completedDifficulty} difficulty ` +
+                `"${completedNode?.title}" at this location (${node.mapLocation}). ` +
+                `Only one difficulty per location can be completed. ` +
+                `You attempted to complete ${attemptedDifficulty} difficulty.`
+            );
+          }
+        }
+
         // Add to completed nodes
         const completedNodes = [...(team.completedNodes || []), nodeId];
 
-        // Remove from available nodes and add unlocked nodes
+        // Remove from available nodes
         let availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+
+        // NEW: Remove other nodes in the same location group from available nodes
+        if (node.locationGroupId) {
+          const group = event.mapStructure?.locationGroups?.find(
+            (g) => g.groupId === node.locationGroupId
+          );
+          if (group) {
+            const otherNodesInGroup = group.nodeIds.filter((id) => id !== nodeId);
+            availableNodes = availableNodes.filter((n) => !otherNodesInGroup.includes(n));
+            console.log(
+              `Removed ${otherNodesInGroup.length} other difficulty options for location group ${node.locationGroupId}`
+            );
+            console.log(`Removed node IDs:`, otherNodesInGroup);
+          }
+        }
 
         // Add nodes that this node unlocks
         if (node.unlocks && Array.isArray(node.unlocks)) {
@@ -755,6 +841,7 @@ const TreasureHuntResolvers = {
         throw new Error(`Failed to complete node: ${error.message}`);
       }
     },
+
     adminUncompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 

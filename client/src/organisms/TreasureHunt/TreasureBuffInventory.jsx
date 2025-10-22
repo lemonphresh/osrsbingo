@@ -35,7 +35,7 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
   }
 
   return (
-    <VStack spacing={2} align="stretch">
+    <VStack maxW="600px" m="0 auto" spacing={2} align="stretch">
       {buffs.map((buff) => (
         <Box
           key={buff.buffId}

@@ -20,6 +20,7 @@ import {
   Alert,
   AlertIcon,
 } from '@chakra-ui/react';
+import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 
 const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onApplyBuff }) => {
   const { colorMode } = useColorMode();
@@ -90,7 +91,8 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                 Current Objective:
               </Text>
               <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
-                {node.objective.type}: {node.objective.quantity} {node.objective.target}
+                {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                {node.objective.target}
               </Text>
             </Box>
 
@@ -100,7 +102,8 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
             {applicableBuffs.length === 0 ? (
               <Alert status="info">
                 <AlertIcon />
-                No buffs available for this objective type ({node.objective.type})
+                No buffs available for this objective type {OBJECTIVE_TYPES[node.objective.type]} (
+                {node.objective.type})
               </Alert>
             ) : (
               <>

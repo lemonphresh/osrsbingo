@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { OBJECTIVE_TYPES } = require('../../client/src/utils/treasureHuntHelpers');
 
 const BUFF_CONFIGS = {
   kill_reduction_minor: {
@@ -108,7 +109,9 @@ function canApplyBuff(buff, objective) {
 
 function applyBuffToObjective(objective, buff) {
   if (!canApplyBuff(buff, objective)) {
-    throw new Error(`Buff ${buff.buffName} cannot be applied to ${objective.type} objectives`);
+    throw new Error(
+      `Buff ${buff.buffName} cannot be applied to ${OBJECTIVE_TYPES[objective.type]} objectives`
+    );
   }
 
   const originalQuantity = objective.quantity;

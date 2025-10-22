@@ -232,6 +232,7 @@ const typeDefs = gql`
     savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
     calendarVersion: CalendarVersion!
     savedCalendarVersion: CalendarVersion!
+    getVisitCount: Int!
   }
 
   input CreateCalendarEventInput {
@@ -306,6 +307,7 @@ const typeDefs = gql`
     description: String
     coordinates: JSON
     mapLocation: String
+    locationGroupId: String
     prerequisites: [String!]
     unlocks: [String!]
     paths: [String!]
@@ -367,6 +369,8 @@ const typeDefs = gql`
   }
 
   type Mutation {
+    incrementVisit: Int!
+
     createUser(
       username: String!
       displayName: String!

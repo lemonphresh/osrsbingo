@@ -23,8 +23,15 @@ import {
   useToast,
   Button,
   Icon,
+  Tooltip,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
+import {
+  CheckCircleIcon,
+  CopyIcon,
+  ExternalLinkIcon,
+  LockIcon,
+  QuestionIcon,
+} from '@chakra-ui/icons';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM } from '../graphql/queries';
@@ -43,7 +50,10 @@ import BuffInventory from '../organisms/TreasureHunt/TreasureBuffInventory';
 import theme from '../theme';
 import { RedactedText } from '../molecules/TreasureHunt/RedactedTreasureInfo';
 import { useAuth } from '../providers/AuthProvider';
-import { MdOutlineArrowBack } from 'react-icons/md';
+import { MdHome, MdOutlineArrowBack } from 'react-icons/md';
+import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
+import { FaGem } from 'react-icons/fa';
+import { useCallback } from 'react';
 
 const TreasureTeamView = () => {
   const { colorMode } = useColorMode();
@@ -123,28 +133,86 @@ const TreasureTeamView = () => {
     return 'locked';
   };
 
-  const getNodeBorderColor = (status, nodeType) => {
-    if (nodeType === 'START') return currentColors.purple.base;
-    if (nodeType === 'INN') return currentColors.yellow.base;
+  const getNodeBadge = (node) => {
+    const tier = Number(node.difficultyTier);
+
+    if (tier === 5) return 'hard';
+    if (tier === 3) return 'medium';
+    if (tier === 1) return 'easy';
+  };
+
+  // Helper to check if a location group has been completed
+  const isLocationGroupCompleted = (node, team, event) => {
+    if (!node.locationGroupId || !event.mapStructure?.locationGroups) return false;
+
+    const group = event.mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+    if (!group) return false;
+
+    // Check if any node in this group has been completed by this team
+    return group.nodeIds.some((nodeId) => team.completedNodes?.includes(nodeId));
+  };
+
+  // Helper to get which node was completed in the group
+  const getCompletedNodeInGroup = (node, team, event) => {
+    if (!node.locationGroupId || !event.mapStructure?.locationGroups) return null;
+
+    const group = event.mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
+    if (!group) return null;
+
+    const completedNodeId = group.nodeIds.find((nodeId) => team.completedNodes?.includes(nodeId));
+    if (!completedNodeId) return null;
+
+    return nodes.find((n) => n.nodeId === completedNodeId);
+  };
+
+  const getNodeBorderColor = (status, node) => {
+    // Preserve special node types
+    if (node.nodeType === 'START') return currentColors.purple.base;
+    if (node.nodeType === 'INN') return currentColors.yellow.base;
+    if (status === 'locked') return colorMode === 'dark' ? '#4A5568' : '#CBD5E0';
     if (status === 'completed') return currentColors.green.base;
+    // difficultyTier: 1 (easy), 3 (medium), 5 (hard)
+    const tier = Number(node.difficultyTier);
+
+    if (tier === 5) return currentColors.red; // hard = red
+    if (tier === 3) return currentColors.orange; // medium = orange (note: not .base)
+    if (tier === 1) return currentColors.green.base; // easy = green
+
+    // Fallbacks if tier missing
     if (status === 'available') return currentColors.turquoise.base;
+
     return colorMode === 'dark' ? '#4A5568' : '#CBD5E0';
   };
 
-  const handleNodeClick = (node) => {
-    const status = getNodeStatus(node);
-    // In admin mode, allow viewing locked nodes
-    if (status === 'locked' && !adminMode) return;
+  const getNumberOfAvailableInns = () =>
+    nodes.filter((node) => {
+      const hasTransaction = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
+      return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
+    }).length;
 
-    setSelectedNode({ ...node, status });
+  const handleNodeClick = useCallback(
+    (node) => {
+      // Calculate status inside the callback using current team state
+      let status = 'locked';
+      if (team) {
+        if (team.completedNodes?.includes(node.nodeId)) status = 'completed';
+        else if (team.availableNodes?.includes(node.nodeId)) status = 'available';
+      }
 
-    // Open Inn modal for completed Inn nodes (unless in admin mode)
-    if (node.nodeType === 'INN' && status === 'completed' && !adminMode) {
-      onInnOpen();
-    } else {
-      onNodeOpen();
-    }
-  };
+      // In admin mode, allow viewing locked nodes
+      if (status === 'locked' && !adminMode) return;
+
+      setSelectedNode({ ...node, status });
+
+      // Open Inn modal for completed Inn nodes (unless in admin mode)
+      if (node.nodeType === 'INN' && status === 'completed' && !adminMode) {
+        onInnOpen();
+      } else {
+        onNodeOpen();
+      }
+    },
+    [team, adminMode, onInnOpen, onNodeOpen]
+  );
 
   const handleAdminCompleteNode = async (nodeId) => {
     try {
@@ -303,6 +371,8 @@ const TreasureTeamView = () => {
     );
   }
 
+  const availableInns = getNumberOfAvailableInns();
+
   return (
     <Flex
       alignItems="center"
@@ -356,10 +426,37 @@ const TreasureTeamView = () => {
               />
             </FormControl>
           )}
-          <VStack align="start" spacing={1}>
-            <GemTitle m="0 auto" maxW="720px" size="xl" color={currentColors.textColor}>
+          <VStack align="center" spacing={1}>
+            <GemTitle maxW="720px" size="xl" color={currentColors.textColor}>
               {team.teamName}
             </GemTitle>
+            <Tooltip label="Click to copy Event ID" hasArrow>
+              <HStack
+                spacing={2}
+                px={3}
+                py={1}
+                bg="whiteAlpha.100"
+                borderRadius="md"
+                cursor="pointer"
+                transition="all 0.2s"
+                _hover={{ bg: 'whiteAlpha.400' }}
+                onClick={() => {
+                  navigator.clipboard.writeText(event.eventId);
+                  toast({
+                    title: 'Event ID Copied!',
+                    description: `Event ID: ${event.eventId}`,
+                    status: 'success',
+                    duration: 2000,
+                    isClosable: true,
+                  });
+                }}
+              >
+                <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
+                  ID: {event.eventId}
+                </Text>
+                <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
+              </HStack>
+            </Tooltip>
           </VStack>
 
           {adminMode && (
@@ -444,7 +541,7 @@ const TreasureTeamView = () => {
             </HStack>
             <BuffInventory buffs={team.activeBuffs || []} colorMode={colorMode} />
             {team.activeBuffs && team.activeBuffs.length > 0 && (
-              <Text fontSize="xs" color="gray.500" mt={2} textAlign="center">
+              <Text fontSize="xs" color="gray.300" mt={2} textAlign="center">
                 💡 Tip: Apply buffs when viewing available nodes to reduce objective requirements
               </Text>
             )}
@@ -472,6 +569,7 @@ const TreasureTeamView = () => {
             <TreasureMapVisualization
               nodes={nodes}
               team={team}
+              event={event}
               onNodeClick={handleNodeClick}
               adminMode={adminMode}
               onAdminComplete={handleAdminCompleteNode}
@@ -479,22 +577,89 @@ const TreasureTeamView = () => {
             />
 
             <VStack mt={4} spacing={4} align="stretch">
+              {availableInns && (
+                <Box p={4} bg="green.100" width="fit-content" borderRadius="md" m="0 auto">
+                  <HStack>
+                    <Icon
+                      as={MdHome}
+                      color="green.600"
+                      height={['48px', '32px']}
+                      width={['48px', '32px']}
+                    />
+                    <Text color={currentColors.textColor}>
+                      You have {availableInns} available Inn
+                      {availableInns !== 1 ? 's' : ''} to purchase from still.
+                    </Text>
+                  </HStack>
+                </Box>
+              )}
               {nodes
                 .slice()
                 .sort((a, b) => {
                   const statusA = getNodeStatus(a);
                   const statusB = getNodeStatus(b);
 
-                  // Define sort order: available = 0, completed = 1, locked = 2
-                  const order = { available: 0, completed: 1, locked: 2 };
+                  const hasTxA = team.innTransactions?.some((t) => t.nodeId === a.nodeId);
+                  const hasTxB = team.innTransactions?.some((t) => t.nodeId === b.nodeId);
 
-                  return order[statusA] - order[statusB];
+                  const isCompletedInnNoTxA =
+                    a.nodeType === 'INN' && statusA === 'completed' && !hasTxA;
+                  const isCompletedInnNoTxB =
+                    b.nodeType === 'INN' && statusB === 'completed' && !hasTxB;
+
+                  // Order: available (0), completed inns w/o tx (1), other completed (2), locked (3)
+                  const order = (status, isCompletedInnNoTx) => {
+                    if (status === 'available') return 0;
+                    if (isCompletedInnNoTx) return 1;
+                    if (status === 'completed') return 2;
+                    return 3; // locked
+                  };
+
+                  const orderA = order(statusA, isCompletedInnNoTxA);
+                  const orderB = order(statusB, isCompletedInnNoTxB);
+
+                  return orderA - orderB;
                 })
                 .map((node) => {
                   const status = getNodeStatus(node);
                   const isLocked = status === 'locked' && !adminMode;
                   const isInn = node.nodeType === 'INN';
                   const isCompletedInn = isInn && status === 'completed';
+
+                  // Check if team has already made a transaction at this Inn
+                  const hasTransaction = team.innTransactions?.some(
+                    (t) => t.nodeId === node.nodeId
+                  );
+
+                  const groupCompleted = isLocationGroupCompleted(node, team, event);
+                  const completedNodeInGroup = groupCompleted
+                    ? getCompletedNodeInGroup(node, team, event)
+                    : null;
+                  const isOtherDifficultyCompleted =
+                    groupCompleted && !team.completedNodes?.includes(node.nodeId);
+
+                  // If another difficulty at this location was completed, this node should be locked
+                  const isLocationLocked = isOtherDifficultyCompleted && status !== 'completed';
+
+                  // Check if this Inn has rewards the team can afford (and hasn't been purchased from yet)
+                  const hasAffordableRewards =
+                    isCompletedInn &&
+                    !hasTransaction && // Only show if no transaction has been made at this Inn
+                    node.availableRewards?.some((reward) => {
+                      // Check if team can afford this reward
+                      return reward.key_cost.every((cost) => {
+                        if (cost.color === 'any') {
+                          // For "any" color, sum all keys
+                          const totalKeys =
+                            team.keysHeld?.reduce((sum, k) => sum + k.quantity, 0) || 0;
+                          return totalKeys >= cost.quantity;
+                        }
+                        // For specific colors, check that exact color
+                        const teamKey = team.keysHeld?.find((k) => k.color === cost.color);
+                        return teamKey && teamKey.quantity >= cost.quantity;
+                      });
+                    });
+
                   const isAvailableWithBuffs =
                     status === 'available' &&
                     team.activeBuffs?.length > 0 &&
@@ -503,17 +668,26 @@ const TreasureTeamView = () => {
                       buff.objectiveTypes.includes(node.objective.type)
                     );
 
+                  const hasBuffApplied = !!node.objective?.appliedBuff;
+
                   return (
                     <Card
                       key={node.nodeId}
-                      bg={currentColors.cardBg}
-                      borderWidth={2}
-                      borderColor={getNodeBorderColor(status, node.nodeType)}
-                      cursor={isLocked ? 'not-allowed' : 'pointer'}
-                      opacity={isLocked ? 0.7 : 1}
-                      onClick={() => handleNodeClick(node)}
+                      bg={
+                        (status === 'completed' && isInn && hasTransaction) ||
+                        (status === 'completed' && !isInn)
+                          ? 'whiteAlpha.800'
+                          : currentColors.cardBg
+                      }
+                      borderWidth={3}
+                      borderColor={
+                        isLocationLocked ? 'orange.500' : getNodeBorderColor(status, node.nodeType)
+                      }
+                      cursor={isLocked || isLocationLocked ? 'not-allowed' : 'pointer'}
+                      opacity={isLocked || isLocationLocked ? 0.7 : 1}
+                      onClick={() => !isLocationLocked && handleNodeClick(node)}
                       _hover={
-                        !isLocked || adminMode
+                        !isLocked && !isLocationLocked && (status !== 'locked' || adminMode)
                           ? { shadow: 'lg', transform: 'translateY(-2px)' }
                           : {}
                       }
@@ -523,27 +697,51 @@ const TreasureTeamView = () => {
                       <CardBody>
                         <HStack justify="space-between" align="start">
                           <HStack spacing={4} flex={1}>
-                            {status === 'completed' && (
+                            {status === 'completed' && !isLocationLocked && (
                               <CheckCircleIcon color={currentColors.green.base} boxSize={6} />
                             )}
-                            {isLocked && <LockIcon color="gray.400" boxSize={6} />}
+                            {(isLocked || isLocationLocked) && (
+                              <LockIcon color="gray.400" boxSize={6} />
+                            )}
                             {status === 'available' && (
                               <QuestionIcon color={currentColors.orange} boxSize={6} />
                             )}
 
                             <VStack align="start" spacing={2} flex={1}>
                               <HStack flexWrap="wrap">
-                                {isLocked ? (
+                                {isLocked || isLocationLocked ? (
                                   <>
-                                    <RedactedText length="long" />
-                                    <Badge
-                                      bg={getNodeBorderColor(status, node.nodeType)}
-                                      color="white"
-                                      px={2}
-                                      borderRadius="md"
-                                    >
-                                      LOCKED
-                                    </Badge>
+                                    {isLocationLocked ? (
+                                      <>
+                                        <Text
+                                          fontWeight="bold"
+                                          fontSize="lg"
+                                          color={currentColors.textColor}
+                                        >
+                                          {node.title}
+                                        </Text>
+                                        <Badge
+                                          bg="orange.500"
+                                          color="white"
+                                          px={2}
+                                          borderRadius="md"
+                                        >
+                                          LOCATION COMPLETED
+                                        </Badge>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <RedactedText length="long" />
+                                        <Badge
+                                          bg={getNodeBorderColor(status, node.nodeType)}
+                                          color="white"
+                                          px={2}
+                                          borderRadius="md"
+                                        >
+                                          LOCKED
+                                        </Badge>
+                                      </>
+                                    )}
                                   </>
                                 ) : (
                                   <>
@@ -556,26 +754,48 @@ const TreasureTeamView = () => {
                                       {node.title}
                                     </Text>
                                     <Badge
-                                      bg={getNodeBorderColor(status, node.nodeType)}
+                                      bg={getNodeBorderColor(status, node)}
                                       color="white"
                                       px={2}
                                       borderRadius="md"
                                     >
-                                      {node.nodeType}
+                                      {node.nodeType === 'STANDARD'
+                                        ? getNodeBadge(node).toUpperCase()
+                                        : node.nodeType}
                                     </Badge>
-                                    {node.rewards?.buffs && node.rewards.buffs.length > 0 && (
-                                      <Badge colorScheme="purple" fontSize="xs">
-                                        🎁 Buff Reward
-                                      </Badge>
-                                    )}
-                                    {isCompletedInn && !adminMode && (
+                                    {status !== 'completed' &&
+                                      node.rewards?.buffs &&
+                                      node.rewards.buffs.length > 0 && (
+                                        <Badge colorScheme="purple" fontSize="xs">
+                                          🎁 Earn a Buff
+                                        </Badge>
+                                      )}
+                                    {hasAffordableRewards && !adminMode && (
                                       <Badge colorScheme="yellow" fontSize="xs">
-                                        Click to trade keys
+                                        💰 Rewards available - Click to trade
                                       </Badge>
                                     )}
+                                    {isCompletedInn && hasTransaction && !adminMode && (
+                                      <Badge colorScheme="green" fontSize="xs">
+                                        ✅ Already purchased from this Inn
+                                      </Badge>
+                                    )}
+                                    {hasBuffApplied && (
+                                      <Badge colorScheme="green" fontSize="xs">
+                                        💪 Buff Applied
+                                      </Badge>
+                                    )}
+                                    {isCompletedInn &&
+                                      !hasTransaction &&
+                                      !hasAffordableRewards &&
+                                      !adminMode && (
+                                        <Badge colorScheme="gray" fontSize="xs">
+                                          🙈 Not enough keys for trades
+                                        </Badge>
+                                      )}
                                     {isAvailableWithBuffs && (
                                       <Badge colorScheme="blue" fontSize="xs">
-                                        ✨ Buff available
+                                        ✨ Can Apply A Buff
                                       </Badge>
                                     )}
                                     {adminMode && (
@@ -590,7 +810,17 @@ const TreasureTeamView = () => {
                                 )}
                               </HStack>
 
-                              {isLocked ? (
+                              {isLocationLocked ? (
+                                <VStack align="start" spacing={1} w="full">
+                                  <Text fontSize="sm" color="orange.500">
+                                    Your team completed:{' '}
+                                    <strong>{completedNodeInGroup?.title}</strong>
+                                  </Text>
+                                  <Text fontSize="xs" color={theme.colors.gray[500]}>
+                                    Only one difficulty per location can be completed
+                                  </Text>
+                                </VStack>
+                              ) : isLocked ? (
                                 <VStack align="start" spacing={1} w="full">
                                   <RedactedText length="full" />
                                   <RedactedText length="long" />
@@ -617,10 +847,10 @@ const TreasureTeamView = () => {
                                         Objective:
                                       </Text>
                                       <Text fontSize="sm" color={currentColors.textColor}>
-                                        {node.objective.type}: {node.objective.quantity}{' '}
-                                        {node.objective.target}
+                                        {OBJECTIVE_TYPES[node.objective.type]}:{' '}
+                                        {node.objective.quantity} {node.objective.target}
                                       </Text>
-                                      {node.objective.appliedBuff && (
+                                      {node.objective?.appliedBuff && (
                                         <Badge colorScheme="blue" fontSize="xs" mt={1}>
                                           ✨ {node.objective.appliedBuff.buffName} applied (-
                                           {(node.objective.appliedBuff.reduction * 100).toFixed(0)}
@@ -651,6 +881,26 @@ const TreasureTeamView = () => {
                               )}
                             </VStack>
                           </HStack>
+
+                          {(isLocked || isLocationLocked) && (
+                            <Box
+                              position="absolute"
+                              top={0}
+                              left={0}
+                              right={0}
+                              bottom={0}
+                              bg={
+                                isLocationLocked
+                                  ? 'rgba(255, 140, 0, 0.1)'
+                                  : colorMode === 'dark'
+                                  ? 'rgba(0,0,0,0.3)'
+                                  : 'rgba(255,255,255,0.3)'
+                              }
+                              backdropFilter={isLocationLocked ? undefined : 'blur(2px)'}
+                              borderRadius="md"
+                              pointerEvents="none"
+                            />
+                          )}
 
                           {isLocked ? (
                             <VStack align="end" spacing={1}>
@@ -689,7 +939,7 @@ const TreasureTeamView = () => {
                             right={0}
                             bottom={0}
                             bg={colorMode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'}
-                            backdropFilter="blur(2px)"
+                            backdropFilter={isLocationLocked ? undefined : 'blur(2px)'}
                             borderRadius="md"
                             pointerEvents="none"
                           />
@@ -715,6 +965,7 @@ const TreasureTeamView = () => {
           onNodeClose();
           handleOpenBuffModal(node);
         }}
+        appliedBuff={selectedNode?.objective?.appliedBuff}
       />
 
       <InnModal
