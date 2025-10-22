@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, ImageOverlay, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import { Box, Badge, Text, VStack, HStack, Button, Image, Flex } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
