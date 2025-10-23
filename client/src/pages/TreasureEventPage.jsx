@@ -238,7 +238,7 @@ const TreasureEventView = () => {
 
   if (eventLoading) {
     return (
-      <Container maxW="container.xl" py={8}>
+      <Container flex="1" maxW="container.xl" py={8}>
         <Spinner size="xl" />
       </Container>
     );
@@ -252,15 +252,10 @@ const TreasureEventView = () => {
     );
   }
 
-  // Add this to TreasureEventPage.jsx
-  // Place this check after the data is loaded and before rendering the main content
-
-  // Inside the TreasureEventView component, after the event is loaded:
-
   if (eventLoading) {
     return (
       <Container maxW="container.xl" py={8}>
-        <Spinner size="xl" />
+        <Spinner flex="1" size="xl" />
       </Container>
     );
   }
@@ -313,16 +308,16 @@ const TreasureEventView = () => {
             <Box fontSize="6xl">🔒</Box>
 
             <VStack spacing={2}>
-              <Heading size="lg" color={currentColors.textColor}>
+              <Heading size="lg" color={currentColors.white}>
                 Event Not Available...Yet!
               </Heading>
-              <Text color={currentColors.textColor} fontSize="lg">
+              <Text color={currentColors.white} fontSize="lg">
                 This event is currently in draft mode
               </Text>
             </VStack>
 
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
-              <Text fontSize="sm" color={currentColors.textColor}>
+              <Text fontSize="sm" color={currentColors.white}>
                 This Treasure Hunt event is still being set up by the event organizers. It will
                 become visible once the admins publish it.
               </Text>
@@ -526,7 +521,7 @@ const TreasureEventView = () => {
                             Admin Map Controls
                           </Text>
                           <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
-                            Toggle to show/hide locked nodes on the map
+                            Toggle to show/hide locked nodes on the map (for you only)
                           </Text>
                         </VStack>
                       </HStack>
@@ -1292,26 +1287,29 @@ const TreasureEventView = () => {
                         )}
 
                         <hr />
-                        <HStack gap={4}>
-                          <Button
-                            colorScheme="green"
-                            onClick={handleGenerateMap}
-                            isLoading={generateLoading}
-                          >
-                            {event.nodes && event.nodes.length > 0
-                              ? 'Regenerate Map'
-                              : 'Generate Map'}
-                          </Button>
-                          <Button
-                            leftIcon={<AddIcon />}
-                            bg={currentColors.turquoise.base}
-                            color="white"
-                            _hover={{ opacity: 0.8 }}
-                            onClick={onCreateTeamOpen}
-                          >
-                            Add Team
-                          </Button>
-                        </HStack>
+                        {event.status === 'DRAFT' && (
+                          <HStack gap={4}>
+                            <Button
+                              colorScheme="green"
+                              onClick={handleGenerateMap}
+                              isLoading={generateLoading}
+                            >
+                              {event.nodes && event.nodes.length > 0
+                                ? 'Regenerate Map'
+                                : 'Generate Map'}
+                            </Button>
+                            )
+                            <Button
+                              leftIcon={<AddIcon />}
+                              bg={currentColors.turquoise.base}
+                              color="white"
+                              _hover={{ opacity: 0.8 }}
+                              onClick={onCreateTeamOpen}
+                            >
+                              Add Team
+                            </Button>
+                          </HStack>
+                        )}
 
                         <Card bg={currentColors.purple.base} color="white" borderRadius="md">
                           <CardBody>

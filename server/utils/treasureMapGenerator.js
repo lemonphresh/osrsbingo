@@ -125,13 +125,6 @@ const DIFFICULTY_MULTIPLIERS = {
   sweatlord: 2.0,
 };
 
-// Mapping from difficultyTier to difficulty name
-const DIFFICULTY_TIER_NAMES = {
-  1: 'easy',
-  3: 'medium',
-  5: 'hard',
-};
-
 // objective types with difficulty ratings
 const OBJECTIVE_TYPES = [
   {

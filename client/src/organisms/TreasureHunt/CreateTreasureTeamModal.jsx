@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -130,20 +130,16 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
             </FormControl>
 
             <FormControl>
-              <FormLabel color={currentColors.textColor}>Discord Role ID (Optional)</FormLabel>
-              <Input
-                placeholder="123456789012345678"
-                value={formData.discordRoleId}
-                onChange={(e) => setFormData({ ...formData, discordRoleId: e.target.value })}
-                color={currentColors.textColor}
-              />
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1}>
-                Discord role ID for team members (used by the bot)
-              </Text>
-            </FormControl>
-
-            <FormControl>
               <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
+              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mb={2}>
+                Add Discord user IDs for team members. (Right click their name in Discord and select
+                "Copy ID"; Make sure Developer Mode is enabled in Discord settings.)
+                <br />
+                <br /> Note: This is how team members will be able to use Discord commands to submit
+                their screenshots, check progress and more, and to use the site UI to use buffs, buy
+                items from inns, etc. (Make sure they have an OSRS Bingo Hub account, are logged in
+                and have linked their Discord!)
+              </Text>
               <VStack spacing={2} align="stretch">
                 {formData.members.map((member, index) => (
                   <HStack key={index}>
@@ -174,9 +170,6 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
                   Add Member
                 </Button>
               </VStack>
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1}>
-                Optional: Add Discord user IDs for team members
-              </Text>
             </FormControl>
 
             <Button

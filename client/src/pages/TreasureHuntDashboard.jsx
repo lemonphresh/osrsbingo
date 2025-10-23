@@ -38,17 +38,27 @@ import { useState } from 'react';
 import { useRef } from 'react';
 import { useToastContext } from '../providers/ToastProvider';
 import EventCreationGuide from '../organisms/TreasureHunt/TreasureHuntEventCreationGuide';
+import AuthRequiredModal from '../molecules/AuthRequiredModal';
+import Map from '../assets/osrsmap.png';
+import Objective from '../assets/adventurepath.png';
+import Laidee from '../assets/laidee.png';
+import HouseTab from '../assets/housetab.png';
 
 const TreasureHuntDashboard = () => {
   const { colorMode } = useColorMode();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const {
+    isOpen: isAuthModalOpen,
+    onOpen: onAuthModalOpen,
+    onClose: onAuthModalClose,
+  } = useDisclosure();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const { data, loading, refetch } = useQuery(GET_ALL_TREASURE_EVENTS, {
-    variables: { userId: user.id },
+    variables: { userId: user?.id },
     onCompleted: (data) => {
-      if (!data.getAllTreasureEvents.some((event) => event.adminIds.includes(user.id))) {
+      if (!data.getAllTreasureEvents.some((event) => event.adminIds.includes(user?.id))) {
         showToast('You do not have admin access to any events.', 'warning');
       }
     },
@@ -83,6 +93,16 @@ const TreasureHuntDashboard = () => {
       await deleteEvent({
         variables: { eventId: deleteEventId },
       });
+    }
+  };
+
+  const handleCreateEventClick = () => {
+    if (!user || !user.id) {
+      // User is not logged in, show auth modal
+      onAuthModalOpen();
+    } else {
+      // User is logged in, open create event modal
+      onOpen();
     }
   };
 
@@ -222,12 +242,11 @@ const TreasureHuntDashboard = () => {
                       </Badge>
                       <VStack align="start" flex={1} spacing={1}>
                         <Text fontWeight="bold" color={currentColors.textColor}>
-                          Create an Event
+                          Set Up Your Event
                         </Text>
                         <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Set up your treasure hunt with a prize pool, team size, difficulty, and
-                          duration. The system generates a unique map with objectives tailored to
-                          your settings.
+                          Configure prize pools, difficulty, team size, and event duration. The
+                          system will automatically generate a balanced treasure map.
                         </Text>
                       </VStack>
                     </HStack>
@@ -236,7 +255,7 @@ const TreasureHuntDashboard = () => {
                     <HStack align="start" spacing={4}>
                       <Badge
                         fontSize="lg"
-                        bg={currentColors.turquoise.base}
+                        bg={currentColors.purple.base}
                         color="white"
                         borderRadius="full"
                         w="40px"
@@ -249,11 +268,11 @@ const TreasureHuntDashboard = () => {
                       </Badge>
                       <VStack align="start" flex={1} spacing={1}>
                         <Text fontWeight="bold" color={currentColors.textColor}>
-                          Teams Complete Objectives
+                          Teams Compete
                         </Text>
                         <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Teams navigate through nodes on the map, completing OSRS objectives like
-                          boss kills, XP gains, and item collections. Each node rewards GP and keys.
+                          Teams progress through nodes by completing OSRS objectives. Each
+                          completion unlocks new paths and earns rewards.
                         </Text>
                       </VStack>
                     </HStack>
@@ -262,7 +281,7 @@ const TreasureHuntDashboard = () => {
                     <HStack align="start" spacing={4}>
                       <Badge
                         fontSize="lg"
-                        bg={currentColors.green.base}
+                        bg={currentColors.purple.base}
                         color="white"
                         borderRadius="full"
                         w="40px"
@@ -275,12 +294,11 @@ const TreasureHuntDashboard = () => {
                       </Badge>
                       <VStack align="start" flex={1} spacing={1}>
                         <Text fontWeight="bold" color={currentColors.textColor}>
-                          Race to the Finish
+                          Review & Reward
                         </Text>
                         <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          The team with the highest GP pot at the end wins! Trade keys at Inns for
-                          bonus treasures, unlock powerful buffs to reduce future objectives, and
-                          strategize your path to victory.
+                          Approve submissions, track progress on leaderboards, and watch teams
+                          compete for the top spot!
                         </Text>
                       </VStack>
                     </HStack>
@@ -288,19 +306,42 @@ const TreasureHuntDashboard = () => {
                 </CardBody>
               </Card>
 
-              {/* Key Features */}
-              <SimpleGrid columns={{ base: 1, md: 3 }} opacity="0.8" spacing={4}>
+              {/* Features Grid */}
+              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>
                 <Card bg={currentColors.cardBg} borderWidth={1}>
                   <CardBody>
                     <VStack spacing={2}>
-                      <Text fontSize="3xl">⚔️</Text>
+                      <Image h="48px" src={Map} />
                       <Text
                         fontWeight="bold"
                         fontSize="sm"
                         color={currentColors.textColor}
                         textAlign="center"
                       >
-                        Dynamic Objectives
+                        Dynamic Maps
+                      </Text>
+                      <Text
+                        fontSize="xs"
+                        color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                        textAlign="center"
+                      >
+                        Auto-generated treasure maps that scale with your event
+                      </Text>
+                    </VStack>
+                  </CardBody>
+                </Card>
+
+                <Card bg={currentColors.cardBg} borderWidth={1}>
+                  <CardBody>
+                    <VStack spacing={2}>
+                      <Image h="48px" src={Objective} />
+                      <Text
+                        fontWeight="bold"
+                        fontSize="sm"
+                        color={currentColors.textColor}
+                        textAlign="center"
+                      >
+                        Varied Objectives
                       </Text>
                       <Text
                         fontSize="xs"
@@ -316,7 +357,7 @@ const TreasureHuntDashboard = () => {
                 <Card bg={currentColors.cardBg} borderWidth={1}>
                   <CardBody>
                     <VStack spacing={2}>
-                      <Text fontSize="3xl">✨</Text>
+                      <Image h="48px" src={Laidee} />
                       <Text
                         fontWeight="bold"
                         fontSize="sm"
@@ -339,7 +380,7 @@ const TreasureHuntDashboard = () => {
                 <Card bg={currentColors.cardBg} borderWidth={1}>
                   <CardBody>
                     <VStack spacing={2}>
-                      <Text fontSize="3xl">🏠</Text>
+                      <Image h="48px" src={HouseTab} />
                       <Text
                         fontWeight="bold"
                         fontSize="sm"
@@ -360,56 +401,6 @@ const TreasureHuntDashboard = () => {
                 </Card>
               </SimpleGrid>
 
-              {/* Example Stats */}
-              {/* <Card
-                bg={currentColors.cardBg}
-                borderWidth={1}
-                borderColor={currentColors.sapphire.base}
-              >
-                <CardBody>
-                  <VStack spacing={4}>
-                    <Heading size="sm" color={currentColors.textColor}>
-                      📊 Typical Event
-                    </Heading>
-                    <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
-                      <VStack>
-                        <Text fontSize="2xl" fontWeight="bold" color={currentColors.purple.base}>
-                          10
-                        </Text>
-                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Teams
-                        </Text>
-                      </VStack>
-                      <VStack>
-                        <Text fontSize="2xl" fontWeight="bold" color={currentColors.turquoise.base}>
-                          5
-                        </Text>
-                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Players/Team
-                        </Text>
-                      </VStack>
-                      <VStack>
-                        <Text fontSize="2xl" fontWeight="bold" color={currentColors.green.base}>
-                          5B
-                        </Text>
-                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Prize Pool
-                        </Text>
-                      </VStack>
-                      <VStack>
-                        <Text fontSize="2xl" fontWeight="bold" color={currentColors.sapphire.base}>
-                          2wk
-                        </Text>
-                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Duration
-                        </Text>
-                      </VStack>
-                    </SimpleGrid>
-                  </VStack>
-                </CardBody>
-              </Card> */}
-
-              {/* CTA */}
               <VStack spacing={4} py={4}>
                 <Button
                   size="lg"
@@ -417,13 +408,14 @@ const TreasureHuntDashboard = () => {
                   bg={currentColors.purple.base}
                   color="white"
                   _hover={{ bg: currentColors.purple.light, transform: 'translateY(-2px)' }}
-                  onClick={onOpen}
+                  onClick={handleCreateEventClick}
                   boxShadow="lg"
                 >
                   Create Your First Event
                 </Button>
-                <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}>
-                  The map generates automatically based on your settings
+                <Text fontSize="sm" color="gray.400">
+                  When you generate the event's map on the next step, these settings will dictate
+                  the layout and objectives.
                 </Text>
               </VStack>
             </VStack>
@@ -438,7 +430,7 @@ const TreasureHuntDashboard = () => {
                   bg={currentColors.purple.base}
                   color="white"
                   _hover={{ bg: currentColors.purple.light }}
-                  onClick={onOpen}
+                  onClick={handleCreateEventClick}
                 >
                   Create New Event
                 </Button>
@@ -535,6 +527,13 @@ const TreasureHuntDashboard = () => {
       </Flex>
 
       <CreateEventModal isOpen={isOpen} onClose={onClose} onSuccess={refetch} />
+
+      <AuthRequiredModal
+        isOpen={isAuthModalOpen}
+        onClose={onAuthModalClose}
+        feature="create treasure hunt events"
+      />
+
       <AlertDialog
         isOpen={isDeleteOpen}
         leastDestructiveRef={cancelRef}
