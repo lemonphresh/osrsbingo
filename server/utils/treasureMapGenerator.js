@@ -445,8 +445,6 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   // Generate remaining nodes as location groups
   let pathIndex = 0;
   while (nodeCounter.value < total_nodes) {
-    nodesUntilNextInn -= 3; // Each location group has 3 nodes
-
     // Time for an inn?
     if (nodesUntilNextInn <= 0 && innCounter <= num_of_inns) {
       const nodeId = generateNodeId(nodeCounter.value++);
@@ -508,6 +506,9 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       nodesUntilNextInn = node_to_inn_ratio;
       continue;
     }
+
+    // Decrement counter for this location group (3 nodes)
+    nodesUntilNextInn -= 3;
 
     // Create location group for current path
     const path = paths[pathIndex % paths.length];

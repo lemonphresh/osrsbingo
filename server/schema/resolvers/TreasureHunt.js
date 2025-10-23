@@ -270,18 +270,37 @@ const TreasureHuntResolvers = {
         }
 
         const durationInDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        const weeksOfDuration = durationInDays / 7;
-        const expectedNodes = Math.floor(10 * config.players_per_team * weeksOfDuration);
-        const totalNodes = Math.floor(expectedNodes * 1.5);
+
+        // NEW CALCULATION: Based on player engagement hours
+        const hoursPerPlayerPerDay = config.estimated_hours_per_player_per_day || 2.0;
+        const totalPlayerHoursPerTeam =
+          config.players_per_team * durationInDays * hoursPerPlayerPerDay;
+
+        // Calculate hours per node based on difficulty
+        const difficultyMultiplier = {
+          easy: 0.7,
+          normal: 1.0,
+          hard: 1.3,
+          sweatlord: 1.6,
+        };
+        const baseHoursPerNode = 1.5;
+        const hoursPerNode = baseHoursPerNode * (difficultyMultiplier[config.difficulty] || 1.0);
+
+        // Calculate required nodes for ONE TEAM
+        const nodesNeeded = Math.ceil(totalPlayerHoursPerTeam / hoursPerNode);
+        const locationGroups = Math.ceil(nodesNeeded / 3);
+        const totalNodes = locationGroups * 3;
 
         const derivedValues = {
           max_reward_per_team: config.prize_pool_total / config.num_of_teams,
-          expected_nodes_per_team: expectedNodes,
+          expected_nodes_per_team: totalNodes,
+          total_player_hours_per_team: totalPlayerHoursPerTeam,
+          hours_per_node: hoursPerNode,
           avg_gp_per_node:
             ((config.prize_pool_total / config.num_of_teams) *
               (config.reward_split_ratio?.nodes || 0.6)) /
-            expectedNodes,
-          num_of_inns: Math.floor(expectedNodes / (config.node_to_inn_ratio || 5)),
+            totalNodes,
+          num_of_inns: Math.floor(locationGroups / (config.node_to_inn_ratio || 5)),
           total_nodes: totalNodes,
         };
         const eventData = {
@@ -464,6 +483,45 @@ const TreasureHuntResolvers = {
       try {
         const event = await TreasureEvent.findByPk(eventId);
         if (!event) throw new Error('Event not found');
+
+        const startDate = new Date(input.startDate || event.startDate);
+        const endDate = new Date(input.endDate || event.endDate);
+        const config = input.eventConfig || event.eventConfig;
+
+        const durationInDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+
+        // NEW CALCULATION: Based on player engagement hours
+        const hoursPerPlayerPerDay = config.estimated_hours_per_player_per_day || 2.0;
+        const totalPlayerHoursPerTeam =
+          config.players_per_team * durationInDays * hoursPerPlayerPerDay;
+
+        const difficultyMultiplier = {
+          easy: 0.7,
+          normal: 1.0,
+          hard: 1.3,
+          sweatlord: 1.6,
+        };
+        const baseHoursPerNode = 1.5;
+        const hoursPerNode = baseHoursPerNode * (difficultyMultiplier[config.difficulty] || 1.0);
+
+        const nodesNeeded = Math.ceil(totalPlayerHoursPerTeam / hoursPerNode);
+        const locationGroups = Math.ceil(nodesNeeded / 3);
+        const totalNodes = locationGroups * 3;
+
+        const derivedValues = {
+          max_reward_per_team: config.prize_pool_total / config.num_of_teams,
+          expected_nodes_per_team: totalNodes,
+          total_player_hours_per_team: totalPlayerHoursPerTeam,
+          hours_per_node: hoursPerNode,
+          avg_gp_per_node:
+            ((config.prize_pool_total / config.num_of_teams) *
+              (config.reward_split_ratio?.nodes || 0.6)) /
+            totalNodes,
+          num_of_inns: Math.floor(locationGroups / (config.node_to_inn_ratio || 5)),
+          total_nodes: totalNodes,
+        };
+
+        input.derivedValues = derivedValues;
 
         await event.update(input);
         return event;

@@ -1482,14 +1482,6 @@ const TreasureEventView = () => {
                                   <Td color={currentColors.textColor}>
                                     <VStack align="start" spacing={0}>
                                       <Text fontSize="sm">{node.mapLocation || '—'}</Text>
-                                      <Text
-                                        fontSize="xs"
-                                        color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                                      >
-                                        {Array.isArray(node.paths) && node.paths.length > 0
-                                          ? node.paths.join(', ')
-                                          : '—'}
-                                      </Text>
                                     </VStack>
                                   </Td>
                                   <Td isNumeric color={currentColors.green.base}>

@@ -17,11 +17,14 @@ import {
   SimpleGrid,
   useColorMode,
   Text,
+  Tooltip,
+  HStack,
 } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
 import { UPDATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import ContentSelectionModal from './ContentSelectionModal';
+import { InfoIcon } from '@chakra-ui/icons';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000; // 20 billion
@@ -101,6 +104,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         playersPerTeam: event.eventConfig?.players_per_team || 0,
         nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
         difficulty: event.eventConfig?.difficulty || 'normal',
+        estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 2.0,
       });
       setContentSelections(event.contentSelections || null);
       console.log(event);
@@ -411,6 +415,63 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <option value="sweatlord">Sweatlord (2.0x objectives)</option>
               </Select>
             </FormControl>
+
+            <FormControl isRequired>
+              <FormLabel color={currentColors.textColor}>
+                Est. Hours Per Player Per Day
+                <Tooltip label="How many hours per day will each player dedicate on average?">
+                  <InfoIcon ml={2} />
+                </Tooltip>
+              </FormLabel>
+              <NumberInput
+                value={formData.estimatedHoursPerPlayerPerDay}
+                onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
+                min={0.5}
+                max={8}
+                step={0.5}
+              >
+                <NumberInputField color={currentColors.textColor} />
+              </NumberInput>
+              <HStack spacing={2} mt={2}>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 1)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 1 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Casual (1h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 2)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 2 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Normal (2h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Dedicated (3h)
+                </Button>
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {(() => {
+                  if (!formData.startDate || !formData.endDate)
+                    return 'Select dates to see estimate';
+                  const days = Math.ceil(
+                    (new Date(formData.endDate) - new Date(formData.startDate)) /
+                      (1000 * 60 * 60 * 24)
+                  );
+                  const totalHours =
+                    formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                  return `Total per team: ${formData.playersPerTeam} players × ${days} days × ${formData.estimatedHoursPerPlayerPerDay}h = ${totalHours} player-hours`;
+                })()}
+              </Text>
+            </FormControl>
             {isEditable && (
               <Button
                 variant="solid"
@@ -489,7 +550,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             </Text>
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>
-                Nodes per Inn • Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN}
+                Locations Between Each Inn • Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN}
               </FormLabel>
               <NumberInput
                 isDisabled={!isEditable}
@@ -501,6 +562,79 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
             </FormControl>
+
+            <VStack
+              w="full"
+              p={3}
+              bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
+              borderRadius="md"
+              spacing={2}
+            >
+              <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                📊 Map Preview (Per Team)
+              </Text>
+              <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
+                <VStack spacing={0}>
+                  <Text color="gray.500">Player Hours</Text>
+                  <Text fontWeight="bold" color={currentColors.textColor}>
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      return Math.round(
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay
+                      );
+                    })()}
+                    h
+                  </Text>
+                </VStack>
+                <VStack spacing={0}>
+                  <Text color="gray.500">Total Locations</Text>
+                  <Text fontWeight="bold" color={currentColors.textColor}>
+                    ~
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      const totalHours =
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+                      const locationGroups = Math.ceil(nodesNeeded / 3);
+                      return locationGroups;
+                    })()}
+                  </Text>
+                </VStack>
+                <VStack spacing={0}>
+                  <Text color="gray.500">Inns</Text>
+                  <Text fontWeight="bold" color={currentColors.textColor}>
+                    ~
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      const totalHours =
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+                      const locationGroups = Math.ceil(nodesNeeded / 3);
+                      return Math.floor(locationGroups / formData.nodeToInnRatio);
+                    })()}
+                  </Text>
+                </VStack>
+              </SimpleGrid>
+              <Text fontSize="xs" color="gray.500" textAlign="center">
+                All {formData.numOfTeams} teams race through the same map
+              </Text>
+            </VStack>
             <Button
               bg={currentColors.purple.base}
               color="white"

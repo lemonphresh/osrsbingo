@@ -68,6 +68,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     difficulty: 'normal',
     startDate: '',
     endDate: '',
+    estimatedHoursPerPlayerPerDay: 2.0,
   });
 
   // Get today's date in YYYY-MM-DD format for min date
@@ -275,6 +276,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 bonus_tasks: 0.15,
               },
               keys_expire: true,
+              estimated_hours_per_player_per_day: formData.estimatedHoursPerPlayerPerDay,
             },
           },
         },
@@ -399,6 +401,63 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </Select>
             </FormControl>
 
+            <FormControl isRequired>
+              <FormLabel color={currentColors.textColor}>
+                Est. Hours Per Player Per Day
+                <Tooltip label="How many hours per day will each player dedicate on average?">
+                  <InfoIcon ml={2} />
+                </Tooltip>
+              </FormLabel>
+              <NumberInput
+                value={formData.estimatedHoursPerPlayerPerDay}
+                onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
+                min={0.5}
+                max={8}
+                step={0.5}
+              >
+                <NumberInputField color={currentColors.textColor} />
+              </NumberInput>
+              <HStack spacing={2} mt={2}>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 1)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 1 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Casual (1h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 2)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 2 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Normal (2h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Dedicated (3h)
+                </Button>
+              </HStack>
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {(() => {
+                  if (!formData.startDate || !formData.endDate)
+                    return 'Select dates to see estimate';
+                  const days = Math.ceil(
+                    (new Date(formData.endDate) - new Date(formData.startDate)) /
+                      (1000 * 60 * 60 * 24)
+                  );
+                  const totalHours =
+                    formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                  return `Total per team: ${formData.playersPerTeam} players × ${days} days × ${formData.estimatedHoursPerPlayerPerDay}h = ${totalHours} player-hours`;
+                })()}
+              </Text>
+            </FormControl>
+
             <Button colorScheme="green" onClick={() => setShowContentModal(true)}>
               {contentSelections ? 'Edit Content Selection' : 'Specify Content Selection'}
             </Button>
@@ -507,55 +566,68 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               spacing={2}
             >
               <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
-                📊 Map Preview
+                📊 Map Preview (Per Team)
               </Text>
               <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
                 <VStack spacing={0}>
-                  <Text color="gray.500">Total Nodes</Text>
+                  <Text color="gray.500">Player Hours</Text>
+                  <Text fontWeight="bold" color={currentColors.textColor}>
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      return Math.round(
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay
+                      );
+                    })()}
+                    h
+                  </Text>
+                </VStack>
+                <VStack spacing={0}>
+                  <Text color="gray.500">Total Locations</Text>
                   <Text fontWeight="bold" color={currentColors.textColor}>
                     ~
-                    {Math.floor(
-                      10 *
-                        formData.playersPerTeam *
-                        ((new Date(formData.endDate || Date.now()) -
-                          new Date(formData.startDate || Date.now())) /
-                          (1000 * 60 * 60 * 24 * 7)) *
-                        1.5
-                    ) || '?'}
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      const totalHours =
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+                      const locationGroups = Math.ceil(nodesNeeded / 3);
+                      return locationGroups;
+                    })()}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Inns</Text>
                   <Text fontWeight="bold" color={currentColors.textColor}>
                     ~
-                    {Math.floor(
-                      (10 *
-                        formData.playersPerTeam *
-                        ((new Date(formData.endDate || Date.now()) -
-                          new Date(formData.startDate || Date.now())) /
-                          (1000 * 60 * 60 * 24 * 7))) /
-                        formData.nodeToInnRatio
-                    ) || '?'}
-                  </Text>
-                </VStack>
-                <VStack spacing={0}>
-                  <Text color="gray.500">Avg GP/Node</Text>
-                  <Text fontWeight="bold" color={currentColors.green}>
-                    {formData.startDate && formData.endDate
-                      ? (
-                          ((formData.prizePoolTotal / formData.numOfTeams) * 0.6) /
-                          (10 *
-                            formData.playersPerTeam *
-                            ((new Date(formData.endDate) - new Date(formData.startDate)) /
-                              (1000 * 60 * 60 * 24 * 7))) /
-                          1000000
-                        ).toFixed(1) + 'M'
-                      : '?'}
+                    {(() => {
+                      if (!formData.startDate || !formData.endDate) return '?';
+                      const days = Math.ceil(
+                        (new Date(formData.endDate) - new Date(formData.startDate)) /
+                          (1000 * 60 * 60 * 24)
+                      );
+                      const totalHours =
+                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+                      const locationGroups = Math.ceil(nodesNeeded / 3);
+                      return Math.floor(locationGroups / formData.nodeToInnRatio);
+                    })()}
                   </Text>
                 </VStack>
               </SimpleGrid>
               <Text fontSize="xs" color="gray.500" textAlign="center">
-                Map generates automatically based on these settings
+                All {formData.numOfTeams} teams race through the same map
               </Text>
             </VStack>
 
