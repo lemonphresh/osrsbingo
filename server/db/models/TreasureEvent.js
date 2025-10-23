@@ -38,6 +38,11 @@ module.exports = (sequelize) => {
       derivedValues: DataTypes.JSONB,
       mapStructure: DataTypes.JSONB, // stores paths, edges
       discordConfig: DataTypes.JSONB,
+      contentSelections: {
+        type: DataTypes.JSONB,
+        allowNull: true,
+        defaultValue: null,
+      },
       creatorId: {
         type: DataTypes.INTEGER,
         references: {

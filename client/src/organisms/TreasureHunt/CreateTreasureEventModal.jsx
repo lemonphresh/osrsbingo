@@ -26,6 +26,7 @@ import { useMutation } from '@apollo/client';
 import { CREATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useNavigate } from 'react-router-dom';
+import ContentSelectionModal from './ContentSelectionModal';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000; // 20 billion
@@ -36,6 +37,8 @@ const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
 export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
+  const [contentSelections, setContentSelections] = useState(null);
+  const [showContentModal, setShowContentModal] = useState(false);
   const { showToast } = useToastContext();
 
   const colors = {
@@ -57,7 +60,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
 
   const [formData, setFormData] = useState({
     eventName: '',
-    clanId: '',
+    // clanId: '',
     prizePoolTotal: 5000000000,
     numOfTeams: 10,
     playersPerTeam: 5,
@@ -256,9 +259,10 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         variables: {
           input: {
             eventName: formData.eventName,
-            clanId: formData.clanId || null,
+            // clanId: formData.clanId || null,
             startDate: startDate,
             endDate: endDate,
+            contentSelections,
             eventConfig: {
               prize_pool_total: formData.prizePoolTotal,
               num_of_teams: formData.numOfTeams,
@@ -321,7 +325,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               />
             </FormControl>
 
-            <FormControl>
+            {/* <FormControl>
               <LabelWithTooltip
                 label="Clan ID (Optional)"
                 tooltip="Your clan's identifier for Discord integration. Leave blank if not using Discord features."
@@ -332,7 +336,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 onChange={(e) => handleInputChange('clanId', e.target.value)}
                 color={currentColors.textColor}
               />
-            </FormControl>
+            </FormControl> */}
 
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
@@ -394,6 +398,19 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 <option value="sweatlord">Sweatlord (2.0x objectives) - Extreme</option>
               </Select>
             </FormControl>
+
+            <Button colorScheme="green" onClick={() => setShowContentModal(true)}>
+              {contentSelections ? 'Edit Content Selection' : 'Specify Content Selection'}
+            </Button>
+            <ContentSelectionModal
+              isOpen={showContentModal}
+              onClose={() => setShowContentModal(false)}
+              currentSelections={contentSelections}
+              onSave={(selections) => {
+                setContentSelections(selections);
+                setShowContentModal(false);
+              }}
+            />
 
             <FormControl isRequired>
               <LabelWithTooltip

@@ -383,6 +383,7 @@ export const CREATE_TREASURE_EVENT = gql`
       clanId
       eventName
       status
+      contentSelections
       startDate
       endDate
       eventConfig
@@ -450,6 +451,7 @@ export const UPDATE_TREASURE_EVENT = gql`
       eventName
       status
       startDate
+      contentSelections
       endDate
       eventConfig
       derivedValues

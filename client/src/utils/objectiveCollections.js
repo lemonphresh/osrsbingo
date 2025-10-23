@@ -1,11 +1,3 @@
-const OBJECTIVE_TYPES = {
-  boss_kc: 'Boss Kill Count',
-  xp_gain: 'XP Gain',
-  minigame: 'Mini Game',
-  item_collection: 'Item Collection',
-  clue_scrolls: 'Clue Scrolls',
-};
-
 // ============================================
 // OSRS CONTENT COLLECTIONS
 // ============================================
@@ -22,11 +14,11 @@ const OBJECTIVE_TYPES = {
       ├── COLLECTIBLE_ITEMS (Feathers, Logs, Ore, etc.)
       └── CLUE_TIERS        (Easy, Medium, Hard, Elite, Master)
  */
-
 /**
  * Solo boss definitions
  */
-const SOLO_BOSSES = {
+
+export const SOLO_BOSSES = {
   // Easy Bosses
   giantMole: {
     id: 'giantMole',
@@ -121,7 +113,7 @@ const SOLO_BOSSES = {
     enabled: true,
   },
 
-  // God Wars Dungeon
+  // God Wars Dungeon (must be tagged with gwd to filter on ui right)
   commanderZilyana: {
     id: 'commanderZilyana',
     name: 'Commander Zilyana',
@@ -185,7 +177,7 @@ const SOLO_BOSSES = {
 /**
  * Raid definitions
  */
-const RAIDS = {
+export const RAIDS = {
   chambersOfXeric: {
     id: 'chambersOfXeric',
     name: 'Chambers of Xeric',
@@ -218,7 +210,7 @@ const RAIDS = {
 /**
  * Skilling activities
  */
-const SKILLS = {
+export const SKILLS = {
   // Production Skills
   fishing: {
     id: 'fishing',
@@ -339,7 +331,7 @@ const SKILLS = {
 /**
  * Minigame definitions
  */
-const MINIGAMES = {
+export const MINIGAMES = {
   // Easy Minigames
   tempoross: {
     id: 'tempoross',
@@ -404,72 +396,73 @@ const MINIGAMES = {
 /**
  * Item collection categories
  */
-const COLLECTIBLE_ITEMS = {
-  // Easy Items
+export const COLLECTIBLE_ITEMS = {
+  // Basic items (no dependencies)
   feathers: {
     id: 'feathers',
     name: 'Feathers',
     category: 'basic',
-    tags: ['cheap', 'shop'],
+    sources: [], // Shop item - always available
   },
+
+  // Skill-based items
   oakLogs: {
     id: 'oakLogs',
     name: 'Oak Logs',
     category: 'logs',
-    tags: ['woodcutting', 'common'],
-  },
-  ironOre: {
-    id: 'ironOre',
-    name: 'Iron Ore',
-    category: 'ores',
-    tags: ['mining', 'common'],
+    sources: ['skills:woodcutting'], // Requires woodcutting skill
   },
 
-  // Medium Items
-  runiteOre: {
-    id: 'runiteOre',
-    name: 'Runite Ore',
-    category: 'ores',
-    tags: ['mining', 'rare', 'expensive'],
-  },
-  magicLogs: {
-    id: 'magicLogs',
-    name: 'Magic Logs',
-    category: 'logs',
-    tags: ['woodcutting', 'high-level'],
-  },
   dragonBones: {
     id: 'dragonBones',
     name: 'Dragon Bones',
     category: 'bones',
-    tags: ['combat', 'prayer'],
+    sources: [],
   },
 
-  // Hard Items
-  ranarrSeeds: {
-    id: 'ranarrSeeds',
-    name: 'Ranarr Seeds',
-    category: 'seeds',
-    tags: ['farming', 'expensive', 'profitable'],
+  // Boss-specific drops
+  vorkathHead: {
+    id: 'vorkathHead',
+    name: "Vorkath's Head",
+    category: 'unique',
+    sources: ['bosses:vorkath'], // ONLY from Vorkath
   },
+
+  abyssalWhip: {
+    id: 'abyssalWhip',
+    name: 'Abyssal Whip',
+    category: 'unique',
+    sources: ['bosses:abyssalSire'], // ONLY from Abyssal Sire
+  },
+
+  // Minigame rewards
+  goldenTench: {
+    id: 'goldenTench',
+    name: 'Golden Tench',
+    category: 'minigame-rewards',
+    sources: ['minigames:tempoross'], // ONLY from Tempoross
+  },
+
+  pyromancerOutfit: {
+    id: 'pyromancerOutfit',
+    name: 'Pyromancer Outfit',
+    category: 'minigame-rewards',
+    sources: ['minigames:wintertodt'], // ONLY from Wintertodt
+  },
+
+  // Multiple sources (OR logic)
   deathRunes: {
     id: 'deathRunes',
     name: 'Death Runes',
     category: 'runes',
-    tags: ['runecrafting', 'expensive'],
-  },
-  bloodRunes: {
-    id: 'bloodRunes',
-    name: 'Blood Runes',
-    category: 'runes',
-    tags: ['runecrafting', 'expensive', 'high-level'],
+    sources: ['skills:runecrafting', 'bosses:barrows'], // RC OR Barrows
   },
 };
 
 /**
  * Clue scroll tiers
  */
-const CLUE_TIERS = {
+export const CLUE_TIERS = {
   easy: {
     id: 'easy',
     name: 'Easy',
@@ -509,7 +502,7 @@ const CLUE_TIERS = {
 /**
  * Get all enabled bosses from a specific category
  */
-const getEnabledBosses = (category = null) => {
+export const getEnabledBosses = (category = null) => {
   const bosses = Object.values(SOLO_BOSSES).filter((boss) => boss.enabled);
   return category ? bosses.filter((boss) => boss.category === category) : bosses;
 };
@@ -517,45 +510,54 @@ const getEnabledBosses = (category = null) => {
 /**
  * Get all enabled raids
  */
-const getEnabledRaids = () => {
+export const getEnabledRaids = () => {
   return Object.values(RAIDS).filter((raid) => raid.enabled);
 };
 
 /**
  * Get all enabled minigames
  */
-const getEnabledMinigames = () => {
+export const getEnabledMinigames = () => {
   return Object.values(MINIGAMES).filter((minigame) => minigame.enabled);
 };
 
 /**
  * Get content by tags
  */
-const getContentByTags = (collection, tags) => {
+export const getContentByTags = (collection, tags) => {
   return Object.values(collection).filter((item) => tags.some((tag) => item.tags?.includes(tag)));
 };
 
 /**
  * Combine bosses and raids for boss_kc objectives
  */
-const getAllBossContent = () => {
+export const getAllBossContent = () => {
   return {
     ...SOLO_BOSSES,
     ...RAIDS,
   };
 };
 
-module.exports = {
-  OBJECTIVE_TYPES,
-  SOLO_BOSSES,
-  RAIDS,
-  SKILLS,
-  MINIGAMES,
-  COLLECTIBLE_ITEMS,
-  CLUE_TIERS,
-  getEnabledBosses,
-  getEnabledRaids,
-  getEnabledMinigames,
-  getContentByTags,
-  getAllBossContent,
-};
+export function parseItemSources(item, contentSelections) {
+  if (!item.sources || item.sources.length === 0) {
+    return true; // No dependencies = always available
+  }
+
+  // Check if ANY source is enabled (OR logic)
+  return item.sources.some((source) => {
+    const [type, id] = source.split(':');
+
+    switch (type) {
+      case 'skills':
+        return contentSelections.skills?.[id] !== false;
+      case 'bosses':
+        return contentSelections.bosses?.[id] !== false;
+      case 'minigames':
+        return contentSelections.minigames?.[id] !== false;
+      case 'raids':
+        return contentSelections.raids?.[id] !== false;
+      default:
+        return true;
+    }
+  });
+}

@@ -8,6 +8,7 @@ const {
   User,
 } = require('../../db/models');
 const { generateMap } = require('../../utils/treasureMapGenerator');
+const { getDefaultContentSelections } = require('../../utils/objectiveBuilder');
 const { createBuff, canApplyBuff, applyBuffToObjective } = require('../../utils/buffHelpers');
 
 function isLocationGroupCompleted(team, locationGroupId, event) {
@@ -283,17 +284,21 @@ const TreasureHuntResolvers = {
           num_of_inns: Math.floor(expectedNodes / (config.node_to_inn_ratio || 5)),
           total_nodes: totalNodes,
         };
-
-        const event = await TreasureEvent.create({
+        const eventData = {
           eventId,
-          ...input,
+          eventName: input.eventName,
+          clanId: input.clanId || null,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          contentSelections: input.contentSelections,
+          discordConfig: input.discordConfig || null,
           eventConfig: config,
           derivedValues,
           creatorId: context.user.id,
           adminIds: [context.user.id],
-
           status: 'DRAFT',
-        });
+        };
+        const event = await TreasureEvent.create(eventData);
 
         return event;
       } catch (error) {
@@ -330,10 +335,12 @@ const TreasureHuntResolvers = {
         });
         console.log(`Deleted ${deletedCount} existing nodes`);
 
+        const contentSelections = event.contentSelections || getDefaultContentSelections();
+
         // Generate the map
         let mapStructure, nodes;
         try {
-          const generated = generateMap(event.eventConfig, event.derivedValues);
+          const generated = generateMap(event.eventConfig, event.derivedValues, contentSelections);
           mapStructure = generated.mapStructure;
           nodes = generated.nodes;
         } catch (genError) {
@@ -342,7 +349,7 @@ const TreasureHuntResolvers = {
           throw new Error(`Map generation failed: ${genError.message}`);
         }
 
-        console.log(`Generated ${nodes.length} nodes`);
+        console.log(`Generated ${nodes?.length} nodes`);
 
         // Validate nodes before creating
         const validatedNodes = nodes.map((node, index) => {

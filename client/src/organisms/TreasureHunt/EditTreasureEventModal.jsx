@@ -21,6 +21,7 @@ import {
 import { useMutation } from '@apollo/client';
 import { UPDATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
+import ContentSelectionModal from './ContentSelectionModal';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000; // 20 billion
@@ -31,6 +32,8 @@ const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
 export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [contentSelections, setContentSelections] = useState(null);
 
   const colors = {
     dark: {
@@ -99,6 +102,8 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
         difficulty: event.eventConfig?.difficulty || 'normal',
       });
+      setContentSelections(event.contentSelections || null);
+      console.log(event);
     }
   }, [event]);
 
@@ -112,6 +117,25 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       showToast(`Error updating event: ${error.message}`, 'error');
     },
   });
+
+  const handleSaveContentSelections = async (selections) => {
+    try {
+      setContentSelections(selections);
+      await updateEvent({
+        variables: {
+          eventId: event.eventId,
+          input: {
+            contentSelections: selections,
+          },
+        },
+      });
+      showToast('Content selection updated!', 'success');
+      setShowContentModal(false);
+    } catch (error) {
+      // onError toast already handled by useMutation, this is fallback
+      console.error('Error updating content selections:', error);
+    }
+  };
 
   // Calculate current total players
   const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
@@ -320,7 +344,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 color={currentColors.textColor}
               />
             </FormControl>
-
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>Status</FormLabel>
               <Select
@@ -334,7 +357,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <option value="ARCHIVED">Archived</option>
               </Select>
             </FormControl>
-
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
                 <FormLabel color={currentColors.textColor}>Start Date</FormLabel>
@@ -363,7 +385,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 />
               </FormControl>
             </SimpleGrid>
-
             {/* Event Duration Display */}
             {formData.startDate && formData.endDate && (
               <Text
@@ -376,7 +397,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 {eventDuration > MAX_EVENT_DURATION_DAYS && ' ⚠️ Exceeds maximum!'}
               </Text>
             )}
-
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>Difficulty Level</FormLabel>
               <Select
@@ -391,7 +411,23 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <option value="sweatlord">Sweatlord (2.0x objectives)</option>
               </Select>
             </FormControl>
+            {isEditable && (
+              <Button
+                variant="solid"
+                colorScheme="green"
+                color="white"
+                onClick={() => setShowContentModal(true)}
+              >
+                Edit Content Selection
+              </Button>
+            )}
 
+            <ContentSelectionModal
+              isOpen={showContentModal}
+              onClose={() => setShowContentModal(false)}
+              currentSelections={contentSelections}
+              onSave={handleSaveContentSelections}
+            />
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>
                 Total Prize Pool (GP) • Max: {(MAX_GP / 1000000000).toFixed(0)}B
@@ -411,7 +447,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 GP
               </Text>
             </FormControl>
-
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
                 <FormLabel color={currentColors.textColor}>
@@ -443,7 +478,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 </NumberInput>
               </FormControl>
             </SimpleGrid>
-
             {/* Total Players Counter */}
             <Text
               fontSize="sm"
@@ -453,7 +487,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               Total Players: {totalPlayers} / {MAX_TOTAL_PLAYERS}
               {totalPlayers > MAX_TOTAL_PLAYERS && ' ⚠️ Exceeds maximum!'}
             </Text>
-
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>
                 Nodes per Inn • Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN}
@@ -468,7 +501,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
             </FormControl>
-
             <Button
               bg={currentColors.purple.base}
               color="white"
