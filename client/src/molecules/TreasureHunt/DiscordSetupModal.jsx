@@ -17,10 +17,9 @@ import {
   ListItem,
   UnorderedList,
   useColorMode,
-  Link,
   Icon,
 } from '@chakra-ui/react';
-import { ExternalLinkIcon, InfoIcon } from '@chakra-ui/icons';
+import { InfoIcon } from '@chakra-ui/icons';
 
 const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
   const { colorMode } = useColorMode();
@@ -125,7 +124,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 </Text>
               </HStack>
               <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.300' : 'gray.600'} mb={2}>
-                Teams can be identified in two ways:
+                Team members are identified <strong>in one way:</strong>
               </Text>
               <UnorderedList
                 spacing={2}
@@ -134,16 +133,12 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               >
                 <ListItem>
                   <Text as="span" fontWeight="bold">
-                    Discord Role
-                  </Text>{' '}
-                  - Create a role for each team and assign it to members. When creating teams on
-                  this website, add the Discord Role ID.
-                </ListItem>
-                <ListItem>
-                  <Text as="span" fontWeight="bold">
                     Member List
                   </Text>{' '}
-                  - Manually add Discord User IDs to each team on this website.
+                  - Add Discord User IDs to each team you create. This will allow them to use
+                  Discord commands to submit their screenshots, check progress and more. They'll
+                  also be able to use the site UI on their team's page to use buffs, buy items from
+                  inns, etc.
                 </ListItem>
               </UnorderedList>
               <Box
@@ -154,7 +149,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               >
                 <Text fontSize="xs" color={colorMode === 'dark' ? 'yellow.200' : 'yellow.900'}>
                   ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode) to copy
-                  Role IDs and User IDs
+                  User IDs
                 </Text>
               </Box>
             </Box>
@@ -208,7 +203,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                     !buffs
                   </Code>
                   <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    View your active buffs
+                    View your available buffs
                   </Text>
                 </Box>
 
@@ -329,7 +324,6 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                     "You are not part of any team":
                   </Text>
                   <UnorderedList spacing={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    <ListItem>Check you have the team's Discord role OR</ListItem>
                     <ListItem>
                       Verify your User ID is in the team's member list on this website
                     </ListItem>
@@ -371,14 +365,14 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
             </Box>
 
             {/* Help Link */}
-            <Box textAlign="center" pt={2}>
+            {/* <Box textAlign="center" pt={2}>
               <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}>
                 Need more help? Check the{' '}
                 <Link color={currentColors.turquoise.base} href="#" isExternal>
                   full documentation <ExternalLinkIcon mx="2px" />
                 </Link>
               </Text>
-            </Box>
+            </Box> */}
           </VStack>
         </ModalBody>
       </ModalContent>

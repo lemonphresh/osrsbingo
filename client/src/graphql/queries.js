@@ -273,6 +273,7 @@ export const GET_TREASURE_EVENT = gql`
       endDate
       eventConfig
       derivedValues
+      contentSelections
       mapStructure
       discordConfig
       creatorId

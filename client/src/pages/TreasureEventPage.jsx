@@ -119,26 +119,26 @@ const TreasureEventView = () => {
   const [nodeToComplete, setNodeToComplete] = useState(null);
   const cancelCompleteRef = React.useRef();
 
-  // NEW: State for show all nodes toggle (defaults to true for admins)
   const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
 
-  const { data: eventData, loading: eventLoading } = useQuery(GET_TREASURE_EVENT, {
+  const {
+    data: eventData,
+    loading: eventLoading,
+    refetch: refetchEvent,
+  } = useQuery(GET_TREASURE_EVENT, {
     variables: { eventId },
   });
 
-  const {
-    data: submissionsData,
-    loading: submissionsLoading,
-    refetch: refetchSubmissions,
-  } = useQuery(GET_ALL_SUBMISSIONS, {
+  const { data: submissionsData, refetch: refetchSubmissions } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
   });
 
   const [generateMap, { loading: generateLoading }] = useMutation(GENERATE_TREASURE_MAP, {
+    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
+    awaitRefetchQueries: true,
     onCompleted: () => {
       showToast('Map generated successfully!', 'success');
       onRegenerateClose();
-      window.location.reload();
     },
     onError: (error) => {
       showToast(`Error generating map: ${error.message}`, 'error');
@@ -219,6 +219,28 @@ const TreasureEventView = () => {
     }
   };
 
+  const formatObjectiveAmount = (node) => {
+    if (!node?.objective) return '—';
+    const q = node.objective.quantity ?? 0;
+
+    switch (node.objective.type) {
+      case 'xp_gain':
+        return `${q.toLocaleString()} XP`;
+      case 'boss_kc':
+        return `${q} KC`;
+      case 'kills':
+        return `${q} kills`;
+      case 'minigame':
+        return `${q} runs`;
+      case 'item_collection':
+        return `${q} collected`;
+      case 'clue_scrolls':
+        return `${q} clues`;
+      default:
+        return `${q}`;
+    }
+  };
+
   const isEventAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
 
@@ -238,7 +260,7 @@ const TreasureEventView = () => {
 
   if (eventLoading) {
     return (
-      <Container maxW="container.xl" py={8}>
+      <Container flex="1" maxW="container.xl" py={8}>
         <Spinner size="xl" />
       </Container>
     );
@@ -252,15 +274,10 @@ const TreasureEventView = () => {
     );
   }
 
-  // Add this to TreasureEventPage.jsx
-  // Place this check after the data is loaded and before rendering the main content
-
-  // Inside the TreasureEventView component, after the event is loaded:
-
   if (eventLoading) {
     return (
       <Container maxW="container.xl" py={8}>
-        <Spinner size="xl" />
+        <Spinner flex="1" size="xl" />
       </Container>
     );
   }
@@ -313,16 +330,16 @@ const TreasureEventView = () => {
             <Box fontSize="6xl">🔒</Box>
 
             <VStack spacing={2}>
-              <Heading size="lg" color={currentColors.textColor}>
+              <Heading size="lg" color={currentColors.white}>
                 Event Not Available...Yet!
               </Heading>
-              <Text color={currentColors.textColor} fontSize="lg">
+              <Text color={currentColors.white} fontSize="lg">
                 This event is currently in draft mode
               </Text>
             </VStack>
 
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
-              <Text fontSize="sm" color={currentColors.textColor}>
+              <Text fontSize="sm" color={currentColors.white}>
                 This Treasure Hunt event is still being set up by the event organizers. It will
                 become visible once the admins publish it.
               </Text>
@@ -526,7 +543,7 @@ const TreasureEventView = () => {
                             Admin Map Controls
                           </Text>
                           <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
-                            Toggle to show/hide locked nodes on the map
+                            Toggle to show/hide locked nodes on the map (for you only)
                           </Text>
                         </VStack>
                       </HStack>
@@ -592,6 +609,11 @@ const TreasureEventView = () => {
               <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
                 Game Rules & Info
               </Tab>
+              {isEventAdmin && event.nodes && event.nodes.length > 0 && (
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  All Nodes
+                </Tab>
+              )}
             </TabList>
 
             <TabPanels>
@@ -1292,26 +1314,29 @@ const TreasureEventView = () => {
                         )}
 
                         <hr />
-                        <HStack gap={4}>
-                          <Button
-                            colorScheme="green"
-                            onClick={handleGenerateMap}
-                            isLoading={generateLoading}
-                          >
-                            {event.nodes && event.nodes.length > 0
-                              ? 'Regenerate Map'
-                              : 'Generate Map'}
-                          </Button>
-                          <Button
-                            leftIcon={<AddIcon />}
-                            bg={currentColors.turquoise.base}
-                            color="white"
-                            _hover={{ opacity: 0.8 }}
-                            onClick={onCreateTeamOpen}
-                          >
-                            Add Team
-                          </Button>
-                        </HStack>
+                        {event.status === 'DRAFT' && (
+                          <HStack gap={4}>
+                            <Button
+                              colorScheme="green"
+                              onClick={handleGenerateMap}
+                              isLoading={generateLoading}
+                            >
+                              {event.nodes && event.nodes.length > 0
+                                ? 'Regenerate Map'
+                                : 'Generate Map'}
+                            </Button>
+                            )
+                            <Button
+                              leftIcon={<AddIcon />}
+                              bg={currentColors.turquoise.base}
+                              color="white"
+                              _hover={{ opacity: 0.8 }}
+                              onClick={onCreateTeamOpen}
+                            >
+                              Add Team
+                            </Button>
+                          </HStack>
+                        )}
 
                         <Card bg={currentColors.purple.base} color="white" borderRadius="md">
                           <CardBody>
@@ -1352,6 +1377,181 @@ const TreasureEventView = () => {
               <TabPanel px={0}>
                 <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
               </TabPanel>
+              {isEventAdmin && (
+                <TabPanel px={0}>
+                  <Box bg={currentColors.cardBg} borderRadius="8px" padding="8px">
+                    <TableContainer width="100%">
+                      <Table size="sm" variant="simple">
+                        <Thead>
+                          <Tr>
+                            <Th color={currentColors.textColor}>ID</Th>
+                            <Th color={currentColors.textColor}>Title</Th>
+                            <Th color={currentColors.textColor}>Type</Th>
+                            <Th color={currentColors.textColor}>Difficulty</Th>
+                            <Th color={currentColors.textColor}>Location / Path</Th>
+                            <Th isNumeric color={currentColors.textColor}>
+                              GP
+                            </Th>
+                            <Th color={currentColors.textColor}>Keys</Th>
+                            <Th color={currentColors.textColor}>Buffs</Th>
+                            <Th color={currentColors.textColor}>Objective</Th>
+                            <Th isNumeric>Amount</Th>
+                            <Th isNumeric color={currentColors.textColor}>
+                              Prereqs
+                            </Th>
+                            <Th isNumeric color={currentColors.textColor}>
+                              Unlocks
+                            </Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {[...(event.nodes || [])]
+                            .sort((a, b) => {
+                              // Sort: START first, then INN, then STANDARD; within type by title asc
+                              const order = { START: 0, INN: 1, STANDARD: 2, TREASURE: 3 };
+                              const ta = order[a.nodeType] ?? 99;
+                              const tb = order[b.nodeType] ?? 99;
+                              if (ta !== tb) return ta - tb;
+                              return (a.title || '').localeCompare(b.title || '');
+                            })
+                            .map((node) => {
+                              const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+                              const diffBadgeScheme =
+                                node.difficultyTier === 5
+                                  ? 'red'
+                                  : node.difficultyTier === 3
+                                  ? 'orange'
+                                  : node.difficultyTier === 1
+                                  ? 'green'
+                                  : 'gray';
+
+                              const gp = node.rewards?.gp || 0;
+                              const keys = node.rewards?.keys || [];
+                              const buffs = node.rewards?.buffs || [];
+
+                              const objective = node.objective ? ` ${node.objective.target}` : '—';
+
+                              return (
+                                <Tr key={node.nodeId}>
+                                  <Td>
+                                    <HStack spacing={2}>
+                                      <Tooltip label="Copy Node ID">
+                                        <IconButton
+                                          aria-label="Copy Node ID"
+                                          icon={<CopyIcon />}
+                                          size="xs"
+                                          variant="ghost"
+                                          onClick={() => navigator.clipboard.writeText(node.nodeId)}
+                                        />
+                                      </Tooltip>
+                                      <Text
+                                        color={currentColors.textColor}
+                                        fontSize="xs"
+                                        fontFamily="mono"
+                                      >
+                                        {node.nodeId}
+                                      </Text>
+                                    </HStack>
+                                  </Td>
+                                  <Td color={currentColors.textColor} maxW="280px" isTruncated>
+                                    {node.title || '—'}
+                                  </Td>
+                                  <Td>
+                                    <Badge
+                                      bg={
+                                        node.nodeType === 'INN'
+                                          ? 'yellow.300'
+                                          : node.nodeType === 'START'
+                                          ? currentColors.purple.base
+                                          : currentColors.turquoise.base
+                                      }
+                                      color="white"
+                                    >
+                                      {node.nodeType}
+                                    </Badge>
+                                  </Td>
+                                  <Td>
+                                    {node.nodeType === 'STANDARD' ? (
+                                      <Badge colorScheme={diffBadgeScheme}>
+                                        {diffMap[node.difficultyTier] || '—'}
+                                      </Badge>
+                                    ) : (
+                                      <Badge colorScheme="gray">—</Badge>
+                                    )}
+                                  </Td>
+                                  <Td color={currentColors.textColor}>
+                                    <VStack align="start" spacing={0}>
+                                      <Text fontSize="sm">{node.mapLocation || '—'}</Text>
+                                    </VStack>
+                                  </Td>
+                                  <Td isNumeric color={currentColors.green.base}>
+                                    {gp ? formatGP(gp) : '0.0M'}
+                                  </Td>
+                                  <Td>
+                                    <HStack spacing={1} wrap="wrap">
+                                      {keys.length > 0 ? (
+                                        keys.map((k, i) => (
+                                          <Badge key={i} colorScheme={k.color}>
+                                            {k.quantity} {k.color}
+                                          </Badge>
+                                        ))
+                                      ) : (
+                                        <Text fontSize="xs" color="gray.500">
+                                          —
+                                        </Text>
+                                      )}
+                                    </HStack>
+                                  </Td>
+                                  <Td>
+                                    {buffs.length > 0 ? (
+                                      <Badge colorScheme="purple">{buffs.length}</Badge>
+                                    ) : (
+                                      <Text fontSize="xs" color="gray.500">
+                                        —
+                                      </Text>
+                                    )}
+                                  </Td>
+                                  <Td color={currentColors.textColor} maxW="320px" isTruncated>
+                                    {objective}
+                                  </Td>
+                                  <Td color={currentColors.textColor} isNumeric>
+                                    {node?.objective?.appliedBuff ? (
+                                      <Tooltip
+                                        hasArrow
+                                        label={`Reduced from ${(
+                                          node.objective.originalQuantity ?? node.objective.quantity
+                                        ).toLocaleString()}`}
+                                      >
+                                        <HStack justify="flex-end" spacing={2}>
+                                          <Text>{formatObjectiveAmount(node)}</Text>
+                                          <Badge colorScheme="blue">
+                                            -
+                                            {(node.objective.appliedBuff.reduction * 100).toFixed(
+                                              0
+                                            )}
+                                            %
+                                          </Badge>
+                                        </HStack>
+                                      </Tooltip>
+                                    ) : (
+                                      formatObjectiveAmount(node)
+                                    )}
+                                  </Td>
+                                  <Td isNumeric color={currentColors.textColor}>
+                                    {node.prerequisites?.length || 0}
+                                  </Td>
+                                  <Td isNumeric color={currentColors.textColor}>
+                                    {node.unlocks?.length || 0}
+                                  </Td>
+                                </Tr>
+                              );
+                            })}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </TabPanel>
+              )}
             </TabPanels>
           </Tabs>
         </VStack>
@@ -1360,16 +1560,17 @@ const TreasureEventView = () => {
         isOpen={isCreateTeamOpen}
         onClose={onCreateTeamClose}
         eventId={eventId}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          await refetchEvent();
+          await refetchSubmissions();
         }}
       />
       <EditEventModal
         isOpen={isEditEventOpen}
         onClose={onEditEventClose}
         event={event}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          await refetchEvent();
         }}
       />
       <EditTeamModal
@@ -1377,8 +1578,9 @@ const TreasureEventView = () => {
         onClose={onEditTeamClose}
         team={selectedTeam}
         eventId={eventId}
-        onSuccess={() => {
-          window.location.reload();
+        onSuccess={async () => {
+          await refetchEvent();
+          await refetchSubmissions();
         }}
       />
       <DiscordSetupModal

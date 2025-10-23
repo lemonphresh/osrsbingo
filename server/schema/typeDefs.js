@@ -265,6 +265,7 @@ const typeDefs = gql`
     endDate: DateTime
     eventConfig: JSON
     derivedValues: JSON
+    contentSelections: JSON
     mapStructure: JSON
     discordConfig: JSON
     teams: [TreasureTeam!]
@@ -282,6 +283,16 @@ const typeDefs = gql`
     ACTIVE
     COMPLETED
     ARCHIVED
+  }
+
+  input CreateTreasureEventInput {
+    eventName: String!
+    clanId: String
+    eventConfig: JSON!
+    contentSelections: JSON
+    startDate: DateTime
+    endDate: DateTime
+    discordConfig: JSON
   }
 
   type TreasureTeam {
@@ -346,20 +357,12 @@ const typeDefs = gql`
     DENIED
   }
 
-  input CreateTreasureEventInput {
-    eventName: String!
-    clanId: String
-    eventConfig: JSON!
-    startDate: DateTime
-    endDate: DateTime
-    discordConfig: JSON
-  }
-
   input UpdateTreasureEventInput {
     eventName: String
     status: TreasureEventStatus
     eventConfig: JSON
     mapStructure: JSON
+    contentSelections: JSON
     startDate: DateTime
     endDate: DateTime
   }

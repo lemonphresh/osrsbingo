@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { buildFormattedObjectives, getDefaultContentSelections } = require('./objectiveBuilder');
 
 // OSRS locations for placing nodes on the map
 const OSRS_LOCATIONS = [
@@ -125,131 +126,6 @@ const DIFFICULTY_MULTIPLIERS = {
   sweatlord: 2.0,
 };
 
-// Mapping from difficultyTier to difficulty name
-const DIFFICULTY_TIER_NAMES = {
-  1: 'easy',
-  3: 'medium',
-  5: 'hard',
-};
-
-// objective types with difficulty ratings
-const OBJECTIVE_TYPES = [
-  {
-    type: 'kills',
-    difficulties: {
-      easy: [
-        { target: 'Hill Giants', quantity: 100 },
-        { target: 'Lesser Demons', quantity: 75 },
-        { target: 'Blue Dragons', quantity: 50 },
-      ],
-      medium: [
-        { target: 'Black Dragons', quantity: 100 },
-        { target: 'Abyssal Demons', quantity: 100 },
-        { target: 'Gargoyles', quantity: 150 },
-      ],
-      hard: [
-        { target: 'Nechryael', quantity: 200 },
-        { target: 'Dark Beasts', quantity: 150 },
-        { target: 'Smoke Devils', quantity: 200 },
-      ],
-    },
-  },
-  {
-    type: 'boss_kc',
-    difficulties: {
-      easy: [
-        { target: 'Giant Mole', quantity: 10 },
-        { target: 'Sarachnis', quantity: 10 },
-        { target: 'Obor', quantity: 5 },
-      ],
-      medium: [
-        { target: 'Vorkath', quantity: 25 },
-        { target: 'Zulrah', quantity: 25 },
-        { target: 'Barrows', quantity: 50 },
-      ],
-      hard: [
-        { target: 'Venenatis', quantity: 25 },
-        { target: 'Callisto', quantity: 25 },
-        { target: 'Corporeal Beast', quantity: 10 },
-      ],
-    },
-  },
-  {
-    type: 'xp_gain',
-    difficulties: {
-      easy: [
-        { target: 'Fishing', quantity: 500000 },
-        { target: 'Woodcutting', quantity: 500000 },
-        { target: 'Mining', quantity: 500000 },
-      ],
-      medium: [
-        { target: 'Runecrafting', quantity: 750000 },
-        { target: 'Agility', quantity: 750000 },
-        { target: 'Thieving', quantity: 750000 },
-      ],
-      hard: [
-        { target: 'Slayer', quantity: 1000000 },
-        { target: 'Herblore', quantity: 1000000 },
-        { target: 'Construction', quantity: 1000000 },
-      ],
-    },
-  },
-  {
-    type: 'minigame',
-    difficulties: {
-      easy: [
-        { target: 'Tempoross', quantity: 10 },
-        { target: 'Guardians of the Rift', quantity: 10 },
-        { target: 'Wintertodt', quantity: 10 },
-      ],
-      medium: [
-        { target: 'Barbarian Assault', quantity: 15 },
-        { target: 'Pest Control', quantity: 25 },
-        { target: 'Castle Wars', quantity: 10 },
-      ],
-      hard: [
-        { target: 'Theatre of Blood', quantity: 5 },
-        { target: 'Chambers of Xeric', quantity: 10 },
-        { target: 'Tombs of Amascut', quantity: 5 },
-      ],
-    },
-  },
-  {
-    type: 'item_collection',
-    difficulties: {
-      easy: [
-        { target: 'Feathers', quantity: 1000 },
-        { target: 'Oak Logs', quantity: 500 },
-        { target: 'Iron Ore', quantity: 500 },
-      ],
-      medium: [
-        { target: 'Runite Ore', quantity: 100 },
-        { target: 'Magic Logs', quantity: 200 },
-        { target: 'Dragon Bones', quantity: 200 },
-      ],
-      hard: [
-        { target: 'Ranarr Seeds', quantity: 100 },
-        { target: 'Death Runes', quantity: 1000 },
-        { target: 'Blood Runes', quantity: 1000 },
-      ],
-    },
-  },
-  {
-    type: 'clue_scrolls',
-    difficulties: {
-      easy: [
-        { target: 'Easy', quantity: 25 },
-        { target: 'Medium', quantity: 15 },
-      ],
-      medium: [
-        { target: 'Hard', quantity: 15 },
-        { target: 'Elite', quantity: 10 },
-      ],
-      hard: [{ target: 'Master', quantity: 5 }],
-    },
-  },
-];
-
 function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
   const { total_nodes } = derivedValues;
 
@@ -325,15 +201,25 @@ function selectRandomNodes(nodes, count) {
 }
 
 // generate a random objective based on difficulty
-function generateObjective(difficulty, difficultyMultiplier = 1.0) {
-  const objectiveType = OBJECTIVE_TYPES[Math.floor(Math.random() * OBJECTIVE_TYPES.length)];
+function generateObjective(difficulty, difficultyMultiplier = 1.0, formattedObjectives) {
+  const availableObjectiveTypes = formattedObjectives.filter(
+    (objType) => objType.difficulties[difficulty] && objType.difficulties[difficulty].length > 0
+  );
+
+  if (availableObjectiveTypes.length === 0) {
+    throw new Error(`No objectives available for difficulty: ${difficulty}`);
+  }
+
+  const objectiveType =
+    availableObjectiveTypes[Math.floor(Math.random() * availableObjectiveTypes.length)];
   const objectives = objectiveType.difficulties[difficulty];
   const objective = objectives[Math.floor(Math.random() * objectives.length)];
 
   return {
     type: objectiveType.type,
-    target: objective.target,
-    quantity: Math.ceil(objective.quantity * difficultyMultiplier),
+    target: objective?.target,
+    quantity: Math.ceil(objective?.quantity * difficultyMultiplier),
+    contentId: objective?.contentId,
   };
 }
 
@@ -384,16 +270,23 @@ function generateInnRewards(innTier, avgGpPerNode, nodeToInnRatio) {
 }
 
 // main map generation function
-function generateMap(eventConfig, derivedValues) {
+function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const { node_to_inn_ratio, difficulty = 'normal' } = eventConfig;
   const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty] || 1.0;
 
   const { avg_gp_per_node, num_of_inns, total_nodes } = derivedValues;
 
+  // NEW: Build formatted objectives
+  const formattedObjectives = buildFormattedObjectives(
+    contentSelections || getDefaultContentSelections()
+  );
+
   console.log('=== MAP GENERATION START ===');
   console.log('Total nodes to generate:', total_nodes);
   console.log('Number of inns:', num_of_inns);
-  console.log('Node to inn ratio:', node_to_inn_ratio);
+  console.log('Using custom content:', !!contentSelections);
+
+  console.log({ contentSelections });
 
   const nodes = [];
   const edges = [];
@@ -446,18 +339,19 @@ function generateMap(eventConfig, derivedValues) {
 
     difficulties.forEach(({ name, tier }) => {
       const nodeId = generateNodeId(nodeCounter.value++);
-      const objective = generateObjective(name, difficultyMultiplier);
+
+      const objective = generateObjective(name, difficultyMultiplier, formattedObjectives);
 
       const node = {
         nodeId,
         nodeType: 'STANDARD',
-        title: `${location.name} - ${objective.target}`,
+        title: `${location.name} - ${objective?.target}`,
         description: `${name.charAt(0).toUpperCase() + name.slice(1)} challenge: ${
-          objective.target
+          objective?.target
         }`,
         coordinates: { x: location.x, y: location.y },
         mapLocation: location.name,
-        locationGroupId: groupId, // NEW: Link nodes in same location
+        locationGroupId: groupId,
         prerequisites: prerequisiteNodeIds,
         unlocks: [],
         paths: [pathInfo.path_id],
@@ -475,7 +369,7 @@ function generateMap(eventConfig, derivedValues) {
       groupNodeIds.push(nodeId);
     });
 
-    // Record location group
+    // Track the group so we can sync unlocks later
     locationGroups.push({
       groupId,
       location: location.name,
@@ -551,8 +445,6 @@ function generateMap(eventConfig, derivedValues) {
   // Generate remaining nodes as location groups
   let pathIndex = 0;
   while (nodeCounter.value < total_nodes) {
-    nodesUntilNextInn -= 3; // Each location group has 3 nodes
-
     // Time for an inn?
     if (nodesUntilNextInn <= 0 && innCounter <= num_of_inns) {
       const nodeId = generateNodeId(nodeCounter.value++);
@@ -614,6 +506,9 @@ function generateMap(eventConfig, derivedValues) {
       nodesUntilNextInn = node_to_inn_ratio;
       continue;
     }
+
+    // Decrement counter for this location group (3 nodes)
+    nodesUntilNextInn -= 3;
 
     // Create location group for current path
     const path = paths[pathIndex % paths.length];
