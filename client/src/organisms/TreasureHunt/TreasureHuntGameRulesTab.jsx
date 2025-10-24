@@ -607,39 +607,6 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
 
               <Box>
                 <Badge colorScheme="purple" mb={1}>
-                  !team
-                </Badge>
-                <Text fontSize="xs" color="orange">
-                  View your team's status, GP pot, keys, and buffs
-                </Text>
-              </Box>
-
-              <Box>
-                <Badge colorScheme="purple" mb={1}>
-                  !buffs
-                </Badge>
-                <Text fontSize="xs" color="orange">
-                  List all your available buffs and their details
-                </Text>
-                <Text fontSize="xs" color={currentColors.white} mt={1}>
-                  Shows reduction %, compatible objective types, and buff IDs
-                </Text>
-              </Box>
-
-              <Box>
-                <Badge colorScheme="purple" mb={1}>
-                  !inns
-                </Badge>
-                <Text fontSize="xs" color="orange">
-                  View completed Inns and available trades
-                </Text>
-                <Text fontSize="xs" color={currentColors.white} mt={1}>
-                  Shows what keys you can trade for GP
-                </Text>
-              </Box>
-
-              <Box>
-                <Badge colorScheme="purple" mb={1}>
                   !leaderboard
                 </Badge>
                 <Text fontSize="xs" color="orange">
@@ -690,49 +657,6 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   </Text>
                 </Box>
               </Box>
-
-              <Box>
-                <Badge colorScheme="blue" mb={1}>
-                  !applybuff
-                </Badge>
-                <Text fontSize="xs" color={currentColors.white} mb={1}>
-                  Apply a buff to reduce a node's objective
-                </Text>
-                <Box p={2} bg="blackAlpha.300" borderRadius="sm" fontSize="xs">
-                  <Text color={currentColors.white} mb={1}>
-                    <Badge size="sm" colorScheme="gray" mr={1}>
-                      !applybuff
-                    </Badge>
-                    <Badge size="sm">node_id</Badge> - See available buffs
-                  </Text>
-                  <Text color={currentColors.white}>
-                    <Badge size="sm" colorScheme="gray" mr={1}>
-                      !applybuff
-                    </Badge>
-                    <Badge size="sm">node_id</Badge> <Badge size="sm">buff_id</Badge> - Apply buff
-                  </Text>
-                </Box>
-              </Box>
-
-              <Box>
-                <Badge colorScheme="yellow" mb={1}>
-                  !trade
-                </Badge>
-                <Text fontSize="xs" color={currentColors.white} mb={1}>
-                  Trade keys at an Inn for GP
-                </Text>
-                <Box p={2} bg="blackAlpha.300" borderRadius="sm" fontSize="xs">
-                  <Text color={currentColors.white}>
-                    <Badge size="sm" colorScheme="gray" mr={1}>
-                      !trade
-                    </Badge>
-                    <Badge size="sm">inn_node_id</Badge> <Badge size="sm">reward_id</Badge>
-                  </Text>
-                  <Text color="orange" mt={1}>
-                    Use !inns first to see available trades
-                  </Text>
-                </Box>
-              </Box>
             </VStack>
           </Box>
         </SimpleGrid>
@@ -776,19 +700,6 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 Wait for admin approval, then continue to newly unlocked nodes!
               </Text>
             </HStack>
-            <HStack>
-              <Badge colorScheme="green">5</Badge>
-              <Text fontSize="sm" color={currentColors.textColor}>
-                <Badge colorScheme="gray" mr={1}>
-                  !inns
-                </Badge>{' '}
-                - Check Inn trades and{' '}
-                <Badge colorScheme="gray" mr={1}>
-                  !trade
-                </Badge>{' '}
-                keys for bonus GP!
-              </Text>
-            </HStack>
           </VStack>
         </Box>
 
@@ -808,26 +719,11 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             </ListItem>
             <ListItem>
               <ListIcon as={CheckCircleIcon} color="purple.400" />
-              Check <Badge size="sm">!buffs</Badge> before starting hard objectives to see if you
-              can reduce requirements
-            </ListItem>
-            <ListItem>
-              <ListIcon as={CheckCircleIcon} color="purple.400" />
-              Use <Badge size="sm">!inns</Badge> to see what key trades are available before
-              spending keys
-            </ListItem>
-            <ListItem>
-              <ListIcon as={CheckCircleIcon} color="purple.400" />
               When submitting, include your RSN and timestamps in your screenshots
             </ListItem>
             <ListItem>
               <ListIcon as={CheckCircleIcon} color="purple.400" />
               You can upload images directly to Discord instead of using external URLs
-            </ListItem>
-            <ListItem>
-              <ListIcon as={CheckCircleIcon} color="purple.400" />
-              Use <Badge size="sm">!team</Badge> regularly to track your progress and see what keys
-              you have
             </ListItem>
           </List>
         </Box>

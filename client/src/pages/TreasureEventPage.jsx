@@ -15,6 +15,7 @@ import {
   Flex,
   Container,
   Heading,
+  Image,
   VStack,
   HStack,
   Text,
@@ -80,6 +81,10 @@ import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
 import { FaCog } from 'react-icons/fa';
+import Gold from '../assets/gold.png';
+import Dossier from '../assets/dossier.png';
+import Clan from '../assets/clan.png';
+import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -503,8 +508,11 @@ const TreasureEventView = () => {
               textAlign="center"
               borderRadius="md"
             >
-              <StatLabel color={currentColors.textColor}>Total Prize Pool</StatLabel>
-              <StatNumber color={currentColors.textColor}>
+              <StatLabel mb={2} color={currentColors.textColor}>
+                Total Prize Pool
+              </StatLabel>
+              <Image h="32px" m="0 auto" src={Gold} />
+              <StatNumber color={currentColors.green.base}>
                 {event.eventConfig ? formatGP(event.eventConfig.prize_pool_total) : 'N/A'}
               </StatNumber>
             </Stat>
@@ -515,7 +523,10 @@ const TreasureEventView = () => {
               textAlign="center"
               borderRadius="md"
             >
-              <StatLabel color={currentColors.textColor}>Total Teams</StatLabel>
+              <StatLabel mb={2} color={currentColors.textColor}>
+                Total Teams
+              </StatLabel>
+              <Image h="32px" m="0 auto" src={Clan} />
               <StatNumber color={currentColors.textColor}>{teams.length}</StatNumber>
             </Stat>
             <Stat
@@ -525,7 +536,10 @@ const TreasureEventView = () => {
               textAlign="center"
               borderRadius="md"
             >
-              <StatLabel color={currentColors.textColor}>Pending Submissions</StatLabel>
+              <StatLabel mb={2} color={currentColors.textColor}>
+                Pending Submissions
+              </StatLabel>
+              <Image h="32px" m="0 auto" src={Dossier} />
               <StatNumber color={currentColors.textColor}>{pendingSubmissions.length}</StatNumber>
             </Stat>
           </StatGroup>
@@ -1379,8 +1393,8 @@ const TreasureEventView = () => {
               </TabPanel>
               {isEventAdmin && (
                 <TabPanel px={0}>
-                  <Box bg={currentColors.cardBg} borderRadius="8px" padding="8px">
-                    <TableContainer width="100%">
+                  <Box bg={currentColors.cardBg} borderRadius="8px" overflow="hidden">
+                    <ScrollableTableContainer width="100%">
                       <Table size="sm" variant="simple">
                         <Thead>
                           <Tr>
@@ -1548,7 +1562,7 @@ const TreasureEventView = () => {
                             })}
                         </Tbody>
                       </Table>
-                    </TableContainer>
+                    </ScrollableTableContainer>
                   </Box>
                 </TabPanel>
               )}

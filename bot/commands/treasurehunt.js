@@ -15,24 +15,18 @@ module.exports = {
         {
           name: '📊 View Commands',
           value:
-            '`!nodes` - View your available nodes\n' +
-            '`!team` - View your team status\n' +
-            '`!buffs` - View your available buffs\n' +
-            '`!inns` - View completed Inns and their trades\n' +
-            '`!leaderboard` - View event leaderboard',
+            '`!nodes` - View your available nodes\n' + '`!leaderboard` - View event leaderboard',
           inline: false,
         },
         {
           name: '⚔️ Action Commands',
-          value:
-            '`!submit <node_id> <proof_url or file upload>` - Submit node completion\n' +
-            '`!applybuff <node_id> [buff_id]` - Apply buff to node\n' +
-            '`!trade <inn_node_id> <reward_id>` - Trade keys at an Inn for GP',
+          value: '`!submit <node_id> <proof_url or file upload>` - Submit node completion\n',
           inline: false,
         },
         {
           name: '🔗 Web Interface',
-          value: 'Visit the web dashboard for detailed maps and admin controls',
+          value:
+            'Visit the web dashboard for detailed maps, to apply buffs, and to buy your rewards from inns.',
           inline: false,
         }
       );

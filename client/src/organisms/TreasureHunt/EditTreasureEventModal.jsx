@@ -107,7 +107,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 2.0,
       });
       setContentSelections(event.contentSelections || null);
-      console.log(event);
     }
   }, [event]);
 
@@ -424,16 +423,18 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 </Tooltip>
               </FormLabel>
               <NumberInput
+                isDisabled={!isEditable}
                 value={formData.estimatedHoursPerPlayerPerDay}
                 onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
                 min={0.5}
-                max={8}
+                max={12}
                 step={0.5}
               >
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
               <HStack spacing={2} mt={2}>
                 <Button
+                  isDisabled={!isEditable}
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 1)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 1 ? 'solid' : 'outline'}
@@ -442,6 +443,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   Casual (1h)
                 </Button>
                 <Button
+                  isDisabled={!isEditable}
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 2)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 2 ? 'solid' : 'outline'}
@@ -450,6 +452,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   Normal (2h)
                 </Button>
                 <Button
+                  isDisabled={!isEditable}
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}

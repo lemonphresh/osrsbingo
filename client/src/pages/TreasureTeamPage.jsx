@@ -25,13 +25,7 @@ import {
   Icon,
   Tooltip,
 } from '@chakra-ui/react';
-import {
-  CheckCircleIcon,
-  CopyIcon,
-  ExternalLinkIcon,
-  LockIcon,
-  QuestionIcon,
-} from '@chakra-ui/icons';
+import { CheckCircleIcon, CopyIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM } from '../graphql/queries';
@@ -52,20 +46,34 @@ import { RedactedText } from '../molecules/TreasureHunt/RedactedTreasureInfo';
 import { useAuth } from '../providers/AuthProvider';
 import { MdHome, MdOutlineArrowBack } from 'react-icons/md';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
-import { FaGem } from 'react-icons/fa';
 import { useCallback } from 'react';
 import TreasureHuntTutorial from '../organisms/TreasureHunt/TreasureHuntTutorial';
+import AvailableInnsModal from '../organisms/TreasureHunt/AvailableInnsModal';
+import BuffApplicationListModal from '../organisms/TreasureHunt/BuffApplicationListModal';
+import TeamAccessOverlay from '../organisms/TreasureHunt/TeamAccessOverlay';
 
 const TreasureTeamView = () => {
   const { colorMode } = useColorMode();
   const { eventId, teamId } = useParams();
   const toast = useToast();
+  const [selectedBuff, setSelectedBuff] = useState(null);
+
   const { isOpen: isNodeOpen, onOpen: onNodeOpen, onClose: onNodeClose } = useDisclosure();
   const { isOpen: isInnOpen, onOpen: onInnOpen, onClose: onInnClose } = useDisclosure();
   const {
     isOpen: isBuffModalOpen,
     onOpen: onBuffModalOpen,
     onClose: onBuffModalClose,
+  } = useDisclosure();
+  const {
+    isOpen: isAvailableInnsOpen,
+    onOpen: onAvailableInnsOpen,
+    onClose: onAvailableInnsClose,
+  } = useDisclosure();
+  const {
+    isOpen: isBuffListOpen,
+    onOpen: onBuffListOpen,
+    onClose: onBuffListClose,
   } = useDisclosure();
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_TREASURE_EVENT, {
@@ -82,7 +90,9 @@ const TreasureTeamView = () => {
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
-  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE);
+  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
+    refetchQueries: ['GetTreasureEvent', 'GetTreasureTeam'],
+  });
 
   const [selectedNode, setSelectedNode] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
@@ -122,6 +132,28 @@ const TreasureTeamView = () => {
   const { user } = useAuth();
   const isAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+
+  const checkTeamAccess = () => {
+    // Admins can view any team
+    if (isAdmin) {
+      return { hasAccess: true, reason: 'authorized' };
+    }
+
+    // Check if user has Discord linked
+    if (!user?.discordUserId) {
+      return { hasAccess: false, reason: 'no_discord' };
+    }
+
+    // Check if user's Discord ID is in the team's member list
+    const isTeamMember = team?.members?.includes(user.discordUserId);
+    if (!isTeamMember) {
+      return { hasAccess: false, reason: 'not_member' };
+    }
+
+    return { hasAccess: true, reason: 'authorized' };
+  };
+
+  const accessCheck = checkTeamAccess();
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -191,6 +223,43 @@ const TreasureTeamView = () => {
       return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
     }).length;
 
+  const getAvailableInnsList = () =>
+    nodes.filter((node) => {
+      const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
+      return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
+    });
+
+  const handleSelectInn = (inn) => {
+    setSelectedNode(inn);
+    onInnOpen();
+  };
+
+  const handleBuffClick = (buff) => {
+    setSelectedBuff(buff);
+    onBuffListOpen();
+  };
+
+  const getNodesForBuff = (buff) => {
+    if (!buff || !team || !nodes) return [];
+
+    return nodes.filter((node) => {
+      const status = getNodeStatus(node);
+      if (status !== 'available') return false;
+
+      if (node.nodeType !== 'STANDARD') return false;
+
+      if (!node.objective) return false;
+
+      if (node.objective.appliedBuff) return false;
+
+      if (!buff.objectiveTypes || buff.objectiveTypes.length === 0) {
+        return true;
+      }
+
+      return buff.objectiveTypes.includes(node.objective.type);
+    });
+  };
+
   const handleNodeClick = useCallback(
     (node) => {
       // Calculate status inside the callback using current team state
@@ -214,6 +283,11 @@ const TreasureTeamView = () => {
     },
     [team, adminMode, onInnOpen, onNodeOpen]
   );
+
+  const handleSelectNodeFromBuffList = (node) => {
+    handleNodeClick(node);
+    onNodeOpen();
+  };
 
   const handleAdminCompleteNode = async (nodeId) => {
     try {
@@ -383,6 +457,14 @@ const TreasureTeamView = () => {
       paddingY={['40px', '56px']}
       marginX="12px"
     >
+      <TeamAccessOverlay
+        show={event.status === 'ACTIVE' && !accessCheck.hasAccess}
+        reason={accessCheck.reason}
+        eventId={eventId}
+        teamName={team?.teamName || 'this team'}
+        userDiscordId={user?.discordUserId}
+        hasLinkedDiscord={!!user?.discordUserId}
+      />
       <Flex
         alignItems="center"
         flexDirection={['column', 'row', 'row']}
@@ -547,7 +629,11 @@ const TreasureTeamView = () => {
                 Available Buffs
               </GemTitle>
             </HStack>
-            <BuffInventory buffs={team.activeBuffs || []} colorMode={colorMode} />
+            <BuffInventory
+              buffs={team.activeBuffs || []}
+              colorMode={colorMode}
+              onBuffClick={handleBuffClick}
+            />{' '}
             {team.activeBuffs && team.activeBuffs.length > 0 && (
               <Text fontSize="xs" color="gray.300" mt={2} textAlign="center">
                 💡 Tip: Apply buffs when viewing available nodes to reduce objective requirements
@@ -585,8 +671,22 @@ const TreasureTeamView = () => {
             />
 
             <VStack mt={4} spacing={4} align="stretch">
-              {availableInns && (
-                <Box p={4} bg="green.100" width="fit-content" borderRadius="md" m="0 auto">
+              {availableInns > 0 && (
+                <Box
+                  p={4}
+                  bg="green.100"
+                  width="fit-content"
+                  borderRadius="md"
+                  m="0 auto"
+                  cursor="pointer"
+                  onClick={onAvailableInnsOpen}
+                  _hover={{
+                    bg: 'green.200',
+                    transform: 'translateY(-2px)',
+                    shadow: 'lg',
+                  }}
+                  transition="all 0.2s"
+                >
                   <HStack>
                     <Icon
                       as={MdHome}
@@ -596,7 +696,10 @@ const TreasureTeamView = () => {
                     />
                     <Text color={currentColors.textColor}>
                       You have {availableInns} available Inn
-                      {availableInns !== 1 ? 's' : ''} to purchase from still.
+                      {availableInns !== 1 ? 's' : ''} to purchase from.
+                    </Text>
+                    <Text color="green.700" fontSize="sm" fontWeight="bold">
+                      Click to view →
                     </Text>
                   </HStack>
                 </Box>
@@ -993,6 +1096,19 @@ const TreasureTeamView = () => {
         node={selectedNode}
         availableBuffs={team.activeBuffs || []}
         onApplyBuff={handleApplyBuff}
+      />
+      <AvailableInnsModal
+        isOpen={isAvailableInnsOpen}
+        onClose={onAvailableInnsClose}
+        availableInns={getAvailableInnsList()}
+        onSelectInn={handleSelectInn}
+      />
+      <BuffApplicationListModal
+        isOpen={isBuffListOpen}
+        onClose={onBuffListClose}
+        selectedBuff={selectedBuff}
+        availableNodes={selectedBuff ? getNodesForBuff(selectedBuff) : []}
+        onSelectNode={handleSelectNodeFromBuffList}
       />
     </Flex>
   );
