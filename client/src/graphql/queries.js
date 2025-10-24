@@ -298,6 +298,8 @@ export const GET_TREASURE_EVENT = gql`
         availableNodes
         submissions {
           submissionId
+          submittedByUsername
+          channelId
           nodeId
           submittedBy
           proofUrl
@@ -396,6 +398,8 @@ export const GET_PENDING_SUBMISSIONS = gql`
       teamId
       nodeId
       submittedBy
+      submittedByUsername
+      channelId
       proofUrl
       status
       reviewedBy
@@ -428,6 +432,8 @@ export const GET_ALL_SUBMISSIONS = gql`
       teamId
       nodeId
       submittedBy
+      submittedByUsername
+      channelId
       proofUrl
       status
       reviewedBy

@@ -70,7 +70,7 @@ const NavBar = () => {
               </Box>
               <VStack>
                 <Text fontSize={['sm', 'md']} fontWeight="semibold">
-                  Hey gang, resident dev Lemon here! <br />
+                  Hey gang, it's your resident dev Lemon here! <br />
                   I've been hard at work on some exciting new features for OSRS Bingo Hub, like the{' '}
                   <strong>new Treasure Hunt game type!</strong>
                   <br />
@@ -82,7 +82,7 @@ const NavBar = () => {
                   w="100%"
                   textAlign="left"
                 >
-                  <Link to="/treasure-hunt">Give it a shot!</Link>
+                  <Link to="/treasure-hunt">Give it a shot! ❤️</Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
                   Also I take{' '}

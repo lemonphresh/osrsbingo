@@ -11,7 +11,6 @@ import {
   Text,
   Badge,
   Box,
-  Icon,
   useColorMode,
 } from '@chakra-ui/react';
 import { QuestionIcon } from '@chakra-ui/icons';

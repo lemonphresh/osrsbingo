@@ -21,6 +21,12 @@ module.exports = (sequelize) => {
       teamId: DataTypes.STRING,
       nodeId: DataTypes.STRING,
       submittedBy: DataTypes.STRING, // Discord ID
+      submittedByUsername: DataTypes.STRING, // Discord username
+      channelId: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Discord channel ID where submission was made',
+      },
       proofUrl: DataTypes.STRING,
       status: {
         type: DataTypes.ENUM('pending_review', 'approved', 'denied'),

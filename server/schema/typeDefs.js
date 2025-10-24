@@ -340,6 +340,9 @@ const typeDefs = gql`
 
   type TreasureSubmission {
     submissionId: ID!
+    submittedByUsername: String
+    channelId: String
+    eventId: ID!
     teamId: ID!
     nodeId: ID!
     submittedBy: String!
@@ -438,12 +441,15 @@ const typeDefs = gql`
       nodeId: ID!
       proofUrl: String!
       submittedBy: String!
+      submittedByUsername: String
+      channelId: String
     ): TreasureSubmission!
 
     reviewSubmission(
       submissionId: ID!
       approved: Boolean!
       reviewerId: String!
+      denialReason: String
     ): TreasureSubmission!
 
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!

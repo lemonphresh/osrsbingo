@@ -127,7 +127,7 @@ module.exports = {
         }
       }
 
-      // Submit completion
+      // FIXED: Remove the ! marks to make fields optional
       const mutation = `
         mutation SubmitNodeCompletion(
           $eventId: ID!
@@ -135,6 +135,8 @@ module.exports = {
           $nodeId: ID!
           $proofUrl: String!
           $submittedBy: String!
+          $submittedByUsername: String
+          $channelId: String
         ) {
           submitNodeCompletion(
             eventId: $eventId
@@ -142,6 +144,8 @@ module.exports = {
             nodeId: $nodeId
             proofUrl: $proofUrl
             submittedBy: $submittedBy
+            submittedByUsername: $submittedByUsername
+            channelId: $channelId
           ) {
             submissionId
             status
@@ -150,13 +154,24 @@ module.exports = {
         }
       `;
 
-      const data = await graphqlRequest2(mutation, {
+      // Add logging to verify the data
+      const submissionData = {
         eventId,
         teamId: team.teamId,
         nodeId,
         proofUrl,
-        submittedBy: message.author.username + '-' + message.author.id,
+        submittedBy: message.author.id,
+        submittedByUsername: message.author.username,
+        channelId: message.channel.id,
+      };
+
+      console.log('Submitting with data:', {
+        submittedBy: submissionData.submittedBy,
+        submittedByUsername: submissionData.submittedByUsername,
+        channelId: submissionData.channelId,
       });
+
+      const data = await graphqlRequest2(mutation, submissionData);
 
       const submission = data.submitNodeCompletion;
 

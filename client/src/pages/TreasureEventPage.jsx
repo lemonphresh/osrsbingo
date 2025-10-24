@@ -85,6 +85,7 @@ import Gold from '../assets/gold.png';
 import Dossier from '../assets/dossier.png';
 import Clan from '../assets/clan.png';
 import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
+import DenialReasonModal from '../organisms/TreasureHunt/DenialReasonModal';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -119,6 +120,13 @@ const TreasureEventView = () => {
     onOpen: onDiscordSetupOpen,
     onClose: onDiscordSetupClose,
   } = useDisclosure();
+  const {
+    isOpen: isDenialModalOpen,
+    onOpen: onDenialModalOpen,
+    onClose: onDenialModalClose,
+  } = useDisclosure();
+
+  const [submissionToDeny, setSubmissionToDeny] = useState(null);
 
   const cancelRef = React.useRef();
   const [nodeToComplete, setNodeToComplete] = useState(null);
@@ -210,18 +218,23 @@ const TreasureEventView = () => {
     return (gp / 1000000).toFixed(1) + 'M';
   };
 
-  const handleReviewSubmission = async (submissionId, approved) => {
+  const handleReviewSubmission = async (submissionId, approved, denialReason = null) => {
     try {
       await reviewSubmission({
         variables: {
           submissionId,
           approved,
-          reviewerId: user?.id || 'admin',
+          reviewerId: user?.username || 'admin',
+          denialReason, // NEW!
         },
       });
     } catch (error) {
       console.error('Error reviewing submission:', error);
     }
+  };
+
+  const handleDenyWithReason = async (submissionId, denialReason) => {
+    await handleReviewSubmission(submissionId, false, denialReason);
   };
 
   const formatObjectiveAmount = (node) => {
@@ -1005,7 +1018,8 @@ const TreasureEventView = () => {
                                                     fontWeight="bold"
                                                     color={currentColors.textColor}
                                                   >
-                                                    Submitted by {submission.submittedBy}
+                                                    Submitted by {submission.submittedByUsername}{' '}
+                                                    (ID: {submission.submittedBy})
                                                   </Text>
                                                   {submission.status !== 'PENDING_REVIEW' && (
                                                     <Badge
@@ -1068,12 +1082,10 @@ const TreasureEventView = () => {
                                                       color="white"
                                                       size="sm"
                                                       _hover={{ opacity: 0.8 }}
-                                                      onClick={() =>
-                                                        handleReviewSubmission(
-                                                          submission.submissionId,
-                                                          false
-                                                        )
-                                                      }
+                                                      onClick={() => {
+                                                        setSubmissionToDeny(submission);
+                                                        onDenialModalOpen();
+                                                      }}
                                                     />
                                                   </Tooltip>
                                                   <Tooltip label="Approve Submission">
@@ -1601,6 +1613,13 @@ const TreasureEventView = () => {
         isOpen={isDiscordSetupOpen}
         onClose={onDiscordSetupClose}
         eventId={eventId}
+      />
+      <DenialReasonModal
+        isOpen={isDenialModalOpen}
+        onClose={onDenialModalClose}
+        onDeny={handleDenyWithReason}
+        submissionId={submissionToDeny?.submissionId}
+        submittedBy={submissionToDeny?.submittedByUsername || submissionToDeny?.submittedBy}
       />
       <AlertDialog
         isOpen={isRegenerateOpen}

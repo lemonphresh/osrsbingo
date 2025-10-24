@@ -547,8 +547,18 @@ export const SUBMIT_NODE_COMPLETION = gql`
 `;
 
 export const REVIEW_SUBMISSION = gql`
-  mutation ReviewSubmission($submissionId: ID!, $approved: Boolean!, $reviewerId: String!) {
-    reviewSubmission(submissionId: $submissionId, approved: $approved, reviewerId: $reviewerId) {
+  mutation ReviewSubmission(
+    $submissionId: ID!
+    $approved: Boolean!
+    $reviewerId: String!
+    $denialReason: String
+  ) {
+    reviewSubmission(
+      submissionId: $submissionId
+      approved: $approved
+      reviewerId: $reviewerId
+      denialReason: $denialReason
+    ) {
       submissionId
       status
       reviewedBy

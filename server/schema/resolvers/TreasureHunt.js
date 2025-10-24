@@ -10,6 +10,11 @@ const {
 const { generateMap } = require('../../utils/treasureMapGenerator');
 const { getDefaultContentSelections } = require('../../utils/objectiveBuilder');
 const { createBuff, canApplyBuff, applyBuffToObjective } = require('../../utils/buffHelpers');
+const {
+  sendSubmissionApprovalNotification,
+  sendSubmissionDenialNotification,
+  sendNodeCompletionNotification,
+} = require('../../utils/discordNotifications');
 
 function isLocationGroupCompleted(team, locationGroupId, event) {
   if (!event.mapStructure?.locationGroups) return false;
@@ -711,7 +716,10 @@ const TreasureHuntResolvers = {
       return updatedEvent;
     },
 
-    submitNodeCompletion: async (_, { eventId, teamId, nodeId, proofUrl, submittedBy }) => {
+    submitNodeCompletion: async (
+      _,
+      { eventId, teamId, nodeId, proofUrl, submittedBy, submittedByUsername, channelId }
+    ) => {
       try {
         const event = await TreasureEvent.findByPk(eventId, {
           include: [{ model: TreasureNode, as: 'nodes' }],
@@ -755,6 +763,8 @@ const TreasureHuntResolvers = {
           submittedBy,
           proofUrl,
           status: 'PENDING_REVIEW',
+          channelId: channelId || null,
+          submittedByUsername,
         });
 
         return submission;
@@ -764,13 +774,21 @@ const TreasureHuntResolvers = {
       }
     },
 
-    reviewSubmission: async (_, { submissionId, approved, reviewerId }) => {
+    reviewSubmission: async (_, { submissionId, approved, reviewerId, denialReason }, context) => {
       try {
         const submission = await TreasureSubmission.findByPk(submissionId, {
           include: [{ model: TreasureTeam, as: 'team' }],
         });
 
         if (!submission) throw new Error('Submission not found');
+
+        // Get event and node details for the notification
+        const event = await TreasureEvent.findOne({
+          where: { eventId: submission.team.eventId },
+          include: [{ model: TreasureNode, as: 'nodes' }],
+        });
+
+        const node = event?.nodes?.find((n) => n.nodeId === submission.nodeId);
 
         const status = approved ? 'APPROVED' : 'DENIED';
         await submission.update({
@@ -784,8 +802,43 @@ const TreasureHuntResolvers = {
             `Node completion is handled separately by admin.`
         );
 
-        // That's it! Just update the submission status.
-        // The admin will use adminCompleteNode when the cumulative goal is met.
+        // Send Discord notification if channel ID exists
+        if (
+          submission.channelId &&
+          submission.team?.completedNodes?.includes(submission.nodeId) === false
+        ) {
+          console.log(`Sending Discord notification to channel ${submission.channelId}`);
+
+          const notificationData = {
+            channelId: submission.channelId,
+            submissionId: submission.submissionId,
+            submittedBy: submission.submittedBy,
+            submittedByUsername: submission.submittedByUsername,
+            nodeName: node?.title || 'Unknown Node',
+            teamName: submission.team?.teamName || 'Unknown Team',
+            reviewerName: context.user?.displayName || context.user?.username || reviewerId,
+            proofUrl: submission.proofUrl,
+          };
+
+          try {
+            if (approved) {
+              await sendSubmissionApprovalNotification(notificationData);
+            } else {
+              await sendSubmissionDenialNotification({
+                ...notificationData,
+                denialReason:
+                  denialReason ||
+                  'No reason provided. Please contact an admin for more details if you have questions.',
+              });
+            }
+            console.log(`✅ Discord notification sent successfully`);
+          } catch (notifError) {
+            console.error('Failed to send Discord notification:', notifError.message);
+            // Don't fail the whole mutation if notification fails
+          }
+        } else {
+          console.warn('No channel ID found for submission, skipping Discord notification');
+        }
 
         return submission;
       } catch (error) {
@@ -794,16 +847,10 @@ const TreasureHuntResolvers = {
       }
     },
 
-    // Complete replacement for adminCompleteNode in TreasureHunt.js
-    // This version includes comprehensive logging and validation
-
     adminCompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 
       try {
-        console.log(`\n=== ADMIN COMPLETE NODE ===`);
-        console.log(`Event: ${eventId}, Team: ${teamId}, Node: ${nodeId}`);
-
         const event = await TreasureEvent.findByPk(eventId, {
           include: [{ model: TreasureNode, as: 'nodes' }],
         });
@@ -815,25 +862,12 @@ const TreasureHuntResolvers = {
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
 
-        console.log(`Team before update:`, {
-          completedNodes: team.completedNodes,
-          availableNodes: team.availableNodes,
-          currentPot: team.currentPot,
-          keysHeld: team.keysHeld,
-          activeBuffs: team.activeBuffs?.length || 0,
-        });
-
         // Get the node details
         const node = await TreasureNode.findByPk(nodeId);
         if (!node || node.eventId !== eventId) throw new Error('Node not found');
 
-        console.log(`Node details:`, {
-          nodeId: node.nodeId,
-          title: node.title,
-          locationGroupId: node.locationGroupId,
-          difficultyTier: node.difficultyTier,
-          rewards: node.rewards,
-          unlocks: node.unlocks,
+        const submissions = await TreasureSubmission.findAll({
+          where: { nodeId, teamId },
         });
 
         // Check if already completed
@@ -892,7 +926,6 @@ const TreasureHuntResolvers = {
         // Add GP rewards
         const rewardGP = BigInt(node.rewards?.gp || 0);
         const currentPot = BigInt(team.currentPot || 0) + rewardGP;
-        console.log(`GP: ${team.currentPot} + ${rewardGP} = ${currentPot}`);
 
         // Add key rewards
         const keysHeld = JSON.parse(JSON.stringify(team.keysHeld || [])); // Deep clone
@@ -902,15 +935,11 @@ const TreasureHuntResolvers = {
           Array.isArray(node.rewards.keys) &&
           node.rewards.keys.length > 0
         ) {
-          console.log(`Processing ${node.rewards.keys.length} key reward(s):`);
-
           node.rewards.keys.forEach((key) => {
             if (!key || !key.color || typeof key.quantity !== 'number') {
               console.warn(`Invalid key structure:`, key);
               return;
             }
-
-            console.log(`  - Adding ${key.quantity}x ${key.color} key`);
 
             const existingKeyIndex = keysHeld.findIndex((k) => k.color === key.color);
             if (existingKeyIndex >= 0) {
@@ -927,8 +956,6 @@ const TreasureHuntResolvers = {
           console.log(`No key rewards for this node`);
         }
 
-        console.log(`Keys after processing:`, keysHeld);
-
         // Add buff rewards
         const activeBuffs = [...(team.activeBuffs || [])];
 
@@ -937,17 +964,10 @@ const TreasureHuntResolvers = {
           Array.isArray(node.rewards.buffs) &&
           node.rewards.buffs.length > 0
         ) {
-          console.log(`Processing ${node.rewards.buffs.length} buff reward(s):`);
-
           node.rewards.buffs.forEach((buffReward) => {
             try {
               const newBuff = createBuff(buffReward.buffType);
               activeBuffs.push(newBuff);
-              console.log(
-                `  - Added buff: ${newBuff.buffName} (${(newBuff.reduction * 100).toFixed(
-                  0
-                )}% reduction)`
-              );
             } catch (error) {
               console.warn(`Failed to create buff ${buffReward.buffType}:`, error.message);
             }
@@ -955,8 +975,6 @@ const TreasureHuntResolvers = {
         } else {
           console.log(`No buff rewards for this node`);
         }
-
-        console.log(`Buffs after processing: ${activeBuffs.length} total`);
 
         // Update the team with all rewards
         await team.update({
@@ -970,15 +988,23 @@ const TreasureHuntResolvers = {
         // Reload the team to verify the update
         await team.reload();
 
-        console.log(`Team after update:`, {
-          completedNodes: team.completedNodes,
-          availableNodes: team.availableNodes,
-          currentPot: team.currentPot,
-          keysHeld: team.keysHeld,
-          activeBuffs: team.activeBuffs?.length || 0,
-        });
+        if (submissions.length > 0) {
+          const channelIds = submissions.map((s) => s.channelId).filter(Boolean);
+          const submitters = submissions.map((s) => ({
+            discordId: s.submittedBy,
+            username: s.submittedByUsername || 'Unknown',
+          }));
 
-        console.log(`=== COMPLETE ===\n`);
+          await sendNodeCompletionNotification({
+            channelIds,
+            submitters,
+            nodeName: node.title,
+            teamName: team.teamName,
+            gpReward: node.rewards?.gp || 0,
+            keyRewards: node.rewards?.keys || [],
+            buffRewards: node.rewards?.buffs || [],
+          });
+        }
 
         return team;
       } catch (error) {
