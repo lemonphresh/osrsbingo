@@ -278,7 +278,15 @@ const TreasureEventView = () => {
 
   if (eventLoading) {
     return (
-      <Container flex="1" maxW="container.xl" py={8}>
+      <Container
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flex="1"
+        maxW="container.xl"
+        w="100%"
+        py={8}
+      >
         <Spinner size="xl" />
       </Container>
     );
@@ -294,7 +302,16 @@ const TreasureEventView = () => {
 
   if (eventLoading) {
     return (
-      <Container maxW="container.xl" py={8}>
+      <Container
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flex="1"
+        maxW="container.xl"
+        w="100%"
+        py={8}
+      >
+        {' '}
         <Spinner flex="1" size="xl" />
       </Container>
     );

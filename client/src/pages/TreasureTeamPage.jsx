@@ -9,10 +9,6 @@ import {
   Card,
   CardBody,
   Badge,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatGroup,
   useColorMode,
   Spinner,
   Container,
@@ -51,6 +47,7 @@ import TreasureHuntTutorial from '../organisms/TreasureHunt/TreasureHuntTutorial
 import AvailableInnsModal from '../organisms/TreasureHunt/AvailableInnsModal';
 import BuffApplicationListModal from '../organisms/TreasureHunt/BuffApplicationListModal';
 import TeamAccessOverlay from '../organisms/TreasureHunt/TeamAccessOverlay';
+import EnhancedTeamStats from '../organisms/TreasureHunt/EnhancedTeamStats';
 
 const TreasureTeamView = () => {
   const { colorMode } = useColorMode();
@@ -145,7 +142,9 @@ const TreasureTeamView = () => {
     }
 
     // Check if user's Discord ID is in the team's member list
-    const isTeamMember = team?.members?.includes(user.discordUserId);
+    const isTeamMember =
+      user?.discordUserId &&
+      team?.members?.some((m) => m.toString() === user.discordUserId.toString());
     if (!isTeamMember) {
       return { hasAccess: false, reason: 'not_member' };
     }
@@ -373,8 +372,16 @@ const TreasureTeamView = () => {
 
   if (eventLoading || teamLoading) {
     return (
-      <Container maxW="container.xl" py={8}>
-        <Spinner size="xl" />
+      <Container
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+        flex="1"
+        maxW="container.xl"
+        w="100%"
+        py={8}
+      >
+        <Spinner m="0 auto" size="xl" />
       </Container>
     );
   }
@@ -552,76 +559,21 @@ const TreasureTeamView = () => {
             </Box>
           )}
 
-          <StatGroup
-            alignSelf="center"
-            alignItems="center"
-            maxWidth="740px"
-            w="100%"
-            justifyContent={['center', 'center', 'space-between']}
-            flexDirection={['column', 'column', 'row']}
-            gap={4}
-          >
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              textAlign="center"
-              borderRadius="md"
-            >
-              <StatLabel color={currentColors.textColor}>Current Pot</StatLabel>
-              <StatNumber color={currentColors.green.base}>{formatGP(team.currentPot)}</StatNumber>
-            </Stat>
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              textAlign="center"
-              borderRadius="md"
-            >
-              <StatLabel color={currentColors.textColor}>Nodes Completed</StatLabel>
-              <StatNumber color={currentColors.textColor}>
-                {team.completedNodes?.length || 0}
-              </StatNumber>
-            </Stat>
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              h="100%"
-              textAlign="center"
-              borderRadius="md"
-            >
-              <StatLabel color={currentColors.textColor}>Keys Held</StatLabel>
-              <StatNumber>
-                <HStack alignItems="center" h="100%" spacing={2} justifyContent="center">
-                  {(!team.keysHeld || team.keysHeld.length === 0) && (
-                    <Text
-                      mt={2}
-                      w="100%"
-                      textAlign="center"
-                      fontSize="md"
-                      color={currentColors.textColor}
-                    >
-                      N/A
-                    </Text>
-                  )}
-                  {team.keysHeld?.map((key) => (
-                    <Badge key={key.color} colorScheme={key.color} fontSize="md">
-                      {key.color}: {key.quantity}
-                    </Badge>
-                  ))}
-                </HStack>
-              </StatNumber>
-            </Stat>
-          </StatGroup>
-          <hr />
-
           {team.completedNodes?.length === 0 && !adminMode && (
             <>
-              <TreasureHuntTutorial colorMode={colorMode} compact={false} />
+              <TreasureHuntTutorial colorMode={colorMode} compact={false} eventId={eventId} />
               <hr />
             </>
           )}
+
+          <EnhancedTeamStats
+            team={team}
+            allTeams={[]}
+            totalNodes={nodes.length}
+            availableInns={availableInns}
+            onVisitInn={isAvailableInnsOpen}
+          />
+          <hr />
 
           <Box>
             <HStack w="100%" justify="center" mb={4}>

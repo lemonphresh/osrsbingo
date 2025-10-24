@@ -59,9 +59,9 @@ export default function InnModal({
 
   if (!node || node.nodeType !== 'INN' || !team) return null;
 
-  // NEW: Check if current user is a member of this team
   const isTeamMember =
-    currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
+    currentUser?.discordUserId &&
+    team?.members?.some((m) => m.toString() === currentUser.discordUserId.toString());
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
