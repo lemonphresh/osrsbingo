@@ -16,7 +16,7 @@ const nodes = require('./commands/nodes');
 const submit = require('./commands/submit');
 const leaderboard = require('./commands/leaderboard');
 
-const commands = [treasurehunt, nodes, team, submit, buffs, applybuff, leaderboard, inns, trade];
+const commands = [treasurehunt, nodes, submit, leaderboard];
 
 client.on('ready', () => {
   console.log(`✅ Discord bot logged in as ${client.user.tag}`);
