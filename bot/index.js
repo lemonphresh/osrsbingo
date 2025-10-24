@@ -13,13 +13,8 @@ const client = new Client({
 // Load commands
 const treasurehunt = require('./commands/treasurehunt');
 const nodes = require('./commands/nodes');
-const team = require('./commands/team');
 const submit = require('./commands/submit');
-const buffs = require('./commands/buffs');
-const applybuff = require('./commands/applybuff');
 const leaderboard = require('./commands/leaderboard');
-const inns = require('./commands/inns');
-const trade = require('./commands/trade');
 
 const commands = [treasurehunt, nodes, team, submit, buffs, applybuff, leaderboard, inns, trade];
 
