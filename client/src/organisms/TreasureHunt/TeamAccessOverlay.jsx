@@ -5,7 +5,6 @@ import {
   Heading,
   Text,
   Button,
-  HStack,
   Icon,
   useColorMode,
   Alert,
