@@ -416,13 +416,13 @@ const MultiTeamTreasureMap = ({
           const toPos = convertCoordinates(targetNode.coordinates.x, targetNode.coordinates.y);
 
           let weight = 2;
-          let opacity = 0.4;
+          let opacity = 0.3;
           let dashArray = '8, 8';
 
           // If either node is unlocked by any team, make path more visible
           if (fromAccess === 'unlocked' && toAccess === 'unlocked' && !shouldShowAllNodes) {
             weight = 4;
-            opacity = 0.7;
+            opacity = 0.8;
             dashArray = null;
           } else if (
             (fromAccess === 'unlocked' || toAccess === 'unlocked') &&
@@ -558,7 +558,7 @@ const MultiTeamTreasureMap = ({
             <Polyline
               key={`edge-${idx}`}
               positions={[edge.from, edge.to]}
-              color="#718096"
+              color="tomato"
               weight={edge.weight}
               opacity={edge.opacity}
               dashArray={edge.dashArray}

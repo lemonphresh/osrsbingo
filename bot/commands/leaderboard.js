@@ -1,4 +1,3 @@
-// bot/commands/leaderboard.js
 const { EmbedBuilder } = require('discord.js');
 const { graphqlRequest, getEventIdFromChannel } = require('../utils/graphql');
 

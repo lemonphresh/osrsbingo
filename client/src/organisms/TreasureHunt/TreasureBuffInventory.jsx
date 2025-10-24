@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, VStack, HStack, Text, Badge, Tooltip, Icon } from '@chakra-ui/react';
 import { InfoIcon } from '@chakra-ui/icons';
 
-const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
+const BuffInventory = ({ buffs = [], colorMode = 'dark', onBuffClick }) => {
   const colors = {
     dark: { cardBg: '#2D3748', textColor: '#F7FAFC' },
     light: { cardBg: 'white', textColor: '#171923' },
@@ -52,6 +52,14 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
           borderWidth={2}
           borderColor={`${getBuffColor(buff.reduction)}.400`}
           position="relative"
+          cursor="pointer"
+          onClick={() => onBuffClick?.(buff)}
+          _hover={{
+            transform: 'translateY(-2px)',
+            shadow: 'lg',
+            borderColor: `${getBuffColor(buff.reduction)}.500`,
+          }}
+          transition="all 0.2s"
         >
           <HStack justify="space-between" align="start">
             <HStack spacing={2} flex={1}>
@@ -73,6 +81,9 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark' }) => {
                     {buff.usesRemaining} uses remaining
                   </Badge>
                 )}
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  Click to view available nodes
+                </Text>
               </VStack>
             </HStack>
             <Tooltip label={`Can be used on: ${buff.objectiveTypes.join(', ')}`} placement="top">

@@ -134,7 +134,7 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                     }
                      ${
                        appliedBuff
-                         ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: white; font-size: 8px;">💪</div>'
+                         ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: white; font-size: 12px;">✨</div>'
                          : ''
                      }
                    
@@ -160,9 +160,8 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
 const TreasureMapVisualization = ({
   nodes = [],
   team,
-  event, // NEW: Need event to check location groups
+  event,
   mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
-  onNodeClick,
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
@@ -174,7 +173,8 @@ const TreasureMapVisualization = ({
     turquoise: '#28AFB0',
     red: '#FF4B5C',
     orange: '#FF914D',
-    gray: '#718096',
+    gray: '#9ca8baff',
+    pink: '#ff9dffff',
   };
 
   const mapWidth = 7168;
@@ -230,17 +230,17 @@ const TreasureMapVisualization = ({
     if (!team) return 'locked';
     if (team.completedNodes?.includes(node.nodeId)) return 'completed';
 
-    // NEW: Check if another node at this location has been completed
     if (isLocationGroupCompleted(node, event)) return 'unavailable';
 
     if (team.availableNodes?.includes(node.nodeId)) return 'available';
     return 'locked';
   };
 
-  const getNodeColor = (status, nodeType) => {
+  const getNodeColor = (status, nodeType, appliedBuff) => {
     if (nodeType === 'START') return colors.purple;
     if (nodeType === 'INN') return colors.yellow;
     if (status === 'completed') return colors.green;
+    if (status === 'available' && appliedBuff) return colors.pink;
     if (status === 'available') return colors.orange;
     if (status === 'unavailable') return colors.red; // Node at completed location
     return colors.gray;
@@ -280,7 +280,7 @@ const TreasureMapVisualization = ({
     if (fromStatus === 'completed' && toStatus === 'completed') return colors.green;
     if (fromStatus === 'completed' && toStatus === 'available') return colors.turquoise;
     if (fromStatus === 'available' || toStatus === 'available') return colors.turquoise;
-    return colors.gray;
+    return 'tomato';
   };
 
   const getPathStyle = (fromNode, toNode) => {
@@ -376,7 +376,7 @@ const TreasureMapVisualization = ({
             return null;
           }
 
-          const color = getNodeColor(status, node.nodeType);
+          const color = getNodeColor(status, node.nodeType, !!node.objective?.appliedBuff);
           const position = getNodePosition(node, nodes);
           return (
             <Marker

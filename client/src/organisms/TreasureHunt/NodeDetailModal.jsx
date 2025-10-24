@@ -30,7 +30,7 @@ export default function NodeDetailModal({
   onAdminUncomplete,
   onApplyBuff,
   appliedBuff,
-  currentUser, // NEW: Add current user prop
+  currentUser,
 }) {
   const { colorMode } = useColorMode();
   if (!node) return null;
@@ -59,7 +59,6 @@ export default function NodeDetailModal({
 
   if (!node) return null;
 
-  // NEW: Check if current user is a member of this team
   const isTeamMember =
     currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
 
@@ -119,6 +118,16 @@ export default function NodeDetailModal({
     isTeamMember &&
     !appliedBuff &&
     team?.activeBuffs?.some((buff) => buff.objectiveTypes?.includes(node.objective?.type));
+
+  console.log({
+    isAvailable,
+    isTeamMember,
+    appliedBuff,
+    teamActiveBuffs: team?.activeBuffs,
+    nodeObjectiveType: node.objective?.type,
+    canApplyBuffs,
+    nodeStatus: node.status,
+  });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
@@ -270,7 +279,6 @@ export default function NodeDetailModal({
               </Box>
             )}
 
-            {/* NEW: Apply Buff Button for Team Members */}
             {canApplyBuffs && (
               <Button
                 colorScheme="purple"
