@@ -15,11 +15,28 @@ import {
   Text,
   IconButton,
   HStack,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  Box,
+  Icon,
+  AccordionIcon,
+  AccordionPanel,
+  OrderedList,
+  ListItem,
+  Image,
+  Tooltip,
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon, CheckIcon, DeleteIcon, InfoIcon, WarningIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { CREATE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
+import DiscordStep1 from '../../assets/discordstep1.png';
+import DiscordStep2 from '../../assets/discordstep2.png';
+
+function isValidDiscordId(id) {
+  return /^\d{17,19}$/.test(id);
+}
 
 export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess }) {
   const { colorMode } = useColorMode();
@@ -132,14 +149,41 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
             <FormControl>
               <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
               <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mb={2}>
-                Add Discord user IDs for team members. (Right click their name in Discord and select
-                "Copy ID"; Make sure Developer Mode is enabled in Discord settings.)
+                Add Discord user IDs for team members.
                 <br />
                 <br /> Note: This is how team members will be able to use Discord commands to submit
                 their screenshots, check progress and more, and to use the site UI to use buffs, buy
                 items from inns, etc. (Make sure they have an OSRS Bingo Hub account, are logged in
                 and have linked their Discord!)
               </Text>
+              <Accordion allowToggle mb={3}>
+                <AccordionItem border="none" bg="blue.50">
+                  <AccordionButton>
+                    <Box flex="1" textAlign="left">
+                      <HStack>
+                        <Icon as={InfoIcon} color="blue.500" />
+                        <Text fontSize="sm" fontWeight="bold">
+                          How do I find Discord User IDs? 👈 Click here
+                        </Text>
+                      </HStack>
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                  <AccordionPanel pb={4}>
+                    <OrderedList spacing={2} fontSize="sm">
+                      <ListItem>
+                        Open Discord Settings → Advanced → Enable "Developer Mode"
+                        <Image src={DiscordStep1} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>
+                        Right-click the user's name → "Copy User ID"
+                        <Image src={DiscordStep2} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>Paste the 18-digit ID below (example: 123456789012345678)</ListItem>
+                    </OrderedList>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
               <VStack spacing={2} align="stretch">
                 {formData.members.map((member, index) => (
                   <HStack key={index}>
@@ -149,6 +193,14 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
                       onChange={(e) => handleMemberChange(index, e.target.value)}
                       color={currentColors.textColor}
                     />
+                    {member && isValidDiscordId(member) && (
+                      <Icon as={CheckIcon} color="green.400" />
+                    )}
+                    {member && !isValidDiscordId(member) && (
+                      <Tooltip label="Discord IDs are 17-19 digits">
+                        <Icon as={WarningIcon} color="red.400" />
+                      </Tooltip>
+                    )}
                     {formData.members.length > 1 && (
                       <IconButton
                         icon={<DeleteIcon />}

@@ -23,7 +23,14 @@ import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
 
 const EventCreationGuide = ({ colorMode, currentColors }) => {
   return (
-    <Card bg="rgba(255,255,255,0.9)" borderWidth={2} borderColor={currentColors.purple.base}>
+    <Card
+      maxW="800px"
+      w="100%"
+      m="0 auto"
+      bg="rgba(255,255,255,0.9)"
+      borderWidth={2}
+      borderColor={currentColors.purple.base}
+    >
       <CardBody>
         <VStack spacing={6} align="stretch">
           <HStack>

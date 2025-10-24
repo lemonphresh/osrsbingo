@@ -15,10 +15,11 @@ import {
   Divider,
   useColorMode,
   Image,
+  useDisclosure,
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
-import { StartNodeTutorial } from './TreasureHuntTutorial';
+import ProgressiveStartTutorial from './ProgressiveStartTutorial';
 
 export default function NodeDetailModal({
   isOpen,
@@ -33,7 +34,10 @@ export default function NodeDetailModal({
   currentUser,
 }) {
   const { colorMode } = useColorMode();
+  const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
+
   if (!node) return null;
+
   const colors = {
     dark: {
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
@@ -53,11 +57,14 @@ export default function NodeDetailModal({
 
   const isStartNode = node?.nodeType === 'START';
   const isFirstNode = team?.completedNodes?.length === 0;
-  const showStartTutorial = isStartNode && isFirstNode && !adminMode;
+  const shouldShowTutorial = isStartNode && isFirstNode && !adminMode && showTutorial;
+
+  // Check if user has seen tutorial before
+  const hasSeenTutorial =
+    typeof window !== 'undefined' &&
+    localStorage.getItem('treasureHunt_startTutorial_completed') === 'true';
 
   const currentColors = colors[colorMode];
-
-  if (!node) return null;
 
   const isTeamMember =
     currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
@@ -108,41 +115,61 @@ export default function NodeDetailModal({
   const isAvailable = node.status === 'available';
   const isLocked = node.status === 'locked';
 
-  // Only show buff rewards if node is available or completed (not locked)
   const showBuffRewards =
     (!isLocked && node.rewards?.buffs && node.rewards.buffs?.length > 0) || adminMode;
 
-  // NEW: Check if user can apply buffs
   const canApplyBuffs =
     isAvailable &&
     isTeamMember &&
     !appliedBuff &&
     team?.activeBuffs?.some((buff) => buff.objectiveTypes?.includes(node.objective?.type));
 
-  console.log({
-    isAvailable,
-    isTeamMember,
-    appliedBuff,
-    teamActiveBuffs: team?.activeBuffs,
-    nodeObjectiveType: node.objective?.type,
-    canApplyBuffs,
-    nodeStatus: node.status,
-  });
+  const handleCloseTutorial = () => {
+    closeTutorial();
+  };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
       <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg}>
-        {showStartTutorial && (
-          <>
-            <StartNodeTutorial colorMode={colorMode} nodeId={node.nodeId} />
-            <Divider />
-          </>
-        )}
-        <ModalHeader color={currentColors.textColor}>{node.title}</ModalHeader>
+      <ModalContent bg={currentColors.cardBg} maxH="90vh">
+        <ModalHeader color={currentColors.textColor}>
+          <HStack>
+            <Text>{node.title}</Text>
+            {isStartNode && (
+              <Badge colorScheme="purple" fontSize="sm">
+                START
+              </Badge>
+            )}
+          </HStack>
+        </ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
+            {/* Show Progressive Tutorial for START node on first visit */}
+            {shouldShowTutorial && !hasSeenTutorial && (
+              <>
+                <ProgressiveStartTutorial
+                  nodeId={node.nodeId}
+                  colorMode={colorMode}
+                  onComplete={handleCloseTutorial}
+                />
+                <Divider />
+              </>
+            )}
+
+            {/* Show compact reminder if they've seen it before */}
+            {isStartNode && isFirstNode && hasSeenTutorial && (
+              <>
+                <ProgressiveStartTutorial
+                  nodeId={node.nodeId}
+                  colorMode={colorMode}
+                  compact={true}
+                  onComplete={() => {}}
+                />
+                <Divider />
+              </>
+            )}
+
             <Text
               w="100%"
               p={2}
@@ -256,13 +283,13 @@ export default function NodeDetailModal({
                       </VStack>
                     </Box>
                   )}
-                </VStack>{' '}
+                </VStack>
               </HStack>
             </Box>
 
             {isCompleted && !adminMode && (
               <Badge alignSelf="center" colorScheme="green" fontSize="lg" px={4} py={2}>
-                Completed ✓
+                Completed ✔
               </Badge>
             )}
 
@@ -272,8 +299,7 @@ export default function NodeDetailModal({
                   Buff Applied:
                 </Text>
                 <Badge colorScheme="blue" fontSize="xs" mt={1}>
-                  ✨ {appliedBuff.buffName} (-
-                  {(appliedBuff.reduction * 100).toFixed(0)}
+                  ✨ {appliedBuff.buffName} (-{(appliedBuff.reduction * 100).toFixed(0)}
                   %)
                 </Badge>
               </Box>
@@ -291,25 +317,6 @@ export default function NodeDetailModal({
               >
                 Apply Buff to Reduce Requirement
               </Button>
-            )}
-
-            {isAvailable && !adminMode && (
-              <Text
-                fontSize="sm"
-                color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                textAlign="center"
-                sx={{
-                  code: { backgroundColor: '#e7ffeaff' },
-                }}
-              >
-                <Divider mb={2} />
-                Submit completion via Discord bot:
-                <br />
-                <code>!submit {node.nodeId} link_to_screenshot_img</code> <br />
-                or
-                <br />
-                <code>!submit {node.nodeId} (attach image file)</code>
-              </Text>
             )}
 
             {adminMode && (

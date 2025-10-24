@@ -182,28 +182,10 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
 
                 <Box p={2} bg={currentColors.codeBg} borderRadius="md">
                   <Code bg="transparent" color={currentColors.turquoise.base}>
-                    !team
-                  </Code>
-                  <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    View your team's status (pot, completed nodes, keys, buffs)
-                  </Text>
-                </Box>
-
-                <Box p={2} bg={currentColors.codeBg} borderRadius="md">
-                  <Code bg="transparent" color={currentColors.turquoise.base}>
                     !nodes
                   </Code>
                   <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
                     View your available nodes
-                  </Text>
-                </Box>
-
-                <Box p={2} bg={currentColors.codeBg} borderRadius="md">
-                  <Code bg="transparent" color={currentColors.turquoise.base}>
-                    !buffs
-                  </Code>
-                  <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    View your available buffs
                   </Text>
                 </Box>
 
@@ -230,23 +212,6 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                       Option 2: !submit evt_abc_node_042 (attach image file)
                     </Code>
                   </VStack>
-                </Box>
-
-                <Box p={2} bg={currentColors.codeBg} borderRadius="md">
-                  <Code bg="transparent" color={currentColors.orange.base}>
-                    !applybuff &lt;node_id&gt; [buff_id]
-                  </Code>
-                  <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    Apply a buff to reduce node requirements (omit buff_id to see options)
-                  </Text>
-                  <Code
-                    fontSize="xs"
-                    mt={1}
-                    bg="transparent"
-                    color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
-                  >
-                    Example: !applybuff evt_abc_node_042 buff_12345
-                  </Code>
                 </Box>
 
                 <Box p={2} bg={currentColors.codeBg} borderRadius="md">
