@@ -86,6 +86,7 @@ import Dossier from '../assets/dossier.png';
 import Clan from '../assets/clan.png';
 import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
 import DenialReasonModal from '../organisms/TreasureHunt/DenialReasonModal';
+import CompleteNodeDialog from '../organisms/TreasureHunt/CompleteNodeDialog';
 
 const TreasureEventView = () => {
   const { colorMode } = useColorMode();
@@ -125,12 +126,17 @@ const TreasureEventView = () => {
     onOpen: onDenialModalOpen,
     onClose: onDenialModalClose,
   } = useDisclosure();
+  const {
+    isOpen: isCompleteDialogOpen,
+    onOpen: onOpenCompleteDialog,
+    onClose: onCloseCompleteDialog,
+  } = useDisclosure();
+  const [nodeToComplete, setNodeToComplete] = useState(null);
+  const [completeLoading, setCompleteLoading] = useState(false);
 
   const [submissionToDeny, setSubmissionToDeny] = useState(null);
 
   const cancelRef = React.useRef();
-  const [nodeToComplete, setNodeToComplete] = useState(null);
-  const cancelCompleteRef = React.useRef();
 
   const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
 
@@ -183,6 +189,33 @@ const TreasureEventView = () => {
       console.error('Error completing node:', error);
     },
   });
+
+  const handleCompleteNode = async (congratsMessage) => {
+    if (!nodeToComplete) return;
+
+    setCompleteLoading(true);
+    try {
+      await adminCompleteNode({
+        variables: {
+          eventId: eventId,
+          teamId: nodeToComplete.teamId,
+          nodeId: nodeToComplete.nodeId,
+          congratsMessage: congratsMessage, // Optional message from dialog
+        },
+      });
+
+      showToast('Node completed successfully!', 'success');
+
+      refetchSubmissions();
+
+      onCloseCompleteDialog();
+      setNodeToComplete(null);
+    } catch (error) {
+      showToast(`Failed to complete node: ${error.message}`, 'error');
+    } finally {
+      setCompleteLoading(false);
+    }
+  };
 
   const toast = useToast();
 
@@ -1016,8 +1049,10 @@ const TreasureEventView = () => {
                                                 nodeId,
                                                 teamId,
                                                 nodeTitle,
-                                                teamName: submissions[0].team?.teamName,
+                                                teamName:
+                                                  submissions[0].team?.teamName || team?.teamName,
                                               });
+                                              onOpenCompleteDialog();
                                             }}
                                           >
                                             Complete Node
@@ -1748,6 +1783,13 @@ const TreasureEventView = () => {
         submissionId={submissionToDeny?.submissionId}
         submittedBy={submissionToDeny?.submittedByUsername || submissionToDeny?.submittedBy}
       />
+      <CompleteNodeDialog
+        isOpen={isCompleteDialogOpen}
+        nodeToComplete={nodeToComplete}
+        onClose={onCloseCompleteDialog}
+        onComplete={handleCompleteNode}
+        isLoading={completeLoading}
+      />
       <AlertDialog
         isOpen={isRegenerateOpen}
         leastDestructiveRef={cancelRef}
@@ -1780,117 +1822,6 @@ const TreasureEventView = () => {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-
-      {nodeToComplete && (
-        <AlertDialog
-          isOpen={!!nodeToComplete}
-          leastDestructiveRef={cancelCompleteRef}
-          onClose={() => setNodeToComplete(null)}
-        >
-          <AlertDialogOverlay>
-            <AlertDialogContent bg={currentColors.cardBg}>
-              <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
-                Complete Node
-              </AlertDialogHeader>
-
-              <AlertDialogBody color={currentColors.textColor}>
-                <VStack align="stretch" spacing={3}>
-                  <Text>
-                    Are you sure you want to complete{' '}
-                    <Text as="span" fontWeight="bold">
-                      "{nodeToComplete.nodeTitle}"
-                    </Text>{' '}
-                    for{' '}
-                    <Text as="span" fontWeight="bold">
-                      {nodeToComplete.teamName}
-                    </Text>
-                    ?
-                  </Text>
-
-                  <Box
-                    p={3}
-                    bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
-                    borderRadius="md"
-                    borderWidth={1}
-                    borderColor={currentColors.green.base}
-                  >
-                    <Text fontSize="sm" fontWeight="bold" mb={2}>
-                      This will:
-                    </Text>
-                    <VStack align="start" spacing={1} fontSize="sm">
-                      <HStack>
-                        <Text>✅</Text>
-                        <Text>Mark the node as completed</Text>
-                      </HStack>
-                      <HStack>
-                        <Text>💰</Text>
-                        <Text>Grant GP rewards to team pot</Text>
-                      </HStack>
-                      <HStack>
-                        <Text>🔑</Text>
-                        <Text>Add any key rewards to inventory</Text>
-                      </HStack>
-                      <HStack>
-                        <Text>✨</Text>
-                        <Text>Grant any buff rewards</Text>
-                      </HStack>
-                      <HStack>
-                        <Text>🔓</Text>
-                        <Text>Unlock connected nodes</Text>
-                      </HStack>
-                    </VStack>
-                  </Box>
-
-                  <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    You can undo this later using Admin Mode if needed.
-                  </Text>
-                </VStack>
-              </AlertDialogBody>
-
-              <AlertDialogFooter>
-                <Button ref={cancelCompleteRef} onClick={() => setNodeToComplete(null)}>
-                  Cancel
-                </Button>
-                <Button
-                  colorScheme="green"
-                  onClick={async () => {
-                    try {
-                      await adminCompleteNode({
-                        variables: {
-                          eventId,
-                          teamId: nodeToComplete.teamId,
-                          nodeId: nodeToComplete.nodeId,
-                        },
-                      });
-                      await refetchSubmissions();
-                      toast({
-                        title: 'Node completed!',
-                        description: `${nodeToComplete.nodeTitle} has been marked as complete`,
-                        status: 'success',
-                        duration: 3000,
-                        isClosable: true,
-                      });
-                      setNodeToComplete(null);
-                    } catch (error) {
-                      toast({
-                        title: 'Error',
-                        description: error.message,
-                        status: 'error',
-                        duration: 5000,
-                        isClosable: true,
-                      });
-                    }
-                  }}
-                  ml={3}
-                  isLoading={completing}
-                >
-                  Complete Node
-                </Button>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialogOverlay>
-        </AlertDialog>
-      )}
     </Flex>
   );
 };
