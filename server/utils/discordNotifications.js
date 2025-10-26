@@ -222,6 +222,7 @@ async function sendNodeCompletionNotification({
   gpReward,
   keyRewards,
   buffRewards,
+  congratsMessage,
 }) {
   const results = [];
 
@@ -267,7 +268,8 @@ async function sendNodeCompletionNotification({
       },
     ],
     footer: {
-      text: '🏆 Great work! Check the web dashboard to see your updated progress.',
+      text:
+        congratsMessage || '🏆 Great work! Check the web dashboard to see your updated progress.',
     },
     timestamp: new Date().toISOString(),
   };

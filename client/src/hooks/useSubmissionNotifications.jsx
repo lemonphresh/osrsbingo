@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useToast } from '@chakra-ui/react';
+import { useSubscription } from '@apollo/client';
+import {
+  SUBMISSION_ADDED_SUB,
+  SUBMISSION_REVIEWED_SUB,
+  NODE_COMPLETED_SUB,
+} from '../graphql/mutations';
 
 export const useSubmissionNotifications = (
   submissions = [],
   isAdmin = false,
   eventName = '',
   refetchSubmissions = null,
-  pollingInterval = 30000
+  pollingInterval = 10000,
+  eventId,
+  allPendingIncompleteSubmissionsCount = 0
 ) => {
   const isBrowser = typeof window !== 'undefined';
   const notificationsApiSupported = isBrowser && 'Notification' in window;
@@ -21,51 +29,137 @@ export const useSubmissionNotifications = (
   const isInitialized = useRef(false);
   const pollingIntervalRef = useRef(null);
   const audioContextRef = useRef(null);
+  const originalFaviconRef = useRef(null);
   const toast = useToast();
 
   const isSupported = notificationsApiSupported;
 
-  // ===== Sound helper function =====
+  // ===== Favicon Badge Functions =====
+  const drawFaviconBadge = useCallback(
+    (count) => {
+      if (!isBrowser || count === 0) {
+        // Restore original favicon
+        if (originalFaviconRef.current) {
+          const link =
+            document.querySelector("link[rel*='icon']") || document.createElement('link');
+          link.type = 'image/x-icon';
+          link.rel = 'shortcut icon';
+          link.href = originalFaviconRef.current;
+          document.getElementsByTagName('head')[0].appendChild(link);
+        }
+        return;
+      }
+
+      try {
+        if (!originalFaviconRef.current) {
+          const existingLink = document.querySelector("link[rel*='icon']");
+          originalFaviconRef.current = existingLink?.href || '/favicon.ico';
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 32;
+        canvas.height = 32;
+        const ctx = canvas.getContext('2d');
+
+        const img = document.createElement('img');
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, 32, 32);
+
+          const badgeSize = 18;
+          const x = canvas.width - badgeSize / 2 - 2;
+          const y = badgeSize / 2 + 2;
+
+          ctx.fillStyle = '#FF4B5C';
+          ctx.strokeStyle = '#FFFFFF';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, badgeSize / 2, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const displayCount = count > 99 ? '99+' : count.toString();
+          ctx.fillText(displayCount, x, y);
+
+          const link =
+            document.querySelector("link[rel*='icon']") || document.createElement('link');
+          link.type = 'image/x-icon';
+          link.rel = 'shortcut icon';
+          link.href = canvas.toDataURL();
+          document.getElementsByTagName('head')[0].appendChild(link);
+        };
+
+        img.onerror = () => {
+          console.warn('Could not load favicon for badge');
+        };
+
+        img.src = originalFaviconRef.current;
+      } catch (error) {
+        console.error('Error drawing favicon badge:', error);
+      }
+    },
+    [isBrowser]
+  );
+
+  // Update favicon/title on pending count changes
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const pendingToShow =
+      typeof allPendingIncompleteSubmissionsCount === 'number'
+        ? allPendingIncompleteSubmissionsCount
+        : submissions.filter((s) => s.status === 'PENDING_REVIEW').length;
+    drawFaviconBadge(allPendingIncompleteSubmissionsCount);
+
+    document.title =
+      pendingToShow > 0
+        ? `(${pendingToShow}) ${eventName} - Treasure Hunt`
+        : `${eventName} - Treasure Hunt`;
+
+    return () => {
+      if (originalFaviconRef.current) {
+        const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+        link.type = 'image/x-icon';
+        link.rel = 'shortcut icon';
+        link.href = originalFaviconRef.current;
+        document.getElementsByTagName('head')[0].appendChild(link);
+      }
+    };
+  }, [submissions, isAdmin, eventName, drawFaviconBadge, allPendingIncompleteSubmissionsCount]);
+
+  // ===== Sound helper =====
   const playNotificationSound = useCallback(() => {
-    if (!soundEnabled) {
-      return;
-    }
+    if (!soundEnabled) return;
 
     try {
-      // Create or reuse AudioContext
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
-
       const audioContext = audioContextRef.current;
 
-      // Create a pleasant two-tone notification sound
       const playTone = (frequency, duration, startTime) => {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-
         oscillator.frequency.value = frequency;
         oscillator.type = 'sine';
-
-        // Smooth envelope
         gainNode.gain.setValueAtTime(0, startTime);
         gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
         gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-
         oscillator.start(startTime);
         oscillator.stop(startTime + duration);
       };
 
-      // Play two-tone "ding-dong" sound
       const now = audioContext.currentTime;
-      playTone(800, 0.1, now); // Higher pitch
-      playTone(600, 0.15, now + 0.1); // Lower pitch
+      playTone(800, 0.1, now);
+      playTone(600, 0.15, now + 0.1);
     } catch (error) {
       console.error('❌ Error playing sound:', error);
-      // If Web Audio fails, show a warning
       toast({
         title: 'Sound unavailable',
         description: 'Could not play notification sound',
@@ -76,18 +170,15 @@ export const useSubmissionNotifications = (
     }
   }, [soundEnabled, toast]);
 
-  // ===== Sound control functions =====
+  // ===== Sound controls =====
   const enableSound = useCallback(() => {
-    // Test the sound immediately (requires user gesture)
     setSoundEnabled(true);
     localStorage.setItem('treasureHunt_sound_enabled', 'true');
 
-    // Play a test sound to verify it works
     try {
       if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
-
       const audioContext = audioContextRef.current;
       const playTone = (frequency, duration, startTime) => {
         const oscillator = audioContext.createOscillator();
@@ -102,7 +193,6 @@ export const useSubmissionNotifications = (
         oscillator.start(startTime);
         oscillator.stop(startTime + duration);
       };
-
       const now = audioContext.currentTime;
       playTone(800, 0.1, now);
       playTone(600, 0.15, now + 0.1);
@@ -129,17 +219,12 @@ export const useSubmissionNotifications = (
   const disableSound = useCallback(() => {
     setSoundEnabled(false);
     localStorage.setItem('treasureHunt_sound_enabled', 'false');
-    toast({
-      title: 'Sound disabled',
-      status: 'info',
-      duration: 3000,
-    });
+    toast({ title: 'Sound disabled', status: 'info', duration: 3000 });
   }, [toast]);
 
-  // Load saved prefs (notifications + sound)
+  // Load saved prefs
   useEffect(() => {
     if (!isBrowser) return;
-
     const savedNotif = localStorage.getItem('treasureHunt_notifications_enabled');
     const savedSound = localStorage.getItem('treasureHunt_sound_enabled');
 
@@ -150,18 +235,13 @@ export const useSubmissionNotifications = (
     ) {
       setNotificationsEnabled(true);
     }
-
-    if (savedSound === 'true') {
-      setSoundEnabled(true);
-    }
+    if (savedSound === 'true') setSoundEnabled(true);
   }, [isBrowser, notificationsApiSupported]);
 
-  // Initialize previous submissions on first load
+  // Seed "seen" IDs
   useEffect(() => {
     if (submissions.length > 0 && !isInitialized.current) {
-      submissions.forEach((sub) => {
-        previousSubmissionIds.current.add(sub.submissionId);
-      });
+      submissions.forEach((sub) => previousSubmissionIds.current.add(sub.submissionId));
       isInitialized.current = true;
     }
   }, [submissions]);
@@ -185,7 +265,6 @@ export const useSubmissionNotifications = (
       if (perm === 'granted') {
         setNotificationsEnabled(true);
         localStorage.setItem('treasureHunt_notifications_enabled', 'true');
-
         toast({
           title: 'Notifications Enabled',
           description: "You'll be notified of new submissions",
@@ -193,21 +272,17 @@ export const useSubmissionNotifications = (
           duration: 3000,
         });
 
-        // Send test notification
         const testNotif = new Notification('Treasure Hunt Notifications Enabled', {
           body: `You'll receive alerts for new submissions in ${eventName}`,
           icon: '/favicon.ico',
           tag: 'test-notification',
         });
-
         testNotif.onclick = () => {
           window.focus();
           testNotif.close();
         };
-
         return true;
       } else {
-        console.warn('⚠️ Permission denied');
         toast({
           title: 'Permission Denied',
           description: 'Please enable notifications in your browser settings',
@@ -222,9 +297,7 @@ export const useSubmissionNotifications = (
     }
   };
 
-  // Disable notifications
   const disableNotifications = useCallback(() => {
-    console.log('🔕 Disabling notifications');
     setNotificationsEnabled(false);
     localStorage.setItem('treasureHunt_notifications_enabled', 'false');
     toast({
@@ -235,9 +308,33 @@ export const useSubmissionNotifications = (
     });
   }, [toast]);
 
-  // Detect new submissions and notify + sound
+  const showOsNotification = useCallback((title, body, tag = undefined) => {
+    try {
+      const n = new Notification(title, {
+        body,
+        icon: '/favicon.ico',
+        tag,
+        requireInteraction: false,
+        silent: true,
+      });
+      n.onclick = () => {
+        window.focus();
+        n.close();
+      };
+    } catch (e) {
+      console.error('❌ Notification error:', e);
+    }
+  }, []);
+
+  // List-diff path (works with polling too)
   useEffect(() => {
-    if (!isAdmin || !notificationsEnabled || permission !== 'granted' || !isInitialized.current) {
+    if (
+      !isAdmin ||
+      !notificationsEnabled ||
+      permission !== 'granted' ||
+      !isInitialized.current ||
+      allPendingIncompleteSubmissionsCount === 0
+    ) {
       return;
     }
 
@@ -246,51 +343,31 @@ export const useSubmissionNotifications = (
     );
 
     if (newSubmissions.length === 0) {
-      console.log('✅ No new submissions to notify about');
       return;
     }
-
-    // Track them so we don't re-alert
     newSubmissions.forEach((s) => previousSubmissionIds.current.add(s.submissionId));
 
-    // Only notify for pending
     const newPendingSubmissions = newSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
-
     if (newPendingSubmissions.length === 0) return;
 
-    // Play sound ONCE for all new submissions
-    playNotificationSound();
+    if (notificationsEnabled && permission === 'granted') {
+      playNotificationSound();
+      const byNode = newPendingSubmissions.reduce((acc, sub) => {
+        if (!acc[sub.nodeId]) acc[sub.nodeId] = [];
+        acc[sub.nodeId].push(sub);
+        return acc;
+      }, {});
+      Object.entries(byNode).forEach(([nodeId, subs]) => {
+        const teamName = subs[0].team?.teamName || 'Unknown Team';
+        const count = subs.length;
+        showOsNotification(
+          `New Submission${count > 1 ? 's' : ''} - ${eventName}`,
+          `${teamName} submitted ${count} completion${count > 1 ? 's' : ''} for review`,
+          `submission-${nodeId}`
+        );
+      });
+    }
 
-    // Group by node and notify
-    const byNode = newPendingSubmissions.reduce((acc, sub) => {
-      if (!acc[sub.nodeId]) acc[sub.nodeId] = [];
-      acc[sub.nodeId].push(sub);
-      return acc;
-    }, {});
-
-    Object.entries(byNode).forEach(([nodeId, subs]) => {
-      const teamName = subs[0].team?.teamName || 'Unknown Team';
-      const count = subs.length;
-
-      try {
-        const n = new Notification(`New Submission${count > 1 ? 's' : ''} - ${eventName}`, {
-          body: `${teamName} submitted ${count} completion${count > 1 ? 's' : ''} for review`,
-          icon: '/favicon.ico',
-          tag: `submission-${nodeId}`,
-          requireInteraction: false,
-          silent: true, // We play our own sound
-        });
-
-        n.onclick = () => {
-          window.focus();
-          n.close();
-        };
-      } catch (e) {
-        console.error('❌ Notification error:', e);
-      }
-    });
-
-    // In-app toast
     toast({
       title: `New Submission${newPendingSubmissions.length > 1 ? 's' : ''}`,
       description: `${newPendingSubmissions.length} new submission${
@@ -308,15 +385,89 @@ export const useSubmissionNotifications = (
     eventName,
     toast,
     playNotificationSound,
+    showOsNotification,
+    allPendingIncompleteSubmissionsCount,
   ]);
 
-  // ===== Polling effect =====
+  // ===== Subscriptions (admins only; decoupled from OS permission) =====
+  const canSubscribe = isAdmin && !!eventId;
+
+  useSubscription(SUBMISSION_ADDED_SUB, {
+    variables: { eventId },
+    skip: !canSubscribe,
+    onData: ({ data }) => {
+      const sub = data.data?.submissionAdded;
+      if (!sub) return;
+
+      if (sub.submissionId) previousSubmissionIds.current.add(sub.submissionId);
+
+      // Optional OS notif/sound
+      if (notificationsEnabled && permission === 'granted' && sub.status === 'PENDING_REVIEW') {
+        playNotificationSound();
+        showOsNotification(
+          `New Submission - ${eventName}`,
+          `${sub.team?.teamName || 'A team'} submitted for node ${sub.nodeId}`,
+          `submission-${sub.nodeId}`
+        );
+      }
+
+      // Always refresh UI data
+      refetchSubmissions?.();
+    },
+  });
+
+  useSubscription(SUBMISSION_REVIEWED_SUB, {
+    variables: { eventId },
+    skip: !canSubscribe,
+    onData: ({ data }) => {
+      const sub = data.data?.submissionReviewed;
+      if (!sub) return;
+
+      if (notificationsEnabled && permission === 'granted') {
+        const status =
+          sub.status === 'APPROVED'
+            ? 'approved ✅'
+            : sub.status === 'DENIED'
+            ? 'denied ❌'
+            : sub.status;
+        playNotificationSound();
+        showOsNotification(
+          `Submission ${status} - ${eventName}`,
+          `${sub.team?.teamName || 'Team'}: node ${sub.nodeId}`,
+          `submission-reviewed-${sub.submissionId || sub.nodeId}`
+        );
+      }
+
+      refetchSubmissions?.();
+    },
+  });
+
+  useSubscription(NODE_COMPLETED_SUB, {
+    variables: { eventId },
+    skip: !canSubscribe,
+    onData: ({ data }) => {
+      const ev = data.data?.nodeCompleted;
+      if (!ev) return;
+
+      if (notificationsEnabled && permission === 'granted') {
+        playNotificationSound();
+        showOsNotification(
+          `Node completed - ${eventName}`,
+          `${ev.teamName || 'Team'} completed ${ev.nodeName || ev.nodeId}`,
+          `node-completed-${ev.nodeId}`
+        );
+      }
+
+      refetchSubmissions?.();
+    },
+  });
+
+  // ===== Polling fallback =====
   useEffect(() => {
-    const canPoll =
-      notificationsEnabled &&
-      isAdmin &&
-      permission === 'granted' &&
-      typeof refetchSubmissions === 'function';
+    const canPoll = isAdmin && typeof refetchSubmissions === 'function';
+
+    // If we have subscriptions, we can back off to a slower poll.
+    const effectiveInterval = canSubscribe ? Math.max(30000, pollingInterval) : pollingInterval;
 
     if (!canPoll) {
       if (pollingIntervalRef.current) {
@@ -326,12 +477,11 @@ export const useSubmissionNotifications = (
       return;
     }
 
-    // Initial fetch
     refetchSubmissions();
 
     pollingIntervalRef.current = setInterval(() => {
       refetchSubmissions();
-    }, Math.max(5000, pollingInterval));
+    }, Math.max(5000, effectiveInterval));
 
     return () => {
       if (pollingIntervalRef.current) {
@@ -339,20 +489,17 @@ export const useSubmissionNotifications = (
         pollingIntervalRef.current = null;
       }
     };
-  }, [notificationsEnabled, isAdmin, permission, refetchSubmissions, pollingInterval]);
+  }, [isAdmin, refetchSubmissions, pollingInterval, canSubscribe]);
 
-  // ===== Refetch on tab focus =====
+  // Refetch on tab focus/visibility
   useEffect(() => {
     if (!isBrowser || typeof refetchSubmissions !== 'function') return;
 
     const onFocus = () => {
-      if (notificationsEnabled && isAdmin) {
-        refetchSubmissions();
-      }
+      if (isAdmin) refetchSubmissions();
     };
-
     const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && notificationsEnabled && isAdmin) {
+      if (document.visibilityState === 'visible' && isAdmin) {
         refetchSubmissions();
       }
     };
@@ -364,7 +511,7 @@ export const useSubmissionNotifications = (
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [isBrowser, notificationsEnabled, isAdmin, refetchSubmissions]);
+  }, [isBrowser, isAdmin, refetchSubmissions]);
 
   return {
     isSupported,
@@ -372,7 +519,6 @@ export const useSubmissionNotifications = (
     permission,
     requestPermission,
     disableNotifications,
-    // Sound controls
     soundEnabled,
     enableSound,
     disableSound,

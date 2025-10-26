@@ -179,23 +179,60 @@ module.exports = {
         tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
       const difficultyBadge = node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : '';
 
+      // Get difficulty-based color
+      const getDiffColor = (tier) => {
+        if (tier === 1) return '#4CAF50'; // Green for EASY
+        if (tier === 3) return '#FF9800'; // Orange for MEDIUM
+        if (tier === 5) return '#F44336'; // Red for HARD
+        return '#43AA8B'; // Default teal
+      };
+
       const embed = new EmbedBuilder2()
-        .setTitle('✅ Submission Received')
-        .setColor('#43AA8B')
-        .setDescription(`Your completion has been submitted for review!`)
-        .addFields(
-          { name: 'Node', value: `${node.title}${difficultyBadge}`, inline: false },
-          { name: 'Node ID', value: nodeId, inline: true },
-          { name: 'Status', value: submission.status, inline: true },
-          { name: 'Submission ID', value: submission.submissionId, inline: false }
+        .setTitle('🎯 Submission Received!')
+        .setColor(getDiffColor(node.difficultyTier))
+        .setDescription(
+          `**${node.title}**${difficultyBadge}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `Your submission has been received and is pending review.`
         )
-        .setFooter({ text: 'An admin will review your submission soon.' });
+        .addFields(
+          {
+            name: '📍 Location',
+            value: node.mapLocation || 'Unknown',
+            inline: true,
+          },
+          {
+            name: '📊 Status',
+            value: `\`${submission.status}\``,
+            inline: true,
+          },
+          {
+            name: '👤 Submitted By',
+            value: message.author.username,
+            inline: true,
+          },
+          {
+            name: '🆔 Submission ID',
+            value: `\`${submission.submissionId}\``,
+            inline: false,
+          }
+        )
+        .setTimestamp()
+        .setFooter({
+          text: '⏳ Awaiting admin review',
+          iconURL: message.author.displayAvatarURL(),
+        });
 
       // Add proof preview if it's an image
       if (proofUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || message.attachments.size > 0) {
         embed.setImage(proofUrl);
+        embed.addFields({
+          name: '📸 Proof',
+          value: '*(Image attached below)*',
+          inline: false,
+        });
       } else {
-        embed.addFields({ name: 'Proof', value: proofUrl, inline: false });
+        embed.addFields({ name: '🔗 Proof Link', value: proofUrl, inline: false });
       }
 
       return message.reply({ embeds: [embed] });

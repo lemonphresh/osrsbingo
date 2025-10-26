@@ -338,6 +338,12 @@ const typeDefs = gql`
     TREASURE
   }
 
+  type Subscription {
+    submissionAdded(eventId: ID!): TreasureSubmission!
+    submissionReviewed(eventId: ID!): TreasureSubmission!
+    nodeCompleted(eventId: ID!): NodeCompletionPayload!
+  }
+
   type TreasureSubmission {
     submissionId: ID!
     submittedByUsername: String
@@ -352,6 +358,15 @@ const typeDefs = gql`
     reviewedAt: DateTime
     submittedAt: DateTime!
     team: TreasureTeam
+  }
+
+  type NodeCompletionPayload {
+    eventId: ID!
+    teamId: ID!
+    nodeId: ID!
+    teamName: String!
+    nodeName: String!
+    rewards: JSON
   }
 
   enum TreasureSubmissionStatus {
@@ -428,7 +443,12 @@ const typeDefs = gql`
     removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
     updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
 
-    adminCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminCompleteNode(
+      eventId: ID!
+      teamId: ID!
+      nodeId: ID!
+      congratsMessage: String
+    ): TreasureTeam!
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
     applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
     adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!

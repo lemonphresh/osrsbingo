@@ -73,12 +73,12 @@ module.exports = {
         return message.reply(`❌ This event has no nodes configured yet. Contact an admin.`);
       }
 
-      // Helper to get difficulty name
-      const getDifficultyName = (tier) => {
-        if (tier === 1) return 'EASY';
-        if (tier === 3) return 'MEDIUM';
-        if (tier === 5) return 'HARD';
-        return '';
+      // Helper to get difficulty name and emoji
+      const getDifficultyInfo = (tier) => {
+        if (tier === 1) return { name: 'EASY', emoji: '🟢', color: '#4CAF50' };
+        if (tier === 3) return { name: 'MEDIUM', emoji: '🟡', color: '#FF9800' };
+        if (tier === 5) return { name: 'HARD', emoji: '🔴', color: '#F44336' };
+        return { name: '', emoji: '', color: '#28AFB0' };
       };
 
       // Helper to check if location group is completed
@@ -119,18 +119,38 @@ module.exports = {
         );
       }
 
+      // Determine embed color based on difficulty of first node
+      const primaryColor =
+        trulyAvailable.length > 0
+          ? getDifficultyInfo(trulyAvailable[0].difficultyTier).color
+          : '#28AFB0';
+
       const embed = new EmbedBuilder()
-        .setTitle(`🗺️ Available Nodes - ${team.teamName}`)
-        .setColor('#28AFB0')
+        .setTitle(`🗺️ ${event.eventName || 'Treasure Hunt'}`)
+        .setColor(primaryColor)
         .setDescription(
-          `**${trulyAvailable.length}** node(s) ready to complete` +
+          `**Team:** ${team.teamName}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `✅ **${trulyAvailable.length}** node${
+              trulyAvailable.length !== 1 ? 's' : ''
+            } available` +
             (blockedByLocation.length > 0
-              ? `\n**${blockedByLocation.length}** blocked by completed location`
+              ? `\n🔒 **${blockedByLocation.length}** blocked by location`
+              : '') +
+            (teamData.activeBuffs?.length > 0
+              ? `\n✨ **${teamData.activeBuffs.length}** available buff${
+                  teamData.activeBuffs.length !== 1 ? 's' : ''
+                }`
               : '')
-        );
+        )
+        .setTimestamp()
+        .setFooter({
+          text: `Requested by ${message.author.username}`,
+          iconURL: message.author.displayAvatarURL(),
+        });
 
       // Limit to 5 nodes to reduce embed size
-      trulyAvailable.slice(0, 5).forEach((node) => {
+      trulyAvailable.slice(0, 5).forEach((node, index) => {
         // Handle nodes without objectives (like START or INN nodes)
         if (!node.objective) {
           // Check if Inn is already traded
@@ -138,15 +158,16 @@ module.exports = {
             node.nodeType === 'INN' &&
             teamData.innTransactions?.some((t) => t.nodeId === node.nodeId);
 
+          const nodeEmoji =
+            node.nodeType === 'INN' ? '🏠' : node.nodeType === 'START' ? '🎯' : '📍';
+
           embed.addFields({
-            name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${node.title}${
-              hasTransaction ? ' ✅' : ''
-            }`,
+            name: `${nodeEmoji} ${node.title}${hasTransaction ? ' ✅' : ''}`,
             value:
-              `**Type:** ${node.nodeType}\n` +
-              `${node.description || 'No objective required'}\n` +
-              (hasTransaction ? '✅ Already purchased\n' : '') +
-              `**ID:** \`${node.nodeId}\``,
+              `> **Node Type:** ${node.nodeType}\n` +
+              `> ${node.description || 'No objective required'}\n` +
+              (hasTransaction ? '> ✅ **Already purchased**\n' : '') +
+              `> \`${node.nodeId}\``,
             inline: false,
           });
           return;
@@ -160,43 +181,59 @@ module.exports = {
           buff.objectiveTypes?.includes(objective.type)
         );
 
+        const diffInfo = getDifficultyInfo(node.difficultyTier);
         const buffIndicator = hasBuffs ? ' ✨' : '';
-        const difficultyBadge = node.difficultyTier
-          ? ` [${getDifficultyName(node.difficultyTier)}]`
-          : '';
+        const difficultyBadge = diffInfo.name ? ` ${diffInfo.emoji}` : '';
 
-        // Shortened field values to reduce embed size
+        // Build rewards string
+        let rewardStr = '';
+        if (rewards.gp > 0) {
+          rewardStr += `💰 ${(rewards.gp / 1000000).toFixed(1)}M GP`;
+        }
+        if (rewards.keys && rewards.keys.length > 0) {
+          const keyStr = rewards.keys
+            .map((k) => {
+              const keyEmoji = k.color === 'GOLD' ? '🔑' : k.color === 'SILVER' ? '🗝️' : '🔓';
+              return `${keyEmoji} ${k.quantity}x ${k.color}`;
+            })
+            .join(', ');
+          rewardStr += rewardStr ? ` • ${keyStr}` : keyStr;
+        }
+        if (rewards.buffs && rewards.buffs.length > 0) {
+          rewardStr += ` • 🎁 ${rewards.buffs.length} buff${rewards.buffs.length !== 1 ? 's' : ''}`;
+        }
+
+        // Node type emoji
+        const nodeEmoji = node.nodeType === 'INN' ? '🏠' : '⚔️';
+
         embed.addFields({
-          name: `${node.nodeType === 'INN' ? '🏠' : '📍'} ${
-            node.title
-          }${difficultyBadge}${buffIndicator}`,
+          name: `${nodeEmoji} ${node.title}${difficultyBadge}${buffIndicator}`,
           value:
-            `**Obj:** ${objective.type}: ${objective.quantity} ${objective.target}\n` +
-            `**Reward:** ${(rewards.gp / 1000000).toFixed(1)}M GP` +
-            (rewards.keys && rewards.keys.length > 0
-              ? `, ${rewards.keys.map((k) => `${k.quantity}x ${k.color}`).join(', ')}`
-              : '') +
-            (rewards.buffs && rewards.buffs.length > 0 ? ` 🎁 +${rewards.buffs.length}` : '') +
-            `\n**ID:** \`${node.nodeId}\``,
+            `> **Objective:** ${objective.type} • ${objective.quantity} ${objective.target}\n` +
+            (node.mapLocation ? `> **Location:** 📍 ${node.mapLocation}\n` : '') +
+            (rewardStr ? `> **Rewards:** ${rewardStr}\n` : '') +
+            `> \`${node.nodeId}\``,
           inline: false,
         });
       });
 
       // Show blocked locations separately (limit to 2)
       if (blockedByLocation.length > 0) {
+        const blockedText = blockedByLocation
+          .slice(0, 2)
+          .map((node) => {
+            const completedNode = node.completedNodeInGroup;
+            const completedDiff = completedNode
+              ? getDifficultyInfo(completedNode.difficultyTier)
+              : { name: 'UNKNOWN', emoji: '⚪' };
+            const thisDiff = getDifficultyInfo(node.difficultyTier);
+            return `> 🔒 **${node.mapLocation}** - ${thisDiff.emoji} ${thisDiff.name} *(${completedDiff.emoji} ${completedDiff.name} completed)*`;
+          })
+          .join('\n');
+
         embed.addFields({
           name: '⚠️ Locations Already Completed',
-          value: blockedByLocation
-            .slice(0, 2)
-            .map((node) => {
-              const completedNode = node.completedNodeInGroup;
-              const completedDiff = completedNode
-                ? getDifficultyName(completedNode.difficultyTier)
-                : 'UNKNOWN';
-              const thisDiff = getDifficultyName(node.difficultyTier);
-              return `🔒 ${node.mapLocation} - ${thisDiff} (✅ ${completedDiff})`;
-            })
-            .join('\n'),
+          value: blockedText,
           inline: false,
         });
       }
@@ -204,7 +241,8 @@ module.exports = {
       // Update footer message
       if (trulyAvailable.length > 5) {
         embed.setFooter({
-          text: `Showing 5 of ${trulyAvailable.length} nodes. Use web dashboard for all.`,
+          text: `Showing 5 of ${trulyAvailable.length} nodes • Use web dashboard for full list`,
+          iconURL: message.author.displayAvatarURL(),
         });
       }
 

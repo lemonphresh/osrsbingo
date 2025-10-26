@@ -27,12 +27,15 @@
     "fuse.js": "^7.0.0",
     "graphql": "^15.9.0",
     "graphql-scalars": "^1.24.2",
+    "graphql-subscriptions": "^3.0.0",
     "graphql-tag": "^2.12.6",
+    "graphql-ws": "^6.0.6",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1",
     "pg-hstore": "^2.3.4",
     "sequelize": "^6.37.5",
-    "sequelize-cli": "^6.6.2"
+    "sequelize-cli": "^6.6.2",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "eslint": "^8.7.0",

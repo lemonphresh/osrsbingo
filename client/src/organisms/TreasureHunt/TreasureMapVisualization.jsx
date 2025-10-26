@@ -1,7 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, ImageOverlay, Marker, Polyline, Popup, useMap } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack, Button, Image, Flex } from '@chakra-ui/react';
-import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
+import {
+  Box,
+  Badge,
+  Text,
+  VStack,
+  HStack,
+  Button,
+  Image,
+  Flex,
+  IconButton,
+  useToast,
+} from '@chakra-ui/react';
+import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
@@ -166,6 +177,8 @@ const TreasureMapVisualization = ({
   onAdminComplete,
   onAdminUncomplete,
 }) => {
+  const toast = useToast();
+
   const colors = {
     purple: '#7D5FFF',
     green: '#43AA8B',
@@ -615,26 +628,95 @@ const TreasureMapVisualization = ({
                       )}
 
                       {!adminMode && status === 'available' && (
-                        <Text
-                          textAlign="center"
-                          fontSize="xs"
-                          color="#4a5568"
-                          fontStyle="italic"
-                          mt={2}
-                          sx={{
-                            code: { backgroundColor: '#e7ffeaff' },
-                          }}
-                        >
-                          <strong>Submit completion via Discord bot:</strong>
-                          <br />
-                          <code className="code">
-                            !submit {node.nodeId} link_to_screenshot_img
-                          </code>{' '}
-                          <br />
-                          or
-                          <br />
-                          <code className="code">!submit {node.nodeId} (attach image file)</code>
-                        </Text>
+                        <Box mt={2}>
+                          {node.nodeType === 'INN' ? (
+                            <VStack align="center" spacing={1}>
+                              <Button
+                                colorScheme="green"
+                                size="md"
+                                w="full"
+                                leftIcon={<Text fontSize="xl">🏠</Text>}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (onAdminComplete) {
+                                    onAdminComplete(node.nodeId);
+                                  }
+                                }}
+                              >
+                                Visit Inn
+                              </Button>
+                              <Text
+                                fontSize="xs"
+                                color="#4a5568"
+                                textAlign="center"
+                                fontStyle="italic"
+                              >
+                                Rest at the inn to recover and prepare for your next adventure!
+                              </Text>
+                            </VStack>
+                          ) : (
+                            // Discord submit instructions for regular nodes
+                            <>
+                              <Text
+                                textAlign="center"
+                                fontSize="xs"
+                                color="#4a5568"
+                                fontStyle="italic"
+                                sx={{
+                                  code: { backgroundColor: '#e7ffeaff' },
+                                }}
+                              >
+                                <strong>Submit completion via Discord bot:</strong>
+                              </Text>
+                              <HStack justify="center" mt={1} spacing={1}>
+                                <code
+                                  className="code"
+                                  style={{
+                                    backgroundColor: '#e7ffeaff',
+                                    padding: '2px 6px',
+                                    borderRadius: '3px',
+                                    fontSize: '11px',
+                                  }}
+                                >
+                                  !submit {node.nodeId} link_to_screenshot_img
+                                </code>
+                                <IconButton
+                                  icon={<CopyIcon />}
+                                  size="xs"
+                                  colorScheme="green"
+                                  aria-label="Copy command"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(`!submit ${node.nodeId}`);
+                                    toast({
+                                      title: 'Copied!',
+                                      description: `Command copied to clipboard`,
+                                      status: 'success',
+                                      duration: 2000,
+                                      isClosable: true,
+                                    });
+                                  }}
+                                />
+                              </HStack>
+                              <Text
+                                textAlign="center"
+                                fontSize="xs"
+                                color="#4a5568"
+                                fontStyle="italic"
+                                mt={1}
+                                sx={{
+                                  code: { backgroundColor: '#e7ffeaff' },
+                                }}
+                              >
+                                or
+                                <br />
+                                <code className="code">
+                                  !submit {node.nodeId} (attach image file)
+                                </code>
+                              </Text>
+                            </>
+                          )}
+                        </Box>
                       )}
                     </>
                   )}

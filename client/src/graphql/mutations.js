@@ -604,8 +604,13 @@ export const GENERATE_TREASURE_MAP = gql`
 `;
 
 export const ADMIN_COMPLETE_NODE = gql`
-  mutation AdminCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
-    adminCompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+  mutation AdminCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!, $congratsMessage: String) {
+    adminCompleteNode(
+      eventId: $eventId
+      teamId: $teamId
+      nodeId: $nodeId
+      congratsMessage: $congratsMessage
+    ) {
       teamId
       completedNodes
       availableNodes
@@ -674,5 +679,50 @@ export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
 export const INCREMENT_VISIT = gql`
   mutation IncrementVisit {
     incrementVisit
+  }
+`;
+
+export const SUBMISSION_ADDED_SUB = gql`
+  subscription OnSubmissionAdded($eventId: ID!) {
+    submissionAdded(eventId: $eventId) {
+      submissionId
+      status
+      proofUrl
+      submittedAt
+      submittedBy
+      submittedByUsername
+      nodeId
+      team {
+        teamId
+        teamName
+      }
+    }
+  }
+`;
+
+export const SUBMISSION_REVIEWED_SUB = gql`
+  subscription OnSubmissionReviewed($eventId: ID!) {
+    submissionReviewed(eventId: $eventId) {
+      submissionId
+      status
+      reviewedAt
+      nodeId
+      team {
+        teamId
+        teamName
+      }
+    }
+  }
+`;
+
+export const NODE_COMPLETED_SUB = gql`
+  subscription OnNodeCompleted($eventId: ID!) {
+    nodeCompleted(eventId: $eventId) {
+      eventId
+      teamId
+      nodeId
+      teamName
+      nodeName
+    }
   }
 `;

@@ -4,6 +4,7 @@ const BingoTileResolvers = require('./resolvers/BingoTile');
 const EditorInvitationResolvers = require('./resolvers/EditorInvitation');
 const CalendarResolvers = require('./resolvers/Calendar');
 const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
+const TreasureHuntSubscriptions = require('./resolvers/TreasureHuntSubscriptions');
 const { DateTimeResolver, JSONResolver } = require('graphql-scalars');
 const SiteStats = require('./resolvers/SiteStats');
 
@@ -27,6 +28,10 @@ const resolvers = {
     ...UserResolvers.Mutation,
     ...TreasureHuntResolvers.Mutation,
     ...SiteStats.Mutation,
+  },
+  Subscription: {
+    // ADD THIS ENTIRE BLOCK
+    ...TreasureHuntSubscriptions.Subscription,
   },
 };
 
