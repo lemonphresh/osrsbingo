@@ -18,8 +18,10 @@ import {
   UnorderedList,
   useColorMode,
   Icon,
+  Button,
+  Link,
 } from '@chakra-ui/react';
-import { InfoIcon } from '@chakra-ui/icons';
+import { InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 
 const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
   const { colorMode } = useColorMode();
@@ -44,6 +46,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
   };
 
   const currentColors = colors[colorMode];
+  const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
@@ -68,6 +71,48 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 Discord. Teams can view their progress, check available nodes, submit completions,
                 and use buffs - all without leaving your server!
               </Text>
+            </Box>
+
+            <Divider />
+
+            {/* Step 0: Install Bot */}
+            <Box>
+              <HStack mb={2}>
+                <Badge colorScheme="purple" fontSize="sm">
+                  Step 0
+                </Badge>
+                <Text fontWeight="bold" color={currentColors.textColor}>
+                  Install the Bot
+                </Text>
+              </HStack>
+              <VStack align="stretch" spacing={3}>
+                <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.300' : 'gray.600'}>
+                  First, you need to add the Treasure Hunt bot to your Discord server.
+                </Text>
+                {botInstallUrl ? (
+                  <Button
+                    as={Link}
+                    href={botInstallUrl}
+                    isExternal
+                    colorScheme="purple"
+                    size="md"
+                    rightIcon={<ExternalLinkIcon />}
+                    _hover={{ textDecoration: 'none' }}
+                  >
+                    Add Bot to Discord Server
+                  </Button>
+                ) : (
+                  <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.100'} borderRadius="md">
+                    <Text fontSize="sm" color={colorMode === 'dark' ? 'red.200' : 'red.800'}>
+                      ⚠️ Bot installation URL not configured. Please contact your administrator.
+                    </Text>
+                  </Box>
+                )}
+                <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+                  You'll need "Manage Server" permissions to add the bot. The bot requires
+                  permissions to read messages, send messages, and embed links.
+                </Text>
+              </VStack>
             </Box>
 
             <Divider />
@@ -185,7 +230,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                     !nodes
                   </Code>
                   <Text fontSize="xs" mt={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                    View your available nodes
+                    If a member on a team, view your available nodes
                   </Text>
                 </Box>
 
@@ -278,6 +323,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                     Bot doesn't respond:
                   </Text>
                   <UnorderedList spacing={1} color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+                    <ListItem>Verify the bot is installed in your server</ListItem>
                     <ListItem>Verify Event ID is in channel topic</ListItem>
                     <ListItem>Check bot has permission to read/send messages in channel</ListItem>
                     <ListItem>Ensure bot is online in server member list</ListItem>

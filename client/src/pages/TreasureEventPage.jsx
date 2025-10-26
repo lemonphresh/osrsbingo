@@ -212,7 +212,12 @@ const TreasureEventView = () => {
   const event = eventData?.getTreasureEvent;
   const teams = event?.teams || [];
   const allSubmissions = submissionsData?.getAllSubmissions || [];
-  const pendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
+  const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
+  const allPendingIncompleteSubmissionsCount = allPendingSubmissions.filter((submission) => {
+    const team = teams.find((t) => t.teamId === submission.teamId);
+
+    return !team?.completedNodes?.includes(submission.nodeId);
+  }).length;
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -273,7 +278,9 @@ const TreasureEventView = () => {
     isEventAdmin,
     event?.eventName || 'Event',
     refetchSubmissions, // pass the refetch function from useQuery
-    30000 // Poll every 30 seconds
+    10000, // Poll every 10 seconds
+    event?.id,
+    allPendingIncompleteSubmissionsCount
   );
 
   if (eventLoading) {
@@ -496,6 +503,47 @@ const TreasureEventView = () => {
                 <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
               </HStack>
             </Tooltip>
+
+            {/* Banner when no nodes exist */}
+            {(!event.nodes || event.nodes.length === 0) && event.status === 'DRAFT' && (
+              <Box
+                w="full"
+                mt={4}
+                p={4}
+                bg="orange.500"
+                borderRadius="md"
+                borderWidth={2}
+                borderColor="orange.600"
+                boxShadow="lg"
+                animation="gentlePulse 2s ease-in-out infinite"
+                sx={{
+                  '@keyframes gentlePulse': {
+                    '0%, 100%': {
+                      boxShadow: '0 0 20px rgba(237, 137, 54, 0.5)',
+                      transform: 'scale(1)',
+                    },
+                    '50%': {
+                      boxShadow: '0 0 30px rgba(237, 137, 54, 0.8)',
+                      transform: 'scale(1.01)',
+                    },
+                  },
+                }}
+              >
+                <HStack justify="center" spacing={3}>
+                  <Text fontSize="2xl">⚠️</Text>
+                  <VStack align="start" spacing={0}>
+                    <Text fontWeight="bold" fontSize="lg" color="white">
+                      Map Not Generated Yet
+                    </Text>
+                    <Text fontSize="sm" color="whiteAlpha.900">
+                      Generate your treasure map in Event Settings below before participants can
+                      start
+                    </Text>
+                  </VStack>
+                  <Text fontSize="2xl">⚠️</Text>
+                </HStack>
+              </Box>
+            )}
           </VStack>
           {isEventAdmin && (
             <>
@@ -570,7 +618,9 @@ const TreasureEventView = () => {
                 Pending Submissions
               </StatLabel>
               <Image h="32px" m="0 auto" src={Dossier} />
-              <StatNumber color={currentColors.textColor}>{pendingSubmissions.length}</StatNumber>
+              <StatNumber color={currentColors.textColor}>
+                {allPendingIncompleteSubmissionsCount}
+              </StatNumber>
             </Stat>
           </StatGroup>
 
@@ -610,9 +660,6 @@ const TreasureEventView = () => {
                 nodes={event.nodes}
                 teams={teams}
                 event={event}
-                onNodeClick={(node) => {
-                  console.log('Clicked node:', node);
-                }}
                 showAllNodes={isEventAdmin && showAllNodesToggle}
               />
             </Box>
@@ -641,8 +688,27 @@ const TreasureEventView = () => {
                 Leaderboard
               </Tab>
               {isEventAdmin && (
-                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  Submissions ({pendingSubmissions.length} Pending)
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]} position="relative">
+                  Submissions ({allPendingIncompleteSubmissionsCount} Pending)
+                  {allPendingIncompleteSubmissionsCount > 0 && (
+                    <Box
+                      position="absolute"
+                      top="4px"
+                      right="8px"
+                      w="8px"
+                      h="8px"
+                      bg="tomato"
+                      borderRadius="full"
+                      boxShadow="0 0 0 2px white"
+                      animation="pulse 2s infinite"
+                      sx={{
+                        '@keyframes pulse': {
+                          '0%, 100%': { opacity: 1 },
+                          '50%': { opacity: 0.5 },
+                        },
+                      }}
+                    />
+                  )}
                 </Tab>
               )}
               {isEventAdmin && (
@@ -799,13 +865,8 @@ const TreasureEventView = () => {
                       });
 
                       // Filter to only show nodes that have pending submissions
-                      const relevantGroups = Object.entries(groupedSubmissions).filter(
-                        ([key, submissions]) => {
-                          const hasPending = submissions.some((s) => s.status === 'PENDING_REVIEW');
-                          const hasApproved = submissions.some((s) => s.status === 'APPROVED');
-
-                          return hasPending || hasApproved;
-                        }
+                      const relevantGroups = Object.entries(groupedSubmissions).filter(([, subs]) =>
+                        subs.some((s) => s.status === 'PENDING_REVIEW' || s.status === 'APPROVED')
                       );
 
                       if (relevantGroups.length === 0) {
@@ -816,9 +877,41 @@ const TreasureEventView = () => {
                         );
                       }
 
+                      const sortedGroups = [...relevantGroups].sort((a, b) => {
+                        const [, subsA] = a;
+                        const [, subsB] = b;
+
+                        const nodeIdA = subsA[0].nodeId;
+                        const teamIdA = subsA[0].team?.teamId;
+                        const teamA = event.teams?.find((t) => t.teamId === teamIdA);
+                        const isCompletedA = teamA?.completedNodes?.includes(nodeIdA);
+
+                        const nodeIdB = subsB[0].nodeId;
+                        const teamIdB = subsB[0].team?.teamId;
+                        const teamB = event.teams?.find((t) => t.teamId === teamIdB);
+                        const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
+
+                        // 1) Incomplete first
+                        if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
+
+                        // 2) More pending first
+                        const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
+                        const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
+                        if (pendA !== pendB) return pendB - pendA;
+
+                        // 3) Newest activity first
+                        const latestA = Math.max(
+                          ...subsA.map((s) => new Date(s.submittedAt || 0).getTime())
+                        );
+                        const latestB = Math.max(
+                          ...subsB.map((s) => new Date(s.submittedAt || 0).getTime())
+                        );
+                        return latestB - latestA;
+                      });
+
                       return (
                         <Accordion allowMultiple>
-                          {relevantGroups.map(([key, submissions]) => {
+                          {sortedGroups.map(([key, submissions]) => {
                             const nodeId = submissions[0].nodeId;
                             const node = event.nodes?.find((n) => n.nodeId === nodeId);
                             const nodeTitle = node ? node.title : nodeId;
@@ -886,9 +979,9 @@ const TreasureEventView = () => {
                                           <Badge bg={currentColors.purple.base} color="white">
                                             {submissions[0].team?.teamName || 'Unknown Team'}
                                           </Badge>
-                                          {pendingSubmissions.length > 0 && (
+                                          {pendingSubmissions > 0 && (
                                             <Badge colorScheme="orange">
-                                              {pendingSubmissions.length} pending
+                                              {pendingSubmissions} pending
                                             </Badge>
                                           )}
                                           {approvedSubmissions.length > 0 && (
@@ -908,7 +1001,7 @@ const TreasureEventView = () => {
                                       </VStack>
 
                                       {/* Button to complete node */}
-                                      {!isCompleted && (
+                                      {!isCompleted && approvedSubmissions.length > 0 && (
                                         <VStack
                                           spacing={1}
                                           align="end"
@@ -1363,6 +1456,23 @@ const TreasureEventView = () => {
                               colorScheme="green"
                               onClick={handleGenerateMap}
                               isLoading={generateLoading}
+                              animation={
+                                !event.nodes || event.nodes.length === 0
+                                  ? 'flashButton 1.5s ease-in-out infinite'
+                                  : 'none'
+                              }
+                              sx={{
+                                '@keyframes flashButton': {
+                                  '0%, 100%': {
+                                    boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
+                                    transform: 'scale(1)',
+                                  },
+                                  '50%': {
+                                    boxShadow: '0 0 20px 5px rgba(72, 187, 120, 0.9)',
+                                    transform: 'scale(1.05)',
+                                  },
+                                },
+                              }}
                             >
                               {event.nodes && event.nodes.length > 0
                                 ? 'Regenerate Map'

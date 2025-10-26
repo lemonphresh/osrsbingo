@@ -10,8 +10,6 @@ import GemTitle from '../atoms/GemTitle';
 import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
 
-const validatePassword = (pass) => !!pass && pass.length >= 7;
-
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -114,10 +112,6 @@ const Login = () => {
           <Button
             alignSelf="center"
             backgroundColor={theme.colors.green[200]}
-            color={
-              !validatePassword(values.password) ? theme.colors.gray[400] : theme.colors.gray[700]
-            }
-            disabled={!validatePassword(values.password)}
             marginTop="24px"
             onClick={onSubmit}
             width={['100%', '250px']}

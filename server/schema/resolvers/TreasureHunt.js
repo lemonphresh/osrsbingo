@@ -15,6 +15,7 @@ const {
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
 } = require('../../utils/discordNotifications');
+const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
 
 function isLocationGroupCompleted(team, locationGroupId, event) {
   if (!event.mapStructure?.locationGroups) return false;
@@ -339,10 +340,6 @@ const TreasureHuntResolvers = {
         const event = await TreasureEvent.findByPk(eventId);
         if (!event) throw new Error('Event not found');
 
-        console.log('Starting map generation for event:', eventId);
-        console.log('Event config:', event.eventConfig);
-        console.log('Derived values:', event.derivedValues);
-
         // Validate event has required data
         if (!event.eventConfig) {
           throw new Error('Event configuration is missing');
@@ -357,7 +354,6 @@ const TreasureHuntResolvers = {
           force: true,
           transaction,
         });
-        console.log(`Deleted ${deletedCount} existing nodes`);
 
         const contentSelections = event.contentSelections || getDefaultContentSelections();
 
@@ -372,8 +368,6 @@ const TreasureHuntResolvers = {
           console.error('Error in generateMap:', genError);
           throw new Error(`Map generation failed: ${genError.message}`);
         }
-
-        console.log(`Generated ${nodes?.length} nodes`);
 
         // Validate nodes before creating
         const validatedNodes = nodes.map((node, index) => {
@@ -417,7 +411,6 @@ const TreasureHuntResolvers = {
             transaction,
             validate: true,
           });
-          console.log('Successfully created all nodes');
         } catch (bulkError) {
           await transaction.rollback();
           console.error('Error in bulkCreate:', bulkError);
@@ -767,6 +760,10 @@ const TreasureHuntResolvers = {
           submittedByUsername,
         });
 
+        await pubsub.publish(SUBMISSION_TOPICS.SUBMISSION_ADDED, {
+          submissionAdded: submission,
+        });
+
         return submission;
       } catch (error) {
         console.error('Error submitting node completion:', error);
@@ -797,18 +794,17 @@ const TreasureHuntResolvers = {
           reviewedAt: new Date(),
         });
 
-        console.log(
-          `Submission ${submissionId} ${status} by reviewer ${reviewerId}. ` +
-            `Node completion is handled separately by admin.`
-        );
+        await submission.reload();
+
+        await pubsub.publish(SUBMISSION_TOPICS.SUBMISSION_REVIEWED, {
+          submissionReviewed: submission,
+        });
 
         // Send Discord notification if channel ID exists
         if (
           submission.channelId &&
           submission.team?.completedNodes?.includes(submission.nodeId) === false
         ) {
-          console.log(`Sending Discord notification to channel ${submission.channelId}`);
-
           const notificationData = {
             channelId: submission.channelId,
             submissionId: submission.submissionId,
@@ -831,7 +827,6 @@ const TreasureHuntResolvers = {
                   'No reason provided. Please contact an admin for more details if you have questions.',
               });
             }
-            console.log(`✅ Discord notification sent successfully`);
           } catch (notifError) {
             console.error('Failed to send Discord notification:', notifError.message);
             // Don't fail the whole mutation if notification fails
@@ -847,7 +842,7 @@ const TreasureHuntResolvers = {
       }
     },
 
-    adminCompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
+    adminCompleteNode: async (_, { eventId, teamId, nodeId, congratsMessage }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 
       try {
@@ -875,7 +870,7 @@ const TreasureHuntResolvers = {
           throw new Error('Node is already completed');
         }
 
-        // NEW: Check if another node in the same location group is already completed
+        // Check if another node in the same location group is already completed
         if (node.locationGroupId) {
           const completedNodeInGroup = getCompletedNodeInGroup(team, node.locationGroupId, event);
           if (completedNodeInGroup) {
@@ -898,7 +893,7 @@ const TreasureHuntResolvers = {
         // Remove from available nodes
         let availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
 
-        // NEW: Remove other nodes in the same location group from available nodes
+        //  Remove other nodes in the same location group from available nodes
         if (node.locationGroupId) {
           const group = event.mapStructure?.locationGroups?.find(
             (g) => g.groupId === node.locationGroupId
@@ -906,10 +901,6 @@ const TreasureHuntResolvers = {
           if (group) {
             const otherNodesInGroup = group.nodeIds.filter((id) => id !== nodeId);
             availableNodes = availableNodes.filter((n) => !otherNodesInGroup.includes(n));
-            console.log(
-              `Removed ${otherNodesInGroup.length} other difficulty options for location group ${node.locationGroupId}`
-            );
-            console.log(`Removed node IDs:`, otherNodesInGroup);
           }
         }
 
@@ -918,7 +909,6 @@ const TreasureHuntResolvers = {
           node.unlocks.forEach((unlockedNode) => {
             if (!availableNodes.includes(unlockedNode) && !completedNodes.includes(unlockedNode)) {
               availableNodes.push(unlockedNode);
-              console.log(`Unlocked node: ${unlockedNode}`);
             }
           });
         }
@@ -944,12 +934,8 @@ const TreasureHuntResolvers = {
             const existingKeyIndex = keysHeld.findIndex((k) => k.color === key.color);
             if (existingKeyIndex >= 0) {
               keysHeld[existingKeyIndex].quantity += key.quantity;
-              console.log(
-                `    Updated existing: now ${keysHeld[existingKeyIndex].quantity}x ${key.color}`
-              );
             } else {
               keysHeld.push({ color: key.color, quantity: key.quantity });
-              console.log(`    Added new: ${key.quantity}x ${key.color}`);
             }
           });
         } else {
@@ -988,6 +974,17 @@ const TreasureHuntResolvers = {
         // Reload the team to verify the update
         await team.reload();
 
+        await pubsub.publish(SUBMISSION_TOPICS.NODE_COMPLETED, {
+          nodeCompleted: {
+            eventId,
+            teamId,
+            nodeId,
+            teamName: team.teamName,
+            nodeName: node.title,
+            rewards: node.rewards,
+          },
+        });
+
         if (submissions.length > 0) {
           const channelIds = submissions.map((s) => s.channelId).filter(Boolean);
           const submitters = submissions.map((s) => ({
@@ -1003,6 +1000,7 @@ const TreasureHuntResolvers = {
             gpReward: node.rewards?.gp || 0,
             keyRewards: node.rewards?.keys || [],
             buffRewards: node.rewards?.buffs || [],
+            congratsMessage,
           });
         }
 
@@ -1028,24 +1026,9 @@ const TreasureHuntResolvers = {
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
 
-        console.log(`Team before update:`, {
-          completedNodes: team.completedNodes,
-          availableNodes: team.availableNodes,
-          currentPot: team.currentPot,
-          keysHeld: team.keysHeld,
-          activeBuffs: team.activeBuffs?.length || 0,
-        });
-
         // Get the node details
         const node = await TreasureNode.findByPk(nodeId);
         if (!node || node.eventId !== eventId) throw new Error('Node not found');
-
-        console.log(`Node details:`, {
-          nodeId: node.nodeId,
-          title: node.title,
-          rewards: node.rewards,
-          unlocks: node.unlocks,
-        });
 
         // Check if actually completed
         if (!team.completedNodes?.includes(nodeId)) {
@@ -1084,17 +1067,14 @@ const TreasureHuntResolvers = {
 
         // Ensure pot doesn't go negative and convert to string
         const currentPot = newPotBigInt < 0n ? '0' : newPotBigInt.toString();
-        console.log(`GP: ${team.currentPot} - ${rewardGpBigInt} = ${currentPot}`);
 
         // Remove key rewards
         const keysHeld = [...(team.keysHeld || [])];
 
         if (node.rewards?.keys && Array.isArray(node.rewards.keys)) {
-          console.log(`Removing ${node.rewards.keys.length} key reward(s):`);
           node.rewards.keys.forEach((key) => {
             const existingKey = keysHeld.find((k) => k.color === key.color);
             if (existingKey) {
-              console.log(`  - Removing ${key.quantity}x ${key.color} key`);
               existingKey.quantity = Math.max(0, existingKey.quantity - key.quantity);
             }
           });
@@ -1111,8 +1091,6 @@ const TreasureHuntResolvers = {
           Array.isArray(node.rewards.buffs) &&
           node.rewards.buffs.length > 0
         ) {
-          console.log(`Removing ${node.rewards.buffs.length} buff reward(s):`);
-
           // For each buff reward the node gave, try to remove ONE matching buff
           node.rewards.buffs.forEach((buffReward) => {
             // Find first buff matching this type that hasn't been used
@@ -1137,8 +1115,6 @@ const TreasureHuntResolvers = {
           });
         }
 
-        console.log(`Buffs after removal: ${activeBuffs.length} total`);
-
         await team.update({
           completedNodes,
           availableNodes,
@@ -1150,16 +1126,6 @@ const TreasureHuntResolvers = {
         // Reload the team to verify the update
         await team.reload();
 
-        console.log(`Team after update:`, {
-          completedNodes: team.completedNodes,
-          availableNodes: team.availableNodes,
-          currentPot: team.currentPot,
-          keysHeld: team.keysHeld,
-          activeBuffs: team.activeBuffs?.length || 0,
-        });
-
-        console.log(`=== COMPLETE ===\n`);
-
         return team;
       } catch (error) {
         console.error('Error in adminUncompleteNode:', error);
@@ -1168,22 +1134,12 @@ const TreasureHuntResolvers = {
     },
 
     applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
-      console.log('\n=== APPLY BUFF AUTHORIZATION ===');
-      console.log('Context:', {
-        userId: context.user?.id,
-        discordUserId: context.discordUserId,
-      });
-
       try {
         const authCheck = await canPerformTeamAction(context, teamId, eventId);
-
-        console.log('Authorization result:', authCheck);
 
         if (!authCheck.authorized) {
           throw new Error('Not authorized. You must be an event admin or a member of this team.');
         }
-
-        console.log(`✅ Authorized as: ${authCheck.reason}`);
 
         const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
         if (!team) throw new Error('Team not found');
@@ -1196,14 +1152,11 @@ const TreasureHuntResolvers = {
           throw new Error('This node is not currently available to your team');
         }
 
-        console.log(`Node objective:`, node.objective);
-
         // Find the buff
         const buffIndex = team.activeBuffs.findIndex((b) => b.buffId === buffId);
         if (buffIndex === -1) throw new Error('Buff not found in team inventory');
 
         const buff = team.activeBuffs[buffIndex];
-        console.log(`Found buff:`, buff);
 
         // Check if buff can be applied to this objective type
         if (!node.objective) {
@@ -1235,8 +1188,6 @@ const TreasureHuntResolvers = {
           },
         };
 
-        console.log(`Modified objective:`, modifiedObjective);
-
         // Update node with modified objective
         await node.update({
           objective: modifiedObjective,
@@ -1248,7 +1199,6 @@ const TreasureHuntResolvers = {
 
         // Remove buff if no uses remaining
         if (updatedBuffs[buffIndex].usesRemaining <= 0) {
-          console.log(`Buff depleted, removing from inventory`);
           updatedBuffs.splice(buffIndex, 1);
         } else {
           console.log(`Buff has ${updatedBuffs[buffIndex].usesRemaining} uses remaining`);
@@ -1272,9 +1222,6 @@ const TreasureHuntResolvers = {
           activeBuffs: updatedBuffs,
           buffHistory,
         });
-
-        console.log(`Buff applied successfully`);
-        console.log(`=== COMPLETE ===\n`);
 
         await team.reload();
         return team;
@@ -1383,89 +1330,124 @@ const TreasureHuntResolvers = {
       }
     },
 
-    purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {
-      console.log('\n=== PURCHASE INN REWARD AUTHORIZATION ===');
+    purchaseInnReward: async (parent, args, context) => {
+      const { eventId, teamId, rewardId } = args;
 
       try {
-        const authCheck = await canPerformTeamAction(context, teamId, eventId);
-
-        if (!authCheck.authorized) {
-          throw new Error('Not authorized. You must be an event admin or a member of this team.');
-        }
-
-        console.log(`✅ Authorized as: ${authCheck.reason}`);
-
-        const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
-        if (!team) throw new Error('Team not found');
-
-        const event = await TreasureEvent.findByPk(eventId, {
+        // 1. Get the event and verify the reward exists
+        const event = await TreasureEvent.findOne({
+          where: { eventId },
           include: [{ model: TreasureNode, as: 'nodes' }],
         });
+        if (!event) throw new Error('Event not found');
 
-        const innNode = event.nodes.find(
-          (node) =>
-            node.nodeType === 'INN' && node.availableRewards?.some((r) => r.reward_id === rewardId)
-        );
+        // 2. Find the inn node and reward
+        let innNode = null;
+        let reward = null;
 
-        if (!innNode) throw new Error('Reward not found');
+        for (const node of event.nodes) {
+          if (node.availableRewards) {
+            const foundReward = node.availableRewards.find((r) => r.reward_id === rewardId);
+            if (foundReward) {
+              innNode = node;
+              reward = foundReward;
+              break;
+            }
+          }
+        }
 
-        const reward = innNode.availableRewards.find((r) => r.reward_id === rewardId);
+        if (!reward || !innNode) {
+          throw new Error('Reward not found');
+        }
 
-        // Check if team has enough keys
-        const hasEnoughKeys = reward.key_cost.every((cost) => {
+        // 3. Get the team
+        const team = await TreasureTeam.findOne({ where: { eventId, teamId } });
+        if (!team) throw new Error('Team not found');
+
+        // 4. Check if team already purchased from this inn
+        const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
+        if (alreadyPurchased) {
+          throw new Error('Team has already purchased from this Inn');
+        }
+
+        // 5. Verify team has enough keys
+        for (const cost of reward.key_cost) {
           if (cost.color === 'any') {
             const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
-            return totalKeys >= cost.quantity;
-          }
-          const teamKey = team.keysHeld.find((k) => k.color === cost.color);
-          return teamKey && teamKey.quantity >= cost.quantity;
-        });
-
-        if (!hasEnoughKeys) throw new Error('Not enough keys');
-
-        // Deduct keys
-        const keysHeld = [...team.keysHeld];
-        reward.key_cost.forEach((cost) => {
-          if (cost.color === 'any') {
-            let remaining = cost.quantity;
-            for (let key of keysHeld) {
-              if (remaining <= 0) break;
-              const deduct = Math.min(key.quantity, remaining);
-              key.quantity -= deduct;
-              remaining -= deduct;
+            if (totalKeys < cost.quantity) {
+              throw new Error('Insufficient keys');
             }
           } else {
-            const key = keysHeld.find((k) => k.color === cost.color);
-            if (key) key.quantity -= cost.quantity;
+            const teamKey = team.keysHeld.find((k) => k.color === cost.color);
+            if (!teamKey || teamKey.quantity < cost.quantity) {
+              throw new Error(`Insufficient ${cost.color} keys`);
+            }
           }
+        }
+
+        // 6. **CRITICAL: Deduct the keys from team.keysHeld**
+        const keysSpent = [];
+
+        for (const cost of reward.key_cost) {
+          if (cost.color === 'any') {
+            // Deduct from any available keys
+            let remaining = cost.quantity;
+            for (const key of team.keysHeld) {
+              if (remaining <= 0) break;
+              const toDeduct = Math.min(key.quantity, remaining);
+              key.quantity -= toDeduct;
+              remaining -= toDeduct;
+              keysSpent.push({ color: key.color, quantity: toDeduct });
+            }
+          } else {
+            // Deduct specific color
+            const teamKey = team.keysHeld.find((k) => k.color === cost.color);
+            if (teamKey) {
+              teamKey.quantity -= cost.quantity;
+              keysSpent.push({ color: cost.color, quantity: cost.quantity });
+            }
+          }
+        }
+
+        // Remove keys with 0 quantity
+        team.keysHeld = team.keysHeld.filter((k) => k.quantity > 0);
+
+        const currentPotBigInt = BigInt(team.currentPot || 0);
+        const payoutBigInt = BigInt(reward.payout || 0);
+
+        // Add them properly
+        const newPotBigInt = currentPotBigInt + payoutBigInt;
+
+        // Convert back to string for storage
+        team.currentPot = newPotBigInt.toString();
+
+        // 8. Record the transaction
+        if (!team.innTransactions) {
+          team.innTransactions = [];
+        }
+
+        team.innTransactions.push({
+          nodeId: innNode.nodeId,
+          rewardId: reward.reward_id,
+          keysSpent: keysSpent,
+          payout: reward.payout,
+          purchasedAt: new Date().toISOString(),
         });
 
-        // Add reward to pot
-        const currentPot = BigInt(team.currentPot) + BigInt(reward.payout);
+        // 9. **CRITICAL: Save the team back to database**
+        await team.save();
 
-        // Record transaction
-        const innTransactions = [
-          ...(team.innTransactions || []),
-          {
-            rewardId,
-            nodeId: innNode.nodeId,
-            timestamp: new Date().toISOString(),
-            keysSpent: reward.key_cost,
-            payout: reward.payout,
-          },
-        ];
-
-        await team.update({
-          keysHeld: keysHeld.filter((k) => k.quantity > 0),
-          currentPot: currentPot.toString(),
-          innTransactions,
+        console.log('✅ Keys deducted successfully:', {
+          teamId: team.teamId,
+          keysSpent,
+          remainingKeys: team.keysHeld,
         });
 
-        console.log(`✅ Purchase complete`);
+        // 10. Return the updated team
         return team;
       } catch (error) {
-        console.error('Error purchasing inn reward:', error);
-        throw new Error(`Failed to purchase reward: ${error.message}`);
+        console.error('❌ Purchase error:', error);
+        throw error;
       }
     },
   },

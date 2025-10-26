@@ -57,7 +57,6 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark', onBuffClick }) => {
           leftIcon={<InfoOutlineIcon />}
           colorScheme="blue"
           onClick={() => {
-            console.log('Button clicked!'); // Add this
             setIsBuffModalOpen(true);
           }}
           mt={2}

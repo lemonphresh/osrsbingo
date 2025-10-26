@@ -16,10 +16,15 @@ import {
   useColorMode,
   Image,
   useDisclosure,
+  IconButton,
+  useToast,
+  Code,
+  Icon,
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
-import { CheckIcon, CloseIcon } from '@chakra-ui/icons';
+import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
 import ProgressiveStartTutorial from './ProgressiveStartTutorial';
+import { FaDiscord } from 'react-icons/fa';
 
 export default function NodeDetailModal({
   isOpen,
@@ -35,6 +40,7 @@ export default function NodeDetailModal({
 }) {
   const { colorMode } = useColorMode();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
+  const toast = useToast();
 
   if (!node) return null;
 
@@ -43,6 +49,7 @@ export default function NodeDetailModal({
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
       green: { base: '#43AA8B' },
       red: { base: '#FF4B5C' },
+      yellow: { base: '#F4D35E' },
       textColor: '#F7FAFC',
       cardBg: '#2D3748',
     },
@@ -50,12 +57,14 @@ export default function NodeDetailModal({
       purple: { base: '#7D5FFF', light: '#b3a6ff' },
       green: { base: '#43AA8B' },
       red: { base: '#FF4B5C' },
+      yellow: { base: '#F4D35E' },
       textColor: '#171923',
       cardBg: 'white',
     },
   };
 
   const isStartNode = node?.nodeType === 'START';
+  const isInnNode = node?.nodeType === 'INN';
   const isFirstNode = team?.completedNodes?.length === 0;
   const shouldShowTutorial = isStartNode && isFirstNode && !adminMode && showTutorial;
 
@@ -124,8 +133,21 @@ export default function NodeDetailModal({
     !appliedBuff &&
     team?.activeBuffs?.some((buff) => buff.objectiveTypes?.includes(node.objective?.type));
 
+  const canVisitInn = isInnNode && isAvailable && isTeamMember && !adminMode;
+
   const handleCloseTutorial = () => {
     closeTutorial();
+  };
+
+  const handleCopySubmitCommand = () => {
+    navigator.clipboard.writeText(`!submit ${node.nodeId}`);
+    toast({
+      title: 'Copied!',
+      description: 'Command copied to clipboard',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
   };
 
   return (
@@ -138,6 +160,11 @@ export default function NodeDetailModal({
             {isStartNode && (
               <Badge colorScheme="purple" fontSize="sm">
                 START
+              </Badge>
+            )}
+            {isInnNode && (
+              <Badge colorScheme="yellow" fontSize="sm">
+                INN
               </Badge>
             )}
           </HStack>
@@ -317,6 +344,71 @@ export default function NodeDetailModal({
               >
                 Apply Buff to Reduce Requirement
               </Button>
+            )}
+
+            {canVisitInn && (
+              <VStack align="center" spacing={1}>
+                <Button
+                  colorScheme="green"
+                  size="lg"
+                  onClick={() => {
+                    onAdminComplete && onAdminComplete(node.nodeId);
+                    onClose();
+                  }}
+                  leftIcon={<Text fontSize="xl">🏠</Text>}
+                >
+                  Visit Inn
+                </Button>
+                <Text fontSize="xs" color="gray.500" textAlign="center">
+                  Rest at the inn to recover and prepare for your next adventure! This will unlock
+                  the shop and additional nodes.
+                </Text>
+              </VStack>
+            )}
+
+            {/* Discord Submit Instructions - Show for available nodes when not in admin mode */}
+            {!adminMode && isAvailable && !isInnNode && (
+              <Box
+                p={3}
+                bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
+                borderRadius="md"
+                borderWidth={1}
+                borderColor={colorMode === 'dark' ? 'blue.700' : 'blue.200'}
+              >
+                <HStack align="center" w="100%" justify="center" mb={2} spacing={2}>
+                  <Icon as={FaDiscord} boxSize="16px" />
+                  <Text
+                    fontSize="xs"
+                    fontWeight="bold"
+                    color={currentColors.textColor}
+                    textAlign="center"
+                  >
+                    Submit completion via Discord bot:
+                  </Text>
+                </HStack>
+                <VStack spacing={2} align="stretch">
+                  <HStack justify="center" spacing={2}>
+                    <Code
+                      fontSize="xs"
+                      bg={colorMode === 'dark' ? 'whiteAlpha.200' : 'green.100'}
+                      px={2}
+                      py={1}
+                    >
+                      !submit {node.nodeId} link_to_screenshot
+                    </Code>
+                    <IconButton
+                      icon={<CopyIcon />}
+                      size="xs"
+                      colorScheme="green"
+                      aria-label="Copy command"
+                      onClick={handleCopySubmitCommand}
+                    />
+                  </HStack>
+                  <Text fontSize="xs" color="gray.500" textAlign="center">
+                    or attach an image file to your message
+                  </Text>
+                </VStack>
+              </Box>
             )}
 
             {adminMode && (

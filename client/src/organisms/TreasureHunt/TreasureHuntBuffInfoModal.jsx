@@ -18,7 +18,6 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
-  SimpleGrid,
   List,
   ListItem,
   ListIcon,
@@ -27,7 +26,6 @@ import { CheckCircleIcon, StarIcon, InfoIcon } from '@chakra-ui/icons';
 
 const BuffInfoModal = ({ isOpen, onClose }) => {
   const { colorMode } = useColorMode();
-  console.log({ isOpen });
 
   const colors = {
     dark: {

@@ -11,14 +11,19 @@ const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
 const bcrypt = require('bcrypt');
-const app = express();
 const cheerio = require('cheerio');
 const cookieParser = require('cookie-parser');
 const calendarRoutes = require('./calendarRoutes');
+const { createServer } = require('http');
+const { WebSocketServer } = require('ws');
+const { useServer } = require('graphql-ws/use/ws');
+const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 
 dotenv.config();
 
 const SECRET = process.env.JWTSECRETKEY;
+const app = express();
+const httpServer = createServer(app);
 
 /*  START setup  */
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -109,6 +114,11 @@ app.get('/api/items', async (req, res) => {
   }
 });
 
+const wsServer = new WebSocketServer({
+  server: httpServer,
+  path: '/graphql',
+});
+
 const fetchInventoryIcon = async (itemName) => {
   try {
     const wikiUrl = `https://oldschool.runescape.wiki/w/${encodeURIComponent(
@@ -166,6 +176,31 @@ const fetchWikiFallback = async (searchTerm) => {
     return [];
   }
 };
+
+const serverCleanup = useServer(
+  {
+    schema,
+    context: async (ctx, msg, args) => {
+      // Get auth from connection params
+      const token = ctx.connectionParams?.authorization?.replace('Bearer ', '');
+      let user = null;
+
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, SECRET);
+          user = { id: decoded.userId, admin: decoded.admin };
+          console.log('🔐 WebSocket authenticated:', user);
+        } catch (err) {
+          console.error('❌ Invalid WebSocket token');
+        }
+      }
+
+      return { user, jwtSecret: SECRET };
+    },
+  },
+  wsServer
+);
+
 // GraphQL Server setup
 const server = new ApolloServer({
   typeDefs,
@@ -173,7 +208,6 @@ const server = new ApolloServer({
   context: ({ req, res }) => {
     const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
-    const SECRET = process.env.JWTSECRETKEY;
     const discordUserId = req.headers['x-discord-user-id'];
 
     if (!SECRET) {
@@ -197,7 +231,19 @@ const server = new ApolloServer({
     console.error('GraphQL Error:', err);
     return err;
   },
-  plugins: [require('apollo-server-core').ApolloServerPluginLandingPageLocalDefault()],
+  plugins: [
+    ApolloServerPluginDrainHttpServer({ httpServer }), // 🔥 ADD THIS
+    {
+      async serverWillStart() {
+        return {
+          async drainServer() {
+            await serverCleanup.dispose();
+          },
+        };
+      },
+    },
+    require('apollo-server-core').ApolloServerPluginLandingPageLocalDefault(),
+  ],
 });
 
 sequelize.sync({ alter: true }).then(() => {
@@ -267,9 +313,10 @@ const PORT = process.env.PORT || 5000;
 // Starting the Apollo server and Express server
 server.start().then(() => {
   server.applyMiddleware({ app, path: '/graphql', cors: false });
-  app.listen(PORT, () => {
-    console.log(
-      `🚀🚀🚀 Server running on http://localhost:${PORT}. GraphQL UI at http://localhost:${PORT}/graphql`
-    );
+
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+    console.log(`📊 GraphQL UI at http://localhost:${PORT}/graphql`);
+    console.log(`🔗 WebSocket subscriptions at ws://localhost:${PORT}/graphql`);
   });
 });

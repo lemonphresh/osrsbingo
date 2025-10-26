@@ -24,6 +24,7 @@ import {
 import { CheckIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
+import { GET_TREASURE_TEAM } from '../../graphql/queries';
 
 export default function InnModal({
   isOpen,
@@ -32,13 +33,58 @@ export default function InnModal({
   team,
   eventId,
   onPurchaseComplete,
-  currentUser, // NEW: Add current user prop
+  currentUser,
 }) {
   const { colorMode } = useColorMode();
   const toast = useToast();
   const [selectedReward, setSelectedReward] = useState(null);
 
-  const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD);
+  const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD, {
+    refetchQueries: [
+      // Refetch team data to update keysHeld and currentPot
+      {
+        query: GET_TREASURE_TEAM,
+        variables: { eventId, teamId: team.teamId },
+      },
+    ],
+    awaitRefetchQueries: true,
+
+    onCompleted: (data) => {
+      toast({
+        title: 'Purchase successful!',
+        description: 'Reward has been added to your pot and keys have been spent',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setSelectedReward(null);
+
+      // Call parent callback
+      if (onPurchaseComplete) {
+        onPurchaseComplete();
+      }
+
+      // Close modal after a brief delay to show success
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    },
+
+    onError: (error) => {
+      console.error('Purchase error:', error);
+
+      toast({
+        title: 'Purchase failed',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      setSelectedReward(null);
+    },
+  });
 
   const colors = {
     dark: {
@@ -67,12 +113,9 @@ export default function InnModal({
     return (gp / 1000000).toFixed(1) + 'M';
   };
 
-  // Check if team has already purchased from this Inn
   const hasAlreadyPurchased = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
-
   const availableRewards = node.availableRewards || [];
 
-  // Check if team can afford a reward
   const canAfford = (keyCost) => {
     return keyCost.every((cost) => {
       if (cost.color === 'any') {
@@ -85,7 +128,6 @@ export default function InnModal({
   };
 
   const handlePurchase = async (rewardId) => {
-    // NEW: Check team membership before allowing purchase
     if (!isTeamMember) {
       toast({
         title: 'Not Authorized',
@@ -106,25 +148,10 @@ export default function InnModal({
         },
       });
 
-      toast({
-        title: 'Purchase successful!',
-        description: 'Reward has been added to your pot',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-
-      setSelectedReward(null);
-      onPurchaseComplete && onPurchaseComplete();
-      onClose();
+      // Success handling is in onCompleted callback above
     } catch (error) {
-      toast({
-        title: 'Purchase failed',
-        description: error.message,
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+      // Error handling is in onError callback above
+      console.error('Purchase exception:', error);
     }
   };
 
@@ -145,7 +172,6 @@ export default function InnModal({
 
             <Divider />
 
-            {/* NEW: Not a Team Member Alert */}
             {!isTeamMember && (
               <Alert status="warning" borderRadius="md">
                 <AlertIcon />
@@ -158,7 +184,6 @@ export default function InnModal({
               </Alert>
             )}
 
-            {/* Already Purchased Alert */}
             {hasAlreadyPurchased && (
               <Alert status="success" borderRadius="md">
                 <AlertIcon />
@@ -172,7 +197,6 @@ export default function InnModal({
               </Alert>
             )}
 
-            {/* Team's Current Keys */}
             <Box bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} p={3} borderRadius="md">
               <Heading size="xs" mb={2} color={currentColors.textColor}>
                 Your Keys
@@ -194,7 +218,6 @@ export default function InnModal({
 
             <Divider />
 
-            {/* Available Rewards */}
             <Box>
               <Heading size="sm" mb={3} color={currentColors.textColor}>
                 Shopkeep
@@ -208,7 +231,6 @@ export default function InnModal({
                 <VStack spacing={3} align="stretch">
                   {availableRewards.map((reward) => {
                     const affordable = canAfford(reward.key_cost);
-                    // NEW: Disable if not team member OR already purchased OR can't afford
                     const isDisabled = !isTeamMember || !affordable || hasAlreadyPurchased;
 
                     return (
@@ -284,7 +306,6 @@ export default function InnModal({
               )}
             </Box>
 
-            {/* Transaction History */}
             {team.innTransactions && team.innTransactions.length > 0 && (
               <>
                 <Divider />
