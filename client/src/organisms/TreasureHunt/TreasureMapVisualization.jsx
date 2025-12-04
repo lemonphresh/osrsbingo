@@ -11,21 +11,26 @@ import {
   Flex,
   IconButton,
   useToast,
+  Collapse,
+  useDisclosure,
+  useBreakpointValue,
 } from '@chakra-ui/react';
-import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
+import { CheckIcon, CloseIcon, CopyIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
-const RecenterButton = ({ nodes }) => {
+import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
+
+const RecenterButton = ({ bounds, nodes }) => {
   const map = useMap();
   const [isOffCenter, setIsOffCenter] = useState(false);
 
   useEffect(() => {
     const checkPosition = () => {
       const center = map.getCenter();
-      const mapCenter = { lat: 1952, lng: 3584 }; // mapHeight/2, mapWidth/2
+      const mapCenter = { lat: bounds.mapHeight / 2, lng: bounds.mapWidth / 2 };
 
       // Calculate distance from center
       const distance = Math.sqrt(
@@ -42,7 +47,7 @@ const RecenterButton = ({ nodes }) => {
     return () => {
       map.off('moveend', checkPosition);
     };
-  }, [map]);
+  }, [map, bounds]);
 
   const handleRecenter = () => {
     if (nodes.length > 0) {
@@ -178,6 +183,8 @@ const TreasureMapVisualization = ({
   onAdminUncomplete,
 }) => {
   const toast = useToast();
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
+  const isMobile = useBreakpointValue({ base: true, md: false });
 
   const colors = {
     purple: '#7D5FFF',
@@ -190,27 +197,8 @@ const TreasureMapVisualization = ({
     pink: '#ff9dffff',
   };
 
-  const mapWidth = 7168;
-  const mapHeight = 3904;
-  const mapBounds = [
-    [0, 0],
-    [mapHeight, mapWidth],
-  ];
-
-  const convertCoordinates = (osrsX, osrsY) => {
-    const osrsMinX = 1100;
-    const osrsMaxX = 3900;
-    const osrsMinY = 2500;
-    const osrsMaxY = 4100;
-
-    const normalizedX = (osrsX - osrsMinX) / (osrsMaxX - osrsMinX);
-    const normalizedY = (osrsY - osrsMinY) / (osrsMaxY - osrsMinY);
-
-    const pixelX = normalizedX * mapWidth;
-    const pixelY = normalizedY * mapHeight;
-
-    return [pixelY, pixelX];
-  };
+  const bounds = getMapBounds();
+  const mapBounds = bounds.default;
 
   // Helper function to get difficulty badge color from tier
   const getDifficultyColor = (difficultyTier) => {
@@ -359,7 +347,7 @@ const TreasureMapVisualization = ({
       boxShadow="lg"
     >
       <MapContainer
-        center={[mapHeight / 2, mapWidth / 2]}
+        center={[bounds.mapHeight / 2, bounds.mapWidth / 2]}
         zoom={-2}
         minZoom={-3}
         maxZoom={2}
@@ -368,7 +356,7 @@ const TreasureMapVisualization = ({
         scrollWheelZoom={true}
       >
         <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={1} />
-        <RecenterButton nodes={nodes} />
+        <RecenterButton bounds={bounds} nodes={nodes} />
         {edges.map((edge, idx) => (
           <Polyline
             key={`edge-${idx}`}
@@ -733,62 +721,83 @@ const TreasureMapVisualization = ({
         top={4}
         right={4}
         bg="rgba(255, 255, 255, 0.95)"
-        p={3}
         borderRadius="md"
         boxShadow="xl"
         zIndex={1000}
         border="1px solid #e2e8f0"
+        maxW={{ base: '90vw', md: 'auto' }}
       >
-        {adminMode && (
-          <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">
-            ADMIN MODE
-          </Badge>
-        )}
-        <Text fontWeight="bold" fontSize="sm" mb={3} color="#2d3748">
-          Map Legend
-        </Text>
-        <VStack align="start" spacing={2} fontSize="xs">
-          <HStack>
-            <Box w={4} h={4} bg={colors.green} borderRadius="full" border="2px solid white" />
-            <Text color="#2d3748">Completed</Text>
-          </HStack>
-          <HStack>
-            <Box
-              w={4}
-              h={4}
-              bg={colors.orange}
-              borderRadius="full"
-              border="2px solid white"
-              position="relative"
-            />
-            <Text color="#2d3748">Available {!adminMode && '(click to view)'}</Text>
-          </HStack>
-          <HStack>
-            <Box
-              w={4}
-              h={4}
-              bg={colors.gray}
-              borderRadius="full"
-              border="2px solid white"
-              opacity={0.5}
-            />
-            <Text color="#2d3748">Locked</Text>
-          </HStack>
-          <HStack>
-            <Box w={4} h={4} bg={colors.yellow} borderRadius="sm" border="2px solid white" />
-            <Text color="#2d3748">Inn (checkpoint)</Text>
-          </HStack>
-          <HStack>
-            <Box w={4} h={4} bg={colors.purple} borderRadius="full" border="2px solid white" />
-            <Text color="#2d3748">Start</Text>
-          </HStack>
-        </VStack>
-
-        <Box mt={3} pt={3} borderTop="1px solid #e2e8f0">
-          <Text fontSize="xs" color="#718096">
-            Scroll to zoom • Drag to pan
+        <HStack
+          justify="space-between"
+          p={3}
+          pb={isOpen ? 2 : 3}
+          cursor={isMobile ? 'pointer' : 'default'}
+          onClick={isMobile ? onToggle : undefined}
+        >
+          <Text fontWeight="bold" fontSize="sm" color="#2d3748">
+            Map Legend
           </Text>
-        </Box>
+          {isMobile && (
+            <IconButton
+              icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              size="xs"
+              variant="ghost"
+              aria-label="Toggle legend"
+            />
+          )}
+        </HStack>
+
+        <Collapse in={!isMobile || isOpen} animateOpacity>
+          <Box px={3} pb={3}>
+            {adminMode && (
+              <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">
+                ADMIN MODE
+              </Badge>
+            )}
+            <VStack align="start" spacing={2} fontSize="xs">
+              <HStack>
+                <Box w={4} h={4} bg={colors.green} borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Completed</Text>
+              </HStack>
+              <HStack>
+                <Box
+                  w={4}
+                  h={4}
+                  bg={colors.orange}
+                  borderRadius="full"
+                  border="2px solid white"
+                  position="relative"
+                />
+                <Text color="#2d3748">Available {!adminMode && '(click to view)'}</Text>
+              </HStack>
+              <HStack>
+                <Box
+                  w={4}
+                  h={4}
+                  bg={colors.gray}
+                  borderRadius="full"
+                  border="2px solid white"
+                  opacity={0.5}
+                />
+                <Text color="#2d3748">Locked</Text>
+              </HStack>
+              <HStack>
+                <Box w={4} h={4} bg={colors.yellow} borderRadius="sm" border="2px solid white" />
+                <Text color="#2d3748">Inn (checkpoint)</Text>
+              </HStack>
+              <HStack>
+                <Box w={4} h={4} bg={colors.purple} borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Start</Text>
+              </HStack>
+            </VStack>
+
+            <Box mt={3} pt={3} borderTop="1px solid #e2e8f0">
+              <Text fontSize="xs" color="#718096">
+                Scroll to zoom • Drag to pan
+              </Text>
+            </Box>
+          </Box>
+        </Collapse>
       </Box>
 
       {/* Team stats overlay */}

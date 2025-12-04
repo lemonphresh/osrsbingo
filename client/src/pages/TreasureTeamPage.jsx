@@ -9,7 +9,6 @@ import {
   Card,
   CardBody,
   Badge,
-  useColorMode,
   Spinner,
   Container,
   useDisclosure,
@@ -48,9 +47,11 @@ import AvailableInnsModal from '../organisms/TreasureHunt/AvailableInnsModal';
 import BuffApplicationListModal from '../organisms/TreasureHunt/BuffApplicationListModal';
 import TeamAccessOverlay from '../organisms/TreasureHunt/TeamAccessOverlay';
 import EnhancedTeamStats from '../organisms/TreasureHunt/EnhancedTeamStats';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const TreasureTeamView = () => {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
+
   const { eventId, teamId } = useParams();
   const toast = useToast();
   const [selectedBuff, setSelectedBuff] = useState(null);
@@ -93,35 +94,6 @@ const TreasureTeamView = () => {
 
   const [selectedNode, setSelectedNode] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      yellow: { base: '#F4D35E' },
-      sapphire: { base: '#19647E' },
-      turquoise: { base: '#28AFB0' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-      redacted: '#1A202C',
-      orange: '#FF914D',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      yellow: { base: '#F4D35E' },
-      sapphire: { base: '#19647E' },
-      turquoise: { base: '#28AFB0' },
-      textColor: '#171923',
-      cardBg: 'white',
-      redacted: '#E2E8F0',
-      orange: '#FF914D',
-    },
-  };
-
-  const currentColors = colors[colorMode];
 
   const event = eventData?.getTreasureEvent;
   const team = teamData?.getTreasureTeam;
@@ -218,7 +190,7 @@ const TreasureTeamView = () => {
 
   const getNumberOfAvailableInns = () =>
     nodes.filter((node) => {
-      const hasTransaction = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
+      const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
       return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
     }).length;
 

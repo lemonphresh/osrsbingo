@@ -121,13 +121,14 @@ const Landing = () => {
         <VStack spacing={4} marginX={['0px', '16px', '56px', '16px']}>
           <HStack
             spacing={4}
-            alignItems="flex-start"
+            alignItems="stretch"
             width="100%"
             flexDirection={['column', 'column', 'row']}
           >
             <Box
               flex="1"
               padding="20px"
+              minHeight="100%"
               backgroundColor={theme.colors.teal[900]}
               borderRadius="8px"
               borderWidth="2px"
@@ -148,6 +149,7 @@ const Landing = () => {
             <Box
               flex="1"
               padding="20px"
+              minHeight="100%"
               backgroundColor={theme.colors.teal[900]}
               borderRadius="8px"
               borderWidth="2px"
@@ -168,13 +170,14 @@ const Landing = () => {
 
           <HStack
             spacing={4}
-            alignItems="flex-start"
+            alignItems="stretch"
             width="100%"
             flexDirection={['column', 'column', 'row']}
           >
             <Box
               flex="1"
               padding="20px"
+              minHeight="100%"
               backgroundColor={theme.colors.teal[900]}
               borderRadius="8px"
               borderWidth="2px"
@@ -195,6 +198,7 @@ const Landing = () => {
             <Box
               flex="1"
               padding="20px"
+              minHeight="100%"
               backgroundColor={theme.colors.teal[900]}
               borderRadius="8px"
               borderWidth="2px"

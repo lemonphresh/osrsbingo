@@ -117,8 +117,8 @@ export const useSubmissionNotifications = (
 
     document.title =
       pendingToShow > 0
-        ? `(${pendingToShow}) ${eventName} - Treasure Hunt`
-        : `${eventName} - Treasure Hunt`;
+        ? `(${pendingToShow}) OSRS Bingo Hub - Create and Share Bingo Boards`
+        : `OSRS Bingo Hub - Create and Share Bingo Boards`;
 
     return () => {
       if (originalFaviconRef.current) {

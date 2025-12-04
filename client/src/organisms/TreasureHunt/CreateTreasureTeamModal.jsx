@@ -33,29 +33,16 @@ import { CREATE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import DiscordStep1 from '../../assets/discordstep1.png';
 import DiscordStep2 from '../../assets/discordstep2.png';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 function isValidDiscordId(id) {
   return /^\d{17,19}$/.test(id);
 }
 
 export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess }) {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
+
   const { showToast } = useToastContext();
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
-
-  const currentColors = colors[colorMode];
 
   const [formData, setFormData] = useState({
     teamName: '',
@@ -163,7 +150,7 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
                       <HStack>
                         <Icon as={InfoIcon} color="blue.500" />
                         <Text fontSize="sm" fontWeight="bold">
-                          How do I find Discord User IDs? 👈 Click here
+                          How do I find Discord User IDs?
                         </Text>
                       </HStack>
                     </Box>

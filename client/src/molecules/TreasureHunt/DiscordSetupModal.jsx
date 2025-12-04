@@ -16,36 +16,16 @@ import {
   OrderedList,
   ListItem,
   UnorderedList,
-  useColorMode,
   Icon,
   Button,
   Link,
 } from '@chakra-ui/react';
 import { InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
 
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF' },
-      turquoise: { base: '#28AFB0' },
-      orange: { base: '#FF914D' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-      codeBg: '#1A202C',
-    },
-    light: {
-      purple: { base: '#7D5FFF' },
-      turquoise: { base: '#28AFB0' },
-      orange: { base: '#FF914D' },
-      textColor: '#171923',
-      cardBg: 'white',
-      codeBg: '#F7FAFC',
-    },
-  };
-
-  const currentColors = colors[colorMode];
   const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
 
   return (

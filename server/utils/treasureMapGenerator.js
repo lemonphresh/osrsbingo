@@ -3,120 +3,94 @@ const { buildFormattedObjectives, getDefaultContentSelections } = require('./obj
 
 // OSRS locations for placing nodes on the map
 const OSRS_LOCATIONS = [
-  // Misthalin
+  // Misthalin (verified coordinates)
   { name: 'Lumbridge', x: 3222, y: 3218 },
-  { name: 'Draynor Village', x: 3093, y: 3244 },
+  { name: 'Draynor Village', x: 3092, y: 3243 },
   { name: 'Al Kharid', x: 3293, y: 3174 },
 
   // Asgarnia
   { name: 'Falador', x: 2965, y: 3378 },
-  { name: 'Port Sarim', x: 3012, y: 3217 },
-  { name: 'Rimmington', x: 2957, y: 3214 },
-  { name: 'Taverly', x: 2933, y: 3450 },
-  { name: 'Burthorpe', x: 2899, y: 3544 },
-  { name: 'White Wolf Mountain', x: 2849, y: 3543 },
-  { name: 'Goblin Village', x: 2956, y: 3502 },
+  { name: 'Port Sarim', x: 3029, y: 3217 },
+  { name: 'Rimmington', x: 2956, y: 3224 },
+  { name: 'Taverley', x: 2933, y: 3451 },
+  { name: 'Burthorpe', x: 2881, y: 3544 },
+  { name: 'White Wolf Mountain', x: 2845, y: 3483 },
+  { name: 'Goblin Village', x: 2958, y: 3504 },
 
   // Kandarin
-  { name: 'Catherby', x: 2809, y: 3436 },
-  { name: 'Seers Village', x: 2725, y: 3484 },
-  { name: 'Ardougne', x: 2662, y: 3305 },
-  { name: 'Yanille', x: 2606, y: 3093 },
-  { name: 'Tree Gnome Stronghold', x: 2461, y: 3444 },
-  { name: 'Tree Gnome Village', x: 2542, y: 3169 },
-  { name: 'Fishing Guild', x: 2611, y: 3393 },
-  { name: 'Barbarian Village', x: 3082, y: 3420 },
+  { name: 'Catherby', x: 2808, y: 3434 },
+  { name: "Seers' Village", x: 2710, y: 3485 },
+  { name: 'Ardougne', x: 2570, y: 3300 },
+  { name: 'Yanille', x: 2544, y: 3094 },
+  { name: 'Tree Gnome Stronghold', x: 2465, y: 3444 },
+  { name: 'Fishing Guild', x: 2609, y: 3390 },
+  { name: 'Barbarian Village', x: 3081, y: 3420 },
   { name: 'Grand Tree', x: 2465, y: 3495 },
 
-  // Varrock & Surroundings
+  // Varrock & Surroundings (verified)
   { name: 'Varrock', x: 3213, y: 3424 },
-  { name: 'Edgeville', x: 3087, y: 3496 },
-  { name: 'Grand Exchange', x: 3164, y: 3464 },
-  { name: 'Varrock Palace', x: 3211, y: 3458 },
-
-  // Wilderness
-  { name: 'Wilderness - Edgeville', x: 3089, y: 3520 },
-  { name: 'Wilderness - Bandit Camp', x: 3039, y: 3652 },
-  { name: 'Wilderness - Lava Maze', x: 3060, y: 3880 },
-  { name: 'Wilderness - Mage Arena', x: 3105, y: 3933 },
-  { name: 'Wilderness - Dark Warriors Fortress', x: 3028, y: 3628 },
-  { name: 'Wilderness - Resource Area', x: 3184, y: 3944 },
+  { name: 'Edgeville', x: 3094, y: 3492 },
+  { name: 'Grand Exchange', x: 3164, y: 3487 },
 
   // Morytania
-  { name: 'Morytania - Canifis', x: 3493, y: 3488 },
-  { name: 'Morytania - Port Phasmatys', x: 3686, y: 3502 },
-  { name: 'Morytania - Burgh de Rott', x: 3496, y: 3211 },
-  { name: 'Morytania - Darkmeyer', x: 3623, y: 3367 },
-  { name: 'Morytania - Slepe', x: 3747, y: 3375 },
-  { name: 'Morytania - Barrows', x: 3565, y: 3289 },
-  { name: "Morytania - Mos Le'Harmless", x: 3686, y: 2973 },
+  { name: 'Canifis', x: 3493, y: 3488 },
+  { name: 'Port Phasmatys', x: 3679, y: 3486 },
+  { name: 'Burgh de Rott', x: 3502, y: 3210 },
+  { name: 'Darkmeyer', x: 3628, y: 3362 },
+  { name: 'Slepe', x: 3724, y: 3335 },
+  { name: 'Barrows', x: 3565, y: 3290 },
 
   // Karamja
-  { name: 'Karamja - Brimhaven', x: 2758, y: 3151 },
-  { name: 'Karamja - Shilo Village', x: 2852, y: 2953 },
-  { name: 'Karamja - Tai Bwo Wannai', x: 2789, y: 3065 },
-  { name: 'Karamja - Musa Point', x: 2914, y: 3176 },
+  { name: 'Brimhaven', x: 2760, y: 3178 },
+  { name: 'Shilo Village', x: 2834, y: 2995 },
+  { name: 'Tai Bwo Wannai', x: 2789, y: 3065 },
+  { name: 'Musa Point', x: 2913, y: 3165 },
 
   // Desert (Kharidian)
-  { name: 'Pollnivneach', x: 3359, y: 2963 },
-  { name: 'Nardah', x: 3428, y: 2916 },
-  { name: 'Sophanem', x: 3285, y: 2771 },
-  { name: 'Menaphos', x: 3233, y: 2813 },
-  { name: 'Uzer', x: 3493, y: 3090 },
-  { name: 'Bedabin Camp', x: 3180, y: 3044 },
-  { name: 'Desert Bandit Camp', x: 3176, y: 2987 },
+  { name: 'Pollnivneach', x: 3360, y: 2963 },
+  { name: 'Nardah', x: 3427, y: 2891 },
+  { name: 'Sophanem', x: 3297, y: 2783 },
+  { name: 'Menaphos', x: 3200, y: 2750 },
+  { name: 'Uzer', x: 3500, y: 3095 },
 
   // Fremennik Province
-  { name: 'Rellekka', x: 2660, y: 3660 },
-  { name: 'Neitiznot', x: 2331, y: 3804 },
-  { name: 'Jatizso', x: 2416, y: 3802 },
-  { name: 'Miscellania', x: 2512, y: 3860 },
-  { name: 'Waterbirth Island', x: 2527, y: 3740 },
-  { name: 'Mountain Camp', x: 2808, y: 3672 },
+  { name: 'Rellekka', x: 2670, y: 3630 },
+  { name: 'Neitiznot', x: 2331, y: 3801 },
+  { name: 'Jatizso', x: 2394, y: 3801 },
+  { name: 'Miscellania', x: 2535, y: 3860 },
+  { name: 'Waterbirth Island', x: 2546, y: 3760 },
 
   // Tirannwn (Elf Lands)
-  { name: 'Prifddinas', x: 2225, y: 3300 },
-  { name: 'Lletya', x: 2353, y: 3172 },
-  { name: 'Zul-Andra', x: 2199, y: 3056 },
-  { name: 'Port Tyras', x: 2150, y: 3125 },
-  { name: 'Tirannwn - Gwenith', x: 2203, y: 3406 },
+  { name: 'Prifddinas', x: 2297, y: 3144 }, // Corrected from outlier value
+  { name: 'Lletya', x: 2330, y: 3172 },
+  { name: 'Zul-Andra', x: 2200, y: 3056 },
 
-  // KOUREND (Great Kourend)
-  { name: 'Kourend - Shayzien', x: 1504, y: 3615 },
-  { name: 'Kourend - Lovakengj', x: 1488, y: 3812 },
-  { name: 'Kourend - Arceuus', x: 1698, y: 3788 },
-  { name: 'Kourend - Hosidius', x: 1752, y: 3600 },
-  { name: 'Kourend - Piscarilius', x: 1824, y: 3726 },
-  { name: 'Kourend - Kourend Castle', x: 1612, y: 3681 },
-  { name: 'Kourend - Woodcutting Guild', x: 1591, y: 3479 },
-  { name: 'Kourend - Farming Guild', x: 1248, y: 3719 },
-  { name: "Kourend - Land's End", x: 1510, y: 3421 },
-  { name: 'Kourend - Wintertodt Camp', x: 1630, y: 3944 },
-  { name: 'Kourend - Mount Karuulm', x: 1310, y: 3817 },
+  // Kourend
+  { name: 'Shayzien', x: 1489, y: 3624 },
+  { name: 'Lovakengj', x: 1503, y: 3818 },
+  { name: 'Arceuus', x: 1692, y: 3818 },
+  { name: 'Hosidius', x: 1757, y: 3624 },
+  { name: 'Piscarilius', x: 1824, y: 3755 },
+  { name: 'Wintertodt Camp', x: 1629, y: 3963 },
+  { name: 'Mount Karuulm', x: 1310, y: 3796 },
 
-  // VARLAMORE
-  { name: 'Varlamore - Aldarin', x: 1528, y: 3087 },
-  { name: 'Varlamore - Civitas illa Fortis', x: 1728, y: 3149 },
-  { name: 'Varlamore - Hunter Guild', x: 1567, y: 3066 },
-  { name: 'Varlamore - Sunset Coast', x: 1419, y: 3050 },
-  { name: 'Varlamore - Cam Torum', x: 1444, y: 3184 },
-  { name: 'Varlamore - Fortis Colosseum', x: 1808, y: 3209 },
-  { name: 'Varlamore - The Teomat', x: 1572, y: 3222 },
+  // Varlamore (verified from calibration)
+  { name: 'Civitas illa Fortis', x: 1776, y: 3088 },
+  { name: 'Aldarin', x: 1006, y: 2247 },
 
-  // Fossil Island & Misc Islands
-  { name: 'Fossil Island', x: 3724, y: 3808 },
-  { name: 'Crandor', x: 2834, y: 3259 },
-  { name: 'Entrana', x: 2831, y: 3351 },
-  { name: 'Pest Control', x: 2658, y: 2660 },
-  { name: 'Lunar Isle', x: 2111, y: 3915 },
-  { name: 'Ape Atoll', x: 2755, y: 2784 },
-
-  // Dungeons & Special Areas (surface entrances)
-  { name: 'Duel Arena', x: 3366, y: 3266 },
-  { name: 'Champions Guild', x: 3191, y: 3364 },
-  { name: "Warrior's Guild", x: 2876, y: 3546 },
-  { name: 'Myths Guild', x: 2458, y: 2845 },
-  { name: 'Corsair Cove', x: 2570, y: 2862 },
+  // Islands & Special Areas
+  { name: 'Fossil Island', x: 3763, y: 3869 },
+  { name: 'Crandor', x: 2834, y: 3253 },
+  { name: 'Entrana', x: 2834, y: 3335 },
+  { name: 'Lunar Isle', x: 2089, y: 3863 },
+  { name: 'Ape Atoll', x: 2798, y: 2704 },
+  { name: 'Duel Arena', x: 3366, y: 3267 }, // Emir's Arena from calibration
+  { name: "Champions' Guild", x: 3190, y: 3356 },
+  { name: "Warriors' Guild", x: 2877, y: 3546 },
+  { name: "Myths' Guild", x: 2458, y: 2845 },
+  { name: 'Corsair Cove', x: 2569, y: 2864 },
+  { name: 'The Great Conch', x: 5918, y: 924 },
+  { name: 'Pandemonium', x: 5600, y: 2397 },
 ];
 
 const DIFFICULTY_MULTIPLIERS = {
