@@ -52,20 +52,20 @@ const BingoQAList = [
 
 const TreasureHuntQAList = [
   {
-    q: <Text>What is Treasure Hunt mode?</Text>,
+    q: <Text>What is Gielinor Rush mode?</Text>,
     a: (
       <Text>
-        Treasure Hunt is a competitive, team-based game mode where clans navigate through an
+        Gielinor Rush is a competitive, team-based game mode where clans navigate through an
         interconnected map of OSRS challenges. Teams complete objectives, earn rewards, and race to
         the treasure!
       </Text>
     ),
   },
   {
-    q: <Text>How do I create a Treasure Hunt event?</Text>,
+    q: <Text>How do I create a Gielinor Rush event?</Text>,
     a: (
       <Text>
-        Log in and navigate to the Treasure Hunt section. Click "Create Event" to set up your event,
+        Log in and navigate to the Gielinor Rush section. Click "Create Event" to set up your event,
         define objectives, create teams, and connect your Discord server for submissions and
         notifications.
       </Text>
@@ -101,7 +101,7 @@ const TreasureHuntQAList = [
     ),
   },
   {
-    q: <Text>Do I need a Discord bot for Treasure Hunt?</Text>,
+    q: <Text>Do I need a Discord bot for Gielinor Rush?</Text>,
     a: (
       <Text>
         Yes, the Discord bot is required for submission commands and notifications. You'll need to
@@ -207,10 +207,10 @@ const Faq = () => {
           </Accordion>
         </Box>
 
-        {/* Treasure Hunt Section */}
+        {/* Gielinor Rush Section */}
         <Box marginTop="32px" marginBottom="24px">
           <Heading size="md" color={theme.colors[colorMode].turquoise.base} marginBottom="16px">
-            🗺️ Treasure Hunt
+            🗺️ Gielinor Rush
           </Heading>
           <Accordion allowToggle borderColor="transparent" width="100%">
             {TreasureHuntQAList.map((i, idx) => (

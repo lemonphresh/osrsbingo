@@ -726,3 +726,29 @@ export const NODE_COMPLETED_SUB = gql`
     }
   }
 `;
+
+export const TREASURE_ACTIVITY_SUBSCRIPTION = gql`
+  subscription TreasureHuntActivity($eventId: ID!) {
+    treasureHuntActivity(eventId: $eventId) {
+      id
+      eventId
+      teamId
+      type
+      data
+      timestamp
+    }
+  }
+`;
+
+export const GET_TREASURE_ACTIVITIES = gql`
+  query GetTreasureActivities($eventId: ID!, $limit: Int) {
+    getTreasureActivities(eventId: $eventId, limit: $limit) {
+      id
+      eventId
+      teamId
+      type
+      data
+      timestamp
+    }
+  }
+`;

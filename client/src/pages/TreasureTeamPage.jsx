@@ -415,7 +415,7 @@ const TreasureTeamView = () => {
 
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
               <Text fontSize="sm" color={currentColors.textColor}>
-                This Treasure Hunt event is still being set up by the event organizers. It will
+                This Gielinor Rush event is still being set up by the event organizers. It will
                 become visible once the admins publish it.
               </Text>
             </Box>

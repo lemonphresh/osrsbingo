@@ -450,7 +450,7 @@ const TreasureHuntDashboard = () => {
                 {/* Hero Section */}
                 <VStack spacing={4} textAlign="center" py={8}>
                   <GemTitle size="lg" gemColor="yellow">
-                    Welcome to Treasure Hunt!
+                    Welcome to Gielinor Rush!
                   </GemTitle>
                   <Text fontSize="lg" color="white" maxW="600px">
                     Create competitive clan events where teams race through OSRS challenges to claim
@@ -458,7 +458,7 @@ const TreasureHuntDashboard = () => {
                   </Text>
                   <Image
                     m="0 auto"
-                    alt="Example Treasure Hunt game board showing a map with various challenge nodes and paths between them"
+                    alt="Example Gielinor Rush game board showing a map with various challenge nodes and paths between them"
                     backgroundColor={theme.colors.gray[900]}
                     borderRadius="8px"
                     maxHeight="300px"
@@ -723,7 +723,7 @@ const TreasureHuntDashboard = () => {
                 gap={4}
               >
                 <GemTitle size="xl" color={currentColors.textColor} gemColor="yellow">
-                  Your Treasure Hunt Events
+                  Your Gielinor Rush Events
                 </GemTitle>
                 <Button
                   leftIcon={<AddIcon />}
@@ -876,7 +876,7 @@ const TreasureHuntDashboard = () => {
       <AuthRequiredModal
         isOpen={isAuthModalOpen}
         onClose={onAuthModalClose}
-        feature="create treasure hunt events"
+        feature="create Gielinor Rush events"
       />
 
       <AlertDialog

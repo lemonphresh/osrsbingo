@@ -36,7 +36,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
           <HStack>
             <Text fontSize="2xl">📝</Text>
             <Heading size="md" color={currentColors.textColor}>
-              How to Create a Treasure Hunt Event
+              How to Create a Gielinor Rush Event
             </Heading>
           </HStack>
 
@@ -285,7 +285,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <VStack spacing={3} align="stretch">
                   <Text fontSize="sm" color={currentColors.textColor}>
                     After creating the event, click "Generate Map" in the Event Settings tab to
-                    automatically create your treasure hunt!
+                    automatically create your Gielinor Rush!
                   </Text>
 
                   <Box
@@ -480,7 +480,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
-                Enable Discord integration for easier team management (highly recommended)
+                Enable Discord integration for easier team management
               </ListItem>
             </List>
           </Box>

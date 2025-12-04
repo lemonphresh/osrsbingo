@@ -346,7 +346,7 @@ export default function NodeDetailModal({
             )}
 
             {/* Discord Submit Instructions - Show for available nodes when not in admin mode */}
-            {!adminMode && isAvailable && !isInnNode && (
+            {!adminMode && isAvailable && (
               <Box
                 p={3}
                 bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
@@ -362,7 +362,7 @@ export default function NodeDetailModal({
                     color={currentColors.textColor}
                     textAlign="center"
                   >
-                    Submit completion via Discord bot:
+                    Submit {isInnNode ? 'visit to inn' : 'completion'} via Discord bot:
                   </Text>
                 </HStack>
                 <VStack spacing={2} align="stretch">
@@ -384,7 +384,8 @@ export default function NodeDetailModal({
                     />
                   </HStack>
                   <Text fontSize="xs" color="gray.500" textAlign="center">
-                    or attach an image file to your message
+                    or attach an image file to your message.{' '}
+                    {isInnNode && ' Since this is an inn, show me your favorite cat!'}
                   </Text>
                 </VStack>
               </Box>

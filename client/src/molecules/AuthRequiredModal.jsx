@@ -138,7 +138,7 @@ const AuthRequiredModal = ({ isOpen, onClose, feature = 'this feature' }) => {
                 <Text ml={3}>• Share your boards with your friends</Text>
                 <Text ml={3}>• Browse public boards for inspiration</Text>
                 <Text>
-                  • Create unlimited <strong>treasure hunt events</strong>
+                  • Create unlimited <strong>Gielinor Rush events</strong>
                 </Text>
                 <Text ml={3}>• Review and approve submissions</Text>
                 <Text ml={3}>• Access event analytics and leaderboards</Text>

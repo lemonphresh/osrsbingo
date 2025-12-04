@@ -1,13 +1,13 @@
 # OSRS Bingo Hub
 
-A comprehensive web platform for Old School RuneScape players to create bingo boards and compete in treasure hunt events with their clanmates.
+A comprehensive web platform for Old School RuneScape players to create bingo boards and compete in Gielinor Rush events with their clanmates.
 
 ## 🎮 Overview
 
 OSRS Bingo Hub ([osrsbingohub.com](https://www.osrsbingohub.com)) provides two main game modes:
 
 - **Bingo Boards**: Create custom bingo boards for personal goals or clan competitions
-- **Treasure Hunter**: Team-based competitive events where teams race through generated maps completing OSRS objectives
+- **Gielinor Rush**: Team-based competitive events where teams race through generated maps completing OSRS objectives
 
 ## 🏗️ Architecture
 
@@ -17,7 +17,7 @@ The project consists of three main components:
 osrs-bingo-hub/
 ├── client/          # React frontend application
 ├── server/          # Node.js/Express GraphQL backend
-└── bot/             # Discord bot for Treasure Hunter integration
+└── bot/             # Discord bot for Gielinor Rush integration
 ```
 
 ## 🚀 Quick Start
@@ -192,7 +192,7 @@ The client is configured to proxy API requests to the server (see `package.json`
 
 **Location**: `/bot`
 
-An optional Discord bot that allows teams to interact with Treasure Hunter events directly from Discord.
+An optional Discord bot that allows teams to interact with Gielinor Rush events directly from Discord.
 
 #### Key Features
 
@@ -238,7 +238,7 @@ NODE_ENV=development
 - **Users** - User accounts and authentication
 - **BingoBoards** - Bingo board configurations
 - **BingoTiles** - Individual bingo tiles
-- **TreasureEvents** - Treasure hunt event configuration
+- **TreasureEvents** - Gielinor Rush event configuration
 - **TreasureTeams** - Teams participating in events
 - **TreasureNodes** - Map nodes with objectives
 - **TreasureSubmissions** - Proof submissions for completed objectives

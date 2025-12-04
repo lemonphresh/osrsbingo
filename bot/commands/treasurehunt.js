@@ -3,10 +3,10 @@ const { EmbedBuilder } = require('discord.js');
 module.exports = {
   name: 'treasurehunt',
   aliases: ['th'],
-  description: 'Treasure Hunt help and commands',
+  description: 'Gielinor Rush help and commands',
   async execute(message, args) {
     const embed = new EmbedBuilder()
-      .setTitle('🗺️ Treasure Hunt Commands')
+      .setTitle('🗺️ Gielinor Rush Commands')
       .setColor('#7D5FFF')
       .setDescription(
         'Compete with your team to complete OSRS objectives and earn the highest GP pot!'

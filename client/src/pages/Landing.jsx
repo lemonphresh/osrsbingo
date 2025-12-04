@@ -103,9 +103,9 @@ const Landing = () => {
         </Section>
       </Flex>
 
-      {/* Treasure Hunt Section */}
+      {/* Gielinor Rush Section */}
       <Section flexDirection="column" width="100%" marginTop="32px">
-        <GemTitle gemColor="orange">Treasure Hunt Mode</GemTitle>
+        <GemTitle gemColor="orange">Gielinor Rush Mode</GemTitle>
         <Image
           backgroundColor={theme.colors.gray[900]}
           borderRadius="8px"
@@ -115,7 +115,7 @@ const Landing = () => {
           margin="0 auto"
         />
         <Text marginX={['0px', '16px', '56px', '16px']} marginY="24px" textAlign="center">
-          Looking for something even more competitive? Try our team-based Treasure Hunt events!
+          Looking for something even more competitive? Try our team-based Gielinor Rush events!
         </Text>
 
         <VStack spacing={4} marginX={['0px', '16px', '56px', '16px']}>
@@ -251,7 +251,7 @@ const Landing = () => {
                 <VStack align="start" spacing={2} fontSize="sm" color={theme.colors.textColor}>
                   <HStack>
                     <Text>1️⃣</Text>
-                    <Text>Create a Treasure Hunt event with custom objectives</Text>
+                    <Text>Create a Gielinor Rush event with custom objectives</Text>
                   </HStack>
                   <HStack>
                     <Text>2️⃣</Text>

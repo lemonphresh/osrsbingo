@@ -30,7 +30,7 @@ import {
 } from '@chakra-ui/icons';
 
 /**
- * Tutorial component explaining how to get started with the Treasure Hunt
+ * Tutorial component explaining how to get started with the Gielinor Rush
  * Shows when team has 0 completed nodes and START node is available
  * Can be dismissed and won't show again (stored in localStorage)
  */
@@ -102,7 +102,7 @@ export const TreasureHuntTutorial = ({
             <Badge colorScheme="purple" fontSize="xs">
               START
             </Badge>{' '}
-            node first to unlock your initial nodes and begin the treasure hunt!
+            node first to unlock your initial nodes and begin the Gielinor Rush!
           </AlertDescription>
         </Box>
         <CloseButton
@@ -138,7 +138,7 @@ export const TreasureHuntTutorial = ({
         <HStack flex={1}>
           <Icon as={InfoIcon} color={currentColors.purple} boxSize={6} />
           <Heading size="md" color={currentColors.textColor}>
-            🗺️ Welcome to the Treasure Hunt!
+            🗺️ Welcome to the Gielinor Rush!
           </Heading>
           {isCollapsed && (
             <Badge colorScheme="purple" fontSize="xs">

@@ -5,6 +5,7 @@ const {
   TreasureTeam,
   TreasureNode,
   TreasureSubmission,
+  TreasureActivity,
   User,
 } = require('../../db/models');
 const { generateMap } = require('../../utils/treasureMapGenerator');
@@ -41,6 +42,28 @@ function getDifficultyName(difficultyTier) {
   const tierMap = { 1: 'EASY', 3: 'MEDIUM', 5: 'HARD' };
   return tierMap[difficultyTier] || 'UNKNOWN';
 }
+const logTreasureHuntActivity = async (eventId, teamId, type, data = {}) => {
+  const activity = {
+    id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    eventId,
+    teamId,
+    type,
+    data,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    await TreasureActivity.create(activity);
+  } catch (err) {
+    console.error('❌ Failed to save activity:', err.message);
+  }
+
+  // Publish to subscribers
+  const topic = `TREASURE_ACTIVITY_${eventId}`;
+  await pubsub.publish(topic, { treasureHuntActivity: activity });
+
+  return activity;
+};
 
 async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
   if (!discordUserId) return false;
@@ -250,6 +273,19 @@ const TreasureHuntResolvers = {
       } catch (error) {
         console.error('Error fetching all submissions:', error);
         throw new Error(`Failed to fetch submissions: ${error.message}`);
+      }
+    },
+    getTreasureActivities: async (_, { eventId, limit = 50 }) => {
+      try {
+        const activities = await TreasureActivity.findAll({
+          where: { eventId },
+          order: [['timestamp', 'DESC']],
+          limit,
+        });
+        return activities;
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+        throw new Error(`Failed to fetch activities: ${error.message}`);
       }
     },
   },
@@ -971,6 +1007,24 @@ const TreasureHuntResolvers = {
           activeBuffs,
         });
 
+        console.log('LOGGING NEW ACTIVITY');
+        await logTreasureHuntActivity(eventId, teamId, 'node_completed', {
+          nodeId,
+          nodeTitle: node.title,
+          difficulty: node.difficultyTier,
+          reward: node.rewards?.gp || 0,
+          completedBy: 'admin',
+        });
+
+        if (node.rewards?.gp > 0) {
+          await logTreasureHuntActivity(eventId, teamId, 'gp_gained', {
+            amount: node.rewards.gp.toString(),
+            source: 'node_completion',
+            nodeId,
+            newTotal: currentPot.toString(),
+          });
+        }
+
         // Reload the team to verify the update
         await team.reload();
 
@@ -1436,6 +1490,15 @@ const TreasureHuntResolvers = {
 
         // 9. **CRITICAL: Save the team back to database**
         await team.save();
+
+        await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
+          innId: innNode.nodeId,
+          innName: innNode.title,
+          rewardId: reward.reward_id,
+          keysSpent: keysSpent,
+          gpEarned: reward.payout,
+          buffsEarned: reward.buffs || [], // if your inn rewards include buffs
+        });
 
         console.log('✅ Keys deducted successfully:', {
           teamId: team.teamId,

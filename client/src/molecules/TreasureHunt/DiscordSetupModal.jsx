@@ -25,7 +25,6 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 
 const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
   const { colors: currentColors, colorMode } = useThemeColors();
-
   const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
 
   return (
@@ -47,7 +46,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 📱 Overview
               </Text>
               <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.300' : 'gray.600'}>
-                The Discord bot lets your teams interact with the Treasure Hunt directly from
+                The Discord bot lets your teams interact with the Gielinor Rush directly from
                 Discord. Teams can view their progress, check available nodes, submit completions,
                 and use buffs - all without leaving your server!
               </Text>
@@ -69,25 +68,22 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.300' : 'gray.600'}>
                   First, you need to add the Treasure Hunt bot to your Discord server.
                 </Text>
-                {botInstallUrl ? (
+
+                <Box p={3} bg={currentColors.codeBg} borderRadius="md">
                   <Button
                     as={Link}
                     href={botInstallUrl}
                     isExternal
-                    colorScheme="purple"
-                    size="md"
+                    colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
+                    size="sm"
                     rightIcon={<ExternalLinkIcon />}
                     _hover={{ textDecoration: 'none' }}
+                    w="100%"
                   >
                     Add Bot to Discord Server
                   </Button>
-                ) : (
-                  <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.100'} borderRadius="md">
-                    <Text fontSize="sm" color={colorMode === 'dark' ? 'red.200' : 'red.800'}>
-                      ⚠️ Bot installation URL not configured. Please contact your administrator.
-                    </Text>
-                  </Box>
-                )}
+                </Box>
+
                 <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
                   You'll need "Manage Server" permissions to add the bot. The bot requires
                   permissions to read messages, send messages, and embed links.
@@ -130,8 +126,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               </OrderedList>
               <Box mt={2} p={2} bg={currentColors.turquoise.base} borderRadius="md">
                 <Text fontSize="xs" color="white" fontWeight="bold">
-                  💡 Pro Tip: You can create multiple channels for the same event (one per team) by
-                  using the same Event ID in each channel's topic!
+                  💡 Pro Tip: You can and should create multiple channels for the same event (one
+                  per team) by using the same Event ID in each channel's topic!
                 </Text>
               </Box>
             </Box>
@@ -163,7 +159,11 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                   - Add Discord User IDs to each team you create. This will allow them to use
                   Discord commands to submit their screenshots, check progress and more. They'll
                   also be able to use the site UI on their team's page to use buffs, buy items from
-                  inns, etc.
+                  inns, etc.,{' '}
+                  <strong>
+                    as long as their Discord IDs are linked to their OSRS Bingo Hub profiles
+                  </strong>
+                  .
                 </ListItem>
               </UnorderedList>
               <Box

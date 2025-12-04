@@ -272,7 +272,7 @@ export const useSubmissionNotifications = (
           duration: 3000,
         });
 
-        const testNotif = new Notification('Treasure Hunt Notifications Enabled', {
+        const testNotif = new Notification('Gielinor Rush Notifications Enabled', {
           body: `You'll receive alerts for new submissions in ${eventName}`,
           icon: '/favicon.ico',
           tag: 'test-notification',

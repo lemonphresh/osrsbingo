@@ -191,6 +191,7 @@ const typeDefs = gql`
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
   }
 
   type DeleteUserResponse {
@@ -255,7 +256,7 @@ const typeDefs = gql`
     eventType: CalendarEventType
   }
 
-  # Treasure Hunt Types
+  # Gielinor Rush Types
   type TreasureEvent {
     eventId: ID!
     clanId: String
@@ -338,10 +339,20 @@ const typeDefs = gql`
     TREASURE
   }
 
+  type TreasureHuntActivity {
+    id: ID!
+    eventId: ID!
+    teamId: ID!
+    type: String!
+    data: JSON
+    timestamp: String!
+  }
+
   type Subscription {
     submissionAdded(eventId: ID!): TreasureSubmission!
     submissionReviewed(eventId: ID!): TreasureSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
+    treasureHuntActivity(eventId: ID!): TreasureHuntActivity
   }
 
   type TreasureSubmission {

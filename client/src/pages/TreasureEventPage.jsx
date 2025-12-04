@@ -392,7 +392,7 @@ const TreasureEventView = () => {
 
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
               <Text fontSize="sm" color={currentColors.white}>
-                This Treasure Hunt event is still being set up by the event organizers. It will
+                This Gielinor Rush event is still being set up by the event organizers. It will
                 become visible once the admins publish it.
               </Text>
             </Box>
@@ -694,9 +694,11 @@ const TreasureEventView = () => {
                 'scrollbar-width': 'none',
               }}
             >
-              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Leaderboard
-              </Tab>
+              {isEventAdmin && (
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  Leaderboard
+                </Tab>
+              )}
               {isEventAdmin && (
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]} position="relative">
                   Submissions ({allPendingIncompleteSubmissionsCount} Pending)

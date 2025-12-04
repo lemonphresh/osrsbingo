@@ -30,7 +30,6 @@ const resolvers = {
     ...SiteStats.Mutation,
   },
   Subscription: {
-    // ADD THIS ENTIRE BLOCK
     ...TreasureHuntSubscriptions.Subscription,
   },
 };

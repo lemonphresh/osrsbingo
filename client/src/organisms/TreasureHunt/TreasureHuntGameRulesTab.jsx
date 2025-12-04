@@ -39,7 +39,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
         <HStack mb={2}>
           <InfoIcon color="blue.400" boxSize={6} />
           <Text fontSize="2xl" fontWeight="bold" color={currentColors.white}>
-            How to Play Treasure Hunt
+            How to Play Gielinor Rush
           </Text>
         </HStack>
         <Text fontSize="sm" color="gray.200">
@@ -564,7 +564,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </HStack>
           <Text fontSize="sm" color={currentColors.textColor} mb={2}>
             If your event has Discord integration enabled, you can use the bot to interact with
-            Treasure Hunt directly from Discord! All commands start with <Badge>!</Badge>
+            Gielinor Rush directly from Discord! All commands start with <Badge>!</Badge>
           </Text>
           <Text fontSize="xs" color={currentColors.textColor}>
             💡 Make sure you're in the event channel (check the channel topic for the event ID)
