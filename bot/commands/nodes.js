@@ -9,7 +9,7 @@ module.exports = {
       const eventId = getEventIdFromChannel(message.channel);
       if (!eventId) {
         return message.reply(
-          '❌ This channel is not linked to a Treasure Hunt event. Add the event ID to the channel topic (e.g., "evt_abc123")'
+          '❌ This channel is not linked to a Gielinor Rush event. Add the event ID to the channel topic (e.g., "evt_abc123")'
         );
       }
 
@@ -126,7 +126,7 @@ module.exports = {
           : '#28AFB0';
 
       const embed = new EmbedBuilder()
-        .setTitle(`🗺️ ${event.eventName || 'Treasure Hunt'}`)
+        .setTitle(`🗺️ ${event.eventName || 'Gielinor Rush'}`)
         .setColor(primaryColor)
         .setDescription(
           `**Team:** ${team.teamName}\n` +

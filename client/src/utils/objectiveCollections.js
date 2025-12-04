@@ -326,6 +326,13 @@ export const SKILLS = {
     tags: ['varied', 'click-intensive'],
     icon: '🦌',
   },
+  sailing: {
+    id: 'sailing',
+    name: 'Sailing',
+    category: 'gathering',
+    tags: ['varied', 'profitable', 'click-intensive'],
+    icon: '⚓',
+  },
 };
 
 /**

@@ -34,7 +34,6 @@ import {
   TabPanels,
   Tab,
   TabPanel,
-  useColorMode,
   Stat,
   StatLabel,
   StatNumber,
@@ -87,9 +86,10 @@ import Clan from '../assets/clan.png';
 import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
 import DenialReasonModal from '../organisms/TreasureHunt/DenialReasonModal';
 import CompleteNodeDialog from '../organisms/TreasureHunt/CompleteNodeDialog';
+import { useThemeColors } from '../hooks/useThemeColors';
 
 const TreasureEventView = () => {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { showToast } = useToastContext();
@@ -218,29 +218,6 @@ const TreasureEventView = () => {
   };
 
   const toast = useToast();
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      turquoise: { base: '#28AFB0' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-      orange: '#FF914D',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      turquoise: { base: '#28AFB0' },
-      textColor: '#171923',
-      cardBg: 'white',
-      orange: '#FF914D',
-    },
-  };
-
-  const currentColors = colors[colorMode];
 
   const event = eventData?.getTreasureEvent;
   const teams = event?.teams || [];
@@ -415,7 +392,7 @@ const TreasureEventView = () => {
 
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
               <Text fontSize="sm" color={currentColors.white}>
-                This Treasure Hunt event is still being set up by the event organizers. It will
+                This Gielinor Rush event is still being set up by the event organizers. It will
                 become visible once the admins publish it.
               </Text>
             </Box>
@@ -717,9 +694,11 @@ const TreasureEventView = () => {
                 'scrollbar-width': 'none',
               }}
             >
-              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Leaderboard
-              </Tab>
+              {isEventAdmin && (
+                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  Leaderboard
+                </Tab>
+              )}
               {isEventAdmin && (
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]} position="relative">
                   Submissions ({allPendingIncompleteSubmissionsCount} Pending)

@@ -72,7 +72,7 @@ const NavBar = () => {
                 <Text fontSize={['sm', 'md']} fontWeight="semibold">
                   Hey gang, it's your resident dev Lemon here! <br />
                   I've been hard at work on some exciting new features for OSRS Bingo Hub, like the{' '}
-                  <strong>new Treasure Hunt game type!</strong>
+                  <strong>new Gielinor Rush game type!</strong>
                   <br />
                 </Text>
                 <Text

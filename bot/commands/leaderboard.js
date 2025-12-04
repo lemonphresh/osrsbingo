@@ -9,7 +9,7 @@ module.exports = {
     try {
       const eventId = getEventIdFromChannel(message.channel);
       if (!eventId) {
-        return message.reply('❌ This channel is not linked to a Treasure Hunt event.');
+        return message.reply('❌ This channel is not linked to a Gielinor Rush event.');
       }
 
       const query = `
@@ -27,7 +27,7 @@ module.exports = {
 
       const data = await graphqlRequest(query, { eventId });
       const teams = data.getTreasureEventLeaderboard;
-      const eventName = data.getTreasureEvent?.eventName || 'Treasure Hunt';
+      const eventName = data.getTreasureEvent?.eventName || 'Gielinor Rush';
 
       if (!teams || teams.length === 0) {
         return message.reply('❌ No teams found in this event yet.');

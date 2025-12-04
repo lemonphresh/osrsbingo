@@ -7,22 +7,60 @@ import {
   Popup,
   Tooltip,
   useMap,
+  useMapEvents,
 } from 'react-leaflet';
-import { Box, Badge, Text, VStack, HStack, Button, Image } from '@chakra-ui/react';
+import {
+  Box,
+  Badge,
+  Text,
+  VStack,
+  HStack,
+  Button,
+  Image,
+  IconButton,
+  Collapse,
+  useDisclosure,
+  useBreakpointValue,
+  Icon,
+  CircularProgress,
+  CircularProgressLabel,
+  SimpleGrid,
+  Flex,
+} from '@chakra-ui/react';
+import { CheckCircleIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
+import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
+import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
+import { useThemeColors } from '../../hooks/useThemeColors';
+import LiveActivityFeed from './LiveActivityFeed';
+import { useNavigate } from 'react-router-dom';
+
+const PRESET_COLORS = [
+  '#FF6B6B',
+  '#4ECDC4',
+  '#45B7D1',
+  '#96CEB4',
+  '#FFEAA7',
+  '#DDA0DD',
+  '#98D8C8',
+  '#F7DC6F',
+  '#BB8FCE',
+  '#85C1E9',
+];
 
 const RecenterButton = ({ nodes }) => {
   const map = useMap();
   const [isOffCenter, setIsOffCenter] = useState(false);
+  const bounds = getMapBounds();
 
   useEffect(() => {
     const checkPosition = () => {
       const center = map.getCenter();
-      const mapCenter = { lat: 1952, lng: 3584 }; // mapHeight/2, mapWidth/2
+      const mapCenter = { lat: bounds.mapHeight / 2, lng: bounds.mapWidth / 2 };
 
       // Calculate distance from center
       const distance = Math.sqrt(
@@ -39,28 +77,14 @@ const RecenterButton = ({ nodes }) => {
     return () => {
       map.off('moveend', checkPosition);
     };
-  }, [map]);
+  }, [map, bounds]);
 
   const handleRecenter = () => {
     if (nodes.length > 0) {
-      // Fit bounds to all nodes
+      // Use the calibrated coordinate conversion
       const positions = nodes
         .filter((n) => n.coordinates?.x && n.coordinates?.y)
-        .map((n) => {
-          const osrsMinX = 1100;
-          const osrsMaxX = 3900;
-          const osrsMinY = 2500;
-          const osrsMaxY = 4100;
-          const mapWidth = 7168;
-          const mapHeight = 3904;
-
-          const normalizedX = (n.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
-          const normalizedY = (n.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
-          const pixelX = normalizedX * mapWidth;
-          const pixelY = normalizedY * mapHeight;
-
-          return [pixelY, pixelX];
-        });
+        .map((n) => convertCoordinates(n.coordinates.x, n.coordinates.y));
 
       if (positions.length > 0) {
         const bounds = L.latLngBounds(positions);
@@ -98,20 +122,8 @@ const MapController = ({ pulsingNodeId, nodes }) => {
     if (pulsingNodeId) {
       const node = nodes.find((n) => n.nodeId === pulsingNodeId);
       if (node?.coordinates) {
-        // Convert coordinates inline to avoid dependency issues
-        const osrsMinX = 1100;
-        const osrsMaxX = 3900;
-        const osrsMinY = 2500;
-        const osrsMaxY = 4100;
-        const mapWidth = 7168;
-        const mapHeight = 3904;
-
-        const normalizedX = (node.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
-        const normalizedY = (node.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
-        const pixelX = normalizedX * mapWidth;
-        const pixelY = normalizedY * mapHeight;
-        const position = [pixelY, pixelX];
-
+        // Use the calibrated coordinate conversion
+        const position = convertCoordinates(node.coordinates.x, node.coordinates.y);
         map.flyTo(position, map.getZoom(), { animate: true, duration: 1.5 });
       }
     }
@@ -148,20 +160,6 @@ const generateTeamColor = (index) => {
 
   return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
 };
-
-// Predefined palette for first 10 teams (optional - for consistency)
-const PRESET_COLORS = [
-  '#FF6B6B',
-  '#4ECDC4',
-  '#45B7D1',
-  '#FFA07A',
-  '#98D8C8',
-  '#F7DC6F',
-  '#BB8FCE',
-  '#85C1E2',
-  '#F8B739',
-  '#52B788',
-];
 
 // Custom icon for nodes with pulsing animation
 const createNodeIcon = (color, nodeType, isCompleted = false, isPulsing = false) => {
@@ -260,42 +258,23 @@ const createTeamMarker = (teamColor, teamInitials, isMultiple = false) => {
 const MultiTeamTreasureMap = ({
   nodes = [],
   teams = [],
-  event, // NEW: Need event to check location groups
+  event,
   mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
   onNodeClick,
-  showAllNodes = false, // Admin mode: if true, show all node details regardless of unlock status
+  showAllNodes = false,
 }) => {
   const [selectedTeams, setSelectedTeams] = useState(teams.map((t) => t.teamId));
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
   const [focusNodeId, setFocusNodeId] = useState(null);
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
+  const isMobile = useBreakpointValue({ base: true, md: false });
+  const navigate = useNavigate();
 
   // Determine if we should show all nodes based on event status
-  // DRAFT mode: show all nodes (for setup/testing)
-  // ACTIVE/COMPLETED/ARCHIVED: only show unlocked nodes (cleaner view)
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
 
-  const mapWidth = 7168;
-  const mapHeight = 3904;
-  const mapBounds = [
-    [0, 0],
-    [mapHeight, mapWidth],
-  ];
-
-  // Convert OSRS coordinates
-  const convertCoordinates = (osrsX, osrsY) => {
-    const osrsMinX = 1100;
-    const osrsMaxX = 3900;
-    const osrsMinY = 2500;
-    const osrsMaxY = 4100;
-
-    const normalizedX = (osrsX - osrsMinX) / (osrsMaxX - osrsMinX);
-    const normalizedY = (osrsY - osrsMinY) / (osrsMaxY - osrsMinY);
-
-    const pixelX = normalizedX * mapWidth;
-    const pixelY = normalizedY * mapHeight;
-
-    return [pixelY, pixelX];
-  };
+  const bounds = getMapBounds();
+  const mapBounds = bounds.default;
 
   const formatGP = (gp) => {
     if (!gp) return '0';
@@ -345,7 +324,6 @@ const MultiTeamTreasureMap = ({
     return teamName.substring(0, 2).toUpperCase();
   };
 
-  // Calculate which teams have completed/can access which nodes
   // Helper to check if a location group has been completed by ANY selected team
   const isLocationGroupCompletedByAnyTeam = (node) => {
     if (!node.locationGroupId || !event?.mapStructure?.locationGroups) return false;
@@ -366,7 +344,7 @@ const MultiTeamTreasureMap = ({
 
     const node = nodes.find((n) => n.nodeId === nodeId);
 
-    // NEW: Check if this location has been completed by any team
+    // Check if this location has been completed by any team
     if (node && isLocationGroupCompletedByAnyTeam(node)) {
       // Check if THIS specific node was completed
       const thisNodeCompleted = teams.some((team) => {
@@ -491,7 +469,7 @@ const MultiTeamTreasureMap = ({
     if (nodeType === 'START') return '#7D5FFF';
     if (nodeType === 'INN') return '#F4D35E';
 
-    // NEW: If location is completed but not this specific node, show red
+    // If location is completed but not this specific node, show red
     if (accessStatus === 'unavailable') return '#FF4B5C';
 
     // If any selected team completed it, show green
@@ -529,6 +507,22 @@ const MultiTeamTreasureMap = ({
     }, 2000);
   };
 
+  const { colors: currentColors, colorMode } = useThemeColors();
+
+  const MapClickHandler = () => {
+    useMapEvents({
+      click: (e) => {
+        console.log(`Clicked at: pixelX: ${e.latlng.lng}, pixelY: ${e.latlng.lat}`);
+        console.log(
+          `For calibrator: { name: "Location Name", osrsX: ???, osrsY: ???, pixelX: ${Math.round(
+            e.latlng.lng
+          )}, pixelY: ${Math.round(e.latlng.lat)} }`
+        );
+      },
+    });
+    return null;
+  };
+
   return (
     <Box width="100%">
       <Box
@@ -541,7 +535,7 @@ const MultiTeamTreasureMap = ({
         mb={4}
       >
         <MapContainer
-          center={[mapHeight / 2, mapWidth / 2]}
+          center={[bounds.mapHeight / 2, bounds.mapWidth / 2]}
           zoom={-1}
           minZoom={-3}
           maxZoom={2}
@@ -552,7 +546,7 @@ const MultiTeamTreasureMap = ({
           <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={1} />
           <RecenterButton nodes={nodes} />
           <MapController pulsingNodeId={focusNodeId} nodes={nodes} />
-
+          <MapClickHandler />
           {/* Draw connection lines */}
           {edges.map((edge, idx) => (
             <Polyline
@@ -882,145 +876,283 @@ const MultiTeamTreasureMap = ({
           top={4}
           right={4}
           bg="rgba(255, 255, 255, 0.95)"
-          p={3}
           borderRadius="md"
           boxShadow="xl"
           zIndex={1000}
-          maxH="400px"
-          overflowY="auto"
+          maxW={{ base: '90vw', md: 'auto' }}
+          maxH={{ base: 'auto', md: '400px' }}
         >
-          {showAllNodes && (
-            <Badge colorScheme="orange" fontSize="xs" mb={2} w="full" textAlign="center">
-              ADMIN MODE
-            </Badge>
-          )}
-          {event?.status === 'DRAFT' && !showAllNodes && (
-            <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">
-              DRAFT MODE - Showing all nodes
-            </Badge>
-          )}
-
-          <Text fontWeight="bold" fontSize="sm" mb={3} color="#2d3748">
-            Legend
-          </Text>
-          <VStack align="start" spacing={2} fontSize="xs" mb={3}>
-            <HStack>
-              <Box w={4} h={4} bg="#43AA8B" borderRadius="full" border="2px solid white" />
-              <Text color="#2d3748">Completed</Text>
-            </HStack>
-            <HStack>
-              <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
-              <Text color="#2d3748">Available</Text>
-            </HStack>
-            <HStack>
-              <Box
-                w={4}
-                h={4}
-                bg="#718096"
-                borderRadius="full"
-                border="2px solid white"
-                opacity={0.5}
-              />
-              <Text color="#2d3748">Locked</Text>
-            </HStack>
-            <HStack>
-              <Box w={4} h={4} bg="#F4D35E" borderRadius="sm" border="2px solid white" />
-              <Text color="#2d3748">Inn</Text>
-            </HStack>
-          </VStack>
-
-          <Text
-            fontWeight="bold"
-            fontSize="sm"
-            mb={2}
-            color="#2d3748"
-            pt={2}
-            borderTop="1px solid #e2e8f0"
+          <HStack
+            justify="space-between"
+            p={3}
+            pb={isOpen ? 2 : 3}
+            cursor={isMobile ? 'pointer' : 'default'}
+            onClick={isMobile ? onToggle : undefined}
           >
-            Teams
-          </Text>
-          <VStack align="start" spacing={1} maxH="200px" overflowY="auto">
-            {teams.map((team, idx) => (
-              <HStack
-                key={team.teamId}
-                cursor="pointer"
-                onClick={() => toggleTeam(team.teamId)}
-                opacity={selectedTeams.includes(team.teamId) ? 1 : 0.4}
-                _hover={{ opacity: 0.8 }}
-                w="full"
-                p={1}
-                borderRadius="sm"
-                bg={selectedTeams.includes(team.teamId) ? 'gray.50' : 'transparent'}
+            <Text fontWeight="bold" fontSize="sm" color="#2d3748">
+              Legend
+            </Text>
+            {isMobile && (
+              <IconButton
+                icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                size="xs"
+                variant="ghost"
+                aria-label="Toggle legend"
+              />
+            )}
+          </HStack>
+
+          <Collapse in={!isMobile || isOpen} animateOpacity>
+            <Box px={3} pb={3} maxH={{ base: '60vh', md: '350px' }} overflowY="auto">
+              {showAllNodes && (
+                <Badge colorScheme="orange" fontSize="xs" mb={2} w="full" textAlign="center">
+                  ADMIN MODE
+                </Badge>
+              )}
+              {event?.status === 'DRAFT' && !showAllNodes && (
+                <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">
+                  DRAFT MODE - Showing all nodes
+                </Badge>
+              )}
+
+              <VStack align="start" spacing={2} fontSize="xs" mb={3}>
+                <HStack>
+                  <Box w={4} h={4} bg="#43AA8B" borderRadius="full" border="2px solid white" />
+                  <Text color="#2d3748">Completed</Text>
+                </HStack>
+                <HStack>
+                  <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
+                  <Text color="#2d3748">Available</Text>
+                </HStack>
+                <HStack>
+                  <Box
+                    w={4}
+                    h={4}
+                    bg="#718096"
+                    borderRadius="full"
+                    border="2px solid white"
+                    opacity={0.5}
+                  />
+                  <Text color="#2d3748">Locked</Text>
+                </HStack>
+                <HStack>
+                  <Box w={4} h={4} bg="#F4D35E" borderRadius="sm" border="2px solid white" />
+                  <Text color="#2d3748">Inn</Text>
+                </HStack>
+              </VStack>
+
+              <Text
+                fontWeight="bold"
+                fontSize="sm"
+                mb={2}
+                color="#2d3748"
+                pt={2}
+                borderTop="1px solid #e2e8f0"
               >
-                <Box w={3} h={3} bg={getTeamColor(idx)} borderRadius="full" />
-                <Text
-                  fontSize="xs"
-                  color="#2d3748"
-                  fontWeight={selectedTeams.includes(team.teamId) ? 'bold' : 'normal'}
-                >
-                  {team.teamName}
-                </Text>
-              </HStack>
-            ))}
-          </VStack>
+                Teams
+              </Text>
+              <VStack align="start" spacing={1} maxH="200px" overflowY="auto">
+                {teams.map((team, idx) => (
+                  <HStack
+                    key={team.teamId}
+                    cursor="pointer"
+                    onClick={() => toggleTeam(team.teamId)}
+                    opacity={selectedTeams.includes(team.teamId) ? 1 : 0.4}
+                    _hover={{ opacity: 0.8 }}
+                    w="full"
+                    p={1}
+                    borderRadius="sm"
+                    bg={selectedTeams.includes(team.teamId) ? 'gray.50' : 'transparent'}
+                  >
+                    <Box w={3} h={3} bg={getTeamColor(idx)} borderRadius="full" />
+                    <Text
+                      fontSize="xs"
+                      color="#2d3748"
+                      fontWeight={selectedTeams.includes(team.teamId) ? 'bold' : 'normal'}
+                    >
+                      {team.teamName}
+                    </Text>
+                  </HStack>
+                ))}
+              </VStack>
+            </Box>
+          </Collapse>
         </Box>
       </Box>
 
       {/* Team stats summary */}
-      <VStack spacing={2} align="stretch">
-        {teams.map((team, idx) => {
-          if (!selectedTeams.includes(team.teamId)) return null;
+      {event.teams.length > 0 && (
+        <VStack spacing={2} align="stretch">
+          <Box mt={6}>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              <LiveActivityFeed teams={event.teams || []} event={event} maxActivities={8} />
 
-          return (
-            <HStack
-              key={team.teamId}
-              p={3}
-              bg="rgba(255, 255, 255, 0.95)"
-              borderRadius="md"
-              borderLeft="4px solid"
-              borderLeftColor={getTeamColor(idx)}
-              justify="space-between"
-              cursor="pointer"
-              transition="all 0.2s"
-              _hover={{ transform: 'translateX(4px)', boxShadow: 'md' }}
-              onClick={() => handleTeamClick(team)}
-            >
-              <HStack color="#2d3748">
-                <Box w={4} h={4} bg={getTeamColor(idx)} borderRadius="full" />
-                <Text fontWeight="bold" fontSize="sm">
-                  {team.teamName}
-                </Text>
-              </HStack>
-              <HStack spacing={4} color="#2d3748">
-                <VStack spacing={0} align="end">
-                  <Text fontSize="xs" color="#718096">
-                    Pot
+              {/* Team Stats Grid */}
+              <VStack align="stretch" spacing={4}>
+                <HStack justify="space-between">
+                  <Text fontWeight="bold" color={currentColors.white} fontSize="lg">
+                    Current Standings
                   </Text>
-                  <Text fontSize="sm" fontWeight="bold" color="#43AA8B">
-                    {formatGP(team.currentPot)}
+                  <Badge colorScheme="purple" fontSize="xs">
+                    {event.teams?.length || 0} teams
+                  </Badge>
+                </HStack>
+
+                {event.teams && event.teams.length > 0 ? (
+                  <VStack align="stretch" spacing={3} maxH="400px" overflowY="auto">
+                    {[...event.teams]
+                      .sort((a, b) => {
+                        const aGP = parseInt(a.currentPot) || 0;
+                        const bGP = parseInt(b.currentPot) || 0;
+                        const aNodes = a.completedNodes?.length || 0;
+                        const bNodes = b.completedNodes?.length || 0;
+
+                        if (aGP !== bGP) {
+                          return bGP - aGP;
+                        }
+
+                        return bNodes - aNodes;
+                      })
+                      .map((team, index) => {
+                        const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
+                        const isLeader = index === 0;
+
+                        return (
+                          <HStack
+                            key={team.teamId}
+                            p={4}
+                            bg={
+                              isLeader
+                                ? colorMode === 'dark'
+                                  ? 'yellow.900'
+                                  : 'yellow.50'
+                                : colorMode === 'dark'
+                                ? 'whiteAlpha.50'
+                                : 'blackAlpha.50'
+                            }
+                            borderRadius="md"
+                            border={isLeader ? '2px solid' : '1px solid'}
+                            borderColor={isLeader ? 'yellow.400' : 'transparent'}
+                            spacing={4}
+                            transition="all 0.2s"
+                            _hover={{
+                              shadow: 'md',
+                              backgroundColor: isLeader
+                                ? colorMode === 'dark'
+                                  ? 'yellow.800'
+                                  : 'yellow.100'
+                                : 'whiteAlpha.300',
+                            }}
+                            cursor="pointer"
+                            onClick={() => {
+                              handleTeamClick(team);
+                            }}
+                          >
+                            {/* Rank */}
+                            <Flex
+                              w={isLeader ? '32px' : '24px'}
+                              h={isLeader ? '32px' : '24px'}
+                              bg={isLeader ? 'yellow.400' : teamColor}
+                              borderRadius="full"
+                              align="center"
+                              justify="center"
+                              color="white"
+                              fontWeight="bold"
+                              fontSize="sm"
+                            >
+                              {isLeader ? <Icon as={FaCrown} /> : index + 1}
+                            </Flex>
+
+                            {/* Team Info */}
+                            <VStack align="start" spacing={1} flex={1}>
+                              <HStack>
+                                <Text
+                                  fontWeight="bold"
+                                  color={isLeader ? currentColors.textColor : currentColors.white}
+                                  fontSize="md"
+                                >
+                                  {team.teamName}
+                                </Text>
+                                {isLeader && (
+                                  <Badge colorScheme="yellow" fontSize="xs">
+                                    Leader
+                                  </Badge>
+                                )}
+                              </HStack>
+                              <HStack spacing={4}>
+                                <HStack spacing={1}>
+                                  <Icon as={FaCoins} color="yellow.400" boxSize={3} />
+                                  <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
+                                    {formatGP(team.currentPot || '0')} GP
+                                  </Text>
+                                </HStack>
+                                <HStack spacing={1}>
+                                  <Icon as={CheckCircleIcon} color="green.400" boxSize={3} />
+                                  <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
+                                    {team.completedNodes?.length || 0}{' '}
+                                    {team.completedNodes?.length === 1 ? 'node' : 'nodes'}
+                                  </Text>
+                                </HStack>
+                                {event.nodes && event.nodes.length > 0 && (
+                                  <Button
+                                    size="sm"
+                                    bg={isLeader ? 'blackAlpha.100' : 'whiteAlpha.200'}
+                                    color={isLeader ? 'yellow.400' : 'gray.200'}
+                                    _hover={{ bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.100' }}
+                                    onClick={() =>
+                                      navigate(
+                                        `/treasure-hunt/${event.eventId}/team/${team.teamId}`
+                                      )
+                                    }
+                                    whiteSpace="nowrap"
+                                  >
+                                    <Icon as={FaMap} />
+                                  </Button>
+                                )}
+                              </HStack>
+                            </VStack>
+
+                            {/* Progress Indicator */}
+                            <VStack align="center" spacing={1}>
+                              <Text fontSize="xs" color={isLeader ? 'gray.500' : 'gray.200'}>
+                                Progress
+                              </Text>
+                              <CircularProgress
+                                value={
+                                  ((team.completedNodes?.length || 0) /
+                                    Math.max(event.nodes?.length || 1, 1)) *
+                                  100
+                                }
+                                size="40px"
+                                color={teamColor}
+                                trackColor={isLeader ? 'gray.300' : 'gray.200'}
+                                thickness="8px"
+                                textColor={isLeader ? 'gray.500' : 'gray.200'}
+                              >
+                                <CircularProgressLabel fontSize="xs">
+                                  {Math.round(
+                                    ((team.completedNodes?.length || 0) /
+                                      Math.max(event.nodes?.length || 1, 1)) *
+                                      100
+                                  )}
+                                  %
+                                </CircularProgressLabel>
+                              </CircularProgress>
+                            </VStack>
+                          </HStack>
+                        );
+                      })}
+                  </VStack>
+                ) : (
+                  <Text color="gray.500" textAlign="center" py={8}>
+                    No teams yet
                   </Text>
-                </VStack>
-                <VStack spacing={0} align="end">
-                  <Text fontSize="xs" color="#718096">
-                    Completed
-                  </Text>
-                  <Text fontSize="sm" fontWeight="bold">
-                    {team.completedNodes?.length || 0}
-                  </Text>
-                </VStack>
-                <VStack spacing={0} align="end">
-                  <Text fontSize="xs" color="#718096">
-                    Available
-                  </Text>
-                  <Text fontSize="sm" fontWeight="bold">
-                    {team.availableNodes?.length || 0}
-                  </Text>
-                </VStack>
-              </HStack>
-            </HStack>
-          );
-        })}
-      </VStack>
+                )}
+              </VStack>
+            </SimpleGrid>
+          </Box>
+        </VStack>
+      )}
     </Box>
   );
 };

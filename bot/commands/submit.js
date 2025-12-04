@@ -56,7 +56,7 @@ module.exports = {
       const eventId = getEventIdFromChannel2(message.channel);
       console.log('Extracted eventId:', eventId);
       if (!eventId) {
-        return message.reply('❌ This channel is not linked to a Treasure Hunt event.');
+        return message.reply('❌ This channel is not linked to a Gielinor Rush event.');
       }
 
       const userRoles = message.member.roles.cache.map((role) => role.id);

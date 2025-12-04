@@ -13,7 +13,6 @@ import {
   Badge,
   Button,
   Divider,
-  useColorMode,
   Image,
   useDisclosure,
   IconButton,
@@ -25,6 +24,7 @@ import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
 import ProgressiveStartTutorial from './ProgressiveStartTutorial';
 import { FaDiscord } from 'react-icons/fa';
+import { useThemeColors } from '../../hooks/useThemeColors';
 
 export default function NodeDetailModal({
   isOpen,
@@ -38,30 +38,11 @@ export default function NodeDetailModal({
   appliedBuff,
   currentUser,
 }) {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const toast = useToast();
 
   if (!node) return null;
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      yellow: { base: '#F4D35E' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      green: { base: '#43AA8B' },
-      red: { base: '#FF4B5C' },
-      yellow: { base: '#F4D35E' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
 
   const isStartNode = node?.nodeType === 'START';
   const isInnNode = node?.nodeType === 'INN';
@@ -72,8 +53,6 @@ export default function NodeDetailModal({
   const hasSeenTutorial =
     typeof window !== 'undefined' &&
     localStorage.getItem('treasureHunt_startTutorial_completed') === 'true';
-
-  const currentColors = colors[colorMode];
 
   const isTeamMember =
     currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
@@ -367,7 +346,7 @@ export default function NodeDetailModal({
             )}
 
             {/* Discord Submit Instructions - Show for available nodes when not in admin mode */}
-            {!adminMode && isAvailable && !isInnNode && (
+            {!adminMode && isAvailable && (
               <Box
                 p={3}
                 bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
@@ -383,7 +362,7 @@ export default function NodeDetailModal({
                     color={currentColors.textColor}
                     textAlign="center"
                   >
-                    Submit completion via Discord bot:
+                    Submit {isInnNode ? 'visit to inn' : 'completion'} via Discord bot:
                   </Text>
                 </HStack>
                 <VStack spacing={2} align="stretch">
@@ -405,7 +384,8 @@ export default function NodeDetailModal({
                     />
                   </HStack>
                   <Text fontSize="xs" color="gray.500" textAlign="center">
-                    or attach an image file to your message
+                    or attach an image file to your message.{' '}
+                    {isInnNode && ' Since this is an inn, show me your favorite cat!'}
                   </Text>
                 </VStack>
               </Box>

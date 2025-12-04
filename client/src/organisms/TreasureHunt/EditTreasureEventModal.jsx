@@ -341,7 +341,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>Event Name</FormLabel>
               <Input
-                placeholder="My Treasure Hunt"
+                placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
                 color={currentColors.textColor}

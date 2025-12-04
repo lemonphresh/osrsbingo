@@ -310,17 +310,17 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Create New Treasure Hunt Event</ModalHeader>
+        <ModalHeader color={currentColors.textColor}>Create New Gielinor Rush Event</ModalHeader>
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Event Name"
-                tooltip="Give your treasure hunt a memorable name (e.g., 'Summer Bingo Bonanza')"
+                tooltip="Give your Gielinor Rush a memorable name (e.g., 'Summer Bingo Bonanza')"
               />
               <Input
-                placeholder="My Treasure Hunt"
+                placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
                 color={currentColors.textColor}

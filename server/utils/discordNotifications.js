@@ -1,5 +1,5 @@
 // discordNotifications.js
-// Helper functions for sending Discord notifications about treasure hunt events
+// Helper functions for sending Discord notifications about Gielinor Rush events
 
 const axios = require('axios');
 
@@ -87,7 +87,7 @@ async function sendSubmissionApprovalNotification({
       },
     ],
     footer: {
-      text: '✨ Node completed! Check your progress in the treasure hunt.',
+      text: '✨ Node completed! Check your progress in the Gielinor Rush.',
     },
     timestamp: new Date().toISOString(),
   };

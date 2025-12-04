@@ -1,41 +1,31 @@
-const { withFilter } = require('graphql-subscriptions');
 const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
 
 module.exports = {
   Subscription: {
     submissionAdded: {
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(SUBMISSION_TOPICS.SUBMISSION_ADDED),
-        async (payload, vars, ctx) => {
-          // admins only
-          return (
-            payload.submissionAdded?.team?.eventId === vars.eventId &&
-            (await isEventAdmin(ctx.user?.id, vars.eventId))
-          );
-        }
-      ),
+      subscribe: (_, args) => {
+        console.log('🔥 Subscribing to SUBMISSION_ADDED');
+        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.SUBMISSION_ADDED);
+      },
     },
     submissionReviewed: {
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(SUBMISSION_TOPICS.SUBMISSION_REVIEWED),
-        async (payload, vars, ctx) => {
-          return (
-            payload.submissionReviewed?.team?.eventId === vars.eventId &&
-            (await isEventAdmin(ctx.user?.id, vars.eventId))
-          );
-        }
-      ),
+      subscribe: (_, args) => {
+        console.log('🔥 Subscribing to SUBMISSION_REVIEWED');
+        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.SUBMISSION_REVIEWED);
+      },
     },
     nodeCompleted: {
-      subscribe: withFilter(
-        () => pubsub.asyncIterator(SUBMISSION_TOPICS.NODE_COMPLETED),
-        async (payload, vars, ctx) => {
-          return (
-            payload.nodeCompleted?.eventId === vars.eventId &&
-            (await isEventAdmin(ctx.user?.id, vars.eventId))
-          );
-        }
-      ),
+      subscribe: (_, args) => {
+        console.log('🔥 Subscribing to NODE_COMPLETED');
+        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.NODE_COMPLETED);
+      },
+    },
+    treasureHuntActivity: {
+      subscribe: (_, args) => {
+        const topic = `TREASURE_ACTIVITY_${args.eventId}`;
+        console.log('🔥 Subscribing to:', topic);
+        return pubsub.asyncIterableIterator(topic);
+      },
     },
   },
 };

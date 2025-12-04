@@ -14,10 +14,10 @@
       ├── COLLECTIBLE_ITEMS (Feathers, Logs, Ore, etc.)
       └── CLUE_TIERS        (Easy, Medium, Hard, Elite, Master)
  */
-
 /**
  * Solo boss definitions
  */
+
 export const SOLO_BOSSES = {
   // Easy Bosses
   giantMole: {
@@ -113,7 +113,7 @@ export const SOLO_BOSSES = {
     enabled: true,
   },
 
-  // God Wars Dungeon
+  // God Wars Dungeon (must be tagged with gwd to filter on ui right)
   commanderZilyana: {
     id: 'commanderZilyana',
     name: 'Commander Zilyana',
@@ -326,6 +326,13 @@ export const SKILLS = {
     tags: ['varied', 'click-intensive'],
     icon: '🦌',
   },
+  sailing: {
+    id: 'sailing',
+    name: 'Sailing',
+    category: 'gathering',
+    tags: ['varied', 'profitable', 'click-intensive'],
+    icon: '⚓',
+  },
 };
 
 /**
@@ -424,15 +431,15 @@ export const COLLECTIBLE_ITEMS = {
   vorkathHead: {
     id: 'vorkathHead',
     name: "Vorkath's Head",
-    category: 'boss-drops',
+    category: 'unique',
     sources: ['bosses:vorkath'], // ONLY from Vorkath
   },
 
   abyssalWhip: {
     id: 'abyssalWhip',
     name: 'Abyssal Whip',
-    category: 'boss-drops',
-    sources: [],
+    category: 'unique',
+    sources: ['bosses:abyssalSire'], // ONLY from Abyssal Sire
   },
 
   // Minigame rewards

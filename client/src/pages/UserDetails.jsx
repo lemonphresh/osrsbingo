@@ -717,7 +717,7 @@ const UserDetails = () => {
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="yellow" size="sm">
-              Treasure Hunt Creator
+              Gielinor Rush Creator
             </GemTitle>
             <Flex
               flexDirection={['column', 'row']}
@@ -737,7 +737,7 @@ const UserDetails = () => {
               >
                 <Image
                   src="https://oldschool.runescape.wiki/images/thumb/Pirate_map.png/1200px-Pirate_map.png?9b490"
-                  alt="Treasure Hunt Map"
+                  alt="Gielinor Rush Map"
                   maxWidth="128px"
                   maxHeight="128px"
                   h="100%"
@@ -748,7 +748,7 @@ const UserDetails = () => {
               </Flex>
               <VStack>
                 <Text fontSize="16px" lineHeight="1.5">
-                  Create and manage your own Treasure Hunt events!
+                  Create and manage your own Gielinor Rush events!
                 </Text>
                 <Text
                   alignItems="center"
@@ -763,7 +763,7 @@ const UserDetails = () => {
                   marginBottom="1px"
                 >
                   <Icon as={MdOutlineMap} marginRight="8px" />
-                  <Link to={`/treasure-hunt`}> Go to Treasure Hunt Dashboard</Link>
+                  <Link to={`/treasure-hunt`}> Go to Gielinor Rush Dashboard</Link>
                 </Text>
               </VStack>
             </Flex>
