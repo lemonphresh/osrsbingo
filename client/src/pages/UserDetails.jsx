@@ -763,7 +763,7 @@ const UserDetails = () => {
                   marginBottom="1px"
                 >
                   <Icon as={MdOutlineMap} marginRight="8px" />
-                  <Link to={`/treasure-hunt`}> Go to Gielinor Rush Dashboard</Link>
+                  <Link to={`/gielinor-rush`}> Go to Gielinor Rush Dashboard</Link>
                 </Text>
               </VStack>
             </Flex>

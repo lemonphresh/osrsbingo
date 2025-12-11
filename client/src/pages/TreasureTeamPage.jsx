@@ -396,7 +396,7 @@ const TreasureTeamView = () => {
             marginBottom="1px"
           >
             <Icon as={MdOutlineArrowBack} marginRight="8px" />
-            <Link to={`/treasure-hunt`}> Back to Events</Link>
+            <Link to={`/gielinor-rush`}> Back to Events</Link>
           </Text>
         </Flex>
 
@@ -464,7 +464,7 @@ const TreasureTeamView = () => {
           marginBottom="1px"
         >
           <Icon as={MdOutlineArrowBack} marginRight="8px" />
-          <Link to={`/treasure-hunt/${eventId}`}> Event Overview</Link>
+          <Link to={`/gielinor-rush/${eventId}`}> Event Overview</Link>
         </Text>
       </Flex>
       <Section maxWidth="1200px" width="100%" py={8}>

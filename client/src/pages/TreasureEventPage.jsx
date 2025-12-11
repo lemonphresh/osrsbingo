@@ -373,7 +373,7 @@ const TreasureEventView = () => {
             marginBottom="1px"
           >
             <Icon as={MdOutlineArrowBack} marginRight="8px" />
-            <Link to={`/treasure-hunt`}> Back to Events</Link>
+            <Link to={`/gielinor-rush`}> Back to Events</Link>
           </Text>
         </Flex>
 
@@ -431,7 +431,7 @@ const TreasureEventView = () => {
           marginBottom="1px"
         >
           <Icon as={MdOutlineArrowBack} marginRight="8px" />
-          <Link to={`/treasure-hunt`}> Your Events</Link>
+          <Link to={`/gielinor-rush`}> Your Events</Link>
         </Text>
       </Flex>
       <Section maxWidth="1200px" width="100%" py={8}>
@@ -667,9 +667,11 @@ const TreasureEventView = () => {
                 </Card>
               )}
               <MultiTeamTreasureMap
-                nodes={event.nodes}
-                teams={teams}
+                nodes={event.nodes || []}
+                teams={teams || []}
                 event={event}
+                onRefresh={() => refetchEvent()}
+                isRefreshing={eventLoading}
                 showAllNodes={isEventAdmin && showAllNodesToggle}
               />
             </Box>
@@ -814,7 +816,7 @@ const TreasureEventView = () => {
                                       _hover={{ bg: currentColors.purple.light }}
                                       onClick={() =>
                                         navigate(
-                                          `/treasure-hunt/${event.eventId}/team/${team.teamId}`
+                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`
                                         )
                                       }
                                       whiteSpace="nowrap"

@@ -63,7 +63,7 @@ const TeamAccessOverlay = ({
   if (!show) return null;
 
   const handleGoBack = () => {
-    navigate(`/treasure-hunt/${eventId}`);
+    navigate(`/gielinor-rush/${eventId}`);
   };
 
   const handleLinkDiscord = () => {

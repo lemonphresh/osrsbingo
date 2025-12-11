@@ -100,7 +100,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     onCompleted: (data) => {
       showToast('Event created successfully!', 'success');
       if (onSuccess) onSuccess();
-      navigate(`/treasure-hunt/${data.createTreasureEvent.eventId}`);
+      navigate(`/gielinor-rush/${data.createTreasureEvent.eventId}`);
       onClose();
     },
     onError: (error) => {

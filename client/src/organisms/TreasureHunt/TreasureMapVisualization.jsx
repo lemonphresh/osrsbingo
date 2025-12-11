@@ -352,7 +352,7 @@ const TreasureMapVisualization = ({
         minZoom={-3}
         maxZoom={2}
         crs={L.CRS.Simple}
-        style={{ height: '100%', width: '100%', background: '#64769e' }}
+        style={{ height: '100%', width: '100%', background: 'rgb(35,47,60)' }}
         scrollWheelZoom={true}
       >
         <ImageOverlay url={mapImageUrl} bounds={mapBounds} opacity={1} />
