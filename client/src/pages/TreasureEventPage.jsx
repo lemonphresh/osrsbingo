@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   Accordion,
   AccordionItem,
@@ -64,6 +64,7 @@ import {
   REVIEW_SUBMISSION,
   GENERATE_TREASURE_MAP,
   ADMIN_COMPLETE_NODE,
+  UPDATE_TREASURE_EVENT,
 } from '../graphql/mutations';
 import { useToastContext } from '../providers/ToastProvider';
 import Section from '../atoms/Section';
@@ -76,10 +77,10 @@ import MultiTeamTreasureMap from '../organisms/TreasureHunt/MultiTeamTreasureMap
 import EventAdminManager from '../organisms/TreasureHunt/TreasureAdminManager';
 import { useAuth } from '../providers/AuthProvider';
 import { MdOutlineArrowBack } from 'react-icons/md';
+import { FaCog, FaRocket } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
-import { FaCog } from 'react-icons/fa';
 import Gold from '../assets/gold.png';
 import Dossier from '../assets/dossier.png';
 import Clan from '../assets/clan.png';
@@ -87,6 +88,9 @@ import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
 import DenialReasonModal from '../organisms/TreasureHunt/DenialReasonModal';
 import CompleteNodeDialog from '../organisms/TreasureHunt/CompleteNodeDialog';
 import { useThemeColors } from '../hooks/useThemeColors';
+import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
+import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
+import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -95,10 +99,20 @@ const TreasureEventView = () => {
   const { showToast } = useToastContext();
   const [selectedTeam, setSelectedTeam] = useState(null);
   const { user } = useAuth();
+  const submissionsTabRef = useRef(null);
+  const settingsTabRef = useRef(null);
+  const leaderboardTabRef = useRef(null);
+
   const {
     isOpen: isEditTeamOpen,
     onOpen: onEditTeamOpen,
     onClose: onEditTeamClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isLaunchConfirmOpen,
+    onOpen: onLaunchConfirmOpen,
+    onClose: onLaunchConfirmClose,
   } = useDisclosure();
 
   const {
@@ -164,11 +178,74 @@ const TreasureEventView = () => {
     },
   });
 
+  const [updateEvent] = useMutation(UPDATE_TREASURE_EVENT, {
+    refetchQueries: ['GetTreasureEvent'],
+    onCompleted: () => {
+      showToast('Event updated successfully!', 'success');
+    },
+    onError: (error) => {
+      showToast(`Error: ${error.message}`, 'error');
+    },
+  });
+
   const handleGenerateMap = () => {
     if (event.nodes && event.nodes.length > 0) {
       onRegenerateOpen();
     } else {
       generateMap({ variables: { eventId } });
+    }
+  };
+
+  const handleNavigateToSubmissions = () => {
+    submissionsTabRef.current?.click();
+    submissionsTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleNavigateToTeams = () => {
+    leaderboardTabRef.current?.click();
+    leaderboardTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const handleLaunchEvent = async () => {
+    try {
+      await updateEvent({
+        variables: {
+          eventId,
+          input: {
+            status: 'ACTIVE',
+          },
+        },
+      });
+      showToast('🚀 Event is now LIVE! Teams can start competing!', 'success');
+      onLaunchConfirmClose();
+    } catch (error) {
+      showToast(`Failed to launch: ${error.message}`, 'error');
+    }
+  };
+
+  const handleEditTeam = (team) => {
+    setSelectedTeam(team);
+    onEditTeamOpen();
+  };
+
+  const handleConfirmDiscord = async () => {
+    try {
+      await updateEvent({
+        variables: {
+          eventId,
+          input: {
+            discordConfig: {
+              ...(event.discordConfig || {}),
+              confirmed: true,
+              confirmedAt: new Date().toISOString(),
+              confirmedBy: user?.username || user?.id,
+            },
+          },
+        },
+      });
+      showToast('Discord setup confirmed!', 'success');
+    } catch (error) {
+      showToast(`Error: ${error.message}`, 'error');
     }
   };
 
@@ -185,7 +262,6 @@ const TreasureEventView = () => {
   const [adminCompleteNode, { loading: completing }] = useMutation(ADMIN_COMPLETE_NODE, {
     refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
     onError: (error) => {
-      // Error is already handled in the onClick, this is just a fallback
       console.error('Error completing node:', error);
     },
   });
@@ -200,14 +276,12 @@ const TreasureEventView = () => {
           eventId: eventId,
           teamId: nodeToComplete.teamId,
           nodeId: nodeToComplete.nodeId,
-          congratsMessage: congratsMessage, // Optional message from dialog
+          congratsMessage: congratsMessage,
         },
       });
 
       showToast('Node completed successfully!', 'success');
-
       refetchSubmissions();
-
       onCloseCompleteDialog();
       setNodeToComplete(null);
     } catch (error) {
@@ -225,7 +299,6 @@ const TreasureEventView = () => {
   const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
   const allPendingIncompleteSubmissionsCount = allPendingSubmissions.filter((submission) => {
     const team = teams.find((t) => t.teamId === submission.teamId);
-
     return !team?.completedNodes?.includes(submission.nodeId);
   }).length;
 
@@ -240,7 +313,7 @@ const TreasureEventView = () => {
           submissionId,
           approved,
           reviewerId: user?.username || 'admin',
-          denialReason, // NEW!
+          denialReason,
         },
       });
     } catch (error) {
@@ -287,8 +360,8 @@ const TreasureEventView = () => {
     allSubmissions.filter((s) => s.status === 'PENDING_REVIEW'),
     isEventAdmin,
     event?.eventName || 'Event',
-    refetchSubmissions, // pass the refetch function from useQuery
-    10000, // Poll every 10 seconds
+    refetchSubmissions,
+    10000,
     event?.id,
     allPendingIncompleteSubmissionsCount
   );
@@ -317,31 +390,6 @@ const TreasureEventView = () => {
     );
   }
 
-  if (eventLoading) {
-    return (
-      <Container
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        flex="1"
-        maxW="container.xl"
-        w="100%"
-        py={8}
-      >
-        {' '}
-        <Spinner flex="1" size="xl" />
-      </Container>
-    );
-  }
-
-  if (!event) {
-    return (
-      <Container maxW="container.xl" py={8}>
-        <Text color={currentColors.textColor}>Event not found</Text>
-      </Container>
-    );
-  }
-
   // Check if event is draft and user is not admin
   if (event.status === 'DRAFT' && !isEventAdmin) {
     return (
@@ -353,6 +401,7 @@ const TreasureEventView = () => {
         paddingY={['40px', '56px']}
         marginX={['12px', '36px']}
       >
+        <EventStatusBanner event={event} isAdmin={isEventAdmin} />
         <Flex
           alignItems="center"
           flexDirection={['column', 'row', 'row']}
@@ -411,6 +460,7 @@ const TreasureEventView = () => {
       paddingY={['40px', '56px']}
       marginX={['12px', '36px']}
     >
+      <EventStatusBanner event={event} isAdmin={isEventAdmin} />
       <Flex
         alignItems="center"
         flexDirection={['column', 'row', 'row']}
@@ -671,7 +721,6 @@ const TreasureEventView = () => {
                 teams={teams || []}
                 event={event}
                 onRefresh={() => refetchEvent()}
-                isRefreshing={eventLoading}
                 showAllNodes={isEventAdmin && showAllNodesToggle}
               />
             </Box>
@@ -697,12 +746,17 @@ const TreasureEventView = () => {
               }}
             >
               {isEventAdmin && (
-                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
                   Leaderboard
                 </Tab>
               )}
               {isEventAdmin && (
-                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]} position="relative">
+                <Tab
+                  ref={submissionsTabRef}
+                  whiteSpace="nowrap"
+                  color={theme.colors.gray[400]}
+                  position="relative"
+                >
                   Submissions ({allPendingIncompleteSubmissionsCount} Pending)
                   {allPendingIncompleteSubmissionsCount > 0 && (
                     <Box
@@ -726,7 +780,7 @@ const TreasureEventView = () => {
                 </Tab>
               )}
               {isEventAdmin && (
-                <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                <Tab ref={settingsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
                   Event Settings
                 </Tab>
               )}
@@ -762,12 +816,10 @@ const TreasureEventView = () => {
                       <Tbody>
                         {[...teams]
                           .sort((a, b) => {
-                            // Sort by currentPot descending (highest first)
                             const potA = Number(a.currentPot || 0);
                             const potB = Number(b.currentPot || 0);
                             if (potA > potB) return -1;
                             if (potA < potB) return 1;
-                            // If pots are equal, sort by nodes completed
                             return (
                               (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0)
                             );
@@ -851,7 +903,6 @@ const TreasureEventView = () => {
               {isEventAdmin && (
                 <TabPanel px={0}>
                   <VStack spacing={4} align="stretch">
-                    {/* Instructions */}
                     <Box bg={currentColors.turquoise.base} color="white" p={3} borderRadius="md">
                       <Text fontWeight="bold" fontSize="sm" mb={1}>
                         📋 Submission Review Workflow
@@ -867,7 +918,6 @@ const TreasureEventView = () => {
                     </Box>
 
                     {(() => {
-                      // Group ALL submissions (pending + approved) by nodeId and teamId
                       const groupedSubmissions = {};
 
                       allSubmissions.forEach((submission) => {
@@ -878,14 +928,13 @@ const TreasureEventView = () => {
                         groupedSubmissions[key].push(submission);
                       });
 
-                      // Filter to only show nodes that have pending submissions
                       const relevantGroups = Object.entries(groupedSubmissions).filter(([, subs]) =>
                         subs.some((s) => s.status === 'PENDING_REVIEW' || s.status === 'APPROVED')
                       );
 
                       if (relevantGroups.length === 0) {
                         return (
-                          <Text color={currentColors.textColor} textAlign="center" py={8}>
+                          <Text color={currentColors.white} textAlign="center" py={8}>
                             No pending submissions
                           </Text>
                         );
@@ -905,15 +954,12 @@ const TreasureEventView = () => {
                         const teamB = event.teams?.find((t) => t.teamId === teamIdB);
                         const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
 
-                        // 1) Incomplete first
                         if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
 
-                        // 2) More pending first
                         const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
                         const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
                         if (pendA !== pendB) return pendB - pendA;
 
-                        // 3) Newest activity first
                         const latestA = Math.max(
                           ...subsA.map((s) => new Date(s.submittedAt || 0).getTime())
                         );
@@ -993,9 +1039,9 @@ const TreasureEventView = () => {
                                           <Badge bg={currentColors.purple.base} color="white">
                                             {submissions[0].team?.teamName || 'Unknown Team'}
                                           </Badge>
-                                          {pendingSubmissions > 0 && (
+                                          {pendingSubmissions.length > 0 && (
                                             <Badge colorScheme="orange">
-                                              {pendingSubmissions} pending
+                                              {pendingSubmissions.length} pending
                                             </Badge>
                                           )}
                                           {approvedSubmissions.length > 0 && (
@@ -1014,7 +1060,6 @@ const TreasureEventView = () => {
                                         </Text>
                                       </VStack>
 
-                                      {/* Button to complete node */}
                                       {!isCompleted && approvedSubmissions.length > 0 && (
                                         <VStack
                                           spacing={1}
@@ -1049,7 +1094,6 @@ const TreasureEventView = () => {
 
                                 <AccordionPanel pb={4}>
                                   <VStack align="stretch" spacing={3}>
-                                    {/* Show node objective if available */}
                                     {node?.objective && (
                                       <Box
                                         p={2}
@@ -1098,7 +1142,6 @@ const TreasureEventView = () => {
                                       </Box>
                                     )}
 
-                                    {/* Show each submission - sorted by status */}
                                     <VStack align="stretch" spacing={2}>
                                       {submissions
                                         .sort((a, b) => {
@@ -1132,7 +1175,7 @@ const TreasureEventView = () => {
                                               submission.status === 'APPROVED'
                                                 ? currentColors.green.base
                                                 : submission.status === 'DENIED'
-                                                ? currentColors.red.base
+                                                ? currentColors.red
                                                 : 'transparent'
                                             }
                                           >
@@ -1204,10 +1247,8 @@ const TreasureEventView = () => {
                                                   <Tooltip label="Deny Submission">
                                                     <IconButton
                                                       icon={<CloseIcon />}
-                                                      bg={currentColors.red.base}
-                                                      color="white"
+                                                      colorScheme="red"
                                                       size="sm"
-                                                      _hover={{ opacity: 0.8 }}
                                                       onClick={() => {
                                                         setSubmissionToDeny(submission);
                                                         onDenialModalOpen();
@@ -1217,10 +1258,8 @@ const TreasureEventView = () => {
                                                   <Tooltip label="Approve Submission">
                                                     <IconButton
                                                       icon={<CheckIcon />}
-                                                      bg={currentColors.green.base}
-                                                      color="white"
+                                                      colorScheme="green"
                                                       size="sm"
-                                                      _hover={{ opacity: 0.8 }}
                                                       onClick={() =>
                                                         handleReviewSubmission(
                                                           submission.submissionId,
@@ -1272,7 +1311,7 @@ const TreasureEventView = () => {
                                         <Badge colorScheme="green" fontSize="xs">
                                           ACTIVE
                                         </Badge>
-                                      )}{' '}
+                                      )}
                                       <HStack
                                         borderLeft="1px solid gray"
                                         paddingLeft={3}
@@ -1286,9 +1325,7 @@ const TreasureEventView = () => {
                                               colorScheme="blue"
                                               variant="outline"
                                               onClick={() => {
-                                                // Send test notification with sound
                                                 if (Notification.permission === 'granted') {
-                                                  // Play sound
                                                   if (
                                                     localStorage.getItem(
                                                       'treasureHunt_sound_enabled'
@@ -1325,14 +1362,13 @@ const TreasureEventView = () => {
                                                     playTone(600, 0.15, now + 0.1);
                                                   }
 
-                                                  // Show notification
                                                   const testNotif = new Notification(
                                                     'Test Notification',
                                                     {
                                                       body: 'If you can see this, notifications are working!',
                                                       icon: '/favicon.ico',
                                                       tag: 'manual-test',
-                                                      silent: true, // We play our own sound
+                                                      silent: true,
                                                     }
                                                   );
                                                   testNotif.onclick = () => {
@@ -1390,7 +1426,6 @@ const TreasureEventView = () => {
                                         </Text>
                                       )}
 
-                                    {/* Sound toggle - only show when notifications are enabled */}
                                     {notificationsEnabled && (
                                       <HStack
                                         p={2}
@@ -1428,7 +1463,6 @@ const TreasureEventView = () => {
                                               e.target.checked.toString()
                                             );
                                             if (e.target.checked) {
-                                              // Play test sound
                                               const audioContext = new (window.AudioContext ||
                                                 window.webkitAudioContext)();
                                               const playTone = (frequency, duration, startTime) => {
@@ -1494,7 +1528,6 @@ const TreasureEventView = () => {
                                 ? 'Regenerate Map'
                                 : 'Generate Map'}
                             </Button>
-                            )
                             <Button
                               leftIcon={<AddIcon />}
                               bg={currentColors.turquoise.base}
@@ -1576,7 +1609,6 @@ const TreasureEventView = () => {
                         <Tbody>
                           {[...(event.nodes || [])]
                             .sort((a, b) => {
-                              // Sort: START first, then INN, then STANDARD; within type by title asc
                               const order = { START: 0, INN: 1, STANDARD: 2, TREASURE: 3 };
                               const ta = order[a.nodeType] ?? 99;
                               const tb = order[b.nodeType] ?? 99;
@@ -1725,6 +1757,31 @@ const TreasureEventView = () => {
           </Tabs>
         </VStack>
       </Section>
+      {/* Admin Launch Checklist - Floating */}
+      {isEventAdmin && (
+        <AdminLaunchChecklist
+          event={event}
+          onGenerateMap={handleGenerateMap}
+          onAddTeam={onCreateTeamOpen}
+          onEditTeam={handleEditTeam}
+          onOpenDiscordSetup={onDiscordSetupOpen}
+          onConfirmDiscord={handleConfirmDiscord}
+          onLaunchEvent={onLaunchConfirmOpen}
+          isGeneratingMap={generateLoading}
+        />
+      )}
+      {isEventAdmin && event.status === 'ACTIVE' && (
+        <AdminQuickActionsPanel
+          event={event}
+          teams={teams}
+          submissions={allSubmissions}
+          onNavigateToSubmissions={handleNavigateToSubmissions}
+          onNavigateToTeams={handleNavigateToTeams}
+          onOpenSettings={onEditEventOpen}
+          onOpenDiscordSetup={onDiscordSetupOpen}
+          isEventAdmin={isEventAdmin}
+        />
+      )}
       <CreateTeamModal
         isOpen={isCreateTeamOpen}
         onClose={onCreateTeamClose}
@@ -1771,6 +1828,7 @@ const TreasureEventView = () => {
         onComplete={handleCompleteNode}
         isLoading={completeLoading}
       />
+      {/* Regenerate Map Confirmation */}
       <AlertDialog
         isOpen={isRegenerateOpen}
         leastDestructiveRef={cancelRef}
@@ -1798,6 +1856,60 @@ const TreasureEventView = () => {
                 isLoading={generateLoading}
               >
                 Regenerate
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+      {/* Launch Event Confirmation */}
+      <AlertDialog
+        isOpen={isLaunchConfirmOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onLaunchConfirmClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg={currentColors.cardBg}>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
+              🚀 Launch Event?
+            </AlertDialogHeader>
+
+            <AlertDialogBody color={currentColors.textColor}>
+              <VStack align="start" spacing={3}>
+                <Text>
+                  You're about to make <strong>{event.eventName}</strong> live!
+                </Text>
+
+                <Box p={3} bg="green.50" borderRadius="md" w="full">
+                  <Text fontSize="sm" color="green.800" fontWeight="bold">
+                    What happens next:
+                  </Text>
+                  <VStack align="start" spacing={1} mt={2} fontSize="sm" color="green.700">
+                    <Text>• Teams can view their maps and objectives</Text>
+                    <Text>• Players can submit completions</Text>
+                    <Text>• Discord commands become active</Text>
+                    <Text>• Event appears in public listings</Text>
+                  </VStack>
+                </Box>
+
+                <Text fontSize="sm" color="orange.500">
+                  ⚠️ You can still edit some event details after launching, but specific content
+                  settings, event length, etc. cannot be changed. The map cannot be regenerated
+                  while the event is active, either.
+                </Text>
+              </VStack>
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onLaunchConfirmClose}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="green"
+                onClick={handleLaunchEvent}
+                ml={3}
+                leftIcon={<Icon as={FaRocket} />}
+              >
+                Launch Event!
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

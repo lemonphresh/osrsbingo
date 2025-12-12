@@ -1116,9 +1116,10 @@ const MultiTeamTreasureMap = ({
                                     <Button
                                       size="sm"
                                       bg={isLeader ? 'blackAlpha.100' : 'whiteAlpha.200'}
-                                      color={isLeader ? 'yellow.400' : 'gray.200'}
+                                      color={isLeader ? 'gray.500' : 'gray.200'}
+                                      fontWeight="normal"
                                       _hover={{
-                                        bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.100',
+                                        bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.300',
                                       }}
                                       onClick={() =>
                                         navigate(
@@ -1128,6 +1129,7 @@ const MultiTeamTreasureMap = ({
                                       whiteSpace="nowrap"
                                     >
                                       <Icon as={FaMap} />
+                                      &nbsp; View Team Map
                                     </Button>
                                   )}
                                 </HStack>

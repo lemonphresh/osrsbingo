@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useEffect } from 'react';
+import React, { useCallback, useMemo, useEffect, useState } from 'react';
 import {
   Box,
   VStack,
@@ -16,6 +16,8 @@ import {
 import { CheckCircleIcon, TimeIcon, StarIcon } from '@chakra-ui/icons';
 import { FaCrown, FaFire, FaTrophy, FaCoins } from 'react-icons/fa';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
+import VictoryOverlay from './VictoryOverlay';
+import DevTestPanel from './DevTestPanel';
 
 const playNotificationSound = () => {
   try {
@@ -45,6 +47,50 @@ const playNotificationSound = () => {
   }
 };
 
+const playVictorySound = () => {
+  try {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const playTone = (frequency, duration, startTime, gain = 0.15) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      oscillator.frequency.setValueAtTime(frequency, startTime);
+      oscillator.type = 'sine';
+      gainNode.gain.setValueAtTime(0, startTime);
+      gainNode.gain.linearRampToValueAtTime(gain, startTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    // Triumphant fanfare melody
+    const now = audioContext.currentTime;
+    // First chord (C major)
+    playTone(523.25, 0.3, now, 0.12); // C5
+    playTone(659.25, 0.3, now, 0.1); // E5
+    playTone(783.99, 0.3, now, 0.1); // G5
+
+    // Second chord (G major)
+    playTone(587.33, 0.3, now + 0.25, 0.12); // D5
+    playTone(739.99, 0.3, now + 0.25, 0.1); // F#5
+    playTone(880.0, 0.3, now + 0.25, 0.1); // A5
+
+    // Final chord (C major high)
+    playTone(783.99, 0.5, now + 0.5, 0.15); // G5
+    playTone(987.77, 0.5, now + 0.5, 0.12); // B5
+    playTone(1046.5, 0.6, now + 0.5, 0.15); // C6
+
+    // Flourish
+    playTone(1318.51, 0.4, now + 0.8, 0.1); // E6
+    playTone(1567.98, 0.6, now + 1.0, 0.12); // G6
+  } catch (error) {
+    console.log('Could not play victory sound:', error);
+  }
+};
+
 const LiveActivityFeed = ({
   teams = [],
   event,
@@ -54,6 +100,7 @@ const LiveActivityFeed = ({
 }) => {
   const { colorMode } = useColorMode();
   const toast = useToast();
+  const [victoryData, setVictoryData] = useState(null);
 
   // Use WebSocket subscription instead of local state monitoring
   const { activities, loading, error } = useActivityFeed(event?.eventId, teams);
@@ -288,8 +335,74 @@ const LiveActivityFeed = ({
       createEmojiExplosion();
     }, 1000);
   }, []);
+
+  const triggerMegaConfetti = useCallback(() => {
+    // First, trigger the normal confetti 3 times
+    triggerConfetti();
+    setTimeout(() => triggerConfetti(), 300);
+    setTimeout(() => triggerConfetti(), 600);
+
+    // Add firework bursts from corners
+    const createFirework = (startX, startY) => {
+      const colors = ['#FFD700', '#FFA500', '#FF6347', '#FFD700', '#FFFFFF'];
+
+      for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        const angle = (i / 30) * Math.PI * 2;
+        const velocity = 100 + Math.random() * 150;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 4 + Math.random() * 8;
+
+        particle.style.cssText = `
+        position: fixed;
+        width: ${size}px;
+        height: ${size}px;
+        background: ${color};
+        border-radius: 50%;
+        left: ${startX}px;
+        top: ${startY}px;
+        pointer-events: none;
+        z-index: 10000;
+        box-shadow: 0 0 ${size}px ${color};
+      `;
+
+        document.body.appendChild(particle);
+
+        // Animate outward
+        let progress = 0;
+        const animate = () => {
+          progress += 0.02;
+          const x = startX + Math.cos(angle) * velocity * progress;
+          const y = startY + Math.sin(angle) * velocity * progress + progress * progress * 200; // gravity
+          const opacity = 1 - progress;
+
+          particle.style.left = `${x}px`;
+          particle.style.top = `${y}px`;
+          particle.style.opacity = opacity;
+
+          if (progress < 1) {
+            requestAnimationFrame(animate);
+          } else {
+            particle.remove();
+          }
+        };
+
+        requestAnimationFrame(animate);
+      }
+    };
+
+    // Launch fireworks from corners
+    setTimeout(() => createFirework(100, window.innerHeight - 100), 200);
+    setTimeout(() => createFirework(window.innerWidth - 100, window.innerHeight - 100), 400);
+    setTimeout(() => createFirework(window.innerWidth / 2, window.innerHeight - 50), 600);
+    setTimeout(() => createFirework(100, window.innerHeight - 100), 1000);
+    setTimeout(() => createFirework(window.innerWidth - 100, window.innerHeight - 100), 1200);
+  }, [triggerConfetti]);
+
   const getActivityIcon = (type) => {
     switch (type) {
+      case 'team_victory':
+        return FaTrophy;
       case 'node_completed':
         return CheckCircleIcon;
       case 'inn_visited':
@@ -313,6 +426,8 @@ const LiveActivityFeed = ({
 
   const getActivityColor = (type) => {
     switch (type) {
+      case 'team_victory':
+        return '#FFD700';
       case 'node_completed':
         return currentColors.green.base;
       case 'inn_visited':
@@ -336,6 +451,8 @@ const LiveActivityFeed = ({
 
   const getActivityTitle = (activity) => {
     switch (activity.type) {
+      case 'team_victory':
+        return `🏆 ${activity.team.teamName} HAS FINISHED!`;
       case 'node_completed':
         return `🎯 ${activity.team.teamName} completed a node!`;
       case 'inn_visited':
@@ -378,6 +495,10 @@ const LiveActivityFeed = ({
         return `Joined the competition with ${activity.memberCount} members`;
       case 'gp_gained':
         return `+${formatGP(activity.amount)} GP (Total: ${formatGP(activity.newTotal)})`;
+      case 'team_victory':
+        return `Completed all nodes with ${formatGP(activity.finalGP)} GP! ${
+          activity.isFirstToFinish ? '🥇 First to finish!' : ''
+        }`;
       default:
         return '';
     }
@@ -399,15 +520,34 @@ const LiveActivityFeed = ({
   useEffect(() => {
     if (activities.length > 0) {
       const latestActivity = activities[0];
-
-      // Only trigger effects for very recent activities (within last 5 seconds)
       const isRecent = new Date() - latestActivity.timestamp < 5000;
 
+      // Handle team victory
+      if (isRecent && latestActivity.type === 'team_victory') {
+        // MEGA celebration!
+        triggerMegaConfetti();
+        playVictorySound();
+
+        // Show victory overlay
+        setVictoryData({
+          teamName: latestActivity.team.teamName,
+          teamColor: latestActivity.teamColor || '#FFD700',
+          finalGP: latestActivity.finalGP,
+          nodesCompleted: latestActivity.nodesCompleted,
+          totalNodes: latestActivity.totalNodes,
+          rank: latestActivity.rank || 1,
+          isFirstToFinish: latestActivity.isFirstToFinish,
+          eventName: event?.eventName,
+        });
+
+        return; // Don't show regular toast for victory
+      }
+
+      // Regular activity handling (existing code)
       if (isRecent && ['node_completed', 'inn_visited'].includes(latestActivity.type)) {
         triggerConfetti();
         playNotificationSound();
 
-        // Show toast
         toast({
           title: getActivityTitle(latestActivity),
           description: getActivityDescription(latestActivity),
@@ -418,12 +558,19 @@ const LiveActivityFeed = ({
         });
       }
 
-      // Call parent callback
       if (onTeamActivity && isRecent) {
         onTeamActivity(latestActivity);
       }
     }
-  }, [activities, toast, triggerConfetti, onTeamActivity, getActivityDescription]);
+  }, [
+    activities,
+    toast,
+    triggerConfetti,
+    triggerMegaConfetti,
+    onTeamActivity,
+    getActivityDescription,
+    event?.eventName,
+  ]);
 
   // Log connection errors
   if (error) {
@@ -445,6 +592,7 @@ const LiveActivityFeed = ({
   return (
     <>
       <Card bg={currentColors.cardBg} className={className}>
+        <DevTestPanel />
         <CardBody>
           <VStack align="stretch" h="100%" spacing={4}>
             {/* Header */}
@@ -590,6 +738,11 @@ const LiveActivityFeed = ({
           </VStack>
         </CardBody>
       </Card>
+      <VictoryOverlay
+        isOpen={!!victoryData}
+        onClose={() => setVictoryData(null)}
+        {...victoryData}
+      />
     </>
   );
 };
