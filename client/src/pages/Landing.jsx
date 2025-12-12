@@ -325,7 +325,7 @@ const Landing = () => {
             textDecoration="underline"
             cursor="pointer"
           >
-            <Link to="/treasure-hunt">Read More & Create Your Own →</Link>
+            <Link to="/gielinor-rush">Read More & Create Your Own →</Link>
           </Flex>
         </VStack>
       </Section>

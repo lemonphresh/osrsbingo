@@ -71,17 +71,17 @@ const routes = [
         element: <Calendar />,
       },
       {
-        path: '/treasure-hunt',
+        path: '/gielinor-rush',
         element: <TreasureHuntDashboard />,
         errorElement: <ErrorPage />,
       },
       {
-        path: '/treasure-hunt/:eventId',
+        path: '/gielinor-rush/:eventId',
         element: <TreasureEventView />,
         errorElement: <ErrorPage />,
       },
       {
-        path: '/treasure-hunt/:eventId/team/:teamId',
+        path: '/gielinor-rush/:eventId/team/:teamId',
         element: <TreasureTeamPage />,
         errorElement: <ErrorPage />,
       },

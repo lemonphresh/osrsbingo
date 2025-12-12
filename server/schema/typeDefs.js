@@ -391,6 +391,7 @@ const typeDefs = gql`
     status: TreasureEventStatus
     eventConfig: JSON
     mapStructure: JSON
+    discordConfig: JSON
     contentSelections: JSON
     startDate: DateTime
     endDate: DateTime

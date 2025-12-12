@@ -211,7 +211,7 @@ const TreasureHuntDashboard = () => {
     setClickedEventId(eventId);
     // Small delay to show loading state
     setTimeout(() => {
-      navigate(`/treasure-hunt/${eventId}`);
+      navigate(`/gielinor-rush/${eventId}`);
     }, 150);
   };
 

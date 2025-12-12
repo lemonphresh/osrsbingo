@@ -1,7 +1,9 @@
+import OSRSMap from '../../src/assets/osrsmap12112025.png';
+
 export const MAP_CONFIG = {
   mapWidth: 8192,
   mapHeight: 5632,
-  mapImageUrl: 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
+  mapImageUrl: OSRSMap,
 
   _slopeX: 2.9165021964249197,
   _interceptX: -3247.7248971193417,

@@ -178,7 +178,16 @@ export default function InnModal({
                 <Box flex="1">
                   <AlertTitle>View Only</AlertTitle>
                   <AlertDescription fontSize="sm">
-                    You are not a member of this team. Link your Discord account to make purchases.
+                    Link your Discord ID on your{' '}
+                    <Text
+                      as="a"
+                      href={`/user/${currentUser?.id}`}
+                      color="blue.500"
+                      textDecoration="underline"
+                    >
+                      profile
+                    </Text>{' '}
+                    to make purchases.
                   </AlertDescription>
                 </Box>
               </Alert>
@@ -199,7 +208,7 @@ export default function InnModal({
 
             <Box bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} p={3} borderRadius="md">
               <Heading size="xs" mb={2} color={currentColors.textColor}>
-                Your Keys
+                Your Team's Keys
               </Heading>
               {team.keysHeld && team.keysHeld.length > 0 ? (
                 <HStack spacing={2} flexWrap="wrap">
@@ -271,7 +280,7 @@ export default function InnModal({
 
                             {!isTeamMember && (
                               <Text fontSize="xs" color="orange.500">
-                                Not a team member
+                                Discord ID not linked
                               </Text>
                             )}
                             {isTeamMember && !affordable && !hasAlreadyPurchased && (

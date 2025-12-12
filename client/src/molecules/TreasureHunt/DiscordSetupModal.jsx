@@ -110,7 +110,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               >
                 <ListItem>
                   Create a text channel for your event (e.g.,{' '}
-                  <Code bg={currentColors.codeBg}>#treasure-hunt-2025</Code>)
+                  <Code bg={currentColors.codeBg}>#gielinor-rush-2025</Code>)
                 </ListItem>
                 <ListItem>
                   Set the channel topic to your Event ID:{' '}
