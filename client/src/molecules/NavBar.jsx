@@ -12,9 +12,9 @@ import {
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import theme from '../theme';
-import GemLogo from '../assets/gemlogo.png';
-import GnomeChild from '../assets/gnomechild.png';
-import Lemon from '../assets/lemon.png';
+import GemLogo from '../assets/gemlogo-small.png';
+import GnomeChild from '../assets/gnomechild-small.webp';
+import Lemon from '../assets/lemon-small.webp';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
@@ -56,8 +56,8 @@ const NavBar = () => {
       {/* Collapsible Banner */}
       <Collapse in={isBannerOpen} animateOpacity>
         <Box
-          backgroundColor={theme.colors.orange[400]}
-          borderBottom={`2px ${theme.colors.orange[600]} solid`}
+          backgroundColor={theme.colors.red[400]}
+          borderBottom={`2px ${theme.colors.red[600]} solid`}
           color="white"
           paddingX={['8px', '32px']}
           paddingY="12px"
@@ -66,30 +66,32 @@ const NavBar = () => {
           <Flex alignItems="center" justifyContent="space-between">
             <HStack spacing={4}>
               <Box maxH={24} maxW={24}>
-                <Image src={Lemon} />
+                <Image alt="A little lemon waving at you" opacity="0.9" src={Lemon} />
               </Box>
               <VStack>
                 <Text fontSize={['sm', 'md']} fontWeight="semibold">
-                  Hey gang, it's your resident dev Lemon here! <br />
+                  Hey gang, it's your resident dev{' '}
+                  <span style={{ color: theme.colors.yellow[100] }}>Lemon</span> here! <br />
                   I've been hard at work on some exciting new features for OSRS Bingo Hub, like the{' '}
                   <strong>new Gielinor Rush game type!</strong>
                   <br />
                 </Text>
                 <Text
                   fontSize="lg"
+                  color={theme.colors.yellow[100]}
                   fontWeight="semibold"
                   textDecoration="underline"
                   w="100%"
                   textAlign="left"
                 >
-                  <Link to="/gielinor-rush">Give it a shot! ❤️</Link>
+                  <Link to="/gielinor-rush">Give it a shot! 💛</Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
-                  Also I take{' '}
+                  Also, please consider{' '}
                   <Link to="https://cash.app/$lemonlikesgirls/5.00" target="_blank">
-                    <u>donations</u>
+                    <u>donating</u>
                   </Link>
-                  , hosting ain't cheap! ;-)
+                  , hosting ain't cheap and I want to continue developing new features! ;-)
                 </Text>
               </VStack>
             </HStack>
@@ -194,6 +196,7 @@ const NavBar = () => {
               width: '100%',
             }}
             to={user ? `/user/${user.id}` : '/'}
+            aria-label="Home"
           >
             <Image
               aria-hidden

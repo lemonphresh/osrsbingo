@@ -27,8 +27,8 @@ import {
 import { InfoIcon, WarningIcon } from '@chakra-ui/icons';
 import { FaFire, FaTrophy, FaHome } from 'react-icons/fa';
 import Key from '../../assets/Key.png';
-import Gold from '../../assets/gold.png';
-import AdventurePath from '../../assets/adventurepath.png';
+import Gold from '../../assets/gold-small.webp';
+import AdventurePath from '../../assets/adventurepath-small.webp';
 
 /**
  * Enhanced Team Stats Component

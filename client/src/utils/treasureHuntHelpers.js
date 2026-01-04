@@ -470,35 +470,71 @@ const COLLECTIBLE_ITEMS = {
  * Clue scroll tiers
  */
 const CLUE_TIERS = {
+  beginner: {
+    id: 'beginner',
+    name: 'Beginner Clue',
+    color: 'yellow',
+    enabled: true,
+    quantities: {
+      easy: { min: 10, max: 20 },
+      medium: { min: 15, max: 20 },
+      hard: { min: 20, max: 25 },
+    },
+  },
   easy: {
     id: 'easy',
-    name: 'Easy',
+    name: 'Easy Clue',
     color: 'green',
-    steps: { min: 2, max: 4 },
+    enabled: true,
+    quantities: {
+      easy: { min: 10, max: 20 },
+      medium: { min: 15, max: 20 },
+      hard: { min: 20, max: 25 },
+    },
   },
   medium: {
     id: 'medium',
-    name: 'Medium',
+    name: 'Medium Clue',
     color: 'blue',
-    steps: { min: 3, max: 5 },
+    enabled: true,
+    quantities: {
+      easy: { min: 8, max: 12 },
+      medium: { min: 10, max: 15 },
+      hard: { min: 15, max: 25 },
+    },
   },
   hard: {
     id: 'hard',
-    name: 'Hard',
+    name: 'Hard Clue',
     color: 'purple',
-    steps: { min: 4, max: 6 },
+    enabled: true,
+    quantities: {
+      easy: { min: 5, max: 10 },
+      medium: { min: 7, max: 12 },
+      hard: { min: 10, max: 15 },
+    },
   },
   elite: {
     id: 'elite',
-    name: 'Elite',
+    name: 'Elite Clue',
     color: 'orange',
-    steps: { min: 5, max: 7 },
+    enabled: true,
+    quantities: {
+      easy: { min: 3, max: 5 },
+      medium: { min: 5, max: 7 },
+      hard: { min: 8, max: 10 },
+    },
   },
   master: {
     id: 'master',
-    name: 'Master',
+    name: 'Master Clue',
     color: 'red',
-    steps: { min: 6, max: 8 },
+    enabled: true,
+    quantities: {
+      easy: { min: 2, max: 4 },
+      medium: { min: 3, max: 6 },
+      hard: { min: 5, max: 10 },
+    },
   },
 };
 

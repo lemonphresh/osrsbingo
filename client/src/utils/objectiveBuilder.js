@@ -4549,8 +4549,8 @@ export const COLLECTIBLE_ITEMS = {
 export const CLUE_TIERS = {
   beginner: {
     id: 'beginner',
-    name: 'Beginner',
-    color: 'purple',
+    name: 'Beginner Clue',
+    color: 'yellow',
     enabled: true,
     quantities: {
       easy: { min: 10, max: 20 },
@@ -4560,7 +4560,7 @@ export const CLUE_TIERS = {
   },
   easy: {
     id: 'easy',
-    name: 'Easy',
+    name: 'Easy Clue',
     color: 'green',
     enabled: true,
     quantities: {
@@ -4571,7 +4571,7 @@ export const CLUE_TIERS = {
   },
   medium: {
     id: 'medium',
-    name: 'Medium',
+    name: 'Medium Clue',
     color: 'blue',
     enabled: true,
     quantities: {
@@ -4582,7 +4582,7 @@ export const CLUE_TIERS = {
   },
   hard: {
     id: 'hard',
-    name: 'Hard',
+    name: 'Hard Clue',
     color: 'purple',
     enabled: true,
     quantities: {
@@ -4593,7 +4593,7 @@ export const CLUE_TIERS = {
   },
   elite: {
     id: 'elite',
-    name: 'Elite',
+    name: 'Elite Clue',
     color: 'orange',
     enabled: true,
     quantities: {
@@ -4604,7 +4604,7 @@ export const CLUE_TIERS = {
   },
   master: {
     id: 'master',
-    name: 'Master',
+    name: 'Master Clue',
     color: 'red',
     enabled: true,
     quantities: {

@@ -54,7 +54,7 @@ import { useToastContext } from '../providers/ToastProvider';
 import EventCreationGuide from '../organisms/TreasureHunt/TreasureHuntEventCreationGuide';
 import AuthRequiredModal from '../molecules/AuthRequiredModal';
 import Map from '../assets/osrsmap.png';
-import Objective from '../assets/adventurepath.png';
+import Objective from '../assets/adventurepath-small.webp';
 import Laidee from '../assets/laidee.png';
 import HouseTab from '../assets/housetab.png';
 

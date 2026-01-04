@@ -1,17 +1,21 @@
 import {
   Alert,
+  Box,
   Button,
+  Checkbox,
   Flex,
   FormControl,
   FormErrorMessage,
   FormHelperText,
   FormLabel,
+  HStack,
   Input,
   Text,
+  VStack,
 } from '@chakra-ui/react';
 import React, { useCallback, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { InfoIcon, WarningIcon } from '@chakra-ui/icons';
+import { InfoIcon, LockIcon, WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
 import theme from '../theme';
 import { useAuth } from '../providers/AuthProvider';
@@ -22,17 +26,18 @@ import { CREATE_USER } from '../graphql/mutations';
 
 const validatePasswords = (p1, p2) => p1 === p2;
 
-const totalFormValidation = (values) =>
+const totalFormValidation = (values, hasAcknowledged) =>
   values.password?.length > 0 &&
   values.confirmedPassword?.length > 0 &&
   validatePasswords(values.password, values.confirmedPassword) &&
-  // zz validate length of username
-  values.username?.length !== 0;
+  values.username?.length !== 0 &&
+  hasAcknowledged;
 
 const SignUp = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
+  const [hasAcknowledgedPassword, setHasAcknowledgedPassword] = useState(false);
 
   const [createUser, { loading }] = useMutation(CREATE_USER, {
     onCompleted: (data) => {
@@ -46,7 +51,7 @@ const SignUp = () => {
 
   const { onChange, onSubmit, values } = useForm(
     async () => {
-      if (totalFormValidation(values)) {
+      if (totalFormValidation(values, hasAcknowledgedPassword)) {
         const { data } = await createUser({
           variables: {
             username: values.username,
@@ -94,6 +99,12 @@ const SignUp = () => {
         width="100%"
       >
         <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (totalFormValidation(values, hasAcknowledgedPassword)) {
+              onSubmit();
+            }
+          }}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -140,6 +151,53 @@ const SignUp = () => {
               </Text>
             </Alert>
           ))}
+
+          {/* Password Warning Banner */}
+          <Box
+            background="linear-gradient(135deg, #F4D35E 0%, #EE964B 100%)"
+            borderRadius="12px"
+            padding="16px"
+            position="relative"
+            overflow="hidden"
+            boxShadow="0 4px 12px rgba(244, 211, 94, 0.3)"
+          >
+            {/* Decorative shield icon background */}
+            <Box
+              position="absolute"
+              right="30px"
+              top="50%"
+              transform="translateY(-50%)"
+              opacity={0.15}
+              fontSize="80px"
+            >
+              🛡️
+            </Box>
+
+            <VStack align="stretch" spacing={3} position="relative" zIndex={1}>
+              <HStack spacing={3}>
+                <Box backgroundColor="rgba(0,0,0,0.15)" borderRadius="full" padding="8px">
+                  <LockIcon color="#1F271B" boxSize={5} />
+                </Box>
+                <Text color="#1F271B" fontWeight="bold" fontSize="lg">
+                  Write Down Your Password!
+                </Text>
+              </HStack>
+
+              <Text color="#1F271B" fontSize="sm" lineHeight="1.6">
+                <strong>There is no password recovery.</strong> We intentionally do not collect
+                emails to protect your OSRS account credentials from potential data breaches.
+              </Text>
+
+              <Box backgroundColor="rgba(0,0,0,0.1)" borderRadius="8px" padding="12px">
+                <Text color="#1F271B" fontSize="sm" fontWeight="medium">
+                  Tip: Use a password manager or write it somewhere safe. If you forget your
+                  password, you'll need to create a new account, and potentially lose all your
+                  boards!
+                </Text>
+              </Box>
+            </VStack>
+          </Box>
+
           <FormControl isInvalid={values.username?.length === 0} isRequired>
             <FormLabel>Username</FormLabel>
             <Input
@@ -246,6 +304,32 @@ const SignUp = () => {
               <FormErrorMessage>Passwords must match.</FormErrorMessage>
             )}
           </FormControl>
+
+          {/* Acknowledgment Checkbox */}
+          <Box
+            backgroundColor={
+              hasAcknowledgedPassword ? 'rgba(255,255,255, 0.8)' : theme.colors.gray[200]
+            }
+            borderRadius="8px"
+            borderWidth="2px"
+            borderColor={hasAcknowledgedPassword ? theme.colors.green[200] : theme.colors.gray[300]}
+            padding="16px"
+            transition="all 0.2s ease"
+          >
+            <Checkbox
+              colorScheme="green"
+              borderColor={theme.colors.pink[400]}
+              isChecked={hasAcknowledgedPassword}
+              onChange={(e) => setHasAcknowledgedPassword(e.target.checked)}
+              size="lg"
+            >
+              <Text fontSize="sm" color={theme.colors.gray[600]} marginLeft="8px">
+                I understand there is <strong>no password recovery</strong> and I have saved my
+                password somewhere safe.
+              </Text>
+            </Checkbox>
+          </Box>
+
           {loading && errors.length === 0 && (
             <Flex alignSelf="center" gridGap="16px" justifySelf="center">
               Loading
@@ -254,11 +338,20 @@ const SignUp = () => {
           <Button
             alignSelf="center"
             backgroundColor={theme.colors.green[200]}
-            color={!totalFormValidation(values) ? theme.colors.gray[400] : theme.colors.gray[700]}
-            disabled={!totalFormValidation(values)}
+            color={
+              !totalFormValidation(values, hasAcknowledgedPassword)
+                ? theme.colors.gray[400]
+                : theme.colors.gray[700]
+            }
+            disabled={!totalFormValidation(values, hasAcknowledgedPassword)}
             marginTop="24px"
-            onClick={onSubmit}
+            type="submit"
             width={['100%', '250px']}
+            _hover={{
+              backgroundColor: totalFormValidation(values, hasAcknowledgedPassword)
+                ? theme.colors.green[300]
+                : theme.colors.green[200],
+            }}
           >
             Sign Up
           </Button>

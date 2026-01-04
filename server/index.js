@@ -40,7 +40,12 @@ app.set('trust proxy', 1);
 
 // Serve static files from the React app (client build directory)
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
-  app.use(express.static(path.join(__dirname, 'public'))); // Serve from the correct location
+  app.use(
+    express.static(path.join(__dirname, 'public'), {
+      maxAge: '1y',
+      etag: true,
+    })
+  );
 } else {
   app.use(express.static(path.join(__dirname, 'public')));
 }

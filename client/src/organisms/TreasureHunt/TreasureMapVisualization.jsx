@@ -7,7 +7,7 @@ import {
   VStack,
   HStack,
   Button,
-  Image,
+  Image as ChakraImg,
   Flex,
   IconButton,
   useToast,
@@ -16,6 +16,7 @@ import {
   useBreakpointValue,
   WrapItem,
   Wrap,
+  Spinner,
 } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon, CopyIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
@@ -25,6 +26,7 @@ import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
+import OSRSMap from '../../assets/osrsmap12112025.png';
 
 const RecenterButton = ({ bounds, nodes }) => {
   const map = useMap();
@@ -253,7 +255,7 @@ const TreasureMapVisualization = ({
   nodes = [],
   team,
   event,
-  mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
+  mapImageUrl = OSRSMap,
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
@@ -261,6 +263,18 @@ const TreasureMapVisualization = ({
   const toast = useToast();
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
+
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = OSRSMap;
+    img.onload = () => setImageLoaded(true);
+  }, []);
+
+  if (!imageLoaded) {
+    return <Spinner />;
+  }
 
   const colors = {
     purple: '#7D5FFF',
@@ -599,7 +613,7 @@ const TreasureMapVisualization = ({
                             >
                               Rewards:
                             </Text>
-                            <Image h="32px" src={Casket} />
+                            <ChakraImg h="32px" src={Casket} />
                           </VStack>
 
                           <HStack spacing={2}>

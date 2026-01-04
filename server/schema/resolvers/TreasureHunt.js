@@ -1576,17 +1576,17 @@ const TreasureHuntResolvers = {
         team.currentPot = newPotBigInt.toString();
 
         // 8. Record the transaction
-        if (!team.innTransactions) {
-          team.innTransactions = [];
-        }
-
-        team.innTransactions.push({
+        const innTransactions = [...(team.innTransactions || [])];
+        innTransactions.push({
           nodeId: innNode.nodeId,
           rewardId: reward.reward_id,
           keysSpent: keysSpent,
           payout: reward.payout,
           purchasedAt: new Date().toISOString(),
         });
+
+        team.innTransactions = innTransactions;
+        team.changed('innTransactions', true);
 
         // 9. **CRITICAL: Save the team back to database**
         await team.save();
