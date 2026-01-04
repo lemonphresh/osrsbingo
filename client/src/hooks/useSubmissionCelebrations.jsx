@@ -16,7 +16,13 @@ import { NODE_COMPLETED_SUB, SUBMISSION_REVIEWED_SUB } from '../graphql/mutation
  * @param {Array} nodes - Nodes array (to get node details)
  * @param {boolean} enabled - Whether to enable celebrations (disable for admins)
  */
-const useSubmissionCelebrations = (eventId, teamId, nodes, enabled = true) => {
+const useSubmissionCelebrations = (
+  eventId,
+  teamId,
+  nodes,
+  enabled = true,
+  onNodeCompleted = null
+) => {
   const toast = useToast();
   const initializedRef = useRef(false);
 
@@ -95,6 +101,10 @@ const useSubmissionCelebrations = (eventId, teamId, nodes, enabled = true) => {
         isClosable: true,
         position: 'top',
       });
+
+      if (onNodeCompleted) {
+        onNodeCompleted(ev);
+      }
     },
   });
 

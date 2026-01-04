@@ -155,6 +155,12 @@ export default function InnModal({
     }
   };
 
+  console.log('Inn debug:', {
+    nodeId: node.nodeId,
+    innTransactions: team.innTransactions,
+    hasAlreadyPurchased,
+  });
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
       <ModalOverlay />

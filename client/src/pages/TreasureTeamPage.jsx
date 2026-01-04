@@ -186,8 +186,8 @@ const TreasureTeamView = () => {
     // difficultyTier: 1 (easy), 3 (medium), 5 (hard)
     const tier = parseInt(node.difficultyTier);
 
-    if (tier === 5) return currentColors.red; // hard = red
-    if (tier === 3) return currentColors.orange;
+    if (tier === 5) return currentColors.red.base; // hard = red
+    if (tier === 3) return currentColors.orange.base;
     if (tier === 1) return currentColors.green.base; // easy = green
 
     // Fallbacks if tier missing
@@ -359,7 +359,9 @@ const TreasureTeamView = () => {
       .slice(0, 10);
   }, [submissionsData?.getAllSubmissions, teamId]);
 
-  useSubmissionCelebrations(eventId, teamId, nodes, true);
+  useSubmissionCelebrations(eventId, teamId, nodes, true, () => {
+    refetchTeam();
+  });
 
   useEffect(() => {
     const unlock = () => {
