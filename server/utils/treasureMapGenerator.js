@@ -247,7 +247,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const { node_to_inn_ratio, difficulty = 'normal' } = eventConfig;
   const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty] || 1.0;
 
-  const { avg_gp_per_node, num_of_inns, total_nodes } = derivedValues;
+  const { avg_gp_per_node, avg_gp_per_inn, num_of_inns, total_nodes } = derivedValues;
 
   // NEW: Build formatted objectives
   const formattedObjectives = buildFormattedObjectives(
