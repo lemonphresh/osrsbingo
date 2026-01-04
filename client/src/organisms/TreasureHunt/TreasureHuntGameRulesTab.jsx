@@ -563,11 +563,11 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             </Text>
           </HStack>
           <Text fontSize="sm" color={currentColors.textColor} mb={2}>
-            If your event has Discord integration enabled, you can use the bot to interact with
-            Gielinor Rush directly from Discord! All commands start with <Badge>!</Badge>
+            You can use the bot to interact with Gielinor Rush directly from Discord! All commands
+            start with <Badge>!</Badge>
           </Text>
           <Text fontSize="xs" color={currentColors.textColor}>
-            💡 Make sure you're in the event channel (check the channel topic for the event ID)
+            💡 Make sure you're in the right channel (check the channel topic for the event ID)
           </Text>
         </Box>
 

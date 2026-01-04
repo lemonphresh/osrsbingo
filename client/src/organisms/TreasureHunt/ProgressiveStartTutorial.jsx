@@ -9,10 +9,7 @@ import {
   Icon,
   Code,
   Badge,
-  Collapse,
-  useColorMode,
   Heading,
-  Image,
   Alert,
   AlertIcon,
   Divider,
@@ -20,13 +17,7 @@ import {
   ListItem,
   Kbd,
 } from '@chakra-ui/react';
-import {
-  CheckCircleIcon,
-  InfoIcon,
-  ArrowForwardIcon,
-  CopyIcon,
-  ExternalLinkIcon,
-} from '@chakra-ui/icons';
+import { CheckCircleIcon, InfoIcon, ArrowForwardIcon, CopyIcon } from '@chakra-ui/icons';
 import { FaDiscord, FaCamera, FaClipboardCheck } from 'react-icons/fa';
 
 /**

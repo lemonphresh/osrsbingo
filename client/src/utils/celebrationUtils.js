@@ -180,7 +180,6 @@ export const triggerMiniConfetti = (originX = null, originY = null) => {
     const size = 6 + Math.random() * 10;
     const angle = Math.random() * Math.PI * 2;
     const velocity = 50 + Math.random() * 100;
-    const duration = 1 + Math.random() * 1.5;
 
     confetti.style.cssText = `
       position: fixed;

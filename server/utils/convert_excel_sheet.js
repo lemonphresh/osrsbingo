@@ -1,43 +1,136 @@
 #!/usr/bin/env node
 /**
  * OSRS Content Converter (Node.js version)
- * Converts Excel spreadsheet back into JavaScript files for your Gielinor Rush system.
+ * Converts Excel spreadsheet into JavaScript files for your Gielinor Rush system.
  *
  * Usage:
  *   node convert_spreadsheet.js osrs_content_manager.xlsx
  *
  * Generates:
  *   - objectiveCollections.js
- *   - default_quantities.js
+ *
+ * Spreadsheet Structure Expected:
+ *   - Bosses: ID, Display Name, Category, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max, Tags
+ *   - Raids: ID, Display Name, Short Name, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max, Tags
+ *   - Skills: ID, Display Name, Category, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max, Tags
+ *   - Minigames: ID, Display Name, Category, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max, Tags
+ *   - Items: ID, Display Name, Category, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max, Sources, Tags
+ *   - Clue Scrolls: ID, Display Name, Color, Enabled, Easy Min/Max, Medium Min/Max, Hard Min/Max
  */
 
 const XLSX = require('xlsx');
 const fs = require('fs');
 
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+/**
+ * Parse a comma-separated string into an array of trimmed strings
+ */
+function parseCommaSeparated(value) {
+  if (!value || typeof value !== 'string') return [];
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Extract quantity ranges from a row
+ */
+function extractQuantities(row) {
+  return {
+    easy: {
+      min: row['Easy Min'] ?? null,
+      max: row['Easy Max'] ?? null,
+    },
+    medium: {
+      min: row['Medium Min'] ?? null,
+      max: row['Medium Max'] ?? null,
+    },
+    hard: {
+      min: row['Hard Min'] ?? null,
+      max: row['Hard Max'] ?? null,
+    },
+  };
+}
+
+/**
+ * Check if quantities object has valid values
+ */
+function hasValidQuantities(quantities) {
+  return (
+    (quantities.easy.min !== null && quantities.easy.max !== null) ||
+    (quantities.medium.min !== null && quantities.medium.max !== null) ||
+    (quantities.hard.min !== null && quantities.hard.max !== null)
+  );
+}
+
+/**
+ * Format a JavaScript object for output with proper indentation
+ */
 function formatJSObject(data, indent = 2) {
   const spaces = ' '.repeat(indent);
   const lines = [];
 
   for (const [key, value] of Object.entries(data)) {
+    if (value === null || value === undefined) {
+      continue; // Skip null/undefined values
+    }
+
     if (typeof value === 'object' && !Array.isArray(value)) {
-      lines.push(`${spaces}${key}: {`);
+      // Handle nested objects (like quantities)
+      const nestedLines = [];
+      let hasNestedContent = false;
+
       for (const [subKey, subValue] of Object.entries(value)) {
-        if (typeof subValue === 'string') {
-          lines.push(`${spaces}  ${subKey}: '${subValue}',`);
+        if (subValue === null || subValue === undefined) continue;
+
+        if (typeof subValue === 'object' && !Array.isArray(subValue)) {
+          // Handle deeply nested objects (like quantities.easy)
+          const deepLines = [];
+          for (const [deepKey, deepValue] of Object.entries(subValue)) {
+            if (deepValue !== null && deepValue !== undefined) {
+              deepLines.push(`${deepKey}: ${deepValue}`);
+            }
+          }
+          if (deepLines.length > 0) {
+            nestedLines.push(`    ${subKey}: { ${deepLines.join(', ')} },`);
+            hasNestedContent = true;
+          }
+        } else if (typeof subValue === 'string') {
+          nestedLines.push(`    ${subKey}: "${subValue}",`);
+          hasNestedContent = true;
         } else if (typeof subValue === 'boolean') {
-          lines.push(`${spaces}  ${subKey}: ${subValue},`);
+          nestedLines.push(`    ${subKey}: ${subValue},`);
+          hasNestedContent = true;
         } else if (Array.isArray(subValue)) {
-          const arrayStr = JSON.stringify(subValue).replace(/"/g, "'");
-          lines.push(`${spaces}  ${subKey}: ${arrayStr},`);
+          if (subValue.length > 0) {
+            const arrayStr = JSON.stringify(subValue).replace(/"/g, "'");
+            nestedLines.push(`    ${subKey}: ${arrayStr},`);
+            hasNestedContent = true;
+          }
         } else {
-          lines.push(`${spaces}  ${subKey}: ${subValue},`);
+          nestedLines.push(`    ${subKey}: ${subValue},`);
+          hasNestedContent = true;
         }
       }
-      lines.push(`${spaces}},`);
+
+      if (hasNestedContent) {
+        lines.push(`${spaces}${key}: {`);
+        lines.push(...nestedLines.map((l) => `${spaces}${l}`));
+        lines.push(`${spaces}},`);
+      }
     } else if (typeof value === 'string') {
-      lines.push(`${spaces}${key}: '${value}',`);
+      lines.push(`${spaces}${key}: "${value}",`);
     } else if (typeof value === 'boolean') {
       lines.push(`${spaces}${key}: ${value},`);
+    } else if (Array.isArray(value)) {
+      if (value.length > 0) {
+        const arrayStr = JSON.stringify(value).replace(/"/g, "'");
+        lines.push(`${spaces}${key}: ${arrayStr},`);
+      }
     } else {
       lines.push(`${spaces}${key}: ${value},`);
     }
@@ -46,13 +139,31 @@ function formatJSObject(data, indent = 2) {
   return lines.join('\n');
 }
 
+/**
+ * Format an entire collection for output
+ */
+function formatCollection(collection) {
+  const entries = Object.entries(collection);
+  const formattedEntries = entries.map(([key, value]) => {
+    return `  ${key}: {\n${formatJSObject(value, 4)}\n  }`;
+  });
+  return formattedEntries.join(',\n');
+}
+
+// ============================================
+// CONVERTER FUNCTIONS
+// ============================================
+
 function convertBosses(sheet) {
   const bosses = {};
   const rows = XLSX.utils.sheet_to_json(sheet);
 
   rows.forEach((row) => {
     const bossId = row['ID'];
-    const tags = row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [];
+    if (!bossId) return; // Skip empty rows
+
+    const tags = parseCommaSeparated(row['Tags']);
+    const quantities = extractQuantities(row);
 
     bosses[bossId] = {
       id: bossId,
@@ -60,50 +171,12 @@ function convertBosses(sheet) {
       category: row['Category'],
       tags,
       enabled: !!row['Enabled'],
+      quantities,
     };
   });
 
+  console.log(`  ✓ Converted ${Object.keys(bosses).length} bosses`);
   return bosses;
-}
-
-function convertSkills(sheet) {
-  const skills = {};
-  const rows = XLSX.utils.sheet_to_json(sheet);
-
-  rows.forEach((row) => {
-    const skillId = row['ID'];
-    const tags = row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [];
-
-    skills[skillId] = {
-      id: skillId,
-      name: row['Display Name'],
-      category: row['Category'],
-      tags,
-    };
-  });
-
-  return skills;
-}
-
-function convertItems(sheet) {
-  const items = {};
-  const rows = XLSX.utils.sheet_to_json(sheet);
-
-  rows.forEach((row) => {
-    const itemId = row['ID'];
-    const sources = row['Sources'] ? row['Sources'].split(',').map((s) => s.trim()) : [];
-    const tags = row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [];
-
-    items[itemId] = {
-      id: itemId,
-      name: row['Display Name'],
-      category: row['Category'],
-      sources,
-      tags,
-    };
-  });
-
-  return items;
 }
 
 function convertRaids(sheet) {
@@ -112,7 +185,10 @@ function convertRaids(sheet) {
 
   rows.forEach((row) => {
     const raidId = row['ID'];
-    const tags = row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [];
+    if (!raidId) return; // Skip empty rows
+
+    const tags = parseCommaSeparated(row['Tags']);
+    const quantities = extractQuantities(row);
 
     raids[raidId] = {
       id: raidId,
@@ -121,10 +197,37 @@ function convertRaids(sheet) {
       category: 'raid',
       tags,
       enabled: !!row['Enabled'],
+      quantities,
     };
   });
 
+  console.log(`  ✓ Converted ${Object.keys(raids).length} raids`);
   return raids;
+}
+
+function convertSkills(sheet) {
+  const skills = {};
+  const rows = XLSX.utils.sheet_to_json(sheet);
+
+  rows.forEach((row) => {
+    const skillId = row['ID'];
+    if (!skillId) return; // Skip empty rows
+
+    const tags = parseCommaSeparated(row['Tags']);
+    const quantities = extractQuantities(row);
+
+    skills[skillId] = {
+      id: skillId,
+      name: row['Display Name'],
+      category: row['Category'],
+      tags,
+      enabled: !!row['Enabled'],
+      quantities,
+    };
+  });
+
+  console.log(`  ✓ Converted ${Object.keys(skills).length} skills`);
+  return skills;
 }
 
 function convertMinigames(sheet) {
@@ -133,7 +236,10 @@ function convertMinigames(sheet) {
 
   rows.forEach((row) => {
     const minigameId = row['ID'];
-    const tags = row['Tags'] ? row['Tags'].split(',').map((t) => t.trim()) : [];
+    if (!minigameId) return; // Skip empty rows
+
+    const tags = parseCommaSeparated(row['Tags']);
+    const quantities = extractQuantities(row);
 
     minigames[minigameId] = {
       id: minigameId,
@@ -141,10 +247,39 @@ function convertMinigames(sheet) {
       category: row['Category'],
       tags,
       enabled: !!row['Enabled'],
+      quantities,
     };
   });
 
+  console.log(`  ✓ Converted ${Object.keys(minigames).length} minigames`);
   return minigames;
+}
+
+function convertItems(sheet) {
+  const items = {};
+  const rows = XLSX.utils.sheet_to_json(sheet);
+
+  rows.forEach((row) => {
+    const itemId = row['ID'];
+    if (!itemId) return; // Skip empty rows
+
+    const sources = parseCommaSeparated(row['Sources']);
+    const tags = parseCommaSeparated(row['Tags']);
+    const quantities = extractQuantities(row);
+
+    items[itemId] = {
+      id: itemId,
+      name: row['Display Name'],
+      category: row['Category'],
+      sources,
+      tags,
+      enabled: !!row['Enabled'],
+      quantities,
+    };
+  });
+
+  console.log(`  ✓ Converted ${Object.keys(items).length} items`);
+  return items;
 }
 
 function convertClues(sheet) {
@@ -153,72 +288,47 @@ function convertClues(sheet) {
 
   rows.forEach((row) => {
     const clueId = row['ID'];
+    if (!clueId) return; // Skip empty rows
+
+    const quantities = extractQuantities(row);
 
     clues[clueId] = {
       id: clueId,
       name: row['Display Name'],
       color: row['Color'],
+      enabled: !!row['Enabled'],
+      quantities,
     };
   });
 
+  console.log(`  ✓ Converted ${Object.keys(clues).length} clue tiers`);
   return clues;
 }
 
-function generateDefaultQuantities(sheets) {
-  const bossRows = XLSX.utils.sheet_to_json(sheets['Bosses']);
-  const skillRows = XLSX.utils.sheet_to_json(sheets['Skills']);
-  const minigameRows = XLSX.utils.sheet_to_json(sheets['Minigames']);
-  const itemRows = XLSX.utils.sheet_to_json(sheets['Items']);
-  const clueRows = XLSX.utils.sheet_to_json(sheets['Clue Scrolls']);
-
-  // Use first row as template for ranges
-  const bossTemplate = bossRows[0];
-  const skillTemplate = skillRows[0];
-  const minigameTemplate = minigameRows[0];
-  const itemTemplate = itemRows[0];
-  const clueTemplate = clueRows[0];
-
-  return {
-    boss_kc: {
-      easy: { min: bossTemplate['Easy Min'], max: bossTemplate['Easy Max'] },
-      medium: { min: bossTemplate['Medium Min'], max: bossTemplate['Medium Max'] },
-      hard: { min: bossTemplate['Hard Min'], max: bossTemplate['Hard Max'] },
-    },
-    xp_gain: {
-      easy: { min: skillTemplate['Easy Min'], max: skillTemplate['Easy Max'] },
-      medium: { min: skillTemplate['Medium Min'], max: skillTemplate['Medium Max'] },
-      hard: { min: skillTemplate['Hard Min'], max: skillTemplate['Hard Max'] },
-    },
-    minigame: {
-      easy: { min: minigameTemplate['Easy Min'], max: minigameTemplate['Easy Max'] },
-      medium: { min: minigameTemplate['Medium Min'], max: minigameTemplate['Medium Max'] },
-      hard: { min: minigameTemplate['Hard Min'], max: minigameTemplate['Hard Max'] },
-    },
-    item_collection: {
-      easy: { min: itemTemplate['Easy Min'], max: itemTemplate['Easy Max'] },
-      medium: { min: itemTemplate['Medium Min'], max: itemTemplate['Medium Max'] },
-      hard: { min: itemTemplate['Hard Min'], max: itemTemplate['Hard Max'] },
-    },
-    clue_scrolls: {
-      easy: { min: clueTemplate['Easy Min'], max: clueTemplate['Easy Max'] },
-      medium: { min: clueTemplate['Medium Min'], max: clueTemplate['Medium Max'] },
-      hard: { min: clueTemplate['Hard Min'], max: clueTemplate['Hard Max'] },
-    },
-  };
-}
+// ============================================
+// MAIN FUNCTION
+// ============================================
 
 function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
     console.log('Usage: node convert_spreadsheet.js <excel_file>');
+    console.log('');
+    console.log('Expected sheets:');
+    console.log('  - Bosses');
+    console.log('  - Raids');
+    console.log('  - Skills');
+    console.log('  - Minigames');
+    console.log('  - Items');
+    console.log('  - Clue Scrolls');
     process.exit(1);
   }
 
   const excelFile = args[0];
 
   try {
-    console.log(`📊 Reading ${excelFile}...`);
+    console.log(`\n📊 Reading ${excelFile}...\n`);
 
     // Read the workbook
     const workbook = XLSX.readFile(excelFile);
@@ -229,6 +339,18 @@ function main() {
       sheets[name] = workbook.Sheets[name];
     });
 
+    // Validate required sheets exist
+    const requiredSheets = ['Bosses', 'Raids', 'Skills', 'Minigames', 'Items', 'Clue Scrolls'];
+    const missingSheets = requiredSheets.filter((name) => !sheets[name]);
+
+    if (missingSheets.length > 0) {
+      console.error(`❌ Missing required sheets: ${missingSheets.join(', ')}`);
+      console.log(`   Found sheets: ${workbook.SheetNames.join(', ')}`);
+      process.exit(1);
+    }
+
+    console.log('📋 Converting sheets...\n');
+
     // Convert each sheet
     const bosses = convertBosses(sheets['Bosses']);
     const raids = convertRaids(sheets['Raids']);
@@ -237,8 +359,7 @@ function main() {
     const items = convertItems(sheets['Items']);
     const clues = convertClues(sheets['Clue Scrolls']);
 
-    // Generate quantities
-    const quantities = generateDefaultQuantities(sheets);
+    console.log('\n📝 Generating objectiveCollections.js...\n');
 
     // Generate objectiveCollections.js
     const jsContent = `// ============================================
@@ -246,47 +367,55 @@ function main() {
 // ============================================
 // Auto-generated from Excel spreadsheet - DO NOT EDIT MANUALLY
 // Edit the spreadsheet and re-run the converter instead.
+// Generated: ${new Date().toISOString()}
 
 /**
  * Solo boss definitions
+ * Each boss includes per-boss quantity ranges for objectives
  */
 export const SOLO_BOSSES = {
-${formatJSObject(bosses)}
+${formatCollection(bosses)}
 };
 
 /**
- * Raid definitions  
+ * Raid definitions
+ * Each raid includes per-raid quantity ranges for objectives
  */
 export const RAIDS = {
-${formatJSObject(raids)}
+${formatCollection(raids)}
 };
 
 /**
  * Skilling activities
+ * Quantities represent XP amounts (e.g., 300000 = 300k XP)
  */
 export const SKILLS = {
-${formatJSObject(skills)}
+${formatCollection(skills)}
 };
 
 /**
  * Minigame definitions
+ * Quantities represent completion counts
  */
 export const MINIGAMES = {
-${formatJSObject(minigames)}
+${formatCollection(minigames)}
 };
 
 /**
  * Item collection categories
+ * Sources define where items come from (for smart filtering)
+ * Quantities represent item counts to collect
  */
 export const COLLECTIBLE_ITEMS = {
-${formatJSObject(items)}
+${formatCollection(items)}
 };
 
 /**
  * Clue scroll tiers
+ * Quantities represent number of clues to complete
  */
 export const CLUE_TIERS = {
-${formatJSObject(clues)}
+${formatCollection(clues)}
 };
 
 // ============================================
@@ -309,6 +438,13 @@ export const getEnabledRaids = () => {
 };
 
 /**
+ * Get all enabled skills
+ */
+export const getEnabledSkills = () => {
+  return Object.values(SKILLS).filter((skill) => skill.enabled);
+};
+
+/**
  * Get all enabled minigames
  */
 export const getEnabledMinigames = () => {
@@ -316,10 +452,26 @@ export const getEnabledMinigames = () => {
 };
 
 /**
+ * Get all enabled items
+ */
+export const getEnabledItems = () => {
+  return Object.values(COLLECTIBLE_ITEMS).filter((item) => item.enabled);
+};
+
+/**
+ * Get all enabled clue tiers
+ */
+export const getEnabledClues = () => {
+  return Object.values(CLUE_TIERS).filter((clue) => clue.enabled);
+};
+
+/**
  * Get content by tags
  */
 export const getContentByTags = (collection, tags) => {
-  return Object.values(collection).filter((item) => tags.some((tag) => item.tags?.includes(tag)));
+  return Object.values(collection).filter((item) =>
+    tags.some((tag) => item.tags?.includes(tag))
+  );
 };
 
 /**
@@ -332,6 +484,10 @@ export const getAllBossContent = () => {
   };
 };
 
+/**
+ * Parse item sources to check if item is available based on content selections
+ * Uses OR logic - item is available if ANY source is enabled
+ */
 export function parseItemSources(item, contentSelections) {
   if (!item.sources || item.sources.length === 0) {
     return true; // No dependencies = always available
@@ -361,26 +517,26 @@ export function parseItemSources(item, contentSelections) {
     fs.writeFileSync('objectiveCollections.js', jsContent);
     console.log('✅ Generated objectiveCollections.js');
 
-    // Generate quantities file
-    const quantitiesContent = `// Auto-generated quantities from Excel spreadsheet
-// Copy this into objectiveBuilder.js to replace DEFAULT_QUANTITIES
-
-const DEFAULT_QUANTITIES = ${JSON.stringify(quantities, null, 2)};
-
-module.exports = { DEFAULT_QUANTITIES };
-`;
-
-    fs.writeFileSync('default_quantities.js', quantitiesContent);
-    console.log('✅ Generated default_quantities.js');
+    // Summary
+    console.log('\n' + '='.repeat(50));
+    console.log('📊 CONVERSION SUMMARY');
+    console.log('='.repeat(50));
+    console.log(`   Bosses:     ${Object.keys(bosses).length}`);
+    console.log(`   Raids:      ${Object.keys(raids).length}`);
+    console.log(`   Skills:     ${Object.keys(skills).length}`);
+    console.log(`   Minigames:  ${Object.keys(minigames).length}`);
+    console.log(`   Items:      ${Object.keys(items).length}`);
+    console.log(`   Clue Tiers: ${Object.keys(clues).length}`);
+    console.log('='.repeat(50));
 
     console.log('\n🎯 Next steps:');
-    console.log('1. Copy objectiveCollections.js to replace your current one');
-    console.log(
-      '2. Copy the DEFAULT_QUANTITIES from default_quantities.js into objectiveBuilder.js'
-    );
-    console.log('3. Test your map generation to make sure everything works!');
+    console.log('   1. Review the generated objectiveCollections.js');
+    console.log('   2. Copy it to your server/utils/ directory');
+    console.log('   3. Make sure objectiveBuilder.js uses the quantities field');
+    console.log('   4. Test your map generation!\n');
   } catch (error) {
-    console.error(`❌ Error: ${error.message}`);
+    console.error(`\n❌ Error: ${error.message}`);
+    console.error(error.stack);
     process.exit(1);
   }
 }

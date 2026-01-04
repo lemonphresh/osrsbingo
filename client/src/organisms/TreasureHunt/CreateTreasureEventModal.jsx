@@ -61,14 +61,14 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     eventName: '',
     // clanId: '',
-    prizePoolTotal: 5000000000,
-    numOfTeams: 10,
+    prizePoolTotal: 500000000,
+    numOfTeams: 5,
     playersPerTeam: 5,
     nodeToInnRatio: 5,
     difficulty: 'normal',
     startDate: '',
     endDate: '',
-    estimatedHoursPerPlayerPerDay: 2.0,
+    estimatedHoursPerPlayerPerDay: 3.0,
   });
 
   // Get today's date in YYYY-MM-DD format for min date
@@ -123,6 +123,10 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleInputChange = (field, value) => {
+    if (typeof value === 'number' && isNaN(value)) {
+      value = 0;
+    }
+
     setFormData((prev) => {
       const newData = { ...prev, [field]: value };
 
@@ -378,7 +382,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.500' : 'gray.500'}
                 fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
               >
-                Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} /{' '}
+                Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} •{' '}
                 {MAX_EVENT_DURATION_DAYS} days max
                 {eventDuration > MAX_EVENT_DURATION_DAYS && ' ⚠️ Exceeds maximum!'}
               </Text>
@@ -428,19 +432,27 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 </Button>
                 <Button
                   size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 2)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 2 ? 'solid' : 'outline'}
-                  colorScheme="blue"
-                >
-                  Normal (2h)
-                </Button>
-                <Button
-                  size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
                   colorScheme="blue"
                 >
-                  Dedicated (3h)
+                  Average (3h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 6)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 6 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Dedicated (6h)
+                </Button>
+                <Button
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 10)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 10 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Sweatlord (10h)
                 </Button>
               </HStack>
               <Text fontSize="xs" color="gray.500" mt={1}>
@@ -474,9 +486,13 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Total Prize Pool (GP)"
-                tooltip={`Total GP to be split among teams. Maximum: ${(
-                  MAX_GP / 1000000000
-                ).toFixed(0)}B GP`}
+                tooltip={`Total GP to be split among teams. Each team will work towards a maximum of ${(
+                  formData.prizePoolTotal /
+                  Math.max(formData.numOfTeams, 1) /
+                  1000000
+                ).toFixed(1)}M GP, which is the total (${
+                  formData.prizePoolTotal
+                } GP) divided by the ${Math.max(formData.numOfTeams, 1)} specified teams.`}
               />
               <NumberInput
                 value={formData.prizePoolTotal}
@@ -487,9 +503,10 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 <NumberInputField color={currentColors.textColor} />
               </NumberInput>
               <Text fontSize="xs" color="gray.500" mt={1}>
-                Per team max:{' '}
+                Per team goal:{' '}
                 {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1000000).toFixed(1)}M
-                GP • Max: {(MAX_GP / 1000000000).toFixed(0)}B total
+                GP • Your pool: {(formData.prizePoolTotal / 1000000).toFixed(1)} M GP • Maximum
+                pool: {(MAX_GP / 1000000000).toFixed(0)}B
               </Text>
             </FormControl>
 
@@ -514,7 +531,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="Players per Team"
-                  tooltip={`Team size affects map generation. Max: ${getMaxPlayersPerTeam()} players with ${
+                  tooltip={`Team size affects map generation. Max: ${getMaxPlayersPerTeam()} players on each of the allocated ${
                     formData.numOfTeams
                   } teams`}
                 />

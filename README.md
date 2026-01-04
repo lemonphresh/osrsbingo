@@ -83,6 +83,106 @@ osrs-bingo-hub/
    npm start
    ```
 
+## 🗺️ Gielinor Rush
+
+Gielinor Rush is a team-based competitive mode where teams navigate a procedurally generated map, completing OSRS objectives to earn GP from a shared prize pool.
+
+### How It Works
+
+1. **Event Creation**: An event runner creates an event with a prize pool and team configuration
+2. **Map Generation**: The system generates a map with nodes (objectives) and inns (checkpoints)
+3. **Team Competition**: Teams complete objectives to earn GP and keys, trading keys at inns for bonus rewards
+4. **Winner**: The team with the most GP at event end wins
+
+### Map Structure
+
+- **Location Groups**: Each location on the map offers 3 difficulty options (Easy, Medium, Hard)
+- **One Choice Per Location**: Teams can only complete ONE difficulty per location
+- **Inns**: Checkpoint locations where teams trade keys for GP rewards
+- **Paths**: Three themed paths (Mountain, Trade Route, Coastal) that grant different colored keys
+
+### Budget System
+
+The prize pool is automatically distributed across nodes and inns using a **hard-capped budget system** that guarantees event runners never pay out more than the prize pool.
+
+#### Budget Allocation
+
+| Category | Default Split | Description                                |
+| -------- | ------------- | ------------------------------------------ |
+| Nodes    | 70%           | GP earned from completing objectives       |
+| Inns     | 30%           | GP earned from trading keys at checkpoints |
+
+#### Node Rewards by Difficulty
+
+| Difficulty | GP Multiplier | Key Reward |
+| ---------- | ------------- | ---------- |
+| Easy       | 0.5x base     | 1 key      |
+| Medium     | 1.0x base     | 1 key      |
+| Hard       | 1.5x base     | 2 keys     |
+
+#### Inn Reward Options
+
+| Option | Key Cost                 | Payout       |
+| ------ | ------------------------ | ------------ |
+| Small  | 2 any keys               | 80% of base  |
+| Medium | 4 any keys               | 100% of base |
+| Combo  | 2 red + 2 blue + 2 green | 120% of base |
+
+#### Hard Cap Guarantee
+
+The system budgets for the **worst case scenario** (all teams pick Hard nodes + Combo inn rewards), ensuring:
+
+- ✅ Maximum possible earnings = 100% of team's budget allocation
+- ✅ Event runners always have enough GP to pay out
+- ✅ Average teams earn ~67% of allocation (leftover stays with runner)
+
+#### Example Budget Breakdown
+
+For a **100M GP prize pool** with **10 teams**:
+
+```
+Per-team allocation: 10,000,000 GP
+
+Node budget (70%): 7,000,000 GP
+Inn budget (30%):  3,000,000 GP
+
+With 14 completable nodes and 2 inns:
+- Base GP per node: 333,333 GP
+- Base GP per inn: 1,250,000 GP
+
+Team Earnings by Strategy:
+┌─────────────────┬──────────┬─────────┬───────────┬──────────┐
+│ Strategy        │ Node GP  │ Inn GP  │ Total     │ % Budget │
+├─────────────────┼──────────┼─────────┼───────────┼──────────┤
+│ All Easy+Small  │ 2.33M    │ 2.0M    │ 4.33M     │ 43%      │
+│ Mixed/Average   │ 4.67M    │ 2.5M    │ 7.17M     │ 72%      │
+│ All Hard+Combo  │ 7.0M     │ 3.0M    │ 10.0M     │ 100%     │
+└─────────────────┴──────────┴─────────┴───────────┴──────────┘
+```
+
+#### Handling Leftover GP
+
+Since most teams won't earn their full allocation, event runners have options:
+
+1. **Keep it** - Profit from running the event
+2. **Bonus pool** - Award to winning team(s)
+3. **Participation bonus** - Divide equally among all teams
+4. **Rollover** - Add to next event's prize pool
+
+### Configuration Options
+
+When creating an event, you can customize:
+
+| Setting                              | Description                                   | Default  |
+| ------------------------------------ | --------------------------------------------- | -------- |
+| `prize_pool_total`                   | Total GP prize pool                           | Required |
+| `num_of_teams`                       | Number of competing teams                     | Required |
+| `players_per_team`                   | Team size                                     | Required |
+| `difficulty`                         | Event difficulty (easy/normal/hard/sweatlord) | normal   |
+| `node_to_inn_ratio`                  | Location groups between inns                  | 5        |
+| `reward_split_ratio`                 | Node vs inn budget split                      | 70/30    |
+| `estimated_hours_per_player_per_day` | Expected daily playtime                       | 2.0      |
+
 ## 📁 Component Details
 
 ### Server (Backend)
@@ -297,7 +397,10 @@ server/
 ├── graphql/
 │   ├── resolvers/        # GraphQL resolvers
 │   └── typeDefs.js       # GraphQL schema
-└── utils/                # Utility functions
+└── utils/
+    ├── treasureMapGenerator.js  # Map generation logic
+    ├── objectiveBuilder.js      # Objective creation
+    └── buffHelpers.js           # Buff system utilities
 
 client/
 ├── src/
