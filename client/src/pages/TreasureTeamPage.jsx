@@ -1043,6 +1043,7 @@ const TreasureTeamView = () => {
             handleOpenBuffModal(node);
           }}
           currentUser={user}
+          event={event}
           appliedBuff={selectedNode?.objective?.appliedBuff}
         />
 

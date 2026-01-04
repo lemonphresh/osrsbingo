@@ -259,7 +259,7 @@ const TreasureEventView = () => {
     },
   });
 
-  const [adminCompleteNode, { loading: completing }] = useMutation(ADMIN_COMPLETE_NODE, {
+  const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE, {
     refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
     onError: (error) => {
       console.error('Error completing node:', error);

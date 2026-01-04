@@ -13,7 +13,7 @@ import {
   useColorMode,
 } from '@chakra-ui/react';
 import { ChevronDownIcon } from '@chakra-ui/icons';
-import { FaTrophy, FaBug, FaCheck, FaTimes, FaGift, FaCoins } from 'react-icons/fa';
+import { FaTrophy, FaBug, FaCheck, FaTimes, FaGift } from 'react-icons/fa';
 import VictoryOverlay from './VictoryOverlay';
 import {
   triggerMiniConfetti,
@@ -270,7 +270,7 @@ const DevTestPanel = ({
 
   return (
     <>
-      <Box position="fixed" bottom="16px" right="16px" zIndex={9998}>
+      <Box color="gray.500" position="fixed" bottom="16px" right="16px" zIndex={9998}>
         <Menu>
           <MenuButton
             as={Button}

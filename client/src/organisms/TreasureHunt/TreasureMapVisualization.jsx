@@ -14,6 +14,8 @@ import {
   Collapse,
   useDisclosure,
   useBreakpointValue,
+  WrapItem,
+  Wrap,
 } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon, CopyIcon, ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
@@ -22,6 +24,7 @@ import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo'
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
+import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
 
 const RecenterButton = ({ bounds, nodes }) => {
   const map = useMap();
@@ -97,6 +100,79 @@ const RecenterButton = ({ bounds, nodes }) => {
     </Box>
   );
 };
+
+function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
+  const sourceKey = `${sourceType}:${sourceId}`;
+
+  return Object.values(COLLECTIBLE_ITEMS).filter((item) => {
+    if (!item.sources || item.sources.length === 0) return false;
+    return item.sources.includes(sourceKey);
+  });
+}
+
+function AcceptableDropsCompact({ drops }) {
+  if (!drops || drops.length === 0) return null;
+
+  return (
+    <Box mt={2} p={2} bg="#e6ffed" borderRadius="md" borderWidth={1} borderColor="#b7e4c7">
+      <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+        ✅ Acceptable Drops ({drops.length} items)
+      </Text>
+      <Wrap spacing={1}>
+        {drops.slice(0, 8).map((item) => (
+          <WrapItem key={item.id}>
+            <Badge
+              colorScheme={
+                item.tags?.includes('pet')
+                  ? 'pink'
+                  : item.tags?.includes('unique')
+                  ? 'purple'
+                  : item.tags?.includes('jar')
+                  ? 'orange'
+                  : item.tags?.includes('consumable')
+                  ? 'green'
+                  : 'gray'
+              }
+              fontSize="9px"
+              px={1}
+            >
+              {item.name}
+            </Badge>
+          </WrapItem>
+        ))}
+        {drops.length > 8 && (
+          <WrapItem>
+            <Badge colorScheme="gray" fontSize="9px" px={1}>
+              +{drops.length - 8} more
+            </Badge>
+          </WrapItem>
+        )}
+      </Wrap>
+      <Text fontSize="9px" color="#718096" mt={1} fontStyle="italic">
+        Click node for full list
+      </Text>
+    </Box>
+  );
+}
+
+function getDropsForNode(node) {
+  if (!node?.objective) return null;
+
+  const { type, contentId } = node.objective;
+
+  if (type === 'item_collection' && contentId) {
+    if (SOLO_BOSSES[contentId]) {
+      return getAcceptableDropsForSource(contentId, 'bosses');
+    }
+    if (RAIDS[contentId]) {
+      return getAcceptableDropsForSource(contentId, 'raids');
+    }
+    if (MINIGAMES[contentId]) {
+      return getAcceptableDropsForSource(contentId, 'minigames');
+    }
+  }
+  return null;
+}
 
 const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuff) => {
   const isAvailable = status === 'available';
@@ -487,6 +563,11 @@ const TreasureMapVisualization = ({
                             {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
                             {node.objective.target}
                           </Text>
+
+                          {/* Show acceptable drops for item_collection tasks */}
+                          {node.objective.type === 'item_collection' && (
+                            <AcceptableDropsCompact drops={getDropsForNode(node)} />
+                          )}
                         </Box>
                       )}
 
