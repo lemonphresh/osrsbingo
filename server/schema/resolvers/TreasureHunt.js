@@ -83,6 +83,108 @@ async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
   return false; // For now, only check Discord members list
 }
 
+/**
+ * HARD-CAPPED BUDGET SYSTEM
+ *
+ * This guarantees that NO TEAM can EVER exceed their allocated budget,
+ * even with perfect play (all hard nodes + all combo rewards).
+ *
+ * The tradeoff: Average teams will earn less (~67% of budget),
+ * which means the event runner keeps some GP in reserve.
+ */
+
+// ============================================================
+// HOW IT WORKS
+// ============================================================
+
+/*
+- Budgets for WORST CASE (all hard + all combo)
+- Optimal play earns exactly 100% of budget
+- Average play earns ~67% of budget
+- Event runner always has enough GP (often has leftover)
+
+
+MATH EXAMPLE (10M GP per team budget):
+======================================
+
+Node Budget: 7M GP (70%)
+Inn Budget: 3M GP (30%)
+Completable Nodes: 14
+Inns: 2
+
+Worst-case multipliers:
+- Nodes: 1.5x (all hard)
+- Inns: 1.2x (all combo)
+
+Base GP per node: 7M / (14 × 1.5) = 333,333 GP
+Base GP per inn: 3M / (2 × 1.2) = 1,250,000 GP
+
+Scenario Outcomes:
+------------------
+| Choice      | Node Multi | Inn Multi | Node GP | Inn GP  | Total   | % Budget |
+|-------------|------------|-----------|---------|---------|---------|----------|
+| All Easy    | 0.5x       | 0.8x      | 2.33M   | 2.0M    | 4.33M   | 43%      |
+| All Medium  | 1.0x       | 1.0x      | 4.67M   | 2.5M    | 7.17M   | 72%      |
+| Mixed       | 1.0x       | 1.0x      | 4.67M   | 2.5M    | 7.17M   | 72%      |
+| All Hard    | 1.5x       | 1.2x      | 7.0M    | 3.0M    | 10.0M   | 100%     |
+
+✓ GUARANTEED: Maximum possible earnings = Budget (never exceeds)
+*/
+
+const calculateDerivedValues = (config, startDate, endDate) => {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  const durationInDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+
+  const hoursPerPlayerPerDay = config.estimated_hours_per_player_per_day || 2.0;
+  const totalPlayerHoursPerTeam = config.players_per_team * durationInDays * hoursPerPlayerPerDay;
+
+  const difficultyMultiplier = {
+    easy: 0.7,
+    normal: 1.0,
+    hard: 1.3,
+    sweatlord: 1.6,
+  };
+  const baseHoursPerNode = 1.5;
+  const hoursPerNode = baseHoursPerNode * (difficultyMultiplier[config.difficulty] || 1.0);
+
+  const nodesNeeded = Math.ceil(totalPlayerHoursPerTeam / hoursPerNode);
+  const locationGroups = Math.ceil(nodesNeeded / 3);
+  const totalNodes = locationGroups * 3;
+  const completableNodesPerTeam = locationGroups;
+
+  const nodeToInnRatio = config.node_to_inn_ratio || 5;
+  const numOfInns = Math.floor(locationGroups / nodeToInnRatio);
+
+  const maxRewardPerTeam = config.prize_pool_total / config.num_of_teams;
+  const rewardSplit = config.reward_split_ratio || { nodes: 0.7, inns: 0.3 };
+
+  const nodeBudgetPerTeam = maxRewardPerTeam * rewardSplit.nodes;
+  const innBudgetPerTeam = maxRewardPerTeam * rewardSplit.inns;
+
+  // HARD CAP: Budget for worst case
+  const WORST_CASE_NODE_MULTIPLIER = 1.5;
+  const WORST_CASE_INN_MULTIPLIER = 1.2;
+
+  const avgGpPerNode = Math.floor(
+    nodeBudgetPerTeam / (completableNodesPerTeam * WORST_CASE_NODE_MULTIPLIER)
+  );
+  const avgGpPerInn =
+    numOfInns > 0 ? Math.floor(innBudgetPerTeam / (numOfInns * WORST_CASE_INN_MULTIPLIER)) : 0;
+
+  return {
+    max_reward_per_team: maxRewardPerTeam,
+    expected_nodes_per_team: completableNodesPerTeam,
+    total_player_hours_per_team: totalPlayerHoursPerTeam,
+    hours_per_node: hoursPerNode,
+    avg_gp_per_node: avgGpPerNode,
+    avg_gp_per_inn: avgGpPerInn,
+    num_of_inns: numOfInns,
+    total_nodes: totalNodes,
+    location_groups: locationGroups,
+    completable_nodes_per_team: completableNodesPerTeam,
+  };
+};
 // ==================== AUTHORIZATION HELPERS ====================
 
 /**
@@ -542,18 +644,7 @@ const TreasureHuntResolvers = {
           const locationGroups = Math.ceil(nodesNeeded / 3);
           const totalNodes = locationGroups * 3;
 
-          const derivedValues = {
-            max_reward_per_team: config.prize_pool_total / config.num_of_teams,
-            expected_nodes_per_team: totalNodes,
-            total_player_hours_per_team: totalPlayerHoursPerTeam,
-            hours_per_node: hoursPerNode,
-            avg_gp_per_node:
-              ((config.prize_pool_total / config.num_of_teams) *
-                (config.reward_split_ratio?.nodes || 0.6)) /
-              totalNodes,
-            num_of_inns: Math.floor(locationGroups / (config.node_to_inn_ratio || 5)),
-            total_nodes: totalNodes,
-          };
+          const derivedValues = calculateDerivedValues(config, input.startDate, input.endDate);
 
           input.derivedValues = derivedValues;
         }

@@ -210,35 +210,34 @@ function calculateGPReward(difficultyTier, avgGpPerNode) {
   return Math.floor(avgGpPerNode * (multipliers[difficultyTier] || 1.0));
 }
 
-// generate inn rewards based on tier
-function generateInnRewards(innTier, avgGpPerNode, nodeToInnRatio) {
-  const baseRewardPool = avgGpPerNode * nodeToInnRatio * 2;
+function generateInnRewards(innTier, avgGpPerInn) {
+  const baseRewardPool = avgGpPerInn;
 
   return [
     {
       reward_id: `inn${innTier}_gp_small`,
       type: 'guaranteed_gp',
-      description: 'Trade keys for guaranteed GP',
-      key_cost: [{ color: 'any', quantity: 3 }],
-      payout: Math.floor(baseRewardPool * 0.3),
+      description: 'Quick key trade',
+      key_cost: [{ color: 'any', quantity: 2 }],
+      payout: Math.floor(baseRewardPool * 0.8),
     },
     {
       reward_id: `inn${innTier}_gp_medium`,
       type: 'guaranteed_gp',
-      description: 'Better key trade',
-      key_cost: [{ color: 'any', quantity: 5 }],
-      payout: Math.floor(baseRewardPool * 0.5),
+      description: 'Standard key trade',
+      key_cost: [{ color: 'any', quantity: 4 }],
+      payout: Math.floor(baseRewardPool * 1.0),
     },
     {
       reward_id: `inn${innTier}_combo`,
       type: 'guaranteed_gp',
-      description: 'Special combo reward for diverse keys',
+      description: 'Diverse key bonus',
       key_cost: [
         { color: 'red', quantity: 2 },
         { color: 'blue', quantity: 2 },
         { color: 'green', quantity: 2 },
       ],
-      payout: Math.floor(baseRewardPool * 0.8),
+      payout: Math.floor(baseRewardPool * 1.2), // HARD CAP
     },
   ];
 }
@@ -444,7 +443,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         rewards: null,
         difficultyTier: null,
         innTier: innCounter,
-        availableRewards: generateInnRewards(innCounter, avg_gp_per_node, node_to_inn_ratio),
+        availableRewards: generateInnRewards(innCounter, avg_gp_per_inn),
       });
 
       // All paths connect to this inn
