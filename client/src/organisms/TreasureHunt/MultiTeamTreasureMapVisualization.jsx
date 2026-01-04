@@ -39,6 +39,7 @@ import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import LiveActivityFeed from './LiveActivityFeed';
 import { useNavigate } from 'react-router-dom';
+import OSRSMap from '../../assets/osrsmap12112025.png';
 
 const PRESET_COLORS = [
   '#FF6B6B',
@@ -260,7 +261,7 @@ const MultiTeamTreasureMap = ({
   nodes = [],
   teams = [],
   event,
-  mapImageUrl = 'https://oldschool.runescape.wiki/images/Old_School_RuneScape_world_map.png',
+  mapImageUrl = OSRSMap,
   onNodeClick,
   showAllNodes = false,
   onRefresh,

@@ -57,6 +57,10 @@ const Login = () => {
         width="100%"
       >
         <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit();
+          }}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -113,8 +117,8 @@ const Login = () => {
             alignSelf="center"
             backgroundColor={theme.colors.green[200]}
             marginTop="24px"
-            onClick={onSubmit}
             width={['100%', '250px']}
+            type="submit"
           >
             Log In
           </Button>

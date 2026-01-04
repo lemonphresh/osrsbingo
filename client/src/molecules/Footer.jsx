@@ -2,8 +2,8 @@ import { Box, Flex, Image, Link, Text } from '@chakra-ui/react';
 import React from 'react';
 import theme from '../theme';
 // import Cashapp from '../assets/cashapp.png';
-import GemLogo from '../assets/gemlogo.png';
-import Discord from '../assets/discord.png';
+import GemLogo from '../assets/gemlogo-small.png';
+import Discord from '../assets/discord-small.png';
 import WebCounter from './WebCounter';
 
 const Footer = () => (

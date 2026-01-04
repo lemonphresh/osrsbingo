@@ -81,7 +81,7 @@ import { FaCog, FaRocket } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
-import Gold from '../assets/gold.png';
+import Gold from '../assets/gold-small.webp';
 import Dossier from '../assets/dossier.png';
 import Clan from '../assets/clan.png';
 import ScrollableTableContainer from '../atoms/ScrollableTableContainer';
