@@ -50,30 +50,40 @@ function getRandomInRange(min, max) {
  * Priority: 1) Custom quantities from contentSelections, 2) Per-item quantities, 3) Global defaults
  */
 function getQuantity(objectiveType, difficulty, contentItem, contentSelections) {
+  let quantity;
+
   // 1. Check for custom override in contentSelections
   const customQuantity = contentSelections?.customQuantities?.[objectiveType]?.[contentItem.id];
   if (customQuantity) {
-    return typeof customQuantity === 'object'
-      ? getRandomInRange(customQuantity.min, customQuantity.max)
-      : customQuantity;
+    quantity =
+      typeof customQuantity === 'object'
+        ? getRandomInRange(customQuantity.min, customQuantity.max)
+        : customQuantity;
   }
-
   // 2. Check for per-item quantities from the content item itself
-  if (contentItem.quantities && contentItem.quantities[difficulty]) {
+  else if (contentItem.quantities && contentItem.quantities[difficulty]) {
     const range = contentItem.quantities[difficulty];
     if (range.min !== undefined && range.max !== undefined) {
-      return getRandomInRange(range.min, range.max);
+      quantity = getRandomInRange(range.min, range.max);
+    }
+  }
+  // 3. Fall back to global defaults
+  else {
+    const defaultRange = DEFAULT_QUANTITIES[objectiveType]?.[difficulty];
+    if (defaultRange) {
+      quantity = getRandomInRange(defaultRange.min, defaultRange.max);
+    } else {
+      // Last resort
+      quantity = 10;
     }
   }
 
-  // 3. Fall back to global defaults
-  const defaultRange = DEFAULT_QUANTITIES[objectiveType]?.[difficulty];
-  if (defaultRange) {
-    return getRandomInRange(defaultRange.min, defaultRange.max);
+  // Round XP gains to nearest 50k for cleaner display
+  if (objectiveType === 'xp_gain') {
+    quantity = Math.round(quantity / 50000) * 50000;
   }
 
-  // Last resort
-  return 10;
+  return quantity;
 }
 
 /**

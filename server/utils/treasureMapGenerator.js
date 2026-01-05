@@ -175,7 +175,13 @@ function selectRandomNodes(nodes, count) {
 }
 
 // generate a random objective based on difficulty
-function generateObjective(difficulty, difficultyMultiplier = 1.0, formattedObjectives) {
+// objectiveUsageByDifficulty is an object like { easy: [], medium: [], hard: [] }
+function generateObjective(
+  difficulty,
+  difficultyMultiplier = 1.0,
+  formattedObjectives,
+  objectiveUsageByDifficulty = null
+) {
   const availableObjectiveTypes = formattedObjectives.filter(
     (objType) => objType.difficulties[difficulty] && objType.difficulties[difficulty].length > 0
   );
@@ -184,16 +190,63 @@ function generateObjective(difficulty, difficultyMultiplier = 1.0, formattedObje
     throw new Error(`No objectives available for difficulty: ${difficulty}`);
   }
 
-  const objectiveType =
-    availableObjectiveTypes[Math.floor(Math.random() * availableObjectiveTypes.length)];
-  const objectives = objectiveType.difficulties[difficulty];
-  const objective = objectives[Math.floor(Math.random() * objectives.length)];
+  // Build list of all possible objectives for this difficulty
+  const allPossibleObjectives = [];
+  availableObjectiveTypes.forEach((objType) => {
+    objType.difficulties[difficulty].forEach((obj) => {
+      allPossibleObjectives.push({
+        type: objType.type,
+        target: obj?.target,
+        quantity: Math.ceil(obj?.quantity * difficultyMultiplier),
+        contentId: obj?.contentId,
+        // Create a unique key for tracking
+        _key: `${objType.type}:${obj?.target || obj?.contentId}`,
+      });
+    });
+  });
 
+  // Filter out recently used objectives if tracking is enabled
+  let availableObjectives = allPossibleObjectives;
+
+  if (objectiveUsageByDifficulty) {
+    // Get the usage queue for this specific difficulty
+    const usageQueue = objectiveUsageByDifficulty[difficulty] || [];
+
+    // Dynamic cooldown: 60% of available objectives for this difficulty, minimum 3
+    const dynamicCooldown = Math.max(3, Math.floor(allPossibleObjectives.length * 0.6));
+
+    // Get recently used objectives (within cooldown window)
+    const recentlyUsed = new Set(usageQueue.slice(-dynamicCooldown));
+
+    // Filter to objectives not on cooldown
+    availableObjectives = allPossibleObjectives.filter((obj) => !recentlyUsed.has(obj._key));
+
+    // If all objectives are on cooldown, allow all (oldest will naturally be pushed out)
+    if (availableObjectives.length === 0) {
+      console.warn(
+        `All ${difficulty} objectives on cooldown (${allPossibleObjectives.length} total, cooldown ${dynamicCooldown}) - allowing all`
+      );
+      availableObjectives = allPossibleObjectives;
+    }
+  }
+
+  // Pick a random objective from available ones
+  const selected = availableObjectives[Math.floor(Math.random() * availableObjectives.length)];
+
+  // Track this objective's usage for this difficulty
+  if (objectiveUsageByDifficulty) {
+    if (!objectiveUsageByDifficulty[difficulty]) {
+      objectiveUsageByDifficulty[difficulty] = [];
+    }
+    objectiveUsageByDifficulty[difficulty].push(selected._key);
+  }
+
+  // Return without the internal tracking key
   return {
-    type: objectiveType.type,
-    target: objective?.target,
-    quantity: Math.ceil(objective?.quantity * difficultyMultiplier),
-    contentId: objective?.contentId,
+    type: selected.type,
+    target: selected.target,
+    quantity: selected.quantity,
+    contentId: selected.contentId,
   };
 }
 
@@ -211,7 +264,11 @@ function calculateGPReward(difficultyTier, avgGpPerNode) {
 }
 
 function generateInnRewards(innTier, avgGpPerInn) {
-  const baseRewardPool = avgGpPerInn;
+  const baseRewardPool = avgGpPerInn || 0;
+  console.log('zzzzz', avgGpPerInn);
+  if (baseRewardPool <= 0) {
+    console.warn(`Warning: avgGpPerInn is ${avgGpPerInn} for inn tier ${innTier}`);
+  }
 
   return [
     {
@@ -263,26 +320,49 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
 
   const nodes = [];
   const edges = [];
-  const locationGroups = []; // NEW: Track location groups
+  const locationGroups = [];
   const paths = [
     { path_id: 'mountain_path', key_color: 'red', difficulty: 'hard' },
     { path_id: 'trade_route', key_color: 'blue', difficulty: 'medium' },
     { path_id: 'coastal_path', key_color: 'green', difficulty: 'easy' },
   ];
 
-  const usedLocations = new Set();
+  const locationUsageQueue = []; // Track order of location usage for cooldown
   const generatedNodeIds = new Set(); // Track generated IDs
 
-  // helper to get a random unused location
+  // Track recently used objectives PER DIFFICULTY to prevent duplicates
+  // Each difficulty has its own cooldown queue since objectives differ by difficulty
+  const objectiveUsageByDifficulty = {
+    easy: [],
+    medium: [],
+    hard: [],
+  };
+
+  // Minimum number of other locations that must be used before a location can repeat
+  // This ensures good geographic spread - set to 60% of total locations
+  const LOCATION_COOLDOWN = Math.floor(OSRS_LOCATIONS.length * 0.6);
+
+  // helper to get a random unused location with cooldown
   const getRandomLocation = () => {
-    const available = OSRS_LOCATIONS.filter((loc) => !usedLocations.has(loc.name));
+    // Locations currently on cooldown (recently used)
+    const cooldownLocations = new Set(locationUsageQueue.slice(-LOCATION_COOLDOWN));
+
+    // Filter to locations not on cooldown
+    const available = OSRS_LOCATIONS.filter((loc) => !cooldownLocations.has(loc.name));
+
     if (available.length === 0) {
-      // Reset if we run out
-      usedLocations.clear();
-      return OSRS_LOCATIONS[Math.floor(Math.random() * OSRS_LOCATIONS.length)];
+      // Fallback: if somehow all locations are on cooldown, take the oldest used one
+      // This shouldn't happen with proper cooldown settings, but safety first
+      console.warn('All locations on cooldown - using oldest location');
+      const oldestLocation = locationUsageQueue.shift();
+      const location = OSRS_LOCATIONS.find((loc) => loc.name === oldestLocation);
+      locationUsageQueue.push(location.name);
+      return location;
     }
+
     const location = available[Math.floor(Math.random() * available.length)];
-    usedLocations.add(location.name);
+    locationUsageQueue.push(location.name);
+
     return location;
   };
 
@@ -313,7 +393,12 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     difficulties.forEach(({ name, tier }) => {
       const nodeId = generateNodeId(nodeCounter.value++);
 
-      const objective = generateObjective(name, difficultyMultiplier, formattedObjectives);
+      const objective = generateObjective(
+        name,
+        difficultyMultiplier,
+        formattedObjectives,
+        objectiveUsageByDifficulty
+      );
 
       const node = {
         nodeId,
@@ -363,7 +448,8 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     nodeId: startNodeId,
     nodeType: 'START',
     title: `${startLocation.name} - The Journey Begins`,
-    description: 'Your adventure starts here',
+    description:
+      'Your adventure starts here. This is a free tile to help you and your team get accustomed to the gameplay loop and how submissions work!',
     coordinates: { x: startLocation.x, y: startLocation.y },
     mapLocation: startLocation.name,
     locationGroupId: null, // Start node is not part of a group
@@ -518,6 +604,12 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
 
   console.log(`Generated ${nodes.length} total nodes in ${locationGroups.length} location groups`);
   console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
+  console.log(
+    `Location cooldown: ${LOCATION_COOLDOWN} (${locationUsageQueue.length} total location uses)`
+  );
+  console.log(
+    `Objectives generated - Easy: ${objectiveUsageByDifficulty.easy.length}, Medium: ${objectiveUsageByDifficulty.medium.length}, Hard: ${objectiveUsageByDifficulty.hard.length}`
+  );
 
   // Assign buffs to nodes AFTER all nodes are generated
   console.log('Assigning buff rewards to nodes...');
@@ -534,7 +626,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     }
   });
 
-  // CRITICAL FIX: Make all nodes in a location group share the same unlocks
+  // Make all nodes in a location group share the same unlocks
   // This ensures completing ANY difficulty unlocks the next location group
   locationGroups.forEach((group) => {
     const groupNodesList = group.nodeIds.map((id) => nodes.find((n) => n.nodeId === id));
@@ -567,7 +659,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       start_node: startNodeId,
       paths,
       edges,
-      locationGroups, // NEW: Include location groups in map structure
+      locationGroups,
     },
     nodes,
   };

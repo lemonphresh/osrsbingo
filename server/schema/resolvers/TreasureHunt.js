@@ -446,6 +446,12 @@ const TreasureHuntResolvers = {
             totalNodes,
           num_of_inns: Math.floor(locationGroups / (config.node_to_inn_ratio || 5)),
           total_nodes: totalNodes,
+          avg_gp_per_inn:
+            Math.floor(locationGroups / (config.node_to_inn_ratio || 5)) > 0
+              ? ((config.prize_pool_total / config.num_of_teams) *
+                  (config.reward_split_ratio?.inns || 0.4)) /
+                Math.floor(locationGroups / (config.node_to_inn_ratio || 5))
+              : 0,
         };
         const eventData = {
           eventId,

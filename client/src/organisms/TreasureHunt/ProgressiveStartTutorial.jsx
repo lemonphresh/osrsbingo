@@ -488,8 +488,9 @@ const ProgressiveStartTutorial = ({ nodeId, onComplete, colorMode = 'dark', comp
         <AlertIcon color={currentColors.purple} />
         <Box flex="1">
           <Text fontSize="sm" color={currentColors.textColor}>
-            <strong>Quick Start:</strong> Complete this node → Take screenshot → Submit in Discord
-            with <Code fontSize="xs">!submit {nodeId}</Code>
+            <strong>Quick Start:</strong> Complete this node → Take screenshot of your client with
+            event password (if set) → Submit in Discord with{' '}
+            <Code fontSize="xs">!submit {nodeId}</Code>
           </Text>
         </Box>
       </Alert>

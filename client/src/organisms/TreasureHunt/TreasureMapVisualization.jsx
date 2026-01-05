@@ -379,7 +379,7 @@ const TreasureMapVisualization = ({
     const toStatus = getNodeStatus(toNode, event);
 
     if (fromStatus === 'completed' && toStatus === 'completed') {
-      return { weight: 4, opacity: 0.9, dashArray: null };
+      return { weight: 2, opacity: 0.3, dashArray: null };
     }
 
     if (
@@ -387,10 +387,10 @@ const TreasureMapVisualization = ({
       fromStatus === 'available' ||
       toStatus === 'available'
     ) {
-      return { weight: 4, opacity: 0.8, dashArray: null };
+      return { weight: 2, opacity: 0.3, dashArray: null };
     }
 
-    return { weight: 2, opacity: 0.2, dashArray: '8, 8' };
+    return { weight: 2, opacity: 0.1, dashArray: '8, 8' };
   };
 
   const edges = [];

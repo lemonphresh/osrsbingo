@@ -339,11 +339,6 @@ const SignUp = () => {
             }
             disabled={!totalFormValidation(values, hasAcknowledgedPassword)}
             onClick={(e) => {
-              console.log(
-                'test',
-                hasAcknowledgedPassword,
-                totalFormValidation(values, hasAcknowledgedPassword)
-              );
               if (totalFormValidation(values, hasAcknowledgedPassword)) {
                 onSubmit(e);
               }

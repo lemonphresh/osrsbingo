@@ -21,7 +21,6 @@ import {
   AlertDescription,
   Heading,
 } from '@chakra-ui/react';
-import { CheckIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
 import { GET_TREASURE_TEAM } from '../../graphql/queries';
@@ -154,12 +153,6 @@ export default function InnModal({
       console.error('Purchase exception:', error);
     }
   };
-
-  console.log('Inn debug:', {
-    nodeId: node.nodeId,
-    innTransactions: team.innTransactions,
-    hasAlreadyPurchased,
-  });
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -320,46 +313,6 @@ export default function InnModal({
                 </VStack>
               )}
             </Box>
-
-            {team.innTransactions && team.innTransactions.length > 0 && (
-              <>
-                <Divider />
-                <Box>
-                  <Heading size="xs" mb={2} color={currentColors.textColor}>
-                    {hasAlreadyPurchased ? 'Your Transaction' : 'Recent Transactions'}
-                  </Heading>
-                  <VStack spacing={1} align="stretch">
-                    {team.innTransactions
-                      .filter((t) => t.nodeId === node.nodeId)
-                      .slice(-3)
-                      .reverse()
-                      .map((transaction, idx) => (
-                        <Box
-                          key={idx}
-                          p={2}
-                          bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
-                          borderRadius="md"
-                          borderWidth={1}
-                          borderColor="green.500"
-                        >
-                          <HStack justify="space-between">
-                            <Text fontSize="sm" color={currentColors.textColor}>
-                              <CheckIcon color="green.500" mr={2} />
-                              Traded{' '}
-                              {transaction.keysSpent
-                                .map((k) => `${k.quantity}x ${k.color}`)
-                                .join(', ')}
-                            </Text>
-                            <Text fontWeight="bold" color={currentColors.green.base}>
-                              +{formatGP(transaction.payout)} GP
-                            </Text>
-                          </HStack>
-                        </Box>
-                      ))}
-                  </VStack>
-                </Box>
-              </>
-            )}
           </VStack>
         </ModalBody>
       </ModalContent>

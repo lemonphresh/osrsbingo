@@ -10,7 +10,7 @@ export const ToastProvider = ({ children }) => {
     toast({
       title: message,
       status,
-      duration: 3000,
+      duration: 4000,
       isClosable: true,
     });
   };

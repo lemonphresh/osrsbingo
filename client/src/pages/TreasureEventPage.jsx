@@ -147,12 +147,9 @@ const TreasureEventView = () => {
   } = useDisclosure();
   const [nodeToComplete, setNodeToComplete] = useState(null);
   const [completeLoading, setCompleteLoading] = useState(false);
-
   const [submissionToDeny, setSubmissionToDeny] = useState(null);
-
-  const cancelRef = React.useRef();
-
   const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
+  const cancelRef = React.useRef();
 
   const {
     data: eventData,
@@ -1081,7 +1078,7 @@ const TreasureEventView = () => {
                                               onOpenCompleteDialog();
                                             }}
                                           >
-                                            Complete Node
+                                            Complete This Node
                                           </Button>
                                           <Text fontSize="xs" color="gray.500">
                                             Grant rewards
@@ -1682,11 +1679,37 @@ const TreasureEventView = () => {
                                   </Td>
                                   <Td color={currentColors.textColor}>
                                     <VStack align="start" spacing={0}>
-                                      <Text fontSize="sm">{node.mapLocation || '—'}</Text>
+                                      <Text whiteSpace={'nowrap'} fontSize="sm">
+                                        {node.mapLocation || '—'}
+                                      </Text>
                                     </VStack>
                                   </Td>
                                   <Td isNumeric color={currentColors.green.base}>
-                                    {gp ? formatGP(gp) : '0.0M'}
+                                    {node.nodeType === 'INN' ? (
+                                      node.availableRewards?.length > 0 ? (
+                                        <Tooltip label="Inn trade rewards (min - max)">
+                                          <Text whiteSpace="nowrap">
+                                            {formatGP(
+                                              Math.min(
+                                                ...node.availableRewards.map((r) => r.payout)
+                                              )
+                                            )}{' '}
+                                            -{' '}
+                                            {formatGP(
+                                              Math.max(
+                                                ...node.availableRewards.map((r) => r.payout)
+                                              )
+                                            )}
+                                          </Text>
+                                        </Tooltip>
+                                      ) : (
+                                        '—'
+                                      )
+                                    ) : gp ? (
+                                      formatGP(gp)
+                                    ) : (
+                                      '0.0M'
+                                    )}
                                   </Td>
                                   <Td>
                                     <HStack spacing={1} wrap="wrap">
@@ -1735,7 +1758,9 @@ const TreasureEventView = () => {
                                         </HStack>
                                       </Tooltip>
                                     ) : (
-                                      formatObjectiveAmount(node)
+                                      <Text whiteSpace={'nowrap'}>
+                                        {formatObjectiveAmount(node)}
+                                      </Text>
                                     )}
                                   </Td>
                                   <Td isNumeric color={currentColors.textColor}>
