@@ -242,7 +242,7 @@ const DevTestPanel = ({
   const [victoryData, setVictoryData] = useState(null);
 
   // Don't render in production
-  if (process.env.NODE_ENV === 'production') return null;
+  if (process.env.REACT_APP_SHOW_DEV_TOOLS === false) return null;
   if (!show) return null;
 
   const triggerVictory = (team, rank = 1, isFirstToFinish = true) => {

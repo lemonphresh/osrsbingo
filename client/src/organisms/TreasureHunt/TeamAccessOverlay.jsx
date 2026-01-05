@@ -119,6 +119,7 @@ const TeamAccessOverlay = ({
             justifyContent="center"
             textAlign="center"
             borderRadius="md"
+            color="gray.700"
           >
             <AlertIcon boxSize="40px" mr={0} />
             <AlertTitle mt={4} mb={1} fontSize="lg">

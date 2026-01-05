@@ -45,6 +45,7 @@ import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 import { MdDoorBack, MdOutlineMap, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
+import { FaMap } from 'react-icons/fa';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -191,7 +192,13 @@ const UserDetails = () => {
       paddingY={['48px', '88px']}
       width="100%"
     >
-      <Flex alignItems="flex-start" marginBottom="24px" maxWidth="860px" width="100%">
+      <Flex
+        alignItems="flex-start"
+        justifyContent="space-between"
+        marginBottom="16px"
+        maxWidth="860px"
+        width="100%"
+      >
         <Text
           alignItems="center"
           display="inline-flex"
@@ -206,7 +213,22 @@ const UserDetails = () => {
           <Icon as={MdOutlineStorage} marginRight="8px" />
           <Link to="/boards"> View All Boards</Link>
         </Text>
+        <Text
+          alignItems="center"
+          display="inline-flex"
+          _hover={{
+            borderBottom: '1px solid white',
+            marginBottom: '0px',
+          }}
+          fontWeight="bold"
+          justifyContent="center"
+          marginBottom="1px"
+        >
+          <Link to="/gielinor-rush">Gielinor Rush</Link>
+          <Icon as={FaMap} marginLeft="8px" />
+        </Text>
       </Flex>
+
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
           <GemTitle textAlign="center">

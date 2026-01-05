@@ -8,13 +8,7 @@ import theme from './theme';
 import ScrollToTop from './atoms/ScrollToTop';
 
 const AuthConsumer = () => {
-  const { isCheckingAuth, isAuthenticated } = useAuth();
-
-  useEffect(() => {
-    if (!isCheckingAuth) {
-      isAuthenticated();
-    }
-  }, [isAuthenticated, isCheckingAuth]);
+  const { isCheckingAuth } = useAuth();
 
   if (isCheckingAuth) {
     return (

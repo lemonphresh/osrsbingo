@@ -1,10 +1,11 @@
-import { Box, Flex, Image, Link, Text } from '@chakra-ui/react';
+import { Button, Flex, Image, Link as ChakraLink, Text } from '@chakra-ui/react';
 import React from 'react';
 import theme from '../theme';
 // import Cashapp from '../assets/cashapp.png';
-import GemLogo from '../assets/gemlogo-small.png';
+import Gnomechild from '../assets/gnomechild.png';
 import Discord from '../assets/discord-small.png';
 import WebCounter from './WebCounter';
+import { Link } from 'react-router-dom';
 
 const Footer = () => (
   <Flex
@@ -12,43 +13,65 @@ const Footer = () => (
     backgroundColor={theme.colors.teal[500]}
     boxShadow="-4px -4px 8px 2px rgba(0, 0, 0, 0.07)"
     color={theme.colors.gray[700]}
-    justifyContent="space-between"
+    flexDirection="column"
     paddingX={['16px', '32px']}
     paddingBottom="32px"
-    paddingTop={['32px', '64px']}
+    paddingTop={['32px', '48px']}
     width="100%"
     zIndex="4"
   >
-    <Link
+    <Flex
       alignItems="center"
-      display="flex"
-      href="https://www.discord.gg/eternalgems"
-      target="_blank"
+      flexDirection={['column', 'row']}
+      gridGap={['16px', '32px']}
+      justifyContent="space-between"
+      maxW="600px"
+      w="100%"
+      mb="24px"
     >
-      <Text display={['none', 'block']} marginRight="8px">
-        discord
-      </Text>
-      <Flex
+      <Link to="/about">about</Link>
+      <Link to="/faq">faq</Link>
+      <Link to="/privacy">privacy</Link>
+      <Link to="/terms">terms</Link>
+    </Flex>
+    <Flex
+      alignItems="center"
+      flexDirection={['column', 'row']}
+      gridGap={['16px', '32px']}
+      justifyContent="space-between"
+      w="100%"
+    >
+      <ChakraLink
         alignItems="center"
-        border="2px black solid"
-        backgroundColor={theme.colors.teal[400]}
-        borderRadius="8px"
-        height={['48px', '28px']}
-        padding="2px"
+        display="flex"
+        href="https://www.discord.gg/eternalgems"
+        target="_blank"
       >
-        <Image alt="Discord logo" src={Discord} width={['40px', '20px']} loading="lazy" />
-      </Flex>
-    </Link>
-    <Box backgroundColor={theme.colors.teal[400]} padding="10px" borderRadius="50%">
-      <Image
-        aria-hidden
-        height={['60px', '80px']}
-        src={GemLogo}
-        width={['60px', '80px']}
-        loading="lazy"
-      />
-    </Box>
-    {/* <Link
+        <Text display={['none', 'block']} marginRight="8px">
+          discord
+        </Text>
+        <Flex
+          alignItems="center"
+          border="2px black solid"
+          backgroundColor={theme.colors.teal[400]}
+          borderRadius="8px"
+          height={['48px', '28px']}
+          padding="2px"
+        >
+          <Image alt="Discord logo" src={Discord} width={['40px', '20px']} loading="lazy" />
+        </Flex>
+      </ChakraLink>
+      <ChakraLink href="https://ko-fi.com/A667UUO" isExternal>
+        <Button
+          leftIcon={<Image alt="Gnomechild" src={Gnomechild} width="20px" height="20px" />}
+          size="lg"
+          colorScheme="gray"
+          variant="solid"
+        >
+          Support the site
+        </Button>
+      </ChakraLink>
+      {/* <Link
       alignItems="center"
       display="flex"
       href="https://cash.app/$lemonlikesgirls/5.00"
@@ -67,7 +90,20 @@ const Footer = () => (
         donate
       </Text>
     </Link> */}
-    <WebCounter />
+      <WebCounter />
+    </Flex>
+    <Flex
+      alignItems="center"
+      flexDirection={['column', 'row']}
+      gridGap={['16px', '32px']}
+      justifyContent="center"
+      maxW="600px"
+      fontSize="12px"
+      w="100%"
+      mt="24px"
+    >
+      © 2025 OSRS Bingo Hub · Not affiliated with Jagex Ltd.
+    </Flex>
   </Flex>
 );
 

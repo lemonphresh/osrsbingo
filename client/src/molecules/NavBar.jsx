@@ -14,7 +14,7 @@ import { Link, NavLink } from 'react-router-dom';
 import theme from '../theme';
 import GemLogo from '../assets/gemlogo-small.png';
 import GnomeChild from '../assets/gnomechild-small.webp';
-import Lemon from '../assets/lemon-small.webp';
+import Lemon from '../assets/selfie.webp';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
@@ -65,15 +65,18 @@ const NavBar = () => {
         >
           <Flex alignItems="center" justifyContent="space-between">
             <HStack spacing={4}>
-              <Box maxH={24} maxW={24}>
-                <Image alt="A little lemon waving at you" opacity="0.9" src={Lemon} />
+              <Box overflow="hidden" borderRadius="50px" maxH={24} maxW={24}>
+                <Image alt="Blonde girlie with makeup and dimples" opacity="0.9" src={Lemon} />
               </Box>
               <VStack>
                 <Text fontSize={['sm', 'md']} fontWeight="semibold">
                   Hey gang, it's your resident dev{' '}
                   <span style={{ color: theme.colors.yellow[100] }}>Lemon</span> here! <br />
+                </Text>
+                <Text fontSize="sm">
                   I've been hard at work on some exciting new features for OSRS Bingo Hub, like the{' '}
-                  <strong>new Gielinor Rush game type!</strong>
+                  <strong>new Gielinor Rush game type</strong>, among some other nice-to-haves and
+                  QOL improvements.
                   <br />
                 </Text>
                 <Text
@@ -84,14 +87,17 @@ const NavBar = () => {
                   w="100%"
                   textAlign="left"
                 >
-                  <Link to="/gielinor-rush">Give it a shot! 💛</Link>
+                  <Link to="/gielinor-rush">
+                    Give the Gielinor Rush a shot with your clan/friends! 💛
+                  </Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
                   Also, please consider{' '}
                   <Link to="https://cash.app/$lemonlikesgirls/5.00" target="_blank">
-                    <u>donating</u>
+                    <u>supporting me</u>
                   </Link>
-                  , hosting ain't cheap and I want to continue developing new features! ;-)
+                  , hosting ain't cheap and I want to continue developing new features for you
+                  sweaty gamers! ;-)
                 </Text>
               </VStack>
             </HStack>

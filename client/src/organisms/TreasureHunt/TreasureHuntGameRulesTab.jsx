@@ -16,8 +16,22 @@ import {
   List,
   ListItem,
   ListIcon,
+  Table,
+  Thead,
+  Tbody,
+  Tr,
+  Th,
+  Td,
+  TableContainer,
 } from '@chakra-ui/react';
-import { InfoIcon, CheckCircleIcon, StarIcon, LockIcon, UnlockIcon } from '@chakra-ui/icons';
+import {
+  InfoIcon,
+  CheckCircleIcon,
+  StarIcon,
+  LockIcon,
+  UnlockIcon,
+  WarningIcon,
+} from '@chakra-ui/icons';
 import TreasureBuffInfoModal from './TreasureHuntBuffInfoModal';
 
 const GameRulesTab = ({ colorMode, currentColors, event }) => {
@@ -166,8 +180,21 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
                     The main nodes with objectives. Complete these to earn GP, keys, and sometimes
-                    buffs. Each one unlocks new nodes. You may only complete one difficulty at each
-                    location.
+                    buffs. Each one unlocks new nodes.
+                  </Text>
+                </Box>
+
+                <Box p={3} bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'} borderRadius="md">
+                  <HStack mb={1}>
+                    <WarningIcon color="orange.400" mr={1} />
+                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                      One Difficulty Per Location
+                    </Text>
+                  </HStack>
+                  <Text fontSize="xs" color={currentColors.textColor}>
+                    Each location offers Easy, Medium, and Hard variants, but your team can only
+                    complete <strong>ONE</strong> difficulty per location. Choose wisely! Harder
+                    nodes give more GP but take longer.
                   </Text>
                 </Box>
 
@@ -215,20 +242,68 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     Your main score! Every node grants GP to your team's pot. The team with the
                     highest pot at the end wins the event.
                   </Text>
-                  <List spacing={1} color="gray.700" fontSize="xs">
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="green.400" />
-                      Harder nodes reward more GP
-                    </ListItem>
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="green.400" />
-                      GP is automatically added when nodes are completed
-                    </ListItem>
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="green.400" />
-                      Inn trades can boost your pot significantly
-                    </ListItem>
-                  </List>
+
+                  {/* GP Allocation Table */}
+                  <Box
+                    p={3}
+                    bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
+                    borderRadius="md"
+                    mb={3}
+                  >
+                    <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      Prize Pool Distribution:
+                    </Text>
+                    <List spacing={1} color={currentColors.textColor} fontSize="xs">
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="green.400" />
+                        <strong>70%</strong> allocated to node completions
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="yellow.400" />
+                        <strong>30%</strong> allocated to Inn rewards
+                      </ListItem>
+                    </List>
+                  </Box>
+
+                  {/* Node Rewards Table */}
+                  <TableContainer mb={3}>
+                    <Table size="sm" variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th color={currentColors.textColor}>Difficulty</Th>
+                          <Th color={currentColors.textColor}>GP Reward</Th>
+                          <Th color={currentColors.textColor}>Keys</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        <Tr>
+                          <Td>
+                            <Badge colorScheme="green">EASY</Badge>
+                          </Td>
+                          <Td color={currentColors.textColor}>0.5x base</Td>
+                          <Td color={currentColors.textColor}>1 key</Td>
+                        </Tr>
+                        <Tr>
+                          <Td>
+                            <Badge colorScheme="yellow">MEDIUM</Badge>
+                          </Td>
+                          <Td color={currentColors.textColor}>1.0x base</Td>
+                          <Td color={currentColors.textColor}>1 key</Td>
+                        </Tr>
+                        <Tr>
+                          <Td>
+                            <Badge colorScheme="red">HARD</Badge>
+                          </Td>
+                          <Td color={currentColors.textColor}>1.5x base</Td>
+                          <Td color={currentColors.textColor}>2 keys</Td>
+                        </Tr>
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+
+                  <Text fontSize="xs" color={currentColors.textColor} fontStyle="italic">
+                    💡 Hard nodes give 3x more GP than Easy nodes, but require more effort!
+                  </Text>
                 </Box>
 
                 <Divider />
@@ -338,31 +413,50 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
 
                 <Box>
                   <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    Location Groups
+                  </Text>
+                  <Text fontSize="xs" color={currentColors.textColor} mb={2}>
+                    Each location on the map offers three difficulty choices. Once you complete any
+                    difficulty at a location, the other two become locked.
+                  </Text>
+                  <Box p={2} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="md">
+                    <Text fontSize="xs" color={currentColors.textColor}>
+                      <WarningIcon color="red.400" mr={1} />
+                      <strong>Important:</strong> You cannot go back and complete a different
+                      difficulty at the same location!
+                    </Text>
+                  </Box>
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
                     Three Paths to Victory
                   </Text>
                   <VStack spacing={2} align="stretch">
                     <HStack>
-                      <Badge colorScheme="red">HARD</Badge>
+                      <Badge colorScheme="red">MOUNTAIN PATH</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        High risk, high reward
+                        Grants red keys
                       </Text>
                     </HStack>
                     <HStack>
-                      <Badge colorScheme="yellow">MEDIUM</Badge>
+                      <Badge colorScheme="blue">TRADE ROUTE</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Balanced approach
+                        Grants blue keys
                       </Text>
                     </HStack>
                     <HStack>
-                      <Badge colorScheme="green">EASY</Badge>
+                      <Badge colorScheme="green">COASTAL PATH</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Safer, steady progress
+                        Grants green keys
                       </Text>
                     </HStack>
                   </VStack>
                   <Text fontSize="xs" color={currentColors.textColor} mt={2}>
                     💡 Tip: You can switch between paths! Each path leads to the same Inns, allowing
-                    strategic routing.
+                    strategic routing. Diversify to collect different key colors for combo trades.
                   </Text>
                 </Box>
               </VStack>
@@ -391,28 +485,64 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   bonus GP. They're strategically placed throughout the map.
                 </Text>
 
+                <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="md">
+                  <HStack mb={1}>
+                    <WarningIcon color="red.400" />
+                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                      One Purchase Per Inn
+                    </Text>
+                  </HStack>
+                  <Text fontSize="xs" color={currentColors.textColor}>
+                    Each team can only make <strong>ONE purchase</strong> from each Inn. Choose your
+                    trade wisely - you can't come back for more!
+                  </Text>
+                </Box>
+
                 <Box p={3} bg={colorMode === 'dark' ? 'yellow.900' : 'yellow.50'} borderRadius="md">
                   <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
-                    Trading Keys
+                    Available Trades
                   </Text>
-                  <List spacing={1} color="gray.600" fontSize="xs">
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="yellow.500" />
-                      Click a completed Inn node to open the trading menu
-                    </ListItem>
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="yellow.500" />
-                      Different trades require different key combinations
-                    </ListItem>
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="yellow.500" />
-                      Combo trades (multiple colors) often give better value
-                    </ListItem>
-                    <ListItem>
-                      <ListIcon as={CheckCircleIcon} color="yellow.500" />
-                      You can trade at the same Inn multiple times
-                    </ListItem>
-                  </List>
+                  <TableContainer>
+                    <Table size="sm" variant="simple">
+                      <Thead>
+                        <Tr>
+                          <Th color={currentColors.textColor}>Trade</Th>
+                          <Th color={currentColors.textColor}>Key Cost</Th>
+                          <Th color={currentColors.textColor}>GP Reward</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        <Tr>
+                          <Td color={currentColors.textColor}>Small</Td>
+                          <Td>
+                            <Badge>2 any</Badge>
+                          </Td>
+                          <Td color={currentColors.textColor}>0.8x base</Td>
+                        </Tr>
+                        <Tr>
+                          <Td color={currentColors.textColor}>Medium</Td>
+                          <Td>
+                            <Badge>4 any</Badge>
+                          </Td>
+                          <Td color={currentColors.textColor}>1.0x base</Td>
+                        </Tr>
+                        <Tr>
+                          <Td color={currentColors.textColor}>Combo</Td>
+                          <Td>
+                            <HStack spacing={1}>
+                              <Badge colorScheme="red">2</Badge>
+                              <Badge colorScheme="blue">2</Badge>
+                              <Badge colorScheme="green">2</Badge>
+                            </HStack>
+                          </Td>
+                          <Td color={currentColors.textColor}>1.2x base</Td>
+                        </Tr>
+                      </Tbody>
+                    </Table>
+                  </TableContainer>
+                  <Text fontSize="xs" color={currentColors.textColor} mt={2} fontStyle="italic">
+                    💡 Combo trades give 50% more GP than Small trades, but require diverse keys!
+                  </Text>
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
@@ -422,15 +552,15 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   <List spacing={1} color="gray.600" fontSize="xs">
                     <ListItem>
                       <ListIcon as={StarIcon} color="blue.400" />
-                      Save keys until you have enough for high-value trades
+                      Save for combo trades by taking different paths to collect diverse keys
                     </ListItem>
                     <ListItem>
                       <ListIcon as={StarIcon} color="blue.400" />
-                      Diversify your path choices to collect different key colors
+                      If you can't afford combo, medium is better value than small
                     </ListItem>
                     <ListItem>
                       <ListIcon as={StarIcon} color="blue.400" />
-                      Later Inns typically offer better exchange rates
+                      Don't hoard keys forever - you can only trade at each Inn once!
                     </ListItem>
                   </List>
                 </Box>
@@ -540,12 +670,17 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor}>
                 This Event's Prize Pool: {formatGP(event.eventConfig.prize_pool_total)}
               </Text>
+              {event?.derivedValues?.max_reward_per_team && (
+                <Text fontSize="xs" color={currentColors.textColor}>
+                  Maximum per team: {formatGP(event.derivedValues.max_reward_per_team)}
+                </Text>
+              )}
             </Box>
           )}
           <Text fontSize="xs" color={currentColors.textColor} fontStyle="italic" mt={2}>
-            💡 Strategy Tip: Balance speed with efficiency. Completing easier nodes quickly builds
-            your pot, but harder nodes and smart Inn trades can yield bigger rewards. Use buffs
-            strategically to tackle difficult challenges!
+            💡 Strategy Tip: Hard nodes give 3x more GP than Easy nodes, but take longer. Balance
+            speed with reward size. Use buffs strategically to tackle difficult challenges, and
+            diversify your paths to unlock combo Inn trades!
           </Text>
         </VStack>
       </Box>
@@ -742,6 +877,26 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             <Text fontSize="xs" color={currentColors.white}>
               Yes! You can work on any available node simultaneously. Submit completions in any
               order.
+            </Text>
+          </Box>
+
+          <Box p={3} bg="blackAlpha.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+              What happens if I complete Easy at a location, can I also do Hard?
+            </Text>
+            <Text fontSize="xs" color={currentColors.white}>
+              No! Once you complete any difficulty at a location, the other difficulties become
+              locked. Choose wisely based on your team's capabilities and time.
+            </Text>
+          </Box>
+
+          <Box p={3} bg="blackAlpha.50" borderRadius="md">
+            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+              Can I trade at an Inn multiple times?
+            </Text>
+            <Text fontSize="xs" color={currentColors.white}>
+              No, each team can only make ONE purchase per Inn. Make sure you have enough keys for
+              the trade you want before purchasing!
             </Text>
           </Box>
 
