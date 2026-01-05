@@ -87,7 +87,9 @@ const NavBar = () => {
                   w="100%"
                   textAlign="left"
                 >
-                  <Link to="/gielinor-rush">Give the Rush a shot! 💛</Link>
+                  <Link to="/gielinor-rush">
+                    Give the Gielinor Rush a shot with your clan/friends! 💛
+                  </Link>
                 </Text>
                 <Text w="100%" textAlign="left" fontSize="12px">
                   Also, please consider{' '}
