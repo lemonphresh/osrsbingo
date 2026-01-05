@@ -338,9 +338,14 @@ const SignUp = () => {
                 : theme.colors.gray[700]
             }
             disabled={!totalFormValidation(values, hasAcknowledgedPassword)}
-            onSubmit={() => {
+            onClick={(e) => {
+              console.log(
+                'test',
+                hasAcknowledgedPassword,
+                totalFormValidation(values, hasAcknowledgedPassword)
+              );
               if (totalFormValidation(values, hasAcknowledgedPassword)) {
-                onSubmit();
+                onSubmit(e);
               }
             }}
             marginTop="24px"
