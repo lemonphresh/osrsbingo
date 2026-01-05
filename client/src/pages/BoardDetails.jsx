@@ -1,5 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Flex, FormControl, FormLabel, Icon, Spinner, Switch, Text } from '@chakra-ui/react';
+import {
+  Button,
+  Flex,
+  FormControl,
+  FormLabel,
+  Icon,
+  Spinner,
+  Switch,
+  Text,
+  useDisclosure,
+} from '@chakra-ui/react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_BOARD, GET_USER } from '../graphql/queries';
@@ -27,6 +37,7 @@ import ActiveBonusesList from '../atoms/ActiveBonusesList';
 import BoardEditorsField from '../molecules/EditField/BoardEditorsField';
 import IsPublic from '../molecules/EditField/IsPublic';
 import BonusSettings from '../molecules/EditField/BonusSettings';
+import RandomTilePickerModal from '../organisms/RandomTilePickerModal';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -41,7 +52,7 @@ const BoardDetails = () => {
     variables: { id: params.boardId },
   });
   const { showToast } = useToastContext();
-
+  const { isOpen: isPickerOpen, onOpen: onPickerOpen, onClose: onPickerClose } = useDisclosure();
   const [board, setBoard] = useState(null);
   const [isEditor, setIsEditor] = useState(false);
   const [fieldsEditing, setFieldsEditing] = useState({
@@ -447,14 +458,32 @@ const BoardDetails = () => {
               </Flex>
             )}
             {isEditor && (
-              <FormControl alignItems="center" display="flex" marginBottom="16px" marginLeft="8px">
-                <FormLabel htmlFor="edit-mode" marginBottom="0">
-                  Edit Mode:
-                </FormLabel>
-                <Switch id="edit-mode" isChecked={isEditMode} onChange={handleToggle} />
-                <Text marginLeft="8px">{isEditMode ? 'Enabled' : 'Disabled'}</Text>
-              </FormControl>
+              <Flex
+                px="6px"
+                w="100%"
+                alignItems="center"
+                justifyContent="space-between"
+                marginBottom="8px"
+              >
+                <Button
+                  leftIcon={<span>🎲</span>}
+                  colorScheme="purple"
+                  onClick={onPickerOpen}
+                  isDisabled={!board?.layout}
+                >
+                  Pick my next tile!
+                </Button>
+
+                <FormControl maxW="fit-content" alignItems="center" display="flex" marginLeft="8px">
+                  <FormLabel htmlFor="edit-mode" marginBottom="0">
+                    Edit Mode:
+                  </FormLabel>
+                  <Switch id="edit-mode" isChecked={isEditMode} onChange={handleToggle} />
+                  <Text marginLeft="8px">{isEditMode ? 'Enabled' : 'Disabled'}</Text>
+                </FormControl>
+              </Flex>
             )}
+
             {board && (
               <BingoBoard
                 boardId={board.id}
@@ -500,19 +529,19 @@ const BoardDetails = () => {
               )}
 
               <AlertModal
-                actionButtonText={isAuthenticated() ? 'Duplicate' : 'Okay'}
+                actionButtonText={isAuthenticated ? 'Duplicate' : 'Okay'}
                 buttonText="Duplicate Board"
                 colorScheme="yellow"
                 dialogHeader={
-                  isAuthenticated() ? 'Duplicate Bingo Board' : 'You must log in to do that.'
+                  isAuthenticated ? 'Duplicate Bingo Board' : 'You must log in to do that.'
                 }
                 dialogBody={
-                  isAuthenticated()
+                  isAuthenticated
                     ? 'Copy an incomplete version of this board to your own collection?'
                     : 'Log in to manage your own boards!'
                 }
                 icon={<CopyIcon />}
-                onClickAction={isAuthenticated() ? handleDuplicate : () => {}}
+                onClickAction={isAuthenticated ? handleDuplicate : () => {}}
               />
             </Flex>
             {isEditor && isEditMode && (
@@ -527,6 +556,15 @@ const BoardDetails = () => {
                   onClickAction={handleShuffle}
                 />
               </Flex>
+            )}
+
+            {isPickerOpen && (
+              <RandomTilePickerModal
+                isOpen={isPickerOpen}
+                onClose={onPickerClose}
+                tiles={localLayout}
+                themeName={board?.theme}
+              />
             )}
           </Flex>
         </>

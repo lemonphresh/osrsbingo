@@ -6,7 +6,6 @@ import {
   AccordionPanel,
   Flex,
   Heading,
-  Icon,
   Link,
   Text,
   Box,
@@ -16,7 +15,6 @@ import React from 'react';
 import theme from '../theme';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
-import { MdOutlineChildCare } from 'react-icons/md';
 
 const BingoQAList = [
   {
@@ -128,14 +126,6 @@ const GeneralQAList = [
           </Link>{' '}
           @buttlid and let me know. No guarantees, though. XP loss and all, you know.
         </Text>
-        <Icon
-          aria-hidden
-          as={MdOutlineChildCare}
-          color={theme.colors.dark.yellow.base}
-          height={['48px', '32px']}
-          margin="0 auto"
-          width={['48px', '32px']}
-        />
       </>
     ),
   },
@@ -151,6 +141,15 @@ const GeneralQAList = [
           target="_blank"
         >
           I accept CashApp donations
+        </Link>{' '}
+        and I wouldn't say no to a coffee or two via{' '}
+        <Link
+          color={theme.colors.dark.turquoise.base}
+          fontWeight="bold"
+          href="https://ko-fi.com/A667UUO"
+          target="_blank"
+        >
+          Ko-fi
         </Link>
         .
       </Text>

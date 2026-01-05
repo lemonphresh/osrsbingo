@@ -99,12 +99,6 @@ const SignUp = () => {
         width="100%"
       >
         <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (totalFormValidation(values, hasAcknowledgedPassword)) {
-              onSubmit();
-            }
-          }}
           style={{
             display: 'flex',
             flexDirection: 'column',
@@ -344,8 +338,12 @@ const SignUp = () => {
                 : theme.colors.gray[700]
             }
             disabled={!totalFormValidation(values, hasAcknowledgedPassword)}
+            onSubmit={() => {
+              if (totalFormValidation(values, hasAcknowledgedPassword)) {
+                onSubmit();
+              }
+            }}
             marginTop="24px"
-            type="submit"
             width={['100%', '250px']}
             _hover={{
               backgroundColor: totalFormValidation(values, hasAcknowledgedPassword)

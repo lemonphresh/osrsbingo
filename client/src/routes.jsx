@@ -1,3 +1,4 @@
+import AboutPage from './pages/About';
 import BoardCreation from './pages/BoardCreation';
 import BoardDetails from './pages/BoardDetails';
 import BoardViewAll from './pages/BoardViewAll';
@@ -8,7 +9,9 @@ import Faq from './pages/Faq';
 import Landing from './pages/Landing';
 import LogIn from './pages/LogIn';
 import NoMatch from './pages/NoMatch';
+import PrivacyPage from './pages/Privacy';
 import SignUp from './pages/SignUp';
+import TermsPage from './pages/Terms';
 import TreasureEventView from './pages/TreasureEventPage';
 import TreasureHuntDashboard from './pages/TreasureHuntDashboard';
 import TreasureTeamPage from './pages/TreasureTeamPage';
@@ -83,6 +86,21 @@ const routes = [
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
         element: <TreasureTeamPage />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/about',
+        element: <AboutPage />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/terms',
+        element: <TermsPage />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/privacy',
+        element: <PrivacyPage />,
         errorElement: <ErrorPage />,
       },
       {
