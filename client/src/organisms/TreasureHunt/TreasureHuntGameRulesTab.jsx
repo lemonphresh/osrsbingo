@@ -817,7 +817,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             <HStack>
               <Badge colorScheme="green">2</Badge>
               <Text fontSize="sm" color={currentColors.textColor}>
-                Complete the objective in OSRS (e.g., kill 100 Abyssal Demons)
+                Complete the objective in OSRS (i.e., kill 100 Abyssal Demons)
               </Text>
             </HStack>
             <HStack>

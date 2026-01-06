@@ -109,7 +109,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 color={colorMode === 'dark' ? 'gray.300' : 'gray.600'}
               >
                 <ListItem>
-                  Create a text channel for your event (e.g.,{' '}
+                  Create a text channel for your event (i.e.,{' '}
                   <Code bg={currentColors.codeBg}>#gielinor-rush-2025</Code>)
                 </ListItem>
                 <ListItem>

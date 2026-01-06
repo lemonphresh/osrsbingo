@@ -21,6 +21,10 @@ import {
   Icon,
   Wrap,
   WrapItem,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
@@ -488,25 +492,45 @@ export default function NodeDetailModal({
               </Button>
             )}
 
-            {canVisitInn && (
-              <VStack align="center" spacing={1}>
-                <Button
-                  colorScheme="green"
-                  size="lg"
-                  onClick={() => {
-                    onAdminComplete && onAdminComplete(node.nodeId);
-                    onClose();
-                  }}
-                  leftIcon={<Text fontSize="xl">🏠</Text>}
-                >
-                  Visit Inn
-                </Button>
-                <Text fontSize="xs" color="gray.500" textAlign="center">
-                  Rest at the inn to recover and prepare for your next adventure! This will unlock
-                  the shop and additional nodes.
-                </Text>
-              </VStack>
-            )}
+            {node.nodeType === 'INN' &&
+              (canVisitInn ? (
+                <VStack align="center" spacing={1}>
+                  <Button
+                    colorScheme="green"
+                    size="lg"
+                    onClick={() => {
+                      onAdminComplete && onAdminComplete(node.nodeId);
+                      onClose();
+                    }}
+                    leftIcon={<Text fontSize="xl">🏠</Text>}
+                  >
+                    Visit Inn
+                  </Button>
+                  <Text fontSize="xs" color="gray.500" textAlign="center">
+                    Rest at the inn to recover and prepare for your next adventure! This will unlock
+                    the shop and additional nodes.
+                  </Text>
+                </VStack>
+              ) : (
+                <Alert status="warning" borderRadius="md">
+                  <AlertIcon />
+                  <Box flex="1">
+                    <AlertTitle>View Only</AlertTitle>
+                    <AlertDescription fontSize="sm">
+                      Link your Discord ID on your{' '}
+                      <Text
+                        as="a"
+                        href={`/user/${currentUser?.id}`}
+                        color="blue.500"
+                        textDecoration="underline"
+                      >
+                        profile
+                      </Text>{' '}
+                      to visit the inn and see what's in stock.
+                    </AlertDescription>
+                  </Box>
+                </Alert>
+              ))}
 
             {/* Discord Submit Instructions - Show for available nodes when not in admin mode */}
             {!adminMode && isAvailable && !isInnNode && (
@@ -552,28 +576,6 @@ export default function NodeDetailModal({
                   </Text>
                 </VStack>
               </Box>
-            )}
-
-            {isInnNode && (
-              <VStack align="center" spacing={1}>
-                <Button
-                  colorScheme="green"
-                  size="md"
-                  w="full"
-                  leftIcon={<Text fontSize="xl">🏠</Text>}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onAdminComplete) {
-                      onAdminComplete(node.nodeId);
-                    }
-                  }}
-                >
-                  Visit Inn
-                </Button>
-                <Text fontSize="xs" color="#4a5568" textAlign="center" fontStyle="italic">
-                  Rest at the inn to recover and prepare for your next adventure!
-                </Text>
-              </VStack>
             )}
 
             {adminMode && (

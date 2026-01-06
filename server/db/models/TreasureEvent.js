@@ -50,6 +50,10 @@ module.exports = (sequelize) => {
           key: 'id',
         },
       },
+      eventPassword: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
       adminIds: {
         type: DataTypes.ARRAY(DataTypes.INTEGER),
         defaultValue: [],

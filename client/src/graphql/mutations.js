@@ -386,6 +386,7 @@ export const CREATE_TREASURE_EVENT = gql`
       contentSelections
       startDate
       endDate
+      eventPassword
       eventConfig
       derivedValues
       discordConfig

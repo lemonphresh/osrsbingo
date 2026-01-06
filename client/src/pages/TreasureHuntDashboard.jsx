@@ -376,36 +376,6 @@ const TreasureHuntDashboard = () => {
       width="100%"
     >
       <Flex flexDirection="column" maxWidth="1200px" width="100%">
-        <Flex
-          alignItems="center"
-          flexDirection="row"
-          justifyContent="space-between"
-          marginBottom="24px"
-          width="100%"
-        >
-          <Tooltip label="Return to home" placement="right">
-            <Button
-              as={Link}
-              to="/"
-              leftIcon={<Icon as={MdOutlineArrowBack} />}
-              variant="ghost"
-              color={currentColors.textColor}
-              _hover={{
-                bg: currentColors.hoverBg,
-                transform: 'translateX(-2px)',
-              }}
-              _focus={{
-                outline: '2px solid',
-                outlineColor: currentColors.purple.base,
-              }}
-              transition="all 0.2s"
-              size={isMobile ? 'sm' : 'md'}
-            >
-              Home
-            </Button>
-          </Tooltip>
-        </Flex>
-
         <VStack spacing={8} align="stretch">
           {loading ? (
             <>
@@ -417,39 +387,10 @@ const TreasureHuntDashboard = () => {
             </>
           ) : events.length === 0 ? (
             <VStack spacing={8} align="stretch" maxW="800px" mx="auto">
-              {/* CTA at the top */}
-              <VStack spacing={4}>
-                <Button
-                  size="lg"
-                  leftIcon={<AddIcon />}
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{
-                    bg: currentColors.purple.light,
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg',
-                  }}
-                  _active={{
-                    bg: currentColors.purple.dark,
-                    transform: 'translateY(0)',
-                  }}
-                  _focus={{
-                    outline: '2px solid',
-                    outlineColor: currentColors.purple.light,
-                    outlineOffset: '2px',
-                  }}
-                  onClick={handleCreateEventClick}
-                  boxShadow="md"
-                  transition="all 0.2s"
-                >
-                  Create Your First Event
-                </Button>
-              </VStack>
-
               <Section bg="rgba(0, 200, 200, 0.5)">
                 {/* Hero Section */}
                 <VStack spacing={4} textAlign="center" py={8}>
-                  <GemTitle size="lg" gemColor="yellow">
+                  <GemTitle size="lg" gemColor="purple">
                     Welcome to Gielinor Rush!
                   </GemTitle>
                   <Text fontSize="lg" color="white" maxW="600px">
@@ -567,7 +508,7 @@ const TreasureHuntDashboard = () => {
               </Card>
 
               {/* Features Grid */}
-              <Heading size="md" color={currentColors.textColor} textAlign="center">
+              <Heading size="md" color="purple.300" textAlign="center">
                 Key Features
               </Heading>
               <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={4}>

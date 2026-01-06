@@ -66,10 +66,11 @@ module.exports = {
         return message.reply('❌ You are not part of any team in this event.');
       }
 
-      // Get node details to check location group
       const verifyQuery = `
         query VerifyNode($eventId: ID!, $teamId: ID!) {
           getTreasureEvent(eventId: $eventId) {
+            status
+            eventName
             mapStructure
             nodes {
               nodeId
@@ -91,9 +92,25 @@ module.exports = {
         teamId: team.teamId,
       });
 
-      const node = verifyData.getTreasureEvent.nodes.find((n) => n.nodeId === nodeId);
+      const event = verifyData.getTreasureEvent;
+      const node = event.nodes.find((n) => n.nodeId === nodeId);
       const teamData = verifyData.getTreasureTeam;
-      const mapStructure = verifyData.getTreasureEvent.mapStructure;
+      const mapStructure = event.mapStructure;
+
+      // Check event status
+      if (event.status !== 'ACTIVE') {
+        const statusMessages = {
+          DRAFT:
+            '🚧 This event is still in **DRAFT** mode. Submissions will be enabled once the event organizer activates it.',
+          COMPLETED: '🏁 This event has **COMPLETED**. Submissions are no longer accepted.',
+          CANCELLED: '❌ This event has been **CANCELLED**. Submissions are no longer accepted.',
+        };
+
+        const statusMessage =
+          statusMessages[event.status] || `⚠️ This event is not active (status: ${event.status}).`;
+
+        return message.reply(`${statusMessage}\n\n` + `Event: **${event.eventName}**`);
+      }
 
       if (!node) {
         return message.reply('❌ Node not found.');
@@ -109,9 +126,7 @@ module.exports = {
         if (group) {
           const completedNodeId = group.nodeIds.find((id) => teamData.completedNodes.includes(id));
           if (completedNodeId) {
-            const completedNode = verifyData.getTreasureEvent.nodes.find(
-              (n) => n.nodeId === completedNodeId
-            );
+            const completedNode = event.nodes.find((n) => n.nodeId === completedNodeId);
             const getDiffName = (tier) =>
               tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
             const completedDiff = getDiffName(completedNode?.difficultyTier);

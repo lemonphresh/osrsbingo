@@ -552,6 +552,36 @@ const TreasureTeamView = () => {
                   <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
                 </HStack>
               </Tooltip>
+              {event.eventPassword && (
+                <Tooltip label="Click to copy Event ID" hasArrow>
+                  <HStack
+                    spacing={2}
+                    px={3}
+                    py={1}
+                    mt={2}
+                    bg="whiteAlpha.100"
+                    borderRadius="md"
+                    cursor="pointer"
+                    transition="all 0.2s"
+                    _hover={{ bg: 'whiteAlpha.400' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(event.eventId);
+                      toast({
+                        title: 'Event Password Copied!',
+                        description: `Event Password: ${event.eventId}`,
+                        status: 'success',
+                        duration: 2000,
+                        isClosable: true,
+                      });
+                    }}
+                  >
+                    <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
+                      Event Password: {event.eventPassword}
+                    </Text>
+                    <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
+                  </HStack>
+                </Tooltip>
+              )}
             </VStack>
 
             {adminMode && (
@@ -674,24 +704,52 @@ const TreasureTeamView = () => {
                     const statusA = getNodeStatus(a);
                     const statusB = getNodeStatus(b);
 
+                    const isInnA = a.nodeType === 'INN';
+                    const isInnB = b.nodeType === 'INN';
+
                     const hasTxA = team.innTransactions?.some((t) => t.nodeId === a.nodeId);
                     const hasTxB = team.innTransactions?.some((t) => t.nodeId === b.nodeId);
 
-                    const isCompletedInnNoTxA =
-                      a.nodeType === 'INN' && statusA === 'completed' && !hasTxA;
-                    const isCompletedInnNoTxB =
-                      b.nodeType === 'INN' && statusB === 'completed' && !hasTxB;
+                    // Available inn (not yet visited/completed)
+                    const isAvailableInnA = isInnA && statusA === 'available';
+                    const isAvailableInnB = isInnB && statusB === 'available';
 
-                    // Order: available (0), completed inns w/o tx (1), other completed (2), locked (3)
-                    const order = (status, isCompletedInnNoTx) => {
-                      if (status === 'available') return 0;
+                    // Completed inn that hasn't been purchased from yet
+                    const isCompletedInnNoTxA = isInnA && statusA === 'completed' && !hasTxA;
+                    const isCompletedInnNoTxB = isInnB && statusB === 'completed' && !hasTxB;
+
+                    // Available node with a buff already applied
+                    const hasBuffAppliedA = statusA === 'available' && !!a.objective?.appliedBuff;
+                    const hasBuffAppliedB = statusB === 'available' && !!b.objective?.appliedBuff;
+
+                    // Order:
+                    // 0 - Unvisited inns (available)
+                    // 1 - Completed inns w/o transaction (purchases available)
+                    // 2 - Available nodes with buff applied
+                    // 3 - Available nodes (no buff)
+                    // 4 - Completed (inns with tx, or regular nodes)
+                    // 5 - Locked
+                    const order = (status, isAvailableInn, isCompletedInnNoTx, hasBuffApplied) => {
+                      if (isAvailableInn) return 0;
                       if (isCompletedInnNoTx) return 1;
-                      if (status === 'completed') return 2;
-                      return 3; // locked
+                      if (hasBuffApplied) return 2;
+                      if (status === 'available') return 3;
+                      if (status === 'completed') return 4;
+                      return 5; // locked
                     };
 
-                    const orderA = order(statusA, isCompletedInnNoTxA);
-                    const orderB = order(statusB, isCompletedInnNoTxB);
+                    const orderA = order(
+                      statusA,
+                      isAvailableInnA,
+                      isCompletedInnNoTxA,
+                      hasBuffAppliedA
+                    );
+                    const orderB = order(
+                      statusB,
+                      isCompletedInnNoTxB,
+                      isCompletedInnNoTxB,
+                      hasBuffAppliedB
+                    );
 
                     return orderA - orderB;
                   })

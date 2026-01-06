@@ -265,6 +265,7 @@ const typeDefs = gql`
     startDate: DateTime
     endDate: DateTime
     eventConfig: JSON
+    eventPassword: String
     derivedValues: JSON
     contentSelections: JSON
     mapStructure: JSON
@@ -290,6 +291,7 @@ const typeDefs = gql`
     eventName: String!
     clanId: String
     eventConfig: JSON!
+    eventPassword: String
     contentSelections: JSON
     startDate: DateTime
     endDate: DateTime

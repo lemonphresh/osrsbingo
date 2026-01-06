@@ -283,7 +283,7 @@ function buildItemCollectionObjectives(contentSelections = {}) {
 
       objectives.push({
         type: 'item_collection',
-        target: `${boss.name} drop`, // e.g., "Vorkath drop"
+        target: `${boss.name} drop`, // i.e., "Vorkath drop"
         quantity: getQuantity(quantityType, difficulty, representativeDrop, contentSelections),
         contentId: bossId, // Links to SOLO_BOSSES key - used to look up all acceptable drops
         sourceType: 'bosses',

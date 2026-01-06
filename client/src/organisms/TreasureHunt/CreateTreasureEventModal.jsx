@@ -20,6 +20,7 @@ import {
   Icon,
   HStack,
   Text,
+  FormHelperText,
 } from '@chakra-ui/react';
 import { InfoIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
@@ -69,6 +70,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     startDate: '',
     endDate: '',
     estimatedHoursPerPlayerPerDay: 3.0,
+    eventPassword: '',
   });
 
   // Get today's date in YYYY-MM-DD format for min date
@@ -321,7 +323,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Event Name"
-                tooltip="Give your Gielinor Rush a memorable name (e.g., 'Summer Bingo Bonanza')"
+                tooltip="Give your Gielinor Rush a memorable name (i.e., 'Summer Bingo Bonanza')"
               />
               <Input
                 placeholder="My Gielinor Rush"
@@ -572,6 +574,19 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <Text fontSize="xs" color="gray.500" mt={1}>
                 Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN} nodes per Inn
               </Text>
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>Event Password (optional)</FormLabel>
+              <Input
+                placeholder="Auto-generated if blank (i.e., RUSH-7X2K)"
+                value={formData.eventPassword}
+                onChange={(e) => handleInputChange('eventPassword', e.target.value)}
+                maxLength={20}
+              />
+              <FormHelperText>
+                Visible on team dashboards for screenshot verification
+              </FormHelperText>
             </FormControl>
 
             {/* Map Preview Stats */}
