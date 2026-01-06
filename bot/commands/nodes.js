@@ -9,7 +9,7 @@ module.exports = {
       const eventId = getEventIdFromChannel(message.channel);
       if (!eventId) {
         return message.reply(
-          '❌ This channel is not linked to a Gielinor Rush event. Add the event ID to the channel topic (e.g., "evt_abc123")'
+          '❌ This channel is not linked to a Gielinor Rush event. Add the event ID to the channel topic (i.e., "evt_abc123")'
         );
       }
 

@@ -19,7 +19,7 @@ import {
   AccordionPanel,
   AccordionIcon,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, StarIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, StarIcon, WarningIcon } from '@chakra-ui/icons';
 
 const EventCreationGuide = ({ colorMode, currentColors }) => {
   return (
@@ -78,13 +78,18 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     <List spacing={2} fontSize="sm">
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Event Name:</strong> A catchy title for your event (like, "Sweatlord
+                        <strong>Event Name:</strong> A catchy title for your event (like "Sweatlord
                         Summit 2025")
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Start & End Dates:</strong> When the event runs - this determines
-                        how many nodes are generated
+                        <strong>Start & End Dates:</strong> When the event runs, this determines how
+                        many nodes are generated
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="purple.400" />
+                        <strong>Event Password:</strong> A code displayed on team dashboards for
+                        screenshot verification (auto-generated if left blank)
                       </ListItem>
                     </List>
                   </Box>
@@ -138,15 +143,89 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     </List>
                   </Box>
 
+                  <Box
+                    p={3}
+                    bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
+                    borderRadius="md"
+                    borderWidth={2}
+                    borderColor="green.400"
+                  >
+                    <HStack mb={2}>
+                      <Text fontSize="lg">🔒</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                        Hard-Capped Budget System
+                      </Text>
+                    </HStack>
+                    <Text fontSize="xs" color={currentColors.textColor} mb={2}>
+                      Your prize pool is <strong>guaranteed to never be exceeded</strong>. Here's
+                      how it works:
+                    </Text>
+                    <List spacing={1} fontSize="xs">
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="green.400" />
+                        Budget is allocated per team: <strong>Prize Pool ÷ Number of Teams</strong>
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="green.400" />
+                        The system budgets for the <strong>worst-case scenario</strong> (every team
+                        picks the hardest nodes with maximum multipliers)
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="green.400" />
+                        Maximum possible team earnings = <strong>exactly 100%</strong> of their
+                        budget allocation
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="green.400" />
+                        Average teams typically earn around <strong>~67%</strong> of max potential
+                      </ListItem>
+                    </List>
+                  </Box>
+
                   <Box p={3} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
                     <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={1}>
-                      💡 How This Works:
+                      💡 What This Means For You:
                     </Text>
                     <Text fontSize="xs" color={currentColors.textColor}>
-                      The system calculates an average reward per node to distribute the prize pool
-                      fairly across all nodes. Harder nodes reward more GP, while easier ones give
-                      less.
+                      If you set a 10B prize pool with 10 teams, each team's maximum possible
+                      earnings is 1B GP. You'll never pay out more than your allocated prize pool,
+                      even if every team plays perfectly!
                     </Text>
+                  </Box>
+
+                  <Box
+                    p={3}
+                    bg={colorMode === 'dark' ? 'yellow.900' : 'yellow.50'}
+                    borderRadius="md"
+                    borderWidth={1}
+                    borderColor="yellow.400"
+                  >
+                    <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      💰 What To Do With Leftover GP:
+                    </Text>
+                    <Text fontSize="xs" color={currentColors.textColor} mb={2}>
+                      Since average teams earn ~67% of their max budget, you'll likely have GP left
+                      over. Here are some ideas:
+                    </Text>
+                    <List spacing={1} fontSize="xs">
+                      <ListItem>
+                        <ListIcon as={StarIcon} color="yellow.500" />
+                        <strong>Winner's Bonus:</strong> Award extra GP to the 1st place team
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={StarIcon} color="yellow.500" />
+                        <strong>Podium Prizes:</strong> Split among top 3 teams
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={StarIcon} color="yellow.500" />
+                        <strong>MVP Awards:</strong> Let teams vote for standout players across all
+                        teams
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={StarIcon} color="yellow.500" />
+                        <strong>Future Events:</strong> Bank it for your next Gielinor Rush!
+                      </ListItem>
+                    </List>
                   </Box>
                 </VStack>
               </AccordionPanel>
@@ -191,8 +270,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                           <Badge colorScheme="green">Easy (0.8x)</Badge>
                         </HStack>
                         <Text fontSize="xs" color={currentColors.textColor}>
-                          Get 80 Boss KC, Gain 400K XP - Great for casual events or shorter
-                          durations
+                          Great for casual events or shorter durations
                         </Text>
                       </Box>
 
@@ -205,7 +283,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                           <Badge colorScheme="blue">Normal (1.0x)</Badge>
                         </HStack>
                         <Text fontSize="xs" color={currentColors.textColor}>
-                          Get 100 Boss KC, Gain 500K XP - Balanced for most events
+                          Balanced for most events
                         </Text>
                       </Box>
 
@@ -218,7 +296,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                           <Badge colorScheme="orange">Hard (1.4x)</Badge>
                         </HStack>
                         <Text fontSize="xs" color={currentColors.textColor}>
-                          Get 140 Boss KC, Gain 700K XP - For experienced players
+                          For experienced players
                         </Text>
                       </Box>
 
@@ -227,8 +305,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                           <Badge colorScheme="red">Sweatlord (2.0x)</Badge>
                         </HStack>
                         <Text fontSize="xs" color={currentColors.textColor}>
-                          Get 200 Boss KC, Gain 1M XP - Extreme challenge for those that desperately
-                          need to touch grass
+                          Extreme challenge for those who desperately need to touch grass
                         </Text>
                       </Box>
                     </SimpleGrid>
@@ -239,18 +316,19 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       Node-to-Inn Ratio:
                     </Text>
                     <Text fontSize="sm" color={currentColors.textColor} mb={2}>
-                      Controls how often checkpoints (Inns) appear. Default: 5 nodes per Inn.
+                      Controls how often checkpoints (Inns) appear. Default: 5 location groups per
+                      Inn.
                     </Text>
                     <HStack spacing={2}>
                       <Badge colorScheme="blue">Low (3:1)</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        More frequent checkpoints
+                        More frequent checkpoints, more key trading opportunities
                       </Text>
                     </HStack>
                     <HStack spacing={2} mt={1}>
                       <Badge colorScheme="purple">High (8:1)</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        Fewer checkpoints, more challenge
+                        Fewer checkpoints, requires more strategic planning
                       </Text>
                     </HStack>
                   </Box>
@@ -299,8 +377,13 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     <List spacing={1} fontSize="xs">
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Three Paths:</strong> Mountain (hard), Trade Route (medium), Coastal
-                        (easy)
+                        <strong>Three Paths:</strong> Easy, Medium, and Hard routes with different
+                        key colors
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="purple.400" />
+                        <strong>Location Groups:</strong> Each location has 3 difficulty variants -
+                        complete only one per location
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
@@ -319,10 +402,48 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Buff Rewards:</strong> ~30% of nodes grant buffs to help with future
-                        objectives
+                        <strong>Buff Rewards:</strong> ~30% of nodes grant buffs to reduce future
+                        objective requirements
                       </ListItem>
                     </List>
+                  </Box>
+
+                  <Box
+                    p={3}
+                    bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'}
+                    borderRadius="md"
+                    borderWidth={1}
+                    borderColor="orange.400"
+                  >
+                    <HStack mb={2}>
+                      <WarningIcon color="orange.400" />
+                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                        Location Group System
+                      </Text>
+                    </HStack>
+                    <Text fontSize="xs" color={currentColors.textColor} mb={2}>
+                      Each map location offers <strong>three difficulty choices</strong> (Easy,
+                      Medium, Hard). Teams can only complete{' '}
+                      <strong>one difficulty per location</strong>.
+                    </Text>
+                    <List spacing={1} fontSize="xs">
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="orange.400" />
+                        <strong>Easy:</strong> Lower requirements, lower GP rewards, 1 key
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="orange.400" />
+                        <strong>Medium:</strong> Moderate requirements, moderate rewards, 1 key
+                      </ListItem>
+                      <ListItem>
+                        <ListIcon as={CheckCircleIcon} color="orange.400" />
+                        <strong>Hard:</strong> Higher requirements, higher GP rewards, 2 keys
+                      </ListItem>
+                    </List>
+                    <Text fontSize="xs" color={currentColors.textColor} mt={2} fontStyle="italic">
+                      This creates strategic choices: go for easier guaranteed completion or risk
+                      harder nodes for bigger rewards!
+                    </Text>
                   </Box>
 
                   <Box
@@ -331,13 +452,13 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     borderRadius="md"
                   >
                     <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
-                      📊 Example Calculation:
+                      📊 Example Budget Breakdown:
                     </Text>
                     <VStack spacing={2} align="stretch" fontSize="xs">
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>Prize Pool:</Text>
                         <Text fontWeight="bold" color={currentColors.textColor}>
-                          5,000M GP
+                          10,000M GP (10B)
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
@@ -346,35 +467,23 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                           10
                         </Text>
                       </HStack>
-                      <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>Duration:</Text>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
-                          2 weeks
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>Players per team:</Text>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
-                          5
-                        </Text>
-                      </HStack>
                       <Divider />
                       <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>→ Expected nodes per team:</Text>
-                        <Text fontWeight="bold" color="blue.400">
-                          ~20 nodes
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>→ Total nodes generated:</Text>
-                        <Text fontWeight="bold" color="blue.400">
-                          ~30 nodes
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>→ Average GP per node:</Text>
+                        <Text color={currentColors.textColor}>→ Max per team:</Text>
                         <Text fontWeight="bold" color="green.400">
-                          ~15M GP
+                          1,000M GP (1B)
+                        </Text>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text color={currentColors.textColor}>→ Average team earnings:</Text>
+                        <Text fontWeight="bold" color="blue.400">
+                          ~670M GP
+                        </Text>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text color={currentColors.textColor}>→ Your maximum payout:</Text>
+                        <Text fontWeight="bold" color="green.400">
+                          ≤ 10,000M GP ✓
                         </Text>
                       </HStack>
                     </VStack>
@@ -384,8 +493,8 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       mt={2}
                       fontStyle="italic"
                     >
-                      * Harder nodes reward more, easier nodes reward less. The system automatically
-                      balances distribution.
+                      * Even if all 10 teams play perfectly and pick all hard nodes, you'll never
+                      exceed your prize pool!
                     </Text>
                   </Box>
                 </VStack>
@@ -458,13 +567,18 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
             <HStack mb={2}>
               <StarIcon color="blue.400" />
               <Text fontWeight="bold" color={currentColors.textColor}>
-                Pro Tips for Event Creators
+                Pro Tips for Event Runners
               </Text>
             </HStack>
             <List spacing={1} fontSize="sm">
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
-                Longer events generate more nodes - plan accordingly
+                <strong>Budget guarantee:</strong> You'll never pay out more than your prize pool.
+                The system handles it for you!
+              </ListItem>
+              <ListItem>
+                <ListIcon as={CheckCircleIcon} color="blue.400" />
+                Longer events generate more nodes...plan accordingly!
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
@@ -480,7 +594,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
-                Enable Discord integration for easier team management
+                Enable Discord integration for easier team management and submissions
+              </ListItem>
+              <ListItem>
+                <ListIcon as={CheckCircleIcon} color="blue.400" />
+                The event password appears on team dashboards. Useful for verifying screenshots from
+                the teams
               </ListItem>
             </List>
           </Box>

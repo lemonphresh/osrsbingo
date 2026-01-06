@@ -211,7 +211,7 @@ const UserDetails = () => {
           marginBottom="1px"
         >
           <Icon as={MdOutlineStorage} marginRight="8px" />
-          <Link to="/boards"> View All Boards</Link>
+          <Link to="/boards"> View Public Boards</Link>
         </Text>
         <Text
           alignItems="center"

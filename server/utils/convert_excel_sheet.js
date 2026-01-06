@@ -387,7 +387,7 @@ ${formatCollection(raids)}
 
 /**
  * Skilling activities
- * Quantities represent XP amounts (e.g., 300000 = 300k XP)
+ * Quantities represent XP amounts (i.e., 300000 = 300k XP)
  */
 export const SKILLS = {
 ${formatCollection(skills)}

@@ -27,6 +27,7 @@ import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
 import OSRSMap from '../../assets/osrsmap12112025.png';
+import { useAuth } from '../../providers/AuthProvider';
 
 const RecenterButton = ({ bounds, nodes }) => {
   const map = useMap();
@@ -263,6 +264,7 @@ const TreasureMapVisualization = ({
   const toast = useToast();
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { user: currentUser } = useAuth();
 
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -379,7 +381,7 @@ const TreasureMapVisualization = ({
     const toStatus = getNodeStatus(toNode, event);
 
     if (fromStatus === 'completed' && toStatus === 'completed') {
-      return { weight: 4, opacity: 0.9, dashArray: null };
+      return { weight: 2, opacity: 0.3, dashArray: null };
     }
 
     if (
@@ -387,10 +389,10 @@ const TreasureMapVisualization = ({
       fromStatus === 'available' ||
       toStatus === 'available'
     ) {
-      return { weight: 4, opacity: 0.8, dashArray: null };
+      return { weight: 2, opacity: 0.3, dashArray: null };
     }
 
-    return { weight: 2, opacity: 0.2, dashArray: '8, 8' };
+    return { weight: 2, opacity: 0.1, dashArray: '8, 8' };
   };
 
   const edges = [];
@@ -461,7 +463,6 @@ const TreasureMapVisualization = ({
           if (!node.coordinates?.x || !node.coordinates?.y) return null;
 
           const status = getNodeStatus(node, event);
-
           // HIDE locked and unavailable nodes (unless in admin mode)
           if (!adminMode && (status === 'locked' || status === 'unavailable')) {
             return null;

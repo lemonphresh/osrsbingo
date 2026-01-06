@@ -285,6 +285,7 @@ export const GET_TREASURE_EVENT = gql`
         username
       }
       adminIds
+      eventPassword
       teams {
         activeBuffs
         buffHistory

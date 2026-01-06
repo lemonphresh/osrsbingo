@@ -32,7 +32,7 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
     eventType: 'MISC',
   });
 
-  // viewer time zone (e.g., "America/Chicago" or "Europe/London")
+  // viewer time zone (i.e., "America/Chicago" or "Europe/London")
   const viewerTZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local time';
 
   useEffect(() => {

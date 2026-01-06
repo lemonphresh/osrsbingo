@@ -77,7 +77,7 @@ const DenialReasonModal = ({ isOpen, onClose, onDeny, submissionId, submittedBy 
               <Textarea
                 value={denialReason}
                 onChange={(e) => setDenialReason(e.target.value)}
-                placeholder="e.g., Kill count not visible in screenshot, Wrong boss, Image unclear, etc."
+                placeholder="i.e., Kill count not visible in screenshot, Wrong boss, Image unclear, etc."
                 rows={4}
                 color={currentColors.textColor}
                 borderColor={colorMode === 'dark' ? 'whiteAlpha.300' : 'gray.300'}

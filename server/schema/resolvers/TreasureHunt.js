@@ -395,10 +395,29 @@ const TreasureHuntResolvers = {
   Mutation: {
     createTreasureEvent: async (_, { input }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-
+      function generateEventPassword() {
+        const adjectives = [
+          'SWIFT',
+          'BRAVE',
+          'WILD',
+          'RUSH',
+          'EPIC',
+          'BOLD',
+          'MIGHTY',
+          'FIERCE',
+          'NOBLE',
+          'VALIANT',
+          'BLAZING',
+          'FEARLESS',
+        ];
+        const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+        const code = Math.random().toString(36).substring(2, 6).toUpperCase();
+        return `${adj}-${code}`;
+      }
       try {
         const eventId = `event_${uuidv4().substring(0, 8)}`;
         const config = input.eventConfig;
+        const eventPassword = input.eventPassword || generateEventPassword();
 
         // Validate required config fields
         if (!config.prize_pool_total || !config.num_of_teams || !config.players_per_team) {
@@ -446,6 +465,12 @@ const TreasureHuntResolvers = {
             totalNodes,
           num_of_inns: Math.floor(locationGroups / (config.node_to_inn_ratio || 5)),
           total_nodes: totalNodes,
+          avg_gp_per_inn:
+            Math.floor(locationGroups / (config.node_to_inn_ratio || 5)) > 0
+              ? ((config.prize_pool_total / config.num_of_teams) *
+                  (config.reward_split_ratio?.inns || 0.4)) /
+                Math.floor(locationGroups / (config.node_to_inn_ratio || 5))
+              : 0,
         };
         const eventData = {
           eventId,
@@ -460,6 +485,7 @@ const TreasureHuntResolvers = {
           creatorId: context.user.id,
           adminIds: [context.user.id],
           status: 'DRAFT',
+          eventPassword,
         };
         const event = await TreasureEvent.create(eventData);
 
