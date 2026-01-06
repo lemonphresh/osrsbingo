@@ -1,3 +1,18 @@
-# https://www.robotstxt.org/robotstxt.html
 User-agent: *
-Disallow:
+Allow: /
+
+# Public pages - crawl these
+Allow: /boards
+Allow: /gielinor-rush
+Allow: /faq
+Allow: /login
+Allow: /signup
+
+# Private/dynamic pages - don't crawl
+Disallow: /user/
+Disallow: /board/*/edit
+Disallow: /gielinor-rush/event_*
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://osrsbingohub.com/sitemap.xml

@@ -17,6 +17,7 @@ const calendarRoutes = require('./calendarRoutes');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
+const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 
 dotenv.config();
@@ -37,6 +38,31 @@ app.use(
 );
 app.use(express.json());
 app.set('trust proxy', 1);
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+        imgSrc: [
+          "'self'",
+          'data:',
+          'blob:',
+          'https://oldschool.runescape.wiki',
+          'https://cdn.discordapp.com',
+          'https://media.discordapp.net',
+          'https://raw.githubusercontent.com',
+        ],
+        connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki'],
+        objectSrc: ["'none'"],
+        frameAncestors: ["'none'"],
+        upgradeInsecureRequests: [],
+      },
+    },
+  })
+);
 
 // Serve static files from the React app (client build directory)
 if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging') {
