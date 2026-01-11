@@ -12,7 +12,6 @@ import {
   SimpleGrid,
   useDisclosure,
   useColorMode,
-  Icon,
   Image,
   IconButton,
   AlertDialog,
@@ -34,17 +33,16 @@ import {
   Select,
   Box,
   Spinner,
-  Tooltip,
   useBreakpointValue,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, SearchIcon } from '@chakra-ui/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import CreateEventModal from '../organisms/TreasureHunt/CreateTreasureEventModal';
 import { GET_ALL_TREASURE_EVENTS } from '../graphql/queries';
 import { useAuth } from '../providers/AuthProvider';
 import GemTitle from '../atoms/GemTitle';
-import { MdOutlineArrowBack, MdMoreVert } from 'react-icons/md';
+import { MdMoreVert } from 'react-icons/md';
 import Section from '../atoms/Section';
 import ExampleTreasure from '../assets/exampletreasure.png';
 import { DELETE_TREASURE_EVENT } from '../graphql/mutations';

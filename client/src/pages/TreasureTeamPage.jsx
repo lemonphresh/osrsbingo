@@ -712,7 +712,6 @@ const TreasureTeamView = () => {
 
                     // Available inn (not yet visited/completed)
                     const isAvailableInnA = isInnA && statusA === 'available';
-                    const isAvailableInnB = isInnB && statusB === 'available';
 
                     // Completed inn that hasn't been purchased from yet
                     const isCompletedInnNoTxA = isInnA && statusA === 'completed' && !hasTxA;
