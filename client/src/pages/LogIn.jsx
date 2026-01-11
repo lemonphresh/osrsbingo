@@ -10,7 +10,7 @@ import GemTitle from '../atoms/GemTitle';
 import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
 
-const validatePassword = (pass) => !!pass && pass.length >= 7;
+const validatePassword = (pass) => !!pass && pass.length >= 4;
 
 const Login = () => {
   const { login } = useAuth();
