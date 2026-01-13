@@ -75,11 +75,6 @@ const TreasureHuntDashboard = () => {
 
   const { data, loading, refetch } = useQuery(GET_ALL_TREASURE_EVENTS, {
     variables: { userId: user?.id },
-    onCompleted: (data) => {
-      if (!data.getAllTreasureEvents.some((event) => event.adminIds.includes(user?.id))) {
-        showToast('You do not have admin access to any events.', 'warning');
-      }
-    },
     skip: !user,
   });
 
@@ -442,8 +437,8 @@ const TreasureHuntDashboard = () => {
                           Set Event Parameters
                         </Text>
                         <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Choose map size, difficulty, number of teams, and time frame for your
-                          event
+                          Choose map size, difficulty, number of teams, content, and time frame for
+                          your event
                         </Text>
                       </VStack>
                     </HStack>

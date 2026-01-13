@@ -596,7 +596,12 @@ const TreasureTeamView = () => {
 
             {team.completedNodes?.length === 0 && !adminMode && (
               <>
-                <TreasureHuntTutorial colorMode={colorMode} compact={false} eventId={eventId} />
+                <TreasureHuntTutorial
+                  collapsed={isAdmin}
+                  colorMode={colorMode}
+                  compact={false}
+                  eventId={eventId}
+                />
                 <hr />
               </>
             )}

@@ -38,10 +38,11 @@ export const TreasureHuntTutorial = ({
   colorMode = 'dark',
   compact = false,
   eventId = 'default',
+  collapsed = false,
 }) => {
   const storageKey = `treasureHunt_tutorial_dismissed_${eventId}`;
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(collapsed);
 
   const colors = {
     dark: {

@@ -378,7 +378,6 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     return id;
   };
 
-  // NEW: Helper to create a location group with 3 difficulty nodes
   const createLocationGroup = (location, pathInfo, prerequisiteNodeIds, nodeCounter) => {
     const groupId = `loc_${uuidv4().substring(0, 8)}`;
     const difficulties = [
@@ -390,15 +389,35 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     const groupNodes = [];
     const groupNodeIds = [];
 
+    // Track targets used within THIS location group to prevent duplicates
+    const usedTargetsInGroup = new Set();
+
     difficulties.forEach(({ name, tier }) => {
       const nodeId = generateNodeId(nodeCounter.value++);
 
-      const objective = generateObjective(
-        name,
-        difficultyMultiplier,
-        formattedObjectives,
-        objectiveUsageByDifficulty
-      );
+      // Keep generating until we get a unique target for this group
+      let objective;
+      let attempts = 0;
+      const maxAttempts = 20;
+
+      do {
+        objective = generateObjective(
+          name,
+          difficultyMultiplier,
+          formattedObjectives,
+          objectiveUsageByDifficulty
+        );
+        attempts++;
+      } while (usedTargetsInGroup.has(objective.target) && attempts < maxAttempts);
+
+      if (attempts >= maxAttempts) {
+        console.warn(
+          `Could not find unique objective for ${name} at ${location.name} after ${maxAttempts} attempts`
+        );
+      }
+
+      // Track this target so other nodes in the group don't use it
+      usedTargetsInGroup.add(objective.target);
 
       const node = {
         nodeId,
