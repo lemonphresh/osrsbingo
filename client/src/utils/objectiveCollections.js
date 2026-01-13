@@ -1,6 +1,6 @@
 // objectiveCollections.js
 // Auto-generated from osrs_content_manager.xlsx
-// Generated: 2026-01-13T04:09:26.889Z
+// Generated: 2026-01-13T04:54:46.660Z
 
 const SOLO_BOSSES = {
   giantMole: {
@@ -2305,6 +2305,22 @@ const MINIGAMES = {
 };
 
 const COLLECTIBLE_ITEMS = {
+  dragonboneNecklace: {
+    id: 'dragonboneNecklace',
+    name: 'Dragonbone Necklace',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:vorkath'],
+    enabled: true,
+  },
+  jarOfDecay: {
+    id: 'jarOfDecay',
+    name: 'Jar of Decay',
+    category: 'boss-drops',
+    tags: ['jar'],
+    sources: ['bosses:vorkath'],
+    enabled: true,
+  },
   vorkathHead: {
     id: 'vorkathHead',
     name: "Vorkath's Head",
@@ -2411,7 +2427,7 @@ const COLLECTIBLE_ITEMS = {
   },
   abyssalBludgeon: {
     id: 'abyssalBludgeon',
-    name: 'Abyssal Bludgeon',
+    name: 'Abyssal Bludgeon Piece',
     category: 'slayer-drops',
     tags: ['unique'],
     sources: ['bosses:abyssalSire'],
@@ -2511,6 +2527,14 @@ const COLLECTIBLE_ITEMS = {
     category: 'slayer-drops',
     tags: ['jar'],
     sources: ['bosses:cerberus'],
+    enabled: true,
+  },
+  hydraTail: {
+    id: 'hydraTail',
+    name: "Hydra's Tail",
+    category: 'slayer-drops',
+    tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
   },
   hydraLeather: {
@@ -3070,7 +3094,7 @@ const COLLECTIBLE_ITEMS = {
     name: 'Harmonised Orb',
     category: 'boss-drops',
     tags: ['unique'],
-    sources: ['bosses:phosanisNightmare'],
+    sources: ['bosses:nightmare'],
     enabled: true,
   },
   volatileNightmareStaff1: {
@@ -3497,6 +3521,22 @@ const COLLECTIBLE_ITEMS = {
     sources: ['bosses:araxxor'],
     enabled: true,
   },
+  chromiumIngot4: {
+    id: 'chromiumIngot4',
+    name: 'Chromium Ingot',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:leviathan'],
+    enabled: true,
+  },
+  eyeDuke: {
+    id: 'eyeDuke',
+    name: 'Eye of the Duke',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:dukeSucellus'],
+    enabled: true,
+  },
   virtusRobeTop1: {
     id: 'virtusRobeTop1',
     name: 'Virtus Robe Top',
@@ -3545,6 +3585,14 @@ const COLLECTIBLE_ITEMS = {
     sources: ['bosses:whisperer'],
     enabled: true,
   },
+  chromiumIngot3: {
+    id: 'chromiumIngot3',
+    name: 'Chromium Ingot',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:leviathan'],
+    enabled: true,
+  },
   ultorRing: {
     id: 'ultorRing',
     name: 'Ultor Ring',
@@ -3569,6 +3617,14 @@ const COLLECTIBLE_ITEMS = {
     sources: ['bosses:vardorvis'],
     enabled: true,
   },
+  chromiumIngot2: {
+    id: 'chromiumIngot2',
+    name: 'Chromium Ingot',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:leviathan'],
+    enabled: true,
+  },
   venatorRing: {
     id: 'venatorRing',
     name: 'Venator Ring',
@@ -3585,8 +3641,8 @@ const COLLECTIBLE_ITEMS = {
     sources: ['bosses:leviathan'],
     enabled: true,
   },
-  chromiumIngot: {
-    id: 'chromiumIngot',
+  chromiumIngot1: {
+    id: 'chromiumIngot1',
     name: 'Chromium Ingot',
     category: 'boss-drops',
     tags: ['unique'],
@@ -3726,7 +3782,7 @@ const COLLECTIBLE_ITEMS = {
     name: 'Voidwaker Hilt',
     category: 'wilderness-drops',
     tags: ['unique'],
-    sources: ['bosses:spindel'],
+    sources: ['bosses:callisto'],
     enabled: true,
   },
   treasonousSigil1: {
@@ -4513,6 +4569,14 @@ const COLLECTIBLE_ITEMS = {
     sources: ['bosses:doom'],
     enabled: true,
   },
+  leviathanLure: {
+    id: 'leviathanLure',
+    name: "Leviathan's Lure",
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:leviathan'],
+    enabled: true,
+  },
   virtusRobeTop2: {
     id: 'virtusRobeTop2',
     name: 'Virtus Robe Top',
@@ -4564,6 +4628,14 @@ const COLLECTIBLE_ITEMS = {
   virtusRobeTop4: {
     id: 'virtusRobeTop4',
     name: 'Virtus Robe Top',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:whisperer'],
+    enabled: true,
+  },
+  sirensStaff: {
+    id: 'sirensStaff',
+    name: "Siren's Staff",
     category: 'boss-drops',
     tags: ['unique'],
     sources: ['bosses:whisperer'],
@@ -4628,6 +4700,14 @@ const COLLECTIBLE_ITEMS = {
   elderNightmareStaff2: {
     id: 'elderNightmareStaff2',
     name: 'Eldritch Orb',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  harmonyNightmareStaff2: {
+    id: 'harmonyNightmareStaff2',
+    name: 'Harmonised Orb',
     category: 'boss-drops',
     tags: ['unique'],
     sources: ['bosses:phosanisNightmare'],
