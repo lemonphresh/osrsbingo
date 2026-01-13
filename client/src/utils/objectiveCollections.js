@@ -1,6 +1,6 @@
 // objectiveCollections.js
 // Auto-generated from osrs_content_manager.xlsx
-// Generated: 2026-01-13T04:54:46.660Z
+// Generated: 2026-01-13T05:04:36.316Z
 
 const SOLO_BOSSES = {
   giantMole: {
@@ -3526,7 +3526,7 @@ const COLLECTIBLE_ITEMS = {
     name: 'Chromium Ingot',
     category: 'boss-drops',
     tags: ['unique'],
-    sources: ['bosses:leviathan'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
   },
   eyeDuke: {
@@ -3590,7 +3590,7 @@ const COLLECTIBLE_ITEMS = {
     name: 'Chromium Ingot',
     category: 'boss-drops',
     tags: ['unique'],
-    sources: ['bosses:leviathan'],
+    sources: ['bosses:vardorvis'],
     enabled: true,
   },
   ultorRing: {
