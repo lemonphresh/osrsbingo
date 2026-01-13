@@ -134,22 +134,8 @@ const GeneralQAList = [
     a: (
       <Text>
         First of all, thank you. Secondly,{' '}
-        <Link
-          color={theme.colors.dark.turquoise.base}
-          fontWeight="bold"
-          href="https://cash.app/$lemonlikesgirls/5.00"
-          target="_blank"
-        >
-          I accept CashApp donations
-        </Link>{' '}
-        and I wouldn't say no to a coffee or two via{' '}
-        <Link
-          color={theme.colors.dark.turquoise.base}
-          fontWeight="bold"
-          href="https://ko-fi.com/A667UUO"
-          target="_blank"
-        >
-          Ko-fi
+        <Link color={theme.colors.dark.turquoise.base} fontWeight="bold" to="/support">
+          go here to learn more
         </Link>
         .
       </Text>

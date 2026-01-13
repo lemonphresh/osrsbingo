@@ -64,7 +64,7 @@ const Footer = () => {
             <Image alt="Discord logo" src={Discord} width={['40px', '20px']} loading="lazy" />
           </Flex>
         </ChakraLink>
-        <ChakraLink href="https://ko-fi.com/A667UUO" isExternal>
+        <Link to="/support">
           <Button
             leftIcon={<Image alt="Gnomechild" src={Gnomechild} width="20px" height="20px" />}
             size="lg"
@@ -73,7 +73,7 @@ const Footer = () => {
           >
             Support the site
           </Button>
-        </ChakraLink>
+        </Link>
         {/* <Link
         alignItems="center"
         display="flex"

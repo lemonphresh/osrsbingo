@@ -8,9 +8,11 @@ import {
   Collapse,
   VStack,
   HStack,
+  Badge,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useQuery } from '@apollo/client';
 import theme from '../theme';
 import GemLogo from '../assets/gemlogo-small.png';
 import GnomeChild from '../assets/gnomechild-small.webp';
@@ -18,6 +20,8 @@ import Lemon from '../assets/selfie.webp';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
+import { GET_PENDING_INVITATIONS } from '../graphql/queries';
+import { FaHeart } from 'react-icons/fa';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -26,22 +30,24 @@ const NavBar = () => {
   const { user } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
 
+  const { data: invitationsData } = useQuery(GET_PENDING_INVITATIONS, {
+    skip: !user,
+  });
+
+  const pendingInviteCount = invitationsData?.getPendingInvitations?.length || 0;
+
   useEffect(() => {
-    // Check if banner was dismissed and if 24 hours have passed
     const dismissedTime = localStorage.getItem(BANNER_STORAGE_KEY);
 
     if (dismissedTime) {
       const timePassed = Date.now() - parseInt(dismissedTime, 10);
       if (timePassed < BANNER_DURATION_MS) {
-        // Still within 24 hours, keep banner closed
         setIsBannerOpen(false);
       } else {
-        // 24 hours have passed, remove the storage item and show banner
         localStorage.removeItem(BANNER_STORAGE_KEY);
         setIsBannerOpen(true);
       }
     } else {
-      // No dismissal record, show banner
       setIsBannerOpen(true);
     }
   }, []);
@@ -56,61 +62,95 @@ const NavBar = () => {
       {/* Collapsible Banner */}
       <Collapse in={isBannerOpen} animateOpacity>
         <Box
-          backgroundColor={theme.colors.red[400]}
-          borderBottom={`2px ${theme.colors.red[600]} solid`}
+          background="linear-gradient(135deg, #1a202c 0%, #2d3748 100%)"
+          borderBottom="3px solid"
+          borderColor={theme.colors.yellow[400]}
           color="white"
-          paddingX={['8px', '32px']}
-          paddingY="12px"
+          paddingX={['16px', '32px']}
+          paddingY="16px"
           position="relative"
         >
-          <Flex alignItems="center" justifyContent="space-between">
-            <HStack spacing={4}>
-              <Box overflow="hidden" borderRadius="50px" maxH={24} maxW={24}>
-                <Image alt="Blonde girlie with makeup and dimples" opacity="0.9" src={Lemon} />
+          <IconButton
+            aria-label="Close banner"
+            position="absolute"
+            right={3}
+            top={3}
+            icon={<MdClose />}
+            size="sm"
+            variant="ghost"
+            color="white"
+            opacity={0.5}
+            onClick={handleCloseBanner}
+            _hover={{ opacity: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+          />
+          <Flex
+            direction={['column', 'row']}
+            alignItems={['flex-start', 'center']}
+            gap={[4, 5]}
+            maxW="950px"
+            margin="0 auto"
+          >
+            <HStack spacing={4} alignItems="center">
+              <Box
+                borderRadius="50%"
+                overflow="hidden"
+                flexShrink={0}
+                width={['60px', '70px']}
+                height={['60px', '70px']}
+                border="3px solid rgba(255,255,255,0.2)"
+              >
+                <Image
+                  alt="Blonde person with makeup and dimples"
+                  src={Lemon}
+                  width="100%"
+                  height="100%"
+                  objectFit="cover"
+                />
               </Box>
-              <VStack>
-                <Text fontSize={['sm', 'md']} fontWeight="semibold">
-                  Hey gang, it's your resident dev{' '}
-                  <span style={{ color: theme.colors.yellow[100] }}>Lemon</span> here! <br />
+              <VStack align="start" spacing={1} flex={1}>
+                <Text fontSize={['sm', 'md']}>
+                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="bold">
+                    HEY YOU! Like the site?
+                  </Text>{' '}
+                  I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
+                  Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                <Text fontSize="sm">
-                  I've been hard at work on some exciting new features for OSRS Bingo Hub, like the{' '}
-                  <strong>new Gielinor Rush game type</strong>, among some other nice-to-haves and
-                  QOL improvements.
-                  <br />
-                </Text>
-                <Text
-                  fontSize="lg"
-                  color={theme.colors.yellow[100]}
-                  fontWeight="semibold"
-                  textDecoration="underline"
-                  w="100%"
-                  textAlign="left"
-                >
-                  <Link to="/gielinor-rush">
-                    Give the Gielinor Rush a shot with your clan/friends! 💛
-                  </Link>
-                </Text>
-                <Text w="100%" textAlign="left" fontSize="12px">
-                  Also, please consider{' '}
-                  <Link to="https://cash.app/$lemonlikesgirls/5.00" target="_blank">
-                    <u>supporting me</u>
-                  </Link>
-                  , hosting ain't cheap and I want to continue developing new features for you
-                  sweaty gamers! ;-)
+                <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                  Also go try <strong>Gielinor Rush</strong>, it's new, sailing and all!
                 </Text>
               </VStack>
             </HStack>
-            <IconButton
-              aria-label="Close banner"
-              alignSelf="flex-start"
-              icon={<MdClose />}
-              size="sm"
-              variant="ghost"
-              colorScheme="whiteAlpha"
-              onClick={handleCloseBanner}
-              _hover={{ backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-            />
+            <Flex
+              justifyContent="center"
+              flexDirection={['row', 'column']}
+              alignItems="center"
+              gap={3}
+              flexShrink={0}
+              w={['100%', 'auto']}
+            >
+              <Link to="/support">
+                <Flex
+                  as="span"
+                  align="center"
+                  gap={2}
+                  backgroundColor={theme.colors.yellow[400]}
+                  color="gray.900"
+                  paddingX={5}
+                  paddingY={2}
+                  borderRadius="md"
+                  fontWeight="bold"
+                  fontSize="sm"
+                  _hover={{ backgroundColor: theme.colors.yellow[300] }}
+                >
+                  <FaHeart color={theme.colors.red[500]} /> Support
+                </Flex>
+              </Link>
+              <Link to="/gielinor-rush">
+                <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                  Gielinor Rush →
+                </Text>
+              </Link>
+            </Flex>
           </Flex>
         </Box>
       </Collapse>
@@ -215,13 +255,40 @@ const NavBar = () => {
         </Flex>
 
         <Link
-          style={{ display: 'flex', alignItems: 'center' }}
+          style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
           to={user ? `/user/${user.id}` : '/login'}
         >
           <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
             {user ? user.username : 'log in'}
           </Text>
-          <Image aria-hidden height={['48px', '32px']} src={GnomeChild} width={['48px', '32px']} />
+          <Box position="relative">
+            <Image
+              aria-hidden
+              height={['48px', '32px']}
+              src={GnomeChild}
+              width={['48px', '32px']}
+            />
+            {pendingInviteCount > 0 && (
+              <Badge
+                position="absolute"
+                top="-4px"
+                right="-4px"
+                backgroundColor={theme.colors.red[500]}
+                color="white"
+                borderRadius="full"
+                fontSize="10px"
+                fontWeight="bold"
+                minWidth="18px"
+                height="18px"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                boxShadow="0 2px 4px rgba(0,0,0,0.3)"
+              >
+                {pendingInviteCount > 9 ? '9+' : pendingInviteCount}
+              </Badge>
+            )}
+          </Box>
         </Link>
       </Flex>
     </>

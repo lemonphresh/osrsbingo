@@ -55,6 +55,7 @@ import Map from '../assets/osrsmap.png';
 import Objective from '../assets/adventurepath-small.webp';
 import Laidee from '../assets/laidee.png';
 import HouseTab from '../assets/housetab.png';
+import EternalGem from '../assets/gemoji.png';
 
 const TreasureHuntDashboard = () => {
   const { colorMode } = useColorMode();
@@ -71,7 +72,7 @@ const TreasureHuntDashboard = () => {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [sortBy, setSortBy] = useState('startDate');
+  const [sortBy, setSortBy] = useState('name');
 
   const { data, loading, refetch } = useQuery(GET_ALL_TREASURE_EVENTS, {
     variables: { userId: user?.id },
@@ -250,6 +251,7 @@ const TreasureHuntDashboard = () => {
       transition="all 0.2s ease-in-out"
       onClick={() => handleEventClick(event.eventId)}
       position="relative"
+      overflow="hidden"
       role="group"
       tabIndex={0}
       onKeyDown={(e) => {
@@ -259,6 +261,20 @@ const TreasureHuntDashboard = () => {
         }
       }}
     >
+      {/* Background gem watermark */}
+      <Image
+        src={EternalGem}
+        alt=""
+        aria-hidden
+        position="absolute"
+        right="-15px"
+        top="15px"
+        width="100px"
+        height="100px"
+        opacity={0.25}
+        pointerEvents="none"
+      />
+
       {/* Loading overlay when card is clicked */}
       {clickedEventId === event.eventId && (
         <Flex
@@ -310,25 +326,14 @@ const TreasureHuntDashboard = () => {
         </MenuList>
       </Menu>
 
-      <CardHeader>
-        <HStack justify="space-between" pr={8}>
-          <Heading size="md" color={currentColors.textColor} noOfLines={1}>
-            {event.eventName}
-          </Heading>
-          <Badge
-            bg={getStatusColor(event.status)}
-            color="white"
-            px={2}
-            py={1}
-            borderRadius="md"
-            fontWeight="semibold"
-          >
-            {event.status}
-          </Badge>
-        </HStack>
+      <CardHeader pb={2}>
+        <Heading size="md" color={currentColors.textColor} noOfLines={2} pr={8} mb={2}>
+          {event.eventName}
+        </Heading>
       </CardHeader>
-      <CardBody pt={0}>
-        <VStack align="stretch" spacing={3}>
+
+      <CardBody pt={0} display="flex" flexDirection="column" flex="1">
+        <VStack align="stretch" spacing={2} flex="1">
           <HStack>
             <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} minW="45px">
               Start:
@@ -345,13 +350,35 @@ const TreasureHuntDashboard = () => {
               {new Date(event.endDate).toLocaleDateString()}
             </Text>
           </HStack>
-          <HStack>
-            <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} minW="45px">
-              Teams:
-            </Text>
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.purple.base}>
-              {event.teams.length}
-            </Text>
+
+          <Box flex="1" />
+
+          <HStack justify="space-between" align="center">
+            <HStack>
+              <Text
+                fontSize="sm"
+                color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                minW="45px"
+              >
+                Teams:
+              </Text>
+              <Text fontSize="sm" fontWeight="bold" color={currentColors.purple.base}>
+                {event.teams.length}
+              </Text>
+            </HStack>
+
+            <Badge
+              bg={getStatusColor(event.status)}
+              color="white"
+              px={2}
+              py={1}
+              borderRadius="md"
+              fontWeight="semibold"
+              textTransform="uppercase"
+              fontSize="xs"
+            >
+              {event.status}
+            </Badge>
           </HStack>
         </VStack>
       </CardBody>
@@ -745,9 +772,9 @@ const TreasureHuntDashboard = () => {
                           boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
                         }}
                       >
+                        <option value="name">Name</option>
                         <option value="startDate">Start Date</option>
                         <option value="endDate">End Date</option>
-                        <option value="name">Name</option>
                         <option value="teams">Team Count</option>
                       </Select>
                     </HStack>

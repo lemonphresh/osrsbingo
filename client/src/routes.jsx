@@ -11,6 +11,7 @@ import LogIn from './pages/LogIn';
 import NoMatch from './pages/NoMatch';
 import PrivacyPage from './pages/Privacy';
 import SignUp from './pages/SignUp';
+import SupportPage from './pages/SupportTheSite';
 import TermsPage from './pages/Terms';
 import TreasureEventView from './pages/TreasureEventPage';
 import TreasureHuntDashboard from './pages/TreasureHuntDashboard';
@@ -101,6 +102,11 @@ const routes = [
       {
         path: '/privacy',
         element: <PrivacyPage />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/support',
+        element: <SupportPage />,
         errorElement: <ErrorPage />,
       },
       {
