@@ -448,8 +448,6 @@ const TreasureEventView = () => {
     );
   }
 
-  console.log(event);
-
   return (
     <Flex
       alignItems="center"
@@ -760,7 +758,7 @@ const TreasureEventView = () => {
             position="relative"
             variant="soft-rounded"
             maxW="100%"
-            defaultIndex={teams.length === 0 ? 2 : undefined}
+            defaultIndex={isEventAdmin && teams.length === 0 ? 2 : 0}
           >
             <TabList
               pb="6px"
@@ -824,88 +822,92 @@ const TreasureEventView = () => {
             </TabList>
 
             <TabPanels>
-              <TabPanel px={0}>
-                <Box bg={currentColors.cardBg} borderRadius="8px" padding="8px">
-                  <TableContainer width="100%">
-                    <Table variant="simple">
-                      <Thead>
-                        <Tr>
-                          <Th color={currentColors.textColor}>Rank</Th>
-                          <Th color={currentColors.textColor}>Team Name</Th>
-                          <Th isNumeric color={currentColors.textColor}>
-                            Current Pot
-                          </Th>
-                          <Th isNumeric color={currentColors.textColor}>
-                            Nodes Completed
-                          </Th>
-                          <Th color={currentColors.textColor}>Keys Held</Th>
-                          <Th color={currentColors.textColor}>Actions</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {[...teams]
-                          .sort((a, b) => {
-                            const potA = Number(a.currentPot || 0);
-                            const potB = Number(b.currentPot || 0);
-                            if (potA > potB) return -1;
-                            if (potA < potB) return 1;
-                            return (
-                              (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0)
-                            );
-                          })
-                          .map((team, idx) => (
-                            <Tr key={team.teamId}>
-                              <Td fontWeight="bold" color={currentColors.textColor}>
-                                #{idx + 1}
-                              </Td>
-                              <Td color={currentColors.textColor} whiteSpace="nowrap">
-                                {team.teamName}
-                              </Td>
-                              <Td
-                                isNumeric
-                                fontWeight="bold"
-                                color={currentColors.green.base}
-                                whiteSpace="nowrap"
-                              >
-                                {formatGP(team.currentPot)}
-                              </Td>
-                              <Td isNumeric color={currentColors.textColor}>
-                                {team.completedNodes?.length || 0}
-                              </Td>
-                              <Td>
-                                <HStack spacing={2}>
-                                  {team.keysHeld && team.keysHeld.length > 0 ? (
-                                    team.keysHeld.map((key) => (
-                                      <Badge key={key.color} colorScheme={key.color}>
-                                        {key.quantity}
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    <Text fontSize="sm" color="gray.500">
-                                      None
-                                    </Text>
-                                  )}
-                                </HStack>
-                              </Td>
-                              <Td>
-                                <HStack spacing={2}>
-                                  {event.nodes && event.nodes.length > 0 && (
-                                    <Button
-                                      size="sm"
-                                      bg={currentColors.purple.base}
-                                      color="white"
-                                      _hover={{ bg: currentColors.purple.light }}
-                                      onClick={() =>
-                                        navigate(
-                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`
-                                        )
-                                      }
-                                      whiteSpace="nowrap"
-                                    >
-                                      View Map
-                                    </Button>
-                                  )}
-                                  {isEventAdmin && (
+              {/* LEADERBOARD - Admin only */}
+              {isEventAdmin && (
+                <TabPanel px={0}>
+                  <Text fontWeight="bold" fontSize="12px" mb="4px" color={currentColors.white}>
+                    Admin View of Leaderboard:
+                  </Text>
+                  <Box bg={currentColors.cardBg} borderRadius="8px" padding="8px">
+                    <TableContainer width="100%">
+                      <Table variant="simple">
+                        <Thead>
+                          <Tr>
+                            <Th color={currentColors.textColor}>Rank</Th>
+                            <Th color={currentColors.textColor}>Team Name</Th>
+                            <Th isNumeric color={currentColors.textColor}>
+                              Current Pot
+                            </Th>
+                            <Th isNumeric color={currentColors.textColor}>
+                              Nodes Completed
+                            </Th>
+                            <Th color={currentColors.textColor}>Keys Held</Th>
+                            <Th color={currentColors.textColor}>Actions</Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          {[...teams]
+                            .sort((a, b) => {
+                              const potA = Number(a.currentPot || 0);
+                              const potB = Number(b.currentPot || 0);
+                              if (potA > potB) return -1;
+                              if (potA < potB) return 1;
+                              return (
+                                (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0)
+                              );
+                            })
+                            .map((team, idx) => (
+                              <Tr key={team.teamId}>
+                                <Td fontWeight="bold" color={currentColors.textColor}>
+                                  #{idx + 1}
+                                </Td>
+                                <Td color={currentColors.textColor} whiteSpace="nowrap">
+                                  {team.teamName}
+                                </Td>
+                                <Td
+                                  isNumeric
+                                  fontWeight="bold"
+                                  color={currentColors.green.base}
+                                  whiteSpace="nowrap"
+                                >
+                                  {formatGP(team.currentPot)}
+                                </Td>
+                                <Td isNumeric color={currentColors.textColor}>
+                                  {team.completedNodes?.length || 0}
+                                </Td>
+                                <Td>
+                                  <HStack spacing={2}>
+                                    {team.keysHeld && team.keysHeld.length > 0 ? (
+                                      team.keysHeld.map((key) => (
+                                        <Badge key={key.color} colorScheme={key.color}>
+                                          {key.quantity}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <Text fontSize="sm" color="gray.500">
+                                        None
+                                      </Text>
+                                    )}
+                                  </HStack>
+                                </Td>
+                                <Td>
+                                  <HStack spacing={2}>
+                                    {event.nodes && event.nodes.length > 0 && (
+                                      <Button
+                                        size="sm"
+                                        bg={currentColors.purple.base}
+                                        color="white"
+                                        _hover={{ bg: currentColors.purple.light }}
+                                        onClick={() =>
+                                          navigate(
+                                            `/gielinor-rush/${event.eventId}/team/${team.teamId}`
+                                          )
+                                        }
+                                        whiteSpace="nowrap"
+                                      >
+                                        View Map
+                                      </Button>
+                                    )}
                                     <IconButton
                                       size="sm"
                                       icon={<EditIcon />}
@@ -919,16 +921,18 @@ const TreasureEventView = () => {
                                       }}
                                       aria-label="Edit team"
                                     />
-                                  )}
-                                </HStack>
-                              </Td>
-                            </Tr>
-                          ))}
-                      </Tbody>
-                    </Table>
-                  </TableContainer>
-                </Box>
-              </TabPanel>
+                                  </HStack>
+                                </Td>
+                              </Tr>
+                            ))}
+                        </Tbody>
+                      </Table>
+                    </TableContainer>
+                  </Box>
+                </TabPanel>
+              )}
+
+              {/* SUBMISSIONS - Admin only */}
               {isEventAdmin && (
                 <TabPanel px={0}>
                   <VStack spacing={4} align="stretch">
@@ -1314,6 +1318,8 @@ const TreasureEventView = () => {
                   </VStack>
                 </TabPanel>
               )}
+
+              {/* EVENT SETTINGS - Admin only */}
               {isEventAdmin && (
                 <TabPanel>
                   <Card bg={currentColors.cardBg}>
@@ -1605,10 +1611,14 @@ const TreasureEventView = () => {
                   </Card>
                 </TabPanel>
               )}
+
+              {/* GAME RULES - Always visible */}
               <TabPanel px={0}>
                 <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
               </TabPanel>
-              {isEventAdmin && (
+
+              {/* ALL NODES - Admin only, only if nodes exist */}
+              {isEventAdmin && event.nodes && event.nodes.length > 0 && (
                 <TabPanel px={0}>
                   <Box bg={currentColors.cardBg} borderRadius="8px" overflow="hidden">
                     <ScrollableTableContainer width="100%">

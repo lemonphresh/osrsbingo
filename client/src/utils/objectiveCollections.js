@@ -1,15 +1,8 @@
-// ============================================
-// OSRS CONTENT COLLECTIONS
-// ============================================
-// Auto-generated from Excel spreadsheet - DO NOT EDIT MANUALLY
-// Edit the spreadsheet and re-run the converter instead.
-// Generated: 2026-01-04T03:56:44.625Z
+// objectiveCollections.js
+// Auto-generated from osrs_content_manager.xlsx
+// Generated: 2026-01-13T04:09:26.889Z
 
-/**
- * Solo boss definitions
- * Each boss includes per-boss quantity ranges for objectives
- */
-export const SOLO_BOSSES = {
+const SOLO_BOSSES = {
   giantMole: {
     id: 'giantMole',
     name: 'Giant Mole',
@@ -17,10 +10,20 @@ export const SOLO_BOSSES = {
     tags: ['safe', 'beginner', 'falador'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 100,
+        max: 150,
+      },
+      medium: {
+        min: 175,
+        max: 200,
+      },
+      hard: {
+        min: 200,
+        max: 250,
+      },
     },
+    dropQuantities: null,
   },
   sarachnis: {
     id: 'sarachnis',
@@ -29,9 +32,28 @@ export const SOLO_BOSSES = {
     tags: ['spider', 'f2p-accessible'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   obor: {
@@ -41,9 +63,24 @@ export const SOLO_BOSSES = {
     tags: ['f2p', 'key', 'giant'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      hard: {
+        min: 1,
+        max: 1,
+      },
     },
   },
   krakenBoss: {
@@ -53,9 +90,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', '87-slayer', 'afk'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   vorkath: {
@@ -65,9 +125,32 @@ export const SOLO_BOSSES = {
     tags: ['dragon', 'quest', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 125,
+        max: 175,
+      },
+      hard: {
+        min: 200,
+        max: 300,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 3,
+        max: 4,
+      },
+      hard: {
+        min: 5,
+        max: 7,
+      },
     },
   },
   zulrah: {
@@ -77,9 +160,32 @@ export const SOLO_BOSSES = {
     tags: ['snake', 'quest', 'profitable', 'rotation'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 80,
+      },
+      medium: {
+        min: 80,
+        max: 160,
+      },
+      hard: {
+        min: 150,
+        max: 250,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   barrows: {
@@ -89,9 +195,32 @@ export const SOLO_BOSSES = {
     tags: ['minigame', 'multiple', 'prayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 4,
+        max: 5,
+      },
+      medium: {
+        min: 5,
+        max: 7,
+      },
+      hard: {
+        min: 7,
+        max: 9,
+      },
     },
   },
   grotesqueGuardians: {
@@ -101,9 +230,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'duo'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 2,
+        max: 2,
+      },
+      medium: {
+        min: 3,
+        max: 4,
+      },
+      hard: {
+        min: 4,
+        max: 5,
+      },
     },
   },
   araxxor: {
@@ -113,9 +265,32 @@ export const SOLO_BOSSES = {
     tags: ['spider', 'slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   thermonuclearSmokeDevil: {
@@ -125,9 +300,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', '93-slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 100,
+        max: 150,
+      },
+      medium: {
+        min: 150,
+        max: 200,
+      },
+      hard: {
+        min: 200,
+        max: 250,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   commanderZilyana: {
@@ -137,9 +335,32 @@ export const SOLO_BOSSES = {
     tags: ['gwd', 'saradomin', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   generalGraardor: {
@@ -149,9 +370,32 @@ export const SOLO_BOSSES = {
     tags: ['gwd', 'bandos', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   kreeArra: {
@@ -161,9 +405,32 @@ export const SOLO_BOSSES = {
     tags: ['gwd', 'armadyl', 'ranged', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   krilTsutsaroth: {
@@ -173,9 +440,32 @@ export const SOLO_BOSSES = {
     tags: ['gwd', 'zamorak', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 125,
+      },
+      hard: {
+        min: 125,
+        max: 175,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   chaosFanatic: {
@@ -185,9 +475,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   crazyArchaeologist: {
@@ -197,9 +510,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   scorpia: {
@@ -209,9 +545,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   chaosElemental: {
@@ -221,9 +580,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   spindel: {
@@ -233,9 +615,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'spider', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   artio: {
@@ -245,9 +650,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'bear', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   calvarion: {
@@ -257,9 +685,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'skeleton', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   venenatis: {
@@ -269,9 +720,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'spider', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   vetion: {
@@ -281,9 +755,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'skeleton', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   callisto: {
@@ -293,9 +790,32 @@ export const SOLO_BOSSES = {
     tags: ['wilderness', 'bear', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   corporealBeast: {
@@ -305,9 +825,32 @@ export const SOLO_BOSSES = {
     tags: ['group', 'difficult', 'spirit-shields'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+      medium: {
+        min: 25,
+        max: 35,
+      },
+      hard: {
+        min: 40,
+        max: 60,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 1,
+        max: 2,
+      },
+      hard: {
+        min: 2,
+        max: 3,
+      },
     },
   },
   cerberus: {
@@ -317,9 +860,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'hellhound', '91-slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   nex: {
@@ -329,9 +895,28 @@ export const SOLO_BOSSES = {
     tags: ['gwd', 'group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   hueycoatl: {
@@ -341,9 +926,32 @@ export const SOLO_BOSSES = {
     tags: ['group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   shellbaneGryphon: {
@@ -353,9 +961,28 @@ export const SOLO_BOSSES = {
     tags: ['slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   dagannothKings: {
@@ -365,33 +992,102 @@ export const SOLO_BOSSES = {
     tags: ['duo', 'trio', 'group-friendly', 'multiple'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 100,
+        max: 150,
+      },
+      medium: {
+        min: 150,
+        max: 250,
+      },
+      hard: {
+        min: 250,
+        max: 350,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 2,
+        max: 3,
+      },
+      medium: {
+        min: 3,
+        max: 4,
+      },
+      hard: {
+        min: 4,
+        max: 5,
+      },
     },
   },
   abyssalSire: {
     id: 'abyssalSire',
     name: 'Abyssal Sire',
     category: 'medium',
-    tags: ['slayer'],
+    tags: ['slayer', '85-slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   alchemicalHydra: {
     id: 'alchemicalHydra',
     name: 'Alchemical Hydra',
     category: 'hard',
-    tags: ['slayer'],
+    tags: ['slayer', '95-slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 1,
+        max: 2,
+      },
+      hard: {
+        min: 2,
+        max: 3,
+      },
     },
   },
   crystallineHunllef: {
@@ -401,9 +1097,16 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'minigame'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
     },
   },
   corruptedHunllef: {
@@ -413,9 +1116,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'minigame'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+      medium: {
+        min: 25,
+        max: 50,
+      },
+      hard: {
+        min: 50,
+        max: 75,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   vardorvis: {
@@ -425,9 +1151,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 175,
+        max: 250,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   whisperer: {
@@ -437,9 +1186,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   dukeSucellus: {
@@ -449,9 +1221,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 175,
+        max: 250,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   leviathan: {
@@ -461,9 +1256,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   yama: {
@@ -473,9 +1291,24 @@ export const SOLO_BOSSES = {
     tags: ['duo', 'difficult'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      hard: {
+        min: 1,
+        max: 1,
+      },
     },
   },
   nightmare: {
@@ -485,9 +1318,24 @@ export const SOLO_BOSSES = {
     tags: ['difficult', 'group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+      medium: {
+        min: 25,
+        max: 35,
+      },
+      hard: {
+        min: 40,
+        max: 50,
+      },
+    },
+    dropQuantities: {
+      hard: {
+        min: 1,
+        max: 1,
+      },
     },
   },
   phosanisNightmare: {
@@ -497,9 +1345,24 @@ export const SOLO_BOSSES = {
     tags: ['difficult'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+      medium: {
+        min: 25,
+        max: 35,
+      },
+      hard: {
+        min: 40,
+        max: 50,
+      },
+    },
+    dropQuantities: {
+      hard: {
+        min: 1,
+        max: 1,
+      },
     },
   },
   phantomMuspah: {
@@ -509,9 +1372,32 @@ export const SOLO_BOSSES = {
     tags: ['slayer'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   doom: {
@@ -521,20 +1407,63 @@ export const SOLO_BOSSES = {
     tags: ['difficult'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   amoxliatl: {
     id: 'amoxliatl',
     name: 'Amoxliatl',
     category: 'easy',
+    tags: [],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 75,
+        max: 100,
+      },
+      medium: {
+        min: 100,
+        max: 150,
+      },
+      hard: {
+        min: 150,
+        max: 200,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   royalTitans: {
@@ -544,9 +1473,32 @@ export const SOLO_BOSSES = {
     tags: ['duo', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 2,
+        max: 2,
+      },
+      hard: {
+        min: 3,
+        max: 3,
+      },
     },
   },
   moons: {
@@ -556,75 +1508,230 @@ export const SOLO_BOSSES = {
     tags: ['group-friendly'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
   kalphiteQueen: {
     id: 'kalphiteQueen',
     name: 'Kalphite Queen',
     category: 'medium',
+    tags: [],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 20, max: 30 },
-      hard: { min: 25, max: 50 },
+      easy: {
+        min: 20,
+        max: 30,
+      },
+      medium: {
+        min: 35,
+        max: 50,
+      },
+      hard: {
+        min: 50,
+        max: 100,
+      },
+    },
+    dropQuantities: {
+      easy: {
+        min: 1,
+        max: 2,
+      },
+      medium: {
+        min: 2,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 4,
+      },
     },
   },
 };
 
-/**
- * Raid definitions
- * Each raid includes per-raid quantity ranges for objectives
- */
-export const RAIDS = {
+const RAIDS = {
   chambersOfXeric: {
     id: 'chambersOfXeric',
     name: 'Chambers of Xeric',
     shortName: 'CoX',
-    category: 'raid',
     tags: ['raid', 'group', 'scaling'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 10, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 10,
+        max: 25,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   theatreOfBlood: {
     id: 'theatreOfBlood',
     name: 'Theatre of Blood',
     shortName: 'ToB',
-    category: 'raid',
     tags: ['raid', 'group', 'difficult'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 10, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 10,
+        max: 25,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
   tombsOfAmascut: {
     id: 'tombsOfAmascut',
     name: 'Tombs of Amascut',
     shortName: 'ToA',
-    category: 'raid',
     tags: ['raid', 'group', 'scaling', 'invocation'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 10, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 10,
+        max: 25,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
+    },
+  },
+  chambersOfXericChallengeMode: {
+    id: 'chambersOfXericChallengeMode',
+    name: 'Challenge Mode Chambers of Xeric',
+    shortName: 'CM',
+    tags: ['raid', 'group', 'scaling'],
+    enabled: true,
+    quantities: {
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 10,
+        max: 25,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
+    },
+  },
+  theatreOfBloodHardMode: {
+    id: 'theatreOfBloodHardMode',
+    name: 'Hard Mode Theatre of Blood',
+    shortName: 'HMT',
+    tags: ['raid', 'group', 'difficult'],
+    enabled: true,
+    quantities: {
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 10,
+        max: 25,
+      },
+    },
+    dropQuantities: {
+      medium: {
+        min: 1,
+        max: 1,
+      },
+      hard: {
+        min: 2,
+        max: 2,
+      },
     },
   },
 };
 
-/**
- * Skilling activities
- * Quantities represent XP amounts (i.e., 300000 = 300k XP)
- */
-export const SKILLS = {
+const SKILLS = {
   fishing: {
     id: 'fishing',
     name: 'Fishing',
@@ -632,9 +1739,18 @@ export const SKILLS = {
     tags: ['afk', 'relaxing', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   woodcutting: {
@@ -644,9 +1760,18 @@ export const SKILLS = {
     tags: ['afk', 'relaxing'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   mining: {
@@ -656,9 +1781,18 @@ export const SKILLS = {
     tags: ['afk', 'relaxing', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   farming: {
@@ -668,9 +1802,18 @@ export const SKILLS = {
     tags: ['passive', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   hunter: {
@@ -680,9 +1823,18 @@ export const SKILLS = {
     tags: ['varied', 'click-intensive'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   agility: {
@@ -692,9 +1844,18 @@ export const SKILLS = {
     tags: ['click-intensive', 'useful'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   thieving: {
@@ -704,9 +1865,18 @@ export const SKILLS = {
     tags: ['click-intensive', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   firemaking: {
@@ -716,9 +1886,18 @@ export const SKILLS = {
     tags: ['fast', 'easy', 'wintertodt'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   herblore: {
@@ -728,9 +1907,18 @@ export const SKILLS = {
     tags: ['expensive', 'useful'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   construction: {
@@ -740,9 +1928,18 @@ export const SKILLS = {
     tags: ['expensive', 'useful', 'fast'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   cooking: {
@@ -752,9 +1949,18 @@ export const SKILLS = {
     tags: ['fast', 'easy'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   smithing: {
@@ -764,9 +1970,18 @@ export const SKILLS = {
     tags: ['slow', 'expensive'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   crafting: {
@@ -776,9 +1991,18 @@ export const SKILLS = {
     tags: ['varied', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   fletching: {
@@ -788,9 +2012,18 @@ export const SKILLS = {
     tags: ['fast', 'afk'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   runecrafting: {
@@ -800,9 +2033,18 @@ export const SKILLS = {
     tags: ['slow', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   slayer: {
@@ -812,9 +2054,18 @@ export const SKILLS = {
     tags: ['combat', 'varied', 'profitable'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
   sailing: {
@@ -824,18 +2075,23 @@ export const SKILLS = {
     tags: ['varied', 'profitable', 'click-intensive'],
     enabled: true,
     quantities: {
-      easy: { min: 300000, max: 500000 },
-      medium: { min: 500000, max: 1000000 },
-      hard: { min: 800000, max: 1500000 },
+      easy: {
+        min: 300000,
+        max: 500000,
+      },
+      medium: {
+        min: 500000,
+        max: 1000000,
+      },
+      hard: {
+        min: 800000,
+        max: 1500000,
+      },
     },
   },
 };
 
-/**
- * Minigame definitions
- * Quantities represent completion counts
- */
-export const MINIGAMES = {
+const MINIGAMES = {
   tempoross: {
     id: 'tempoross',
     name: 'Tempoross',
@@ -843,9 +2099,18 @@ export const MINIGAMES = {
     tags: ['fishing', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
   guardiansOfTheRift: {
@@ -855,9 +2120,18 @@ export const MINIGAMES = {
     tags: ['runecrafting', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
   wintertodt: {
@@ -867,9 +2141,18 @@ export const MINIGAMES = {
     tags: ['firemaking', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
   barbarianAssault: {
@@ -879,9 +2162,18 @@ export const MINIGAMES = {
     tags: ['group', 'teamwork', 'rewards'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 8 },
-      medium: { min: 7, max: 12 },
-      hard: { min: 8, max: 15 },
+      easy: {
+        min: 5,
+        max: 8,
+      },
+      medium: {
+        min: 7,
+        max: 12,
+      },
+      hard: {
+        min: 8,
+        max: 15,
+      },
     },
   },
   pestControl: {
@@ -891,9 +2183,18 @@ export const MINIGAMES = {
     tags: ['group', 'combat-xp', 'void'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
   castleWars: {
@@ -903,9 +2204,18 @@ export const MINIGAMES = {
     tags: ['group', 'pvp', 'fun'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
   fightCaves: {
@@ -915,9 +2225,18 @@ export const MINIGAMES = {
     tags: ['solo', 'jad', 'fire-cape'],
     enabled: true,
     quantities: {
-      easy: { min: 1, max: 3 },
-      medium: { min: 1, max: 5 },
-      hard: { min: 5, max: 8 },
+      easy: {
+        min: 1,
+        max: 3,
+      },
+      medium: {
+        min: 1,
+        max: 5,
+      },
+      hard: {
+        min: 5,
+        max: 8,
+      },
     },
   },
   inferno: {
@@ -927,9 +2246,18 @@ export const MINIGAMES = {
     tags: ['solo', 'zuk', 'difficult', 'infernal-cape'],
     enabled: true,
     quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 3 },
-      hard: { min: 3, max: 5 },
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 1,
+        max: 3,
+      },
+      hard: {
+        min: 3,
+        max: 5,
+      },
     },
   },
   colosseum: {
@@ -939,9 +2267,18 @@ export const MINIGAMES = {
     tags: ['solo', 'quiver', 'difficult'],
     enabled: true,
     quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 3 },
-      hard: { min: 3, max: 5 },
+      easy: {
+        min: 1,
+        max: 1,
+      },
+      medium: {
+        min: 1,
+        max: 3,
+      },
+      hard: {
+        min: 4,
+        max: 7,
+      },
     },
   },
   zalcano: {
@@ -951,3861 +2288,2729 @@ export const MINIGAMES = {
     tags: ['mining', 'group', 'fun'],
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 10, max: 20 },
-      hard: { min: 12, max: 25 },
+      easy: {
+        min: 5,
+        max: 15,
+      },
+      medium: {
+        min: 10,
+        max: 20,
+      },
+      hard: {
+        min: 12,
+        max: 25,
+      },
     },
   },
 };
 
-/**
- * Item collection categories
- * Sources define where items come from (for smart filtering)
- * Quantities represent item counts to collect
- */
-export const COLLECTIBLE_ITEMS = {
+const COLLECTIBLE_ITEMS = {
   vorkathHead: {
     id: 'vorkathHead',
     name: "Vorkath's Head",
     category: 'boss-drops',
-    sources: ['bosses:vorkath'],
     tags: ['unique'],
+    sources: ['bosses:vorkath'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   vorki: {
     id: 'vorki',
     name: 'Vorki',
     category: 'boss-drops',
-    sources: ['bosses:vorkath'],
     tags: ['pet'],
+    sources: ['bosses:vorkath'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   skeletalVisage: {
     id: 'skeletalVisage',
     name: 'Skeletal Visage',
     category: 'boss-drops',
-    sources: ['bosses:vorkath'],
     tags: ['unique'],
+    sources: ['bosses:vorkath'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   draconicVisage: {
     id: 'draconicVisage',
     name: 'Draconic Visage',
     category: 'boss-drops',
-    sources: ['bosses:vorkath'],
     tags: ['unique'],
+    sources: ['bosses:vorkath'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   zulrahScales: {
     id: 'zulrahScales',
     name: "Zulrah's Scales",
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['consumable'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1000, max: 3000 },
-      medium: { min: 3000, max: 6000 },
-      hard: { min: 6000, max: 10000 },
-    },
   },
   tanzaniteFang: {
     id: 'tanzaniteFang',
     name: 'Tanzanite Fang',
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['unique'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   magicFang: {
     id: 'magicFang',
     name: 'Magic Fang',
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['unique'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   serpentineVisage: {
     id: 'serpentineVisage',
     name: 'Serpentine Visage',
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['unique'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
+  },
+  uncutOnyx2: {
+    id: 'uncutOnyx2',
+    name: 'Uncut Onyx',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:zulrah'],
+    enabled: true,
   },
   snakeling: {
     id: 'snakeling',
     name: 'Snakeling',
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['pet'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   jarOfSwamp: {
     id: 'jarOfSwamp',
     name: 'Jar of Swamp',
     category: 'boss-drops',
-    sources: ['bosses:zulrah'],
     tags: ['jar'],
+    sources: ['bosses:zulrah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   abyssalWhip: {
     id: 'abyssalWhip',
     name: 'Abyssal Whip',
     category: 'slayer-drops',
-    sources: ['bosses:abyssalSire'],
     tags: ['unique'],
+    sources: ['bosses:abyssalSire'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 6 },
-    },
   },
   abyssalDagger: {
     id: 'abyssalDagger',
     name: 'Abyssal Dagger',
     category: 'slayer-drops',
-    sources: ['bosses:abyssalSire'],
     tags: ['unique'],
+    sources: ['bosses:abyssalSire'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   abyssalBludgeon: {
     id: 'abyssalBludgeon',
     name: 'Abyssal Bludgeon',
     category: 'slayer-drops',
-    sources: ['bosses:abyssalSire'],
     tags: ['unique'],
+    sources: ['bosses:abyssalSire'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   abyssalOrphan: {
     id: 'abyssalOrphan',
     name: 'Abyssal Orphan',
     category: 'slayer-drops',
-    sources: ['bosses:abyssalSire'],
     tags: ['pet'],
+    sources: ['bosses:abyssalSire'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   jarOfMiasma: {
     id: 'jarOfMiasma',
     name: 'Jar of Miasma',
     category: 'slayer-drops',
-    sources: ['bosses:abyssalSire'],
     tags: ['jar'],
+    sources: ['bosses:abyssalSire'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   krakenTentacle: {
     id: 'krakenTentacle',
     name: 'Kraken Tentacle',
     category: 'slayer-drops',
-    sources: ['bosses:krakenBoss'],
     tags: ['unique'],
+    sources: ['bosses:krakenBoss'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 6 },
-    },
   },
   tridentOfTheSeas: {
     id: 'tridentOfTheSeas',
     name: 'Trident of the Seas',
     category: 'slayer-drops',
-    sources: ['bosses:krakenBoss'],
     tags: ['unique'],
+    sources: ['bosses:krakenBoss'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   jarOfDirt: {
     id: 'jarOfDirt',
     name: 'Jar of Dirt',
     category: 'slayer-drops',
-    sources: ['bosses:krakenBoss'],
     tags: ['jar'],
+    sources: ['bosses:krakenBoss'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   petKraken: {
     id: 'petKraken',
     name: 'Pet Kraken',
     category: 'slayer-drops',
-    sources: ['bosses:krakenBoss'],
     tags: ['pet'],
+    sources: ['bosses:krakenBoss'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   primordialCrystal: {
     id: 'primordialCrystal',
     name: 'Primordial Crystal',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['unique'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   pegasianCrystal: {
     id: 'pegasianCrystal',
     name: 'Pegasian Crystal',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['unique'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   eternalCrystal: {
     id: 'eternalCrystal',
     name: 'Eternal Crystal',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['unique'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   smoulderingStone: {
     id: 'smoulderingStone',
     name: 'Smouldering Stone',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['unique'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   hellpuppy: {
     id: 'hellpuppy',
     name: 'Hellpuppy',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['pet'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   jarOfSouls: {
     id: 'jarOfSouls',
     name: 'Jar of Souls',
     category: 'slayer-drops',
-    sources: ['bosses:cerberus'],
     tags: ['jar'],
+    sources: ['bosses:cerberus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   hydraLeather: {
     id: 'hydraLeather',
     name: 'Hydra Leather',
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   hydrasClaw: {
     id: 'hydrasClaw',
     name: "Hydra's Claw",
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   hydrasEye: {
     id: 'hydrasEye',
     name: "Hydra's Eye",
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   hydrasFang: {
     id: 'hydrasFang',
     name: "Hydra's Fang",
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   hydrasHeart: {
     id: 'hydrasHeart',
     name: "Hydra's Heart",
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['unique'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   ikkleHydra: {
     id: 'ikkleHydra',
     name: 'Ikkle Hydra',
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['pet'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   jarOfChemicals: {
     id: 'jarOfChemicals',
     name: 'Jar of Chemicals',
     category: 'slayer-drops',
-    sources: ['bosses:alchemicalHydra'],
     tags: ['jar'],
+    sources: ['bosses:alchemicalHydra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   bandosChestplate: {
     id: 'bandosChestplate',
     name: 'Bandos Chestplate',
     category: 'boss-drops',
-    sources: ['bosses:generalGraardor'],
     tags: ['unique'],
+    sources: ['bosses:generalGraardor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   bandosTassets: {
     id: 'bandosTassets',
     name: 'Bandos Tassets',
     category: 'boss-drops',
-    sources: ['bosses:generalGraardor'],
     tags: ['unique'],
+    sources: ['bosses:generalGraardor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   bandosBoots: {
     id: 'bandosBoots',
     name: 'Bandos Boots',
     category: 'boss-drops',
-    sources: ['bosses:generalGraardor'],
     tags: ['unique'],
+    sources: ['bosses:generalGraardor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   bandosHilt: {
     id: 'bandosHilt',
     name: 'Bandos Hilt',
     category: 'boss-drops',
-    sources: ['bosses:generalGraardor'],
     tags: ['unique'],
+    sources: ['bosses:generalGraardor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   generalGraardorJr: {
     id: 'generalGraardorJr',
     name: 'General Graardor Jr.',
     category: 'boss-drops',
-    sources: ['bosses:generalGraardor'],
     tags: ['pet'],
+    sources: ['bosses:generalGraardor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   armadylChestplate: {
     id: 'armadylChestplate',
     name: 'Armadyl Chestplate',
     category: 'boss-drops',
-    sources: ['bosses:kreeArra'],
     tags: ['unique'],
+    sources: ['bosses:kreeArra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   armadylChainskirt: {
     id: 'armadylChainskirt',
     name: 'Armadyl Chainskirt',
     category: 'boss-drops',
-    sources: ['bosses:kreeArra'],
     tags: ['unique'],
+    sources: ['bosses:kreeArra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   armadylHelmet: {
     id: 'armadylHelmet',
     name: 'Armadyl Helmet',
     category: 'boss-drops',
-    sources: ['bosses:kreeArra'],
     tags: ['unique'],
+    sources: ['bosses:kreeArra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   armadylHilt: {
     id: 'armadylHilt',
     name: 'Armadyl Hilt',
     category: 'boss-drops',
-    sources: ['bosses:kreeArra'],
     tags: ['unique'],
+    sources: ['bosses:kreeArra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   kreeArraJr: {
     id: 'kreeArraJr',
     name: "Kree'arra Jr.",
     category: 'boss-drops',
-    sources: ['bosses:kreeArra'],
     tags: ['pet'],
+    sources: ['bosses:kreeArra'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   saradominSword: {
     id: 'saradominSword',
     name: 'Saradomin Sword',
     category: 'boss-drops',
-    sources: ['bosses:commanderZilyana'],
     tags: ['unique'],
+    sources: ['bosses:commanderZilyana'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 4 },
-    },
   },
   armadylCrossbow: {
     id: 'armadylCrossbow',
     name: 'Armadyl Crossbow',
     category: 'boss-drops',
-    sources: ['bosses:commanderZilyana'],
     tags: ['unique'],
+    sources: ['bosses:commanderZilyana'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   saradominLight: {
     id: 'saradominLight',
     name: "Saradomin's Light",
     category: 'boss-drops',
-    sources: ['bosses:commanderZilyana'],
     tags: ['unique'],
+    sources: ['bosses:commanderZilyana'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   saradominHilt: {
     id: 'saradominHilt',
     name: 'Saradomin Hilt',
     category: 'boss-drops',
-    sources: ['bosses:commanderZilyana'],
     tags: ['unique'],
+    sources: ['bosses:commanderZilyana'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   zilyanaJr: {
     id: 'zilyanaJr',
     name: 'Zilyana Jr.',
     category: 'boss-drops',
-    sources: ['bosses:commanderZilyana'],
     tags: ['pet'],
+    sources: ['bosses:commanderZilyana'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   staffOfTheDead: {
     id: 'staffOfTheDead',
     name: 'Staff of the Dead',
     category: 'boss-drops',
-    sources: ['bosses:krilTsutsaroth'],
     tags: ['unique'],
+    sources: ['bosses:krilTsutsaroth'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   zamorakianSpear: {
     id: 'zamorakianSpear',
     name: 'Zamorakian Spear',
     category: 'boss-drops',
-    sources: ['bosses:krilTsutsaroth'],
     tags: ['unique'],
+    sources: ['bosses:krilTsutsaroth'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   steamBattlestaff: {
     id: 'steamBattlestaff',
     name: 'Steam Battlestaff',
     category: 'boss-drops',
-    sources: ['bosses:krilTsutsaroth'],
     tags: ['unique'],
+    sources: ['bosses:krilTsutsaroth'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   zamorakHilt: {
     id: 'zamorakHilt',
     name: 'Zamorak Hilt',
     category: 'boss-drops',
-    sources: ['bosses:krilTsutsaroth'],
     tags: ['unique'],
+    sources: ['bosses:krilTsutsaroth'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   krilTsutsarothJr: {
     id: 'krilTsutsarothJr',
     name: "K'ril Tsutsaroth Jr.",
     category: 'boss-drops',
-    sources: ['bosses:krilTsutsaroth'],
     tags: ['pet'],
+    sources: ['bosses:krilTsutsaroth'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   nexisTiara: {
     id: 'nexisTiara',
     name: 'Zaryte Vambraces',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   torvaFullHelm: {
     id: 'torvaFullHelm',
     name: 'Torva Full Helm',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   torvaPlatebody: {
     id: 'torvaPlatebody',
     name: 'Torva Platebody',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   torvaPlatelegs: {
     id: 'torvaPlatelegs',
     name: 'Torva Platelegs',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   ancientHilt: {
     id: 'ancientHilt',
     name: 'Ancient Hilt',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   nihilHorn: {
     id: 'nihilHorn',
     name: 'Nihil Horn',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['unique'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   nexling: {
     id: 'nexling',
     name: 'Nexling',
     category: 'boss-drops',
-    sources: ['bosses:nex'],
     tags: ['pet'],
+    sources: ['bosses:nex'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  olmlet: {
-    id: 'olmlet',
+  olmlet1: {
+    id: 'olmlet1',
     name: 'Olmlet',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['pet'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  twistedBow: {
-    id: 'twistedBow',
+  twistedBow1: {
+    id: 'twistedBow1',
     name: 'Twisted Bow',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  elderMaul: {
-    id: 'elderMaul',
+  elderMaul1: {
+    id: 'elderMaul1',
     name: 'Elder Maul',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  kodaiInsignia: {
-    id: 'kodaiInsignia',
+  kodaiInsignia1: {
+    id: 'kodaiInsignia1',
     name: 'Kodai Insignia',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  dragonClaws: {
-    id: 'dragonClaws',
+  dragonClaws1: {
+    id: 'dragonClaws1',
     name: 'Dragon Claws',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  ancestralHat: {
-    id: 'ancestralHat',
+  ancestralHat1: {
+    id: 'ancestralHat1',
     name: 'Ancestral Hat',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  ancestralTop: {
-    id: 'ancestralTop',
+  ancestralTop1: {
+    id: 'ancestralTop1',
     name: 'Ancestral Robe Top',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  ancestralBottom: {
-    id: 'ancestralBottom',
+  ancestralBottom1: {
+    id: 'ancestralBottom1',
     name: 'Ancestral Robe Bottom',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  dexterousScroll: {
-    id: 'dexterousScroll',
+  dexterousScroll1: {
+    id: 'dexterousScroll1',
     name: 'Dexterous Prayer Scroll',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
-  arcaneScroll: {
-    id: 'arcaneScroll',
+  arcaneScroll1: {
+    id: 'arcaneScroll1',
     name: 'Arcane Prayer Scroll',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
-  dinhsBulwark: {
-    id: 'dinhsBulwark',
+  dinhsBulwark1: {
+    id: 'dinhsBulwark1',
     name: "Dinh's Bulwark",
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  dragonHunterCrossbow: {
-    id: 'dragonHunterCrossbow',
+  dragonHunterCrossbow1: {
+    id: 'dragonHunterCrossbow1',
     name: 'Dragon Hunter Crossbow',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  twistedBuckler: {
-    id: 'twistedBuckler',
+  twistedBuckler1: {
+    id: 'twistedBuckler1',
     name: 'Twisted Buckler',
     category: 'raid-drops',
-    sources: ['raids:chambersOfXeric'],
     tags: ['unique'],
+    sources: ['raids:chambersOfXeric'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  lilZik: {
-    id: 'lilZik',
+  lilZik1: {
+    id: 'lilZik1',
     name: "Lil' Zik",
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['pet'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  scytheOfVitur: {
-    id: 'scytheOfVitur',
+  scytheOfVitur1: {
+    id: 'scytheOfVitur1',
     name: 'Scythe of Vitur',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  ghraziRapier: {
-    id: 'ghraziRapier',
+  ghraziRapier1: {
+    id: 'ghraziRapier1',
     name: 'Ghrazi Rapier',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  sanguinestiStaff: {
-    id: 'sanguinestiStaff',
+  sanguinestiStaff1: {
+    id: 'sanguinestiStaff1',
     name: 'Sanguinesti Staff',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  avernicDefenderHilt: {
-    id: 'avernicDefenderHilt',
+  avernicDefenderHilt1: {
+    id: 'avernicDefenderHilt1',
     name: 'Avernic Defender Hilt',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  justiciarFaceguard: {
-    id: 'justiciarFaceguard',
+  justiciarFaceguard1: {
+    id: 'justiciarFaceguard1',
     name: 'Justiciar Faceguard',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  justiciarChestguard: {
-    id: 'justiciarChestguard',
+  justiciarChestguard1: {
+    id: 'justiciarChestguard1',
     name: 'Justiciar Chestguard',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  justiciarLegguards: {
-    id: 'justiciarLegguards',
+  justiciarLegguards1: {
+    id: 'justiciarLegguards1',
     name: 'Justiciar Legguards',
     category: 'raid-drops',
-    sources: ['raids:theatreOfBlood'],
     tags: ['unique'],
+    sources: ['raids:theatreOfBlood'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   tumekensGuardian: {
     id: 'tumekensGuardian',
     name: "Tumeken's Guardian",
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['pet'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   tumekensShadow: {
     id: 'tumekensShadow',
     name: "Tumeken's Shadow",
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   osmumtensFang: {
     id: 'osmumtensFang',
     name: "Osmumten's Fang",
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   masoriMask: {
     id: 'masoriMask',
     name: 'Masori Mask',
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   masoriBody: {
     id: 'masoriBody',
     name: 'Masori Body',
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   masoriChaps: {
     id: 'masoriChaps',
     name: 'Masori Chaps',
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   lightbearer: {
     id: 'lightbearer',
     name: 'Lightbearer',
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   elidinisWard: {
     id: 'elidinisWard',
     name: "Elidinis' Ward",
     category: 'raid-drops',
-    sources: ['raids:tombsOfAmascut'],
     tags: ['unique'],
+    sources: ['raids:tombsOfAmascut'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   inquisitorsMace: {
     id: 'inquisitorsMace',
     name: "Inquisitor's Mace",
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  inquisitorsGreatHelm: {
-    id: 'inquisitorsGreatHelm',
+  inquisitorsGreatHelm1: {
+    id: 'inquisitorsGreatHelm1',
     name: "Inquisitor's Great Helm",
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  inquisitorsHauberk: {
-    id: 'inquisitorsHauberk',
+  inquisitorsHauberk1: {
+    id: 'inquisitorsHauberk1',
     name: "Inquisitor's Hauberk",
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  inquisitorsPlateskirt: {
-    id: 'inquisitorsPlateskirt',
+  inquisitorsPlateskirt1: {
+    id: 'inquisitorsPlateskirt1',
     name: "Inquisitor's Plateskirt",
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  nightmareStaff: {
-    id: 'nightmareStaff',
+  nightmareStaff1: {
+    id: 'nightmareStaff1',
     name: 'Nightmare Staff',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  elderNightmareStaff: {
-    id: 'elderNightmareStaff',
+  elderNightmareStaff1: {
+    id: 'elderNightmareStaff1',
     name: 'Eldritch Orb',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  harmonyNightmareStaff: {
-    id: 'harmonyNightmareStaff',
+  harmonyNightmareStaff1: {
+    id: 'harmonyNightmareStaff1',
     name: 'Harmonised Orb',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  volatileNightmareStaff: {
-    id: 'volatileNightmareStaff',
+  volatileNightmareStaff1: {
+    id: 'volatileNightmareStaff1',
     name: 'Volatile Orb',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['unique'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  littleNightmare: {
-    id: 'littleNightmare',
+  littleNightmare1: {
+    id: 'littleNightmare1',
     name: 'Little Nightmare',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['pet'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   jarOfDreams: {
     id: 'jarOfDreams',
     name: 'Jar of Dreams',
     category: 'boss-drops',
-    sources: ['bosses:nightmare'],
     tags: ['jar'],
+    sources: ['bosses:nightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   parasiticalEgg: {
     id: 'parasiticalEgg',
     name: 'Parasitic Egg',
     category: 'boss-drops',
-    sources: ['bosses:phosanisNightmare'],
     tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   crystalWeaponSeed1: {
     id: 'crystalWeaponSeed1',
-    name: 'Enhanced Crystal Weapon Seed',
+    name: 'Crystal Weapon Seed',
     category: 'boss-drops',
-    sources: ['bosses:crystallineHunllef'],
     tags: ['unique'],
+    sources: ['bosses:crystallineHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   crystalWeaponSeed2: {
     id: 'crystalWeaponSeed2',
+    name: 'Crystal Weapon Seed',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:corruptedHunllef'],
+    enabled: true,
+  },
+  enhancedCrystalWeaponSeed1: {
+    id: 'enhancedCrystalWeaponSeed1',
     name: 'Enhanced Crystal Weapon Seed',
     category: 'boss-drops',
-    sources: ['bosses:corruptedHunllef'],
     tags: ['unique'],
+    sources: ['bosses:crystallineHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  enhancedCrystalWeaponSeed2: {
+    id: 'enhancedCrystalWeaponSeed2',
+    name: 'Enhanced Crystal Weapon Seed',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:corruptedHunllef'],
+    enabled: true,
   },
   crystalArmourSeed1: {
     id: 'crystalArmourSeed1',
     name: 'Crystal Armour Seed',
     category: 'boss-drops',
-    sources: ['bosses:corruptedHunllef'],
     tags: ['unique'],
+    sources: ['bosses:corruptedHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 6 },
-    },
   },
   crystalArmourSeed2: {
     id: 'crystalArmourSeed2',
     name: 'Crystal Armour Seed',
     category: 'boss-drops',
-    sources: ['bosses:crystallineHunllef'],
     tags: ['unique'],
+    sources: ['bosses:crystallineHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 6 },
-    },
   },
   youngllef1: {
     id: 'youngllef1',
     name: 'Youngllef',
     category: 'boss-drops',
-    sources: ['bosses:crystallineHunllef'],
     tags: ['pet'],
+    sources: ['bosses:crystallineHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   youngllef2: {
     id: 'youngllef2',
     name: 'Youngllef',
     category: 'boss-drops',
-    sources: ['bosses:corruptedHunllef'],
     tags: ['pet'],
+    sources: ['bosses:corruptedHunllef'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   corporealBeastPet: {
     id: 'corporealBeastPet',
     name: 'Pet Dark Core',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['pet'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   spectralSigil: {
     id: 'spectralSigil',
     name: 'Spectral Sigil',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['unique'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   arcaneSigil: {
     id: 'arcaneSigil',
     name: 'Arcane Sigil',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['unique'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   elysianSigil: {
     id: 'elysianSigil',
     name: 'Elysian Sigil',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['unique'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   holyElixir: {
     id: 'holyElixir',
     name: 'Holy Elixir',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['unique'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   spiritShield: {
     id: 'spiritShield',
     name: 'Spirit Shield',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['unique'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   jarOfSpirits: {
     id: 'jarOfSpirits',
     name: 'Jar of Spirits',
     category: 'boss-drops',
-    sources: ['bosses:corporealBeast'],
     tags: ['jar'],
+    sources: ['bosses:corporealBeast'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dagannothPrimeJr: {
     id: 'dagannothPrimeJr',
     name: 'Pet Dagannoth Prime',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['pet'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dagannothSupremeJr: {
     id: 'dagannothSupremeJr',
     name: 'Pet Dagannoth Supreme',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['pet'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dagannothRexJr: {
     id: 'dagannothRexJr',
     name: 'Pet Dagannoth Rex',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['pet'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   berserkerRing: {
     id: 'berserkerRing',
     name: 'Berserker Ring',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   archersRing: {
     id: 'archersRing',
     name: 'Archers Ring',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   seersRing: {
     id: 'seersRing',
     name: 'Seers Ring',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   warriorsRing: {
     id: 'warriorsRing',
     name: 'Warrior Ring',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   dragonAxeDks: {
     id: 'dragonAxeDks',
     name: 'Dragon Axe',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 4 },
-    },
   },
   seercull: {
     id: 'seercull',
     name: 'Seercull',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 4 },
-    },
   },
   mudBattlestaff: {
     id: 'mudBattlestaff',
     name: 'Mud Battlestaff',
     category: 'boss-drops',
-    sources: ['bosses:dagannothKings'],
     tags: ['unique'],
+    sources: ['bosses:dagannothKings'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   kalphitePrincess: {
     id: 'kalphitePrincess',
     name: 'Kalphite Princess',
     category: 'boss-drops',
-    sources: ['bosses:kalphiteQueen'],
     tags: ['pet'],
+    sources: ['bosses:kalphiteQueen'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dragonChainbody: {
     id: 'dragonChainbody',
     name: 'Dragon Chainbody',
     category: 'boss-drops',
-    sources: ['bosses:kalphiteQueen'],
     tags: ['unique'],
+    sources: ['bosses:kalphiteQueen'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  dragon2hSword: {
-    id: 'dragon2hSword',
+  dragon2hSword1: {
+    id: 'dragon2hSword1',
     name: 'Dragon 2h Sword',
     category: 'boss-drops',
-    sources: ['bosses:kalphiteQueen'],
     tags: ['unique'],
+    sources: ['bosses:kalphiteQueen'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   jarOfSand: {
     id: 'jarOfSand',
     name: 'Jar of Sand',
     category: 'boss-drops',
-    sources: ['bosses:kalphiteQueen'],
     tags: ['jar'],
+    sources: ['bosses:kalphiteQueen'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   kalphiteHead: {
     id: 'kalphiteHead',
     name: 'Kq Head',
     category: 'boss-drops',
-    sources: ['bosses:kalphiteQueen'],
     tags: ['unique'],
+    sources: ['bosses:kalphiteQueen'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 2, max: 3 },
-    },
   },
   grotesqueGuardiansPet: {
     id: 'grotesqueGuardiansPet',
     name: 'Noon',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['pet'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  graniteMaul: {
+    id: 'graniteMaul',
+    name: 'Granite Maul',
+    category: 'slayer-drops',
+    tags: ['unique'],
+    sources: ['bosses:grotesqueGuardians'],
+    enabled: true,
   },
   graniteGloves: {
     id: 'graniteGloves',
     name: 'Granite Gloves',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['unique'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   graniteRing: {
     id: 'graniteRing',
     name: 'Granite Ring',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['unique'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   graniteHammer: {
     id: 'graniteHammer',
     name: 'Granite Hammer',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['unique'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   blackTourmalineCore: {
     id: 'blackTourmalineCore',
     name: 'Black Tourmaline Core',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['unique'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   jarOfStone: {
     id: 'jarOfStone',
     name: 'Jar of Stone',
     category: 'slayer-drops',
-    sources: ['bosses:grotesqueGuardians'],
     tags: ['jar'],
+    sources: ['bosses:grotesqueGuardians'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   thermonuclearPet: {
     id: 'thermonuclearPet',
     name: 'Pet Smoke Devil',
     category: 'slayer-drops',
-    sources: ['bosses:thermonuclearSmokeDevil'],
     tags: ['pet'],
+    sources: ['bosses:thermonuclearSmokeDevil'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   occultNecklace: {
     id: 'occultNecklace',
     name: 'Occult Necklace',
     category: 'slayer-drops',
-    sources: ['bosses:thermonuclearSmokeDevil'],
     tags: ['unique'],
+    sources: ['bosses:thermonuclearSmokeDevil'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   smokeBattlestaff: {
     id: 'smokeBattlestaff',
     name: 'Smoke Battlestaff',
     category: 'slayer-drops',
-    sources: ['bosses:thermonuclearSmokeDevil'],
     tags: ['unique'],
+    sources: ['bosses:thermonuclearSmokeDevil'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   dragonChainbodyThermo: {
     id: 'dragonChainbodyThermo',
     name: 'Dragon Chainbody',
     category: 'slayer-drops',
-    sources: ['bosses:thermonuclearSmokeDevil'],
     tags: ['unique'],
+    sources: ['bosses:thermonuclearSmokeDevil'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   sarachnisSpawn: {
     id: 'sarachnisSpawn',
     name: 'Sraracha',
     category: 'boss-drops',
-    sources: ['bosses:sarachnis'],
     tags: ['pet'],
+    sources: ['bosses:sarachnis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   sarachnisCudgel: {
     id: 'sarachnisCudgel',
     name: 'Sarachnis Cudgel',
     category: 'boss-drops',
-    sources: ['bosses:sarachnis'],
     tags: ['unique'],
+    sources: ['bosses:sarachnis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   jarOfEyes: {
     id: 'jarOfEyes',
     name: 'Jar of Eyes',
     category: 'boss-drops',
-    sources: ['bosses:sarachnis'],
     tags: ['jar'],
+    sources: ['bosses:sarachnis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   araxxorPet: {
     id: 'araxxorPet',
     name: 'Nid',
     category: 'boss-drops',
-    sources: ['bosses:araxxor'],
     tags: ['pet'],
+    sources: ['bosses:araxxor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   araxxorFang: {
     id: 'araxxorFang',
     name: 'Araxyte Fang',
     category: 'boss-drops',
-    sources: ['bosses:araxxor'],
     tags: ['unique'],
+    sources: ['bosses:araxxor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  coagulatedVenom: {
-    id: 'coagulatedVenom',
-    name: 'Coagulated Venom',
+  noxiousPoint: {
+    id: 'noxiousPoint',
+    name: 'Noxious Point',
     category: 'boss-drops',
-    sources: ['bosses:araxxor'],
     tags: ['unique'],
+    sources: ['bosses:araxxor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 8 },
-    },
   },
-  noxiousHalberd: {
-    id: 'noxiousHalberd',
-    name: 'Noxious Halberd',
+  noxiousBlade: {
+    id: 'noxiousBlade',
+    name: 'Noxious Blade',
     category: 'boss-drops',
-    sources: ['bosses:araxxor'],
     tags: ['unique'],
+    sources: ['bosses:araxxor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  virtusRobeTop: {
-    id: 'virtusRobeTop',
+  noxiousPommel: {
+    id: 'noxiousPommel',
+    name: 'Noxious Pommel',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:araxxor'],
+    enabled: true,
+  },
+  virtusRobeTop1: {
+    id: 'virtusRobeTop1',
     name: 'Virtus Robe Top',
     category: 'boss-drops',
-    sources: ['bosses:dukeSucellus'],
     tags: ['unique'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  virtusMask: {
-    id: 'virtusMask',
+  virtusMask1: {
+    id: 'virtusMask1',
     name: 'Virtus Mask',
     category: 'boss-drops',
-    sources: ['bosses:dukeSucellus'],
     tags: ['unique'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  virtusRobeBottom: {
-    id: 'virtusRobeBottom',
+  virtusRobeBottom1: {
+    id: 'virtusRobeBottom1',
     name: 'Virtus Robe Bottom',
     category: 'boss-drops',
-    sources: ['bosses:dukeSucellus'],
     tags: ['unique'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   magusRing: {
     id: 'magusRing',
     name: 'Magus Ring',
     category: 'boss-drops',
-    sources: ['bosses:dukeSucellus'],
     tags: ['unique'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   baron: {
     id: 'baron',
     name: 'Baron',
     category: 'boss-drops',
-    sources: ['bosses:dukeSucellus'],
     tags: ['pet'],
+    sources: ['bosses:dukeSucellus'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   bellatorRing: {
     id: 'bellatorRing',
     name: 'Bellator Ring',
     category: 'boss-drops',
-    sources: ['bosses:vardorvis'],
     tags: ['unique'],
+    sources: ['bosses:whisperer'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   ultorRing: {
     id: 'ultorRing',
     name: 'Ultor Ring',
     category: 'boss-drops',
-    sources: ['bosses:vardorvis'],
     tags: ['unique'],
+    sources: ['bosses:vardorvis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   executionersAxeHead: {
     id: 'executionersAxeHead',
     name: "Executioner's Axe Head",
     category: 'boss-drops',
-    sources: ['bosses:vardorvis'],
     tags: ['unique'],
+    sources: ['bosses:vardorvis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   butch: {
     id: 'butch',
     name: 'Butch',
     category: 'boss-drops',
-    sources: ['bosses:vardorvis'],
     tags: ['pet'],
+    sources: ['bosses:vardorvis'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   venatorRing: {
     id: 'venatorRing',
     name: 'Venator Ring',
     category: 'boss-drops',
-    sources: ['bosses:leviathan'],
     tags: ['unique'],
+    sources: ['bosses:leviathan'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   leviathanPet: {
     id: 'leviathanPet',
     name: "Lil'viathan",
     category: 'boss-drops',
-    sources: ['bosses:leviathan'],
     tags: ['pet'],
+    sources: ['bosses:leviathan'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   chromiumIngot: {
     id: 'chromiumIngot',
     name: 'Chromium Ingot',
     category: 'boss-drops',
-    sources: ['bosses:whisperer'],
     tags: ['unique'],
+    sources: ['bosses:whisperer'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   wisp: {
     id: 'wisp',
     name: 'Wisp',
     category: 'boss-drops',
-    sources: ['bosses:whisperer'],
     tags: ['pet'],
+    sources: ['bosses:whisperer'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   phantomMuspahPet: {
     id: 'phantomMuspahPet',
     name: 'Muphin',
     category: 'boss-drops',
-    sources: ['bosses:phantomMuspah'],
     tags: ['pet'],
+    sources: ['bosses:phantomMuspah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   ancientEssence: {
     id: 'ancientEssence',
     name: 'Ancient Essence',
     category: 'boss-drops',
-    sources: ['bosses:phantomMuspah'],
     tags: ['consumable'],
+    sources: ['bosses:phantomMuspah'],
     enabled: true,
-    quantities: {
-      easy: { min: 500, max: 1500 },
-      medium: { min: 1500, max: 3000 },
-      hard: { min: 3000, max: 5000 },
-    },
   },
   ancientIcon: {
     id: 'ancientIcon',
     name: 'Ancient Icon',
     category: 'boss-drops',
-    sources: ['bosses:phantomMuspah'],
     tags: ['unique'],
+    sources: ['bosses:phantomMuspah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   venatorShard: {
     id: 'venatorShard',
     name: 'Venator Shard',
     category: 'boss-drops',
-    sources: ['bosses:phantomMuspah'],
     tags: ['unique'],
+    sources: ['bosses:phantomMuspah'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 3 },
-      medium: { min: 3, max: 6 },
-      hard: { min: 6, max: 10 },
-    },
   },
   spindel: {
     id: 'spindel',
     name: 'Venenatis Spiderling',
     category: 'wilderness-drops',
-    sources: ['bosses:spindel'],
     tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  voidwalkerHilt: {
-    id: 'voidwalkerHilt',
-    name: 'Voidwaker Hilt',
-    category: 'wilderness-drops',
     sources: ['bosses:spindel'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  voidwakerGem1: {
+    id: 'voidwakerGem1',
+    name: 'Voidwaker Gem',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:spindel'],
+    enabled: true,
   },
   artio: {
     id: 'artio',
     name: 'Callisto Cub',
     category: 'wilderness-drops',
-    sources: ['bosses:artio'],
     tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  voidwalkerBlade: {
-    id: 'voidwalkerBlade',
-    name: 'Voidwaker Blade',
-    category: 'wilderness-drops',
     sources: ['bosses:artio'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  voidwakerHilt1: {
+    id: 'voidwakerHilt1',
+    name: 'Voidwaker Hilt',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:artio'],
+    enabled: true,
   },
   calvarion: {
     id: 'calvarion',
     name: "Vet'ion Jr.",
     category: 'wilderness-drops',
-    sources: ['bosses:calvarion'],
     tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  voidwalkerGem: {
-    id: 'voidwalkerGem',
-    name: 'Voidwaker Gem',
-    category: 'wilderness-drops',
     sources: ['bosses:calvarion'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  voidwakerBlade1: {
+    id: 'voidwakerBlade1',
+    name: 'Voidwaker Blade',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:calvarion'],
+    enabled: true,
   },
   skulledVenenatis: {
     id: 'skulledVenenatis',
     name: 'Venenatis Spiderling',
     category: 'wilderness-drops',
-    sources: ['bosses:venenatis'],
     tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  treasonousSigil: {
-    id: 'treasonousSigil',
-    name: 'Treasonous Ring',
-    category: 'wilderness-drops',
     sources: ['bosses:venenatis'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
+  },
+  voidwakerGem2: {
+    id: 'voidwakerGem2',
+    name: 'Voidwaker Gem',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:venenatis'],
+    enabled: true,
   },
   skulledVetion: {
     id: 'skulledVetion',
     name: "Vet'ion Jr.",
     category: 'wilderness-drops',
-    sources: ['bosses:vetion'],
     tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  tyrannicalRing: {
-    id: 'tyrannicalRing',
-    name: 'Tyrannical Ring',
-    category: 'wilderness-drops',
     sources: ['bosses:vetion'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  ringOfTheGods: {
-    id: 'ringOfTheGods',
-    name: 'Ring of the Gods',
+  voidwakerBlade2: {
+    id: 'voidwakerBlade2',
+    name: 'Voidwaker Blade',
     category: 'wilderness-drops',
-    sources: ['bosses:vetion'],
     tags: ['unique'],
+    sources: ['bosses:vetion'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   skulledCallisto: {
     id: 'skulledCallisto',
     name: 'Callisto Cub',
     category: 'wilderness-drops',
-    sources: ['bosses:callisto'],
     tags: ['pet'],
+    sources: ['bosses:callisto'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  dragonPickaxe: {
-    id: 'dragonPickaxe',
+  voidwakerHilt2: {
+    id: 'voidwakerHilt2',
+    name: 'Voidwaker Hilt',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:spindel'],
+    enabled: true,
+  },
+  treasonousSigil1: {
+    id: 'treasonousSigil1',
+    name: 'Treasonous Ring',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:venenatis'],
+    enabled: true,
+  },
+  ringOfTheGods1: {
+    id: 'ringOfTheGods1',
+    name: 'Ring of the Gods',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:vetion'],
+    enabled: true,
+  },
+  tyrannicalRing1: {
+    id: 'tyrannicalRing1',
+    name: 'Tyrannical Ring',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:callisto'],
+    enabled: true,
+  },
+  treasonousSigil2: {
+    id: 'treasonousSigil2',
+    name: 'Treasonous Ring',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:spindel'],
+    enabled: true,
+  },
+  ringOfTheGods2: {
+    id: 'ringOfTheGods2',
+    name: 'Ring of the Gods',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:calvarion'],
+    enabled: true,
+  },
+  tyrannicalRing2: {
+    id: 'tyrannicalRing2',
+    name: 'Tyrannical Ring',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:artio'],
+    enabled: true,
+  },
+  dragon2hSword3: {
+    id: 'dragon2hSword3',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:artio'],
+    enabled: true,
+  },
+  dragonPickaxe3: {
+    id: 'dragonPickaxe3',
     name: 'Dragon Pickaxe',
     category: 'wilderness-drops',
-    sources: ['bosses:callisto'],
     tags: ['unique'],
+    sources: ['bosses:artio'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
+  },
+  dragon2hSword4: {
+    id: 'dragon2hSword4',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:calvarion'],
+    enabled: true,
+  },
+  dragonPickaxe4: {
+    id: 'dragonPickaxe4',
+    name: 'Dragon Pickaxe',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:calvarion'],
+    enabled: true,
+  },
+  dragon2hSword5: {
+    id: 'dragon2hSword5',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:spindel'],
+    enabled: true,
+  },
+  dragonPickaxe5: {
+    id: 'dragonPickaxe5',
+    name: 'Dragon Pickaxe',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:spindel'],
+    enabled: true,
+  },
+  dragon2hSword6: {
+    id: 'dragon2hSword6',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:venenatis'],
+    enabled: true,
+  },
+  dragonPickaxe6: {
+    id: 'dragonPickaxe6',
+    name: 'Dragon Pickaxe',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:venenatis'],
+    enabled: true,
+  },
+  dragon2hSword7: {
+    id: 'dragon2hSword7',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:vetion'],
+    enabled: true,
+  },
+  dragonPickaxe7: {
+    id: 'dragonPickaxe7',
+    name: 'Dragon Pickaxe',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:vetion'],
+    enabled: true,
+  },
+  dragon2hSword8: {
+    id: 'dragon2hSword8',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:callisto'],
+    enabled: true,
+  },
+  dragonPickaxe8: {
+    id: 'dragonPickaxe8',
+    name: 'Dragon Pickaxe',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:callisto'],
+    enabled: true,
   },
   chaosElementalPet: {
     id: 'chaosElementalPet',
     name: 'Pet Chaos Elemental',
     category: 'wilderness-drops',
-    sources: ['bosses:chaosElemental'],
     tags: ['pet'],
+    sources: ['bosses:chaosElemental'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  dragon2hSword2: {
+    id: 'dragon2hSword2',
+    name: 'Dragon 2h Sword',
+    category: 'wilderness-drops',
+    tags: ['unique'],
+    sources: ['bosses:chaosElemental'],
+    enabled: true,
   },
   dragonPickaxeCe: {
     id: 'dragonPickaxeCe',
     name: 'Dragon Pickaxe',
     category: 'wilderness-drops',
-    sources: ['bosses:chaosElemental'],
     tags: ['unique'],
+    sources: ['bosses:chaosElemental'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   scorpiaPet: {
     id: 'scorpiaPet',
     name: "Scorpia's Offspring",
     category: 'wilderness-drops',
-    sources: ['bosses:scorpia'],
     tags: ['pet'],
+    sources: ['bosses:scorpia'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   odiumShard: {
     id: 'odiumShard',
     name: 'Odium Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:scorpia'],
     tags: ['unique'],
+    sources: ['bosses:scorpia'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   maledictionShard: {
     id: 'maledictionShard',
     name: 'Malediction Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:scorpia'],
     tags: ['unique'],
+    sources: ['bosses:scorpia'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   chaosFanaticPet: {
     id: 'chaosFanaticPet',
     name: 'Pet Chaos Fanatic',
     category: 'wilderness-drops',
-    sources: ['bosses:chaosFanatic'],
     tags: ['pet'],
+    sources: ['bosses:chaosFanatic'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   odiumShardCf: {
     id: 'odiumShardCf',
     name: 'Odium Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:chaosFanatic'],
     tags: ['unique'],
+    sources: ['bosses:chaosFanatic'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   maledictionShardCf: {
     id: 'maledictionShardCf',
     name: 'Malediction Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:chaosFanatic'],
     tags: ['unique'],
+    sources: ['bosses:chaosFanatic'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   crazyArchPet: {
     id: 'crazyArchPet',
     name: 'Pet Chaos Elemental',
     category: 'wilderness-drops',
-    sources: ['bosses:crazyArchaeologist'],
     tags: ['pet'],
+    sources: ['bosses:crazyArchaeologist'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   odiumShardCa: {
     id: 'odiumShardCa',
     name: 'Odium Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:crazyArchaeologist'],
     tags: ['unique'],
+    sources: ['bosses:crazyArchaeologist'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   maledictionShardCa: {
     id: 'maledictionShardCa',
     name: 'Malediction Shard',
     category: 'wilderness-drops',
-    sources: ['bosses:crazyArchaeologist'],
     tags: ['unique'],
+    sources: ['bosses:crazyArchaeologist'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   huberte: {
     id: 'huberte',
     name: 'Huberte',
     category: 'boss-drops',
-    sources: ['bosses:hueycoatl'],
     tags: ['pet'],
+    sources: ['bosses:hueycoatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   hueycoatlHide: {
     id: 'hueycoatlHide',
     name: 'Hueycoatl Hide',
     category: 'boss-drops',
-    sources: ['bosses:hueycoatl'],
     tags: ['unique'],
+    sources: ['bosses:hueycoatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 3 },
-      hard: { min: 3, max: 5 },
-    },
   },
   tomeOfEarth: {
     id: 'tomeOfEarth',
     name: 'Tome of Earth',
     category: 'boss-drops',
-    sources: ['bosses:hueycoatl'],
     tags: ['unique'],
+    sources: ['bosses:hueycoatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dragonHunterWand: {
     id: 'dragonHunterWand',
     name: 'Dragon Hunter Wand',
     category: 'boss-drops',
-    sources: ['bosses:hueycoatl'],
     tags: ['unique'],
+    sources: ['bosses:hueycoatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   huascaSeeds: {
     id: 'huascaSeeds',
     name: 'Huasca Seeds',
     category: 'boss-drops',
-    sources: ['bosses:hueycoatl'],
     tags: ['consumable'],
+    sources: ['bosses:hueycoatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 5, max: 15 },
-      medium: { min: 15, max: 30 },
-      hard: { min: 30, max: 50 },
-    },
   },
   bloodMoonHelm: {
     id: 'bloodMoonHelm',
     name: 'Blood Moon Helm',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   bloodMoonChestplate: {
     id: 'bloodMoonChestplate',
     name: 'Blood Moon Chestplate',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   bloodMoonTassets: {
     id: 'bloodMoonTassets',
     name: 'Blood Moon Tassets',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   blueMoonHelm: {
     id: 'blueMoonHelm',
     name: 'Blue Moon Helm',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   blueMoonChestplate: {
     id: 'blueMoonChestplate',
     name: 'Blue Moon Chestplate',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   blueMoonTassets: {
     id: 'blueMoonTassets',
     name: 'Blue Moon Tassets',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   eclipseMoonHelm: {
     id: 'eclipseMoonHelm',
     name: 'Eclipse Moon Helm',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   eclipseMoonChestplate: {
     id: 'eclipseMoonChestplate',
     name: 'Eclipse Moon Chestplate',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   eclipseMoonTassets: {
     id: 'eclipseMoonTassets',
     name: 'Eclipse Moon Tassets',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dualMacuahuitl: {
     id: 'dualMacuahuitl',
     name: 'Dual Macuahuitl',
     category: 'boss-drops',
-    sources: ['bosses:moons'],
     tags: ['unique'],
+    sources: ['bosses:moons'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   amoxliatlPet: {
     id: 'amoxliatlPet',
     name: 'Moxi',
     category: 'boss-drops',
-    sources: ['bosses:amoxliatl'],
     tags: ['pet'],
+    sources: ['bosses:amoxliatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   doomPet: {
     id: 'doomPet',
     name: 'Dom',
     category: 'boss-drops',
-    sources: ['bosses:doom'],
     tags: ['pet'],
+    sources: ['bosses:doom'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   shellbanePet: {
     id: 'shellbanePet',
     name: 'Gull',
     category: 'boss-drops',
+    tags: ['pet'],
     sources: ['bosses:shellbaneGryphon'],
-    tags: ['pet'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  goldenTench: {
-    id: 'goldenTench',
-    name: 'Golden Tench',
-    category: 'minigame-rewards',
-    sources: ['minigames:tempoross'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
-  },
-  tinyTempor: {
-    id: 'tinyTempor',
-    name: 'Tiny Tempor',
-    category: 'minigame-rewards',
-    sources: ['minigames:tempoross'],
-    tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  fishBarrel: {
-    id: 'fishBarrel',
-    name: 'Fish Barrel',
-    category: 'minigame-rewards',
-    sources: ['minigames:tempoross'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  tacklebox: {
-    id: 'tacklebox',
-    name: 'Tackle Box',
-    category: 'minigame-rewards',
-    sources: ['minigames:tempoross'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  pyromancerHood: {
-    id: 'pyromancerHood',
-    name: 'Pyromancer Hood',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  pyromancerGarb: {
-    id: 'pyromancerGarb',
-    name: 'Pyromancer Garb',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  pyromancerRobe: {
-    id: 'pyromancerRobe',
-    name: 'Pyromancer Robe',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  pyromancerBoots: {
-    id: 'pyromancerBoots',
-    name: 'Pyromancer Boots',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  phoenix: {
-    id: 'phoenix',
-    name: 'Phoenix',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  tomeOfFire: {
-    id: 'tomeOfFire',
-    name: 'Tome of Fire',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
-  },
-  dragonAxeWt: {
-    id: 'dragonAxeWt',
-    name: 'Dragon Axe',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
-  },
-  warmGloves: {
-    id: 'warmGloves',
-    name: 'Warm Gloves',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  brumaCape: {
-    id: 'brumaCape',
-    name: 'Bruma Torch',
-    category: 'minigame-rewards',
-    sources: ['minigames:wintertodt'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  abyssalLantern: {
-    id: 'abyssalLantern',
-    name: 'Abyssal Lantern',
-    category: 'minigame-rewards',
-    sources: ['minigames:guardiansOfTheRift'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  abyssalNeedle: {
-    id: 'abyssalNeedle',
-    name: 'Abyssal Needle',
-    category: 'minigame-rewards',
-    sources: ['minigames:guardiansOfTheRift'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
-  },
-  abyssalProtector: {
-    id: 'abyssalProtector',
-    name: 'Abyssal Protector',
-    category: 'minigame-rewards',
-    sources: ['minigames:guardiansOfTheRift'],
-    tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  dizanasQuiver: {
-    id: 'dizanasQuiver',
-    name: "Dizana's Quiver",
-    category: 'minigame-rewards',
-    sources: ['minigames:colosseum'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  tonalzticsOfRalos: {
-    id: 'tonalzticsOfRalos',
-    name: 'Tonalztics of Ralos',
-    category: 'minigame-rewards',
-    sources: ['minigames:colosseum'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  sunfireSplinters: {
-    id: 'sunfireSplinters',
-    name: 'Sunfire Splinters',
-    category: 'minigame-rewards',
-    sources: ['minigames:colosseum'],
-    tags: ['consumable'],
-    enabled: true,
-    quantities: {
-      easy: { min: 50, max: 150 },
-      medium: { min: 150, max: 300 },
-      hard: { min: 300, max: 500 },
-    },
-  },
-  smolHeredit: {
-    id: 'smolHeredit',
-    name: 'Smol Heredit',
-    category: 'minigame-rewards',
-    sources: ['minigames:colosseum'],
-    tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  fighterTorso: {
-    id: 'fighterTorso',
-    name: 'Fighter Torso',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  fighterHat: {
-    id: 'fighterHat',
-    name: 'Fighter Hat',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  runnerHat: {
-    id: 'runnerHat',
-    name: 'Runner Hat',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  healerHat: {
-    id: 'healerHat',
-    name: 'Healer Hat',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  rangerHat: {
-    id: 'rangerHat',
-    name: 'Ranger Hat',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  penanceQueen: {
-    id: 'penanceQueen',
-    name: 'Penance Queen',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['pet'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  graniteBody: {
-    id: 'graniteBody',
-    name: 'Granite Body',
-    category: 'minigame-rewards',
-    sources: ['minigames:barbarianAssault'],
-    tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   oborClub: {
     id: 'oborClub',
     name: 'Hill Giant Club',
     category: 'boss-drops',
-    sources: ['bosses:obor'],
     tags: ['unique'],
+    sources: ['bosses:obor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   giantKey: {
     id: 'giantKey',
     name: 'Giant Key',
     category: 'boss-drops',
-    sources: ['bosses:obor'],
     tags: ['unique'],
+    sources: ['bosses:obor'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 8 },
-    },
   },
   bryophytasEssence: {
     id: 'bryophytasEssence',
     name: "Bryophyta's Essence",
     category: 'boss-drops',
-    sources: ['bosses:bryophyta'],
     tags: ['unique'],
+    sources: ['bosses:bryophyta'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   bryophytasStaff: {
     id: 'bryophytasStaff',
     name: "Bryophyta's Staff",
     category: 'boss-drops',
-    sources: ['bosses:bryophyta'],
     tags: ['unique'],
+    sources: ['bosses:bryophyta'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   mossyKey: {
     id: 'mossyKey',
     name: 'Mossy Key',
     category: 'boss-drops',
-    sources: ['bosses:bryophyta'],
     tags: ['unique'],
+    sources: ['bosses:bryophyta'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 2 },
-      medium: { min: 2, max: 4 },
-      hard: { min: 4, max: 8 },
-    },
   },
   ahrimsHood: {
     id: 'ahrimsHood',
     name: "Ahrim's Hood",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   ahrimsRobetop: {
     id: 'ahrimsRobetop',
     name: "Ahrim's Robetop",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   ahrimsRobeskirt: {
     id: 'ahrimsRobeskirt',
     name: "Ahrim's Robeskirt",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   ahrimsStaff: {
     id: 'ahrimsStaff',
     name: "Ahrim's Staff",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   dharoksHelm: {
     id: 'dharoksHelm',
     name: "Dharok's Helm",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   dharoksPlatebody: {
     id: 'dharoksPlatebody',
     name: "Dharok's Platebody",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   dharoksPlatelegs: {
     id: 'dharoksPlatelegs',
     name: "Dharok's Platelegs",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   dharoksGreataxe: {
     id: 'dharoksGreataxe',
     name: "Dharok's Greataxe",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   guthansHelm: {
     id: 'guthansHelm',
     name: "Guthan's Helm",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   guthansPlatebody: {
     id: 'guthansPlatebody',
     name: "Guthan's Platebody",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   guthansChainskirt: {
     id: 'guthansChainskirt',
     name: "Guthan's Chainskirt",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   guthansWarspear: {
     id: 'guthansWarspear',
     name: "Guthan's Warspear",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   karilsCoif: {
     id: 'karilsCoif',
     name: "Karil's Coif",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   karilsLeathertop: {
     id: 'karilsLeathertop',
     name: "Karil's Leathertop",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   karilsLeatherskirt: {
     id: 'karilsLeatherskirt',
     name: "Karil's Leatherskirt",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   karilsCrossbow: {
     id: 'karilsCrossbow',
     name: "Karil's Crossbow",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   toragsHelm: {
     id: 'toragsHelm',
     name: "Torag's Helm",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   toragsPlatebody: {
     id: 'toragsPlatebody',
     name: "Torag's Platebody",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   toragsPlatelegs: {
     id: 'toragsPlatelegs',
     name: "Torag's Platelegs",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   toragsHammers: {
     id: 'toragsHammers',
     name: "Torag's Hammers",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   veracsHelm: {
     id: 'veracsHelm',
     name: "Verac's Helm",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   veracsBrassard: {
     id: 'veracsBrassard',
     name: "Verac's Brassard",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   veracsPlateskirt: {
     id: 'veracsPlateskirt',
     name: "Verac's Plateskirt",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   veracsFlail: {
     id: 'veracsFlail',
     name: "Verac's Flail",
     category: 'boss-drops',
-    sources: ['bosses:barrows'],
     tags: ['unique'],
+    sources: ['bosses:barrows'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   glacialTemotli: {
     id: 'glacialTemotli',
     name: 'Glacial Temotli',
     category: 'boss-drops',
-    sources: ['bosses:amoxliatl'],
     tags: ['unique'],
+    sources: ['bosses:amoxliatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   frozenTears: {
     id: 'frozenTears',
     name: 'Frozen Tears',
     category: 'boss-drops',
-    sources: ['bosses:amoxliatl'],
     tags: ['consumable'],
+    sources: ['bosses:amoxliatl'],
     enabled: true,
-    quantities: {
-      easy: { min: 10, max: 30 },
-      medium: { min: 30, max: 60 },
-      hard: { min: 60, max: 100 },
-    },
+  },
+  iceElementStaffCrown: {
+    id: 'iceElementStaffCrown',
+    name: 'Ice Element Staff Crown',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:royalTitans'],
+    enabled: true,
+  },
+  fireElementStaffCrown: {
+    id: 'fireElementStaffCrown',
+    name: 'Fire Element Staff Crown',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:royalTitans'],
+    enabled: true,
   },
   giantsoulAmulet: {
     id: 'giantsoulAmulet',
     name: 'Giantsoul Amulet',
     category: 'boss-drops',
-    sources: ['bosses:royalTitans'],
     tags: ['unique'],
+    sources: ['bosses:royalTitans'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
   bran: {
     id: 'bran',
     name: 'Bran',
     category: 'boss-drops',
-    sources: ['bosses:royalTitans'],
     tags: ['pet'],
+    sources: ['bosses:royalTitans'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   desiccatedPages: {
     id: 'desiccatedPages',
     name: 'Desiccated Pages',
     category: 'boss-drops',
-    sources: ['bosses:royalTitans'],
     tags: ['consumable'],
+    sources: ['bosses:royalTitans'],
     enabled: true,
-    quantities: {
-      easy: { min: 8, max: 12 },
-      medium: { min: 12, max: 16 },
-      hard: { min: 16, max: 24 },
-    },
   },
   bellesFolly: {
     id: 'bellesFolly',
     name: "Belle's Folly",
     category: 'boss-drops',
-    sources: ['bosses:shellbaneGryphon'],
     tags: ['unique'],
-    enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
-  },
-  hornOfPlenty: {
-    id: 'hornOfPlenty',
-    name: 'Horn of Plenty',
-    category: 'boss-drops',
     sources: ['bosses:shellbaneGryphon'],
-    tags: ['unique'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  gryphonFeathers: {
-    id: 'gryphonFeathers',
-    name: 'Gryphon Feathers',
+  jarOfFeathers: {
+    id: 'jarOfFeathers',
+    name: 'Jar of Feathers',
     category: 'boss-drops',
+    tags: ['jar'],
     sources: ['bosses:shellbaneGryphon'],
-    tags: ['consumable'],
     enabled: true,
-    quantities: {
-      easy: { min: 50, max: 100 },
-      medium: { min: 100, max: 200 },
-      hard: { min: 200, max: 400 },
-    },
   },
   oathplateHelm: {
     id: 'oathplateHelm',
     name: 'Oathplate Helm',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   oathplateBody: {
     id: 'oathplateBody',
     name: 'Oathplate Body',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   oathplateLegs: {
     id: 'oathplateLegs',
     name: 'Oathplate Legs',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   soulflameHorn: {
     id: 'soulflameHorn',
     name: 'Soulflame Horn',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   oathplateShards: {
     id: 'oathplateShards',
     name: 'Oathplate Shards',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['consumable'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 8, max: 12 },
-      medium: { min: 12, max: 20 },
-      hard: { min: 20, max: 45 },
-    },
   },
   forgottenLockbox: {
     id: 'forgottenLockbox',
     name: 'Forgotten Lockbox',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   dossier: {
     id: 'dossier',
     name: 'Dossier',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['unique'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 2 },
-      hard: { min: 2, max: 3 },
-    },
   },
   yamaPet: {
     id: 'yamaPet',
     name: 'Yami',
     category: 'boss-drops',
-    sources: ['bosses:yama'],
     tags: ['pet'],
+    sources: ['bosses:yama'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   avernicTreads: {
     id: 'avernicTreads',
     name: 'Avernic Treads',
     category: 'boss-drops',
-    sources: ['bosses:doom'],
     tags: ['unique'],
+    sources: ['bosses:doom'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   eyeOfAyak: {
     id: 'eyeOfAyak',
     name: 'Eye of Ayak',
     category: 'boss-drops',
-    sources: ['bosses:doom'],
     tags: ['unique'],
+    sources: ['bosses:doom'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   mokhaiotlCloth: {
     id: 'mokhaiotlCloth',
     name: 'Mokhaiotl Cloth',
     category: 'boss-drops',
-    sources: ['bosses:doom'],
     tags: ['unique'],
+    sources: ['bosses:doom'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
   demonTears: {
     id: 'demonTears',
     name: 'Demon Tears',
     category: 'boss-drops',
-    sources: ['bosses:doom'],
     tags: ['consumable'],
+    sources: ['bosses:doom'],
     enabled: true,
-    quantities: {
-      easy: { min: 50, max: 150 },
-      medium: { min: 150, max: 300 },
-      hard: { min: 300, max: 550 },
-    },
   },
-  crystalToolSeed: {
-    id: 'crystalToolSeed',
-    name: 'Crystal Tool Seed',
-    category: 'minigame-rewards',
-    sources: ['minigames:zalcano'],
+  virtusRobeTop2: {
+    id: 'virtusRobeTop2',
+    name: 'Virtus Robe Top',
+    category: 'boss-drops',
     tags: ['unique'],
+    sources: ['bosses:leviathan'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 2 },
-    },
   },
-  zalcanoShard: {
-    id: 'zalcanoShard',
-    name: 'Zalcano Shard',
-    category: 'minigame-rewards',
-    sources: ['minigames:zalcano'],
+  virtusMask2: {
+    id: 'virtusMask2',
+    name: 'Virtus Mask',
+    category: 'boss-drops',
     tags: ['unique'],
+    sources: ['bosses:leviathan'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  smolcano: {
-    id: 'smolcano',
-    name: 'Smolcano',
-    category: 'minigame-rewards',
-    sources: ['minigames:zalcano'],
+  virtusRobeBottom2: {
+    id: 'virtusRobeBottom2',
+    name: 'Virtus Robe Bottom',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:leviathan'],
+    enabled: true,
+  },
+  virtusRobeTop3: {
+    id: 'virtusRobeTop3',
+    name: 'Virtus Robe Top',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:vardorvis'],
+    enabled: true,
+  },
+  virtusMask3: {
+    id: 'virtusMask3',
+    name: 'Virtus Mask',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:vardorvis'],
+    enabled: true,
+  },
+  virtusRobeBottom3: {
+    id: 'virtusRobeBottom3',
+    name: 'Virtus Robe Bottom',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:vardorvis'],
+    enabled: true,
+  },
+  virtusRobeTop4: {
+    id: 'virtusRobeTop4',
+    name: 'Virtus Robe Top',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:whisperer'],
+    enabled: true,
+  },
+  virtusMask4: {
+    id: 'virtusMask4',
+    name: 'Virtus Mask',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:whisperer'],
+    enabled: true,
+  },
+  virtusRobeBottom4: {
+    id: 'virtusRobeBottom4',
+    name: 'Virtus Robe Bottom',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:whisperer'],
+    enabled: true,
+  },
+  inquisitorsMace2: {
+    id: 'inquisitorsMace2',
+    name: "Inquisitor's Mace",
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  inquisitorsGreatHelm2: {
+    id: 'inquisitorsGreatHelm2',
+    name: "Inquisitor's Great Helm",
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  inquisitorsHauberk2: {
+    id: 'inquisitorsHauberk2',
+    name: "Inquisitor's Hauberk",
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  inquisitorsPlateskirt2: {
+    id: 'inquisitorsPlateskirt2',
+    name: "Inquisitor's Plateskirt",
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  nightmareStaff2: {
+    id: 'nightmareStaff2',
+    name: 'Nightmare Staff',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  elderNightmareStaff2: {
+    id: 'elderNightmareStaff2',
+    name: 'Eldritch Orb',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  volatileNightmareStaff2: {
+    id: 'volatileNightmareStaff2',
+    name: 'Volatile Orb',
+    category: 'boss-drops',
+    tags: ['unique'],
+    sources: ['bosses:phosanisNightmare'],
+    enabled: true,
+  },
+  littleNightmare2: {
+    id: 'littleNightmare2',
+    name: 'Little Nightmare',
+    category: 'boss-drops',
     tags: ['pet'],
+    sources: ['bosses:phosanisNightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
   },
-  uncutOnyx: {
-    id: 'uncutOnyx',
-    name: 'Uncut Onyx',
-    category: 'minigame-rewards',
-    sources: ['minigames:zalcano'],
-    tags: ['unique'],
+  jarOfDreams2: {
+    id: 'jarOfDreams2',
+    name: 'Jar of Dreams',
+    category: 'boss-drops',
+    tags: ['jar'],
+    sources: ['bosses:phosanisNightmare'],
     enabled: true,
-    quantities: {
-      easy: { min: 1, max: 1 },
-      medium: { min: 1, max: 1 },
-      hard: { min: 1, max: 1 },
-    },
+  },
+  olmlet2: {
+    id: 'olmlet2',
+    name: 'Olmlet',
+    category: 'raid-drops',
+    tags: ['pet'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  twistedBow2: {
+    id: 'twistedBow2',
+    name: 'Twisted Bow',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  elderMaul2: {
+    id: 'elderMaul2',
+    name: 'Elder Maul',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  kodaiInsignia2: {
+    id: 'kodaiInsignia2',
+    name: 'Kodai Insignia',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  dragonClaws2: {
+    id: 'dragonClaws2',
+    name: 'Dragon Claws',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  ancestralHat2: {
+    id: 'ancestralHat2',
+    name: 'Ancestral Hat',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  ancestralTop2: {
+    id: 'ancestralTop2',
+    name: 'Ancestral Robe Top',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  ancestralBottom2: {
+    id: 'ancestralBottom2',
+    name: 'Ancestral Robe Bottom',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  dexterousScroll2: {
+    id: 'dexterousScroll2',
+    name: 'Dexterous Prayer Scroll',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  arcaneScroll2: {
+    id: 'arcaneScroll2',
+    name: 'Arcane Prayer Scroll',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  dinhsBulwark2: {
+    id: 'dinhsBulwark2',
+    name: "Dinh's Bulwark",
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  dragonHunterCrossbow2: {
+    id: 'dragonHunterCrossbow2',
+    name: 'Dragon Hunter Crossbow',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  twistedBuckler2: {
+    id: 'twistedBuckler2',
+    name: 'Twisted Buckler',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  twistedAncestralColourKit: {
+    id: 'twistedAncestralColourKit',
+    name: 'Twisted Ancestral Colour Kit',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  metamorphicDust: {
+    id: 'metamorphicDust',
+    name: 'Metamorphic Dust',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:chambersOfXericChallengeMode'],
+    enabled: true,
+  },
+  lilZik2: {
+    id: 'lilZik2',
+    name: "Lil' Zik",
+    category: 'raid-drops',
+    tags: ['pet'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  scytheOfVitur2: {
+    id: 'scytheOfVitur2',
+    name: 'Scythe of Vitur',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  ghraziRapier2: {
+    id: 'ghraziRapier2',
+    name: 'Ghrazi Rapier',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  sanguinestiStaff2: {
+    id: 'sanguinestiStaff2',
+    name: 'Sanguinesti Staff',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  avernicDefenderHilt2: {
+    id: 'avernicDefenderHilt2',
+    name: 'Avernic Defender Hilt',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  justiciarFaceguard2: {
+    id: 'justiciarFaceguard2',
+    name: 'Justiciar Faceguard',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  justiciarChestguard2: {
+    id: 'justiciarChestguard2',
+    name: 'Justiciar Chestguard',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  justiciarLegguards2: {
+    id: 'justiciarLegguards2',
+    name: 'Justiciar Legguards',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  holyOrnamentKit: {
+    id: 'holyOrnamentKit',
+    name: 'Holy Ornament Kit',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  sanguineOrnamentKit: {
+    id: 'sanguineOrnamentKit',
+    name: 'Sanguine Ornament Kit',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
+  },
+  sanguineDust: {
+    id: 'sanguineDust',
+    name: 'Sanguine Dust',
+    category: 'raid-drops',
+    tags: ['unique'],
+    sources: ['raids:theatreOfBloodHardMode'],
+    enabled: true,
   },
 };
 
-/**
- * Clue scroll tiers
- * Quantities represent number of clues to complete
- */
-export const CLUE_TIERS = {
+const CLUE_TIERS = {
   beginner: {
     id: 'beginner',
-    name: 'Beginner',
+    name: 'Beginner Clue',
     color: 'purple',
     enabled: true,
     quantities: {
-      easy: { min: 10, max: 20 },
-      medium: { min: 15, max: 20 },
-      hard: { min: 20, max: 25 },
+      easy: {
+        min: 10,
+        max: 20,
+      },
+      medium: {
+        min: 15,
+        max: 20,
+      },
+      hard: {
+        min: 20,
+        max: 25,
+      },
     },
   },
   easy: {
     id: 'easy',
-    name: 'Easy',
+    name: 'Easy Clue',
     color: 'green',
     enabled: true,
     quantities: {
-      easy: { min: 10, max: 20 },
-      medium: { min: 15, max: 20 },
-      hard: { min: 20, max: 25 },
+      easy: {
+        min: 10,
+        max: 20,
+      },
+      medium: {
+        min: 15,
+        max: 20,
+      },
+      hard: {
+        min: 20,
+        max: 25,
+      },
     },
   },
   medium: {
     id: 'medium',
-    name: 'Medium',
+    name: 'Medium Clue',
     color: 'blue',
     enabled: true,
     quantities: {
-      easy: { min: 8, max: 12 },
-      medium: { min: 10, max: 15 },
-      hard: { min: 15, max: 25 },
+      easy: {
+        min: 8,
+        max: 12,
+      },
+      medium: {
+        min: 10,
+        max: 15,
+      },
+      hard: {
+        min: 15,
+        max: 25,
+      },
     },
   },
   hard: {
     id: 'hard',
-    name: 'Hard',
+    name: 'Hard Clue',
     color: 'purple',
     enabled: true,
     quantities: {
-      easy: { min: 5, max: 10 },
-      medium: { min: 7, max: 12 },
-      hard: { min: 10, max: 15 },
+      easy: {
+        min: 5,
+        max: 10,
+      },
+      medium: {
+        min: 7,
+        max: 12,
+      },
+      hard: {
+        min: 10,
+        max: 15,
+      },
     },
   },
   elite: {
     id: 'elite',
-    name: 'Elite',
+    name: 'Elite Clue',
     color: 'orange',
     enabled: true,
     quantities: {
-      easy: { min: 3, max: 5 },
-      medium: { min: 5, max: 7 },
-      hard: { min: 8, max: 10 },
+      easy: {
+        min: 3,
+        max: 5,
+      },
+      medium: {
+        min: 5,
+        max: 7,
+      },
+      hard: {
+        min: 8,
+        max: 10,
+      },
     },
   },
   master: {
     id: 'master',
-    name: 'Master',
+    name: 'Master Clue',
     color: 'red',
     enabled: true,
     quantities: {
-      easy: { min: 2, max: 4 },
-      medium: { min: 3, max: 6 },
-      hard: { min: 5, max: 10 },
+      easy: {
+        min: 2,
+        max: 4,
+      },
+      medium: {
+        min: 3,
+        max: 6,
+      },
+      hard: {
+        min: 5,
+        max: 10,
+      },
     },
   },
 };
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
-
 /**
- * Get all enabled bosses from a specific category
+ * Helper to check if an item's sources are enabled
  */
-export const getEnabledBosses = (category = null) => {
-  const bosses = Object.values(SOLO_BOSSES).filter((boss) => boss.enabled);
-  return category ? bosses.filter((boss) => boss.category === category) : bosses;
-};
+function parseItemSources(item, contentSelections) {
+  if (!item.sources || item.sources.length === 0) return true;
 
-/**
- * Get all enabled raids
- */
-export const getEnabledRaids = () => {
-  return Object.values(RAIDS).filter((raid) => raid.enabled);
-};
-
-/**
- * Get all enabled skills
- */
-export const getEnabledSkills = () => {
-  return Object.values(SKILLS).filter((skill) => skill.enabled);
-};
-
-/**
- * Get all enabled minigames
- */
-export const getEnabledMinigames = () => {
-  return Object.values(MINIGAMES).filter((minigame) => minigame.enabled);
-};
-
-/**
- * Get all enabled items
- */
-export const getEnabledItems = () => {
-  return Object.values(COLLECTIBLE_ITEMS).filter((item) => item.enabled);
-};
-
-/**
- * Get all enabled clue tiers
- */
-export const getEnabledClues = () => {
-  return Object.values(CLUE_TIERS).filter((clue) => clue.enabled);
-};
-
-/**
- * Get content by tags
- */
-export const getContentByTags = (collection, tags) => {
-  return Object.values(collection).filter((item) => tags.some((tag) => item.tags?.includes(tag)));
-};
-
-/**
- * Combine bosses and raids for boss_kc objectives
- */
-export const getAllBossContent = () => {
-  return {
-    ...SOLO_BOSSES,
-    ...RAIDS,
-  };
-};
-
-/**
- * Parse item sources to check if item is available based on content selections
- * Uses OR logic - item is available if ANY source is enabled
- */
-export function parseItemSources(item, contentSelections) {
-  if (!item.sources || item.sources.length === 0) {
-    return true; // No dependencies = always available
-  }
-
-  // Check if ANY source is enabled (OR logic)
   return item.sources.some((source) => {
     const [type, id] = source.split(':');
-
-    switch (type) {
-      case 'skills':
-        return contentSelections.skills?.[id] !== false;
-      case 'bosses':
-        return contentSelections.bosses?.[id] !== false;
-      case 'minigames':
-        return contentSelections.minigames?.[id] !== false;
-      case 'raids':
-        return contentSelections.raids?.[id] !== false;
-      default:
-        return true;
-    }
+    if (type === 'bosses') return contentSelections.bosses?.[id] !== false;
+    if (type === 'raids') return contentSelections.raids?.[id] !== false;
+    if (type === 'minigames') return contentSelections.minigames?.[id] !== false;
+    return true;
   });
 }
+
+module.exports = {
+  SOLO_BOSSES,
+  RAIDS,
+  SKILLS,
+  MINIGAMES,
+  COLLECTIBLE_ITEMS,
+  CLUE_TIERS,
+  parseItemSources,
+};

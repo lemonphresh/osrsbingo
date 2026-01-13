@@ -12,7 +12,6 @@ import {
   SimpleGrid,
   useDisclosure,
   useColorMode,
-  Icon,
   Image,
   IconButton,
   AlertDialog,
@@ -34,17 +33,16 @@ import {
   Select,
   Box,
   Spinner,
-  Tooltip,
   useBreakpointValue,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon, SearchIcon } from '@chakra-ui/icons';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import CreateEventModal from '../organisms/TreasureHunt/CreateTreasureEventModal';
 import { GET_ALL_TREASURE_EVENTS } from '../graphql/queries';
 import { useAuth } from '../providers/AuthProvider';
 import GemTitle from '../atoms/GemTitle';
-import { MdOutlineArrowBack, MdMoreVert } from 'react-icons/md';
+import { MdMoreVert } from 'react-icons/md';
 import Section from '../atoms/Section';
 import ExampleTreasure from '../assets/exampletreasure.png';
 import { DELETE_TREASURE_EVENT } from '../graphql/mutations';
@@ -77,11 +75,6 @@ const TreasureHuntDashboard = () => {
 
   const { data, loading, refetch } = useQuery(GET_ALL_TREASURE_EVENTS, {
     variables: { userId: user?.id },
-    onCompleted: (data) => {
-      if (!data.getAllTreasureEvents.some((event) => event.adminIds.includes(user?.id))) {
-        showToast('You do not have admin access to any events.', 'warning');
-      }
-    },
     skip: !user,
   });
 
@@ -444,8 +437,8 @@ const TreasureHuntDashboard = () => {
                           Set Event Parameters
                         </Text>
                         <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-                          Choose map size, difficulty, number of teams, and time frame for your
-                          event
+                          Choose map size, difficulty, number of teams, content, and time frame for
+                          your event
                         </Text>
                       </VStack>
                     </HStack>

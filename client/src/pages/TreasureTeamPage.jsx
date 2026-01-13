@@ -596,7 +596,12 @@ const TreasureTeamView = () => {
 
             {team.completedNodes?.length === 0 && !adminMode && (
               <>
-                <TreasureHuntTutorial colorMode={colorMode} compact={false} eventId={eventId} />
+                <TreasureHuntTutorial
+                  collapsed={isAdmin}
+                  colorMode={colorMode}
+                  compact={false}
+                  eventId={eventId}
+                />
                 <hr />
               </>
             )}
@@ -712,7 +717,6 @@ const TreasureTeamView = () => {
 
                     // Available inn (not yet visited/completed)
                     const isAvailableInnA = isInnA && statusA === 'available';
-                    const isAvailableInnB = isInnB && statusB === 'available';
 
                     // Completed inn that hasn't been purchased from yet
                     const isCompletedInnNoTxA = isInnA && statusA === 'completed' && !hasTxA;

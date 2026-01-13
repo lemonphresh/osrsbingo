@@ -1,14 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Flex,
-  Heading,
-  Text,
-  Link as ChakraLink,
-  VStack,
-  HStack,
-  Icon,
-} from '@chakra-ui/react';
+import { Box, Flex, Heading, Text, Link as ChakraLink, VStack, HStack } from '@chakra-ui/react';
 import { CheckCircleIcon } from '@chakra-ui/icons';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
