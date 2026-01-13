@@ -1,9 +1,9 @@
 import React from 'react';
-import { Heart, Coffee } from 'lucide-react';
 import { Link as ChakraLink, Flex, Image } from '@chakra-ui/react';
 import Selfie from '../assets/selfie.webp';
 import Section from '../atoms/Section';
 import GnomeChild from '../assets/gnomechild-small.webp';
+import { FaCoffee, FaHeart } from 'react-icons/fa';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -126,7 +126,7 @@ export default function SupportPage() {
             }}
             target="_blank"
           >
-            <Heart size={18} /> Donate (Cash App)
+            <FaHeart size={18} /> Donate (Cash App)
           </ChakraLink>
           <ChakraLink
             href="https://ko-fi.com/A667UUO"
@@ -145,7 +145,7 @@ export default function SupportPage() {
             }}
             target="_blank"
           >
-            <Coffee size={18} /> Ko-fi
+            <FaCoffee size={18} /> Ko-fi
           </ChakraLink>
         </div>
         {/* Sign off */}
