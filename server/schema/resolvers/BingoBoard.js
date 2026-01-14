@@ -1,7 +1,6 @@
+// server/graphql/resolvers/BingoBoard.js
 const { ApolloError } = require('apollo-server-express');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { Op } = require('sequelize');
 
 module.exports = {
@@ -41,10 +40,9 @@ module.exports = {
         });
 
         const editorsToAdd = [context.user.id, ...(editors || [])];
-
         await newBingoBoard.setEditors(editorsToAdd);
 
-        // step 1: create the tiles
+        // Create tiles
         const tiles = [];
         for (let row = 0; row < size; row++) {
           for (let col = 0; col < size; col++) {
@@ -58,44 +56,38 @@ module.exports = {
         }
         const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        // step 2: create the layout
+        // Create layout
         const layout = [];
         for (let row = 0; row < size; row++) {
           layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
         }
 
-        // step 3: update the board with the layout
         newBingoBoard.layout = layout;
         await newBingoBoard.save();
 
-        const populatedBingoBoard = await BingoBoard.findByPk(newBingoBoard.id, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
-
-        return populatedBingoBoard;
+        // ✅ Return just the board - field resolvers handle tiles/editors
+        return BingoBoard.findByPk(newBingoBoard.id);
       } catch (error) {
         console.error('Error creating BingoBoard:', error);
         throw new ApolloError('Failed to create BingoBoard');
       }
     },
+
     updateBingoBoard: async (_, { id, input }, context) => {
       try {
-        const bingoBoard = await BingoBoard.findByPk(id, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
+        const bingoBoard = await BingoBoard.findByPk(id);
 
         if (!bingoBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
 
-        const isEditor = bingoBoard.editors?.some((editor) => editor.id === context.user?.id);
+        // ✅ Use loader to check editors
+        const editors = context.loaders
+          ? await context.loaders.editorsByBoardId.load(id.toString())
+          : (await BingoBoard.findByPk(id, { include: [{ model: User, as: 'editors' }] }))
+              ?.editors || [];
 
+        const isEditor = editors.some((editor) => editor.id === context.user?.id);
         const isAdmin = context.user?.admin;
 
         if (!isAdmin && !isEditor) {
@@ -121,18 +113,16 @@ module.exports = {
         });
 
         await bingoBoard.save();
-
         return bingoBoard;
       } catch (error) {
         console.error('Error updating BingoBoard:', error);
         throw new ApolloError('Failed to update BingoBoard');
       }
     },
+
     replaceLayout: async (_, { boardId, newType }, context) => {
       try {
-        const board = await BingoBoard.findByPk(boardId, {
-          include: [{ model: BingoTile, as: 'tiles' }],
-        });
+        const board = await BingoBoard.findByPk(boardId);
 
         if (!board) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
@@ -140,57 +130,53 @@ module.exports = {
 
         const size = newType === 'FIVE' ? 5 : 7;
 
-        // step 1: remove old tiles and layout
+        // Remove old tiles
         await BingoTile.destroy({ where: { board: boardId } });
 
-        // step 2: create new tiles with default values (reset completion status, etc.)
+        // Create new tiles
         const tiles = [];
         for (let row = 0; row < size; row++) {
           for (let col = 0; col < size; col++) {
             tiles.push({
               name: `Tile ${row * size + col + 1}`,
-              isComplete: false, // reset completion
-              value: 0, // default value, can be changed if needed
+              isComplete: false,
+              value: 0,
               board: board.id,
             });
           }
         }
         const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        // step 3: create the new layout
+        // Create new layout
         const layout = [];
         for (let row = 0; row < size; row++) {
           layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
         }
 
-        // step 4: update the board with the new layout and type
         board.layout = layout;
         board.type = newType;
         await board.save();
 
-        // step 5: fetch the updated board with new tiles and editors
-        const updatedBoard = await BingoBoard.findByPk(board.id, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
-
-        return updatedBoard;
+        // ✅ Return just the board - field resolvers handle tiles/editors
+        return board;
       } catch (error) {
         console.error('Error replacing BingoBoard layout:', error);
         throw new ApolloError('Failed to replace BingoBoard layout');
       }
     },
+
     duplicateBingoBoard: async (_, { boardId }, context) => {
       try {
-        const originalBoard = await BingoBoard.findByPk(boardId, {
-          include: [{ model: BingoTile, as: 'tiles' }],
-        });
+        const originalBoard = await BingoBoard.findByPk(boardId);
 
         if (!originalBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
+
+        // ✅ Use loader for tiles
+        const originalTiles = context.loaders
+          ? await context.loaders.tilesByBoardId.load(boardId.toString())
+          : await BingoTile.findAll({ where: { board: boardId } });
 
         const duplicatedBoard = await BingoBoard.create({
           description: originalBoard.description,
@@ -203,14 +189,14 @@ module.exports = {
           userId: context.user.id,
           totalValue: originalBoard.totalValue,
           totalValueCompleted: originalBoard.totalValueCompleted,
-          createdAt: new Date(Date.now()).toISOString(),
+          createdAt: new Date().toISOString(),
           theme: originalBoard.theme,
         });
 
-        const newTiles = originalBoard.tiles.map((tile) => ({
+        const newTiles = originalTiles.map((tile) => ({
           icon: tile.icon,
           name: tile.name,
-          isComplete: false, // reset completion
+          isComplete: false,
           value: tile.value,
           board: duplicatedBoard.id,
         }));
@@ -221,44 +207,39 @@ module.exports = {
         for (let row of originalBoard.layout) {
           layout.push(
             row.map((tileId) => {
-              const originalTile = originalBoard.tiles.find((tile) => tile.id === tileId);
+              const originalTile = originalTiles.find((tile) => tile.id === tileId);
               return createdTiles.find((newTile) => newTile.name === originalTile.name).id;
             })
           );
         }
-        duplicatedBoard.tiles = createdTiles;
+
         duplicatedBoard.layout = layout;
         await duplicatedBoard.save();
         await duplicatedBoard.addEditors([context.user.id]);
 
-        const populatedDuplicatedBoard = await BingoBoard.findByPk(duplicatedBoard.id, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
-
-        return populatedDuplicatedBoard;
+        // ✅ Return just the board - field resolvers handle tiles/editors
+        return duplicatedBoard;
       } catch (error) {
         console.error('Error duplicating BingoBoard:', error);
         throw new ApolloError('Failed to duplicate BingoBoard');
       }
     },
+
     deleteBingoBoard: async (_, { id }, context) => {
       try {
-        const bingoBoard = await BingoBoard.findByPk(id, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
+        const bingoBoard = await BingoBoard.findByPk(id);
 
         if (!bingoBoard) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
 
-        const isEditor = bingoBoard.editors.some((editor) => editor.id === context.user?.id);
+        // ✅ Use loader to check editors
+        const editors = context.loaders
+          ? await context.loaders.editorsByBoardId.load(id.toString())
+          : (await BingoBoard.findByPk(id, { include: [{ model: User, as: 'editors' }] }))
+              ?.editors || [];
 
+        const isEditor = editors.some((editor) => editor.id === context.user?.id);
         const isAdmin = context.user?.admin;
 
         if (!isAdmin && !isEditor) {
@@ -266,7 +247,6 @@ module.exports = {
         }
 
         await BingoTile.destroy({ where: { board: id } });
-
         await BingoBoard.destroy({ where: { id } });
 
         return { success: true, message: 'Bingo board deleted successfully' };
@@ -275,10 +255,9 @@ module.exports = {
         throw new ApolloError('Failed to delete BingoBoard');
       }
     },
-    updateBoardEditors: async (_, { boardId, editorIds }) => {
-      const board = await BingoBoard.findByPk(boardId, {
-        include: [{ model: User, as: 'editors' }],
-      });
+
+    updateBoardEditors: async (_, { boardId, editorIds }, context) => {
+      const board = await BingoBoard.findByPk(boardId);
 
       if (!board) {
         throw new Error('Board not found');
@@ -286,7 +265,6 @@ module.exports = {
 
       const boardOwnerId = board.userId;
 
-      // ensure all IDs are integers and unique
       const updatedEditorIds = [...new Set([boardOwnerId, ...editorIds])]
         .filter((id) => id !== null)
         .map((id) => {
@@ -305,7 +283,6 @@ module.exports = {
         const missingIds = updatedEditorIds.filter(
           (id) => !editorsToAdd.some((editor) => editor.id === id)
         );
-
         if (missingIds.length > 0) {
           throw new Error(`Users not found for IDs: ${missingIds.join(', ')}`);
         }
@@ -313,36 +290,32 @@ module.exports = {
 
       await board.setEditors(editorsToAdd);
 
-      const updatedBoard = await BingoBoard.findByPk(boardId, {
-        include: [
-          { model: User, as: 'editors' },
-          { model: User, as: 'user', attributes: ['id', 'displayName', 'username', 'rsn'] },
-          { model: BingoTile, as: 'tiles' },
-        ],
-      });
-
-      return updatedBoard;
+      // ✅ Return just the board - field resolvers handle tiles/editors/user
+      return BingoBoard.findByPk(boardId);
     },
+
     shuffleBingoBoardLayout: async (_, { boardId }, context) => {
       try {
-        const board = await BingoBoard.findByPk(boardId, {
-          include: [
-            { model: BingoTile, as: 'tiles' },
-            { model: User, as: 'editors' },
-          ],
-        });
+        const board = await BingoBoard.findByPk(boardId);
 
         if (!board) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
         }
 
-        const isEditor = board.editors?.some((editor) => editor.id === context.user?.id);
+        // ✅ Use loader to check editors
+        const editors = context.loaders
+          ? await context.loaders.editorsByBoardId.load(boardId.toString())
+          : (await BingoBoard.findByPk(boardId, { include: [{ model: User, as: 'editors' }] }))
+              ?.editors || [];
+
+        const isEditor = editors.some((editor) => editor.id === context.user?.id);
         const isAdmin = context.user?.admin;
+
         if (!isAdmin && !isEditor) {
           throw new ApolloError('Unauthorized to shuffle this BingoBoard', 'UNAUTHORIZED');
         }
 
-        // flatten the layout array, shuffle the IDs, and reconstruct the layout
+        // Flatten, shuffle, and reconstruct layout
         const flattenedLayout = board.layout.flat();
         const shuffledIds = flattenedLayout
           .map((id) => ({ id, sort: Math.random() }))
@@ -355,44 +328,35 @@ module.exports = {
           shuffledLayout.push(shuffledIds.slice(i * size, (i + 1) * size));
         }
 
-        // update the board with the shuffled layout
         board.layout = shuffledLayout;
         await board.save();
 
-        const updatedBoard = await BingoBoard.findByPk(boardId, {
-          include: [{ model: BingoTile, as: 'tiles' }],
-        });
-
-        return updatedBoard;
+        // ✅ Return just the board - field resolvers handle tiles
+        return board;
       } catch (error) {
         console.error('Error shuffling BingoBoard layout:', error);
         throw new ApolloError('Failed to shuffle BingoBoard layout');
       }
     },
   },
+
   Query: {
+    // ✅ SIMPLIFIED: No includes - field resolvers handle nested data
     getBingoBoard: async (_, { id }) => {
       try {
-        const bingoBoard = await BingoBoard.findByPk(id, {
-          include: [
-            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
-            { model: User, as: 'user', attributes: ['id', 'displayName', 'username', 'rsn'] },
-            { model: BingoTile, as: 'tiles' },
-          ],
-        });
+        const bingoBoard = await BingoBoard.findByPk(id);
 
-        if (bingoBoard) {
-          return {
-            ...bingoBoard.dataValues,
-            layout: bingoBoard.layout,
-          };
+        if (!bingoBoard) {
+          return null;
         }
+
         return bingoBoard;
       } catch (error) {
         console.error('Error fetching BingoBoard:', error);
         throw new ApolloError('Failed to fetch BingoBoard');
       }
     },
+
     getPublicBoards: async (_, { limit, offset, category, searchQuery = '' }) => {
       try {
         const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
@@ -401,31 +365,22 @@ module.exports = {
           where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
         });
 
+        // ✅ Minimal attributes - field resolvers can add tiles/editors if requested
         const boards = await BingoBoard.findAll({
           where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
           attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme'],
-          include: [
-            {
-              model: BingoTile,
-              as: 'tiles',
-              attributes: ['id', 'isComplete'],
-            },
-            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
-          ],
           order: [['createdAt', 'DESC']],
           limit: limit || 10,
           offset: offset || 0,
         });
 
-        return {
-          boards: boards || [],
-          totalCount,
-        };
+        return { boards: boards || [], totalCount };
       } catch (error) {
         console.error('Error fetching public boards:', error);
         throw new ApolloError('Failed to fetch public boards');
       }
     },
+
     getAllBoards: async (_, { limit, offset, category, searchQuery = '' }) => {
       try {
         const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
@@ -437,28 +392,18 @@ module.exports = {
         const boards = await BingoBoard.findAll({
           where: { name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
           attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme', 'isPublic'],
-          include: [
-            {
-              model: BingoTile,
-              as: 'tiles',
-              attributes: ['id', 'isComplete'],
-            },
-            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
-          ],
           order: [['createdAt', 'DESC']],
           limit: limit || 10,
           offset: offset || 0,
         });
 
-        return {
-          boards: boards || [],
-          totalCount,
-        };
+        return { boards: boards || [], totalCount };
       } catch (error) {
         console.error('Error fetching boards:', error);
         throw new ApolloError('Failed to fetch boards');
       }
     },
+
     getFeaturedBoards: async (_, { limit, offset }) => {
       try {
         const totalCount = await BingoBoard.count({
@@ -468,26 +413,15 @@ module.exports = {
         const boards = await BingoBoard.findAll({
           where: { isPublic: true, category: 'Featured' },
           attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme'],
-          include: [
-            {
-              model: BingoTile,
-              as: 'tiles',
-              attributes: ['id', 'isComplete'],
-            },
-            { model: User, as: 'editors', attributes: ['id', 'displayName', 'username', 'rsn'] },
-          ],
           order: [['createdAt', 'DESC']],
           limit,
           offset,
         });
 
-        return {
-          boards: boards || [],
-          totalCount,
-        };
+        return { boards: boards || [], totalCount };
       } catch (error) {
-        console.error('Error fetching public boards:', error);
-        throw new ApolloError('Failed to fetch public boards');
+        console.error('Error fetching featured boards:', error);
+        throw new ApolloError('Failed to fetch featured boards');
       }
     },
   },

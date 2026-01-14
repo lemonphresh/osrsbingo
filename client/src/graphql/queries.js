@@ -414,7 +414,6 @@ export const GET_CALENDAR_VERSION = gql`
 // ============================================================
 
 export const GET_TREASURE_EVENT = gql`
-  ${BONUS_SETTINGS_FIELDS}
   query GetTreasureEvent($eventId: ID!) {
     getTreasureEvent(eventId: $eventId) {
       # Identity

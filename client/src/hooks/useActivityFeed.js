@@ -1,6 +1,6 @@
 import { useSubscription, useQuery } from '@apollo/client';
 import { useState, useEffect } from 'react';
-import { TREASURE_ACTIVITY_SUBSCRIPTION, GET_TREASURE_ACTIVITIES } from '../graphql/mutations';
+import { TREASURE_ACTIVITY_SUB, GET_TREASURE_ACTIVITIES } from '../graphql/mutations';
 
 export const useActivityFeed = (eventId, teams = []) => {
   const [activities, setActivities] = useState([]);
@@ -12,7 +12,7 @@ export const useActivityFeed = (eventId, teams = []) => {
   });
 
   // Subscribe to new activities
-  const { data: subData, error } = useSubscription(TREASURE_ACTIVITY_SUBSCRIPTION, {
+  const { data: subData, error } = useSubscription(TREASURE_ACTIVITY_SUB, {
     variables: { eventId },
     skip: !eventId,
   });
