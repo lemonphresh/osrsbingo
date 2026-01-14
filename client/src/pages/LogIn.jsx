@@ -1,7 +1,24 @@
-import { Alert, Button, Flex, FormControl, FormLabel, Input, Text } from '@chakra-ui/react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Alert,
+  Box,
+  Button,
+  Flex,
+  FormControl,
+  FormLabel,
+  Input,
+  Text,
+  VStack,
+  Link as ChakraLink,
+} from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { WarningIcon } from '@chakra-ui/icons';
+import { FaLock } from 'react-icons/fa';
 import useForm from '../hooks/useForm';
 import theme from '../theme';
 import { useAuth } from '../providers/AuthProvider';
@@ -48,6 +65,7 @@ const Login = () => {
       flexDirection="column"
       justifyContent="center"
       marginX={['8px', '24px']}
+      my={['32px', '64px']}
     >
       <Section
         alignItems="center"
@@ -119,6 +137,71 @@ const Login = () => {
             Log In
           </Button>
         </form>
+
+        {/* Forgot Password Accordion */}
+        <Accordion allowToggle width="100%" mt={6}>
+          <AccordionItem border="none">
+            <AccordionButton px={0} _hover={{ bg: 'transparent' }} justifyContent="center">
+              <Text fontSize="sm" color={theme.colors.gray[300]}>
+                Forgot your password?
+              </Text>
+              <AccordionIcon color={theme.colors.gray[500]} ml={1} />
+            </AccordionButton>
+            <AccordionPanel pb={4}>
+              <Box
+                bg={theme.colors.gray[100]}
+                borderRadius="lg"
+                p={4}
+                borderLeft="3px solid"
+                borderColor={theme.colors.yellow[400]}
+              >
+                <VStack align="start" spacing={3}>
+                  <Flex align="center" gap={2}>
+                    <FaLock color={theme.colors.yellow[600]} size={14} />
+                    <Text fontWeight="bold" fontSize="sm" color={theme.colors.gray[700]}>
+                      Here's the deal...
+                    </Text>
+                  </Flex>
+                  <Text fontSize="sm" color={theme.colors.gray[600]} lineHeight="1.6">
+                    Passwords are fully encrypted and can't be recovered—not even by me. I also
+                    don't collect emails (on purpose!) to protect your data from breaches, so
+                    implementing a password recovery feature isn't an option. This is a feature, not
+                    a bug. 🔒
+                  </Text>
+                  <Text
+                    fontSize="sm"
+                    color={theme.colors.gray[600]}
+                    lineHeight="1.6"
+                    fontWeight="medium"
+                  >
+                    Your options:
+                  </Text>
+                  <VStack align="start" spacing={1} pl={2}>
+                    <Text fontSize="sm" color={theme.colors.gray[600]}>
+                      • Create a new account and duplicate your old boards (they're still there!)
+                    </Text>
+                    <Text fontSize="sm" color={theme.colors.gray[600]}>
+                      • Reach out to{' '}
+                      <ChakraLink
+                        href="https://www.discord.gg/eternalgems"
+                        isExternal
+                        color={theme.colors.green[500]}
+                        textDecoration="underline"
+                      >
+                        @buttlid on the Eternal Gems Discord server
+                      </ChakraLink>{' '}
+                      to delete the old account. There's a ticket system in place :)
+                    </Text>
+                  </VStack>
+                  <Text fontSize="xs" color={theme.colors.gray[500]} fontStyle="italic" pt={1}>
+                    Sorry for the inconvenience, but your security is really important to me.
+                  </Text>
+                </VStack>
+              </Box>
+            </AccordionPanel>
+          </AccordionItem>
+        </Accordion>
+
         <Flex backgroundColor={theme.colors.gray[300]} height="2px" marginTop="24px" width="100%" />
 
         <Text marginTop="16px">

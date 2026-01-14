@@ -86,7 +86,7 @@ const Landing = () => {
             color={theme.colors.purple[300]}
             marginBottom="16px"
           >
-            📋 Bingo Boards
+            Bingo Boards
           </Text>
 
           <Flex justifyContent="center" marginBottom="20px">
@@ -129,7 +129,7 @@ const Landing = () => {
         >
           <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
             <Text fontSize="xl" fontWeight="bold" color={theme.colors.orange[300]}>
-              🗺️ Gielinor Rush
+              Gielinor Rush
             </Text>
             <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
               NEW
@@ -313,7 +313,7 @@ const Landing = () => {
             started when my clan wanted to run events but the existing tools were clunky or didn't
             quite fit what we needed. So I made something better! I figured I'd share it with anyone
             else who could use it. No premium tiers, just tools to make OSRS more fun for everyone.
-            Enjoy, and happy scaping! 💜
+            Enjoy, happy scaping, and as always: fuck ICE! 💜
           </Text>
         </Flex>
       </Box>

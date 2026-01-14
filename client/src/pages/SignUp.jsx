@@ -89,12 +89,12 @@ const SignUp = () => {
       flexDirection="column"
       justifyContent="center"
       marginX={['8px', '24px']}
+      my={['32px', '64px']}
     >
       <Section
         alignItems="center"
         flexDirection="column"
         justifyContent="center"
-        marginY="64px"
         maxWidth="525px"
         width="100%"
       >
@@ -180,6 +180,7 @@ const SignUp = () => {
               <Text color="#1F271B" fontSize="sm" lineHeight="1.6">
                 <strong>There is no password recovery.</strong> We intentionally do not collect
                 emails to protect your OSRS account credentials from potential data breaches.
+                Everything is encrypted, so Lemon The Dev can't recover it either.
               </Text>
 
               <Box backgroundColor="rgba(0,0,0,0.1)" borderRadius="8px" padding="12px">
