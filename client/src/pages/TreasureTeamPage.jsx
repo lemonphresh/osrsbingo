@@ -129,7 +129,6 @@ const TreasureTeamView = () => {
   };
   const { data: submissionsData, loading: submissionsLoading } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
-    pollInterval: 30000, // Poll every 30 seconds to catch updates
   });
 
   const accessCheck = checkTeamAccess();
@@ -565,10 +564,10 @@ const TreasureTeamView = () => {
                     transition="all 0.2s"
                     _hover={{ bg: 'whiteAlpha.400' }}
                     onClick={() => {
-                      navigator.clipboard.writeText(event.eventId);
+                      navigator.clipboard.writeText(event.eventPassword);
                       toast({
                         title: 'Event Password Copied!',
-                        description: `Event Password: ${event.eventId}`,
+                        description: `Event Password: ${event.eventPassword}`,
                         status: 'success',
                         duration: 2000,
                         isClosable: true,

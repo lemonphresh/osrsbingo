@@ -4,6 +4,7 @@ import BoardDetails from './pages/BoardDetails';
 import BoardViewAll from './pages/BoardViewAll';
 import BoardViewAllAdmin from './pages/BoardViewAllAdmin';
 import Calendar from './pages/Calendar';
+import ChangelogPage from './pages/ChangeLog';
 import ErrorPage from './pages/ErrorPage';
 import Faq from './pages/Faq';
 import Landing from './pages/Landing';
@@ -107,6 +108,11 @@ const routes = [
       {
         path: '/support',
         element: <SupportPage />,
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/changelog',
+        element: <ChangelogPage />,
         errorElement: <ErrorPage />,
       },
       {

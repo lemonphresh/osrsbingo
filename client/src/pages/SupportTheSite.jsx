@@ -4,6 +4,7 @@ import Selfie from '../assets/selfie.webp';
 import Section from '../atoms/Section';
 import GnomeChild from '../assets/gnomechild-small.webp';
 import { FaCoffee, FaHeart } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -150,8 +151,13 @@ export default function SupportPage() {
         </div>
         {/* Sign off */}
         <p style={{ marginTop: 48, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
-          Thanks for reading this far. Love you. 🫶
-        </p>{' '}
+          Thanks for reading this far. Love you. Fuck ICE. 🫶 <br /> If you really like reading,
+          check out the{' '}
+          <span style={{ color: '#F4D35E' }}>
+            <Link to="/changelog">change log</Link>
+          </span>{' '}
+          to see a more in-depth history of the site.
+        </p>
         <Image aria-hidden height={['48px', '32px']} src={GnomeChild} width={['48px', '32px']} />
         <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.35)' }}>— Lemon (RSN: butt looker)</p>
       </Section>

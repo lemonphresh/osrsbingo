@@ -1,7 +1,141 @@
 import { gql } from '@apollo/client';
 
+// ============================================================
+// FRAGMENTS (Reusable field selections)
+// ============================================================
+
+// const USER_BASIC_FIELDS = gql`
+//   fragment UserBasicFields on User {
+//     id
+//     displayName
+//     username
+//     rsn
+//   }
+// `;
+
+// const USER_ADMIN_FIELDS = gql`
+//   fragment UserAdminFields on User {
+//     id
+//     admin
+//     displayName
+//     username
+//     rsn
+//     permissions
+//   }
+// `;
+
+// const BOARD_CARD_FIELDS = gql`
+//   fragment BoardCardFields on BingoBoard {
+//     id
+//     name
+//     category
+//     layout
+//     theme
+//     tiles {
+//       id
+//       isComplete
+//     }
+//     editors {
+//       displayName
+//       username
+//     }
+//   }
+// `;
+
+const BONUS_SETTINGS_FIELDS = gql`
+  fragment BonusSettingsFields on BonusSettings {
+    allowDiagonals
+    horizontalBonus
+    verticalBonus
+    diagonalBonus
+    blackoutBonus
+  }
+`;
+
+// const TILE_FULL_FIELDS = gql`
+//   fragment TileFullFields on BingoTile {
+//     id
+//     name
+//     value
+//     icon
+//     isComplete
+//     completedBy
+//     dateCompleted
+//     board
+//   }
+// `;
+
+// const SUBMISSION_FIELDS = gql`
+//   fragment SubmissionFields on TreasureSubmission {
+//     submissionId
+//     teamId
+//     nodeId
+//     submittedBy
+//     submittedByUsername
+//     channelId
+//     proofUrl
+//     status
+//     reviewedBy
+//     reviewedAt
+//     submittedAt
+//     team {
+//       teamId
+//       teamName
+//     }
+//   }
+// `;
+
+// const TEAM_SUMMARY_FIELDS = gql`
+//   fragment TeamSummaryFields on TreasureTeam {
+//     teamId
+//     teamName
+//     currentPot
+//     completedNodes
+//   }
+// `;
+
+// const TEAM_FULL_FIELDS = gql`
+//   fragment TeamFullFields on TreasureTeam {
+//     teamId
+//     teamName
+//     discordRoleId
+//     members
+//     currentPot
+//     keysHeld
+//     completedNodes
+//     availableNodes
+//     innTransactions
+//     activeBuffs
+//     buffHistory
+//   }
+// `;
+
+// const NODE_FIELDS = gql`
+//   fragment NodeFields on TreasureNode {
+//     nodeId
+//     nodeType
+//     title
+//     description
+//     coordinates
+//     mapLocation
+//     locationGroupId
+//     difficultyTier
+//     prerequisites
+//     unlocks
+//     paths
+//     objective
+//     rewards
+//     innTier
+//     availableRewards
+//   }
+// `;
+
+// ============================================================
+// USERS
+// ============================================================
+
 export const GET_USERS = gql`
-  query {
+  query GetUsers {
     getUsers {
       id
       admin
@@ -18,9 +152,9 @@ export const GET_USER = gql`
     getUser(id: $id) {
       id
       displayName
-      admin
       username
       rsn
+      admin
       discordUserId
       editorBoards {
         id
@@ -39,155 +173,6 @@ export const GET_USER = gql`
           isComplete
         }
       }
-    }
-  }
-`;
-
-export const GET_BOARD = gql`
-  query GetBingoBoard($id: ID!) {
-    getBingoBoard(id: $id) {
-      id
-      type
-      layout
-      category
-      isPublic
-      editors {
-        id
-        rsn
-        displayName
-        username
-      }
-      description
-      userId
-      name
-      theme
-      team
-      totalValue
-      totalValueCompleted
-      bonusSettings {
-        allowDiagonals
-        horizontalBonus
-        verticalBonus
-        diagonalBonus
-        blackoutBonus
-      }
-      tiles {
-        id
-        icon
-        name
-        isComplete
-        dateCompleted
-        completedBy
-        value
-      }
-    }
-  }
-`;
-
-export const GET_PUBLIC_BOARDS = gql`
-  query GetPublicBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
-    getPublicBoards(
-      limit: $limit
-      offset: $offset
-      category: $category
-      searchQuery: $searchQuery
-    ) {
-      boards {
-        id
-        category
-        name
-        layout
-        theme
-        tiles {
-          id
-          isComplete
-        }
-        editors {
-          displayName
-          username
-        }
-      }
-      totalCount
-    }
-  }
-`;
-
-export const GET_ALL_BOARDS = gql`
-  query GetAllBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
-    getAllBoards(limit: $limit, offset: $offset, category: $category, searchQuery: $searchQuery) {
-      boards {
-        id
-        category
-        name
-        isPublic
-        layout
-        theme
-        tiles {
-          id
-          isComplete
-        }
-        editors {
-          displayName
-          username
-        }
-      }
-      totalCount
-    }
-  }
-`;
-
-export const GET_PUBLIC_FEATURED_BOARDS = gql`
-  query GetFeaturedBoards($limit: Int, $offset: Int) {
-    getFeaturedBoards(limit: $limit, offset: $offset) {
-      boards {
-        id
-        category
-        name
-        layout
-        theme
-        tiles {
-          id
-          isComplete
-        }
-        editors {
-          displayName
-          username
-        }
-      }
-      totalCount
-    }
-  }
-`;
-
-export const GET_TILE = gql`
-  query GetBingoTile($id: ID!) {
-    getBingoTile(id: $id) {
-      id
-      name
-      isComplete
-      value
-      icon
-      dateCompleted
-      completedBy
-      board
-    }
-  }
-`;
-
-export const GET_PENDING_INVITATIONS = gql`
-  query {
-    pendingInvitations {
-      id
-      boardId
-      boardDetails {
-        name
-        id
-      }
-      inviterUser {
-        displayName
-        username
-      }
-      status
     }
   }
 `;
@@ -216,8 +201,170 @@ export const SEARCH_USERS_BY_IDS = gql`
   }
 `;
 
-export const LIST_CAL_EVENTS = gql`
-  query CalendarEvents($offset: Int, $limit: Int) {
+// ============================================================
+// BINGO BOARDS
+// ============================================================
+
+export const GET_BOARD = gql`
+  ${BONUS_SETTINGS_FIELDS}
+  query GetBingoBoard($id: ID!) {
+    getBingoBoard(id: $id) {
+      id
+      name
+      description
+      type
+      category
+      layout
+      isPublic
+      theme
+      userId
+      team
+      totalValue
+      totalValueCompleted
+      bonusSettings {
+        ...BonusSettingsFields
+      }
+      editors {
+        id
+        displayName
+        username
+        rsn
+      }
+      tiles {
+        id
+        name
+        value
+        icon
+        isComplete
+        completedBy
+        dateCompleted
+      }
+    }
+  }
+`;
+
+export const GET_PUBLIC_BOARDS = gql`
+  query GetPublicBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
+    getPublicBoards(
+      limit: $limit
+      offset: $offset
+      category: $category
+      searchQuery: $searchQuery
+    ) {
+      totalCount
+      boards {
+        id
+        name
+        category
+        layout
+        theme
+        tiles {
+          id
+          isComplete
+        }
+        editors {
+          displayName
+          username
+        }
+      }
+    }
+  }
+`;
+
+export const GET_ALL_BOARDS = gql`
+  query GetAllBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {
+    getAllBoards(limit: $limit, offset: $offset, category: $category, searchQuery: $searchQuery) {
+      totalCount
+      boards {
+        id
+        name
+        category
+        isPublic
+        layout
+        theme
+        tiles {
+          id
+          isComplete
+        }
+        editors {
+          displayName
+          username
+        }
+      }
+    }
+  }
+`;
+
+export const GET_FEATURED_BOARDS = gql`
+  query GetFeaturedBoards($limit: Int, $offset: Int) {
+    getFeaturedBoards(limit: $limit, offset: $offset) {
+      totalCount
+      boards {
+        id
+        name
+        category
+        layout
+        theme
+        tiles {
+          id
+          isComplete
+        }
+        editors {
+          displayName
+          username
+        }
+      }
+    }
+  }
+`;
+
+// ============================================================
+// BINGO TILES
+// ============================================================
+
+export const GET_TILE = gql`
+  query GetBingoTile($id: ID!) {
+    getBingoTile(id: $id) {
+      id
+      name
+      value
+      icon
+      isComplete
+      completedBy
+      dateCompleted
+      board
+    }
+  }
+`;
+
+// ============================================================
+// EDITOR INVITATIONS
+// ============================================================
+
+export const GET_PENDING_INVITATIONS = gql`
+  query GetPendingInvitations {
+    pendingInvitations {
+      id
+      boardId
+      status
+      boardDetails {
+        id
+        name
+      }
+      inviterUser {
+        displayName
+        username
+      }
+    }
+  }
+`;
+
+// ============================================================
+// CALENDAR EVENTS
+// ============================================================
+
+export const GET_CALENDAR_EVENTS = gql`
+  query GetCalendarEvents($offset: Int, $limit: Int) {
     calendarEvents(offset: $offset, limit: $limit) {
       totalCount
       items {
@@ -233,8 +380,8 @@ export const LIST_CAL_EVENTS = gql`
   }
 `;
 
-export const LIST_SAVED_CAL_EVENTS = gql`
-  query SavedCalendarEvents($offset: Int, $limit: Int) {
+export const GET_SAVED_CALENDAR_EVENTS = gql`
+  query GetSavedCalendarEvents($offset: Int, $limit: Int) {
     savedCalendarEvents(offset: $offset, limit: $limit) {
       totalCount
       items {
@@ -249,8 +396,8 @@ export const LIST_SAVED_CAL_EVENTS = gql`
   }
 `;
 
-export const CALENDAR_VERSION = gql`
-  query CalendarVersion {
+export const GET_CALENDAR_VERSION = gql`
+  query GetCalendarVersion {
     calendarVersion {
       lastUpdated
       totalCount
@@ -262,33 +409,44 @@ export const CALENDAR_VERSION = gql`
   }
 `;
 
+// ============================================================
+// GIELINOR RUSH: EVENTS
+// ============================================================
+
 export const GET_TREASURE_EVENT = gql`
   query GetTreasureEvent($eventId: ID!) {
     getTreasureEvent(eventId: $eventId) {
+      # Identity
       eventId
-      clanId
       eventName
+      eventPassword
       status
+      clanId
+
+      # Dates
       startDate
       endDate
+      createdAt
+      updatedAt
+
+      # Configuration
       eventConfig
       derivedValues
       contentSelections
       mapStructure
       discordConfig
+
+      # Ownership
       creatorId
-      createdAt
-      updatedAt
+      adminIds
       admins {
         id
         displayName
         username
       }
-      adminIds
-      eventPassword
+
+      # Teams (with full details)
       teams {
-        activeBuffs
-        buffHistory
         teamId
         teamName
         discordRoleId
@@ -297,6 +455,8 @@ export const GET_TREASURE_EVENT = gql`
         keysHeld
         completedNodes
         availableNodes
+        activeBuffs
+        buffHistory
         submissions {
           submissionId
           submittedByUsername
@@ -310,15 +470,17 @@ export const GET_TREASURE_EVENT = gql`
           submittedAt
         }
       }
+
+      # Nodes
       nodes {
         nodeId
         nodeType
         title
         description
         coordinates
+        mapLocation
         locationGroupId
         difficultyTier
-        mapLocation
         prerequisites
         unlocks
         paths
@@ -331,30 +493,13 @@ export const GET_TREASURE_EVENT = gql`
   }
 `;
 
-export const GET_TREASURE_TEAM = gql`
-  query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
-    getTreasureTeam(eventId: $eventId, teamId: $teamId) {
-      teamId
-      teamName
-      currentPot
-      keysHeld
-      members
-      completedNodes
-      availableNodes
-      innTransactions
-      activeBuffs
-      buffHistory
-    }
-  }
-`;
-
 export const GET_ALL_TREASURE_EVENTS = gql`
   query GetAllTreasureEvents($userId: ID) {
     getAllTreasureEvents(userId: $userId) {
       eventId
-      clanId
       eventName
       status
+      clanId
       startDate
       endDate
       creatorId
@@ -375,9 +520,9 @@ export const GET_MY_TREASURE_EVENTS = gql`
   query GetMyTreasureEvents {
     getMyTreasureEvents {
       eventId
-      clanId
       eventName
       status
+      clanId
       startDate
       endDate
       createdAt
@@ -391,6 +536,43 @@ export const GET_MY_TREASURE_EVENTS = gql`
     }
   }
 `;
+
+// ============================================================
+// GIELINOR RUSH: TEAMS
+// ============================================================
+
+export const GET_TREASURE_TEAM = gql`
+  query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
+    getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+      teamId
+      teamName
+      members
+      currentPot
+      keysHeld
+      completedNodes
+      availableNodes
+      innTransactions
+      activeBuffs
+      buffHistory
+    }
+  }
+`;
+
+export const GET_TREASURE_LEADERBOARD = gql`
+  query GetTreasureEventLeaderboard($eventId: ID!) {
+    getTreasureEventLeaderboard(eventId: $eventId) {
+      teamId
+      teamName
+      currentPot
+      completedNodes
+      keysHeld
+    }
+  }
+`;
+
+// ============================================================
+// GIELINOR RUSH: SUBMISSIONS
+// ============================================================
 
 export const GET_PENDING_SUBMISSIONS = gql`
   query GetPendingSubmissions($eventId: ID!) {
@@ -410,18 +592,6 @@ export const GET_PENDING_SUBMISSIONS = gql`
         teamId
         teamName
       }
-    }
-  }
-`;
-
-export const GET_TREASURE_EVENT_LEADERBOARD = gql`
-  query GetTreasureEventLeaderboard($eventId: ID!) {
-    getTreasureEventLeaderboard(eventId: $eventId) {
-      teamId
-      teamName
-      currentPot
-      completedNodes
-      keysHeld
     }
   }
 `;
@@ -447,6 +617,27 @@ export const GET_ALL_SUBMISSIONS = gql`
     }
   }
 `;
+
+// ============================================================
+// GIELINOR RUSH: ACTIVITY FEED
+// ============================================================
+
+export const GET_TREASURE_ACTIVITIES = gql`
+  query GetTreasureActivities($eventId: ID!, $limit: Int) {
+    getTreasureActivities(eventId: $eventId, limit: $limit) {
+      id
+      eventId
+      teamId
+      type
+      data
+      timestamp
+    }
+  }
+`;
+
+// ============================================================
+// ANALYTICS
+// ============================================================
 
 export const GET_VISIT_COUNT = gql`
   query GetVisitCount {

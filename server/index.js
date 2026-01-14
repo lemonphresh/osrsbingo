@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { makeExecutableSchema } = require('@graphql-tools/schema');
 const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
+const models = require('./db/models');
 const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
@@ -19,6 +20,7 @@ const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
 const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
+const { createLoaders } = require('./utils/dataLoaders');
 
 dotenv.config();
 
@@ -252,7 +254,7 @@ const server = new ApolloServer({
         console.error('❌ Invalid or expired token');
       }
     }
-    return { req, res, user, jwtSecret: SECRET, discordUserId };
+    return { req, res, user, jwtSecret: SECRET, discordUserId, loaders: createLoaders(models) };
   },
   formatResponse: (response) => {
     console.log('GraphQL Response:', response);
@@ -263,12 +265,25 @@ const server = new ApolloServer({
     return err;
   },
   plugins: [
-    ApolloServerPluginDrainHttpServer({ httpServer }), // 🔥 ADD THIS
+    ApolloServerPluginDrainHttpServer({ httpServer }),
     {
       async serverWillStart() {
         return {
           async drainServer() {
             await serverCleanup.dispose();
+          },
+        };
+      },
+    },
+    {
+      requestDidStart() {
+        const start = Date.now();
+        return {
+          willSendResponse({ operationName }) {
+            const duration = Date.now() - start;
+            if (duration > 500) {
+              console.warn(`⚠️ Slow query: ${operationName || 'anonymous'} took ${duration}ms`);
+            }
           },
         };
       },

@@ -1,3 +1,4 @@
+// server/graphql/resolvers/User.js
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -22,9 +23,7 @@ module.exports = {
         const token = jwt.sign(
           { userId: newUser.id, admin: newUser.admin, username: newUser.username },
           jwtSecret,
-          {
-            expiresIn: '7d',
-          }
+          { expiresIn: '7d' }
         );
 
         return {
@@ -40,9 +39,6 @@ module.exports = {
     },
 
     linkDiscordAccount: async (_, { userId, discordUserId }, context) => {
-      // Allow if:
-      // 1. User is authenticated AND it's their own account
-      // 2. User is authenticated AND they're an admin
       if (!context.user) {
         throw new AuthenticationError('Not authenticated');
       }
@@ -60,7 +56,6 @@ module.exports = {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
 
-        // Check if Discord ID is already linked to another account
         const existingLink = await User.findOne({ where: { discordUserId } });
         if (existingLink && existingLink.id !== parseInt(userId)) {
           throw new ApolloError(
@@ -75,7 +70,7 @@ module.exports = {
         return user;
       } catch (error) {
         console.error('Error linking Discord account:', error);
-        throw error; // Re-throw the original error
+        throw error;
       }
     },
 
@@ -109,19 +104,8 @@ module.exports = {
 
     loginUser: async (_, { username, password }, context) => {
       try {
-        const user = await User.findOne({
-          where: { username },
-          include: [
-            {
-              model: BingoBoard,
-              as: 'editorBoards',
-              include: [
-                { model: User, as: 'editors', required: false },
-                { model: BingoTile, as: 'tiles' },
-              ],
-            },
-          ],
-        });
+        // ✅ SIMPLIFIED: Just fetch user, field resolvers handle editorBoards
+        const user = await User.findOne({ where: { username } });
 
         if (!user) {
           throw new ApolloError('User not found', 'NOT_FOUND');
@@ -136,10 +120,7 @@ module.exports = {
           expiresIn: '7d',
         });
 
-        return {
-          user,
-          token,
-        };
+        return { user, token };
       } catch (error) {
         console.error('Error during login:', error);
         throw new ApolloError('Failed to log in user');
@@ -148,18 +129,8 @@ module.exports = {
 
     updateUser: async (_, { id, input }) => {
       try {
-        const user = await User.findByPk(id, {
-          include: [
-            {
-              model: BingoBoard,
-              as: 'editorBoards',
-              include: [
-                { model: User, as: 'editors', required: false },
-                { model: BingoTile, as: 'tiles' },
-              ],
-            },
-          ],
-        });
+        // ✅ SIMPLIFIED: Just fetch user, field resolvers handle editorBoards
+        const user = await User.findByPk(id);
 
         if (!user) {
           throw new ApolloError('User not found', 'NOT_FOUND');
@@ -183,14 +154,13 @@ module.exports = {
         throw new ApolloError('Failed to update user');
       }
     },
+
     deleteUser: async (_, { id }, context) => {
       try {
-        // Ensure the requester is authenticated and is an admin
         if (!context.user || !context.user.admin || context.user.id === id) {
           throw new ApolloError('Unauthorized to delete user', 'UNAUTHORIZED');
         }
 
-        // Find the user to be deleted
         const user = await User.findByPk(id, {
           include: [
             { model: BingoBoard, as: 'bingoBoards', include: { model: BingoTile, as: 'tiles' } },
@@ -202,15 +172,13 @@ module.exports = {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
 
-        // Delete all bingo boards created by the user, including their tiles
         if (user.bingoBoards && user.bingoBoards.length > 0) {
           for (const board of user.bingoBoards) {
-            await BingoTile.destroy({ where: { board: board.id } }); // Delete tiles of the board
-            await board.destroy(); // Delete the board itself
+            await BingoTile.destroy({ where: { board: board.id } });
+            await board.destroy();
           }
         }
 
-        // Delete the user
         await user.destroy();
 
         return {
@@ -225,20 +193,10 @@ module.exports = {
   },
 
   Query: {
+    // ✅ SIMPLIFIED: Just fetch user, field resolvers handle editorBoards
     getUser: async (_, { id }) => {
       try {
-        const user = await User.findByPk(id, {
-          include: [
-            {
-              model: BingoBoard,
-              as: 'editorBoards',
-              include: [
-                { model: User, as: 'editors', required: false },
-                { model: BingoTile, as: 'tiles' },
-              ],
-            },
-          ],
-        });
+        const user = await User.findByPk(id);
 
         if (!user) {
           throw new ApolloError('User not found', 'NOT_FOUND');
@@ -250,6 +208,7 @@ module.exports = {
         throw new ApolloError('Failed to fetch user');
       }
     },
+
     getUserByDiscordId: async (_, { discordUserId }) => {
       try {
         const user = await User.findOne({
@@ -264,20 +223,10 @@ module.exports = {
       }
     },
 
+    // ✅ SIMPLIFIED: Just fetch users, field resolvers handle editorBoards
     getUsers: async () => {
       try {
-        return await User.findAll({
-          include: [
-            {
-              model: BingoBoard,
-              as: 'editorBoards',
-              include: [
-                { model: User, as: 'editors', required: false },
-                { model: BingoTile, as: 'tiles' },
-              ],
-            },
-          ],
-        });
+        return await User.findAll();
       } catch (error) {
         console.error('Error fetching users:', error);
         throw new ApolloError('Failed to fetch users');
@@ -319,9 +268,7 @@ module.exports = {
 
       try {
         return await User.findAll({
-          where: {
-            id: { [Op.in]: ids },
-          },
+          where: { id: { [Op.in]: ids } },
         });
       } catch (error) {
         console.error('Error fetching users by IDs:', error);

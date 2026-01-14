@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   HStack,
   Button,
@@ -6,7 +6,6 @@ import {
   IconButton,
   Text,
   Flex,
-  Heading,
   Spinner,
   useDisclosure,
   useToast,
@@ -21,7 +20,11 @@ import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import Toolbar from '../organisms/CalendarToolbar';
 import PasswordGate from '../organisms/PasswordGate';
 import EventFormModal from '../organisms/EventFormModal';
-import { LIST_CAL_EVENTS, LIST_SAVED_CAL_EVENTS, CALENDAR_VERSION } from '../graphql/queries';
+import {
+  GET_CALENDAR_EVENTS,
+  GET_SAVED_CALENDAR_EVENTS,
+  GET_CALENDAR_VERSION,
+} from '../graphql/queries';
 import {
   AUTHENTICATE_CALENDAR,
   CREATE_CAL_EVENT,
@@ -131,7 +134,7 @@ export default function CalendarPage() {
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0 });
 
   // --- LIGHTWEIGHT AUTH CHECK ---
-  const [checkAuth, { loading: authLoading }] = useLazyQuery(LIST_CAL_EVENTS, {
+  const [checkAuth, { loading: authLoading }] = useLazyQuery(GET_CALENDAR_EVENTS, {
     variables: { limit: 1, offset: 0 },
     fetchPolicy: 'network-only',
     onCompleted: () => {
@@ -154,7 +157,7 @@ export default function CalendarPage() {
   }, []);
 
   // --- MAIN EVENTS QUERY (only when authed) ---
-  const { data, loading, error, refetch } = useQuery(LIST_CAL_EVENTS, {
+  const { data, loading, refetch } = useQuery(GET_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
     onError: (e) => {
@@ -172,7 +175,7 @@ export default function CalendarPage() {
   });
   const [hasDrift, setHasDrift] = useState(false);
 
-  const { data: verData } = useQuery(CALENDAR_VERSION, {
+  const { data: verData } = useQuery(GET_CALENDAR_VERSION, {
     skip: !authed,
     pollInterval: 15000, // 15s; tune as you like
     fetchPolicy: 'network-only',
@@ -205,9 +208,8 @@ export default function CalendarPage() {
   const {
     data: savedData,
     loading: savedLoading,
-    error: savedError,
     refetch: refetchSaved,
-  } = useQuery(LIST_SAVED_CAL_EVENTS, {
+  } = useQuery(GET_SAVED_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
     onError: (e) => {

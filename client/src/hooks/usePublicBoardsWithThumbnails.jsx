@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { GET_PUBLIC_BOARDS, GET_PUBLIC_FEATURED_BOARDS } from '../graphql/queries';
+import { GET_PUBLIC_BOARDS, GET_FEATURED_BOARDS } from '../graphql/queries';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
 
 const usePublicBoardsWithThumbnails = ({
@@ -25,7 +25,7 @@ const usePublicBoardsWithThumbnails = ({
     fetchPolicy: 'cache-and-network',
   });
 
-  const { data: featuredData } = useQuery(GET_PUBLIC_FEATURED_BOARDS, {
+  const { data: featuredData } = useQuery(GET_FEATURED_BOARDS, {
     variables: { limit: 4, offset: 0 },
     fetchPolicy: 'cache-first', // featured boards don't change often
   });

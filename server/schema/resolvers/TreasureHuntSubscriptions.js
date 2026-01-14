@@ -1,23 +1,26 @@
-const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
+const { pubsub } = require('../pubsub');
 
 module.exports = {
   Subscription: {
     submissionAdded: {
       subscribe: (_, args) => {
-        console.log('🔥 Subscribing to SUBMISSION_ADDED');
-        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.SUBMISSION_ADDED);
+        const topic = `SUBMISSION_ADDED_${args.eventId}`;
+        console.log('🔥 Subscribing to:', topic);
+        return pubsub.asyncIterableIterator(topic);
       },
     },
     submissionReviewed: {
       subscribe: (_, args) => {
-        console.log('🔥 Subscribing to SUBMISSION_REVIEWED');
-        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.SUBMISSION_REVIEWED);
+        const topic = `SUBMISSION_REVIEWED_${args.eventId}`;
+        console.log('🔥 Subscribing to:', topic);
+        return pubsub.asyncIterableIterator(topic);
       },
     },
     nodeCompleted: {
       subscribe: (_, args) => {
-        console.log('🔥 Subscribing to NODE_COMPLETED');
-        return pubsub.asyncIterableIterator(SUBMISSION_TOPICS.NODE_COMPLETED);
+        const topic = `NODE_COMPLETED_${args.eventId}`;
+        console.log('🔥 Subscribing to:', topic);
+        return pubsub.asyncIterableIterator(topic);
       },
     },
     treasureHuntActivity: {
