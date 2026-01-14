@@ -93,6 +93,7 @@ const AuthProvider = ({ children }) => {
     // Token is valid, set userId to trigger user fetch
     setUserId(decoded.userId);
     hasShownAuthErrorRef.current = false; // Reset error flag on valid token
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount - removing showAuthToast and clearAuthState from deps intentionally
 
   // Fetch user data when we have a valid userId

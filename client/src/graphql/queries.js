@@ -4,43 +4,43 @@ import { gql } from '@apollo/client';
 // FRAGMENTS (Reusable field selections)
 // ============================================================
 
-const USER_BASIC_FIELDS = gql`
-  fragment UserBasicFields on User {
-    id
-    displayName
-    username
-    rsn
-  }
-`;
+// const USER_BASIC_FIELDS = gql`
+//   fragment UserBasicFields on User {
+//     id
+//     displayName
+//     username
+//     rsn
+//   }
+// `;
 
-const USER_ADMIN_FIELDS = gql`
-  fragment UserAdminFields on User {
-    id
-    admin
-    displayName
-    username
-    rsn
-    permissions
-  }
-`;
+// const USER_ADMIN_FIELDS = gql`
+//   fragment UserAdminFields on User {
+//     id
+//     admin
+//     displayName
+//     username
+//     rsn
+//     permissions
+//   }
+// `;
 
-const BOARD_CARD_FIELDS = gql`
-  fragment BoardCardFields on BingoBoard {
-    id
-    name
-    category
-    layout
-    theme
-    tiles {
-      id
-      isComplete
-    }
-    editors {
-      displayName
-      username
-    }
-  }
-`;
+// const BOARD_CARD_FIELDS = gql`
+//   fragment BoardCardFields on BingoBoard {
+//     id
+//     name
+//     category
+//     layout
+//     theme
+//     tiles {
+//       id
+//       isComplete
+//     }
+//     editors {
+//       displayName
+//       username
+//     }
+//   }
+// `;
 
 const BONUS_SETTINGS_FIELDS = gql`
   fragment BonusSettingsFields on BonusSettings {
@@ -52,83 +52,83 @@ const BONUS_SETTINGS_FIELDS = gql`
   }
 `;
 
-const TILE_FULL_FIELDS = gql`
-  fragment TileFullFields on BingoTile {
-    id
-    name
-    value
-    icon
-    isComplete
-    completedBy
-    dateCompleted
-    board
-  }
-`;
+// const TILE_FULL_FIELDS = gql`
+//   fragment TileFullFields on BingoTile {
+//     id
+//     name
+//     value
+//     icon
+//     isComplete
+//     completedBy
+//     dateCompleted
+//     board
+//   }
+// `;
 
-const SUBMISSION_FIELDS = gql`
-  fragment SubmissionFields on TreasureSubmission {
-    submissionId
-    teamId
-    nodeId
-    submittedBy
-    submittedByUsername
-    channelId
-    proofUrl
-    status
-    reviewedBy
-    reviewedAt
-    submittedAt
-    team {
-      teamId
-      teamName
-    }
-  }
-`;
+// const SUBMISSION_FIELDS = gql`
+//   fragment SubmissionFields on TreasureSubmission {
+//     submissionId
+//     teamId
+//     nodeId
+//     submittedBy
+//     submittedByUsername
+//     channelId
+//     proofUrl
+//     status
+//     reviewedBy
+//     reviewedAt
+//     submittedAt
+//     team {
+//       teamId
+//       teamName
+//     }
+//   }
+// `;
 
-const TEAM_SUMMARY_FIELDS = gql`
-  fragment TeamSummaryFields on TreasureTeam {
-    teamId
-    teamName
-    currentPot
-    completedNodes
-  }
-`;
+// const TEAM_SUMMARY_FIELDS = gql`
+//   fragment TeamSummaryFields on TreasureTeam {
+//     teamId
+//     teamName
+//     currentPot
+//     completedNodes
+//   }
+// `;
 
-const TEAM_FULL_FIELDS = gql`
-  fragment TeamFullFields on TreasureTeam {
-    teamId
-    teamName
-    discordRoleId
-    members
-    currentPot
-    keysHeld
-    completedNodes
-    availableNodes
-    innTransactions
-    activeBuffs
-    buffHistory
-  }
-`;
+// const TEAM_FULL_FIELDS = gql`
+//   fragment TeamFullFields on TreasureTeam {
+//     teamId
+//     teamName
+//     discordRoleId
+//     members
+//     currentPot
+//     keysHeld
+//     completedNodes
+//     availableNodes
+//     innTransactions
+//     activeBuffs
+//     buffHistory
+//   }
+// `;
 
-const NODE_FIELDS = gql`
-  fragment NodeFields on TreasureNode {
-    nodeId
-    nodeType
-    title
-    description
-    coordinates
-    mapLocation
-    locationGroupId
-    difficultyTier
-    prerequisites
-    unlocks
-    paths
-    objective
-    rewards
-    innTier
-    availableRewards
-  }
-`;
+// const NODE_FIELDS = gql`
+//   fragment NodeFields on TreasureNode {
+//     nodeId
+//     nodeType
+//     title
+//     description
+//     coordinates
+//     mapLocation
+//     locationGroupId
+//     difficultyTier
+//     prerequisites
+//     unlocks
+//     paths
+//     objective
+//     rewards
+//     innTier
+//     availableRewards
+//   }
+// `;
 
 // ============================================================
 // USERS

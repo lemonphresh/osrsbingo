@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   HStack,
   Button,
@@ -6,7 +6,6 @@ import {
   IconButton,
   Text,
   Flex,
-  Heading,
   Spinner,
   useDisclosure,
   useToast,
@@ -158,7 +157,7 @@ export default function CalendarPage() {
   }, []);
 
   // --- MAIN EVENTS QUERY (only when authed) ---
-  const { data, loading, error, refetch } = useQuery(GET_CALENDAR_EVENTS, {
+  const { data, loading, refetch } = useQuery(GET_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
     onError: (e) => {
@@ -209,7 +208,6 @@ export default function CalendarPage() {
   const {
     data: savedData,
     loading: savedLoading,
-    error: savedError,
     refetch: refetchSaved,
   } = useQuery(GET_SAVED_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',

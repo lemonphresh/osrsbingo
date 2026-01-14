@@ -14,46 +14,46 @@ const BONUS_SETTINGS_FIELDS = gql`
   }
 `;
 
-const USER_BASIC_FIELDS = gql`
-  fragment UserBasicFields on User {
-    id
-    displayName
-    username
-    rsn
-  }
-`;
+// const USER_BASIC_FIELDS = gql`
+//   fragment UserBasicFields on User {
+//     id
+//     displayName
+//     username
+//     rsn
+//   }
+// `;
 
-const BOARD_BASIC_FIELDS = gql`
-  fragment BoardBasicFields on BingoBoard {
-    id
-    name
-    category
-    type
-    description
-    layout
-    isPublic
-    theme
-  }
-`;
+// const BOARD_BASIC_FIELDS = gql`
+//   fragment BoardBasicFields on BingoBoard {
+//     id
+//     name
+//     category
+//     type
+//     description
+//     layout
+//     isPublic
+//     theme
+//   }
+// `;
 
-const TEAM_PROGRESS_FIELDS = gql`
-  fragment TeamProgressFields on TreasureTeam {
-    teamId
-    teamName
-    currentPot
-    keysHeld
-    completedNodes
-    availableNodes
-  }
-`;
+// const TEAM_PROGRESS_FIELDS = gql`
+//   fragment TeamProgressFields on TreasureTeam {
+//     teamId
+//     teamName
+//     currentPot
+//     keysHeld
+//     completedNodes
+//     availableNodes
+//   }
+// `;
 
-const TEAM_BUFF_FIELDS = gql`
-  fragment TeamBuffFields on TreasureTeam {
-    teamId
-    activeBuffs
-    buffHistory
-  }
-`;
+// const TEAM_BUFF_FIELDS = gql`
+//   fragment TeamBuffFields on TreasureTeam {
+//     teamId
+//     activeBuffs
+//     buffHistory
+//   }
+// `;
 
 // ============================================================
 // USER & AUTHENTICATION
