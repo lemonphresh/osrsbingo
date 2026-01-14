@@ -1,15 +1,11 @@
 // server/utils/dataLoaders.js
 const DataLoader = require('dataloader');
 const { Op } = require('sequelize');
+const { nodeCache } = require('./nodeCache');
 
-/**
- * Creates fresh DataLoader instances for each request.
- *
- * IMPORTANT: DataLoader batch functions must:
- * 1. Return an array the SAME LENGTH as input keys
- * 2. Return items in the SAME ORDER as input keys
- * 3. Return null for missing items (not undefined)
- */
+const DEBUG = process.env.NODE_ENV !== 'production';
+const log = (msg) => DEBUG && console.log(msg);
+
 const createLoaders = (models) => {
   const {
     User,
@@ -26,32 +22,26 @@ const createLoaders = (models) => {
     // USER LOADERS
     // ============================================================
 
-    /**
-     * Load users by ID
-     * Usage: loaders.userById.load(userId)
-     */
     userById: new DataLoader(async (userIds) => {
-      console.log(`📦 Batching ${userIds.length} user lookups`);
+      log(`📦 Batching ${userIds.length} user lookups`);
 
       const users = await User.findAll({
         where: { id: { [Op.in]: userIds } },
         attributes: ['id', 'displayName', 'username', 'rsn', 'discordUserId', 'admin'],
+        raw: true, // ✅ Skip Sequelize model instantiation
       });
 
       const userMap = new Map(users.map((u) => [u.id.toString(), u]));
       return userIds.map((id) => userMap.get(id.toString()) || null);
     }),
 
-    /**
-     * Load user by Discord ID
-     * Usage: loaders.userByDiscordId.load(discordUserId)
-     */
     userByDiscordId: new DataLoader(async (discordUserIds) => {
-      console.log(`📦 Batching ${discordUserIds.length} Discord user lookups`);
+      log(`📦 Batching ${discordUserIds.length} Discord user lookups`);
 
       const users = await User.findAll({
         where: { discordUserId: { [Op.in]: discordUserIds } },
         attributes: ['id', 'displayName', 'username', 'rsn', 'discordUserId'],
+        raw: true,
       });
 
       const userMap = new Map(users.map((u) => [u.discordUserId, u]));
@@ -62,14 +52,9 @@ const createLoaders = (models) => {
     // BINGO BOARD LOADERS
     // ============================================================
 
-    /**
-     * Load bingo boards by user ID (boards user can edit)
-     * Usage: loaders.boardsByUserId.load(userId)
-     */
     boardsByUserId: new DataLoader(async (userIds) => {
-      console.log(`📦 Batching boards for ${userIds.length} users`);
+      log(`📦 Batching boards for ${userIds.length} users`);
 
-      // This requires a join through the editors association
       const users = await User.findAll({
         where: { id: { [Op.in]: userIds } },
         include: [
@@ -89,15 +74,12 @@ const createLoaders = (models) => {
       return userIds.map((id) => boardsMap.get(id.toString()) || []);
     }),
 
-    /**
-     * Load tiles by board ID
-     * Usage: loaders.tilesByBoardId.load(boardId)
-     */
     tilesByBoardId: new DataLoader(async (boardIds) => {
-      console.log(`📦 Batching tiles for ${boardIds.length} boards`);
+      log(`📦 Batching tiles for ${boardIds.length} boards`);
 
       const tiles = await BingoTile.findAll({
         where: { board: { [Op.in]: boardIds } },
+        raw: true,
       });
 
       const tilesMap = new Map();
@@ -111,12 +93,8 @@ const createLoaders = (models) => {
       return boardIds.map((id) => tilesMap.get(id.toString()) || []);
     }),
 
-    /**
-     * Load editors by board ID
-     * Usage: loaders.editorsByBoardId.load(boardId)
-     */
     editorsByBoardId: new DataLoader(async (boardIds) => {
-      console.log(`📦 Batching editors for ${boardIds.length} boards`);
+      log(`📦 Batching editors for ${boardIds.length} boards`);
 
       const boards = await BingoBoard.findAll({
         where: { id: { [Op.in]: boardIds } },
@@ -141,12 +119,8 @@ const createLoaders = (models) => {
     // TREASURE EVENT LOADERS
     // ============================================================
 
-    /**
-     * Load treasure event by ID
-     * Usage: loaders.treasureEventById.load(eventId)
-     */
     treasureEventById: new DataLoader(async (eventIds) => {
-      console.log(`📦 Batching ${eventIds.length} treasure events`);
+      log(`📦 Batching ${eventIds.length} treasure events`);
 
       const events = await TreasureEvent.findAll({
         where: { eventId: { [Op.in]: eventIds } },
@@ -156,12 +130,8 @@ const createLoaders = (models) => {
       return eventIds.map((id) => eventMap.get(id) || null);
     }),
 
-    /**
-     * Load teams by event ID
-     * Usage: loaders.teamsByEventId.load(eventId)
-     */
     teamsByEventId: new DataLoader(async (eventIds) => {
-      console.log(`📦 Batching teams for ${eventIds.length} events`);
+      log(`📦 Batching teams for ${eventIds.length} events`);
 
       const teams = await TreasureTeam.findAll({
         where: { eventId: { [Op.in]: eventIds } },
@@ -179,40 +149,62 @@ const createLoaders = (models) => {
     }),
 
     /**
-     * Load nodes by event ID
-     * Usage: loaders.nodesByEventId.load(eventId)
+     * ✅ OPTIMIZED: Nodes with in-memory caching
+     * Nodes rarely change - cache aggressively
      */
     nodesByEventId: new DataLoader(async (eventIds) => {
-      console.log(`📦 Batching nodes for ${eventIds.length} events`);
+      log(`📦 Batching nodes for ${eventIds.length} events`);
 
-      const nodes = await TreasureNode.findAll({
-        where: { eventId: { [Op.in]: eventIds } },
+      // Check cache first for each eventId
+      const results = new Map();
+      const uncachedIds = [];
+
+      eventIds.forEach((id) => {
+        const cached = nodeCache.get(`nodes:${id}`);
+        if (cached) {
+          results.set(id, cached);
+        } else {
+          uncachedIds.push(id);
+        }
       });
 
-      const nodesMap = new Map();
-      eventIds.forEach((id) => nodesMap.set(id, []));
+      // Fetch uncached from DB
+      if (uncachedIds.length > 0) {
+        log(`  ↳ Cache miss for ${uncachedIds.length} events, fetching from DB`);
 
-      nodes.forEach((node) => {
-        const arr = nodesMap.get(node.eventId);
-        if (arr) arr.push(node);
-      });
+        const nodes = await TreasureNode.findAll({
+          where: { eventId: { [Op.in]: uncachedIds } },
+          raw: true, // ✅ Faster - skip model instantiation
+        });
 
-      return eventIds.map((id) => nodesMap.get(id) || []);
+        // Group by eventId
+        const nodesMap = new Map();
+        uncachedIds.forEach((id) => nodesMap.set(id, []));
+
+        nodes.forEach((node) => {
+          const arr = nodesMap.get(node.eventId);
+          if (arr) arr.push(node);
+        });
+
+        // Cache and add to results
+        uncachedIds.forEach((id) => {
+          const eventNodes = nodesMap.get(id) || [];
+          nodeCache.set(`nodes:${id}`, eventNodes);
+          results.set(id, eventNodes);
+        });
+      }
+
+      return eventIds.map((id) => results.get(id) || []);
     }),
 
     // ============================================================
     // TREASURE TEAM LOADERS
     // ============================================================
 
-    /**
-     * Load team by composite key (teamId + eventId)
-     * Usage: loaders.teamByCompositeKey.load({ teamId, eventId })
-     */
     teamByCompositeKey: new DataLoader(
       async (keys) => {
-        console.log(`📦 Batching ${keys.length} team lookups by composite key`);
+        log(`📦 Batching ${keys.length} team lookups by composite key`);
 
-        // Build OR conditions for each key pair
         const conditions = keys.map((k) => ({
           teamId: k.teamId,
           eventId: k.eventId,
@@ -222,31 +214,38 @@ const createLoaders = (models) => {
           where: { [Op.or]: conditions },
         });
 
-        // Create a map with composite key
         const teamMap = new Map();
         teams.forEach((team) => {
-          const key = `${team.teamId}:${team.eventId}`;
-          teamMap.set(key, team);
+          teamMap.set(`${team.teamId}:${team.eventId}`, team);
         });
 
         return keys.map((k) => teamMap.get(`${k.teamId}:${k.eventId}`) || null);
       },
-      {
-        // Custom cache key function for object keys
-        cacheKeyFn: (key) => `${key.teamId}:${key.eventId}`,
-      }
+      { cacheKeyFn: (key) => `${key.teamId}:${key.eventId}` }
     ),
 
     /**
-     * Load submissions by team ID
-     * Usage: loaders.submissionsByTeamId.load(teamId)
+     * ✅ OPTIMIZED: Only fetch needed fields for submissions list
      */
     submissionsByTeamId: new DataLoader(async (teamIds) => {
-      console.log(`📦 Batching submissions for ${teamIds.length} teams`);
+      log(`📦 Batching submissions for ${teamIds.length} teams`);
 
       const submissions = await TreasureSubmission.findAll({
         where: { teamId: { [Op.in]: teamIds } },
+        attributes: [
+          'submissionId',
+          'teamId',
+          'nodeId',
+          'status',
+          'submittedBy',
+          'submittedByUsername',
+          'submittedAt',
+          'proofUrl',
+          'reviewedBy',
+          'reviewedAt',
+        ],
         order: [['submittedAt', 'DESC']],
+        raw: true,
       });
 
       const subsMap = new Map();
@@ -264,12 +263,8 @@ const createLoaders = (models) => {
     // TREASURE SUBMISSION LOADERS
     // ============================================================
 
-    /**
-     * Load submission by ID
-     * Usage: loaders.submissionById.load(submissionId)
-     */
     submissionById: new DataLoader(async (submissionIds) => {
-      console.log(`📦 Batching ${submissionIds.length} submissions`);
+      log(`📦 Batching ${submissionIds.length} submissions`);
 
       const submissions = await TreasureSubmission.findAll({
         where: { submissionId: { [Op.in]: submissionIds } },
@@ -279,12 +274,8 @@ const createLoaders = (models) => {
       return submissionIds.map((id) => subMap.get(id) || null);
     }),
 
-    /**
-     * Load team for a submission
-     * Usage: loaders.teamForSubmission.load(teamId)
-     */
     teamForSubmission: new DataLoader(async (teamIds) => {
-      console.log(`📦 Batching teams for ${teamIds.length} submissions`);
+      log(`📦 Batching teams for ${teamIds.length} submissions`);
 
       const teams = await TreasureTeam.findAll({
         where: { teamId: { [Op.in]: teamIds } },
@@ -298,15 +289,12 @@ const createLoaders = (models) => {
     // TREASURE NODE LOADERS
     // ============================================================
 
-    /**
-     * Load node by ID
-     * Usage: loaders.nodeById.load(nodeId)
-     */
     nodeById: new DataLoader(async (nodeIds) => {
-      console.log(`📦 Batching ${nodeIds.length} nodes`);
+      log(`📦 Batching ${nodeIds.length} nodes`);
 
       const nodes = await TreasureNode.findAll({
         where: { nodeId: { [Op.in]: nodeIds } },
+        raw: true,
       });
 
       const nodeMap = new Map(nodes.map((n) => [n.nodeId, n]));

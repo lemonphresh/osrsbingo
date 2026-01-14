@@ -17,6 +17,7 @@ const {
   sendNodeCompletionNotification,
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
+const { invalidateEventNodes } = require('../../utils/nodeCache');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -329,6 +330,7 @@ const TreasureHuntResolvers = {
         }
 
         await transaction.commit();
+        invalidateEventNodes(eventId); // invalidates node cache
         return TreasureEvent.findByPk(eventId);
       } catch (error) {
         if (transaction && !transaction.finished) await transaction.rollback();
@@ -361,6 +363,7 @@ const TreasureHuntResolvers = {
     deleteTreasureEvent: async (_, { eventId }) => {
       const event = await TreasureEvent.findByPk(eventId);
       if (!event) throw new Error('Event not found');
+      invalidateEventNodes(eventId); // invalidates node cache
       await event.destroy();
       return { success: true, message: 'Event deleted successfully' };
     },

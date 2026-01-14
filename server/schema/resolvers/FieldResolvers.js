@@ -1,9 +1,10 @@
-// server/graphql/resolvers/fieldResolvers.js
-//
-// These field resolvers tell GraphQL how to resolve nested fields.
-// They use DataLoaders to batch and cache database lookups.
-//
-// Add these to your combined resolvers in index.js
+const DEFAULT_BONUS_SETTINGS = {
+  allowDiagonals: false,
+  horizontalBonus: 0,
+  verticalBonus: 0,
+  diagonalBonus: 0,
+  blackoutBonus: 0,
+};
 
 const fieldResolvers = {
   // ============================================================
@@ -25,6 +26,10 @@ const fieldResolvers = {
 
     editors: async (board, _, { loaders }) => {
       return loaders.editorsByBoardId.load(board.id.toString());
+    },
+
+    bonusSettings: (board) => {
+      return board.bonusSettings ?? DEFAULT_BONUS_SETTINGS;
     },
   },
 
