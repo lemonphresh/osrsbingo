@@ -160,7 +160,7 @@ const Landing = () => {
               backgroundColor={theme.colors.orange[500]}
               _hover={{ backgroundColor: theme.colors.orange[600] }}
             >
-              Learn More
+              Get Started
             </Button>
           </Link>
         </Box>

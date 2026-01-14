@@ -1,81 +1,51 @@
 const { gql } = require('graphql-tag');
 
 const typeDefs = gql`
+  # ============================================================
+  # SCALARS
+  # ============================================================
+
   scalar DateTime
   scalar JSON
 
-  enum CalendarEventType {
-    PVM
-    MASS
-    SKILLING
-    MISC
-    MIXED_CONTENT
-  }
-
-  enum CalendarEventStatus {
-    ACTIVE
-    SAVED
-  }
+  # ============================================================
+  # USER & AUTHENTICATION
+  # ============================================================
 
   type User {
     id: ID!
-    admin: Boolean
     username: String!
     displayName: String!
-    discordUserId: String
     rsn: String
+    discordUserId: String
+    admin: Boolean
     permissions: [String]
     token: String
     teams: [String]
     editorBoards: [BingoBoard!]!
   }
 
-  input CreateBingoBoardInput {
-    type: BingoBoardType!
-    category: BingoBoardCategory
-    name: String!
-    editors: [ID!]
-    description: String
-    layout: [[Int!]!]
-    isPublic: Boolean
-    team: Int
-    totalValue: Int!
-    totalValueCompleted: Int!
-    bonusSettings: BonusSettingsInput!
-    userId: ID!
-    baseTileValue: Int
-    theme: String
+  type AuthPayload {
+    user: User
+    token: String
   }
 
-  type EditorInvitation {
-    id: ID!
-    boardId: ID!
-    invitedUser: User!
-    inviterUser: User!
-    status: String!
-    createdAt: String!
-    updatedAt: String!
-    boardDetails: BingoBoard!
+  input UserUpdateInput {
+    username: String
+    displayName: String
+    password: String
+    rsn: String
+    admin: Boolean
   }
 
-  type BingoBoard {
-    id: ID!
-    category: BingoBoardCategory!
-    createdAt: String
-    type: BingoBoardType!
-    layout: [[ID]]! # 2D array of BingoTile IDs
-    isPublic: Boolean!
-    name: String!
-    description: String
-    editors: [User!]!
-    team: ID
-    userId: ID!
-    totalValue: Int!
-    totalValueCompleted: Int!
-    bonusSettings: BonusSettings!
-    tiles: [BingoTile!]! # Populated with full tile details
-    theme: String
+  type DeleteUserResponse {
+    success: Boolean!
+    message: String!
   }
+
+  # ============================================================
+  # BINGO BOARDS
+  # ============================================================
 
   enum BingoBoardType {
     FIVE
@@ -91,6 +61,36 @@ const typeDefs = gql`
     Other
   }
 
+  type BingoBoard {
+    id: ID!
+    name: String!
+    description: String
+    type: BingoBoardType!
+    category: BingoBoardCategory!
+    layout: [[ID]]!
+    tiles: [BingoTile!]!
+    isPublic: Boolean!
+    theme: String
+    userId: ID!
+    editors: [User!]!
+    team: ID
+    totalValue: Int!
+    totalValueCompleted: Int!
+    bonusSettings: BonusSettings!
+    createdAt: String
+  }
+
+  type BingoTile {
+    id: ID!
+    board: ID!
+    name: String!
+    value: Int!
+    icon: String
+    isComplete: Boolean!
+    completedBy: String
+    dateCompleted: String
+  }
+
   type BonusSettings {
     allowDiagonals: Boolean
     horizontalBonus: Float
@@ -99,33 +99,47 @@ const typeDefs = gql`
     blackoutBonus: Int
   }
 
-  type AuthPayload {
-    user: User
-    token: String
+  type PaginatedBoards {
+    boards: [BingoBoard!]!
+    totalCount: Int!
   }
 
-  type BingoTile {
-    id: ID!
-    isComplete: Boolean!
+  # Bingo Board Inputs
+  input CreateBingoBoardInput {
     name: String!
+    type: BingoBoardType!
+    category: BingoBoardCategory
+    description: String
+    layout: [[Int!]!]
+    isPublic: Boolean
+    theme: String
+    userId: ID!
+    editors: [ID!]
+    team: Int
+    totalValue: Int!
+    totalValueCompleted: Int!
+    baseTileValue: Int
+    bonusSettings: BonusSettingsInput!
+  }
+
+  input UpdateBingoBoardInput {
+    name: String
+    type: String
+    category: BingoBoardCategory
+    description: String
+    layout: [[Int!]!]
+    isPublic: Boolean
+    theme: String
+    bonusSettings: BonusSettingsInput
+  }
+
+  input UpdateBingoTileInput {
+    name: String
+    value: Int
     icon: String
-    dateCompleted: String
+    isComplete: Boolean
     completedBy: String
-    board: ID!
-    value: Int!
-  }
-
-  type MutationResponse {
-    success: Boolean!
-    message: String
-  }
-
-  input UserUpdateInput {
-    username: String
-    admin: Boolean
-    displayName: String
-    password: String
-    rsn: String
+    dateCompleted: String
   }
 
   input BonusSettingsInput {
@@ -136,67 +150,42 @@ const typeDefs = gql`
     blackoutBonus: Int!
   }
 
-  input UpdateBingoTileInput {
-    name: String
-    isComplete: Boolean
-    value: Int
-    icon: String
-    dateCompleted: String
-    completedBy: String
-  }
+  # ============================================================
+  # EDITOR INVITATIONS
+  # ============================================================
 
-  input UpdateBingoBoardInput {
-    name: String
-    category: BingoBoardCategory
-    type: String
-    description: String
-    layout: [[Int!]!]
-    isPublic: Boolean
-    theme: String
-    bonusSettings: BonusSettingsInput
-  }
-
-  type PaginatedBoards {
-    boards: [BingoBoard!]!
-    totalCount: Int!
+  type EditorInvitation {
+    id: ID!
+    boardId: ID!
+    invitedUser: User!
+    inviterUser: User!
+    status: String!
+    boardDetails: BingoBoard!
+    createdAt: String!
+    updatedAt: String!
   }
 
   type BatchInvitationResponse {
     success: Boolean!
     message: String
-    failedUserIds: [ID!] # Optional: IDs for users whose invitations failed
+    failedUserIds: [ID!]
   }
 
-  type Query {
-    getUser(id: ID!): User
-    getUsers: [User!]
-    getUserByDiscordId(discordUserId: String!): User
-    getBingoBoard(id: ID!): BingoBoard
-    getBingoTile(id: ID!): BingoTile
-    getPublicBoards(
-      limit: Int
-      offset: Int
-      category: String
-      searchQuery: String
-    ): PaginatedBoards!
-    getAllBoards(limit: Int, offset: Int, category: String, searchQuery: String): PaginatedBoards!
-    getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
-    searchUsers(search: String!): [User]
-    searchUsersByIds(ids: [ID!]): [User]
-    pendingInvitations: [EditorInvitation!]!
-    getTreasureEvent(eventId: ID!): TreasureEvent
-    getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
-    getAllTreasureEvents(userId: ID): [TreasureEvent!]
-    getMyTreasureEvents: [TreasureEvent!]
-    getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
-    getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
-    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
-    getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
+  # ============================================================
+  # CALENDAR EVENTS
+  # ============================================================
+
+  enum CalendarEventType {
+    PVM
+    MASS
+    SKILLING
+    MISC
+    MIXED_CONTENT
   }
 
-  type DeleteUserResponse {
-    success: Boolean!
-    message: String!
+  enum CalendarEventStatus {
+    ACTIVE
+    SAVED
   }
 
   type CalendarEvent {
@@ -217,25 +206,13 @@ const typeDefs = gql`
     totalCount: Int!
   }
 
-  type CalendarAuthResult {
-    ok: Boolean!
-  }
-
   type CalendarVersion {
     lastUpdated: DateTime!
     totalCount: Int!
   }
 
-  extend type Query {
-    calendarEvents(
-      offset: Int = 0
-      limit: Int = 500
-      status: CalendarEventStatus = ACTIVE
-    ): CalendarEventsPage!
-    savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
-    calendarVersion: CalendarVersion!
-    savedCalendarVersion: CalendarVersion!
-    getVisitCount: Int!
+  type CalendarAuthResult {
+    ok: Boolean!
   }
 
   input CreateCalendarEventInput {
@@ -256,29 +233,9 @@ const typeDefs = gql`
     eventType: CalendarEventType
   }
 
-  # Gielinor Rush Types
-  type TreasureEvent {
-    eventId: ID!
-    clanId: String
-    eventName: String!
-    status: TreasureEventStatus!
-    startDate: DateTime
-    endDate: DateTime
-    eventConfig: JSON
-    eventPassword: String
-    derivedValues: JSON
-    contentSelections: JSON
-    mapStructure: JSON
-    discordConfig: JSON
-    teams: [TreasureTeam!]
-    nodes: [TreasureNode!]
-    creatorId: ID
-    creator: User
-    adminIds: [ID!]
-    admins: [User!]
-    createdAt: DateTime
-    updatedAt: DateTime
-  }
+  # ============================================================
+  # GIELINOR RUSH: EVENTS
+  # ============================================================
 
   enum TreasureEventStatus {
     DRAFT
@@ -287,16 +244,62 @@ const typeDefs = gql`
     ARCHIVED
   }
 
+  type TreasureEvent {
+    eventId: ID!
+    eventName: String!
+    eventPassword: String
+    status: TreasureEventStatus!
+    clanId: String
+
+    # Dates
+    startDate: DateTime
+    endDate: DateTime
+    createdAt: DateTime
+    updatedAt: DateTime
+
+    # Configuration
+    eventConfig: JSON
+    derivedValues: JSON
+    contentSelections: JSON
+    mapStructure: JSON
+    discordConfig: JSON
+
+    # Relationships
+    teams: [TreasureTeam!]
+    nodes: [TreasureNode!]
+
+    # Ownership
+    creatorId: ID
+    creator: User
+    adminIds: [ID!]
+    admins: [User!]
+  }
+
   input CreateTreasureEventInput {
     eventName: String!
     clanId: String
-    eventConfig: JSON!
     eventPassword: String
-    contentSelections: JSON
     startDate: DateTime
     endDate: DateTime
+    eventConfig: JSON!
+    contentSelections: JSON
     discordConfig: JSON
   }
+
+  input UpdateTreasureEventInput {
+    eventName: String
+    status: TreasureEventStatus
+    startDate: DateTime
+    endDate: DateTime
+    eventConfig: JSON
+    contentSelections: JSON
+    mapStructure: JSON
+    discordConfig: JSON
+  }
+
+  # ============================================================
+  # GIELINOR RUSH: TEAMS
+  # ============================================================
 
   type TreasureTeam {
     teamId: ID!
@@ -304,15 +307,38 @@ const typeDefs = gql`
     teamName: String!
     discordRoleId: String
     members: [String!]
+
+    # Progress
     currentPot: String
-    buffHistory: JSON
-    activeBuffs: JSON
-    keysHeld: JSON
     completedNodes: [String!]
     availableNodes: [String!]
-    submissions: [TreasureSubmission!]
+
+    # Inventory
+    keysHeld: JSON
+    activeBuffs: JSON
+    buffHistory: JSON
     innTransactions: JSON
+
+    # Relationships
+    submissions: [TreasureSubmission!]
     event: TreasureEvent
+  }
+
+  input CreateTreasureTeamInput {
+    teamName: String!
+    discordRoleId: String
+    members: [String!]
+  }
+
+  # ============================================================
+  # GIELINOR RUSH: NODES
+  # ============================================================
+
+  enum TreasureNodeType {
+    START
+    STANDARD
+    INN
+    TREASURE
   }
 
   type TreasureNode {
@@ -321,25 +347,62 @@ const typeDefs = gql`
     nodeType: TreasureNodeType!
     title: String!
     description: String
+
+    # Location
     coordinates: JSON
     mapLocation: String
     locationGroupId: String
+
+    # Graph connections
     prerequisites: [String!]
     unlocks: [String!]
     paths: [String!]
+
+    # Objective & Rewards
     objective: JSON
     rewards: JSON
     difficultyTier: Int
+
+    # Inn-specific
     innTier: Int
     availableRewards: JSON
   }
 
-  enum TreasureNodeType {
-    START
-    STANDARD
-    INN
-    TREASURE
+  # ============================================================
+  # GIELINOR RUSH: SUBMISSIONS
+  # ============================================================
+
+  enum TreasureSubmissionStatus {
+    PENDING_REVIEW
+    APPROVED
+    DENIED
   }
+
+  type TreasureSubmission {
+    submissionId: ID!
+    eventId: ID!
+    teamId: ID!
+    nodeId: ID!
+
+    # Submitter info
+    submittedBy: String!
+    submittedByUsername: String
+    channelId: String
+    proofUrl: String
+
+    # Review
+    status: TreasureSubmissionStatus!
+    reviewedBy: String
+    reviewedAt: DateTime
+    submittedAt: DateTime!
+
+    # Relationships
+    team: TreasureTeam
+  }
+
+  # ============================================================
+  # GIELINOR RUSH: ACTIVITY FEED
+  # ============================================================
 
   type TreasureHuntActivity {
     id: ID!
@@ -350,28 +413,9 @@ const typeDefs = gql`
     timestamp: String!
   }
 
-  type Subscription {
-    submissionAdded(eventId: ID!): TreasureSubmission!
-    submissionReviewed(eventId: ID!): TreasureSubmission!
-    nodeCompleted(eventId: ID!): NodeCompletionPayload!
-    treasureHuntActivity(eventId: ID!): TreasureHuntActivity
-  }
-
-  type TreasureSubmission {
-    submissionId: ID!
-    submittedByUsername: String
-    channelId: String
-    eventId: ID!
-    teamId: ID!
-    nodeId: ID!
-    submittedBy: String!
-    proofUrl: String
-    status: TreasureSubmissionStatus!
-    reviewedBy: String
-    reviewedAt: DateTime
-    submittedAt: DateTime!
-    team: TreasureTeam
-  }
+  # ============================================================
+  # GIELINOR RUSH: SUBSCRIPTION PAYLOADS
+  # ============================================================
 
   type NodeCompletionPayload {
     eventId: ID!
@@ -382,35 +426,75 @@ const typeDefs = gql`
     rewards: JSON
   }
 
-  enum TreasureSubmissionStatus {
-    PENDING_REVIEW
-    APPROVED
-    DENIED
+  # ============================================================
+  # COMMON TYPES
+  # ============================================================
+
+  type MutationResponse {
+    success: Boolean!
+    message: String
   }
 
-  input UpdateTreasureEventInput {
-    eventName: String
-    status: TreasureEventStatus
-    eventConfig: JSON
-    mapStructure: JSON
-    discordConfig: JSON
-    contentSelections: JSON
-    startDate: DateTime
-    endDate: DateTime
+  # ============================================================
+  # QUERIES
+  # ============================================================
+
+  type Query {
+    # --- Users ---
+    getUser(id: ID!): User
+    getUsers: [User!]
+    getUserByDiscordId(discordUserId: String!): User
+    searchUsers(search: String!): [User]
+    searchUsersByIds(ids: [ID!]): [User]
+
+    # --- Bingo Boards ---
+    getBingoBoard(id: ID!): BingoBoard
+    getBingoTile(id: ID!): BingoTile
+    getPublicBoards(
+      limit: Int
+      offset: Int
+      category: String
+      searchQuery: String
+    ): PaginatedBoards!
+    getAllBoards(limit: Int, offset: Int, category: String, searchQuery: String): PaginatedBoards!
+    getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
+
+    # --- Editor Invitations ---
+    pendingInvitations: [EditorInvitation!]!
+
+    # --- Calendar ---
+    calendarEvents(
+      offset: Int = 0
+      limit: Int = 500
+      status: CalendarEventStatus = ACTIVE
+    ): CalendarEventsPage!
+    savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
+    calendarVersion: CalendarVersion!
+    savedCalendarVersion: CalendarVersion!
+
+    # --- Gielinor Rush ---
+    getTreasureEvent(eventId: ID!): TreasureEvent
+    getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
+    getAllTreasureEvents(userId: ID): [TreasureEvent!]
+    getMyTreasureEvents: [TreasureEvent!]
+    getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
+    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
+    getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
+
+    # --- Analytics ---
+    getVisitCount: Int!
   }
 
-  input CreateTreasureTeamInput {
-    teamName: String!
-    discordRoleId: String
-    members: [String!]
-  }
+  # ============================================================
+  # MUTATIONS
+  # ============================================================
 
   type Mutation {
+    # --- Analytics ---
     incrementVisit: Int!
 
-    linkDiscordAccount(userId: ID!, discordUserId: String!): User!
-    unlinkDiscordAccount(userId: ID!): User!
-
+    # --- User Management ---
     createUser(
       username: String!
       displayName: String!
@@ -419,44 +503,56 @@ const typeDefs = gql`
       permissions: String!
     ): User
     updateUser(id: ID!, input: UserUpdateInput!): User
-    loginUser(username: String!, password: String!): AuthPayload
     deleteUser(id: ID!): DeleteUserResponse!
+    loginUser(username: String!, password: String!): AuthPayload
 
+    # --- Discord Linking ---
+    linkDiscordAccount(userId: ID!, discordUserId: String!): User!
+    unlinkDiscordAccount(userId: ID!): User!
+
+    # --- Bingo Boards ---
     createBingoBoard(input: CreateBingoBoardInput!): BingoBoard
-
-    updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
     updateBingoBoard(id: ID!, input: UpdateBingoBoardInput!): BingoBoard
+    deleteBingoBoard(id: ID!): MutationResponse
     duplicateBingoBoard(boardId: ID!): BingoBoard!
     shuffleBingoBoardLayout(boardId: ID!): BingoBoard!
     replaceLayout(boardId: ID!, newType: String!): BingoBoard!
 
-    deleteBingoBoard(id: ID!): MutationResponse
+    # --- Bingo Tiles ---
     createBingoTile(board: ID!, name: String!, value: Int!, icon: String): BingoTile
     editBingoTile(id: ID!, input: UpdateBingoTileInput!): BingoTile
 
+    # --- Board Editors ---
+    updateBoardEditors(boardId: ID!, editorIds: [ID!]!): BingoBoard!
     sendEditorInvitation(boardId: ID!, invitedUserId: ID!): EditorInvitation!
     sendEditorInvitations(boardId: ID!, invitedUserIds: [ID!]!): BatchInvitationResponse!
     respondToInvitation(invitationId: ID!, response: String!): EditorInvitation!
-    authenticateCalendar(password: String!): CalendarAuthResult!
 
+    # --- Calendar ---
+    authenticateCalendar(password: String!): CalendarAuthResult!
     createCalendarEvent(input: CreateCalendarEventInput!): CalendarEvent!
     updateCalendarEvent(id: ID!, input: UpdateCalendarEventInput!): CalendarEvent!
     deleteCalendarEvent(id: ID!): Boolean!
     saveCalendarEvent(id: ID!): CalendarEvent!
     restoreCalendarEvent(id: ID!, start: DateTime!, end: DateTime!): CalendarEvent!
 
+    # --- Gielinor Rush: Events ---
     createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!
     updateTreasureEvent(eventId: ID!, input: UpdateTreasureEventInput!): TreasureEvent!
     deleteTreasureEvent(eventId: ID!): MutationResponse!
+    generateTreasureMap(eventId: ID!): TreasureEvent!
 
-    createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
-    updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
-    deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
-
+    # --- Gielinor Rush: Event Admins ---
     addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
     removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
     updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
 
+    # --- Gielinor Rush: Teams ---
+    createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
+    updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
+    deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
+
+    # --- Gielinor Rush: Node Completion ---
     adminCompleteNode(
       eventId: ID!
       teamId: ID!
@@ -464,11 +560,8 @@ const typeDefs = gql`
       congratsMessage: String
     ): TreasureTeam!
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
-    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
-    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
-    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
 
+    # --- Gielinor Rush: Submissions ---
     submitNodeCompletion(
       eventId: ID!
       teamId: ID!
@@ -478,7 +571,6 @@ const typeDefs = gql`
       submittedByUsername: String
       channelId: String
     ): TreasureSubmission!
-
     reviewSubmission(
       submissionId: ID!
       approved: Boolean!
@@ -486,9 +578,26 @@ const typeDefs = gql`
       denialReason: String
     ): TreasureSubmission!
 
-    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+    # --- Gielinor Rush: Buffs ---
+    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
+    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
 
-    generateTreasureMap(eventId: ID!): TreasureEvent!
+    # --- Gielinor Rush: Inns ---
+    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+  }
+
+  # ============================================================
+  # SUBSCRIPTIONS
+  # ============================================================
+
+  type Subscription {
+    # Gielinor Rush real-time updates
+    submissionAdded(eventId: ID!): TreasureSubmission!
+    submissionReviewed(eventId: ID!): TreasureSubmission!
+    nodeCompleted(eventId: ID!): NodeCompletionPayload!
+    treasureHuntActivity(eventId: ID!): TreasureHuntActivity
   }
 `;
 

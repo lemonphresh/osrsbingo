@@ -16,7 +16,7 @@ const {
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
 } = require('../../utils/discordNotifications');
-const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
+const { pubsub } = require('../pubsub');
 
 function isLocationGroupCompleted(team, locationGroupId, event) {
   if (!event.mapStructure?.locationGroups) return false;
@@ -922,7 +922,7 @@ const TreasureHuntResolvers = {
           submittedByUsername,
         });
 
-        await pubsub.publish(SUBMISSION_TOPICS.SUBMISSION_ADDED, {
+        await pubsub.publish(`SUBMISSION_ADDED_${eventId}`, {
           submissionAdded: submission,
         });
 
@@ -958,7 +958,7 @@ const TreasureHuntResolvers = {
 
         await submission.reload();
 
-        await pubsub.publish(SUBMISSION_TOPICS.SUBMISSION_REVIEWED, {
+        await pubsub.publish(`SUBMISSION_REVIEWED_${submission.team.eventId}`, {
           submissionReviewed: submission,
         });
 
@@ -1154,7 +1154,7 @@ const TreasureHuntResolvers = {
         // Reload the team to verify the update
         await team.reload();
 
-        await pubsub.publish(SUBMISSION_TOPICS.NODE_COMPLETED, {
+        await pubsub.publish(`NODE_COMPLETED_${eventId}`, {
           nodeCompleted: {
             eventId,
             teamId,

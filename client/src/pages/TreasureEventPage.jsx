@@ -812,7 +812,7 @@ const TreasureEventView = () => {
                 </Tab>
               )}
               <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Game Rules & Info
+                Game Rules
               </Tab>
               {isEventAdmin && event.nodes && event.nodes.length > 0 && (
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
