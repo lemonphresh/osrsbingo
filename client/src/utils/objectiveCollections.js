@@ -1,6 +1,6 @@
 // objectiveCollections.js
 // Auto-generated from osrs_content_manager.xlsx
-// Generated: 2026-01-13T05:04:36.316Z
+// Generated: 2026-01-15T02:54:28.522Z
 
 const SOLO_BOSSES = {
   giantMole: {
@@ -1568,6 +1568,33 @@ const SOLO_BOSSES = {
       hard: {
         min: 3,
         max: 4,
+      },
+    },
+  },
+  bryophyta: {
+    id: 'bryophyta',
+    name: 'Bryophyta',
+    category: 'easy',
+    tags: ['f2p', 'key', 'giant'],
+    enabled: true,
+    quantities: {
+      easy: {
+        min: 50,
+        max: 75,
+      },
+      medium: {
+        min: 75,
+        max: 100,
+      },
+      hard: {
+        min: 100,
+        max: 150,
+      },
+    },
+    dropQuantities: {
+      hard: {
+        min: 1,
+        max: 1,
       },
     },
   },
@@ -4951,7 +4978,7 @@ const CLUE_TIERS = {
   beginner: {
     id: 'beginner',
     name: 'Beginner Clue',
-    color: 'purple',
+    color: 'pink',
     enabled: true,
     quantities: {
       easy: {

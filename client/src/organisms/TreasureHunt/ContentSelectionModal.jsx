@@ -37,6 +37,11 @@ import {
   parseItemSources,
 } from '../../utils/objectiveCollections';
 
+// Helper to sort items alphabetically by name
+function sortByName(items) {
+  return [...items].sort((a, b) => a.name.localeCompare(b.name));
+}
+
 // Helper to group items by their source boss/raid
 function groupItemsBySource(items) {
   const grouped = { bosses: {}, raids: {}, minigames: {}, other: [] };
@@ -63,6 +68,18 @@ function groupItemsBySource(items) {
       }
     });
   });
+
+  // Sort drops within each boss/raid/minigame alphabetically
+  Object.keys(grouped.bosses).forEach((key) => {
+    grouped.bosses[key] = sortByName(grouped.bosses[key]);
+  });
+  Object.keys(grouped.raids).forEach((key) => {
+    grouped.raids[key] = sortByName(grouped.raids[key]);
+  });
+  Object.keys(grouped.minigames).forEach((key) => {
+    grouped.minigames[key] = sortByName(grouped.minigames[key]);
+  });
+  grouped.other = sortByName(grouped.other);
 
   return grouped;
 }
@@ -235,47 +252,73 @@ function BossDropsRow({
 function getSkillOptions() {
   const skills = Object.values(SKILLS);
   return {
-    gathering: skills
-      .filter((s) => s.category === 'gathering')
-      .map((s) => ({ id: s.id, name: s.name, icon: s.icon })),
-    artisan: skills
-      .filter((s) => s.category === 'artisan')
-      .map((s) => ({ id: s.id, name: s.name, icon: s.icon })),
-    support: skills
-      .filter((s) => s.category === 'support')
-      .map((s) => ({ id: s.id, name: s.name, icon: s.icon })),
-    combat: skills
-      .filter((s) => s.category === 'combat')
-      .map((s) => ({ id: s.id, name: s.name, icon: s.icon })),
+    gathering: sortByName(
+      skills
+        .filter((s) => s.category === 'gathering')
+        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
+    ),
+    artisan: sortByName(
+      skills
+        .filter((s) => s.category === 'artisan')
+        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
+    ),
+    support: sortByName(
+      skills
+        .filter((s) => s.category === 'support')
+        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
+    ),
+    combat: sortByName(
+      skills
+        .filter((s) => s.category === 'combat')
+        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
+    ),
   };
 }
 
 function getMinigameOptions() {
   const minigames = Object.values(MINIGAMES);
   return {
-    skilling: minigames
-      .filter((m) => m.category === 'skilling')
-      .map((m) => ({ id: m.id, name: m.name })),
-    combat: minigames
-      .filter((m) => m.category === 'combat')
-      .map((m) => ({ id: m.id, name: m.name })),
-    pvp: minigames.filter((m) => m.category === 'pvp').map((m) => ({ id: m.id, name: m.name })),
+    skilling: sortByName(
+      minigames.filter((m) => m.category === 'skilling').map((m) => ({ id: m.id, name: m.name }))
+    ),
+    combat: sortByName(
+      minigames.filter((m) => m.category === 'combat').map((m) => ({ id: m.id, name: m.name }))
+    ),
+    pvp: sortByName(
+      minigames.filter((m) => m.category === 'pvp').map((m) => ({ id: m.id, name: m.name }))
+    ),
   };
 }
 
 function getBossCategories() {
   const bosses = Object.values(SOLO_BOSSES);
   return {
-    gwd: bosses.filter((b) => b.tags?.includes('gwd')),
-    wilderness: bosses.filter((b) => b.category === 'wilderness'),
-    slayer: bosses.filter((b) => b.tags?.some((tag) => tag.includes('slayer'))),
-    other: bosses.filter(
-      (b) =>
-        !b.tags?.includes('gwd') &&
-        b.category !== 'wilderness' &&
-        !b.tags?.some((tag) => tag.includes('slayer'))
+    gwd: sortByName(bosses.filter((b) => b.tags?.includes('gwd'))),
+    wilderness: sortByName(bosses.filter((b) => b.category === 'wilderness')),
+    slayer: sortByName(bosses.filter((b) => b.tags?.some((tag) => tag.includes('slayer')))),
+    other: sortByName(
+      bosses.filter(
+        (b) =>
+          !b.tags?.includes('gwd') &&
+          b.category !== 'wilderness' &&
+          !b.tags?.some((tag) => tag.includes('slayer'))
+      )
     ),
   };
+}
+
+function getClueOptions() {
+  return sortByName(
+    Object.values(CLUE_TIERS).map((c) => ({
+      id: c.id,
+      name: c.name,
+      color: c.color,
+    }))
+  );
+}
+
+function getRaidOptions() {
+  return sortByName(Object.values(RAIDS));
 }
 
 export default function ContentSelectionModal({ isOpen, onClose, currentSelections, onSave }) {
@@ -292,7 +335,14 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
   const { colorMode } = useColorMode();
 
-  const MIN_CONTENT_REQUIRED = 10;
+  const MIN_CONTENT_REQUIRED = 6;
+
+  const totalContentAltogether =
+    Object.values(SOLO_BOSSES).length +
+    Object.values(RAIDS).length +
+    Object.values(SKILLS).length +
+    Object.values(MINIGAMES).length +
+    Object.values(CLUE_TIERS).length;
 
   const colors = {
     dark: {
@@ -338,30 +388,31 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
   // Group items by source
   const groupedItems = useMemo(() => groupItemsBySource(COLLECTIBLE_ITEMS), []);
   const bossCategories = useMemo(() => getBossCategories(), []);
-  const skillOptions = getSkillOptions();
-  const minigameOptions = getMinigameOptions();
+  const skillOptions = useMemo(() => getSkillOptions(), []);
+  const minigameOptions = useMemo(() => getMinigameOptions(), []);
+  const clueOptions = useMemo(() => getClueOptions(), []);
+  const raidOptions = useMemo(() => getRaidOptions(), []);
 
   // Calculate stats
   const stats = useMemo(() => {
     const enabledBosses = Object.keys(SOLO_BOSSES).filter(
-      (id) => selections.bosses?.[id] !== false
+      (id) => SOLO_BOSSES[id].enabled && selections.bosses?.[id] !== false
     ).length;
-    const enabledRaids = Object.keys(RAIDS).filter((id) => selections.raids?.[id] !== false).length;
-    const enabledDrops = Object.values(COLLECTIBLE_ITEMS).filter((item) => {
+    const enabledRaids = Object.keys(RAIDS).filter(
+      (id) => RAIDS[id].enabled && selections.raids?.[id] !== false
+    ).length;
+    const enabledD = Object.values(COLLECTIBLE_ITEMS).filter((item) => {
+      if (!item.enabled) return false; // Also check item.enabled
       if (selections.items?.[item.id] === false) return false;
       return parseItemSources(item, selections);
-    }).length;
+    });
+    console.log(enabledD);
+    const enabledDrops = enabledD.length;
     const enabledClues = Object.keys(CLUE_TIERS).filter(
-      (id) => selections.clues?.[id] !== false
+      (id) => CLUE_TIERS[id].enabled !== false && selections.clues?.[id] !== false
     ).length;
     return { enabledBosses, enabledRaids, enabledDrops, enabledClues };
   }, [selections]);
-
-  const clueOptions = Object.values(CLUE_TIERS).map((c) => ({
-    id: c.id,
-    name: c.name,
-    color: c.color,
-  }));
 
   const handleToggle = (category, id) => {
     setSelections((prev) => ({
@@ -672,7 +723,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       </Button>
                     </HStack>
 
-                    {Object.values(RAIDS).map((raid) => (
+                    {raidOptions.map((raid) => (
                       <BossDropsRow
                         key={raid.id}
                         entity={raid}
@@ -998,7 +1049,8 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
             <Box p={3} bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} borderRadius="md">
               <HStack justify="space-between" flexWrap="wrap" gap={2}>
                 <Text fontSize="xs" color={currentColors.textColor}>
-                  <strong>Total Enabled:</strong> {totalEnabledContent} items
+                  <strong>Total Enabled:</strong> {totalEnabledContent}/{totalContentAltogether}{' '}
+                  bits of content
                 </Text>
                 <Badge colorScheme={canSave ? 'green' : 'red'} fontSize="xs">
                   {canSave
@@ -1013,7 +1065,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 Cancel
               </Button>
               <Tooltip
-                label={!canSave ? `Enable at least ${MIN_CONTENT_REQUIRED} content items` : ''}
+                label={!canSave ? `Enable at least ${MIN_CONTENT_REQUIRED} bits of content` : ''}
                 isDisabled={canSave}
               >
                 <Button

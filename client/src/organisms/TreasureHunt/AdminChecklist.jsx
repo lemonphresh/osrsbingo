@@ -45,17 +45,22 @@ const AdminLaunchChecklist = ({
   const [isMinimized, setIsMinimized] = useState(false);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
 
-  // Calculate checklist status
   const checks = useMemo(() => {
     if (!event) return {};
-    console.log({ event });
     const hasMap = event.nodes && event.nodes.length > 0;
     const teamCount = event.teams?.length || 0;
     const requiredTeamCount = event.eventConfig?.num_of_teams || event.numberOfTeams || 2;
+    const requiredPlayersPerTeam = event.eventConfig?.players_per_team || 1;
     const hasEnoughTeams = teamCount >= requiredTeamCount;
-    const teamsWithoutMembers =
-      event.teams?.filter((team) => !team.members || team.members.length === 0) || [];
-    const allTeamsHaveMembers = teamCount > 0 && teamsWithoutMembers.length === 0;
+
+    // Check each team has the REQUIRED number of members
+    const teamsWithInsufficientMembers =
+      event.teams?.filter((team) => {
+        const memberCount = team.members?.length || 0;
+        return memberCount < requiredPlayersPerTeam;
+      }) || [];
+
+    const allTeamsHaveEnoughMembers = teamCount > 0 && teamsWithInsufficientMembers.length === 0;
 
     const hasDiscord = event.discordConfig?.confirmed === true;
     const hasStartDate = !!event.startDate;
@@ -76,29 +81,28 @@ const AdminLaunchChecklist = ({
         done: hasEnoughTeams,
         label: 'Add Teams',
         description: hasEnoughTeams
-          ? `${teamCount}/${requiredTeamCount} teams created ✓`
+          ? `${teamCount}/${requiredTeamCount} minimum teams created ✓`
           : `${teamCount}/${requiredTeamCount} teams (need ${requiredTeamCount - teamCount} more)`,
         icon: FaUsers,
         action: onAddTeam,
         actionLabel: 'Add Team',
         required: true,
       },
-      // NEW: Team members check
       teamMembers: {
-        done: allTeamsHaveMembers,
+        done: allTeamsHaveEnoughMembers,
         label: 'Team Members',
-        description: allTeamsHaveMembers
-          ? `All teams have members assigned`
-          : `${teamsWithoutMembers.length} team${
-              teamsWithoutMembers.length !== 1 ? 's' : ''
-            } missing members`,
+        description: allTeamsHaveEnoughMembers
+          ? `All teams have ${requiredPlayersPerTeam}+ members ✓`
+          : `${teamsWithInsufficientMembers.length} team${
+              teamsWithInsufficientMembers.length !== 1 ? 's' : ''
+            } need more members`,
         icon: FaUserFriends,
-        action: null, // We'll handle this with expandable details
+        action: null,
         actionLabel: null,
         required: true,
-        // Extra data for this check
-        teamsWithoutMembers,
-        expandable: !allTeamsHaveMembers && teamsWithoutMembers.length > 0,
+        teamsWithInsufficientMembers,
+        requiredPlayersPerTeam,
+        expandable: !allTeamsHaveEnoughMembers && teamsWithInsufficientMembers.length > 0,
       },
       discord: {
         done: hasDiscord,
@@ -127,7 +131,6 @@ const AdminLaunchChecklist = ({
     };
   }, [event, onGenerateMap, onAddTeam, onOpenDiscordSetup, onConfirmDiscord]);
 
-  // Don't render if event is already ACTIVE or beyond
   if (!event || event.status !== 'DRAFT') {
     return null;
   }
@@ -199,7 +202,6 @@ const AdminLaunchChecklist = ({
         </HStack>
 
         <HStack spacing={2}>
-          {/* Expandable toggle for team members */}
           {check.expandable && (
             <IconButton
               icon={showTeamDetails ? <ChevronUpIcon /> : <ChevronDownIcon />}
@@ -239,7 +241,7 @@ const AdminLaunchChecklist = ({
         </HStack>
       </HStack>
 
-      {/* Expandable team details */}
+      {/* Expandable team details - now shows member deficit */}
       {checkKey === 'teamMembers' && check.expandable && (
         <Collapse in={showTeamDetails} animateOpacity>
           <Box
@@ -255,32 +257,42 @@ const AdminLaunchChecklist = ({
               <HStack>
                 <Icon as={WarningIcon} color={c.error} boxSize={4} />
                 <Text fontSize="xs" fontWeight="bold" color={c.text}>
-                  Teams without members cannot participate:
+                  Teams need at least {check.requiredPlayersPerTeam} member
+                  {check.requiredPlayersPerTeam !== 1 ? 's' : ''} each:
                 </Text>
               </HStack>
-              {check.teamsWithoutMembers?.map((team) => (
-                <HStack
-                  key={team.teamId}
-                  justify="space-between"
-                  p={2}
-                  bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'white'}
-                  borderRadius="sm"
-                >
-                  <Text fontSize="xs" color={c.text}>
-                    {team.teamName}
-                  </Text>
-                  {onEditTeam && (
-                    <Button
-                      size="xs"
-                      colorScheme="blue"
-                      variant="outline"
-                      onClick={() => onEditTeam(team)}
-                    >
-                      Add Members
-                    </Button>
-                  )}
-                </HStack>
-              ))}
+              {check.teamsWithInsufficientMembers?.map((team) => {
+                const currentCount = team.members?.length || 0;
+                const deficit = check.requiredPlayersPerTeam - currentCount;
+                return (
+                  <HStack
+                    key={team.teamId}
+                    justify="space-between"
+                    p={2}
+                    bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'white'}
+                    borderRadius="sm"
+                  >
+                    <VStack align="start" spacing={0}>
+                      <Text fontSize="xs" color={c.text} fontWeight="medium">
+                        {team.teamName}
+                      </Text>
+                      <Text fontSize="xs" color={c.error}>
+                        {currentCount}/{check.requiredPlayersPerTeam} members (need {deficit} more)
+                      </Text>
+                    </VStack>
+                    {onEditTeam && (
+                      <Button
+                        size="xs"
+                        colorScheme="blue"
+                        variant="outline"
+                        onClick={() => onEditTeam(team)}
+                      >
+                        Add Members
+                      </Button>
+                    )}
+                  </HStack>
+                );
+              })}
               <Text fontSize="xs" color={c.subtext} mt={1}>
                 Add Discord User IDs to each team so players can submit completions and track
                 progress.

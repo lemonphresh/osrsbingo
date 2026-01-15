@@ -12,7 +12,6 @@ import {
   Input,
   Button,
   Text,
-  IconButton,
   HStack,
   Accordion,
   AccordionItem,
@@ -24,9 +23,9 @@ import {
   OrderedList,
   ListItem,
   Image,
-  Tooltip,
 } from '@chakra-ui/react';
-import { AddIcon, CheckIcon, DeleteIcon, InfoIcon, WarningIcon } from '@chakra-ui/icons';
+import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+import { AddIcon, InfoIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { CREATE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -38,7 +37,13 @@ function isValidDiscordId(id) {
   return /^\d{17,19}$/.test(id);
 }
 
-export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess }) {
+export default function CreateTeamModal({
+  isOpen,
+  onClose,
+  eventId,
+  existingTeams = [],
+  onSuccess,
+}) {
   const { colors: currentColors, colorMode } = useThemeColors();
 
   const { showToast } = useToastContext();
@@ -59,6 +64,31 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
       showToast(`Error creating team: ${error.message}`, 'error');
     },
   });
+
+  const getExistingMemberMap = () => {
+    const memberMap = new Map(); // discordId -> teamName
+    existingTeams.forEach((team) => {
+      team.members?.forEach((memberId) => {
+        memberMap.set(memberId, team.teamName);
+      });
+    });
+    return memberMap;
+  };
+
+  const existingMemberMap = getExistingMemberMap();
+
+  // Check if a member ID is already on another team
+  const getMemberConflict = (memberId) => {
+    if (!memberId || !isValidDiscordId(memberId)) return null;
+    const existingTeam = existingMemberMap.get(memberId);
+    return existingTeam || null;
+  };
+
+  // Check for duplicates within the current form
+  const getDuplicateInForm = (memberId, currentIndex) => {
+    if (!memberId || !isValidDiscordId(memberId)) return false;
+    return formData.members.some((m, idx) => idx !== currentIndex && m === memberId);
+  };
 
   const handleClose = () => {
     setFormData({
@@ -98,6 +128,26 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
 
     const members = formData.members.filter((m) => m.trim() !== '');
 
+    // Check for members already on other teams
+    const conflicts = members
+      .map((m) => ({ id: m, team: getMemberConflict(m) }))
+      .filter((c) => c.team);
+
+    if (conflicts.length > 0) {
+      const conflictMsg = conflicts
+        .map((c) => `User ${c.id} is already on team "${c.team}"`)
+        .join(', ');
+      showToast(`Cannot add members: ${conflictMsg}`, 'error');
+      return;
+    }
+
+    // Check for duplicates within this team
+    const uniqueMembers = [...new Set(members)];
+    if (uniqueMembers.length !== members.length) {
+      showToast('Cannot add the same user multiple times to one team', 'warning');
+      return;
+    }
+
     try {
       await createTeam({
         variables: {
@@ -105,7 +155,7 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
           input: {
             teamName: formData.teamName.trim(),
             discordRoleId: formData.discordRoleId.trim() || null,
-            members,
+            members: uniqueMembers,
           },
         },
       });
@@ -170,33 +220,18 @@ export default function CreateTeamModal({ isOpen, onClose, eventId, onSuccess })
                   </AccordionPanel>
                 </AccordionItem>
               </Accordion>
-              <VStack spacing={2} align="stretch">
+              <VStack spacing={3} align="stretch">
                 {formData.members.map((member, index) => (
-                  <HStack key={index}>
-                    <Input
-                      placeholder="Discord User ID"
-                      value={member}
-                      onChange={(e) => handleMemberChange(index, e.target.value)}
-                      color={currentColors.textColor}
-                    />
-                    {member && isValidDiscordId(member) && (
-                      <Icon as={CheckIcon} color="green.400" />
-                    )}
-                    {member && !isValidDiscordId(member) && (
-                      <Tooltip label="Discord IDs are 17-19 digits">
-                        <Icon as={WarningIcon} color="red.400" />
-                      </Tooltip>
-                    )}
-                    {formData.members.length > 1 && (
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        size="sm"
-                        colorScheme="red"
-                        onClick={() => handleRemoveMember(index)}
-                        aria-label="Remove member"
-                      />
-                    )}
-                  </HStack>
+                  <DiscordMemberInput
+                    key={index}
+                    value={member}
+                    onChange={(newValue) => handleMemberChange(index, newValue)}
+                    onRemove={() => handleRemoveMember(index)}
+                    showRemove={formData.members.length > 1}
+                    colorMode={colorMode}
+                    conflictTeam={getMemberConflict(member)} // <-- ADD
+                    isDuplicateInForm={getDuplicateInForm(member, index)} // <-- ADD
+                  />
                 ))}
                 <Button
                   leftIcon={<AddIcon />}

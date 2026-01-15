@@ -38,7 +38,6 @@ import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import LiveActivityFeed from './LiveActivityFeed';
-import { useNavigate } from 'react-router-dom';
 import OSRSMap from '../../assets/osrsmap12112025.png';
 
 const PRESET_COLORS = [
@@ -272,7 +271,6 @@ const MultiTeamTreasureMap = ({
   const [focusNodeId, setFocusNodeId] = useState(null);
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const navigate = useNavigate();
 
   // Determine if we should show all nodes based on event status
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
@@ -1158,8 +1156,9 @@ const MultiTeamTreasureMap = ({
                                         bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.300',
                                       }}
                                       onClick={() =>
-                                        navigate(
-                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`
+                                        window.open(
+                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`,
+                                          '_blank'
                                         )
                                       }
                                       whiteSpace="nowrap"

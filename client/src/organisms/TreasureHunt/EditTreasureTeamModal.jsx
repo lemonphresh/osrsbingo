@@ -13,8 +13,6 @@ import {
   Button,
   useColorMode,
   Text,
-  IconButton,
-  HStack,
   Divider,
   useDisclosure,
   AlertDialog,
@@ -24,12 +22,22 @@ import {
   AlertDialogContent,
   AlertDialogOverlay,
 } from '@chakra-ui/react';
-import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
+import { AddIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { UPDATE_TREASURE_TEAM, DELETE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
+import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 
-export default function EditTeamModal({ isOpen, onClose, team, eventId, onSuccess }) {
+const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
+
+export default function EditTeamModal({
+  isOpen,
+  onClose,
+  team,
+  existingTeams = [],
+  eventId,
+  onSuccess,
+}) {
   const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -55,6 +63,30 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
     discordRoleId: '',
     members: [''],
   });
+
+  const getExistingMemberMap = () => {
+    const memberMap = new Map();
+    existingTeams.forEach((team) => {
+      team.members?.forEach((memberId) => {
+        memberMap.set(memberId, team.teamName);
+      });
+    });
+    return memberMap;
+  };
+
+  const existingMemberMap = getExistingMemberMap();
+
+  // Check if a member is already on another team
+  const getMemberConflict = (memberId) => {
+    if (!memberId || !isValidDiscordId(memberId)) return null;
+    return existingMemberMap.get(memberId) || null;
+  };
+
+  // Check if a member ID is duplicated within the current form
+  const getDuplicateInForm = (memberId, currentIndex) => {
+    if (!memberId || !isValidDiscordId(memberId)) return false;
+    return formData.members.some((m, idx) => idx !== currentIndex && m === memberId);
+  };
 
   useEffect(() => {
     if (team) {
@@ -117,6 +149,25 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
     }
 
     const members = formData.members.filter((m) => m.trim() !== '');
+
+    const conflicts = members
+      .map((m) => ({ id: m, team: getMemberConflict(m) }))
+      .filter((c) => c.team);
+
+    if (conflicts.length > 0) {
+      const conflictMsg = conflicts
+        .map((c) => `User ${c.id.slice(-6)} is already on "${c.team}"`)
+        .join(', ');
+      showToast(`Cannot add members: ${conflictMsg}`, 'error');
+      return;
+    }
+
+    // Check for duplicates within this team
+    const uniqueMembers = [...new Set(members)];
+    if (uniqueMembers.length !== members.length) {
+      showToast('Cannot add the same user multiple times to one team', 'warning');
+      return;
+    }
 
     try {
       await updateTeam({
@@ -181,25 +232,18 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
 
             <FormControl>
               <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
-              <VStack spacing={2} align="stretch">
+              <VStack spacing={3} align="stretch">
                 {formData.members.map((member, index) => (
-                  <HStack key={index}>
-                    <Input
-                      placeholder="Discord User ID"
-                      value={member}
-                      onChange={(e) => handleMemberChange(index, e.target.value)}
-                      color={currentColors.textColor}
-                    />
-                    {formData.members.length > 1 && (
-                      <IconButton
-                        icon={<DeleteIcon />}
-                        size="sm"
-                        colorScheme="red"
-                        onClick={() => handleRemoveMember(index)}
-                        aria-label="Remove member"
-                      />
-                    )}
-                  </HStack>
+                  <DiscordMemberInput
+                    key={index}
+                    value={member}
+                    onChange={(newValue) => handleMemberChange(index, newValue)}
+                    onRemove={() => handleRemoveMember(index)}
+                    showRemove={formData.members.length > 1}
+                    colorMode={colorMode}
+                    conflictTeam={getMemberConflict(member)}
+                    isDuplicateInForm={getDuplicateInForm(member, index)}
+                  />
                 ))}
                 <Button
                   leftIcon={<AddIcon />}
@@ -211,9 +255,6 @@ export default function EditTeamModal({ isOpen, onClose, team, eventId, onSucces
                   Add Member
                 </Button>
               </VStack>
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1}>
-                Optional: Add Discord user IDs for team members
-              </Text>
             </FormControl>
 
             <Button

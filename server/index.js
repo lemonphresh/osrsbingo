@@ -94,6 +94,122 @@ app.get('/', (req, res) => {
 app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
 
+app.get('/user/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  // Validate Discord ID format (17-19 digits)
+  if (!/^\d{17,19}$/.test(userId)) {
+    return res.status(400).json({ error: 'Invalid Discord user ID format' });
+  }
+
+  // Check cache first
+  const cached = userCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return res.json(cached.data);
+  }
+
+  try {
+    const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+      headers: {
+        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      throw new Error(`Discord API error: ${response.status}`);
+    }
+
+    const userData = await response.json();
+
+    // Only return safe fields
+    const safeData = {
+      id: userData.id,
+      username: userData.username,
+      globalName: userData.global_name, // Display name
+      avatar: userData.avatar,
+      avatarUrl: userData.avatar
+        ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+        : `https://cdn.discordapp.com/embed/avatars/${
+            parseInt(userData.discriminator || '0') % 5
+          }.png`,
+    };
+
+    // Cache the result
+    userCache.set(userId, { data: safeData, timestamp: Date.now() });
+
+    res.json(safeData);
+  } catch (error) {
+    console.error('Discord API error:', error);
+    res.status(500).json({ error: 'Failed to fetch user info' });
+  }
+});
+
+/**
+ * POST /api/discord/users/batch
+ * Fetches multiple Discord users at once
+ */
+app.post('/users/batch', async (req, res) => {
+  const { userIds } = req.body;
+
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ error: 'userIds must be a non-empty array' });
+  }
+
+  if (userIds.length > 20) {
+    return res.status(400).json({ error: 'Maximum 20 users per request' });
+  }
+
+  const results = {};
+
+  await Promise.all(
+    userIds.map(async (userId) => {
+      if (!/^\d{17,19}$/.test(userId)) {
+        results[userId] = { error: 'Invalid ID format' };
+        return;
+      }
+
+      // Check cache
+      const cached = userCache.get(userId);
+      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+        results[userId] = cached.data;
+        return;
+      }
+
+      try {
+        const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+          headers: {
+            Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+          },
+        });
+
+        if (response.ok) {
+          const userData = await response.json();
+          const safeData = {
+            id: userData.id,
+            username: userData.username,
+            globalName: userData.global_name,
+            avatar: userData.avatar,
+            avatarUrl: userData.avatar
+              ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+              : null,
+          };
+          userCache.set(userId, { data: safeData, timestamp: Date.now() });
+          results[userId] = safeData;
+        } else {
+          results[userId] = { error: 'User not found' };
+        }
+      } catch (error) {
+        results[userId] = { error: 'Failed to fetch' };
+      }
+    })
+  );
+
+  res.json(results);
+});
+
 app.get('/api/items', async (req, res) => {
   try {
     const { alpha } = req.query;
@@ -233,7 +349,8 @@ const serverCleanup = useServer(
   },
   wsServer
 );
-
+const userCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
 // GraphQL Server setup
 const server = new ApolloServer({
   typeDefs,

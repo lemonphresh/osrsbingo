@@ -56,7 +56,7 @@ import {
   ExternalLinkIcon,
   InfoIcon,
 } from '@chakra-ui/icons';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
@@ -95,7 +95,6 @@ import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { eventId } = useParams();
-  const navigate = useNavigate();
   const { showToast } = useToastContext();
   const [selectedTeam, setSelectedTeam] = useState(null);
   const { user } = useAuth();
@@ -899,8 +898,9 @@ const TreasureEventView = () => {
                                         color="white"
                                         _hover={{ bg: currentColors.purple.light }}
                                         onClick={() =>
-                                          navigate(
-                                            `/gielinor-rush/${event.eventId}/team/${team.teamId}`
+                                          window.open(
+                                            `/gielinor-rush/${event.eventId}/team/${team.teamId}`,
+                                            '_blank'
                                           )
                                         }
                                         whiteSpace="nowrap"
@@ -1099,6 +1099,16 @@ const TreasureEventView = () => {
                                           align="end"
                                           onClick={(e) => e.stopPropagation()}
                                         >
+                                          <Text
+                                            fontSize="14px"
+                                            lineHeight="16px"
+                                            textAlign="right"
+                                            color="gray.700"
+                                            mb="4px"
+                                          >
+                                            Once the objective is completed <br />
+                                            and submissions approved:
+                                          </Text>
                                           <Button
                                             size="sm"
                                             colorScheme="green"
@@ -1875,6 +1885,7 @@ const TreasureEventView = () => {
         isOpen={isCreateTeamOpen}
         onClose={onCreateTeamClose}
         eventId={eventId}
+        existingTeams={event?.teams || []}
         onSuccess={async () => {
           await refetchEvent();
           await refetchSubmissions();
@@ -1893,6 +1904,7 @@ const TreasureEventView = () => {
         onClose={onEditTeamClose}
         team={selectedTeam}
         eventId={eventId}
+        existingTeams={event?.teams || []}
         onSuccess={async () => {
           await refetchEvent();
           await refetchSubmissions();
