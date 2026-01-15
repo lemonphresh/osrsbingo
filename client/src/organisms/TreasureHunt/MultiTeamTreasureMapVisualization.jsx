@@ -38,7 +38,6 @@ import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import LiveActivityFeed from './LiveActivityFeed';
-import { useNavigate } from 'react-router-dom';
 import OSRSMap from '../../assets/osrsmap12112025.png';
 
 const PRESET_COLORS = [
@@ -272,7 +271,6 @@ const MultiTeamTreasureMap = ({
   const [focusNodeId, setFocusNodeId] = useState(null);
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const navigate = useNavigate();
 
   // Determine if we should show all nodes based on event status
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
@@ -468,23 +466,34 @@ const MultiTeamTreasureMap = ({
     });
   });
 
-  const getNodeColor = (nodeId, nodeType) => {
+  const getNodeColor = (nodeId, nodeType, difficultyTier, accessStatus) => {
     const completion = nodeCompletionMap[nodeId];
-    const accessStatus = getNodeAccessStatus(nodeId);
 
-    if (!completion && accessStatus !== 'unavailable') return '#718096';
-
-    if (nodeType === 'START') return '#7D5FFF';
-    if (nodeType === 'INN') return '#F4D35E';
+    // Special node types always use their designated colors
+    if (nodeType === 'START') return '#7D5FFF'; // Purple
+    if (nodeType === 'INN') return '#F4D35E'; // Yellow
 
     // If location is completed but not this specific node, show red
     if (accessStatus === 'unavailable') return '#FF4B5C';
 
     // If any selected team completed it, show green
-    if (completion?.completed.length > 0) return '#43AA8B';
-    // If any selected team can access it, show orange
-    if (completion?.available.length > 0) return '#FF914D';
+    if (completion?.completed?.length > 0) return '#4b5464ff';
 
+    // If any selected team can access it, use difficulty-based color
+    if (completion?.available?.length > 0) {
+      switch (difficultyTier) {
+        case 1:
+          return '#9ee876ff'; // Green - EASY
+        case 3:
+          return '#e1ab45ff'; // Orange - MEDIUM
+        case 5:
+          return '#F56565'; // Red - HARD
+        default:
+          return '#dc4f09ff'; // Default orange
+      }
+    }
+
+    // Locked - gray
     return '#718096';
   };
 
@@ -577,7 +586,12 @@ const MultiTeamTreasureMap = ({
             }
 
             const position = getNodePosition(node, nodes);
-            const color = getNodeColor(node.nodeId, node.nodeType);
+            const color = getNodeColor(
+              node.nodeId,
+              node.nodeType,
+              node.difficultyTier,
+              accessStatus
+            );
             const completion = nodeCompletionMap[node.nodeId];
             const hasCompletions = completion?.completed.length > 0;
             const isPulsing = pulsingNodes.has(node.nodeId);
@@ -920,12 +934,8 @@ const MultiTeamTreasureMap = ({
 
               <VStack align="start" spacing={2} fontSize="xs" mb={3}>
                 <HStack>
-                  <Box w={4} h={4} bg="#43AA8B" borderRadius="full" border="2px solid white" />
+                  <Box w={4} h={4} bg="#4b5464ff" borderRadius="full" border="2px solid white" />
                   <Text color="#2d3748">Completed</Text>
-                </HStack>
-                <HStack>
-                  <Box w={4} h={4} bg="#FF914D" borderRadius="full" border="2px solid white" />
-                  <Text color="#2d3748">Available</Text>
                 </HStack>
                 <HStack>
                   <Box
@@ -941,6 +951,29 @@ const MultiTeamTreasureMap = ({
                 <HStack>
                   <Box w={4} h={4} bg="#F4D35E" borderRadius="sm" border="2px solid white" />
                   <Text color="#2d3748">Inn</Text>
+                </HStack>
+                <Text
+                  fontWeight="bold"
+                  fontSize="xs"
+                  mt={2}
+                  mb={1}
+                  color="#2d3748"
+                  pt={2}
+                  borderTop="1px solid #e2e8f0"
+                >
+                  Difficulty
+                </Text>
+                <HStack>
+                  <Box w={4} h={4} bg="#9ee876ff" borderRadius="full" border="2px solid white" />
+                  <Text color="#2d3748">Easy</Text>
+                </HStack>
+                <HStack>
+                  <Box w={4} h={4} bg="#e1ab45ff" borderRadius="full" border="2px solid white" />
+                  <Text color="#2d3748">Medium</Text>
+                </HStack>
+                <HStack>
+                  <Box w={4} h={4} bg="#dc4f09ff" borderRadius="full" border="2px solid white" />
+                  <Text color="#2d3748">Hard</Text>
                 </HStack>
               </VStack>
 
@@ -1123,8 +1156,9 @@ const MultiTeamTreasureMap = ({
                                         bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.300',
                                       }}
                                       onClick={() =>
-                                        navigate(
-                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`
+                                        window.open(
+                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`,
+                                          '_blank'
                                         )
                                       }
                                       whiteSpace="nowrap"

@@ -123,12 +123,26 @@ const CompleteNodeDialog = memo(
                     size="sm"
                     resize="vertical"
                     rows={3}
+                    maxLength={256}
                     bg={colorMode === 'dark' ? 'whiteAlpha.50' : 'white'}
                   />
-                  <FormHelperText fontSize="xs">
-                    Add a custom message to celebrate the team's achievement. This will be sent via
-                    Discord notification.
-                  </FormHelperText>
+                  <HStack justify="space-between" mt={1}>
+                    <FormHelperText fontSize="xs" mt={0}>
+                      Add a custom message to celebrate the team's achievement.
+                    </FormHelperText>
+                    <Text
+                      fontSize="xs"
+                      color={
+                        congratsMessage.length >= 240
+                          ? 'orange.400'
+                          : colorMode === 'dark'
+                          ? 'gray.500'
+                          : 'gray.400'
+                      }
+                    >
+                      {congratsMessage.length}/256
+                    </Text>
+                  </HStack>
                 </FormControl>
 
                 <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>

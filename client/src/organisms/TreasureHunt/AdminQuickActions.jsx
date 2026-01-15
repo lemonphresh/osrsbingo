@@ -54,7 +54,17 @@ const AdminQuickActionsPanel = ({
     if (!isEventAdmin || !event || event.status === 'DRAFT') {
       return {};
     }
-    const pendingSubmissions = submissions.filter((s) => s.status === 'PENDING_REVIEW');
+
+    const pendingSubmissions = submissions.filter((s) => {
+      if (s.status !== 'PENDING_REVIEW') return false;
+      // Don't count as pending if the node is already complete
+      const team = teams.find((t) => t.teamId === s.teamId);
+      if (team?.completedNodes?.includes(s.nodeId)) {
+        return false;
+      }
+      return true;
+    });
+
     const approvedSubmissions = submissions.filter((s) => s.status === 'APPROVED');
     const deniedSubmissions = submissions.filter((s) => s.status === 'DENIED');
 

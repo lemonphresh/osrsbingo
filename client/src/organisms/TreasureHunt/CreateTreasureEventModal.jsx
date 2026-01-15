@@ -219,6 +219,15 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   };
 
   const handleCreateEvent = async () => {
+    if (
+      !formData.eventName ||
+      formData.eventName.trim().length < 3 ||
+      formData.eventName.trim().length > 50
+    ) {
+      showToast('Event name must be 3-50 characters', 'warning');
+      return;
+    }
+
     // Validate dates
     if (!formData.startDate || !formData.endDate) {
       showToast('Please select both start and end dates', 'warning');
@@ -227,6 +236,12 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
 
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
+
+    const today = new Date().toISOString().split('T')[0];
+    if (formData.startDate < today) {
+      showToast('Start date cannot be in the past', 'warning');
+      return;
+    }
 
     if (end <= start) {
       showToast('End date must be after start date', 'warning');
