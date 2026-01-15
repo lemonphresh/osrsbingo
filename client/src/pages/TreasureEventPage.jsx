@@ -1620,7 +1620,29 @@ const TreasureEventView = () => {
               {/* ALL NODES - Admin only, only if nodes exist */}
               {isEventAdmin && event.nodes && event.nodes.length > 0 && (
                 <TabPanel px={0}>
-                  <Box bg={currentColors.cardBg} borderRadius="8px" overflow="hidden">
+                  <Box
+                    bg={currentColors.cardBg}
+                    borderRadius="8px"
+                    overflow="hidden"
+                    sx={{
+                      '&::-webkit-scrollbar': {
+                        width: '8px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '4px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: 'rgba(125, 95, 255, 0.6)',
+                        borderRadius: '4px',
+                        '&:hover': {
+                          background: 'rgba(125, 95, 255, 0.8)',
+                        },
+                      },
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: `rgba(125, 95, 255, 0.6)' rgba(255, 255, 255, 0.1)`,
+                    }}
+                  >
                     <ScrollableTableContainer width="100%">
                       <Table size="sm" variant="simple">
                         <Thead>

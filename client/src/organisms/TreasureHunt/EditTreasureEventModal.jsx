@@ -31,6 +31,8 @@ const MAX_GP = 20000000000; // 20 billion
 const MIN_NODES_PER_INN = 3;
 const MAX_NODES_PER_INN = 6;
 const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
+const MIN_EVENT_NAME_LENGTH = 3;
+const MAX_EVENT_NAME_LENGTH = 50;
 
 export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const { colorMode } = useColorMode();
@@ -65,6 +67,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     playersPerTeam: 0,
     nodeToInnRatio: 5,
     difficulty: 'normal',
+    estimatedHoursPerPlayerPerDay: 3,
   });
 
   // Get today's date in YYYY-MM-DD format for min date
@@ -94,17 +97,29 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
   useEffect(() => {
     if (event) {
+      // Fix timezone issue: extract date part directly without creating new Date object
+      const extractDateString = (dateValue) => {
+        if (!dateValue) return '';
+        // If it's already a string in ISO format, just take the date part
+        if (typeof dateValue === 'string') {
+          return dateValue.split('T')[0];
+        }
+        // If it's a Date object or timestamp, convert carefully
+        const d = new Date(dateValue);
+        return d.toISOString().split('T')[0];
+      };
+
       setFormData({
         eventName: event.eventName || '',
         status: event.status || 'DRAFT',
-        startDate: event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : '',
-        endDate: event.endDate ? new Date(event.endDate).toISOString().split('T')[0] : '',
+        startDate: extractDateString(event.startDate),
+        endDate: extractDateString(event.endDate),
         prizePoolTotal: event.eventConfig?.prize_pool_total || 0,
         numOfTeams: event.eventConfig?.num_of_teams || 0,
         playersPerTeam: event.eventConfig?.players_per_team || 0,
         nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
         difficulty: event.eventConfig?.difficulty || 'normal',
-        estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 2.0,
+        estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 3,
       });
       setContentSelections(event.contentSelections || null);
     }
@@ -135,7 +150,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       showToast('Content selection updated!', 'success');
       setShowContentModal(false);
     } catch (error) {
-      // onError toast already handled by useMutation, this is fallback
       console.error('Error updating content selections:', error);
     }
   };
@@ -185,7 +199,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             `Maximum event duration is ${MAX_EVENT_DURATION_DAYS} days (1 month)`,
             'warning'
           );
-          // Auto-adjust to max allowed date
           const maxDate = new Date(start);
           maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
           return { ...prev, endDate: maxDate.toISOString().split('T')[0] };
@@ -199,7 +212,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 
         if (diffDays > MAX_EVENT_DURATION_DAYS) {
-          // Auto-adjust end date to max allowed
           const maxDate = new Date(start);
           maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
           return {
@@ -221,9 +233,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             'warning'
           );
 
-          // Adjust the other field to stay within limit
           if (field === 'numOfTeams') {
-            // Keep teams, adjust players per team
             const maxPlayersPerTeam = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
@@ -231,7 +241,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               playersPerTeam: Math.min(prev.playersPerTeam, maxPlayersPerTeam),
             };
           } else {
-            // Keep players per team, adjust teams
             const maxTeams = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
@@ -247,6 +256,20 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   };
 
   const handleUpdateEvent = async () => {
+    // Validate event name
+    const trimmedName = formData.eventName.trim();
+    if (
+      !trimmedName ||
+      trimmedName.length < MIN_EVENT_NAME_LENGTH ||
+      trimmedName.length > MAX_EVENT_NAME_LENGTH
+    ) {
+      showToast(
+        `Event name must be ${MIN_EVENT_NAME_LENGTH}-${MAX_EVENT_NAME_LENGTH} characters`,
+        'warning'
+      );
+      return;
+    }
+
     // Validate dates
     if (!formData.startDate || !formData.endDate) {
       showToast('Please select both start and end dates', 'warning');
@@ -256,6 +279,13 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
 
+    if (isEditable) {
+      const today = new Date(new Date().setHours(0, 0, 0, 0)).toISOString().split('T')[0];
+      if (formData.startDate < today) {
+        showToast('Start date cannot be in the past', 'warning');
+        return;
+      }
+    }
     if (end <= start) {
       showToast('End date must be after start date', 'warning');
       return;
@@ -284,15 +314,15 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     }
 
     // Convert date strings to ISO datetime strings
-    const startDate = new Date(formData.startDate + 'T00:00:00').toISOString();
-    const endDate = new Date(formData.endDate + 'T23:59:59').toISOString();
+    const startDate = new Date(formData.startDate + 'T00:00:00Z').toISOString();
+    const endDate = new Date(formData.endDate + 'T23:59:59Z').toISOString();
 
     try {
       await updateEvent({
         variables: {
           eventId: event.eventId,
           input: {
-            eventName: formData.eventName,
+            eventName: trimmedName,
             status: formData.status,
             startDate: startDate,
             endDate: endDate,
@@ -302,7 +332,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               players_per_team: formData.playersPerTeam,
               node_to_inn_ratio: formData.nodeToInnRatio,
               difficulty: formData.difficulty,
-
+              estimated_hours_per_player_per_day: formData.estimatedHoursPerPlayerPerDay,
               reward_split_ratio: {
                 nodes: 0.6,
                 inns: 0.25,
@@ -339,13 +369,19 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               </Text>
             )}
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>Event Name</FormLabel>
+              <FormLabel color={currentColors.textColor}>
+                Event Name ({MIN_EVENT_NAME_LENGTH}-{MAX_EVENT_NAME_LENGTH} chars)
+              </FormLabel>
               <Input
                 placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
                 color={currentColors.textColor}
+                maxLength={MAX_EVENT_NAME_LENGTH}
               />
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                {formData.eventName.length}/{MAX_EVENT_NAME_LENGTH}
+              </Text>
             </FormControl>
             <FormControl isRequired>
               <FormLabel color={currentColors.textColor}>Status</FormLabel>
@@ -425,7 +461,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               <NumberInput
                 isDisabled={!isEditable}
                 value={formData.estimatedHoursPerPlayerPerDay}
-                onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
+                onChange={(valueString, valueNumber) => {
+                  if (!isNaN(valueNumber)) {
+                    handleInputChange('estimatedHoursPerPlayerPerDay', valueNumber);
+                  }
+                }}
                 min={0.5}
                 max={12}
                 step={0.5}
@@ -445,20 +485,29 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <Button
                   isDisabled={!isEditable}
                   size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 2)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 2 ? 'solid' : 'outline'}
-                  colorScheme="blue"
-                >
-                  Normal (2h)
-                </Button>
-                <Button
-                  isDisabled={!isEditable}
-                  size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
                   colorScheme="blue"
                 >
-                  Dedicated (3h)
+                  Average (3h)
+                </Button>
+                <Button
+                  isDisabled={!isEditable}
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 6)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 6 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Dedicated (6h)
+                </Button>
+                <Button
+                  isDisabled={!isEditable}
+                  size="xs"
+                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 10)}
+                  variant={formData.estimatedHoursPerPlayerPerDay === 10 ? 'solid' : 'outline'}
+                  colorScheme="blue"
+                >
+                  Sweatlord (10h)
                 </Button>
               </HStack>
               <Text fontSize="xs" color="gray.500" mt={1}>

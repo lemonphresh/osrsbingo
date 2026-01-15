@@ -282,7 +282,7 @@ const TreasureMapVisualization = ({
     yellow: '#F4D35E',
     turquoise: '#28AFB0',
     red: '#FF4B5C',
-    orange: '#FF914D',
+    orange: '#dc4f09ff',
     gray: '#9ca8baff',
     pink: '#ff9dffff',
   };
@@ -327,16 +327,33 @@ const TreasureMapVisualization = ({
     return 'locked';
   };
 
-  const getNodeColor = (status, nodeType, appliedBuff) => {
+  const getNodeColor = (status, nodeType, difficultyTier, appliedBuff) => {
+    // Special node types always use their designated colors
     if (nodeType === 'START') return colors.purple;
     if (nodeType === 'INN') return colors.yellow;
-    if (status === 'completed') return colors.green;
-    if (status === 'available' && appliedBuff) return colors.pink;
-    if (status === 'available') return colors.orange;
-    if (status === 'unavailable') return colors.red; // Node at completed location
+
+    // Status-based colors
+    if (status === 'completed') return '#4b5464ff';
+    if (status === 'unavailable') return colors.red;
+
+    // Available nodes - use difficulty-based colors
+    if (status === 'available') {
+      if (appliedBuff) return colors.pink;
+
+      switch (difficultyTier) {
+        case 1:
+          return '#9ee876ff'; // Green - EASY
+        case 3:
+          return '#e1ab45ff'; // Orange - MEDIUM
+        case 5:
+          return '#F56565'; // Red - HARD
+        default:
+          return colors.orange;
+      }
+    }
+
     return colors.gray;
   };
-
   const formatGP = (gp) => {
     if (!gp) return '0';
     return (gp / 1000000).toFixed(1) + 'M';
@@ -466,7 +483,12 @@ const TreasureMapVisualization = ({
             return null;
           }
 
-          const color = getNodeColor(status, node.nodeType, !!node.objective?.appliedBuff);
+          const color = getNodeColor(
+            status,
+            node.nodeType,
+            node.difficultyTier,
+            !!node.objective?.appliedBuff
+          );
           const position = getNodePosition(node, nodes);
           return (
             <Marker
@@ -849,20 +871,17 @@ const TreasureMapVisualization = ({
               </Badge>
             )}
             <VStack align="start" spacing={2} fontSize="xs">
+              {/* Status */}
+              <Text fontWeight="bold" fontSize="xs" color="#2d3748">
+                Status
+              </Text>
               <HStack>
-                <Box w={4} h={4} bg={colors.green} borderRadius="full" border="2px solid white" />
+                <Box w={4} h={4} bg="#4b5464ff" borderRadius="full" border="2px solid white" />
                 <Text color="#2d3748">Completed</Text>
               </HStack>
               <HStack>
-                <Box
-                  w={4}
-                  h={4}
-                  bg={colors.orange}
-                  borderRadius="full"
-                  border="2px solid white"
-                  position="relative"
-                />
-                <Text color="#2d3748">Available {!adminMode && '(click to view)'}</Text>
+                <Box w={4} h={4} bg={colors.orange} borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Available</Text>
               </HStack>
               <HStack>
                 <Box
@@ -875,13 +894,49 @@ const TreasureMapVisualization = ({
                 />
                 <Text color="#2d3748">Locked</Text>
               </HStack>
+
+              {/* Node Types */}
+              <Text
+                fontWeight="bold"
+                fontSize="xs"
+                color="#2d3748"
+                mt={2}
+                pt={2}
+                borderTop="1px solid #e2e8f0"
+              >
+                Node Types
+              </Text>
               <HStack>
                 <Box w={4} h={4} bg={colors.yellow} borderRadius="sm" border="2px solid white" />
-                <Text color="#2d3748">Inn (checkpoint)</Text>
+                <Text color="#2d3748">Inn</Text>
               </HStack>
               <HStack>
                 <Box w={4} h={4} bg={colors.purple} borderRadius="full" border="2px solid white" />
                 <Text color="#2d3748">Start</Text>
+              </HStack>
+
+              {/* Difficulty */}
+              <Text
+                fontWeight="bold"
+                fontSize="xs"
+                color="#2d3748"
+                mt={2}
+                pt={2}
+                borderTop="1px solid #e2e8f0"
+              >
+                Difficulty
+              </Text>
+              <HStack>
+                <Box w={4} h={4} bg="#48BB78" borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Easy</Text>
+              </HStack>
+              <HStack>
+                <Box w={4} h={4} bg="#e1ab45ff" borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Medium</Text>
+              </HStack>
+              <HStack>
+                <Box w={4} h={4} bg="#F56565" borderRadius="full" border="2px solid white" />
+                <Text color="#2d3748">Hard</Text>
               </HStack>
             </VStack>
 

@@ -1,4 +1,3 @@
-// File: src/organisms/TreasureHunt/AdminLaunchChecklist.jsx
 import React, { useState, useMemo } from 'react';
 import {
   Box,
@@ -39,7 +38,7 @@ const AdminLaunchChecklist = ({
   onOpenDiscordSetup,
   onLaunchEvent,
   onConfirmDiscord,
-  onEditTeam, // New: callback to edit a specific team
+  onEditTeam,
   isGeneratingMap = false,
 }) => {
   const { colorMode } = useColorMode();
@@ -49,12 +48,11 @@ const AdminLaunchChecklist = ({
   // Calculate checklist status
   const checks = useMemo(() => {
     if (!event) return {};
-
+    console.log({ event });
     const hasMap = event.nodes && event.nodes.length > 0;
     const teamCount = event.teams?.length || 0;
-    const hasEnoughTeams = teamCount >= 2;
-
-    // NEW: Check if all teams have at least one member
+    const requiredTeamCount = event.eventConfig?.num_of_teams || event.numberOfTeams || 2;
+    const hasEnoughTeams = teamCount >= requiredTeamCount;
     const teamsWithoutMembers =
       event.teams?.filter((team) => !team.members || team.members.length === 0) || [];
     const allTeamsHaveMembers = teamCount > 0 && teamsWithoutMembers.length === 0;
@@ -78,8 +76,8 @@ const AdminLaunchChecklist = ({
         done: hasEnoughTeams,
         label: 'Add Teams',
         description: hasEnoughTeams
-          ? `${teamCount} teams created, go to Event Settings to add more`
-          : `${teamCount}/2 minimum teams`,
+          ? `${teamCount}/${requiredTeamCount} teams created ✓`
+          : `${teamCount}/${requiredTeamCount} teams (need ${requiredTeamCount - teamCount} more)`,
         icon: FaUsers,
         action: onAddTeam,
         actionLabel: 'Add Team',
