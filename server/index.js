@@ -227,6 +227,7 @@ app.get('/api/cache-stats', (req, res) => {
   res.json({
     ...stats,
     memoryUsage: {
+      discordUserCacheSize: userCache.size,
       heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
       heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
       rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
