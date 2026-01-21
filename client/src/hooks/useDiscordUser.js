@@ -9,6 +9,7 @@ export const useDiscordUser = (userId) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const fetchUser = useCallback(
     debounce(async (id) => {
       if (!id || !/^\d{17,19}$/.test(id)) {

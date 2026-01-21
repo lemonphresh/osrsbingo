@@ -38,6 +38,7 @@ import BoardEditorsField from '../molecules/EditField/BoardEditorsField';
 import IsPublic from '../molecules/EditField/IsPublic';
 import BonusSettings from '../molecules/EditField/BonusSettings';
 import RandomTilePickerModal from '../organisms/RandomTilePickerModal';
+import usePageTitle from '../hooks/usePageTitle';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -51,6 +52,7 @@ const BoardDetails = () => {
   const { data, loading } = useQuery(GET_BOARD, {
     variables: { id: params.boardId },
   });
+  usePageTitle(data?.getBingoBoard?.name || 'Bingo Board');
   const { showToast } = useToastContext();
   const { isOpen: isPickerOpen, onOpen: onPickerOpen, onClose: onPickerClose } = useDisclosure();
   const [board, setBoard] = useState(null);

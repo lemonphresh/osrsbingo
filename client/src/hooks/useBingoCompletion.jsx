@@ -1,15 +1,5 @@
 import { useMemo } from 'react';
 
-const calculateLineScore = (line, scoredTiles) => {
-  return line.reduce((score, tile) => {
-    if (!scoredTiles.has(tile)) {
-      scoredTiles.add(tile);
-      return score + (tile.value || 0);
-    }
-    return score;
-  }, 0);
-};
-
 const useBingoCompletion = (layout, bonusSettings = {}) => {
   const {
     allowDiagonals = false,
@@ -132,7 +122,7 @@ const useBingoCompletion = (layout, bonusSettings = {}) => {
       let colCount = 0;
       let diagCount = 0;
 
-      for (let row of layout) {
+      for (let rowIndex = 0; rowIndex < layout.length; rowIndex++) {
         rowCount++;
       }
 

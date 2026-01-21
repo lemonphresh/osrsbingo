@@ -4,8 +4,10 @@ import { CheckCircleIcon } from '@chakra-ui/icons';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { Link } from 'react-router-dom';
+import usePageTitle from '../hooks/usePageTitle';
 
 const AboutPage = () => {
+  usePageTitle('About');
   return (
     <Flex
       alignItems="center"

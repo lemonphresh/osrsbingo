@@ -2,8 +2,11 @@ import React from 'react';
 import { Box, Flex, Heading, Text, VStack, UnorderedList, ListItem } from '@chakra-ui/react';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import usePageTitle from '../hooks/usePageTitle';
 
 const TermsPage = () => {
+  usePageTitle('Terms of Service');
+
   return (
     <Flex
       alignItems="center"

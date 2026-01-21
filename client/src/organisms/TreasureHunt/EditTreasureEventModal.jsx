@@ -29,6 +29,7 @@ import { useToastContext } from '../../providers/ToastProvider';
 import ContentSelectionModal from './ContentSelectionModal';
 import { InfoIcon, WarningIcon, CheckCircleIcon } from '@chakra-ui/icons';
 import { FaMap, FaUsers, FaUserFriends, FaDiscord, FaCalendarCheck } from 'react-icons/fa';
+import { dateInputToISO, toDateInputValue, getTodayInputValue } from '../../utils/dateUtils';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000;
@@ -75,7 +76,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     estimatedHoursPerPlayerPerDay: 3,
   });
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayInputValue();
 
   const getMaxEndDate = () => {
     if (!formData.startDate) return '';
@@ -173,20 +174,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const shouldBeLockedOut = IS_DEV && event?.status === 'DRAFT' && !canSetActive;
   useEffect(() => {
     if (event) {
-      const extractDateString = (dateValue) => {
-        if (!dateValue) return '';
-        if (typeof dateValue === 'string') {
-          return dateValue.split('T')[0];
-        }
-        const d = new Date(dateValue);
-        return d.toISOString().split('T')[0];
-      };
-
       setFormData({
         eventName: event.eventName || '',
         status: event.status || 'DRAFT',
-        startDate: extractDateString(event.startDate),
-        endDate: extractDateString(event.endDate),
+        startDate: toDateInputValue(event.startDate),
+        endDate: toDateInputValue(event.endDate),
         prizePoolTotal: event.eventConfig?.prize_pool_total || 0,
         numOfTeams: event.eventConfig?.num_of_teams || 0,
         playersPerTeam: event.eventConfig?.players_per_team || 0,
@@ -364,8 +356,8 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       return;
     }
 
-    const startDate = new Date(formData.startDate + 'T00:00:00Z').toISOString();
-    const endDate = new Date(formData.endDate + 'T23:59:59Z').toISOString();
+    const startDate = dateInputToISO(formData.startDate, false);
+    const endDate = dateInputToISO(formData.endDate, true);
 
     try {
       await updateEvent({

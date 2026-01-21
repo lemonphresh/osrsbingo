@@ -1,15 +1,5 @@
 import React, { useState } from 'react';
-import {
-  VStack,
-  HStack,
-  Button,
-  Text,
-  IconButton,
-  Input,
-  Box,
-  Avatar,
-  Badge,
-} from '@chakra-ui/react';
+import { VStack, HStack, Text, IconButton, Input, Box, Avatar, Badge } from '@chakra-ui/react';
 import { DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import { useMutation, useQuery } from '@apollo/client';
 import { ADD_EVENT_ADMIN, REMOVE_EVENT_ADMIN } from '../../graphql/mutations';

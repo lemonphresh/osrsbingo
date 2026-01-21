@@ -27,6 +27,7 @@ import { CREATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useNavigate } from 'react-router-dom';
 import ContentSelectionModal from './ContentSelectionModal';
+import { dateInputToISO, getTodayInputValue } from '../../utils/dateUtils';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000; // 20 billion
@@ -71,8 +72,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     estimatedHoursPerPlayerPerDay: 3.0,
   });
 
-  // Get today's date in YYYY-MM-DD format for min date
-  const today = new Date().toISOString().split('T')[0];
+  const today = getTodayInputValue();
 
   // Calculate maximum end date (1 month from start date)
   const getMaxEndDate = () => {
@@ -270,9 +270,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
       return;
     }
 
-    // Convert date strings to ISO datetime strings
-    const startDate = new Date(formData.startDate + 'T00:00:00').toISOString();
-    const endDate = new Date(formData.endDate + 'T23:59:59').toISOString();
+    const startDate = dateInputToISO(formData.startDate, false);
+    const endDate = dateInputToISO(formData.endDate, true);
 
     try {
       await createEvent({

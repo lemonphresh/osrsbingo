@@ -15,6 +15,7 @@ import {
   FaFlag,
 } from 'react-icons/fa';
 import GemTitle from '../atoms/GemTitle';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
@@ -309,6 +310,8 @@ const ChangelogEntry = ({ entry, isLatest }) => {
 };
 
 export default function ChangelogPage() {
+  usePageTitle('Changelog');
+
   return (
     <Box
       fontFamily="system-ui, sans-serif"

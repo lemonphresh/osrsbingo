@@ -5,6 +5,7 @@ import Section from '../atoms/Section';
 import GnomeChild from '../assets/gnomechild-small.webp';
 import { FaCoffee, FaHeart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
+import usePageTitle from '../hooks/usePageTitle';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -31,6 +32,8 @@ const SelfieCircle = ({ size = 120 }) => (
 );
 
 export default function SupportPage() {
+  usePageTitle('Support the Site');
+
   return (
     <div
       style={{
