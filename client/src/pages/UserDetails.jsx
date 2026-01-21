@@ -47,6 +47,7 @@ import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
 import { FaMap } from 'react-icons/fa';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -216,20 +217,22 @@ const UserDetails = () => {
           <Icon as={MdOutlineStorage} marginRight="8px" />
           <Link to="/boards"> View Public Boards</Link>
         </Text>
-        <Text
-          alignItems="center"
-          display="inline-flex"
-          _hover={{
-            borderBottom: '1px solid white',
-            marginBottom: '0px',
-          }}
-          fontWeight="bold"
-          justifyContent="center"
-          marginBottom="1px"
-        >
-          <Link to="/gielinor-rush">Gielinor Rush</Link>
-          <Icon as={FaMap} marginLeft="8px" />
-        </Text>
+        {isGielinorRushEnabled() && (
+          <Text
+            alignItems="center"
+            display="inline-flex"
+            _hover={{
+              borderBottom: '1px solid white',
+              marginBottom: '0px',
+            }}
+            fontWeight="bold"
+            justifyContent="center"
+            marginBottom="1px"
+          >
+            <Link to="/gielinor-rush">Gielinor Rush</Link>
+            <Icon as={FaMap} marginLeft="8px" />
+          </Text>
+        )}
       </Flex>
 
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
@@ -742,7 +745,7 @@ const UserDetails = () => {
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="yellow" size="sm">
-              Gielinor Rush Creator
+              Gielinor Rush
             </GemTitle>
             <Flex
               flexDirection={['column', 'row']}
@@ -772,24 +775,48 @@ const UserDetails = () => {
                 />
               </Flex>
               <VStack>
-                <Text fontSize="16px" lineHeight="1.5">
-                  Create and manage your own Gielinor Rush events!
-                </Text>
-                <Text
-                  alignItems="center"
-                  display="inline-flex"
-                  _hover={{
-                    borderBottom: `1px solid ${theme.colors.yellow[200]}`,
-                    marginBottom: '0px',
-                  }}
-                  color={theme.colors.yellow[200]}
-                  fontWeight="bold"
-                  justifyContent="center"
-                  marginBottom="1px"
-                >
-                  <Icon as={MdOutlineMap} marginRight="8px" />
-                  <Link to={`/gielinor-rush`}> Go to Gielinor Rush Dashboard</Link>
-                </Text>
+                {isGielinorRushEnabled() ? (
+                  <>
+                    <Text fontSize="16px" lineHeight="1.5">
+                      Create and manage your own Gielinor Rush events!
+                    </Text>
+                    <Text
+                      alignItems="center"
+                      display="inline-flex"
+                      _hover={{
+                        borderBottom: `1px solid ${theme.colors.yellow[200]}`,
+                        marginBottom: '0px',
+                      }}
+                      color={theme.colors.yellow[200]}
+                      fontWeight="bold"
+                      justifyContent="center"
+                      marginBottom="1px"
+                    >
+                      <Icon as={MdOutlineMap} marginRight="8px" />
+                      <Link to="/gielinor-rush">Go to Gielinor Rush Dashboard</Link>
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
+                      Coming Soon
+                    </Badge>
+                    <Text fontSize="16px" lineHeight="1.5">
+                      Something big is brewing in Gielinor... 👀
+                    </Text>
+                    <HStack spacing={2}>
+                      <Text
+                        as={Link}
+                        to="/gielinor-rush"
+                        fontSize="sm"
+                        color={theme.colors.yellow[200]}
+                        _hover={{ textDecoration: 'underline' }}
+                      >
+                        Learn more →
+                      </Text>
+                    </HStack>
+                  </>
+                )}
               </VStack>
             </Flex>
           </Section>

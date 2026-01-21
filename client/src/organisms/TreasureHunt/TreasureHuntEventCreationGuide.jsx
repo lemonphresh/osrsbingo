@@ -20,6 +20,7 @@ import {
   AccordionIcon,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, StarIcon, WarningIcon } from '@chakra-ui/icons';
+import { isGielinorRushEnabled } from '../../config/featureFlags';
 
 const EventCreationGuide = ({ colorMode, currentColors }) => {
   return (
@@ -36,13 +37,23 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
           <HStack>
             <Text fontSize="2xl">📝</Text>
             <Heading size="md" color={currentColors.textColor}>
-              How to Create a Gielinor Rush Event
+              Study Up: Gielinor Rush Event Creation Guide
             </Heading>
           </HStack>
 
           <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-            Follow these steps to set up your perfect competitive event. The system will
-            automatically generate a balanced treasure map based on your settings!
+            {isGielinorRushEnabled() ? (
+              <>
+                Follow these steps to set up your perfect competitive event. The system will
+                automatically generate a balanced treasure map based on your settings!
+              </>
+            ) : (
+              <>
+                When the new event system is live, follow these steps to set up your perfect
+                competitive event. The system will automatically generate a balanced treasure map
+                based on your settings!
+              </>
+            )}
           </Text>
 
           <Accordion allowMultiple>

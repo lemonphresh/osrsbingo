@@ -22,6 +22,7 @@ import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { FaHeart } from 'react-icons/fa';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -115,9 +116,15 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
                   Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                  Also go try <strong>Gielinor Rush</strong>, it's new, sailing and all!
-                </Text>
+                {isGielinorRushEnabled() ? (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    Also go try <strong>Gielinor Rush</strong>, it's new, sailing and all!
+                  </Text>
+                ) : (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    <strong>Gielinor Rush</strong> is coming soon... get hype 👀
+                  </Text>
+                )}
               </VStack>
             </HStack>
             <Flex
@@ -145,11 +152,22 @@ const NavBar = () => {
                   <FaHeart color={theme.colors.red[500]} /> Support
                 </Flex>
               </Link>
-              <Link to="/gielinor-rush">
-                <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
-                  Gielinor Rush →
-                </Text>
-              </Link>
+              {isGielinorRushEnabled() ? (
+                <Link to="/gielinor-rush">
+                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                    Gielinor Rush →
+                  </Text>
+                </Link>
+              ) : (
+                <HStack spacing={1}>
+                  <Text color={theme.colors.gray[400]} fontSize="sm" textAlign="center">
+                    Gielinor Rush
+                  </Text>
+                  <Badge colorScheme="orange" fontSize="xs">
+                    Soon
+                  </Badge>
+                </HStack>
+              )}
             </Flex>
           </Flex>
         </Box>

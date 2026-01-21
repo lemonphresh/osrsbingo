@@ -5,6 +5,7 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const AboutPage = () => {
   usePageTitle('About');
@@ -33,15 +34,20 @@ const AboutPage = () => {
               {[
                 'Create custom bingo boards with your own objectives',
                 'Track progress and compete with friends and clanmates',
-                'Run Gielinor Rush events with teams, maps, and rewards',
+                isGielinorRushEnabled()
+                  ? 'Run Gielinor Rush events with teams, maps, and rewards'
+                  : undefined,
                 'Share public boards with the community',
                 'Discord bot integration for clan events',
-              ].map((item, i) => (
-                <HStack key={i} spacing={3}>
-                  <CheckCircleIcon color="green.400" />
-                  <Text>{item}</Text>
-                </HStack>
-              ))}
+              ].map(
+                (item, i) =>
+                  item && (
+                    <HStack key={i} spacing={3}>
+                      <CheckCircleIcon color="green.400" />
+                      <Text>{item}</Text>
+                    </HStack>
+                  )
+              )}
             </VStack>
           </Box>
 

@@ -16,6 +16,7 @@ import theme from '../theme';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const FAQ_SECTIONS = [
   {
@@ -36,7 +37,7 @@ const FAQ_SECTIONS = [
       },
     ],
   },
-  {
+  isGielinorRushEnabled() && {
     title: '🗺️ Gielinor Rush',
     colorKey: 'turquoise',
     items: [
@@ -117,7 +118,7 @@ const FAQ_SECTIONS = [
       },
     ],
   },
-];
+].filter(Boolean);
 
 const FaqSection = ({ title, colorKey, items, colorMode }) => (
   <Box marginTop="32px" marginBottom="24px">

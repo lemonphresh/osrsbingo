@@ -13,6 +13,7 @@ import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const Landing = () => {
   const { user } = useAuth();
@@ -135,7 +136,7 @@ const Landing = () => {
               Gielinor Rush
             </Text>
             <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
-              NEW
+              {isGielinorRushEnabled() ? 'NEW' : 'COMING SOON'}
             </Text>
           </HStack>
 
@@ -163,7 +164,7 @@ const Landing = () => {
               backgroundColor={theme.colors.orange[500]}
               _hover={{ backgroundColor: theme.colors.orange[600] }}
             >
-              Get Started
+              {isGielinorRushEnabled() ? 'Get Started' : 'Learn More'}
             </Button>
           </Link>
         </Box>
