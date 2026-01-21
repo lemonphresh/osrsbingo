@@ -92,7 +92,7 @@ app.get('/', (req, res) => {
 app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
 
-app.get('/user/:userId', async (req, res) => {
+app.get('/discuser/:userId', async (req, res) => {
   const { userId } = req.params;
 
   // Validate Discord ID format (17-19 digits)
