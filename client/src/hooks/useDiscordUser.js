@@ -28,7 +28,7 @@ export const useDiscordUser = (userId) => {
       setError(null);
 
       try {
-        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/user/${id}`);
+        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/discuser/${id}`);
 
         if (!response.ok) {
           throw new Error(response.status === 404 ? 'User not found' : 'Failed to fetch');
