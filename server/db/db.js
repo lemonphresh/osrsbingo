@@ -6,7 +6,15 @@ const sequelize = dbUrl
   ? new Sequelize(dbUrl, {
       dialect: 'postgres',
       protocol: 'postgres',
-      logging: console.log,
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
+      benchmark: true,
+      hooks: {
+        afterQuery: (options, query) => {
+          if (options.benchmark && query.duration > 1000) {
+            console.warn(`🐢 Slow query (${query.duration}ms):`, options.type);
+          }
+        },
+      },
       dialectOptions: {
         ssl: {
           require: true,
@@ -17,7 +25,7 @@ const sequelize = dbUrl
   : new Sequelize('osrsbingo', 'postgres', 'password', {
       host: 'localhost',
       dialect: 'postgres',
-      logging: console.log,
+      logging: process.env.NODE_ENV === 'development' ? console.log : false,
     });
 
 module.exports = sequelize;

@@ -21,7 +21,7 @@ const BonusSettings = ({ board, canEdit, onUpdateField }) => {
           variant="ghost"
           width="fit-content"
         >
-          Edit Board Bonus Settings
+          Bonus Settings
         </Button>
       )}
       {board && board.bonusSettings && (

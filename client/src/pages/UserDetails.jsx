@@ -15,6 +15,14 @@ import {
   Text,
   UnorderedList,
   useDisclosure,
+  VStack,
+  Input,
+  FormControl,
+  FormLabel,
+  FormHelperText,
+  Badge,
+  HStack,
+  Divider,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -25,13 +33,21 @@ import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
-import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
+import {
+  DELETE_USER,
+  UPDATE_USER,
+  LINK_DISCORD_ACCOUNT,
+  UNLINK_DISCORD_ACCOUNT,
+} from '../graphql/mutations';
 import { AddIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
-import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
+import { MdDoorBack, MdOutlineMap, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
+import { FaMap } from 'react-icons/fa';
+import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -58,8 +74,53 @@ const UserDetails = () => {
     grid: null,
   });
 
+  usePageTitle(shownUser ? `User Details - ${shownUser.username}` : 'User Details');
+
+  // Discord linking state
+  const [discordId, setDiscordId] = useState('');
+  const [isEditingDiscord, setIsEditingDiscord] = useState(false);
+
   const [updateUser] = useMutation(UPDATE_USER);
   const [deleteUser] = useMutation(DELETE_USER);
+
+  // Discord mutations
+  const [linkDiscord, { loading: linkingDiscord }] = useMutation(LINK_DISCORD_ACCOUNT, {
+    onCompleted: (data) => {
+      setUser({
+        ...user,
+        discordUserId: data.linkDiscordAccount.discordUserId,
+      });
+      setShownUser({
+        ...shownUser,
+        discordUserId: data.linkDiscordAccount.discordUserId,
+      });
+      setIsEditingDiscord(false);
+      setDiscordId('');
+      showToast('Discord account linked successfully!', 'success');
+    },
+    onError: (error) => {
+      showToast(`Error linking Discord: ${error.message}`, 'error');
+    },
+  });
+
+  const [unlinkDiscord, { loading: unlinkingDiscord }] = useMutation(UNLINK_DISCORD_ACCOUNT, {
+    onCompleted: () => {
+      setUser({
+        ...user,
+        discordUserId: null,
+      });
+      setShownUser({
+        ...shownUser,
+        discordUserId: null,
+      });
+      setDiscordId('');
+      setIsEditingDiscord(false);
+      showToast('Discord account unlinked', 'info');
+    },
+    onError: (error) => {
+      showToast(`Error unlinking Discord: ${error.message}`, 'error');
+    },
+  });
 
   const onDelete = useCallback(async () => {
     if (shownUser?.id !== user?.id) {
@@ -135,7 +196,13 @@ const UserDetails = () => {
       paddingY={['48px', '88px']}
       width="100%"
     >
-      <Flex alignItems="flex-start" marginBottom="24px" maxWidth="860px" width="100%">
+      <Flex
+        alignItems="flex-start"
+        justifyContent="space-between"
+        marginBottom="16px"
+        maxWidth="860px"
+        width="100%"
+      >
         <Text
           alignItems="center"
           display="inline-flex"
@@ -148,9 +215,26 @@ const UserDetails = () => {
           marginBottom="1px"
         >
           <Icon as={MdOutlineStorage} marginRight="8px" />
-          <Link to="/boards"> View All Boards</Link>
+          <Link to="/boards"> View Public Boards</Link>
         </Text>
+        {isGielinorRushEnabled() && (
+          <Text
+            alignItems="center"
+            display="inline-flex"
+            _hover={{
+              borderBottom: '1px solid white',
+              marginBottom: '0px',
+            }}
+            fontWeight="bold"
+            justifyContent="center"
+            marginBottom="1px"
+          >
+            <Link to="/gielinor-rush">Gielinor Rush</Link>
+            <Icon as={FaMap} marginLeft="8px" />
+          </Text>
+        )}
       </Flex>
+
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
           <GemTitle textAlign="center">
@@ -323,9 +407,148 @@ const UserDetails = () => {
                 value={user.rsn}
               />
             )}
+
+            {/* DISCORD INTEGRATION SECTION */}
+            {isCurrentUser && (
+              <>
+                <Divider my={2} />
+                {!isEditingDiscord ? (
+                  <Flex alignItems="center" flexDirection="column" width="100%" py={2}>
+                    <HStack width="100%" justify="space-between" mb={2}>
+                      <HStack>
+                        <Text color={theme.colors.teal[200]} fontWeight="bold">
+                          Discord:
+                        </Text>
+                        {shownUser?.discordUserId ? (
+                          <Badge colorScheme="green" fontSize="sm">
+                            Linked
+                          </Badge>
+                        ) : (
+                          <Badge colorScheme="gray" fontSize="sm">
+                            Not linked
+                          </Badge>
+                        )}
+                      </HStack>
+                      <Button
+                        _hover={{ backgroundColor: theme.colors.teal[800] }}
+                        color={theme.colors.teal[200]}
+                        onClick={() => setIsEditingDiscord(true)}
+                        size="sm"
+                        textDecoration="underline"
+                        variant="ghost"
+                      >
+                        {shownUser?.discordUserId ? 'Manage' : 'Link'}
+                      </Button>
+                    </HStack>
+                    {shownUser?.discordUserId && (
+                      <Text fontSize="sm" color="gray.200" width="100%">
+                        ID: {shownUser.discordUserId}
+                      </Text>
+                    )}
+                  </Flex>
+                ) : (
+                  <VStack width="100%" spacing={3} py={2}>
+                    <Text fontSize="md" color={theme.colors.teal[200]} fontWeight="bold">
+                      Discord Integration
+                    </Text>
+
+                    {shownUser?.discordUserId ? (
+                      <>
+                        <FormControl>
+                          <FormLabel fontSize="sm" color="white">
+                            Linked Discord ID
+                          </FormLabel>
+                          <Input
+                            size="sm"
+                            color="gray.700"
+                            borderRadius="md"
+                            bg="white"
+                            value={shownUser.discordUserId}
+                            isReadOnly
+                          />
+                        </FormControl>
+                        <HStack width="100%" spacing={2}>
+                          <Button
+                            colorScheme="red"
+                            size="sm"
+                            onClick={() => unlinkDiscord({ variables: { userId: user.id } })}
+                            isLoading={unlinkingDiscord}
+                            flex={1}
+                          >
+                            Unlink
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setIsEditingDiscord(false)}
+                            flex={1}
+                          >
+                            Cancel
+                          </Button>
+                        </HStack>
+                      </>
+                    ) : (
+                      <>
+                        <FormControl>
+                          <FormLabel fontSize="sm" color="white">
+                            Discord User ID
+                          </FormLabel>
+                          <Input
+                            value={discordId}
+                            placeholder="Discord User ID (i.e., 123456789012345678)"
+                            onChange={(e) => setDiscordId(e.target.value)}
+                            size="sm"
+                            color="gray.700"
+                            borderRadius="md"
+                            bg="white"
+                          />
+                          <FormHelperText color="white" fontSize="xs">
+                            Enable Developer Mode in Discord Settings → Advanced, then right-click
+                            your name and select "Copy User ID"
+                          </FormHelperText>
+                        </FormControl>
+                        <HStack width="100%" spacing={2}>
+                          <Button
+                            colorScheme="purple"
+                            size="sm"
+                            onClick={() =>
+                              linkDiscord({
+                                variables: { userId: user.id, discordUserId: discordId },
+                              })
+                            }
+                            isLoading={linkingDiscord}
+                            isDisabled={!discordId || discordId.length < 17}
+                            flex={1}
+                          >
+                            Link Discord
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setIsEditingDiscord(false);
+                              setDiscordId('');
+                            }}
+                            flex={1}
+                          >
+                            Cancel
+                          </Button>
+                        </HStack>
+                      </>
+                    )}
+
+                    <Text fontSize="xs" color="gray.200" textAlign="center">
+                      Link your Discord to use bot commands like !trade and !applybuff
+                    </Text>
+                  </VStack>
+                )}
+              </>
+            )}
           </Section>
           {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
         </Flex>
+
+        {/* Rest of the component remains the same... */}
         <Flex flexDirection={['column', 'column', 'row', 'row']} gridGap="16px">
           <Section flexDirection="column" width="100%">
             <GemTitle gemColor="purple" size="sm" textAlign="center">
@@ -369,8 +592,8 @@ const UserDetails = () => {
                 >
                   <UnorderedList
                     css={`
-                      scrollbar-width: thin; /* Firefox */
-                      scrollbar-color: ${theme.colors.purple[400]} rgba(255, 255, 255, 0.1); /* Firefox */
+                      scrollbar-width: thin;
+                      scrollbar-color: ${theme.colors.purple[400]} rgba(255, 255, 255, 0.1);
 
                       ::-webkit-scrollbar {
                         width: 8px;
@@ -517,21 +740,87 @@ const UserDetails = () => {
               </Flex>
             </Flex>
           </Section>
-
-          {/* <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="blue" size="sm">
-              {isCurrentUser ? 'Your' : 'Their'} Events
-            </GemTitle>
-            <Flex flexDirection="column">
-              <Text textAlign="center">
-                Coming soon!
-                {!shownUser?.events || shownUser.events.length === 0
-                ? 'Looks like ${isCurrentUser ? 'you' : 'they'} are not associated with any events yet.'
-                : 'todo event list'}
-              </Text>
-            </Flex>
-          </Section> */}
         </Flex>
+
+        {isCurrentUser && (
+          <Section flexDirection="column" width="100%">
+            <GemTitle gemColor="yellow" size="sm">
+              Gielinor Rush
+            </GemTitle>
+            <Flex
+              flexDirection={['column', 'row']}
+              gridGap="16px"
+              alignItems="center"
+              justifyContent="space-around"
+            >
+              <Flex
+                alignItems="center"
+                backgroundColor={theme.colors.teal[800]}
+                borderRadius="10px"
+                flexDirection="column"
+                justifyContent="center"
+                h="100%"
+                w={['100%', '150px']}
+                padding="8px"
+              >
+                <Image
+                  src="https://oldschool.runescape.wiki/images/thumb/Pirate_map.png/1200px-Pirate_map.png?9b490"
+                  alt="Gielinor Rush Map"
+                  maxWidth="128px"
+                  maxHeight="128px"
+                  h="100%"
+                  w="100%"
+                  my={3}
+                  borderRadius="8px"
+                />
+              </Flex>
+              <VStack>
+                {isGielinorRushEnabled() ? (
+                  <>
+                    <Text fontSize="16px" lineHeight="1.5">
+                      Create and manage your own Gielinor Rush events!
+                    </Text>
+                    <Text
+                      alignItems="center"
+                      display="inline-flex"
+                      _hover={{
+                        borderBottom: `1px solid ${theme.colors.yellow[200]}`,
+                        marginBottom: '0px',
+                      }}
+                      color={theme.colors.yellow[200]}
+                      fontWeight="bold"
+                      justifyContent="center"
+                      marginBottom="1px"
+                    >
+                      <Icon as={MdOutlineMap} marginRight="8px" />
+                      <Link to="/gielinor-rush">Go to Gielinor Rush Dashboard</Link>
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
+                      Coming Soon
+                    </Badge>
+                    <Text fontSize="16px" lineHeight="1.5">
+                      Something big is brewing in Gielinor... 👀
+                    </Text>
+                    <HStack spacing={2}>
+                      <Text
+                        as={Link}
+                        to="/gielinor-rush"
+                        fontSize="sm"
+                        color={theme.colors.yellow[200]}
+                        _hover={{ textDecoration: 'underline' }}
+                      >
+                        Learn more →
+                      </Text>
+                    </HStack>
+                  </>
+                )}
+              </VStack>
+            </Flex>
+          </Section>
+        )}
       </Section>
       {!isCurrentUser && user?.admin && (
         <>

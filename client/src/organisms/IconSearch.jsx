@@ -14,7 +14,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
   const [updateTile] = useMutation(UPDATE_TILE);
 
   const searchItems = async (searchTerm) => {
-    if (!searchTerm) {
+    if (!searchTerm || searchTerm.length < 2) {
       setResults([]);
       return;
     }
@@ -79,7 +79,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
           {results?.map((item) => (
             <ListItem
               alignItems="center"
-              key={item.id}
+              key={item.wikiUrl || item.name}
               display="flex"
               justifyContent="center"
               width="45px"

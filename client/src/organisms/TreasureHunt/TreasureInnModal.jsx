@@ -1,0 +1,321 @@
+import React, { useState } from 'react';
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  VStack,
+  HStack,
+  Text,
+  Box,
+  Badge,
+  Button,
+  Divider,
+  useColorMode,
+  useToast,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  Heading,
+} from '@chakra-ui/react';
+import { useMutation } from '@apollo/client';
+import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
+import { GET_TREASURE_TEAM } from '../../graphql/queries';
+
+export default function InnModal({
+  isOpen,
+  onClose,
+  node,
+  team,
+  eventId,
+  onPurchaseComplete,
+  currentUser,
+}) {
+  const { colorMode } = useColorMode();
+  const toast = useToast();
+  const [selectedReward, setSelectedReward] = useState(null);
+
+  const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD, {
+    refetchQueries: [
+      // Refetch team data to update keysHeld and currentPot
+      {
+        query: GET_TREASURE_TEAM,
+        variables: { eventId, teamId: team.teamId },
+      },
+    ],
+    awaitRefetchQueries: true,
+
+    onCompleted: (data) => {
+      toast({
+        title: 'Purchase successful!',
+        description: 'Reward has been added to your pot and keys have been spent',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      setSelectedReward(null);
+
+      // Call parent callback
+      if (onPurchaseComplete) {
+        onPurchaseComplete();
+      }
+
+      // Close modal after a brief delay to show success
+      setTimeout(() => {
+        onClose();
+      }, 500);
+    },
+
+    onError: (error) => {
+      console.error('Purchase error:', error);
+
+      toast({
+        title: 'Purchase failed',
+        description: error.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      setSelectedReward(null);
+    },
+  });
+
+  const colors = {
+    dark: {
+      yellow: { base: '#F4D35E' },
+      green: { base: '#43AA8B' },
+      textColor: '#F7FAFC',
+      cardBg: '#2D3748',
+    },
+    light: {
+      yellow: { base: '#F4D35E' },
+      green: { base: '#43AA8B' },
+      textColor: '#171923',
+      cardBg: 'white',
+    },
+  };
+
+  const currentColors = colors[colorMode];
+
+  if (!node || node.nodeType !== 'INN' || !team) return null;
+
+  const isTeamMember =
+    currentUser?.discordUserId &&
+    team?.members?.some((m) => m.toString() === currentUser.discordUserId.toString());
+
+  const formatGP = (gp) => {
+    return (gp / 1000000).toFixed(1) + 'M';
+  };
+
+  const hasAlreadyPurchased = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
+  const availableRewards = node.availableRewards || [];
+
+  const canAfford = (keyCost) => {
+    return keyCost.every((cost) => {
+      if (cost.color === 'any') {
+        const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
+        return totalKeys >= cost.quantity;
+      }
+      const teamKey = team.keysHeld.find((k) => k.color === cost.color);
+      return teamKey && teamKey.quantity >= cost.quantity;
+    });
+  };
+
+  const handlePurchase = async (rewardId) => {
+    if (!isTeamMember) {
+      toast({
+        title: 'Not Authorized',
+        description: 'You must be a member of this team to make purchases',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await purchaseReward({
+        variables: {
+          eventId,
+          teamId: team.teamId,
+          rewardId,
+        },
+      });
+
+      // Success handling is in onCompleted callback above
+    } catch (error) {
+      // Error handling is in onError callback above
+      console.error('Purchase exception:', error);
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="xl">
+      <ModalOverlay />
+      <ModalContent bg={currentColors.cardBg}>
+        <ModalHeader color={currentColors.textColor}>
+          <HStack>
+            <Text>🏠 {node.title}</Text>
+            <Badge colorScheme="yellow">INN</Badge>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton />
+        <ModalBody pb={6}>
+          <VStack align="stretch" spacing={4}>
+            <Text color={currentColors.textColor}>{node.description}</Text>
+
+            <Divider />
+
+            {!isTeamMember && (
+              <Alert status="warning" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>View Only</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    Link your Discord ID on your{' '}
+                    <Text
+                      as="a"
+                      href={`/user/${currentUser?.id}`}
+                      color="blue.500"
+                      textDecoration="underline"
+                    >
+                      profile
+                    </Text>{' '}
+                    to make purchases.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
+
+            {hasAlreadyPurchased && (
+              <Alert status="success" borderRadius="md">
+                <AlertIcon />
+                <Box flex="1">
+                  <AlertTitle>Already Purchased!</AlertTitle>
+                  <AlertDescription fontSize="sm">
+                    You've already made a purchase from this Inn. Each Inn can only be visited once
+                    for rewards.
+                  </AlertDescription>
+                </Box>
+              </Alert>
+            )}
+
+            <Box bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} p={3} borderRadius="md">
+              <Heading size="xs" mb={2} color={currentColors.textColor}>
+                Your Team's Keys
+              </Heading>
+              {team.keysHeld && team.keysHeld.length > 0 ? (
+                <HStack spacing={2} flexWrap="wrap">
+                  {team.keysHeld.map((key) => (
+                    <Badge key={key.color} colorScheme={key.color} fontSize="md">
+                      {key.quantity}x {key.color}
+                    </Badge>
+                  ))}
+                </HStack>
+              ) : (
+                <Text fontSize="sm" color="gray.500">
+                  No keys available
+                </Text>
+              )}
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Heading size="sm" mb={3} color={currentColors.textColor}>
+                Shopkeep
+              </Heading>
+
+              {availableRewards.length === 0 ? (
+                <Text fontSize="sm" color="gray.500">
+                  No rewards available at this Inn
+                </Text>
+              ) : (
+                <VStack spacing={3} align="stretch">
+                  {availableRewards.map((reward) => {
+                    const affordable = canAfford(reward.key_cost);
+                    const isDisabled = !isTeamMember || !affordable || hasAlreadyPurchased;
+
+                    return (
+                      <Box
+                        key={reward.reward_id}
+                        p={4}
+                        borderWidth={2}
+                        borderColor={
+                          affordable && !hasAlreadyPurchased && isTeamMember
+                            ? currentColors.green.base
+                            : 'gray.500'
+                        }
+                        borderRadius="md"
+                        bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
+                        opacity={isDisabled ? 0.6 : 1}
+                      >
+                        <HStack justify="space-between" align="start">
+                          <VStack align="start" spacing={2} flex={1}>
+                            <HStack>
+                              <Text fontWeight="bold" color={currentColors.textColor}>
+                                Trade:
+                              </Text>
+                              {reward.key_cost.map((cost, idx) => (
+                                <Badge key={idx} colorScheme={cost.color}>
+                                  {cost.quantity}x {cost.color}
+                                </Badge>
+                              ))}
+                            </HStack>
+
+                            <HStack>
+                              <Text fontSize="sm" color={currentColors.textColor}>
+                                →
+                              </Text>
+                              <Text fontWeight="bold" color={currentColors.green.base}>
+                                {formatGP(reward.payout)} GP
+                              </Text>
+                            </HStack>
+
+                            {!isTeamMember && (
+                              <Text fontSize="xs" color="orange.500">
+                                Discord ID not linked
+                              </Text>
+                            )}
+                            {isTeamMember && !affordable && !hasAlreadyPurchased && (
+                              <Text fontSize="xs" color="red.500">
+                                Insufficient keys
+                              </Text>
+                            )}
+                            {hasAlreadyPurchased && (
+                              <Text fontSize="xs" color="green.500">
+                                Already purchased from this Inn
+                              </Text>
+                            )}
+                          </VStack>
+
+                          <Button
+                            colorScheme="green"
+                            size="sm"
+                            isDisabled={isDisabled}
+                            isLoading={purchasing && selectedReward === reward.reward_id}
+                            onClick={() => {
+                              setSelectedReward(reward.reward_id);
+                              handlePurchase(reward.reward_id);
+                            }}
+                          >
+                            Trade
+                          </Button>
+                        </HStack>
+                      </Box>
+                    );
+                  })}
+                </VStack>
+              )}
+            </Box>
+          </VStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+}
