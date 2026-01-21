@@ -96,7 +96,7 @@ app.get('/user/:userId', async (req, res) => {
   const { userId } = req.params;
 
   // Validate Discord ID format (17-19 digits)
-  if (!/^\d{17,19}$/.test(userId)) {
+  if (!userId || !/^\d{17,19}$/.test(userId)) {
     return res.status(400).json({ error: 'Invalid Discord user ID format' });
   }
 
