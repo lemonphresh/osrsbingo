@@ -33,6 +33,9 @@ const CHANGELOG_ENTRIES = [
       'Revamped landing page design',
       'Added Privacy Policy, Terms of Service, and About pages',
       'Event password to help with screenshot verification on Gielinor Rush competitions',
+      'Discord user verification with Discord IDs',
+      'Backend icon caching and memory optimizations',
+      'Improved map node generation logic',
     ],
   },
   {
