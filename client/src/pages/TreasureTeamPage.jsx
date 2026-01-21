@@ -52,6 +52,7 @@ import { useThemeColors } from '../hooks/useThemeColors';
 import useSubmissionCelebrations from '../hooks/useSubmissionCelebrations';
 import DevTestPanel from '../organisms/TreasureHunt/DevTestPanel';
 import { unlockAudio } from '../utils/celebrationUtils';
+import usePageTitle from '../hooks/usePageTitle';
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -348,6 +349,8 @@ const TreasureTeamView = () => {
     setSelectedNode(node);
     onBuffModalOpen();
   };
+
+  usePageTitle(event ? `Gielinor Rush - ${team ? team.teamName : 'Team'}` : 'Gielinor Rush Team');
 
   const teamSubmissions = useMemo(() => {
     const allSubmissions = submissionsData?.getAllSubmissions || [];

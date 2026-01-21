@@ -109,16 +109,7 @@ export const useSubmissionNotifications = (
   useEffect(() => {
     if (!isAdmin) return;
 
-    const pendingToShow =
-      typeof allPendingIncompleteSubmissionsCount === 'number'
-        ? allPendingIncompleteSubmissionsCount
-        : submissions.filter((s) => s.status === 'PENDING_REVIEW').length;
     drawFaviconBadge(allPendingIncompleteSubmissionsCount);
-
-    document.title =
-      pendingToShow > 0
-        ? `(${pendingToShow}) OSRS Bingo Hub - Create and Share Bingo Boards`
-        : `OSRS Bingo Hub - Create and Share Bingo Boards`;
 
     return () => {
       if (originalFaviconRef.current) {
@@ -130,6 +121,11 @@ export const useSubmissionNotifications = (
       }
     };
   }, [submissions, isAdmin, eventName, drawFaviconBadge, allPendingIncompleteSubmissionsCount]);
+
+  const pendingToShow =
+    typeof allPendingIncompleteSubmissionsCount === 'number'
+      ? allPendingIncompleteSubmissionsCount
+      : submissions.filter((s) => s.status === 'PENDING_REVIEW').length;
 
   // ===== Sound helper =====
   const playNotificationSound = useCallback(() => {
@@ -522,6 +518,7 @@ export const useSubmissionNotifications = (
     soundEnabled,
     enableSound,
     disableSound,
+    pendingCount: pendingToShow,
   };
 };
 

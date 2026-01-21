@@ -23,6 +23,7 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { useMutation } from '@apollo/client';
 import { CREATE_USER } from '../graphql/mutations';
+import usePageTitle from '../hooks/usePageTitle';
 
 const validatePasswords = (p1, p2) => p1 === p2;
 
@@ -81,6 +82,8 @@ const SignUp = () => {
     () => validatePasswords(values.password, values.confirmedPassword),
     [values.password, values.confirmedPassword]
   );
+
+  usePageTitle('Sign Up');
 
   return (
     <Flex

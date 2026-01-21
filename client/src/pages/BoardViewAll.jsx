@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import theme from '../theme';
 import { debounce } from 'lodash';
 import { StarIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
+import usePageTitle from '../hooks/usePageTitle';
 
 const BOARDS_PER_PAGE = 10;
 
@@ -34,6 +35,8 @@ const BoardViewAll = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
   const [currentPage, setCurrentPage] = useState(1);
+
+  usePageTitle('All Boards');
 
   const { boards, loading, totalCount, featuredBoards } = usePublicBoardsWithThumbnails({
     category: selectedCategory,

@@ -13,17 +13,17 @@ import {
   ModalOverlay,
   Text,
 } from '@chakra-ui/react';
+import { format } from 'date-fns';
 import theme from '../theme';
 import EditField from '../molecules/EditField';
 import { UPDATE_TILE } from '../graphql/mutations';
 import IconSearch from './IconSearch';
 import { useMutation } from '@apollo/client';
-import moment from 'moment';
 
-const formattedDate = (date) => {
+const formatDate = (date) => {
   if (!date) return null;
-  const dateObj = typeof date === 'number' ? moment(date) : moment(date);
-  return dateObj.format('MMMM D, YYYY h:mm:ss A');
+  const dateObj = typeof date === 'number' ? new Date(date) : new Date(date);
+  return format(dateObj, 'MMMM d, yyyy h:mm:ss a');
 };
 
 const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
@@ -36,9 +36,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
   });
   const [tileState, setTileState] = useState({
     ...tile,
-    dateCompleted: tile.dateCompleted
-      ? formattedDate(new Date(Number(tile.dateCompleted))) // convert timestamp to readable format
-      : null,
+    dateCompleted: tile.dateCompleted ? formatDate(new Date(Number(tile.dateCompleted))) : null,
   });
   const [updateTile] = useMutation(UPDATE_TILE);
 
@@ -46,9 +44,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
     if (tile) {
       setTileState({
         ...tile,
-        dateCompleted: tile.dateCompleted
-          ? formattedDate(new Date(Number(tile.dateCompleted))) // normalize date
-          : null,
+        dateCompleted: tile.dateCompleted ? formatDate(new Date(Number(tile.dateCompleted))) : null,
       });
     }
   }, [tile]);
@@ -215,16 +211,14 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                     defaultChecked={tileState.isComplete}
                     marginRight="16px"
                     onChange={async () => {
-                      const currentDate = tileState.isComplete
-                        ? null
-                        : moment().utc().toISOString(); // unix timestamp in milliseconds
+                      const currentDate = tileState.isComplete ? null : new Date().toISOString();
 
                       const { data } = await updateTile({
                         variables: {
                           id: tile.id,
                           input: {
                             isComplete: !tileState.isComplete,
-                            dateCompleted: currentDate, // send as timestamp
+                            dateCompleted: currentDate,
                           },
                         },
                       });
@@ -233,9 +227,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                         ...tileState,
                         ...data.editBingoTile,
                         isComplete: !tileState.isComplete,
-                        dateCompleted: currentDate
-                          ? formattedDate(new Date(currentDate)) // format for display
-                          : null,
+                        dateCompleted: currentDate ? formatDate(new Date(currentDate)) : null,
                       });
                     }}
                     size="lg"

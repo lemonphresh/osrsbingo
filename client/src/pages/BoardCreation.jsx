@@ -9,9 +9,11 @@ import { CREATE_BOARD } from '../graphql/mutations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import { GET_USER } from '../graphql/queries';
+import usePageTitle from '../hooks/usePageTitle';
 
 const BoardCreation = () => {
   const { user } = useAuth();
+  usePageTitle('Create Board');
   const [createBingoBoard] = useMutation(CREATE_BOARD, {
     update(cache, { data: { createBingoBoard } }) {
       const existingData = cache.readQuery({

@@ -59,6 +59,7 @@ import {
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
+import { formatDisplayDate } from '../utils/dateUtils';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
 import {
   REVIEW_SUBMISSION,
@@ -91,6 +92,7 @@ import { useThemeColors } from '../hooks/useThemeColors';
 import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
 import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
+import usePageTitle from '../hooks/usePageTitle';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -352,6 +354,7 @@ const TreasureEventView = () => {
     permission: notificationPermission,
     requestPermission: requestNotificationPermission,
     disableNotifications,
+    pendingCount,
   } = useSubmissionNotifications(
     allSubmissions.filter((s) => s.status === 'PENDING_REVIEW'),
     isEventAdmin,
@@ -361,6 +364,14 @@ const TreasureEventView = () => {
     event?.id,
     allPendingIncompleteSubmissionsCount
   );
+
+  const pageTitle = event?.eventName
+    ? pendingCount > 0 && isEventAdmin
+      ? `(${pendingCount}) ${event.eventName}`
+      : event.eventName
+    : null;
+
+  usePageTitle(pageTitle);
 
   if (eventLoading) {
     return (
@@ -499,8 +510,7 @@ const TreasureEventView = () => {
                 {event.status}
               </Badge>
               <Text color={theme.colors.gray[300]}>
-                {new Date(event.startDate).toLocaleDateString()} -{' '}
-                {new Date(event.endDate).toLocaleDateString()}
+                {formatDisplayDate(event.startDate)} - {formatDisplayDate(event.endDate)}
               </Text>
             </HStack>
             <Tooltip label="Click to copy Event ID" hasArrow>

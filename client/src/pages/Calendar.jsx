@@ -41,6 +41,7 @@ import SavedEventsPanel from '../organisms/SavedEventsPanel';
 import RescheduleModal from '../organisms/RescheduleModal';
 import UpdateBanner from '../molecules/UpdateBanner';
 import GemTitle from '../atoms/GemTitle';
+import usePageTitle from '../hooks/usePageTitle';
 
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
@@ -359,6 +360,8 @@ export default function CalendarPage() {
       }
     });
   };
+
+  usePageTitle('EG Events Calendar');
 
   // --- RENDER GUARDS ---
   if (!authChecked || authLoading) {

@@ -56,6 +56,8 @@ import Objective from '../assets/adventurepath-small.webp';
 import Laidee from '../assets/laidee.png';
 import HouseTab from '../assets/housetab.png';
 import EternalGem from '../assets/gemoji.png';
+import { formatDisplayDate } from '../utils/dateUtils';
+import usePageTitle from '../hooks/usePageTitle';
 
 const TreasureHuntDashboard = () => {
   const { colorMode } = useColorMode();
@@ -339,7 +341,7 @@ const TreasureHuntDashboard = () => {
               Start:
             </Text>
             <Text fontSize="sm" color={currentColors.textColor} fontWeight="medium">
-              {new Date(event.startDate).toLocaleDateString()}
+              {formatDisplayDate(event.startDate)}
             </Text>
           </HStack>
           <HStack>
@@ -347,7 +349,7 @@ const TreasureHuntDashboard = () => {
               End:
             </Text>
             <Text fontSize="sm" color={currentColors.textColor} fontWeight="medium">
-              {new Date(event.endDate).toLocaleDateString()}
+              {formatDisplayDate(event.endDate)}
             </Text>
           </HStack>
 
@@ -384,6 +386,8 @@ const TreasureHuntDashboard = () => {
       </CardBody>
     </Card>
   );
+
+  usePageTitle('Gielinor Rush Dashboard');
 
   return (
     <Flex

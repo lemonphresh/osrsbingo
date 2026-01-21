@@ -46,6 +46,7 @@ import { MdDoorBack, MdOutlineMap, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
 import { FaMap } from 'react-icons/fa';
+import usePageTitle from '../hooks/usePageTitle';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -71,6 +72,8 @@ const UserDetails = () => {
     board: null,
     grid: null,
   });
+
+  usePageTitle(shownUser ? `User Details - ${shownUser.username}` : 'User Details');
 
   // Discord linking state
   const [discordId, setDiscordId] = useState('');

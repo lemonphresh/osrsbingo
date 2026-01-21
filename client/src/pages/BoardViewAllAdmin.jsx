@@ -9,6 +9,7 @@ import theme from '../theme';
 import { debounce } from 'lodash';
 import { useAuth } from '../providers/AuthProvider';
 import { MdLockOutline, MdPublic } from 'react-icons/md';
+import usePageTitle from '../hooks/usePageTitle';
 
 const BoardViewAllAdmin = () => {
   const { user } = useAuth();
@@ -17,6 +18,8 @@ const BoardViewAllAdmin = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchQuery);
+
+  usePageTitle('All Boards (ADMIN VIEW)');
 
   const { boards, loading, loadMore, hasMore } = useAllBoardsWithThumbnails({
     category: selectedCategory,

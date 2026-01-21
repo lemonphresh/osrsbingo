@@ -15,6 +15,7 @@ import {
   FaFlag,
 } from 'react-icons/fa';
 import GemTitle from '../atoms/GemTitle';
+import usePageTitle from '../hooks/usePageTitle';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
@@ -32,6 +33,9 @@ const CHANGELOG_ENTRIES = [
       'Revamped landing page design',
       'Added Privacy Policy, Terms of Service, and About pages',
       'Event password to help with screenshot verification on Gielinor Rush competitions',
+      'Discord user verification with Discord IDs',
+      'Backend icon caching and memory optimizations',
+      'Improved map node generation logic',
     ],
   },
   {
@@ -309,6 +313,8 @@ const ChangelogEntry = ({ entry, isLatest }) => {
 };
 
 export default function ChangelogPage() {
+  usePageTitle('Changelog');
+
   return (
     <Box
       fontFamily="system-ui, sans-serif"

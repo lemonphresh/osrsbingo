@@ -26,11 +26,13 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
+  usePageTitle('Log In');
 
   const [loginUser, { data, error }] = useMutation(LOGIN_USER);
 

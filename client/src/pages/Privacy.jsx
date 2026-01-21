@@ -2,8 +2,10 @@ import React from 'react';
 import { Box, Flex, Heading, Text, VStack, UnorderedList, ListItem } from '@chakra-ui/react';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import usePageTitle from '../hooks/usePageTitle';
 
 const PrivacyPage = () => {
+  usePageTitle('Privacy Policy');
   return (
     <Flex
       alignItems="center"

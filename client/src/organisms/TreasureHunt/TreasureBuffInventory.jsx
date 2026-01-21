@@ -1,16 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Badge,
-  Tooltip,
-  Icon,
-  Button,
-  Flex,
-  Portal,
-} from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Badge, Tooltip, Icon, Button, Flex } from '@chakra-ui/react';
 import { InfoIcon, InfoOutlineIcon } from '@chakra-ui/icons';
 import BuffInfoModal from './TreasureHuntBuffInfoModal';
 

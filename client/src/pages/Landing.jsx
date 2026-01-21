@@ -12,10 +12,13 @@ import IronmanIcon from '../assets/ironman.png';
 import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
+import usePageTitle from '../hooks/usePageTitle';
 
 const Landing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  usePageTitle(null);
 
   useEffect(() => {
     if (user) {

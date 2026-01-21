@@ -1,5 +1,4 @@
 const express = require('express');
-const axios = require('axios');
 const path = require('path');
 const { Pool } = require('pg');
 const router = express.Router();
@@ -8,11 +7,9 @@ const { makeExecutableSchema } = require('@graphql-tools/schema');
 const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
 const models = require('./db/models');
-const Fuse = require('fuse.js');
 const { ApolloServer } = require('apollo-server-express');
 const dotenv = require('dotenv');
-const bcrypt = require('bcrypt');
-const cheerio = require('cheerio');
+const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const calendarRoutes = require('./calendarRoutes');
 const { createServer } = require('http');
@@ -21,6 +18,7 @@ const { useServer } = require('graphql-ws/use/ws');
 const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
+const itemsService = require('./utils/itemsService');
 
 dotenv.config();
 
@@ -213,118 +211,33 @@ app.post('/users/batch', async (req, res) => {
 app.get('/api/items', async (req, res) => {
   try {
     const { alpha } = req.query;
-
-    const response = await axios.get(
-      'https://raw.githubusercontent.com/0xNeffarion/osrsreboxed-db/master/docs/items-complete.json'
-    );
-
-    const itemsData = response.data;
-    const items = Object.values(itemsData);
-
-    const fuse = new Fuse(items, {
-      includeScore: true,
-      threshold: 0.3,
-      keys: ['wiki_name'],
-    });
-
-    const maxResults = 30;
-    const fuseResults = fuse.search(alpha).slice(0, maxResults);
-
-    // Fetch Wiki results in parallel
-    const wikiFallbackItems = await fetchWikiFallback(alpha);
-
-    // Process static JSON results
-    const staticItemPromises = fuseResults.map(async (resultItem) => {
-      const item = resultItem.item;
-      const imageUrl = await fetchInventoryIcon(item.wiki_name || item.name);
-
-      if (!imageUrl) return null;
-
-      return {
-        name: item.wiki_name || item.name,
-        wikiUrl: item.wiki_url,
-        imageUrl,
-      };
-    });
-
-    const staticResults = (await Promise.all(staticItemPromises)).filter(Boolean);
-
-    const seenNames = new Set();
-    const combined = [...wikiFallbackItems, ...staticResults].filter((item) => {
-      if (seenNames.has(item.name)) return false;
-      seenNames.add(item.name);
-      return true;
-    });
-
-    res.json(combined);
+    if (!alpha || alpha.trim().length === 0) {
+      return res.json([]);
+    }
+    const results = await itemsService.searchItems(alpha);
+    res.json(results);
   } catch (error) {
-    console.error(error);
+    console.error('Items search error:', error);
     res.status(500).json({ error: 'Failed to fetch data from RuneScape API' });
   }
+});
+
+app.get('/api/cache-stats', (req, res) => {
+  const stats = itemsService.getCacheStats();
+  res.json({
+    ...stats,
+    memoryUsage: {
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
+      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + ' MB',
+    },
+  });
 });
 
 const wsServer = new WebSocketServer({
   server: httpServer,
   path: '/graphql',
 });
-
-const fetchInventoryIcon = async (itemName) => {
-  try {
-    const wikiUrl = `https://oldschool.runescape.wiki/w/${encodeURIComponent(
-      itemName.replace(/ /g, '_')
-    )}`;
-    const response = await axios.get(wikiUrl);
-    const $ = cheerio.load(response.data);
-
-    const iconElement = $('.infobox-image img').first();
-
-    if (iconElement.length) {
-      const src = iconElement.attr('src');
-      if (src.startsWith('//')) return `https:${src}`;
-      if (src.startsWith('/images/')) return `https://oldschool.runescape.wiki${src}`;
-      return src;
-    }
-    return null;
-  } catch (error) {
-    console.error(`Error scraping icon for ${itemName}:`, error.message);
-    return null;
-  }
-};
-
-// Wiki fallback returns multiple search matches, with proper sprite scraping
-const fetchWikiFallback = async (searchTerm) => {
-  try {
-    const response = await axios.get('https://oldschool.runescape.wiki/api.php', {
-      params: {
-        action: 'query',
-        list: 'search',
-        srsearch: `${searchTerm}*`,
-        format: 'json',
-        origin: '*',
-      },
-    });
-
-    const searchResults = response.data.query.search;
-
-    const fallbackItems = await Promise.all(
-      searchResults.map(async (result) => {
-        const imageUrl = await fetchInventoryIcon(result.title);
-        if (!imageUrl) return null;
-        return {
-          name: result.title,
-          wikiUrl: `https://oldschool.runescape.wiki/wiki/${encodeURIComponent(
-            result.title.replace(/ /g, '_')
-          )}`,
-          imageUrl: imageUrl || null,
-        };
-      })
-    );
-    return fallbackItems.filter(Boolean); // Filter out any null results
-  } catch (error) {
-    console.error('Wiki fallback failed:', error.message);
-    return [];
-  }
-};
 
 const serverCleanup = useServer(
   {
@@ -374,11 +287,17 @@ const server = new ApolloServer({
     return { req, res, user, jwtSecret: SECRET, discordUserId, loaders: createLoaders(models) };
   },
   formatResponse: (response) => {
-    console.log('GraphQL Response:', response);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('GraphQL Response:', response);
+    }
     return response;
   },
   formatError: (err) => {
-    console.error('GraphQL Error:', err);
+    console.error('❌ GraphQL Error:', {
+      message: err.message,
+      path: err.path,
+      code: err.extensions?.code,
+    });
     return err;
   },
   plugins: [
@@ -392,6 +311,7 @@ const server = new ApolloServer({
         };
       },
     },
+    require('apollo-server-core').ApolloServerPluginLandingPageLocalDefault(),
     {
       requestDidStart() {
         const start = Date.now();
@@ -399,13 +319,17 @@ const server = new ApolloServer({
           willSendResponse({ operationName }) {
             const duration = Date.now() - start;
             if (duration > 500) {
-              console.warn(`⚠️ Slow query: ${operationName || 'anonymous'} took ${duration}ms`);
+              console.warn(`🐢 Slow query: ${operationName || 'anonymous'} took ${duration}ms`);
             }
+          },
+          didEncounterErrors({ errors }) {
+            errors.forEach((err) => {
+              console.error('❌ GraphQL Error:', err.message);
+            });
           },
         };
       },
     },
-    require('apollo-server-core').ApolloServerPluginLandingPageLocalDefault(),
   ],
 });
 
@@ -422,6 +346,19 @@ app.get('/api', (req, res) => {
 router.post('/auth/signup', async (req, res) => {
   const { username, password, rsn } = req.body;
   try {
+    const user = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+
+    if (!user.rows.length) {
+      console.warn(`⚠️ Failed login attempt - user not found: ${username}`);
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.rows[0].password);
+    if (!isMatch) {
+      console.warn(`⚠️ Failed login attempt - wrong password: ${username}`);
+      return res.status(400).json({ msg: 'Invalid credentials' });
+    }
+
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -470,12 +407,18 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   });
 }
+app.use((err, req, res, next) => {
+  console.error('💥 Unhandled error:', err.message);
+  res.status(500).json({ error: 'Internal server error' });
+});
 
 /*  END auth  */
 const PORT = process.env.PORT || 5000;
 // Starting the Apollo server and Express server
-server.start().then(() => {
+server.start().then(async () => {
   server.applyMiddleware({ app, path: '/graphql', cors: false });
+
+  await itemsService.warmCache();
 
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);

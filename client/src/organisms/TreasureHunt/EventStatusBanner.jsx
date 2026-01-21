@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Box, HStack, VStack, Text, Badge, Icon, Progress } from '@chakra-ui/react';
 import { LockIcon } from '@chakra-ui/icons';
 import { FaFlagCheckered, FaArchive, FaClock, FaFire } from 'react-icons/fa';
+import { formatDisplayDateTime } from '../../utils/dateUtils';
 
 const EventStatusBanner = ({ event, isAdmin = false }) => {
   const [now, setNow] = useState(new Date());
@@ -38,15 +39,6 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
       return `${minutes}m`;
     };
 
-    const formatDate = (date) => {
-      return date.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      });
-    };
-
     switch (status) {
       case 'DRAFT':
         return {
@@ -77,7 +69,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
             bgGradient: 'linear(to-r, blue.600, blue.400)',
             label: 'STARTING SOON',
             title: `Starts in ${formatCountdown(msUntilStart)}`,
-            subtitle: `${formatDate(startDate)}`,
+            subtitle: `${formatDisplayDateTime(startDate)}`,
             showProgress: false,
             countdown: formatCountdown(msUntilStart),
             countdownLabel: 'until start',
@@ -92,7 +84,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
             bgGradient: 'linear(to-r, green.500, teal.400)',
             label: 'LIVE',
             title: isEndingSoon ? `Ends in ${formatCountdown(msUntilEnd)}` : 'Event In Progress',
-            subtitle: `Ends ${formatDate(endDate)}`,
+            subtitle: `Ends ${formatDisplayDateTime(endDate)}`,
             showProgress: false,
             progressPercent,
             countdown: formatCountdown(msUntilEnd),
@@ -108,7 +100,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
             bgGradient: 'linear(to-r, orange.500, yellow.400)',
             label: 'ENDED',
             title: 'Event Has Ended',
-            subtitle: `Ended ${formatDate(endDate)}`,
+            subtitle: `Ended ${formatDisplayDateTime(endDate)}`,
             showProgress: false,
             progressPercent: 100,
             badge: isAdmin ? 'Update status to COMPLETED' : null,
@@ -122,7 +114,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
           bgGradient: 'linear(to-r, teal.600, cyan.400)',
           label: 'COMPLETED',
           title: 'Event Finished',
-          subtitle: `Ended ${formatDate(endDate)}`,
+          subtitle: `Ended ${formatDisplayDateTime(endDate)}`,
           showProgress: false,
           progressPercent: 100,
           badge: null,
