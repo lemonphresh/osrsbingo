@@ -58,6 +58,8 @@ import HouseTab from '../assets/housetab.png';
 import EternalGem from '../assets/gemoji.png';
 import { formatDisplayDate } from '../utils/dateUtils';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
+import TreasureHuntSummary from '../molecules/TreasureHunt/TreasureHuntSummary';
 
 const TreasureHuntDashboard = () => {
   const { colorMode } = useColorMode();
@@ -114,6 +116,7 @@ const TreasureHuntDashboard = () => {
   };
 
   const handleCreateEventClick = () => {
+    if (!isGielinorRushEnabled()) return;
     if (!user || !user.id) {
       onAuthModalOpen();
     } else {
@@ -646,188 +649,221 @@ const TreasureHuntDashboard = () => {
               </SimpleGrid>
 
               <VStack spacing={4} py={4}>
-                <Button
-                  size="lg"
-                  leftIcon={<AddIcon />}
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{
-                    bg: currentColors.purple.light,
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg',
-                  }}
-                  _active={{
-                    bg: currentColors.purple.dark,
-                    transform: 'translateY(0)',
-                  }}
-                  _focus={{
-                    outline: '2px solid',
-                    outlineColor: currentColors.purple.light,
-                    outlineOffset: '2px',
-                  }}
-                  onClick={handleCreateEventClick}
-                  boxShadow="md"
-                  transition="all 0.2s"
-                >
-                  Create Your First Event
-                </Button>
-                <Text fontSize="sm" color="gray.400" textAlign="center" maxW="500px">
-                  When you generate the event's map on the next step, these settings will dictate
-                  the layout and objectives.
-                </Text>
+                {isGielinorRushEnabled() ? (
+                  <>
+                    <Button
+                      size="lg"
+                      leftIcon={<AddIcon />}
+                      bg={currentColors.purple.base}
+                      color="white"
+                      _hover={{
+                        bg: currentColors.purple.light,
+                        transform: 'translateY(-2px)',
+                        shadow: 'lg',
+                      }}
+                      _active={{
+                        bg: currentColors.purple.dark,
+                        transform: 'translateY(0)',
+                      }}
+                      _focus={{
+                        outline: '2px solid',
+                        outlineColor: currentColors.purple.light,
+                        outlineOffset: '2px',
+                      }}
+                      onClick={handleCreateEventClick}
+                      boxShadow="md"
+                      transition="all 0.2s"
+                    >
+                      Create Your First Event
+                    </Button>
+                    <Text fontSize="sm" color="gray.400" textAlign="center" maxW="500px">
+                      When you generate the event's map on the next step, these settings will
+                      dictate the layout and objectives.
+                    </Text>
+                  </>
+                ) : (
+                  <Box textAlign="center" py={4}>
+                    <Badge colorScheme="orange" fontSize="md" px={4} py={2} borderRadius="md">
+                      Coming Soon
+                    </Badge>
+                    <Text fontSize="sm" color="gray.400" mt={3} maxW="400px" mx="auto">
+                      Gielinor Rush is almost ready. Sharpen your dragon dagger and stay tuned 🗡️
+                    </Text>
+                  </Box>
+                )}
               </VStack>
             </VStack>
           ) : (
             <>
-              <HStack
-                justify="space-between"
-                flexWrap="wrap"
-                maxW="800px"
-                w="100%"
-                m="0 auto"
-                gap={4}
-              >
-                <GemTitle size="xl" color={currentColors.textColor} gemColor="yellow">
-                  Your Gielinor Rush Events
-                </GemTitle>
-                <Button
-                  leftIcon={<AddIcon />}
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{
-                    bg: currentColors.purple.light,
-                    transform: 'translateY(-2px)',
-                    shadow: 'lg',
-                  }}
-                  _active={{
-                    bg: currentColors.purple.dark,
-                    transform: 'translateY(0)',
-                  }}
-                  _focus={{
-                    outline: '2px solid',
-                    outlineColor: currentColors.purple.light,
-                    outlineOffset: '2px',
-                  }}
-                  onClick={handleCreateEventClick}
-                  transition="all 0.2s"
-                  size={isMobile ? 'sm' : 'md'}
-                >
-                  Create New Event
-                </Button>
-              </HStack>
-
-              {/* Search and Filter Controls */}
-              <Card bg={theme.colors.teal[500]} borderWidth={1} maxW="800px" w="100%" m="0 auto">
-                <CardBody>
-                  <VStack spacing={4}>
-                    <InputGroup>
-                      <InputLeftElement pointerEvents="none">
-                        <SearchIcon color="teal.700" />
-                      </InputLeftElement>
-                      <Input
-                        bg={theme.colors.teal[200]}
-                        border={`1px solid ${theme.colors.teal[200]}`}
-                        placeholder="Search events..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        _hover={{
-                          borderColor: currentColors.purple.base,
-                        }}
-                        _focus={{
-                          borderColor: currentColors.purple.base,
-                          boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
-                        }}
-                      />
-                    </InputGroup>
-                    <HStack width="100%" spacing={4} flexWrap="wrap">
-                      <Select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        bg={theme.colors.teal[200]}
-                        border={`1px solid ${theme.colors.teal[200]}`}
-                        flex={1}
-                        minW="150px"
-                        _hover={{
-                          borderColor: currentColors.purple.base,
-                        }}
-                        _focus={{
-                          borderColor: currentColors.purple.base,
-                          boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
-                        }}
-                      >
-                        <option value="ALL">All Status</option>
-                        <option value="ACTIVE">Active</option>
-                        <option value="DRAFT">Draft</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="ARCHIVED">Archived</option>
-                      </Select>
-                      <Select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        bg={theme.colors.teal[200]}
-                        border={`1px solid ${theme.colors.teal[200]}`}
-                        flex={1}
-                        minW="150px"
-                        _hover={{
-                          borderColor: currentColors.purple.base,
-                        }}
-                        _focus={{
-                          borderColor: currentColors.purple.base,
-                          boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
-                        }}
-                      >
-                        <option value="name">Name</option>
-                        <option value="startDate">Start Date</option>
-                        <option value="endDate">End Date</option>
-                        <option value="teams">Team Count</option>
-                      </Select>
-                    </HStack>
-                  </VStack>
-                </CardBody>
-              </Card>
-
-              {/* Results count */}
-              {(searchQuery || statusFilter !== 'ALL') && (
-                <Text textAlign="center" fontSize="sm" color="gray.400">
-                  Showing {filteredAndSortedEvents.length} of {events.length} events
-                </Text>
-              )}
-
-              {/* Events Grid */}
-              {filteredAndSortedEvents.length === 0 ? (
-                <Card maxW="800px" w="100%" m="0 auto" bg={theme.colors.teal[500]} borderWidth={1}>
-                  <CardBody>
-                    <VStack spacing={4} py={8}>
-                      <Text color={currentColors.textColor} fontSize="lg" fontWeight="medium">
-                        No events found
-                      </Text>
-                      <Text color="gray.200" textAlign="center">
-                        Try adjusting your search or filters
-                      </Text>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSearchQuery('');
-                          setStatusFilter('ALL');
-                        }}
-                        color={currentColors.textColor}
-                      >
-                        Clear filters
-                      </Button>
-                    </VStack>
-                  </CardBody>
-                </Card>
-              ) : (
-                <SimpleGrid
+              {isGielinorRushEnabled() && (
+                <HStack
+                  justify="space-between"
+                  flexWrap="wrap"
                   maxW="800px"
                   w="100%"
                   m="0 auto"
-                  columns={{ base: 1, md: 2, lg: 3 }}
-                  spacing={6}
+                  gap={4}
                 >
-                  {filteredAndSortedEvents.map((event) => renderEventCard(event))}
-                </SimpleGrid>
+                  <GemTitle size="xl" color={currentColors.textColor} gemColor="yellow">
+                    Your Gielinor Rush Events
+                  </GemTitle>
+                  <Button
+                    leftIcon={<AddIcon />}
+                    bg={currentColors.purple.base}
+                    color="white"
+                    _hover={{
+                      bg: currentColors.purple.light,
+                      transform: 'translateY(-2px)',
+                      shadow: 'lg',
+                    }}
+                    _active={{
+                      bg: currentColors.purple.dark,
+                      transform: 'translateY(0)',
+                    }}
+                    _focus={{
+                      outline: '2px solid',
+                      outlineColor: currentColors.purple.light,
+                      outlineOffset: '2px',
+                    }}
+                    onClick={handleCreateEventClick}
+                    transition="all 0.2s"
+                    size={isMobile ? 'sm' : 'md'}
+                  >
+                    Create New Event
+                  </Button>
+                </HStack>
+              )}
+
+              {/* Search and Filter Controls */}
+              {isGielinorRushEnabled() ? (
+                <>
+                  <Card
+                    bg={theme.colors.teal[500]}
+                    borderWidth={1}
+                    maxW="800px"
+                    w="100%"
+                    m="0 auto"
+                  >
+                    <CardBody>
+                      <VStack spacing={4}>
+                        <InputGroup>
+                          <InputLeftElement pointerEvents="none">
+                            <SearchIcon color="teal.700" />
+                          </InputLeftElement>
+                          <Input
+                            bg={theme.colors.teal[200]}
+                            border={`1px solid ${theme.colors.teal[200]}`}
+                            placeholder="Search events..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            _hover={{
+                              borderColor: currentColors.purple.base,
+                            }}
+                            _focus={{
+                              borderColor: currentColors.purple.base,
+                              boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
+                            }}
+                          />
+                        </InputGroup>
+                        <HStack width="100%" spacing={4} flexWrap="wrap">
+                          <Select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            bg={theme.colors.teal[200]}
+                            border={`1px solid ${theme.colors.teal[200]}`}
+                            flex={1}
+                            minW="150px"
+                            _hover={{
+                              borderColor: currentColors.purple.base,
+                            }}
+                            _focus={{
+                              borderColor: currentColors.purple.base,
+                              boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
+                            }}
+                          >
+                            <option value="ALL">All Status</option>
+                            <option value="ACTIVE">Active</option>
+                            <option value="DRAFT">Draft</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="ARCHIVED">Archived</option>
+                          </Select>
+                          <Select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            bg={theme.colors.teal[200]}
+                            border={`1px solid ${theme.colors.teal[200]}`}
+                            flex={1}
+                            minW="150px"
+                            _hover={{
+                              borderColor: currentColors.purple.base,
+                            }}
+                            _focus={{
+                              borderColor: currentColors.purple.base,
+                              boxShadow: `0 0 0 1px ${currentColors.purple.base}`,
+                            }}
+                          >
+                            <option value="name">Name</option>
+                            <option value="startDate">Start Date</option>
+                            <option value="endDate">End Date</option>
+                            <option value="teams">Team Count</option>
+                          </Select>
+                        </HStack>
+                      </VStack>
+                    </CardBody>
+                  </Card>
+
+                  {/* Results count */}
+                  {(searchQuery || statusFilter !== 'ALL') && (
+                    <Text textAlign="center" fontSize="sm" color="gray.400">
+                      Showing {filteredAndSortedEvents.length} of {events.length} events
+                    </Text>
+                  )}
+
+                  {/* Events Grid */}
+                  {filteredAndSortedEvents.length === 0 ? (
+                    <Card
+                      maxW="800px"
+                      w="100%"
+                      m="0 auto"
+                      bg={theme.colors.teal[500]}
+                      borderWidth={1}
+                    >
+                      <CardBody>
+                        <VStack spacing={4} py={8}>
+                          <Text color={currentColors.textColor} fontSize="lg" fontWeight="medium">
+                            No events found
+                          </Text>
+                          <Text color="gray.200" textAlign="center">
+                            Try adjusting your search or filters
+                          </Text>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setSearchQuery('');
+                              setStatusFilter('ALL');
+                            }}
+                            color={currentColors.textColor}
+                          >
+                            Clear filters
+                          </Button>
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  ) : (
+                    <SimpleGrid
+                      maxW="800px"
+                      w="100%"
+                      m="0 auto"
+                      columns={{ base: 1, md: 2, lg: 3 }}
+                      spacing={6}
+                    >
+                      {filteredAndSortedEvents.map((event) => renderEventCard(event))}
+                    </SimpleGrid>
+                  )}
+                </>
+              ) : (
+                <TreasureHuntSummary />
               )}
             </>
           )}

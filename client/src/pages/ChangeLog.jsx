@@ -16,12 +16,37 @@ import {
 } from 'react-icons/fa';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
   {
-    version: '2.1.0',
-    date: 'January 2026',
+    version: '2.0.0',
+    date: 'October 2025 - January 2026',
+    title: 'Gielinor Rush 🎉',
+    type: isGielinorRushEnabled() ? 'major' : 'upcoming',
+    icon: FaGamepad,
+    details: `A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's ${
+      isGielinorRushEnabled() ? 'finally' : 'nearly'
+    } here.`,
+    highlights: [
+      'Brand new Treasure Hunt / Gielinor Rush game mode',
+      'Procedurally generated maps with branching paths',
+      'Team-based competitions with real-time progress tracking',
+      'Buff system with strategic power-ups',
+      'Inn nodes for rest and resource management',
+      'Victory celebrations with confetti 🎊',
+      'Admin walkthrough panels for event management',
+      'Live activity feed with WebSocket updates',
+      'Discord bot integration for team coordination',
+      'Submission review system with approve/deny workflow',
+      'Content selection! Customize which bosses, skills, etc. appear',
+      'Interactive tutorial for new players',
+    ],
+  },
+  {
+    version: '1.6.0',
+    date: 'December 2025',
     title: 'Polish & Performance',
     type: 'improvement',
     icon: FaRocket,
@@ -36,29 +61,6 @@ const CHANGELOG_ENTRIES = [
       'Discord user verification with Discord IDs',
       'Backend icon caching and memory optimizations',
       'Improved map node generation logic',
-    ],
-  },
-  {
-    version: '2.0.0',
-    date: 'October - December 2025',
-    title: 'Gielinor Rush 🎉',
-    type: 'major',
-    icon: FaGamepad,
-    details:
-      "A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's finally here.",
-    highlights: [
-      'Brand new Treasure Hunt / Gielinor Rush game mode',
-      'Procedurally generated maps with branching paths',
-      'Team-based competitions with real-time progress tracking',
-      'Buff system with strategic power-ups',
-      'Inn nodes for rest and resource management',
-      'Victory celebrations with confetti 🎊',
-      'Admin walkthrough panels for event management',
-      'Live activity feed with WebSocket updates',
-      'Discord bot integration for team coordination',
-      'Submission review system with approve/deny workflow',
-      'Content selection! Customize which bosses, skills, etc. appear',
-      'Interactive tutorial for new players',
     ],
   },
   {
@@ -209,6 +211,8 @@ const CHANGELOG_ENTRIES = [
 
 const getTypeColor = (type) => {
   switch (type) {
+    case 'upcoming':
+      return 'gray';
     case 'major':
       return 'purple';
     case 'feature':
@@ -224,6 +228,8 @@ const getTypeColor = (type) => {
 
 const getTypeLabel = (type) => {
   switch (type) {
+    case 'upcoming':
+      return 'Coming Soon';
     case 'major':
       return 'Major Release';
     case 'feature':
@@ -337,44 +343,46 @@ export default function ChangelogPage() {
         </VStack>
 
         {/* Latest release callout */}
-        <Box
-          bg="rgba(244, 211, 94, 0.1)"
-          border="1px solid rgba(244, 211, 94, 0.3)"
-          borderRadius="lg"
-          p={5}
-          mb={10}
-        >
-          <HStack spacing={2} mb={2}>
-            <FaRocket color="#F4D35E" />
-            <Text fontWeight="bold" color="#F4D35E" fontSize="sm">
-              LATEST MAJOR RELEASE
-            </Text>
-          </HStack>
-          <Text color="white" fontWeight="bold" fontSize="lg">
-            Gielinor Rush is here!
-          </Text>
-          <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
-            The new competitive game mode is finally live. Create maps, form teams, and race your
-            clanmates through OSRS challenges. Months of work went into this one.
-          </Text>
-          <ChakraLink
-            href="/treasure-hunt"
-            display="inline-flex"
-            alignItems="center"
-            gap={2}
-            bg="#F4D35E"
-            color="#1a1a1a"
-            px={4}
-            py={2}
-            borderRadius="md"
-            fontWeight={600}
-            fontSize="sm"
-            mt={4}
-            _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+        {isGielinorRushEnabled() && (
+          <Box
+            bg="rgba(244, 211, 94, 0.1)"
+            border="1px solid rgba(244, 211, 94, 0.3)"
+            borderRadius="lg"
+            p={5}
+            mb={10}
           >
-            <FaGamepad /> Try Gielinor Rush
-          </ChakraLink>
-        </Box>
+            <HStack spacing={2} mb={2}>
+              <FaRocket color="#F4D35E" />
+              <Text fontWeight="bold" color="#F4D35E" fontSize="sm">
+                LATEST MAJOR RELEASE
+              </Text>
+            </HStack>
+            <Text color="white" fontWeight="bold" fontSize="lg">
+              Gielinor Rush is here!
+            </Text>
+            <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
+              The new competitive game mode is finally live. Create maps, form teams, and race your
+              clanmates through OSRS challenges. Months of work went into this one.
+            </Text>
+            <ChakraLink
+              href="/treasure-hunt"
+              display="inline-flex"
+              alignItems="center"
+              gap={2}
+              bg="#F4D35E"
+              color="#1a1a1a"
+              px={4}
+              py={2}
+              borderRadius="md"
+              fontWeight={600}
+              fontSize="sm"
+              mt={4}
+              _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+            >
+              <FaGamepad /> Try Gielinor Rush
+            </ChakraLink>
+          </Box>
+        )}
 
         {/* Stats */}
         <HStack

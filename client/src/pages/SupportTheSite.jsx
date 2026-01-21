@@ -6,6 +6,7 @@ import GnomeChild from '../assets/gnomechild-small.webp';
 import { FaCoffee, FaHeart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
+import { isGielinorRushEnabled } from '../config/featureFlags';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -63,7 +64,8 @@ export default function SupportPage() {
             So here's the deal gamers: I made this site for my clan a while back because I wanted a
             better way to do bingo events. Then other nerds started using it. Then a <em>lot</em> of
             nerds started using it. Now there's like 3,000+ boards on here and I just spent months
-            building a whole new game mode (Gielinor Rush, go try it).
+            building a whole new game mode (Gielinor Rush, try it{' '}
+            {isGielinorRushEnabled() ? 'now!' : 'soon...'})
           </p>
 
           <p>
@@ -80,9 +82,11 @@ export default function SupportPage() {
             </li>
             <li style={{ marginBottom: 8 }}>
               Database (PostgreSQL) — <strong>~$25/mo</strong>{' '}
-              <span style={{ color: '#F4D35E', fontSize: 13 }}>
-                (growing fast with Gielinor Rush)
-              </span>
+              {isGielinorRushEnabled() && (
+                <span style={{ color: '#F4D35E', fontSize: 13 }}>
+                  (growing fast with Gielinor Rush)
+                </span>
+              )}
             </li>
             <li>
               Domain + random stuff — <strong>~$15/mo</strong>
