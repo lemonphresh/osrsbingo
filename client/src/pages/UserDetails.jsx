@@ -48,6 +48,7 @@ import { useToastContext } from '../providers/ToastProvider';
 import { FaMap } from 'react-icons/fa';
 import usePageTitle from '../hooks/usePageTitle';
 import { isGielinorRushEnabled } from '../config/featureFlags';
+import MiniStats from '../molecules/MiniStats';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -821,6 +822,9 @@ const UserDetails = () => {
             </Flex>
           </Section>
         )}
+        <Flex flexDirection="column">
+          <MiniStats />
+        </Flex>
       </Section>
       {!isCurrentUser && user?.admin && (
         <>

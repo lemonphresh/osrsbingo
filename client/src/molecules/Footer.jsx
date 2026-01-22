@@ -37,6 +37,7 @@ const Footer = () => {
         <Link to="/privacy">privacy</Link>
         <Link to="/terms">terms</Link>
         <Link to="/changelog">changelog</Link>
+        <Link to="/stats">site stats</Link>
       </Flex>
       <Flex
         alignItems="center"
