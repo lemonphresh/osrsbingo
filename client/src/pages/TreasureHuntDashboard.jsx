@@ -412,6 +412,8 @@ const TreasureHuntDashboard = () => {
               </HStack>
               {renderSkeletonCards()}
             </>
+          ) : !isGielinorRushEnabled() ? (
+            <TreasureHuntSummary />
           ) : events.length === 0 ? (
             <VStack spacing={8} align="stretch" maxW="800px" mx="auto">
               <Section bg="rgba(0, 200, 200, 0.5)">
@@ -735,7 +737,7 @@ const TreasureHuntDashboard = () => {
               )}
 
               {/* Search and Filter Controls */}
-              {isGielinorRushEnabled() ? (
+              {isGielinorRushEnabled() && (
                 <>
                   <Card
                     bg={theme.colors.teal[500]}
@@ -862,8 +864,6 @@ const TreasureHuntDashboard = () => {
                     </SimpleGrid>
                   )}
                 </>
-              ) : (
-                <TreasureHuntSummary />
               )}
             </>
           )}

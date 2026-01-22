@@ -23,6 +23,7 @@ const PrivacyPage = lazy(() => import('./pages/Privacy'));
 const SupportPage = lazy(() => import('./pages/SupportTheSite'));
 const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
+const StatsPage = lazy(() => import('./pages/Stats'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -132,6 +133,11 @@ const routes = [
       {
         path: '/changelog',
         element: withSuspense(ChangelogPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/stats',
+        element: withSuspense(StatsPage),
         errorElement: <ErrorPage />,
       },
       {

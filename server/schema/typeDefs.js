@@ -435,6 +435,18 @@ const typeDefs = gql`
     message: String
   }
 
+  type SiteStats {
+    totalBoards: Int!
+    totalUsers: Int!
+    totalTiles: Int!
+    completedTiles: Int!
+    boardsThisWeek: Int!
+    usersThisWeek: Int!
+    publicBoards: Int!
+    totalVisits: Int!
+    completionRate: Int!
+  }
+
   # ============================================================
   # QUERIES
   # ============================================================
@@ -484,6 +496,7 @@ const typeDefs = gql`
 
     # --- Analytics ---
     getVisitCount: Int!
+    getSiteStats: SiteStats!
   }
 
   # ============================================================
