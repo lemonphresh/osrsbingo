@@ -644,3 +644,19 @@ export const GET_VISIT_COUNT = gql`
     getVisitCount
   }
 `;
+
+export const GET_SITE_STATS = gql`
+  query GetSiteStats {
+    getSiteStats {
+      totalBoards
+      totalUsers
+      totalTiles
+      completedTiles
+      boardsThisWeek
+      usersThisWeek
+      publicBoards
+      totalVisits
+      completionRate
+    }
+  }
+`;
