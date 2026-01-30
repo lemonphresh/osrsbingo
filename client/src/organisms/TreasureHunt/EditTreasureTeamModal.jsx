@@ -11,7 +11,6 @@ import {
   FormLabel,
   Input,
   Button,
-  useColorMode,
   Text,
   Divider,
   useDisclosure,
@@ -21,12 +20,26 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Box,
+  HStack,
+  Icon,
+  OrderedList,
+  ListItem,
+  Image,
 } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
+import { AddIcon, InfoIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { UPDATE_TREASURE_TEAM, DELETE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
+import { useThemeColors } from '../../hooks/useThemeColors';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+import DiscordStep1 from '../../assets/discordstep1.png';
+import DiscordStep2 from '../../assets/discordstep2.png';
 
 const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
 
@@ -38,25 +51,10 @@ export default function EditTeamModal({
   eventId,
   onSuccess,
 }) {
-  const { colorMode } = useColorMode();
+  const { colors: currentColors, colorMode } = useThemeColors();
   const { showToast } = useToastContext();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const cancelRef = React.useRef();
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
-
-  const currentColors = colors[colorMode];
 
   const [formData, setFormData] = useState({
     teamName: '',
@@ -66,9 +64,12 @@ export default function EditTeamModal({
 
   const getExistingMemberMap = () => {
     const memberMap = new Map();
-    existingTeams.forEach((team) => {
-      team.members?.forEach((memberId) => {
-        memberMap.set(memberId, team.teamName);
+    existingTeams.forEach((t) => {
+      // Skip the team we're currently editing
+      if (t.teamId === team?.teamId) return;
+
+      t.members?.forEach((memberId) => {
+        memberMap.set(memberId, t.teamName);
       });
     });
     return memberMap;
@@ -218,20 +219,41 @@ export default function EditTeamModal({
             </FormControl>
 
             <FormControl>
-              <FormLabel color={currentColors.textColor}>Discord Role ID (Optional)</FormLabel>
-              <Input
-                placeholder="123456789012345678"
-                value={formData.discordRoleId}
-                onChange={(e) => setFormData({ ...formData, discordRoleId: e.target.value })}
-                color={currentColors.textColor}
-              />
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1}>
-                Discord role ID for team members (used by the bot)
+              <FormLabel color={currentColors.textColor}>Team Members</FormLabel>
+              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mb={2}>
+                Add Discord user IDs for team members. Members need to link their Discord on their
+                OSRS Bingo Hub profile to use site features like buffs and inn purchases.
               </Text>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
+              <Accordion allowToggle mb={3}>
+                <AccordionItem border="none" bg="blue.50" borderRadius="md">
+                  <AccordionButton>
+                    <Box flex="1" textAlign="left">
+                      <HStack>
+                        <Icon as={InfoIcon} color="blue.500" />
+                        <Text fontSize="sm" fontWeight="bold" color="blue.700">
+                          How do I find Discord User IDs?
+                        </Text>
+                      </HStack>
+                    </Box>
+                    <AccordionIcon color="blue.500" />
+                  </AccordionButton>
+                  <AccordionPanel pb={4}>
+                    <OrderedList spacing={2} fontSize="sm" color="gray.700">
+                      <ListItem>
+                        Open Discord Settings → Advanced → Enable "Developer Mode"
+                        <Image src={DiscordStep1} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>
+                        Right-click the user's name → "Copy User ID"
+                        <Image src={DiscordStep2} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>
+                        Paste the 17-19 digit ID below (example: 123456789012345678)
+                      </ListItem>
+                    </OrderedList>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
               <VStack spacing={3} align="stretch">
                 {formData.members.map((member, index) => (
                   <DiscordMemberInput

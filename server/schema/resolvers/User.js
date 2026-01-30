@@ -260,6 +260,44 @@ module.exports = {
         throw new ApolloError('An error occurred while searching for users.');
       }
     },
+    searchUsersByDiscord: async (_, { query, limit = 10 }) => {
+      // Sanitize query to prevent SQL injection in the CASE statement
+      const sanitizedQuery = query.replace(/'/g, "''");
+
+      // Only return users who have linked their Discord
+      const users = await User.findAll({
+        where: {
+          discordUserId: { [Op.ne]: null }, // Must have Discord linked
+          [Op.or]: [
+            { username: { [Op.iLike]: `%${query}%` } },
+            { displayName: { [Op.iLike]: `%${query}%` } },
+            { rsn: { [Op.iLike]: `%${query}%` } },
+            { discordUsername: { [Op.iLike]: `%${query}%` } },
+            // Also allow searching by Discord ID directly
+            ...(query.match(/^\d{17,19}$/) ? [{ discordUserId: query }] : []),
+          ],
+        },
+        limit,
+        order: [
+          // Prioritize exact matches, including Discord username
+          [
+            sequelize.literal(
+              `CASE 
+                WHEN LOWER(username) = LOWER('${sanitizedQuery}') THEN 0
+                WHEN LOWER("discordUsername") = LOWER('${sanitizedQuery}') THEN 1
+                WHEN LOWER("displayName") = LOWER('${sanitizedQuery}') THEN 2
+                WHEN LOWER(rsn) = LOWER('${sanitizedQuery}') THEN 3
+                ELSE 4
+              END`
+            ),
+            'ASC',
+          ],
+          ['displayName', 'ASC'],
+        ],
+      });
+
+      return users;
+    },
 
     searchUsersByIds: async (_, { ids }) => {
       if (!ids || ids.length === 0) {

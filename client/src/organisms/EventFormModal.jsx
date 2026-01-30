@@ -153,6 +153,7 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
                 <option value="SKILLING">Skilling</option>
                 <option value="MISC">Misc</option>
                 <option value="MIXED_CONTENT">Mixed Content</option>
+                <option value="JAGEX">Official Jagex Event</option>
               </Select>
             </FormControl>
           </VStack>

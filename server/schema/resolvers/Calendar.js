@@ -20,7 +20,7 @@ function requireCalendarAuth(ctx) {
   }
 }
 
-const ALLOWED = new Set(['PVM', 'MASS', 'SKILLING', 'MISC', 'MIXED_CONTENT']);
+const ALLOWED = new Set(['PVM', 'MASS', 'SKILLING', 'MISC', 'MIXED_CONTENT', 'JAGEX']);
 const normalizeType = (t) => {
   const v = String(t || 'MISC').toUpperCase();
   return ALLOWED.has(v) ? v : 'MISC';

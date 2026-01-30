@@ -18,6 +18,8 @@ const typeDefs = gql`
     displayName: String!
     rsn: String
     discordUserId: String
+    discordUsername: String
+    discordAvatar: String
     admin: Boolean
     permissions: [String]
     token: String
@@ -181,6 +183,7 @@ const typeDefs = gql`
     SKILLING
     MISC
     MIXED_CONTENT
+    JAGEX
   }
 
   enum CalendarEventStatus {
@@ -458,6 +461,7 @@ const typeDefs = gql`
     getUserByDiscordId(discordUserId: String!): User
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
+    searchUsersByDiscord(query: String!, limit: Int): [User!]!
 
     # --- Bingo Boards ---
     getBingoBoard(id: ID!): BingoBoard
