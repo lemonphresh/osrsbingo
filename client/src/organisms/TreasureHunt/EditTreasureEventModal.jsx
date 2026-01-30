@@ -15,7 +15,6 @@ import {
   NumberInputField,
   Button,
   SimpleGrid,
-  useColorMode,
   Text,
   Tooltip,
   HStack,
@@ -42,26 +41,11 @@ const MAX_EVENT_NAME_LENGTH = 50;
 const IS_DEV = process.env.REACT_APP_ENVIRONMENT === 'development';
 
 export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
-  const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
   const [showContentModal, setShowContentModal] = useState(false);
   const [contentSelections, setContentSelections] = useState(null);
 
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
-
   const isEditable = event?.status === 'DRAFT';
-  const currentColors = colors[colorMode];
 
   const [formData, setFormData] = useState({
     eventName: '',
@@ -97,7 +81,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const eventDuration = getEventDuration();
   const maxEndDate = getMaxEndDate();
 
-  // Calculate launch readiness checks
   const launchChecks = useMemo(() => {
     if (!event) return { allPassed: false, checks: [] };
 
@@ -169,9 +152,9 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     };
   }, [event, formData.numOfTeams, formData.playersPerTeam, formData.startDate, formData.endDate]);
 
-  // Check if trying to set ACTIVE without meeting requirements
   const canSetActive = launchChecks.allPassed;
   const shouldBeLockedOut = IS_DEV && event?.status === 'DRAFT' && !canSetActive;
+
   useEffect(() => {
     if (event) {
       setFormData({
@@ -289,10 +272,9 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         }
       }
 
-      // Warn if trying to set ACTIVE without meeting requirements
       if (field === 'status' && value === 'ACTIVE' && shouldBeLockedOut) {
         showToast('Complete all launch requirements before setting to Active', 'warning');
-        return prev; // Don't allow the change
+        return prev;
       }
 
       return newData;
@@ -350,7 +332,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       return;
     }
 
-    // Block ACTIVE status if launch checks fail
     if (shouldBeLockedOut) {
       showToast('Cannot activate event: complete all launch requirements first', 'error');
       return;
@@ -386,15 +367,20 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     }
   };
 
-  // Render launch requirements warning when trying to set ACTIVE
   const LaunchRequirementsWarning = () => {
     if (event?.status !== 'DRAFT' || canSetActive) return null;
 
     return (
-      <Alert status="warning" borderRadius="md" flexDirection="column" alignItems="stretch">
+      <Alert
+        status="warning"
+        borderRadius="md"
+        flexDirection="column"
+        alignItems="stretch"
+        bg="orange.900"
+      >
         <HStack mb={2}>
-          <AlertIcon />
-          <Text fontWeight="bold" fontSize="sm">
+          <AlertIcon color="orange.300" />
+          <Text fontWeight="bold" fontSize="sm" color="orange.200">
             Complete these requirements to activate:
           </Text>
         </HStack>
@@ -403,11 +389,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             <HStack key={check.key} spacing={2}>
               <Icon
                 as={check.passed ? CheckCircleIcon : WarningIcon}
-                color={check.passed ? 'green.500' : 'orange.500'}
+                color={check.passed ? 'green.400' : 'orange.400'}
                 boxSize={3}
               />
-              <Icon as={check.icon} color={check.passed ? 'green.500' : 'gray.400'} boxSize={3} />
-              <Text fontSize="xs" color={check.passed ? 'green.600' : 'gray.600'}>
+              <Icon as={check.icon} color={check.passed ? 'green.400' : 'gray.500'} boxSize={3} />
+              <Text fontSize="xs" color={check.passed ? 'green.300' : 'gray.400'}>
                 {check.label}: {check.message}
               </Text>
             </HStack>
@@ -419,18 +405,18 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Edit Event</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader color="white">Edit Event</ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             {!isEditable && (
               <Text
                 p={2}
-                bg="orange.100"
+                bg="orange.900"
                 borderRadius="md"
-                color="orange.500"
+                color="orange.300"
                 fontWeight="bold"
                 fontSize="sm"
               >
@@ -439,14 +425,18 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             )}
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>
+              <FormLabel color="gray.100">
                 Event Name ({MIN_EVENT_NAME_LENGTH}-{MAX_EVENT_NAME_LENGTH} chars)
               </FormLabel>
               <Input
                 placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
-                color={currentColors.textColor}
+                color="white"
+                bg="gray.700"
+                borderColor="gray.600"
+                _hover={{ borderColor: 'gray.500' }}
+                _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 maxLength={MAX_EVENT_NAME_LENGTH}
               />
               <Text fontSize="xs" color="gray.500" mt={1}>
@@ -455,40 +445,58 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             </FormControl>
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>Status</FormLabel>
+              <FormLabel color="gray.100">Status</FormLabel>
               <Select
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
-                color={currentColors.textColor}
+                color="white"
+                bg="gray.700"
+                borderColor="gray.600"
+                _hover={{ borderColor: 'gray.500' }}
               >
-                <option value="DRAFT">Draft</option>
-                <option value="ACTIVE" disabled={shouldBeLockedOut}>
+                <option value="DRAFT" style={{ background: '#2D3748' }}>
+                  Draft
+                </option>
+                <option
+                  value="ACTIVE"
+                  disabled={shouldBeLockedOut}
+                  style={{ background: '#2D3748' }}
+                >
                   Active {shouldBeLockedOut ? '(requirements not met)' : ''}
                 </option>
-                <option value="COMPLETED" disabled={shouldBeLockedOut}>
+                <option
+                  value="COMPLETED"
+                  disabled={shouldBeLockedOut}
+                  style={{ background: '#2D3748' }}
+                >
                   Completed {shouldBeLockedOut ? '(requirements not met)' : ''}
                 </option>
-                <option value="ARCHIVED">Archived</option>
+                <option value="ARCHIVED" style={{ background: '#2D3748' }}>
+                  Archived
+                </option>
               </Select>
             </FormControl>
 
-            {/* Show launch requirements when in DRAFT */}
             {event?.status === 'DRAFT' && <LaunchRequirementsWarning />}
 
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <FormLabel color={currentColors.textColor}>Start Date</FormLabel>
+                <FormLabel color="gray.100">Start Date</FormLabel>
                 <Input
                   type="date"
                   min={today}
                   value={formData.startDate}
                   isDisabled={!isEditable}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
-                  color={currentColors.textColor}
+                  color="white"
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel color={currentColors.textColor}>
+                <FormLabel color="gray.100">
                   End Date • Max: {MAX_EVENT_DURATION_DAYS} days
                 </FormLabel>
                 <Input
@@ -498,7 +506,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   value={formData.endDate}
                   isDisabled={!isEditable}
                   onChange={(e) => handleInputChange('endDate', e.target.value)}
-                  color={currentColors.textColor}
+                  color="white"
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 />
               </FormControl>
             </SimpleGrid>
@@ -506,7 +518,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             {formData.startDate && formData.endDate && (
               <Text
                 fontSize="sm"
-                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.500' : 'gray.500'}
+                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.400' : 'gray.400'}
                 fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
               >
                 Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} /{' '}
@@ -516,25 +528,36 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             )}
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>Difficulty Level</FormLabel>
+              <FormLabel color="gray.100">Difficulty Level</FormLabel>
               <Select
                 value={formData.difficulty}
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                color={currentColors.textColor}
+                color="white"
+                bg="gray.700"
+                borderColor="gray.600"
+                _hover={{ borderColor: 'gray.500' }}
                 isDisabled={!isEditable}
               >
-                <option value="easy">Easy (0.8x objectives)</option>
-                <option value="normal">Normal (1.0x objectives)</option>
-                <option value="hard">Hard (1.4x objectives)</option>
-                <option value="sweatlord">Sweatlord (2.0x objectives)</option>
+                <option value="easy" style={{ background: '#2D3748' }}>
+                  Easy (0.8x objectives)
+                </option>
+                <option value="normal" style={{ background: '#2D3748' }}>
+                  Normal (1.0x objectives)
+                </option>
+                <option value="hard" style={{ background: '#2D3748' }}>
+                  Hard (1.4x objectives)
+                </option>
+                <option value="sweatlord" style={{ background: '#2D3748' }}>
+                  Sweatlord (2.0x objectives)
+                </option>
               </Select>
             </FormControl>
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>
+              <FormLabel color="gray.100">
                 Est. Hours Per Player Per Day
                 <Tooltip label="How many hours per day will each player dedicate on average?">
-                  <InfoIcon ml={2} />
+                  <InfoIcon ml={2} color="gray.500" />
                 </Tooltip>
               </FormLabel>
               <NumberInput
@@ -548,7 +571,13 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 max={12}
                 step={0.5}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField
+                  color="white"
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                />
               </NumberInput>
               <HStack spacing={2} mt={2}>
                 {[
@@ -565,7 +594,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                     variant={
                       formData.estimatedHoursPerPlayerPerDay === preset.value ? 'solid' : 'outline'
                     }
-                    colorScheme="blue"
+                    colorScheme="purple"
                   >
                     {preset.label}
                   </Button>
@@ -605,7 +634,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             />
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>
+              <FormLabel color="gray.100">
                 Total Prize Pool (GP) • Max: {(MAX_GP / 1000000000).toFixed(0)}B
               </FormLabel>
               <NumberInput
@@ -615,7 +644,13 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 min={0}
                 max={MAX_GP}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField
+                  color="white"
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                />
               </NumberInput>
               <Text fontSize="xs" color="gray.500" mt={1}>
                 Per team max:{' '}
@@ -626,9 +661,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <FormLabel color={currentColors.textColor}>
-                  Number of Teams • Max: {getMaxTeams()}
-                </FormLabel>
+                <FormLabel color="gray.100">Number of Teams • Max: {getMaxTeams()}</FormLabel>
                 <NumberInput
                   isDisabled={!isEditable}
                   value={formData.numOfTeams}
@@ -636,11 +669,17 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   min={1}
                   max={getMaxTeams()}
                 >
-                  <NumberInputField color={currentColors.textColor} />
+                  <NumberInputField
+                    color="white"
+                    bg="gray.700"
+                    borderColor="gray.600"
+                    _hover={{ borderColor: 'gray.500' }}
+                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                  />
                 </NumberInput>
               </FormControl>
               <FormControl isRequired>
-                <FormLabel color={currentColors.textColor}>
+                <FormLabel color="gray.100">
                   Players per Team • Max: {getMaxPlayersPerTeam()}
                 </FormLabel>
                 <NumberInput
@@ -650,14 +689,20 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   min={1}
                   max={getMaxPlayersPerTeam()}
                 >
-                  <NumberInputField color={currentColors.textColor} />
+                  <NumberInputField
+                    color="white"
+                    bg="gray.700"
+                    borderColor="gray.600"
+                    _hover={{ borderColor: 'gray.500' }}
+                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                  />
                 </NumberInput>
               </FormControl>
             </SimpleGrid>
 
             <Text
               fontSize="sm"
-              color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.500' : 'gray.500'}
+              color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.400' : 'gray.400'}
               fontWeight={totalPlayers > MAX_TOTAL_PLAYERS ? 'bold' : 'normal'}
             >
               Total Players: {totalPlayers} / {MAX_TOTAL_PLAYERS}
@@ -665,7 +710,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             </Text>
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>
+              <FormLabel color="gray.100">
                 Locations Between Each Inn • Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN}
               </FormLabel>
               <NumberInput
@@ -675,24 +720,24 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField
+                  color="white"
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                />
               </NumberInput>
             </FormControl>
 
-            <VStack
-              w="full"
-              p={3}
-              bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
-              borderRadius="md"
-              spacing={2}
-            >
-              <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+            <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
+              <Text fontSize="sm" fontWeight="bold" color="white">
                 📊 Map Preview (Per Team)
               </Text>
               <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
                 <VStack spacing={0}>
                   <Text color="gray.500">Player Hours</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="bold" color="white">
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
                       const days = Math.ceil(
@@ -708,7 +753,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Total Locations</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="bold" color="white">
                     ~
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
@@ -727,7 +772,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Inns</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="bold" color="white">
                     ~
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
@@ -752,9 +797,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
             </VStack>
 
             <Button
-              bg={currentColors.purple.base}
-              color="white"
-              _hover={{ bg: currentColors.purple.light }}
+              colorScheme="purple"
               w="full"
               onClick={handleUpdateEvent}
               isLoading={loading}

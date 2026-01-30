@@ -15,7 +15,6 @@ import {
   NumberInputField,
   Button,
   SimpleGrid,
-  useColorMode,
   Tooltip,
   Icon,
   HStack,
@@ -36,32 +35,13 @@ const MAX_NODES_PER_INN = 6;
 const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
 
 export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
-  const { colorMode } = useColorMode();
   const navigate = useNavigate();
   const [contentSelections, setContentSelections] = useState(null);
   const [showContentModal, setShowContentModal] = useState(false);
   const { showToast } = useToastContext();
 
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-      green: '#43AA8B',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-      green: '#43AA8B',
-    },
-  };
-
-  const currentColors = colors[colorMode];
-
   const [formData, setFormData] = useState({
     eventName: '',
-    // clanId: '',
     prizePoolTotal: 500000000,
     numOfTeams: 5,
     playersPerTeam: 5,
@@ -278,7 +258,6 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         variables: {
           input: {
             eventName: formData.eventName,
-            // clanId: formData.clanId || null,
             startDate: startDate,
             endDate: endDate,
             contentSelections,
@@ -307,14 +286,14 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   // Helper component for label with tooltip
   const LabelWithTooltip = ({ label, tooltip }) => (
     <HStack spacing={1}>
-      <FormLabel color={currentColors.textColor} mb={0}>
+      <FormLabel color="gray.100" mb={0}>
         {label}
       </FormLabel>
       <Tooltip
         label={tooltip}
         placement="top"
         hasArrow
-        bg="gray.700"
+        bg="gray.600"
         color="white"
         fontSize="sm"
         maxW="300px"
@@ -324,12 +303,22 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     </HStack>
   );
 
+  // Shared input styles
+  const inputStyles = {
+    color: 'white',
+    bg: 'gray.700',
+    borderColor: 'gray.600',
+    _hover: { borderColor: 'gray.500' },
+    _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' },
+    _placeholder: { color: 'gray.400' },
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Create New Gielinor Rush Event</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader color="white">Create New Gielinor Rush Event</ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             <FormControl isRequired>
@@ -341,22 +330,9 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
-                color={currentColors.textColor}
+                {...inputStyles}
               />
             </FormControl>
-
-            {/* <FormControl>
-              <LabelWithTooltip
-                label="Clan ID (Optional)"
-                tooltip="Your clan's identifier for Discord integration. Leave blank if not using Discord features."
-              />
-              <Input
-                placeholder="cool_clan_123"
-                value={formData.clanId}
-                onChange={(e) => handleInputChange('clanId', e.target.value)}
-                color={currentColors.textColor}
-              />
-            </FormControl> */}
 
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
@@ -369,7 +345,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   min={today}
                   value={formData.startDate}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
-                  color={currentColors.textColor}
+                  {...inputStyles}
                 />
               </FormControl>
 
@@ -384,7 +360,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   max={maxEndDate || undefined}
                   value={formData.endDate}
                   onChange={(e) => handleInputChange('endDate', e.target.value)}
-                  color={currentColors.textColor}
+                  {...inputStyles}
                 />
               </FormControl>
             </SimpleGrid>
@@ -393,7 +369,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             {formData.startDate && formData.endDate && (
               <Text
                 fontSize="sm"
-                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.500' : 'gray.500'}
+                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.400' : 'gray.400'}
                 fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
               >
                 Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} •{' '}
@@ -410,20 +386,28 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               <Select
                 value={formData.difficulty}
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                color={currentColors.textColor}
+                {...inputStyles}
               >
-                <option value="easy">Easy (0.8x objectives) - Casual fun</option>
-                <option value="normal">Normal (1.0x objectives) - Balanced</option>
-                <option value="hard">Hard (1.4x objectives) - Challenging</option>
-                <option value="sweatlord">Sweatlord (2.0x objectives) - Extreme</option>
+                <option value="easy" style={{ backgroundColor: '#2D3748' }}>
+                  Easy (0.8x objectives) - Casual fun
+                </option>
+                <option value="normal" style={{ backgroundColor: '#2D3748' }}>
+                  Normal (1.0x objectives) - Balanced
+                </option>
+                <option value="hard" style={{ backgroundColor: '#2D3748' }}>
+                  Hard (1.4x objectives) - Challenging
+                </option>
+                <option value="sweatlord" style={{ backgroundColor: '#2D3748' }}>
+                  Sweatlord (2.0x objectives) - Extreme
+                </option>
               </Select>
             </FormControl>
 
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>
+              <FormLabel color="gray.100">
                 Est. Hours Per Player Per Day
                 <Tooltip label="How many hours per day will each player dedicate on average?">
-                  <InfoIcon ml={2} />
+                  <InfoIcon ml={2} color="gray.500" />
                 </Tooltip>
               </FormLabel>
               <NumberInput
@@ -433,14 +417,14 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 max={8}
                 step={0.5}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
               <HStack spacing={2} mt={2}>
                 <Button
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 1)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 1 ? 'solid' : 'outline'}
-                  colorScheme="blue"
+                  colorScheme="purple"
                 >
                   Casual (1h)
                 </Button>
@@ -448,7 +432,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
-                  colorScheme="blue"
+                  colorScheme="purple"
                 >
                   Average (3h)
                 </Button>
@@ -456,7 +440,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 6)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 6 ? 'solid' : 'outline'}
-                  colorScheme="blue"
+                  colorScheme="purple"
                 >
                   Dedicated (6h)
                 </Button>
@@ -464,12 +448,12 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   size="xs"
                   onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 10)}
                   variant={formData.estimatedHoursPerPlayerPerDay === 10 ? 'solid' : 'outline'}
-                  colorScheme="blue"
+                  colorScheme="purple"
                 >
                   Sweatlord (10h)
                 </Button>
               </HStack>
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <Text fontSize="xs" color="gray.400" mt={1}>
                 {(() => {
                   if (!formData.startDate || !formData.endDate)
                     return 'Select dates to see estimate';
@@ -514,9 +498,9 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 min={0}
                 max={MAX_GP}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <Text fontSize="xs" color="gray.400" mt={1}>
                 Per team goal:{' '}
                 {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1000000).toFixed(1)}M
                 GP • Your pool: {(formData.prizePoolTotal / 1000000).toFixed(1)} M GP • Maximum
@@ -538,7 +522,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   min={1}
                   max={getMaxTeams()}
                 >
-                  <NumberInputField color={currentColors.textColor} />
+                  <NumberInputField {...inputStyles} />
                 </NumberInput>
               </FormControl>
 
@@ -555,7 +539,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   min={1}
                   max={getMaxPlayersPerTeam()}
                 >
-                  <NumberInputField color={currentColors.textColor} />
+                  <NumberInputField {...inputStyles} />
                 </NumberInput>
               </FormControl>
             </SimpleGrid>
@@ -563,7 +547,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             {/* Total Players Counter */}
             <Text
               fontSize="sm"
-              color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.500' : 'gray.500'}
+              color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.400' : 'gray.400'}
               fontWeight={totalPlayers > MAX_TOTAL_PLAYERS ? 'bold' : 'normal'}
             >
               Total Players: {totalPlayers} / {MAX_TOTAL_PLAYERS}
@@ -581,28 +565,22 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
               >
-                <NumberInputField color={currentColors.textColor} />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
-              <Text fontSize="xs" color="gray.500" mt={1}>
+              <Text fontSize="xs" color="gray.400" mt={1}>
                 Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN} nodes per Inn
               </Text>
             </FormControl>
 
             {/* Map Preview Stats */}
-            <VStack
-              w="full"
-              p={3}
-              bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
-              borderRadius="md"
-              spacing={2}
-            >
-              <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+            <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
+              <Text fontSize="sm" fontWeight="bold" color="white">
                 📊 Map Preview (Per Team)
               </Text>
               <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
                 <VStack spacing={0}>
-                  <Text color="gray.500">Player Hours</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text color="gray.400">Player Hours</Text>
+                  <Text fontWeight="bold" color="white">
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
                       const days = Math.ceil(
@@ -617,8 +595,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
-                  <Text color="gray.500">Total Locations</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text color="gray.400">Total Locations</Text>
+                  <Text fontWeight="bold" color="white">
                     ~
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
@@ -637,8 +615,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
-                  <Text color="gray.500">Inns</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text color="gray.400">Inns</Text>
+                  <Text fontWeight="bold" color="white">
                     ~
                     {(() => {
                       if (!formData.startDate || !formData.endDate) return '?';
@@ -657,15 +635,15 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   </Text>
                 </VStack>
               </SimpleGrid>
-              <Text fontSize="xs" color="gray.500" textAlign="center">
+              <Text fontSize="xs" color="gray.400" textAlign="center">
                 All {formData.numOfTeams} teams race through the same map
               </Text>
             </VStack>
 
             <Button
-              bg={currentColors.purple.base}
+              bg="purple.500"
               color="white"
-              _hover={{ bg: currentColors.purple.light }}
+              _hover={{ bg: 'purple.400' }}
               w="full"
               onClick={handleCreateEvent}
               isLoading={loading}

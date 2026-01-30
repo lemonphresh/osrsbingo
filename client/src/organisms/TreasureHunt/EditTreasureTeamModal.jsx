@@ -11,7 +11,6 @@ import {
   FormLabel,
   Input,
   Button,
-  useColorMode,
   Text,
   Divider,
   useDisclosure,
@@ -21,12 +20,25 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Box,
+  HStack,
+  Icon,
+  OrderedList,
+  ListItem,
+  Image,
 } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
+import { AddIcon, InfoIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { UPDATE_TREASURE_TEAM, DELETE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+import DiscordStep1 from '../../assets/discordstep1.png';
+import DiscordStep2 from '../../assets/discordstep2.png';
 
 const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
 
@@ -38,25 +50,9 @@ export default function EditTeamModal({
   eventId,
   onSuccess,
 }) {
-  const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const cancelRef = React.useRef();
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
-
-  const currentColors = colors[colorMode];
 
   const [formData, setFormData] = useState({
     teamName: '',
@@ -66,9 +62,11 @@ export default function EditTeamModal({
 
   const getExistingMemberMap = () => {
     const memberMap = new Map();
-    existingTeams.forEach((team) => {
-      team.members?.forEach((memberId) => {
-        memberMap.set(memberId, team.teamName);
+    existingTeams.forEach((t) => {
+      if (t.teamId === team?.teamId) return;
+
+      t.members?.forEach((memberId) => {
+        memberMap.set(memberId, t.teamName);
       });
     });
     return memberMap;
@@ -76,13 +74,11 @@ export default function EditTeamModal({
 
   const existingMemberMap = getExistingMemberMap();
 
-  // Check if a member is already on another team
   const getMemberConflict = (memberId) => {
     if (!memberId || !isValidDiscordId(memberId)) return null;
     return existingMemberMap.get(memberId) || null;
   };
 
-  // Check if a member ID is duplicated within the current form
   const getDuplicateInForm = (memberId, currentIndex) => {
     if (!memberId || !isValidDiscordId(memberId)) return false;
     return formData.members.some((m, idx) => idx !== currentIndex && m === memberId);
@@ -162,7 +158,6 @@ export default function EditTeamModal({
       return;
     }
 
-    // Check for duplicates within this team
     const uniqueMembers = [...new Set(members)];
     if (uniqueMembers.length !== members.length) {
       showToast('Cannot add the same user multiple times to one team', 'warning');
@@ -201,37 +196,62 @@ export default function EditTeamModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Edit Team</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader color="white">Edit Team</ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>Team Name</FormLabel>
+              <FormLabel color="gray.100">Team Name</FormLabel>
               <Input
                 placeholder="Dragon Slayers"
                 value={formData.teamName}
                 onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                color={currentColors.textColor}
+                color="white"
+                bg="gray.700"
+                borderColor="gray.600"
+                _hover={{ borderColor: 'gray.500' }}
+                _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
               />
             </FormControl>
 
             <FormControl>
-              <FormLabel color={currentColors.textColor}>Discord Role ID (Optional)</FormLabel>
-              <Input
-                placeholder="123456789012345678"
-                value={formData.discordRoleId}
-                onChange={(e) => setFormData({ ...formData, discordRoleId: e.target.value })}
-                color={currentColors.textColor}
-              />
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mt={1}>
-                Discord role ID for team members (used by the bot)
+              <FormLabel color="gray.100">Team Members</FormLabel>
+              <Text fontSize="xs" color="gray.400" mb={2}>
+                Add Discord user IDs for team members. Members need to link their Discord on their
+                OSRS Bingo Hub profile to use site features like buffs and inn purchases.
               </Text>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
+              <Accordion allowToggle mb={3}>
+                <AccordionItem border="none" bg="blue.900" borderRadius="md">
+                  <AccordionButton _hover={{ bg: 'blue.800' }}>
+                    <Box flex="1" textAlign="left">
+                      <HStack>
+                        <Icon as={InfoIcon} color="blue.400" />
+                        <Text fontSize="sm" fontWeight="bold" color="blue.200">
+                          How do I find Discord User IDs?
+                        </Text>
+                      </HStack>
+                    </Box>
+                    <AccordionIcon color="blue.400" />
+                  </AccordionButton>
+                  <AccordionPanel pb={4}>
+                    <OrderedList spacing={2} fontSize="sm" color="gray.300">
+                      <ListItem>
+                        Open Discord Settings → Advanced → Enable "Developer Mode"
+                        <Image src={DiscordStep1} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>
+                        Right-click the user's name → "Copy User ID"
+                        <Image src={DiscordStep2} mt={2} borderRadius="md" />
+                      </ListItem>
+                      <ListItem>
+                        Paste the 17-19 digit ID below (example: 123456789012345678)
+                      </ListItem>
+                    </OrderedList>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
               <VStack spacing={3} align="stretch">
                 {formData.members.map((member, index) => (
                   <DiscordMemberInput
@@ -240,7 +260,7 @@ export default function EditTeamModal({
                     onChange={(newValue) => handleMemberChange(index, newValue)}
                     onRemove={() => handleRemoveMember(index)}
                     showRemove={formData.members.length > 1}
-                    colorMode={colorMode}
+                    colorMode="dark"
                     conflictTeam={getMemberConflict(member)}
                     isDuplicateInForm={getDuplicateInForm(member, index)}
                   />
@@ -250,25 +270,20 @@ export default function EditTeamModal({
                   size="sm"
                   variant="outline"
                   onClick={handleAddMember}
-                  color={currentColors.textColor}
+                  color="gray.300"
+                  borderColor="gray.600"
+                  _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
                 >
                   Add Member
                 </Button>
               </VStack>
             </FormControl>
 
-            <Button
-              bg={currentColors.purple.base}
-              color="white"
-              _hover={{ bg: currentColors.purple.light }}
-              w="full"
-              onClick={handleUpdateTeam}
-              isLoading={loading}
-            >
+            <Button colorScheme="purple" w="full" onClick={handleUpdateTeam} isLoading={loading}>
               Update Team
             </Button>
 
-            <Divider />
+            <Divider borderColor="gray.600" />
 
             <Button colorScheme="red" variant="outline" w="full" onClick={onDeleteOpen}>
               Delete Team
@@ -278,19 +293,25 @@ export default function EditTeamModal({
       </ModalContent>
 
       <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={onDeleteClose}>
-        <AlertDialogOverlay>
-          <AlertDialogContent bg={currentColors.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
+        <AlertDialogOverlay backdropFilter="blur(4px)">
+          <AlertDialogContent bg="gray.800" color="white">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
               Delete Team
             </AlertDialogHeader>
 
-            <AlertDialogBody color={currentColors.textColor}>
+            <AlertDialogBody color="gray.200">
               Are you sure you want to delete <strong>{team?.teamName}</strong>? This will remove
               all team progress and cannot be undone.
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onDeleteClose}>
+              <Button
+                ref={cancelRef}
+                onClick={onDeleteClose}
+                variant="ghost"
+                color="gray.400"
+                _hover={{ bg: 'whiteAlpha.100' }}
+              >
                 Cancel
               </Button>
               <Button colorScheme="red" onClick={handleDeleteTeam} ml={3} isLoading={deleteLoading}>

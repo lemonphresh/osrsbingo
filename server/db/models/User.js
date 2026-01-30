@@ -44,6 +44,16 @@ module.exports = (sequelize) => {
         unique: true,
         comment: 'Discord user ID for linking Discord bot interactions',
       },
+      discordUsername: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Discord username from OAuth',
+      },
+      discordAvatar: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        comment: 'Discord avatar hash for building CDN URL',
+      },
       rsn: {
         type: DataTypes.STRING,
         allowNull: true,

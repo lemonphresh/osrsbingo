@@ -4,6 +4,13 @@ import config from './config';
 import typography from './typography';
 
 const theme = extendTheme({
+  styles: {
+    global: {
+      'html, body': {
+        backgroundColor: 'gray.800',
+      },
+    },
+  },
   colors,
   config,
   ...typography,

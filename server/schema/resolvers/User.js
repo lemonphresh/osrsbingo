@@ -260,6 +260,24 @@ module.exports = {
         throw new ApolloError('An error occurred while searching for users.');
       }
     },
+    searchUsersByDiscord: async (_, { query, limit = 10 }) => {
+      const users = await User.findAll({
+        where: {
+          discordUserId: { [Op.ne]: null },
+          [Op.or]: [
+            { username: { [Op.iLike]: `%${query}%` } },
+            { displayName: { [Op.iLike]: `%${query}%` } },
+            { rsn: { [Op.iLike]: `%${query}%` } },
+            { discordUsername: { [Op.iLike]: `%${query}%` } },
+            ...(query.match(/^\d{17,19}$/) ? [{ discordUserId: query }] : []),
+          ],
+        },
+        limit,
+        order: [['displayName', 'ASC']],
+      });
+
+      return users;
+    },
 
     searchUsersByIds: async (_, { ids }) => {
       if (!ids || ids.length === 0) {

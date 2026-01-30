@@ -156,6 +156,8 @@ export const GET_USER = gql`
       rsn
       admin
       discordUserId
+      discordUsername
+      discordAvatar
       editorBoards {
         id
         name
@@ -197,6 +199,20 @@ export const SEARCH_USERS_BY_IDS = gql`
       displayName
       username
       rsn
+    }
+  }
+`;
+
+export const SEARCH_USERS_BY_DISCORD = gql`
+  query SearchUsersByDiscord($query: String!, $limit: Int) {
+    searchUsersByDiscord(query: $query, limit: $limit) {
+      id
+      username
+      displayName
+      rsn
+      discordUserId
+      discordUsername
+      discordAvatar
     }
   }
 `;
