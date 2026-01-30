@@ -111,7 +111,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
       <VStack width="100%" spacing={3} py={2}>
         <HStack width="100%" justify="space-between">
           <HStack>
-            <Icon as={FaDiscord} color="#5865F2" boxSize={5} />
+            <Icon as={FaDiscord} color={theme.colors.teal[200]} boxSize={5} />
             <Text color={theme.colors.teal[200]} fontWeight="bold">
               Discord
             </Text>
@@ -168,7 +168,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
                 size="sm"
                 src={getDiscordAvatarUrl()}
                 name={shownUser.discordUsername}
-                bg="#5865F2"
+                bg={shownUser.discordAvatar ? 'transparent' : '#5865F2'}
               />
               <VStack align="start" spacing={0} flex={1}>
                 <Text fontWeight="bold" color="white" fontSize="sm">

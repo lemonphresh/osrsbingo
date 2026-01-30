@@ -31,7 +31,6 @@ import { CREATE_TREASURE_TEAM } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import DiscordStep1 from '../../assets/discordstep1.png';
 import DiscordStep2 from '../../assets/discordstep2.png';
-import { useThemeColors } from '../../hooks/useThemeColors';
 
 function isValidDiscordId(id) {
   return /^\d{17,19}$/.test(id);
@@ -44,8 +43,6 @@ export default function CreateTeamModal({
   existingTeams = [],
   onSuccess,
 }) {
-  const { colors: currentColors, colorMode } = useThemeColors();
-
   const { showToast } = useToastContext();
 
   const [formData, setFormData] = useState({
@@ -166,25 +163,30 @@ export default function CreateTeamModal({
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} size="lg">
-      <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg}>
-        <ModalHeader color={currentColors.textColor}>Create New Team</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent bg="gray.800" color="white">
+        <ModalHeader color="white">Create New Team</ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6}>
           <VStack spacing={4}>
             <FormControl isRequired>
-              <FormLabel color={currentColors.textColor}>Team Name</FormLabel>
+              <FormLabel color="gray.100">Team Name</FormLabel>
               <Input
                 placeholder="Dragon Slayers"
                 value={formData.teamName}
                 onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
-                color={currentColors.textColor}
+                color="white"
+                bg="gray.700"
+                borderColor="gray.600"
+                _hover={{ borderColor: 'gray.500' }}
+                _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                _placeholder={{ color: 'gray.400' }}
               />
             </FormControl>
 
             <FormControl>
-              <FormLabel color={currentColors.textColor}>Team Members (Discord IDs)</FormLabel>
-              <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'} mb={2}>
+              <FormLabel color="gray.100">Team Members (Discord IDs)</FormLabel>
+              <Text fontSize="xs" color="gray.400" mb={2}>
                 Add Discord user IDs for team members.
                 <br />
                 <br /> Note: This is how team members will be able to use Discord commands to submit
@@ -193,20 +195,20 @@ export default function CreateTeamModal({
                 and have linked their Discord!)
               </Text>
               <Accordion allowToggle mb={3}>
-                <AccordionItem border="none" bg="blue.50">
+                <AccordionItem border="none" bg="gray.700" borderRadius="md">
                   <AccordionButton>
                     <Box flex="1" textAlign="left">
                       <HStack>
-                        <Icon as={InfoIcon} color="blue.500" />
-                        <Text fontSize="sm" fontWeight="bold">
+                        <Icon as={InfoIcon} color="purple.300" />
+                        <Text fontSize="sm" fontWeight="bold" color="gray.100">
                           How do I find Discord User IDs?
                         </Text>
                       </HStack>
                     </Box>
-                    <AccordionIcon />
+                    <AccordionIcon color="gray.400" />
                   </AccordionButton>
                   <AccordionPanel pb={4}>
-                    <OrderedList spacing={2} fontSize="sm">
+                    <OrderedList spacing={2} fontSize="sm" color="gray.300">
                       <ListItem>
                         Open Discord Settings → Advanced → Enable "Developer Mode"
                         <Image src={DiscordStep1} mt={2} borderRadius="md" />
@@ -227,10 +229,10 @@ export default function CreateTeamModal({
                     value={member}
                     onChange={(newValue) => handleMemberChange(index, newValue)}
                     onRemove={() => handleRemoveMember(index)}
-                    showRemove={formData.members.length > 1}
-                    colorMode={colorMode}
-                    conflictTeam={getMemberConflict(member)} // <-- ADD
-                    isDuplicateInForm={getDuplicateInForm(member, index)} // <-- ADD
+                    showRemove={formData.members.length >= 1}
+                    colorMode="dark"
+                    conflictTeam={getMemberConflict(member)}
+                    isDuplicateInForm={getDuplicateInForm(member, index)}
                   />
                 ))}
                 <Button
@@ -238,7 +240,9 @@ export default function CreateTeamModal({
                   size="sm"
                   variant="outline"
                   onClick={handleAddMember}
-                  color={currentColors.textColor}
+                  color="gray.100"
+                  borderColor="gray.600"
+                  _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
                 >
                   Add Member
                 </Button>
@@ -246,9 +250,9 @@ export default function CreateTeamModal({
             </FormControl>
 
             <Button
-              bg={currentColors.purple.base}
+              bg="purple.500"
               color="white"
-              _hover={{ bg: currentColors.purple.light }}
+              _hover={{ bg: 'purple.400' }}
               w="full"
               onClick={handleCreateTeam}
               isLoading={loading}

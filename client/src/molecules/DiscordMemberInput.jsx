@@ -65,7 +65,7 @@ const DiscordMemberInput = ({
       setShowDropdown(siteResults.length > 0);
       setIsSearching(false);
     },
-    onError: () => {
+    onError: (error) => {
       setSearchResults([]);
       setIsSearching(false);
     },
@@ -107,12 +107,15 @@ const DiscordMemberInput = ({
       const res = await fetch(`${API_BASE}/discuser/${discordId}`);
       if (res.ok) {
         const data = await res.json();
-        setDiscordUserInfo(data);
+        setDiscordUserInfo((prev) => ({
+          ...data,
+          siteUser: prev?.siteUser || null, // Preserve existing siteUser data
+        }));
       } else {
-        setDiscordUserInfo(null);
+        setDiscordUserInfo((prev) => (prev?.siteUser ? prev : null)); // Keep if we have siteUser
       }
     } catch (err) {
-      setDiscordUserInfo(null);
+      setDiscordUserInfo((prev) => (prev?.siteUser ? prev : null));
     } finally {
       setLoadingDiscord(false);
     }
@@ -196,13 +199,6 @@ const DiscordMemberInput = ({
     onChange(discordId);
     setShowDropdown(false);
     setSearchQuery('');
-  };
-
-  // Clear selection
-  const handleClear = () => {
-    setDiscordUserInfo(null);
-    setSearchQuery('');
-    onChange('');
   };
 
   const hasError = conflictTeam || isDuplicateInForm;

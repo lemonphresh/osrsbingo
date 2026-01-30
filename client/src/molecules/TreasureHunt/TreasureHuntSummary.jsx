@@ -1,7 +1,6 @@
 // src/components/molecules/TreasureHuntSummary.jsx
 import {
   VStack,
-  HStack,
   Text,
   Badge,
   Box,

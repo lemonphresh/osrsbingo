@@ -2,7 +2,6 @@
 import React from 'react';
 import {
   Alert,
-  AlertIcon,
   AlertTitle,
   AlertDescription,
   Button,
@@ -11,7 +10,6 @@ import {
   Text,
   Icon,
   CloseButton,
-  Box,
   useDisclosure,
 } from '@chakra-ui/react';
 import { ExternalLinkIcon } from '@chakra-ui/icons';

@@ -16,13 +16,8 @@ import {
   UnorderedList,
   useDisclosure,
   VStack,
-  Input,
-  FormControl,
-  FormLabel,
-  FormHelperText,
   Badge,
   HStack,
-  Divider,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -33,12 +28,7 @@ import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
 import GnomeChild from '../assets/gnomechild.png';
 import EditField from '../molecules/EditField';
-import {
-  DELETE_USER,
-  UPDATE_USER,
-  LINK_DISCORD_ACCOUNT,
-  UNLINK_DISCORD_ACCOUNT,
-} from '../graphql/mutations';
+import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
 import { AddIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import MiniBingoBoard from '../atoms/MiniBingoBoard';
 import getMiniBoardGrid from '../utils/getMiniBoardGrid';
@@ -78,51 +68,8 @@ const UserDetails = () => {
 
   usePageTitle(shownUser ? `User Details - ${shownUser.username}` : 'User Details');
 
-  // Discord linking state
-  const [discordId, setDiscordId] = useState('');
-  const [isEditingDiscord, setIsEditingDiscord] = useState(false);
-
   const [updateUser] = useMutation(UPDATE_USER);
   const [deleteUser] = useMutation(DELETE_USER);
-
-  // Discord mutations
-  const [linkDiscord, { loading: linkingDiscord }] = useMutation(LINK_DISCORD_ACCOUNT, {
-    onCompleted: (data) => {
-      setUser({
-        ...user,
-        discordUserId: data.linkDiscordAccount.discordUserId,
-      });
-      setShownUser({
-        ...shownUser,
-        discordUserId: data.linkDiscordAccount.discordUserId,
-      });
-      setIsEditingDiscord(false);
-      setDiscordId('');
-      showToast('Discord account linked successfully!', 'success');
-    },
-    onError: (error) => {
-      showToast(`Error linking Discord: ${error.message}`, 'error');
-    },
-  });
-
-  const [unlinkDiscord, { loading: unlinkingDiscord }] = useMutation(UNLINK_DISCORD_ACCOUNT, {
-    onCompleted: () => {
-      setUser({
-        ...user,
-        discordUserId: null,
-      });
-      setShownUser({
-        ...shownUser,
-        discordUserId: null,
-      });
-      setDiscordId('');
-      setIsEditingDiscord(false);
-      showToast('Discord account unlinked', 'info');
-    },
-    onError: (error) => {
-      showToast(`Error unlinking Discord: ${error.message}`, 'error');
-    },
-  });
 
   const onDelete = useCallback(async () => {
     if (shownUser?.id !== user?.id) {

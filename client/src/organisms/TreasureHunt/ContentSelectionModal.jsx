@@ -20,7 +20,6 @@ import {
   Box,
   Divider,
   Button,
-  useColorMode,
   Tooltip,
   Icon,
   Alert,
@@ -114,8 +113,6 @@ function BossDropsRow({
   onToggleEntity,
   onToggleDrop,
   onToggleAllDrops,
-  colorMode,
-  currentColors,
 }) {
   const [expanded, setExpanded] = useState(false);
   const category =
@@ -130,7 +127,7 @@ function BossDropsRow({
   return (
     <Box
       borderWidth={1}
-      borderColor={entityEnabled ? (colorMode === 'dark' ? 'gray.600' : 'gray.200') : 'gray.100'}
+      borderColor={entityEnabled ? 'gray.600' : 'gray.700'}
       borderRadius="md"
       mb={2}
       opacity={entityEnabled ? 1 : 0.6}
@@ -141,7 +138,7 @@ function BossDropsRow({
         justify="space-between"
         cursor={hasDrops ? 'pointer' : 'default'}
         onClick={() => hasDrops && setExpanded(!expanded)}
-        _hover={hasDrops ? { bg: colorMode === 'dark' ? 'whiteAlpha.50' : 'gray.50' } : {}}
+        _hover={hasDrops ? { bg: 'whiteAlpha.50' } : {}}
       >
         <HStack spacing={3}>
           {hasDrops && (
@@ -160,7 +157,7 @@ function BossDropsRow({
           />
 
           <VStack align="start" spacing={0}>
-            <Text fontWeight="medium" color={currentColors.textColor} fontSize="sm">
+            <Text fontWeight="medium" color="gray.100" fontSize="sm">
               {entity.name}
               {entity.shortName && ` (${entity.shortName})`}
             </Text>
@@ -174,12 +171,7 @@ function BossDropsRow({
       </HStack>
 
       <Collapse in={expanded && hasDrops}>
-        <Box
-          borderTopWidth={1}
-          borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-          p={3}
-          bg={colorMode === 'dark' ? 'whiteAlpha.50' : 'gray.50'}
-        >
+        <Box borderTopWidth={1} borderColor="gray.600" p={3} bg="whiteAlpha.50">
           {/* All | None buttons inside the expanded section */}
           {entityEnabled && drops.length > 1 && (
             <HStack justify="flex-end" mb={2}>
@@ -194,10 +186,15 @@ function BossDropsRow({
               >
                 All
               </Button>
-              <Text color="gray.400" fontSize="xs">
+              <Text color="gray.500" fontSize="xs">
                 |
               </Text>
-              <Button size="xs" variant="ghost" onClick={() => onToggleAllDrops(drops, false)}>
+              <Button
+                size="xs"
+                variant="ghost"
+                color="gray.400"
+                onClick={() => onToggleAllDrops(drops, false)}
+              >
                 None
               </Button>
             </HStack>
@@ -216,10 +213,7 @@ function BossDropsRow({
                   size="sm"
                 >
                   <HStack spacing={1}>
-                    <Text
-                      fontSize="sm"
-                      color={entityEnabled ? currentColors.textColor : 'gray.500'}
-                    >
+                    <Text fontSize="sm" color={entityEnabled ? 'gray.100' : 'gray.500'}>
                       {drop.name}
                     </Text>
                     {drop.tags?.map((tag) => (
@@ -333,8 +327,6 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
     }
   );
 
-  const { colorMode } = useColorMode();
-
   const MIN_CONTENT_REQUIRED = 6;
 
   const totalContentAltogether =
@@ -343,19 +335,6 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
     Object.values(SKILLS).length +
     Object.values(MINIGAMES).length +
     Object.values(CLUE_TIERS).length;
-
-  const colors = {
-    dark: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#F7FAFC',
-      cardBg: '#2D3748',
-    },
-    light: {
-      purple: { base: '#7D5FFF', light: '#b3a6ff' },
-      textColor: '#171923',
-      cardBg: 'white',
-    },
-  };
 
   const totalEnabledContent = useMemo(() => {
     const enabledBosses = Object.keys(SOLO_BOSSES).filter(
@@ -383,8 +362,6 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
   const canSave = totalEnabledContent >= MIN_CONTENT_REQUIRED;
 
-  const currentColors = colors[colorMode];
-
   // Group items by source
   const groupedItems = useMemo(() => groupItemsBySource(COLLECTIBLE_ITEMS), []);
   const bossCategories = useMemo(() => getBossCategories(), []);
@@ -402,11 +379,10 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
       (id) => RAIDS[id].enabled && selections.raids?.[id] !== false
     ).length;
     const enabledD = Object.values(COLLECTIBLE_ITEMS).filter((item) => {
-      if (!item.enabled) return false; // Also check item.enabled
+      if (!item.enabled) return false;
       if (selections.items?.[item.id] === false) return false;
       return parseItemSources(item, selections);
     });
-    console.log(enabledD);
     const enabledDrops = enabledD.length;
     const enabledClues = Object.keys(CLUE_TIERS).filter(
       (id) => CLUE_TIERS[id].enabled !== false && selections.clues?.[id] !== false
@@ -482,9 +458,9 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
-      <ModalOverlay />
-      <ModalContent bg={currentColors.cardBg} maxH="90vh">
-        <ModalHeader color={currentColors.textColor}>
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent bg="gray.800" color="white" maxH="90vh">
+        <ModalHeader color="white">
           <HStack spacing={2}>
             <Text>Customize Event Content</Text>
             <Tooltip
@@ -495,53 +471,47 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
             </Tooltip>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton />
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
 
         <ModalBody pb={6}>
           <VStack spacing={4} align="stretch">
             {/* Stats bar */}
-            <HStack
-              spacing={6}
-              p={3}
-              bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
-              borderRadius="md"
-              justify="center"
-            >
+            <HStack spacing={6} p={3} bg="purple.900" borderRadius="md" justify="center">
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color={currentColors.purple.base}>
+                <Text fontSize="lg" fontWeight="bold" color="purple.300">
                   {stats.enabledBosses}
                 </Text>
-                <Text fontSize="xs" color={currentColors.textColor}>
+                <Text fontSize="xs" color="gray.300">
                   Bosses
                 </Text>
               </VStack>
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color={currentColors.purple.base}>
+                <Text fontSize="lg" fontWeight="bold" color="purple.300">
                   {stats.enabledRaids}
                 </Text>
-                <Text fontSize="xs" color={currentColors.textColor}>
+                <Text fontSize="xs" color="gray.300">
                   Raids
                 </Text>
               </VStack>
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color={currentColors.purple.base}>
+                <Text fontSize="lg" fontWeight="bold" color="purple.300">
                   {stats.enabledDrops}
                 </Text>
-                <Text fontSize="xs" color={currentColors.textColor}>
+                <Text fontSize="xs" color="gray.300">
                   Drops
                 </Text>
               </VStack>
             </HStack>
 
-            <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+            <Text fontSize="sm" color="gray.400">
               Toggle content on/off to customize what appears in your event. Disabling a boss will
               also disable all its unique drops.
             </Text>
 
-            <Box p={3} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
+            <Box p={3} bg="blue.900" borderRadius="md">
               <HStack spacing={2} align="flex-start">
                 <Icon as={InfoIcon} color="blue.400" mt={0.5} />
-                <Text fontSize="xs" color={currentColors.textColor}>
+                <Text fontSize="xs" color="gray.200">
                   <strong>Smart Filtering:</strong> Disabling a boss will exclude both kill count
                   objectives AND item collection objectives for that boss's drops. You can keep a
                   boss enabled for KC objectives but disable specific drops.
@@ -551,17 +521,17 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
             <Accordion allowMultiple defaultIndex={[0]}>
               {/* BOSSES & DROPS */}
-              <AccordionItem>
-                <AccordionButton>
+              <AccordionItem borderColor="gray.600">
+                <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="bold" color="white">
                         ⚔️ Bosses & Unique Drops
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledBosses} bosses</Badge>
                     </HStack>
                   </Box>
-                  <AccordionIcon color={currentColors.textColor} />
+                  <AccordionIcon color="white" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <VStack spacing={4} align="stretch">
@@ -578,12 +548,13 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       >
                         All
                       </Button>
-                      <Text color="gray.400" fontSize="xs">
+                      <Text color="gray.500" fontSize="xs">
                         |
                       </Text>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color="gray.400"
                         onClick={() => handleToggleAllBosses(Object.values(SOLO_BOSSES), false)}
                       >
                         None
@@ -592,7 +563,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
                     {/* God Wars Dungeon */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
                         God Wars Dungeon
                       </Text>
                       {bossCategories.gwd.map((boss) => (
@@ -605,17 +576,15 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           onToggleEntity={handleToggle}
                           onToggleDrop={handleToggleDrop}
                           onToggleAllDrops={handleToggleAllDrops}
-                          colorMode={colorMode}
-                          currentColors={currentColors}
                         />
                       ))}
                     </Box>
 
-                    <Divider />
+                    <Divider borderColor="gray.600" />
 
                     {/* Slayer Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
                         Slayer Bosses
                       </Text>
                       {bossCategories.slayer.map((boss) => (
@@ -628,17 +597,15 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           onToggleEntity={handleToggle}
                           onToggleDrop={handleToggleDrop}
                           onToggleAllDrops={handleToggleAllDrops}
-                          colorMode={colorMode}
-                          currentColors={currentColors}
                         />
                       ))}
                     </Box>
 
-                    <Divider />
+                    <Divider borderColor="gray.600" />
 
                     {/* Wilderness Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
                         Wilderness Bosses
                       </Text>
                       {bossCategories.wilderness.map((boss) => (
@@ -651,17 +618,15 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           onToggleEntity={handleToggle}
                           onToggleDrop={handleToggleDrop}
                           onToggleAllDrops={handleToggleAllDrops}
-                          colorMode={colorMode}
-                          currentColors={currentColors}
                         />
                       ))}
                     </Box>
 
-                    <Divider />
+                    <Divider borderColor="gray.600" />
 
                     {/* Other Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
                         Other Bosses
                       </Text>
                       {bossCategories.other.map((boss) => (
@@ -674,8 +639,6 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           onToggleEntity={handleToggle}
                           onToggleDrop={handleToggleDrop}
                           onToggleAllDrops={handleToggleAllDrops}
-                          colorMode={colorMode}
-                          currentColors={currentColors}
                         />
                       ))}
                     </Box>
@@ -684,17 +647,17 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               </AccordionItem>
 
               {/* RAIDS & DROPS */}
-              <AccordionItem>
-                <AccordionButton>
+              <AccordionItem borderColor="gray.600">
+                <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="bold" color="white">
                         🏛️ Raids & Unique Drops
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledRaids} raids</Badge>
                     </HStack>
                   </Box>
-                  <AccordionIcon color={currentColors.textColor} />
+                  <AccordionIcon color="white" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <VStack spacing={2} align="stretch">
@@ -711,12 +674,13 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       >
                         All
                       </Button>
-                      <Text color="gray.400" fontSize="xs">
+                      <Text color="gray.500" fontSize="xs">
                         |
                       </Text>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color="gray.400"
                         onClick={() => handleToggleAll('raids', Object.values(RAIDS), false)}
                       >
                         None
@@ -733,8 +697,6 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         onToggleEntity={handleToggle}
                         onToggleDrop={handleToggleDrop}
                         onToggleAllDrops={handleToggleAllDrops}
-                        colorMode={colorMode}
-                        currentColors={currentColors}
                       />
                     ))}
                   </VStack>
@@ -742,11 +704,11 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               </AccordionItem>
 
               {/* SKILLS */}
-              <AccordionItem>
-                <AccordionButton>
+              <AccordionItem borderColor="gray.600">
+                <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="bold" color="white">
                         📊 Skills
                       </Text>
                       <Badge colorScheme="purple">
@@ -760,7 +722,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       </Badge>
                     </HStack>
                   </Box>
-                  <AccordionIcon color={currentColors.textColor} />
+                  <AccordionIcon color="white" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <VStack spacing={4} align="stretch">
@@ -788,12 +750,13 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       >
                         All
                       </Button>
-                      <Text color="gray.400" fontSize="xs">
+                      <Text color="gray.500" fontSize="xs">
                         |
                       </Text>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color="gray.400"
                         onClick={() =>
                           handleToggleAll(
                             'skills',
@@ -817,7 +780,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           <Text
                             fontSize="sm"
                             fontWeight="bold"
-                            color={currentColors.textColor}
+                            color="gray.100"
                             textTransform="capitalize"
                           >
                             {category} Skills
@@ -826,6 +789,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                             <Button
                               size="xs"
                               variant="ghost"
+                              colorScheme="purple"
                               onClick={() => handleToggleAll('skills', skills, true)}
                             >
                               All
@@ -833,6 +797,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                             <Button
                               size="xs"
                               variant="ghost"
+                              color="gray.400"
                               onClick={() => handleToggleAll('skills', skills, false)}
                             >
                               None
@@ -847,7 +812,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                               onChange={() => handleToggle('skills', skill.id)}
                               colorScheme="purple"
                             >
-                              <Text fontSize="sm" color={currentColors.textColor}>
+                              <Text fontSize="sm" color="gray.100">
                                 {skill.icon} {skill.name}
                               </Text>
                             </Checkbox>
@@ -860,11 +825,11 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               </AccordionItem>
 
               {/* MINIGAMES & REWARDS */}
-              <AccordionItem>
-                <AccordionButton>
+              <AccordionItem borderColor="gray.600">
+                <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="bold" color="white">
                         🎮 Minigames & Rewards
                       </Text>
                       <Badge colorScheme="purple">
@@ -877,7 +842,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       </Badge>
                     </HStack>
                   </Box>
-                  <AccordionIcon color={currentColors.textColor} />
+                  <AccordionIcon color="white" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <VStack spacing={4} align="stretch">
@@ -904,12 +869,13 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       >
                         All
                       </Button>
-                      <Text color="gray.400" fontSize="xs">
+                      <Text color="gray.500" fontSize="xs">
                         |
                       </Text>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color="gray.400"
                         onClick={() =>
                           handleToggleAll(
                             'minigames',
@@ -931,7 +897,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         <Text
                           fontSize="sm"
                           fontWeight="bold"
-                          color={currentColors.textColor}
+                          color="gray.100"
                           textTransform="capitalize"
                           mb={2}
                         >
@@ -950,12 +916,10 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                               onToggleEntity={handleToggle}
                               onToggleDrop={handleToggleDrop}
                               onToggleAllDrops={handleToggleAllDrops}
-                              colorMode={colorMode}
-                              currentColors={currentColors}
                             />
                           );
                         })}
-                        {category !== 'pvp' && <Divider mt={2} />}
+                        {category !== 'pvp' && <Divider mt={2} borderColor="gray.600" />}
                       </Box>
                     ))}
                   </VStack>
@@ -963,17 +927,17 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               </AccordionItem>
 
               {/* CLUE SCROLLS */}
-              <AccordionItem>
-                <AccordionButton>
+              <AccordionItem borderColor="gray.600">
+                <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="bold" color="white">
                         📜 Clue Scrolls
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledClues} selected</Badge>
                     </HStack>
                   </Box>
-                  <AccordionIcon color={currentColors.textColor} />
+                  <AccordionIcon color="white" />
                 </AccordionButton>
                 <AccordionPanel pb={4}>
                   <VStack spacing={4} align="stretch">
@@ -990,19 +954,20 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       >
                         All
                       </Button>
-                      <Text color="gray.400" fontSize="xs">
+                      <Text color="gray.500" fontSize="xs">
                         |
                       </Text>
                       <Button
                         size="xs"
                         variant="ghost"
+                        color="gray.400"
                         onClick={() => handleToggleAll('clues', clueOptions, false)}
                       >
                         None
                       </Button>
                     </HStack>
 
-                    <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+                    <Text fontSize="sm" color="gray.400">
                       Select which clue scroll tiers can appear as objectives.
                     </Text>
 
@@ -1027,17 +992,17 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               </AccordionItem>
             </Accordion>
 
-            <Divider />
+            <Divider borderColor="gray.600" />
 
             {/* Validation Warning */}
             {!canSave && (
-              <Alert status="error" borderRadius="md">
-                <AlertIcon />
+              <Alert status="error" borderRadius="md" bg="red.900">
+                <AlertIcon color="red.300" />
                 <VStack align="start" spacing={0}>
-                  <Text fontSize="sm" fontWeight="bold">
+                  <Text fontSize="sm" fontWeight="bold" color="red.200">
                     Not enough content enabled
                   </Text>
-                  <Text fontSize="xs">
+                  <Text fontSize="xs" color="red.300">
                     At least {MIN_CONTENT_REQUIRED} content items must be enabled to generate a
                     meaningful map. Currently enabled: {totalEnabledContent}
                   </Text>
@@ -1046,9 +1011,9 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
             )}
 
             {/* Content Stats Summary */}
-            <Box p={3} bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} borderRadius="md">
+            <Box p={3} bg="gray.700" borderRadius="md">
               <HStack justify="space-between" flexWrap="wrap" gap={2}>
-                <Text fontSize="xs" color={currentColors.textColor}>
+                <Text fontSize="xs" color="gray.200">
                   <strong>Total Enabled:</strong> {totalEnabledContent}/{totalContentAltogether}{' '}
                   bits of content
                 </Text>
@@ -1061,7 +1026,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
             </Box>
 
             <HStack justify="flex-end" spacing={3}>
-              <Button variant="ghost" onClick={onClose}>
+              <Button variant="ghost" color="gray.400" onClick={onClose}>
                 Cancel
               </Button>
               <Tooltip
@@ -1069,9 +1034,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 isDisabled={canSave}
               >
                 <Button
-                  bg={currentColors.purple.base}
-                  color="white"
-                  _hover={{ bg: canSave ? currentColors.purple.light : currentColors.purple.base }}
+                  colorScheme="purple"
                   onClick={handleSave}
                   isDisabled={!canSave}
                   opacity={canSave ? 1 : 0.6}

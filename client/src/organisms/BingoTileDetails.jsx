@@ -51,15 +51,17 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
-      <ModalContent backgroundColor={theme.colors.gray[100]}>
-        <ModalHeader textAlign="center">{isEditor ? 'Edit Tile' : 'Tile Details'}</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent backgroundColor="gray.800" color="white">
+        <ModalHeader textAlign="center" color="white">
+          {isEditor ? 'Edit Tile' : 'Tile Details'}
+        </ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody flexDirection="column" paddingX={['16px', '32px', '56px']} width="100%">
           {tileState.icon ? (
             <Flex
               alignItems="center"
-              backgroundColor={theme.colors.white}
+              backgroundColor="gray.700"
               borderRadius="8px"
               boxShadow="md"
               justifyContent="center"
@@ -82,10 +84,10 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
           <Flex flexDirection="column" gridGap="4px" marginTop="20px" marginX="16px">
             {!fieldsEditing.name ? (
               <Flex alignItems="center" flexDirection="space-between" width="100%">
-                <Text width="100%">
+                <Text width="100%" color="gray.100">
                   <Text
                     as="span"
-                    color={theme.colors.purple[600]}
+                    color={theme.colors.purple[300]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="8px"
@@ -96,7 +98,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 </Text>
                 {isEditor && (
                   <Button
-                    _hover={{ backgroundColor: theme.colors.purple[100] }}
+                    _hover={{ backgroundColor: 'whiteAlpha.100' }}
                     color={theme.colors.purple[300]}
                     marginLeft="16px"
                     onClick={() =>
@@ -135,10 +137,10 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
 
             {!fieldsEditing.value ? (
               <Flex alignItems="center" flexDirection="space-between" width="100%">
-                <Text width="100%">
+                <Text width="100%" color="gray.100">
                   <Text
                     as="span"
-                    color={theme.colors.purple[600]}
+                    color={theme.colors.purple[300]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="8px"
@@ -149,7 +151,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 </Text>
                 {isEditor && (
                   <Button
-                    _hover={{ backgroundColor: theme.colors.purple[100] }}
+                    _hover={{ backgroundColor: 'whiteAlpha.100' }}
                     color={theme.colors.purple[300]}
                     marginLeft="16px"
                     onClick={() =>
@@ -191,13 +193,14 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
             <Flex flexDirection="column">
               <Text
                 alignItems="center"
+                color="gray.100"
                 display="flex"
                 justifyContent={isEditor ? 'space-between' : 'flex-start'}
                 width="100%"
               >
                 <Text
                   as="span"
-                  color={theme.colors.purple[600]}
+                  color={theme.colors.purple[300]}
                   display="inline"
                   fontWeight="bold"
                   marginRight="8px"
@@ -207,7 +210,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 {isEditor ? (
                   <Checkbox
                     colorScheme="purple"
-                    borderColor={theme.colors.purple[300]}
+                    borderColor="gray.500"
                     defaultChecked={tileState.isComplete}
                     marginRight="16px"
                     onChange={async () => {
@@ -233,12 +236,12 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                     size="lg"
                   />
                 ) : (
-                  <Text>{tileState.isComplete ? 'Yes' : 'No'}</Text>
+                  <Text color="gray.100">{tileState.isComplete ? 'Yes' : 'No'}</Text>
                 )}
               </Text>
             </Flex>
             {tileState.isComplete && (
-              <Text color={theme.colors.gray[500]} fontSize="14px">
+              <Text color="gray.400" fontSize="14px">
                 {tileState.dateCompleted}
               </Text>
             )}
@@ -249,10 +252,10 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 paddingLeft="16px"
                 width="100%"
               >
-                <Text width="100%">
+                <Text width="100%" color="gray.100">
                   <Text
                     as="span"
-                    color={theme.colors.purple[600]}
+                    color={theme.colors.purple[300]}
                     display="inline"
                     fontWeight="bold"
                     marginRight="8px"
@@ -263,7 +266,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 </Text>
                 {isEditor && (
                   <Button
-                    _hover={{ backgroundColor: theme.colors.purple[100] }}
+                    _hover={{ backgroundColor: 'whiteAlpha.100' }}
                     color={theme.colors.purple[300]}
                     marginLeft="16px"
                     onClick={() =>
@@ -306,7 +309,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
             <Flex flexDirection="column" marginTop="20px" marginX="16px">
               <Text
                 as="span"
-                color={theme.colors.purple[600]}
+                color={theme.colors.purple[300]}
                 display="inline"
                 fontWeight="bold"
                 marginRight="4px"
