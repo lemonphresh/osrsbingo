@@ -13,12 +13,10 @@ import {
   VStack,
   HStack,
   Icon,
-  Progress,
 } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
 import { GET_SITE_STATS } from '../graphql/queries';
 import GemTitle from '../atoms/GemTitle';
-import Section from '../atoms/Section';
 import usePageTitle from '../hooks/usePageTitle';
 import { FaUsers, FaThLarge, FaCheckCircle, FaEye, FaCalendarWeek, FaGlobe } from 'react-icons/fa';
 
@@ -117,7 +115,7 @@ const StatsPage = () => {
             isLoading={loading}
           />
           <StatCard
-            label="Total Visits"
+            label="Total Visits Since Jan 2026"
             value={stats?.totalVisits}
             icon={FaEye}
             color="blue.400"

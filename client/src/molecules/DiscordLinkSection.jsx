@@ -242,7 +242,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
 
             <Button
               size="sm"
-              colorScheme="red"
+              colorScheme="white"
               variant="ghost"
               onClick={handleUnlinkDiscord}
               isLoading={unlinkingDiscord}
