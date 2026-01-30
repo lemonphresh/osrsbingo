@@ -114,6 +114,7 @@ const TYPE_COLOR = {
   SKILLING: theme.colors.dark.sapphire.base,
   MISC: theme.colors.dark.purple.light,
   MIXED_CONTENT: theme.colors.dark.pink.dark,
+  JAGEX: '#ffa200ff',
 };
 
 export default function CalendarPage() {

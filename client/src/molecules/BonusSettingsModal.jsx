@@ -56,14 +56,16 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered>
-      <ModalOverlay />
-      <ModalContent backgroundColor={theme.colors.gray[100]}>
-        <ModalHeader textAlign="center">Bonus Settings</ModalHeader>
-        <ModalCloseButton />
+      <ModalOverlay backdropFilter="blur(4px)" />
+      <ModalContent backgroundColor="gray.700" color="white">
+        <ModalHeader textAlign="center" color="white">
+          Bonus Settings
+        </ModalHeader>
+        <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody paddingX={['16px', '32px', '56px']} width="100%">
           <Flex direction="column" gap="16px">
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
-              <Text>Allow Diagonal Bonus</Text>
+              <Text color="gray.100">Allow Diagonal Bonus</Text>
               <Checkbox
                 colorScheme="purple"
                 isChecked={localSettings?.allowDiagonals}
@@ -71,18 +73,18 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               />
             </Flex>
 
-            <Text color={theme.colors.purple[600]} fontWeight="bold">
+            <Text color={theme.colors.purple[300]} fontWeight="bold">
               Multipliers
             </Text>
-            <Text color={theme.colors.purple[600]} fontSize="12px">
+            <Text color="gray.400" fontSize="12px">
               The amount of bonus points awarded for a completed row, column or diagonal (when
               applicable). (Min: 0, Max: 100)
             </Text>
 
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
-              <Text>Row Bonus</Text>
+              <Text color="gray.100">Row Bonus</Text>
               <NumberInput
-                color={theme.colors.gray[700]}
+                color="white"
                 colorScheme="purple"
                 max={100}
                 maxWidth="80px"
@@ -95,20 +97,23 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                   autoComplete="off"
                   placeholder={localSettings?.horizontalBonus || 0}
                   value={localSettings?.horizontalBonus || 0}
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
+                <NumberInputStepper borderColor="gray.600">
+                  <NumberIncrementStepper color="gray.400" borderColor="gray.600" />
+                  <NumberDecrementStepper color="gray.400" borderColor="gray.600" />
                 </NumberInputStepper>
               </NumberInput>
             </Flex>
 
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
-              <Text>Column Bonus </Text>
+              <Text color="gray.100">Column Bonus</Text>
               <NumberInput
-                variant="filled"
                 colorScheme="purple"
-                color={theme.colors.gray[700]}
+                color="white"
                 max={100}
                 maxWidth="80px"
                 min={0}
@@ -120,19 +125,23 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                   autoComplete="off"
                   placeholder={localSettings?.verticalBonus || 0}
                   value={localSettings?.verticalBonus || 0}
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
+                <NumberInputStepper borderColor="gray.600">
+                  <NumberIncrementStepper color="gray.400" borderColor="gray.600" />
+                  <NumberDecrementStepper color="gray.400" borderColor="gray.600" />
                 </NumberInputStepper>
               </NumberInput>
             </Flex>
 
             {localSettings.allowDiagonals && (
               <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
-                <Text>Diagonal Bonus</Text>
+                <Text color="gray.100">Diagonal Bonus</Text>
                 <NumberInput
-                  color={theme.colors.gray[700]}
+                  color="white"
                   colorScheme="purple"
                   max={100}
                   maxWidth="80px"
@@ -145,26 +154,30 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                     autoComplete="off"
                     placeholder={localSettings?.diagonalBonus || 0}
                     value={localSettings?.diagonalBonus || 0}
+                    bg="gray.700"
+                    borderColor="gray.600"
+                    _hover={{ borderColor: 'gray.500' }}
+                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                   />
-                  <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
+                  <NumberInputStepper borderColor="gray.600">
+                    <NumberIncrementStepper color="gray.400" borderColor="gray.600" />
+                    <NumberDecrementStepper color="gray.400" borderColor="gray.600" />
                   </NumberInputStepper>
                 </NumberInput>
               </Flex>
             )}
 
-            <Text color={theme.colors.purple[600]} fontWeight="bold">
+            <Text color={theme.colors.purple[300]} fontWeight="bold">
               Point Bonus
             </Text>
-            <Text color={theme.colors.purple[600]} fontSize="12px">
+            <Text color="gray.400" fontSize="12px">
               Bonus points added to total when board is filled out completely. (Min: 0, Max: 250)
             </Text>
 
             <Flex align="center" justify="space-between" paddingX="16px" paddingY="4px">
-              <Text>Blackout Bonus</Text>
+              <Text color="gray.100">Blackout Bonus</Text>
               <NumberInput
-                color={theme.colors.gray[700]}
+                color="white"
                 colorScheme="purple"
                 max={250}
                 maxWidth="80px"
@@ -177,10 +190,14 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
                   autoComplete="off"
                   placeholder={localSettings?.blackoutBonus || 0}
                   value={localSettings?.blackoutBonus || 0}
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  _hover={{ borderColor: 'gray.500' }}
+                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
+                <NumberInputStepper borderColor="gray.600">
+                  <NumberIncrementStepper color="gray.400" borderColor="gray.600" />
+                  <NumberDecrementStepper color="gray.400" borderColor="gray.600" />
                 </NumberInputStepper>
               </NumberInput>
             </Flex>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Flex, Image, Text, useDisclosure } from '@chakra-ui/react';
-import { CheckCircleIcon, EditIcon } from '@chakra-ui/icons';
+import { CheckCircleIcon, CheckIcon, EditIcon } from '@chakra-ui/icons';
 import BingoTileDetails from './BingoTileDetails';
 import useBingoTileTheme from '../hooks/useBingoTileTheme';
 import { MdLaunch } from 'react-icons/md';
@@ -13,6 +13,7 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
   const [isPartOfCompletedGroup, setIsPartOfCompletedGroup] = useState(
     completedPatterns.some((group) => group.tiles.includes(tile.id))
   );
+  const [isHovered, setIsHovered] = useState(false);
 
   const {
     hoverBackgroundColor,
@@ -61,6 +62,8 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
         key={tile}
         margin={['2px', '2px', '4px']}
         onClick={onOpen}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         padding={['4px', '8px']}
         position="relative"
         transition="all ease 0.2s"
@@ -121,6 +124,31 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
             <MdLaunch color="rgba(0,0,0,0.6)" id="icon" opacity="0" />
           )}
         </Box>
+
+        {/* Completed checkmark overlay - fades on hover */}
+        {isComplete && (
+          <Box
+            position="absolute"
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            pointerEvents="none"
+            opacity={isHovered ? 0 : 1}
+            transition="opacity 0.2s ease"
+            borderRadius={['8px', '12px']}
+            bg="rgba(0, 0, 0, 0.15)"
+          >
+            <CheckIcon
+              boxSize={['20px', '28px', '36px', '44px']}
+              color="green.100"
+              filter="drop-shadow(0px 1px 2px rgba(0,0,0,0.6))"
+            />
+          </Box>
+        )}
       </Flex>
       <BingoTileDetails isEditor={isEditor} isOpen={isOpen} onClose={onClose} tile={tile} />
     </>

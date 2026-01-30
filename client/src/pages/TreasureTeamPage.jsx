@@ -53,6 +53,7 @@ import useSubmissionCelebrations from '../hooks/useSubmissionCelebrations';
 import DevTestPanel from '../organisms/TreasureHunt/DevTestPanel';
 import { unlockAudio } from '../utils/celebrationUtils';
 import usePageTitle from '../hooks/usePageTitle';
+import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -479,6 +480,8 @@ const TreasureTeamView = () => {
           userDiscordId={user?.discordUserId}
           hasLinkedDiscord={!!user?.discordUserId}
         />
+        <DiscordLinkBanner />
+
         <Flex
           alignItems="center"
           flexDirection={['column', 'row', 'row']}

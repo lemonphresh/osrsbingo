@@ -54,27 +54,50 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
     <Flex flexDirection="column" width="100%" padding="8px">
       <Input
         autoComplete="off"
-        borderColor={theme.colors.purple[200]}
-        placeholder="Search OSRS items..."
+        bg="gray.700"
+        borderColor="gray.600"
+        color="white"
+        placeholder="icon"
+        _placeholder={{ color: 'gray.400' }}
+        _hover={{ borderColor: 'gray.500' }}
+        _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
         value={query}
         onChange={handleInputChange}
         marginBottom="16px"
       />
-      {loading && <Spinner margin="0 auto" marginBottom="16px" />}
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {loading && <Spinner color="purple.400" margin="0 auto" marginBottom="16px" />}
+      {error && <p style={{ color: '#FC8181' }}>{error}</p>}
       {results.length > 0 && !loading && (
         <List
           alignItems="center"
-          backgroundColor={theme.colors.gray[200]}
+          backgroundColor="gray.700"
           borderRadius="10px"
           display="flex"
           flexWrap="wrap"
           gap="3px"
           justifyContent="center"
           maxHeight="224px"
-          overflowY="scroll"
+          overflowY="auto"
           paddingY="8px"
           spacing={0}
+          css={{
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+              borderRadius: '10px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#4A5568',
+              borderRadius: '10px',
+              '&:hover': {
+                background: '#718096',
+              },
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#4A5568 transparent',
+          }}
         >
           {results?.map((item) => (
             <ListItem
@@ -95,6 +118,11 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                 width="30px"
                 justifyContent="center"
                 padding="4px"
+                _hover={{
+                  backgroundColor:
+                    tile.icon === item.imageUrl ? theme.colors.orange[200] : 'whiteAlpha.200',
+                }}
+                transition="background-color 0.15s ease"
               >
                 <Image
                   alt={item.name}

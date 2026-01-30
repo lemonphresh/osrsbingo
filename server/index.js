@@ -19,6 +19,7 @@ const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
+const discordRoutes = require('./routes/discord');
 
 dotenv.config();
 
@@ -91,6 +92,7 @@ app.get('/', (req, res) => {
 
 app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/discord', discordRoutes);
 
 app.get('/discuser/:userId', async (req, res) => {
   const { userId } = req.params;

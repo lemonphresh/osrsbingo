@@ -7,6 +7,7 @@ const TYPE_COLOR = {
   SKILLING: theme.colors.dark.sapphire.base,
   MISC: theme.colors.dark.purple.light,
   MIXED_CONTENT: theme.colors.dark.pink.dark,
+  JAGEX: '#ffa200ff',
 };
 
 const LABEL = {
@@ -15,6 +16,7 @@ const LABEL = {
   SKILLING: 'Skilling',
   MISC: 'Misc',
   MIXED_CONTENT: 'Mixed Content',
+  JAGEX: 'Jagex Events',
 };
 
 export default function CalendarLegend() {
