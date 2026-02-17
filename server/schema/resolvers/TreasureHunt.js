@@ -126,8 +126,10 @@ async function isEventAdmin(userId, eventId) {
 async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
   if (!discordUserId) return false;
   const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
-  if (!team) return false;
-  return team.members?.includes(discordUserId);
+  if (!team || !team.members) return false;
+
+  // Convert both to strings for comparison (Discord IDs can be numbers or strings)
+  return team.members.some((memberId) => memberId.toString() === discordUserId.toString());
 }
 
 async function isWebUserOnTeam(userId, teamId, eventId) {
@@ -142,10 +144,12 @@ async function canPerformTeamAction(context, teamId, eventId) {
     const isAdmin = await isEventAdmin(context.user.id, eventId);
     if (isAdmin) return { authorized: true, reason: 'admin' };
   }
-  if (context.discordUserId) {
-    const isOnTeam = await isDiscordUserOnTeam(context.discordUserId, teamId, eventId);
+  if (context.user?.discordUserId) {
+    const isOnTeam = await isDiscordUserOnTeam(context.user.discordUserId, teamId, eventId);
     if (isOnTeam) return { authorized: true, reason: 'discord_member' };
   }
+
+  // fallback: check if web user is directly on team (without Discord)
   if (context.user) {
     const isOnTeam = await isWebUserOnTeam(context.user.id, teamId, eventId);
     if (isOnTeam) return { authorized: true, reason: 'linked_member' };
@@ -821,8 +825,10 @@ const TreasureHuntResolvers = {
       const reducedQuantity = Math.ceil(originalQuantity * (1 - buff.reduction));
       const saved = originalQuantity - reducedQuantity;
 
+      // Update the node with applied buff
       await node.update({
         objective: {
+          ...node.objective, // Preserve any other fields!
           type: node.objective.type,
           target: node.objective.target,
           quantity: reducedQuantity,
@@ -836,12 +842,12 @@ const TreasureHuntResolvers = {
         },
       });
 
-      const updatedBuffs = [...team.activeBuffs];
+      // DEEP COPY the buffs array to avoid mutation issues
+      const updatedBuffs = team.activeBuffs.map((b) => ({ ...b }));
       updatedBuffs[buffIndex].usesRemaining -= 1;
 
-      if (updatedBuffs[buffIndex].usesRemaining <= 0) {
-        updatedBuffs.splice(buffIndex, 1);
-      }
+      // Remove buff if no uses left
+      const finalBuffs = updatedBuffs.filter((b) => b.usesRemaining > 0);
 
       const buffHistory = [
         ...(team.buffHistory || []),
@@ -856,7 +862,13 @@ const TreasureHuntResolvers = {
         },
       ];
 
-      await team.update({ activeBuffs: updatedBuffs, buffHistory });
+      // Use team.set() + team.changed() + team.save() for reliability
+      team.activeBuffs = finalBuffs;
+      team.buffHistory = buffHistory;
+      team.changed('activeBuffs', true);
+      team.changed('buffHistory', true);
+      await team.save();
+
       await team.reload();
       return team;
     },
@@ -991,7 +1003,7 @@ const TreasureHuntResolvers = {
       }
 
       team.keysHeld = team.keysHeld.filter((k) => k.quantity > 0);
-
+      team.changed('keysHeld', true);
       const currentPotBigInt = BigInt(team.currentPot || 0);
       const payoutBigInt = BigInt(reward.payout || 0);
       team.currentPot = (currentPotBigInt + payoutBigInt).toString();

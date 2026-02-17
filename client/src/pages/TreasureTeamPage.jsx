@@ -240,6 +240,15 @@ const TreasureTeamView = () => {
     });
   };
 
+  const maxCompletableNodes = useMemo(() => {
+    const innCount = nodes.filter((n) => n.nodeType === 'INN').length;
+    const startCount = nodes.filter((n) => n.nodeType === 'START').length;
+    const standardNodes = nodes.filter((n) => n.nodeType === 'STANDARD').length;
+    const uniqueStandardLocations = Math.round(standardNodes / 3);
+
+    return uniqueStandardLocations + innCount + startCount;
+  }, [nodes]);
+
   const handleNodeClick = useCallback(
     (node) => {
       // Calculate status inside the callback using current team state
@@ -617,6 +626,7 @@ const TreasureTeamView = () => {
               totalNodes={nodes.length}
               availableInns={availableInns}
               onVisitInn={isAvailableInnsOpen}
+              maxCompletableNodes={maxCompletableNodes}
             />
             <PlayerSubmissionsPanel
               submissions={teamSubmissions}
@@ -672,6 +682,7 @@ const TreasureTeamView = () => {
                 adminMode={adminMode}
                 onAdminComplete={handleAdminCompleteNode}
                 onAdminUncomplete={handleAdminUncompleteNode}
+                currentUser={user}
               />
 
               <VStack mt={4} spacing={4} align="stretch">

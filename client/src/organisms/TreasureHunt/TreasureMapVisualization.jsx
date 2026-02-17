@@ -28,58 +28,46 @@ import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
 import OSRSMap from '../../assets/osrsmap12112025.png';
 
-const RecenterButton = ({ bounds, nodes }) => {
+const RecenterButton = () => {
   const map = useMap();
   const [isOffCenter, setIsOffCenter] = useState(false);
+  const bounds = getMapBounds();
+
+  const defaultCenter = [bounds.mapHeight / 2, bounds.mapWidth / 2];
+  const defaultZoom = -3;
 
   useEffect(() => {
     const checkPosition = () => {
       const center = map.getCenter();
-      const mapCenter = { lat: bounds.mapHeight / 2, lng: bounds.mapWidth / 2 };
+      const currentZoom = map.getZoom();
 
       // Calculate distance from center
       const distance = Math.sqrt(
-        Math.pow(center.lat - mapCenter.lat, 2) + Math.pow(center.lng - mapCenter.lng, 2)
+        Math.pow(center.lat - defaultCenter[0], 2) + Math.pow(center.lng - defaultCenter[1], 2)
       );
 
-      // Show button if more than 500 pixels from center
-      setIsOffCenter(distance > 500);
+      // Show button if moved away from center OR zoomed in/out significantly
+      const hasMoved = distance > 300;
+      const hasZoomed = currentZoom !== defaultZoom;
+
+      setIsOffCenter(hasMoved || hasZoomed);
     };
 
     map.on('moveend', checkPosition);
-    checkPosition(); // Initial check
+    map.on('zoomend', checkPosition);
+    checkPosition();
 
     return () => {
       map.off('moveend', checkPosition);
+      map.off('zoomend', checkPosition);
     };
-  }, [map, bounds]);
+  }, [map, defaultCenter, defaultZoom]);
 
   const handleRecenter = () => {
-    if (nodes.length > 0) {
-      // Fit bounds to all nodes
-      const positions = nodes
-        .filter((n) => n.coordinates?.x && n.coordinates?.y)
-        .map((n) => {
-          const osrsMinX = 1100;
-          const osrsMaxX = 3900;
-          const osrsMinY = 2500;
-          const osrsMaxY = 4100;
-          const mapWidth = 7168;
-          const mapHeight = 3904;
-
-          const normalizedX = (n.coordinates.x - osrsMinX) / (osrsMaxX - osrsMinX);
-          const normalizedY = (n.coordinates.y - osrsMinY) / (osrsMaxY - osrsMinY);
-          const pixelX = normalizedX * mapWidth;
-          const pixelY = normalizedY * mapHeight;
-
-          return [pixelY, pixelX];
-        });
-
-      if (positions.length > 0) {
-        const bounds = L.latLngBounds(positions);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 1, animate: true, duration: 1 });
-      }
-    }
+    map.setView(defaultCenter, defaultZoom, {
+      animate: true,
+      duration: 0.5,
+    });
   };
 
   if (!isOffCenter) return null;
@@ -97,7 +85,7 @@ const RecenterButton = ({ bounds, nodes }) => {
           </Box>
         }
       >
-        Recenter Map
+        Reset View
       </Button>
     </Box>
   );
@@ -259,11 +247,12 @@ const TreasureMapVisualization = ({
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
+  currentUser,
 }) => {
   const toast = useToast();
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
-
+  const [isNodeOpen, setIsNodeOpen] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
@@ -455,7 +444,7 @@ const TreasureMapVisualization = ({
     >
       <MapContainer
         center={[bounds.mapHeight / 2, bounds.mapWidth / 2]}
-        zoom={-2}
+        zoom={-3}
         minZoom={-3}
         maxZoom={2}
         crs={L.CRS.Simple}
@@ -501,130 +490,126 @@ const TreasureMapVisualization = ({
                 adminMode,
                 !!node.objective?.appliedBuff
               )}
+              eventHandlers={{
+                click: () => {
+                  console.log(`Marker ${node.nodeId} clicked`);
+                },
+                popupopen: () => {
+                  console.log(`Popup for node ${node.nodeId} opened`);
+                  setIsNodeOpen(node.nodeId);
+                },
+                popupclose: () => {
+                  console.log(`Popup for node ${node.nodeId} closed`);
+                  setIsNodeOpen(null);
+                },
+              }}
             >
               <Popup
                 maxWidth={350}
                 autoPan={true}
-                autoPanPaddingTopLeft={[10, 80]}
-                autoPanPaddingBottomRight={[10, 10]}
+                autoPanPaddingTopLeft={[20, 20]}
+                autoPanPaddingBottomRight={[20, 20]}
+                zIndex={3000}
               >
-                <VStack align="start" spacing={2} p={2}>
-                  <HStack justify="space-between" w="full">
+                <Box
+                  maxH="350px"
+                  overflowY="auto"
+                  css={{
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      background: 'transparent',
+                      borderRadius: '10px',
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      background: '#abb8ceff',
+                      borderRadius: '10px',
+                      '&:hover': {
+                        background: '#718096',
+                      },
+                    },
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#abb8ceff transparent',
+                  }}
+                >
+                  <VStack align="start" spacing={2} p={2}>
+                    <HStack justify="space-between" w="full">
+                      {(status === 'locked' || status === 'unavailable') && !adminMode ? (
+                        <>
+                          <RedactedText length="long" />
+                          <Badge
+                            colorScheme={status === 'unavailable' ? 'red' : 'gray'}
+                            fontSize="xs"
+                          >
+                            {status === 'unavailable' ? 'UNAVAILABLE' : 'LOCKED'}
+                          </Badge>
+                        </>
+                      ) : (
+                        <>
+                          <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
+                            {node.title}
+                          </Text>
+                          <Badge
+                            colorScheme={
+                              status === 'completed'
+                                ? 'green'
+                                : status === 'available'
+                                ? 'orange'
+                                : status === 'unavailable'
+                                ? 'red'
+                                : 'gray'
+                            }
+                            fontSize="xs"
+                          >
+                            {status === 'unavailable'
+                              ? 'UNAVAILABLE'
+                              : node.nodeType === 'INN' && status === 'completed'
+                              ? 'VISITED'
+                              : status.toUpperCase()}
+                          </Badge>
+                          {node.difficultyTier && node.nodeType === 'STANDARD' && (
+                            <Badge
+                              colorScheme={getDifficultyColor(node.difficultyTier)}
+                              fontSize="xs"
+                            >
+                              {getDifficultyName(node.difficultyTier)}
+                            </Badge>
+                          )}
+                        </>
+                      )}
+                    </HStack>
+
                     {(status === 'locked' || status === 'unavailable') && !adminMode ? (
-                      <>
-                        <RedactedText length="long" />
-                        <Badge
-                          colorScheme={status === 'unavailable' ? 'red' : 'gray'}
-                          fontSize="xs"
-                        >
-                          {status === 'unavailable' ? 'UNAVAILABLE' : 'LOCKED'}
-                        </Badge>
-                      </>
+                      <VStack align="start" spacing={1} w="full">
+                        <RedactedText length="full" />
+                        <RedactedText length="medium" />
+                        <Box pt={2}>
+                          <Text fontSize="xs" color="#718096" fontStyle="italic">
+                            {status === 'unavailable'
+                              ? 'Another difficulty at this location has already been completed. Only one node per location can be completed.'
+                              : 'Complete prerequisites to unlock'}
+                          </Text>
+                        </Box>
+                      </VStack>
                     ) : (
                       <>
-                        <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
-                          {node.title}
-                        </Text>
-                        <Badge
-                          colorScheme={
-                            status === 'completed'
-                              ? 'green'
-                              : status === 'available'
-                              ? 'orange'
-                              : status === 'unavailable'
-                              ? 'red'
-                              : 'gray'
-                          }
-                          fontSize="xs"
-                        >
-                          {status === 'unavailable'
-                            ? 'UNAVAILABLE'
-                            : node.nodeType === 'INN' && status === 'completed'
-                            ? 'VISITED'
-                            : status.toUpperCase()}
-                        </Badge>
-                        {node.difficultyTier && node.nodeType === 'STANDARD' && (
-                          <Badge
-                            colorScheme={getDifficultyColor(node.difficultyTier)}
-                            fontSize="xs"
-                          >
-                            {getDifficultyName(node.difficultyTier)}
-                          </Badge>
-                        )}
-                      </>
-                    )}
-                  </HStack>
-
-                  {(status === 'locked' || status === 'unavailable') && !adminMode ? (
-                    <VStack align="start" spacing={1} w="full">
-                      <RedactedText length="full" />
-                      <RedactedText length="medium" />
-                      <Box pt={2}>
-                        <Text fontSize="xs" color="#718096" fontStyle="italic">
-                          {status === 'unavailable'
-                            ? 'Another difficulty at this location has already been completed. Only one node per location can be completed.'
-                            : 'Complete prerequisites to unlock'}
-                        </Text>
-                      </Box>
-                    </VStack>
-                  ) : (
-                    <>
-                      {node.description && (
-                        <Text
-                          w="100%"
-                          p={2}
-                          borderRadius="md"
-                          bg="gray.100"
-                          m="0!important"
-                          fontSize="sm"
-                          color="#4a4a4a"
-                        >
-                          {node.description}
-                        </Text>
-                      )}
-
-                      {node.objective && (
-                        <Box>
+                        {node.description && (
                           <Text
+                            w="100%"
+                            p={2}
+                            borderRadius="md"
+                            bg="gray.100"
                             m="0!important"
-                            fontSize="xs"
-                            fontWeight="bold"
-                            color="#2d3748"
-                            mb={1}
+                            fontSize="sm"
+                            color="#4a4a4a"
                           >
-                            Objective:
+                            {node.description}
                           </Text>
-                          <Text fontSize="xs" m="0!important" color="#4a5568">
-                            {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
-                            {node.objective.target}
-                          </Text>
+                        )}
 
-                          {/* Show acceptable drops for item_collection tasks */}
-                          {node.objective.type === 'item_collection' && (
-                            <AcceptableDropsCompact drops={getDropsForNode(node)} />
-                          )}
-                        </Box>
-                      )}
-
-                      {node.rewards && (
-                        <Flex
-                          p={2}
-                          borderRadius="md"
-                          flexDirection="column"
-                          alignItems="center"
-                          m="0 auto"
-                          mt={3}
-                          bg="orange.100"
-                          transition="all 0.3s ease"
-                          animation="pulseGlow 2s infinite alternate"
-                          sx={{
-                            '@keyframes pulseGlow': {
-                              from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
-                              to: { boxShadow: `0 0 16px 4px #cf9efdff` },
-                            },
-                          }}
-                        >
-                          <VStack mb={3}>
+                        {node.objective && (
+                          <Box>
                             <Text
                               m="0!important"
                               fontSize="xs"
@@ -632,199 +617,260 @@ const TreasureMapVisualization = ({
                               color="#2d3748"
                               mb={1}
                             >
-                              Rewards:
+                              Objective:
                             </Text>
-                            <ChakraImg h="32px" src={Casket} />
-                          </VStack>
+                            <Text fontSize="xs" m="0!important" color="#4a5568">
+                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                              {node.objective.target}
+                            </Text>
 
-                          <HStack spacing={2}>
-                            <Badge colorScheme="green" fontSize="xs">
-                              {formatGP(node.rewards.gp)} GP
-                            </Badge>
-                            {node.rewards.keys?.map((key, idx) => (
-                              <Badge key={idx} colorScheme={key.color} fontSize="xs">
-                                {key.quantity}x {key.color} key
-                              </Badge>
-                            ))}
-                          </HStack>
-
-                          {node.rewards.buffs &&
-                            node.rewards.buffs.length > 0 &&
-                            (status !== 'locked' || adminMode) && (
-                              <Box mt={2} p={2} borderRadius="md">
-                                <Text
-                                  fontSize="xs"
-                                  m="0!important"
-                                  fontWeight="bold"
-                                  color="#2d3748"
-                                  mb={1}
-                                >
-                                  🎁 Buff Rewards:
-                                </Text>
-                                <VStack align="start" spacing={1}>
-                                  {node.rewards.buffs.map((buff, idx) => (
-                                    <HStack mt={1} key={idx} spacing={1}>
-                                      <Badge
-                                        colorScheme={
-                                          buff.tier === 'major'
-                                            ? 'purple'
-                                            : buff.tier === 'moderate'
-                                            ? 'blue'
-                                            : buff.tier === 'universal'
-                                            ? 'yellow'
-                                            : 'green'
-                                        }
-                                        fontSize="xs"
-                                      >
-                                        {buff.tier.toUpperCase()}
-                                      </Badge>
-                                      <Text m="0!important" fontSize="xs" color="#4a5568">
-                                        {buff.buffType.replace(/_/g, ' ')}
-                                      </Text>
-                                    </HStack>
-                                  ))}
-                                </VStack>
-                              </Box>
+                            {/* Show acceptable drops for item_collection tasks */}
+                            {node.objective.type === 'item_collection' && (
+                              <AcceptableDropsCompact drops={getDropsForNode(node)} />
                             )}
-                        </Flex>
-                      )}
+                          </Box>
+                        )}
 
-                      {adminMode && (
-                        <Box w="full" pt={2} borderTop="1px solid #e2e8f0">
-                          <Text fontSize="xs" fontWeight="bold" color="#7D5FFF" mb={2}>
-                            🛡️ Admin Controls
-                          </Text>
-                          <Text fontSize="xs" color="#718096" mb={2}>
-                            {status === 'completed'
-                              ? 'Un-completing will remove rewards and re-lock downstream nodes.'
-                              : 'Completing will grant rewards and unlock connected nodes.'}
-                          </Text>
-                          <HStack spacing={2}>
-                            {status !== 'completed' ? (
-                              <Button
-                                size="xs"
-                                colorScheme="green"
-                                leftIcon={<CheckIcon />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onAdminComplete && onAdminComplete(node.nodeId);
-                                }}
-                                flex={1}
-                              >
-                                Complete
-                              </Button>
-                            ) : (
-                              <Button
-                                size="xs"
-                                colorScheme="red"
-                                leftIcon={<CloseIcon />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onAdminUncomplete && onAdminUncomplete(node.nodeId);
-                                }}
-                                flex={1}
-                              >
-                                Un-complete
-                              </Button>
-                            )}
-                          </HStack>
-                        </Box>
-                      )}
-
-                      {!adminMode && status === 'available' && (
-                        <Box mt={2}>
-                          {node.nodeType === 'INN' ? (
-                            <VStack align="center" spacing={1}>
-                              <Button
-                                colorScheme="green"
-                                size="md"
-                                w="full"
-                                leftIcon={<Text fontSize="xl">🏠</Text>}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (onAdminComplete) {
-                                    onAdminComplete(node.nodeId);
-                                  }
-                                }}
-                              >
-                                Visit Inn
-                              </Button>
+                        {node.rewards && (
+                          <Flex
+                            p={2}
+                            borderRadius="md"
+                            flexDirection="column"
+                            alignItems="center"
+                            m="0 auto"
+                            mt={3}
+                            bg="orange.100"
+                            transition="all 0.3s ease"
+                            animation="pulseGlow 2s infinite alternate"
+                            sx={{
+                              '@keyframes pulseGlow': {
+                                from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                                to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                              },
+                            }}
+                          >
+                            <VStack mb={3}>
                               <Text
+                                m="0!important"
                                 fontSize="xs"
-                                color="#4a5568"
-                                textAlign="center"
-                                fontStyle="italic"
+                                fontWeight="bold"
+                                color="#2d3748"
+                                mb={1}
                               >
-                                Rest at the inn to recover and prepare for your next adventure!
+                                Rewards:
                               </Text>
+                              <ChakraImg h="32px" src={Casket} />
                             </VStack>
-                          ) : (
-                            // Discord submit instructions for regular nodes
-                            <>
-                              <Text
-                                textAlign="center"
-                                fontSize="xs"
-                                color="#4a5568"
-                                fontStyle="italic"
-                                sx={{
-                                  code: { backgroundColor: '#e7ffeaff' },
-                                }}
-                              >
-                                <strong>Submit completion via Discord bot:</strong>
-                              </Text>
-                              <HStack justify="center" mt={1} spacing={1}>
-                                <code
-                                  className="code"
-                                  style={{
-                                    backgroundColor: '#e7ffeaff',
-                                    padding: '2px 6px',
-                                    borderRadius: '3px',
-                                    fontSize: '11px',
-                                  }}
-                                >
-                                  !submit {node.nodeId} link_to_screenshot_img
-                                </code>
-                                <IconButton
-                                  icon={<CopyIcon />}
+
+                            <HStack spacing={2}>
+                              <Badge colorScheme="green" fontSize="xs">
+                                {formatGP(node.rewards.gp)} GP
+                              </Badge>
+                              {node.rewards.keys?.map((key, idx) => (
+                                <Badge key={idx} colorScheme={key.color} fontSize="xs">
+                                  {key.quantity}x {key.color} key
+                                </Badge>
+                              ))}
+                            </HStack>
+
+                            {node.rewards.buffs &&
+                              node.rewards.buffs.length > 0 &&
+                              (status !== 'locked' || adminMode) && (
+                                <Box mt={2} p={2} borderRadius="md">
+                                  <Text
+                                    fontSize="xs"
+                                    m="0!important"
+                                    fontWeight="bold"
+                                    color="#2d3748"
+                                    mb={1}
+                                  >
+                                    🎁 Buff Rewards:
+                                  </Text>
+                                  <VStack align="start" spacing={1}>
+                                    {node.rewards.buffs.map((buff, idx) => (
+                                      <HStack mt={1} key={idx} spacing={1}>
+                                        <Badge
+                                          colorScheme={
+                                            buff.tier === 'major'
+                                              ? 'purple'
+                                              : buff.tier === 'moderate'
+                                              ? 'blue'
+                                              : buff.tier === 'universal'
+                                              ? 'yellow'
+                                              : 'green'
+                                          }
+                                          fontSize="xs"
+                                        >
+                                          {buff.tier.toUpperCase()}
+                                        </Badge>
+                                        <Text m="0!important" fontSize="xs" color="#4a5568">
+                                          {buff.buffType.replace(/_/g, ' ')}
+                                        </Text>
+                                      </HStack>
+                                    ))}
+                                  </VStack>
+                                </Box>
+                              )}
+                          </Flex>
+                        )}
+
+                        {adminMode && (
+                          <Box w="full" pt={2} borderTop="1px solid #e2e8f0">
+                            <Text fontSize="xs" fontWeight="bold" color="#7D5FFF" mb={2}>
+                              🛡️ Admin Controls
+                            </Text>
+                            <Text fontSize="xs" color="#718096" mb={2}>
+                              {status === 'completed'
+                                ? 'Un-completing will remove rewards and re-lock downstream nodes.'
+                                : 'Completing will grant rewards and unlock connected nodes.'}
+                            </Text>
+                            <HStack spacing={2}>
+                              {status !== 'completed' ? (
+                                <Button
                                   size="xs"
                                   colorScheme="green"
-                                  aria-label="Copy command"
+                                  leftIcon={<CheckIcon />}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigator.clipboard.writeText(`!submit ${node.nodeId}`);
-                                    toast({
-                                      title: 'Copied!',
-                                      description: `Command copied to clipboard`,
-                                      status: 'success',
-                                      duration: 2000,
-                                      isClosable: true,
-                                    });
+                                    onAdminComplete && onAdminComplete(node.nodeId);
                                   }}
-                                />
-                              </HStack>
-                              <Text
-                                textAlign="center"
-                                fontSize="xs"
-                                color="#4a5568"
-                                fontStyle="italic"
-                                mt={1}
-                                sx={{
-                                  code: { backgroundColor: '#e7ffeaff' },
-                                }}
-                              >
-                                or
-                                <br />
-                                <code className="code">
-                                  !submit {node.nodeId} (attach image file)
-                                </code>
-                              </Text>
-                            </>
-                          )}
-                        </Box>
-                      )}
-                    </>
-                  )}
-                </VStack>
+                                  flex={1}
+                                >
+                                  Complete
+                                </Button>
+                              ) : (
+                                <Button
+                                  size="xs"
+                                  colorScheme="red"
+                                  leftIcon={<CloseIcon />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onAdminUncomplete && onAdminUncomplete(node.nodeId);
+                                  }}
+                                  flex={1}
+                                >
+                                  Un-complete
+                                </Button>
+                              )}
+                            </HStack>
+                          </Box>
+                        )}
+
+                        {!adminMode && status === 'available' && (
+                          <Box mt={2}>
+                            {node.nodeType === 'INN' ? (
+                              (() => {
+                                const isTeamMember =
+                                  currentUser?.discordUserId &&
+                                  team?.members?.includes(currentUser.discordUserId);
+
+                                return isTeamMember ? (
+                                  <VStack align="center" spacing={1}>
+                                    <Button
+                                      colorScheme="green"
+                                      size="md"
+                                      w="full"
+                                      leftIcon={<Text fontSize="xl">🏠</Text>}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onAdminComplete) {
+                                          onAdminComplete(node.nodeId);
+                                        }
+                                      }}
+                                    >
+                                      Visit Inn
+                                    </Button>
+                                    <Text
+                                      fontSize="xs"
+                                      color="#4a5568"
+                                      textAlign="center"
+                                      fontStyle="italic"
+                                    >
+                                      Rest at the inn to recover and prepare for your next
+                                      adventure!
+                                    </Text>
+                                  </VStack>
+                                ) : (
+                                  <VStack align="center" spacing={1}>
+                                    <Text
+                                      fontSize="xs"
+                                      color="#718096"
+                                      textAlign="center"
+                                      fontStyle="italic"
+                                    >
+                                      🔒 Link your Discord ID on your profile to visit the inn.
+                                    </Text>
+                                  </VStack>
+                                );
+                              })()
+                            ) : (
+                              // Discord submit instructions for regular nodes
+                              <>
+                                <Text
+                                  textAlign="center"
+                                  fontSize="xs"
+                                  color="#4a5568"
+                                  fontStyle="italic"
+                                  sx={{
+                                    code: { backgroundColor: '#e7ffeaff' },
+                                  }}
+                                >
+                                  <strong>Submit completion via Discord bot:</strong>
+                                </Text>
+                                <HStack justify="center" mt={1} spacing={1}>
+                                  <code
+                                    className="code"
+                                    style={{
+                                      backgroundColor: '#e7ffeaff',
+                                      padding: '2px 6px',
+                                      borderRadius: '3px',
+                                      fontSize: '11px',
+                                    }}
+                                  >
+                                    !submit {node.nodeId} link_to_screenshot_img
+                                  </code>
+                                  <IconButton
+                                    icon={<CopyIcon />}
+                                    size="xs"
+                                    colorScheme="green"
+                                    aria-label="Copy command"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigator.clipboard.writeText(`!submit ${node.nodeId}`);
+                                      toast({
+                                        title: 'Copied!',
+                                        description: `Command copied to clipboard`,
+                                        status: 'success',
+                                        duration: 2000,
+                                        isClosable: true,
+                                      });
+                                    }}
+                                  />
+                                </HStack>
+                                <Text
+                                  textAlign="center"
+                                  fontSize="xs"
+                                  color="#4a5568"
+                                  fontStyle="italic"
+                                  mt={1}
+                                  sx={{
+                                    code: { backgroundColor: '#e7ffeaff' },
+                                  }}
+                                >
+                                  or
+                                  <br />
+                                  <code className="code">
+                                    !submit {node.nodeId} (attach image file)
+                                  </code>
+                                </Text>
+                              </>
+                            )}
+                          </Box>
+                        )}
+                      </>
+                    )}
+                  </VStack>
+                </Box>
               </Popup>
             </Marker>
           );
@@ -839,7 +885,8 @@ const TreasureMapVisualization = ({
         bg="rgba(255, 255, 255, 0.95)"
         borderRadius="md"
         boxShadow="xl"
-        zIndex={1000}
+        zIndex={999}
+        opacity={isNodeOpen ? 0.2 : 1}
         border="1px solid #e2e8f0"
         maxW={{ base: '90vw', md: 'auto' }}
       >
@@ -960,6 +1007,7 @@ const TreasureMapVisualization = ({
           borderRadius="md"
           boxShadow="xl"
           zIndex={1000}
+          opacity={isNodeOpen ? 0.2 : 1}
           border="1px solid #e2e8f0"
         >
           <VStack align="start" spacing={1}>

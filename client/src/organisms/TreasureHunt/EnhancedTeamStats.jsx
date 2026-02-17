@@ -38,6 +38,7 @@ export const EnhancedTeamStats = ({
   team,
   allTeams = [],
   totalNodes = 0,
+  maxCompletableNodes = 0,
   availableInns = [],
   onVisitInn,
   loading = false,
@@ -84,7 +85,7 @@ export const EnhancedTeamStats = ({
 
   // Calculate completion percentage
   const completionRate =
-    totalNodes > 0 ? (team.completedNodes?.length / Math.round(totalNodes / 3)) * 100 : 0;
+    maxCompletableNodes > 0 ? (team.completedNodes?.length / maxCompletableNodes) * 100 : 0;
 
   // Check for recent activity (nodes completed in last 24h)
   const hasRecentActivity = useMemo(() => {
@@ -249,7 +250,7 @@ export const EnhancedTeamStats = ({
             <StatNumber color={currentColors.textColor} fontSize="2xl">
               {team.completedNodes?.length || 0}
               <Text as="span" fontSize="md" color="gray.500" ml={1}>
-                / {Math.round(totalNodes / 3)}
+                / {maxCompletableNodes}
               </Text>
             </StatNumber>
           </HStack>
