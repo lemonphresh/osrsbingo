@@ -1978,23 +1978,30 @@ const TreasureEventView = () => {
         leastDestructiveRef={cancelRef}
         onClose={onLaunchConfirmClose}
       >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg={currentColors.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
+        <AlertDialogOverlay backdropFilter="blur(4px)">
+          <AlertDialogContent bg="gray.700" color="white">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
               🚀 Launch Event?
             </AlertDialogHeader>
 
-            <AlertDialogBody color={currentColors.textColor}>
+            <AlertDialogBody>
               <VStack align="start" spacing={3}>
-                <Text>
+                <Text color="gray.100">
                   You're about to make <strong>{event.eventName}</strong> live!
                 </Text>
 
-                <Box p={3} bg="green.50" borderRadius="md" w="full">
-                  <Text fontSize="sm" color="green.800" fontWeight="bold">
+                <Box
+                  p={3}
+                  bg="green.900"
+                  borderRadius="md"
+                  w="full"
+                  borderWidth="1px"
+                  borderColor="green.700"
+                >
+                  <Text fontSize="sm" color="green.200" fontWeight="bold">
                     What happens next:
                   </Text>
-                  <VStack align="start" spacing={1} mt={2} fontSize="sm" color="green.700">
+                  <VStack align="start" spacing={1} mt={2} fontSize="sm" color="green.300">
                     <Text>• Teams can view their maps and objectives</Text>
                     <Text>• Players can submit completions</Text>
                     <Text>• Discord commands become active</Text>
@@ -2002,7 +2009,7 @@ const TreasureEventView = () => {
                   </VStack>
                 </Box>
 
-                <Text fontSize="sm" color="orange.500">
+                <Text fontSize="sm" color="orange.300">
                   ⚠️ You can still edit some event details after launching, but specific content
                   settings, event length, etc. cannot be changed. The map cannot be regenerated
                   while the event is active, either.
@@ -2011,7 +2018,14 @@ const TreasureEventView = () => {
             </AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onLaunchConfirmClose}>
+              <Button
+                ref={cancelRef}
+                onClick={onLaunchConfirmClose}
+                variant="outline"
+                color="gray.300"
+                borderColor="gray.500"
+                _hover={{ bg: 'gray.600' }}
+              >
                 Cancel
               </Button>
               <Button

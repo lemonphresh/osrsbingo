@@ -57,7 +57,8 @@ const AdminLaunchChecklist = ({
         return memberCount < requiredPlayersPerTeam;
       }) || [];
 
-    const allTeamsHaveEnoughMembers = teamCount > 0 && teamsWithInsufficientMembers.length === 0;
+    const allTeamsHaveEnoughMembers =
+      teamCount > 0 && teamsWithInsufficientMembers.length === 0 && hasEnoughTeams;
 
     const hasDiscord = event.discordConfig?.confirmed === true;
     const hasStartDate = !!event.startDate;
@@ -90,9 +91,11 @@ const AdminLaunchChecklist = ({
         label: 'Team Members',
         description: allTeamsHaveEnoughMembers
           ? `All teams have ${requiredPlayersPerTeam}+ members ✓`
-          : `${teamsWithInsufficientMembers.length} team${
+          : hasEnoughTeams
+          ? `${teamsWithInsufficientMembers.length} team${
               teamsWithInsufficientMembers.length !== 1 ? 's' : ''
-            } need more members`,
+            } need more members`
+          : 'Finish adding teams first',
         icon: FaUserFriends,
         action: null,
         actionLabel: null,
@@ -165,7 +168,7 @@ const AdminLaunchChecklist = ({
                 </Badge>
               )}
             </HStack>
-            <Text fontSize="xs" color={check.done ? 'gray.300' : 'orange.300'}>
+            <Text fontSize="xs" color={check.done ? 'green.300' : 'orange.300'}>
               {check.description}
             </Text>
           </VStack>

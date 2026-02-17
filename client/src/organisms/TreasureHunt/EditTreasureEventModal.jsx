@@ -304,7 +304,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     const end = new Date(formData.endDate);
 
     if (isEditable) {
-      const todayStr = new Date(new Date().setHours(0, 0, 0, 0)).toISOString().split('T')[0];
+      const todayStr = getTodayInputValue();
       if (formData.startDate < todayStr) {
         showToast('Start date cannot be in the past', 'warning');
         return;

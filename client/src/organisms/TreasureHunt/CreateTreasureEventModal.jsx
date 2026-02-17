@@ -217,8 +217,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
 
-    const today = new Date().toISOString().split('T')[0];
-    if (formData.startDate < today) {
+    const todayStr = getTodayInputValue();
+    if (formData.startDate < todayStr) {
       showToast('Start date cannot be in the past', 'warning');
       return;
     }

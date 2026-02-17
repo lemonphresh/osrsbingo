@@ -53,45 +53,46 @@ const PRESET_COLORS = [
   '#85C1E9',
 ];
 
-const RecenterButton = ({ nodes }) => {
+const RecenterButton = () => {
   const map = useMap();
   const [isOffCenter, setIsOffCenter] = useState(false);
   const bounds = getMapBounds();
 
+  const defaultCenter = [bounds.mapHeight / 2, bounds.mapWidth / 2];
+  const defaultZoom = -3;
+
   useEffect(() => {
     const checkPosition = () => {
       const center = map.getCenter();
-      const mapCenter = { lat: bounds.mapHeight / 2, lng: bounds.mapWidth / 2 };
+      const currentZoom = map.getZoom();
 
       // Calculate distance from center
       const distance = Math.sqrt(
-        Math.pow(center.lat - mapCenter.lat, 2) + Math.pow(center.lng - mapCenter.lng, 2)
+        Math.pow(center.lat - defaultCenter[0], 2) + Math.pow(center.lng - defaultCenter[1], 2)
       );
 
-      // Show button if more than 500 pixels from center
-      setIsOffCenter(distance > 500);
+      // Show button if moved away from center OR zoomed in/out significantly
+      const hasMoved = distance > 300;
+      const hasZoomed = currentZoom !== defaultZoom;
+
+      setIsOffCenter(hasMoved || hasZoomed);
     };
 
     map.on('moveend', checkPosition);
-    checkPosition(); // Initial check
+    map.on('zoomend', checkPosition);
+    checkPosition();
 
     return () => {
       map.off('moveend', checkPosition);
+      map.off('zoomend', checkPosition);
     };
-  }, [map, bounds]);
+  }, [map, defaultCenter, defaultZoom]);
 
   const handleRecenter = () => {
-    if (nodes.length > 0) {
-      // Use the calibrated coordinate conversion
-      const positions = nodes
-        .filter((n) => n.coordinates?.x && n.coordinates?.y)
-        .map((n) => convertCoordinates(n.coordinates.x, n.coordinates.y));
-
-      if (positions.length > 0) {
-        const bounds = L.latLngBounds(positions);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 1, animate: true, duration: 1 });
-      }
-    }
+    map.setView(defaultCenter, defaultZoom, {
+      animate: true,
+      duration: 0.5,
+    });
   };
 
   if (!isOffCenter) return null;
@@ -109,7 +110,7 @@ const RecenterButton = ({ nodes }) => {
           </Box>
         }
       >
-        Recenter Map
+        Reset View
       </Button>
     </Box>
   );
@@ -548,7 +549,7 @@ const MultiTeamTreasureMap = ({
       >
         <MapContainer
           center={[bounds.mapHeight / 2, bounds.mapWidth / 2]}
-          zoom={-1}
+          zoom={-3}
           minZoom={-3}
           maxZoom={2}
           crs={L.CRS.Simple}
@@ -608,225 +609,249 @@ const MultiTeamTreasureMap = ({
                 <Popup
                   maxWidth={350}
                   autoPan={true}
-                  autoPanPaddingTopLeft={[10, 80]}
-                  autoPanPaddingBottomRight={[10, 10]}
+                  autoPanPaddingTopLeft={[20, 20]}
+                  autoPanPaddingBottomRight={[20, 20]}
                   keepInView={true}
+                  zIndex={1000}
                 >
-                  <VStack align="start" spacing={2} p={2}>
-                    <HStack mb={2} justify="space-between" w="full">
+                  <Box
+                    maxH="350px"
+                    overflowY="auto"
+                    css={{
+                      '&::-webkit-scrollbar': {
+                        width: '8px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: 'transparent',
+                        borderRadius: '10px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#abb8ceff',
+                        borderRadius: '10px',
+                        '&:hover': {
+                          background: '#718096',
+                        },
+                      },
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#abb8ceff transparent',
+                    }}
+                  >
+                    <VStack align="start" spacing={2} p={2}>
+                      <HStack mb={2} justify="space-between" w="full">
+                        {getNodeAccessStatus(node.nodeId) === 'locked' ||
+                        getNodeAccessStatus(node.nodeId) === 'unavailable' ? (
+                          <>
+                            <RedactedText length="long" />
+                            <Badge
+                              colorScheme={
+                                getNodeAccessStatus(node.nodeId) === 'unavailable' ? 'red' : 'gray'
+                              }
+                            >
+                              {getNodeAccessStatus(node.nodeId) === 'unavailable'
+                                ? 'UNAVAILABLE'
+                                : 'LOCKED'}
+                            </Badge>
+                          </>
+                        ) : (
+                          <>
+                            <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
+                              {node.title}
+                            </Text>
+                            <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
+                              {node.nodeType}
+                            </Badge>
+                            {node.difficultyTier && node.nodeType === 'STANDARD' && (
+                              <Badge
+                                colorScheme={getDifficultyColor(node.difficultyTier)}
+                                fontSize="xs"
+                              >
+                                {getDifficultyName(node.difficultyTier)}
+                              </Badge>
+                            )}
+                          </>
+                        )}
+                      </HStack>
+
                       {getNodeAccessStatus(node.nodeId) === 'locked' ||
                       getNodeAccessStatus(node.nodeId) === 'unavailable' ? (
-                        <>
-                          <RedactedText length="long" />
-                          <Badge
-                            colorScheme={
-                              getNodeAccessStatus(node.nodeId) === 'unavailable' ? 'red' : 'gray'
-                            }
-                          >
-                            {getNodeAccessStatus(node.nodeId) === 'unavailable'
-                              ? 'UNAVAILABLE'
-                              : 'LOCKED'}
-                          </Badge>
-                        </>
+                        <VStack align="start" spacing={1} w="full">
+                          <RedactedText length="full" />
+                          <RedactedText length="medium" />
+                          <Box pt={2}>
+                            <Text fontSize="xs" color="#718096" fontStyle="italic">
+                              {getNodeAccessStatus(node.nodeId) === 'unavailable'
+                                ? 'A team has already completed another difficulty at this location. Only one node per location can be completed.'
+                                : 'No teams have unlocked this node yet'}
+                            </Text>
+                          </Box>
+                        </VStack>
                       ) : (
                         <>
-                          <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
-                            {node.title}
-                          </Text>
-                          <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
-                            {node.nodeType}
-                          </Badge>
-                          {node.difficultyTier && node.nodeType === 'STANDARD' && (
-                            <Badge
-                              colorScheme={getDifficultyColor(node.difficultyTier)}
-                              fontSize="xs"
-                            >
-                              {getDifficultyName(node.difficultyTier)}
-                            </Badge>
-                          )}
-                        </>
-                      )}
-                    </HStack>
-
-                    {getNodeAccessStatus(node.nodeId) === 'locked' ||
-                    getNodeAccessStatus(node.nodeId) === 'unavailable' ? (
-                      <VStack align="start" spacing={1} w="full">
-                        <RedactedText length="full" />
-                        <RedactedText length="medium" />
-                        <Box pt={2}>
-                          <Text fontSize="xs" color="#718096" fontStyle="italic">
-                            {getNodeAccessStatus(node.nodeId) === 'unavailable'
-                              ? 'A team has already completed another difficulty at this location. Only one node per location can be completed.'
-                              : 'No teams have unlocked this node yet'}
-                          </Text>
-                        </Box>
-                      </VStack>
-                    ) : (
-                      <>
-                        {node.description && (
-                          <Text
-                            w="100%"
-                            p={2}
-                            borderRadius="md"
-                            bg="gray.100"
-                            m="0!important"
-                            fontSize="sm"
-                            color="#4a4a4a"
-                            pb={2}
-                          >
-                            {node.description}
-                          </Text>
-                        )}
-
-                        {node.objective && (
-                          <Box>
+                          {node.description && (
                             <Text
-                              fontSize="xs"
+                              w="100%"
+                              p={2}
+                              borderRadius="md"
+                              bg="gray.100"
                               m="0!important"
-                              fontWeight="bold"
-                              color="#2d3748"
-                              pb={1}
+                              fontSize="sm"
+                              color="#4a4a4a"
+                              pb={2}
                             >
-                              Objective:
+                              {node.description}
                             </Text>
-                            <Text fontSize="xs" m="0!important" color="#4a5568">
-                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
-                              {node.objective.target}
-                            </Text>
-                          </Box>
-                        )}
-
-                        {showAllNodes &&
-                          completion.completed.length === 0 &&
-                          completion.available.length === 0 && (
-                            <Badge colorScheme="orange" fontSize="xs" mb={2}>
-                              ADMIN VIEW - Not yet unlocked by any team
-                            </Badge>
                           )}
 
-                        {completion.completed.length > 0 && (
-                          <Box>
-                            <Text fontSize="xs" fontWeight="bold" color="#2d3748" pb={1}>
-                              Completed by:
-                            </Text>
-                            <VStack align="start" spacing={1}>
-                              {completion.completed.map(({ team, color }) => (
-                                <HStack key={team.teamId}>
-                                  <Box w={3} h={3} bg={color} borderRadius="full" />
-                                  <Text m="0!important" fontSize="xs">
-                                    {team.teamName}
-                                  </Text>
-                                </HStack>
-                              ))}
-                            </VStack>
-                          </Box>
-                        )}
-
-                        {completion.available.length > 0 && completion.completed.length === 0 && (
-                          <Box>
-                            <Text
-                              fontSize="xs"
-                              m="0!important"
-                              fontWeight="bold"
-                              color="#2d3748"
-                              pb={1}
-                            >
-                              Available to:
-                            </Text>
-                            <VStack align="start" spacing={1}>
-                              {completion.available.map(({ team, color }) => (
-                                <HStack key={team.teamId}>
-                                  <Box w={3} h={3} bg={color} borderRadius="full" />
-                                  <Text m="0!important" fontSize="xs">
-                                    {team.teamName}
-                                  </Text>
-                                </HStack>
-                              ))}
-                            </VStack>
-                          </Box>
-                        )}
-
-                        {node.rewards && (
-                          <Box
-                            bg="orange.100"
-                            transition="all 0.3s ease"
-                            animation="pulseGlow 2s infinite alternate"
-                            p={2}
-                            borderRadius="md"
-                            m="0 auto"
-                            sx={{
-                              '@keyframes pulseGlow': {
-                                from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
-                                to: { boxShadow: `0 0 16px 4px #cf9efdff` },
-                              },
-                            }}
-                          >
-                            <VStack>
+                          {node.objective && (
+                            <Box>
                               <Text
-                                m="0!important"
                                 fontSize="xs"
+                                m="0!important"
                                 fontWeight="bold"
                                 color="#2d3748"
                                 pb={1}
                               >
-                                Rewards:
+                                Objective:
                               </Text>
-                              <Image h="32px" src={Casket} />
-                            </VStack>
-                            <HStack justifyContent="center" mt={2} spacing={2}>
-                              <Badge colorScheme="green" fontSize="xs">
-                                {formatGP(node.rewards.gp)} GP
-                              </Badge>
-                              {node.rewards.keys?.map((key, idx) => (
-                                <Badge key={idx} colorScheme={key.color} fontSize="xs">
-                                  {key.quantity}x {key.color} key
-                                </Badge>
-                              ))}
-                            </HStack>
+                              <Text fontSize="xs" m="0!important" color="#4a5568">
+                                {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                                {node.objective.target}
+                              </Text>
+                            </Box>
+                          )}
 
-                            {node.rewards.buffs &&
-                              node.rewards.buffs.length > 0 &&
-                              (getNodeAccessStatus(node.nodeId) !== 'locked' || showAllNodes) && (
-                                <Box my={2} p={2} bg="purple.50" borderRadius="md">
-                                  <Text
-                                    m="0!important"
-                                    pb={1}
-                                    fontSize="xs"
-                                    fontWeight="bold"
-                                    color="#2d3748"
-                                  >
-                                    🎁 Buff Rewards:
-                                  </Text>
-                                  <VStack align="start" spacing={1}>
-                                    {node.rewards.buffs.map((buff, idx) => (
-                                      <HStack key={idx} spacing={1}>
-                                        <Badge
-                                          colorScheme={
-                                            buff.tier === 'major'
-                                              ? 'purple'
-                                              : buff.tier === 'moderate'
-                                              ? 'blue'
-                                              : buff.tier === 'universal'
-                                              ? 'yellow'
-                                              : 'green'
-                                          }
-                                          fontSize="xs"
-                                        >
-                                          {buff.tier.toUpperCase()}
-                                        </Badge>
-                                        <Text m="0!important" fontSize="xs" color="#4a5568">
-                                          {buff.buffType.replace(/_/g, ' ')}
-                                        </Text>
-                                      </HStack>
-                                    ))}
-                                  </VStack>
-                                </Box>
-                              )}
-                          </Box>
-                        )}
-                      </>
-                    )}
-                  </VStack>
+                          {showAllNodes &&
+                            completion.completed.length === 0 &&
+                            completion.available.length === 0 && (
+                              <Badge colorScheme="orange" fontSize="xs" mb={2}>
+                                ADMIN VIEW - Not yet unlocked by any team
+                              </Badge>
+                            )}
+
+                          {completion.completed.length > 0 && (
+                            <Box>
+                              <Text fontSize="xs" fontWeight="bold" color="#2d3748" pb={1}>
+                                Completed by:
+                              </Text>
+                              <VStack align="start" spacing={1}>
+                                {completion.completed.map(({ team, color }) => (
+                                  <HStack key={team.teamId}>
+                                    <Box w={3} h={3} bg={color} borderRadius="full" />
+                                    <Text m="0!important" fontSize="xs">
+                                      {team.teamName}
+                                    </Text>
+                                  </HStack>
+                                ))}
+                              </VStack>
+                            </Box>
+                          )}
+
+                          {completion.available.length > 0 && completion.completed.length === 0 && (
+                            <Box>
+                              <Text
+                                fontSize="xs"
+                                m="0!important"
+                                fontWeight="bold"
+                                color="#2d3748"
+                                pb={1}
+                              >
+                                Available to:
+                              </Text>
+                              <VStack align="start" spacing={1}>
+                                {completion.available.map(({ team, color }) => (
+                                  <HStack key={team.teamId}>
+                                    <Box w={3} h={3} bg={color} borderRadius="full" />
+                                    <Text m="0!important" fontSize="xs">
+                                      {team.teamName}
+                                    </Text>
+                                  </HStack>
+                                ))}
+                              </VStack>
+                            </Box>
+                          )}
+
+                          {node.rewards && (
+                            <Box
+                              bg="orange.100"
+                              transition="all 0.3s ease"
+                              animation="pulseGlow 2s infinite alternate"
+                              p={2}
+                              borderRadius="md"
+                              m="0 auto"
+                              sx={{
+                                '@keyframes pulseGlow': {
+                                  from: { boxShadow: `0 0 8px 2px #e3c0ffff` },
+                                  to: { boxShadow: `0 0 16px 4px #cf9efdff` },
+                                },
+                              }}
+                            >
+                              <VStack>
+                                <Text
+                                  m="0!important"
+                                  fontSize="xs"
+                                  fontWeight="bold"
+                                  color="#2d3748"
+                                  pb={1}
+                                >
+                                  Rewards:
+                                </Text>
+                                <Image h="32px" src={Casket} />
+                              </VStack>
+                              <HStack justifyContent="center" mt={2} spacing={2}>
+                                <Badge colorScheme="green" fontSize="xs">
+                                  {formatGP(node.rewards.gp)} GP
+                                </Badge>
+                                {node.rewards.keys?.map((key, idx) => (
+                                  <Badge key={idx} colorScheme={key.color} fontSize="xs">
+                                    {key.quantity}x {key.color} key
+                                  </Badge>
+                                ))}
+                              </HStack>
+
+                              {node.rewards.buffs &&
+                                node.rewards.buffs.length > 0 &&
+                                (getNodeAccessStatus(node.nodeId) !== 'locked' || showAllNodes) && (
+                                  <Box my={2} p={2} bg="purple.50" borderRadius="md">
+                                    <Text
+                                      m="0!important"
+                                      pb={1}
+                                      fontSize="xs"
+                                      fontWeight="bold"
+                                      color="#2d3748"
+                                    >
+                                      🎁 Buff Rewards:
+                                    </Text>
+                                    <VStack align="start" spacing={1}>
+                                      {node.rewards.buffs.map((buff, idx) => (
+                                        <HStack key={idx} spacing={1}>
+                                          <Badge
+                                            colorScheme={
+                                              buff.tier === 'major'
+                                                ? 'purple'
+                                                : buff.tier === 'moderate'
+                                                ? 'blue'
+                                                : buff.tier === 'universal'
+                                                ? 'yellow'
+                                                : 'green'
+                                            }
+                                            fontSize="xs"
+                                          >
+                                            {buff.tier.toUpperCase()}
+                                          </Badge>
+                                          <Text m="0!important" fontSize="xs" color="#4a5568">
+                                            {buff.buffType.replace(/_/g, ' ')}
+                                          </Text>
+                                        </HStack>
+                                      ))}
+                                    </VStack>
+                                  </Box>
+                                )}
+                            </Box>
+                          )}
+                        </>
+                      )}
+                    </VStack>
+                  </Box>
                 </Popup>
               </Marker>
             );
@@ -895,7 +920,7 @@ const MultiTeamTreasureMap = ({
           bg="rgba(255, 255, 255, 0.95)"
           borderRadius="md"
           boxShadow="xl"
-          zIndex={1000}
+          zIndex={900}
           maxW={{ base: '90vw', md: 'auto' }}
           maxH={{ base: 'auto', md: '400px' }}
         >

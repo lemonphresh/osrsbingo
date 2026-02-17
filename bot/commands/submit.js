@@ -117,7 +117,9 @@ module.exports = {
       }
 
       if (!teamData.availableNodes.includes(nodeId)) {
-        return message.reply('❌ This node is not available to your team yet.');
+        return message.reply(
+          '❌ This node is not available to your team. It has either been completed, does not exist, or has not been unlocked yet.'
+        );
       }
 
       // Check if location group is already completed
