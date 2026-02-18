@@ -247,11 +247,6 @@ const typeDefs = gql`
     ARCHIVED
   }
 
-  type ApplyBuffResult {
-    team: TreasureTeam!
-    node: TreasureNode!
-  }
-
   type TreasureEvent {
     eventId: ID!
     eventName: String!
@@ -603,7 +598,6 @@ const typeDefs = gql`
 
     # --- Gielinor Rush: Buffs ---
     applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
-    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): ApplyBuffResult!
     adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
     adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
     adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
