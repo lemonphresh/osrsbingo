@@ -116,16 +116,6 @@ const TreasureTeamView = () => {
   const isAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
 
-  const liveSelectedNode = useMemo(() => {
-    if (!selectedNode || !nodes.length) return selectedNode;
-    const liveNode = nodes.find((n) => n.nodeId === selectedNode.nodeId);
-    if (!liveNode) return selectedNode;
-    return {
-      ...liveNode,
-      status: getNodeStatus(liveNode),
-    };
-  }, [selectedNode, nodes, team]);
-
   const checkTeamAccess = () => {
     // Admins can view any team
     if (isAdmin) {
@@ -163,6 +153,16 @@ const TreasureTeamView = () => {
     if (team.availableNodes?.includes(node.nodeId)) return 'available';
     return 'locked';
   };
+
+  const liveSelectedNode = useMemo(() => {
+    if (!selectedNode || !nodes.length) return selectedNode;
+    const liveNode = nodes.find((n) => n.nodeId === selectedNode.nodeId);
+    if (!liveNode) return selectedNode;
+    return {
+      ...liveNode,
+      status: getNodeStatus(liveNode),
+    };
+  }, [selectedNode, nodes, team]);
 
   const getNodeBadge = (node) => {
     const tier = Number(node.difficultyTier);
