@@ -97,6 +97,7 @@ const TreasureTeamView = () => {
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
   const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
     refetchQueries: ['GetTreasureEvent', 'GetTreasureTeam'],
+    awaitRefetchQueries: true,
   });
   const [visitInn] = useMutation(VISIT_INN, {
     refetchQueries: ['GetTreasureTeam'],

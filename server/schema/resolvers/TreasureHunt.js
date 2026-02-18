@@ -916,14 +916,19 @@ const TreasureHuntResolvers = {
       team.changed('buffHistory', true);
       await team.save();
 
-      await pubsub.publish(`NODE_COMPLETED_${eventId}`, {
-        nodeCompleted: {
+      await pubsub.publish(`TREASURE_ACTIVITY_${eventId}`, {
+        treasureHuntActivity: {
+          id: `buff_applied_${Date.now()}`,
           eventId,
           teamId,
-          nodeId,
-          teamName: team.teamName,
-          nodeName: node.title,
-          rewards: null,
+          type: 'buff_applied',
+          data: JSON.stringify({
+            buffName: buff.buffName,
+            nodeId,
+            nodeName: node.title,
+            savedAmount: saved,
+          }),
+          timestamp: new Date().toISOString(),
         },
       });
 

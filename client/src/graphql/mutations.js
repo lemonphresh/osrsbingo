@@ -647,26 +647,8 @@ export const VISIT_INN = gql`
       availableNodes
       currentPot
       keysHeld
-      activeBuffs {
-        buffId
-        buffType
-        buffName
-        reduction
-        objectiveTypes
-        usesRemaining
-        maxUses
-        description
-      }
-      innTransactions {
-        nodeId
-        rewardId
-        keysSpent {
-          color
-          quantity
-        }
-        payout
-        purchasedAt
-      }
+      activeBuffs
+      innTransactions
     }
   }
 `;

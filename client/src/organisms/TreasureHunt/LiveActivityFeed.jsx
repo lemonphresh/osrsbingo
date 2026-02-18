@@ -493,6 +493,8 @@ const LiveActivityFeed = ({
         return `${activity.nodeTitle} - ${activity.denialReason || 'No reason provided'}`;
       case 'team_created':
         return `Joined the competition with ${activity.memberCount} members`;
+      case 'buff_applied':
+        return `Applied ${activity.buffName} to ${activity.nodeName}`;
       case 'gp_gained':
         return `+${formatGP(activity.amount)} GP (Total: ${formatGP(activity.newTotal)})`;
       case 'team_victory':
