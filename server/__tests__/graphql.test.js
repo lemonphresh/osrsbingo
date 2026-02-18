@@ -948,6 +948,23 @@ describe('TreasureHunt Mutations', () => {
   });
 });
 
+test('VISIT_INN', () => {
+  const result = validateOperation(`
+      mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+        visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+          teamId
+          completedNodes
+          availableNodes
+          currentPot
+          keysHeld
+          activeBuffs
+          innTransactions
+        }
+      }
+    `);
+  expect(result.valid).toBe(true);
+});
+
 // ============================================================
 // SITE STATS MUTATIONS
 // ============================================================

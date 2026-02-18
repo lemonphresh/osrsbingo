@@ -29,6 +29,7 @@ import {
   ADMIN_COMPLETE_NODE,
   ADMIN_UNCOMPLETE_NODE,
   APPLY_BUFF_TO_NODE,
+  VISIT_INN,
 } from '../graphql/mutations';
 import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
 import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
@@ -97,6 +98,13 @@ const TreasureTeamView = () => {
   const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
     refetchQueries: ['GetTreasureEvent', 'GetTreasureTeam'],
   });
+  const [visitInn] = useMutation(VISIT_INN, {
+    refetchQueries: ['GetTreasureTeam'],
+  });
+
+  const handleVisitInn = async (nodeId) => {
+    await visitInn({ variables: { eventId, teamId, nodeId } });
+  };
 
   const [selectedNode, setSelectedNode] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
@@ -107,6 +115,16 @@ const TreasureTeamView = () => {
   const { user } = useAuth();
   const isAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+
+  const liveSelectedNode = useMemo(() => {
+    if (!selectedNode || !nodes.length) return selectedNode;
+    const liveNode = nodes.find((n) => n.nodeId === selectedNode.nodeId);
+    if (!liveNode) return selectedNode;
+    return {
+      ...liveNode,
+      status: getNodeStatus(liveNode),
+    };
+  }, [selectedNode, nodes, team]);
 
   const checkTeamAccess = () => {
     // Admins can view any team
@@ -1113,7 +1131,7 @@ const TreasureTeamView = () => {
         <NodeDetailModal
           isOpen={isNodeOpen}
           onClose={onNodeClose}
-          node={selectedNode}
+          node={liveSelectedNode}
           team={team}
           adminMode={adminMode}
           onAdminComplete={handleAdminCompleteNode}
@@ -1122,15 +1140,19 @@ const TreasureTeamView = () => {
             onNodeClose();
             handleOpenBuffModal(node);
           }}
+          onVisitInn={async () => {
+            await handleVisitInn(liveSelectedNode.nodeId);
+            onInnOpen();
+          }}
           currentUser={user}
           event={event}
-          appliedBuff={selectedNode?.objective?.appliedBuff}
+          appliedBuff={liveSelectedNode?.objective?.appliedBuff}
         />
 
         <InnModal
           isOpen={isInnOpen}
           onClose={onInnClose}
-          node={selectedNode}
+          node={liveSelectedNode}
           team={team}
           currentUser={user}
           eventId={eventId}
@@ -1140,7 +1162,7 @@ const TreasureTeamView = () => {
         <BuffApplicationModal
           isOpen={isBuffModalOpen}
           onClose={onBuffModalClose}
-          node={selectedNode}
+          node={liveSelectedNode}
           availableBuffs={team.activeBuffs || []}
           onApplyBuff={handleApplyBuff}
         />

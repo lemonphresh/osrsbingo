@@ -573,6 +573,53 @@ const TreasureHuntResolvers = {
       return submission;
     },
 
+    visitInn: async (_, { eventId, teamId, nodeId }, context) => {
+      const authCheck = await canPerformTeamAction(context, teamId, eventId);
+      if (!authCheck.authorized) {
+        throw new Error('Not authorized. You must be a member of this team.');
+      }
+
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findByPk(nodeId),
+      ]);
+
+      if (!event) throw new Error('Event not found');
+      if (!team) throw new Error('Team not found');
+      if (!node || node.eventId !== eventId) throw new Error('Node not found');
+      if (node.nodeType !== 'INN') throw new Error('This node is not an Inn');
+      if (!team.availableNodes?.includes(nodeId))
+        throw new Error('This inn is not available to your team');
+      if (team.completedNodes?.includes(nodeId)) throw new Error('Inn already visited');
+
+      const completedNodes = [...(team.completedNodes || []), nodeId];
+      const availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+
+      // Unlock any nodes the inn unlocks
+      if (node.unlocks?.length > 0) {
+        node.unlocks.forEach((unlockedNodeId) => {
+          if (
+            !availableNodes.includes(unlockedNodeId) &&
+            !completedNodes.includes(unlockedNodeId)
+          ) {
+            availableNodes.push(unlockedNodeId);
+          }
+        });
+      }
+
+      await team.update({ completedNodes, availableNodes });
+
+      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
+        innId: nodeId,
+        innName: node.title,
+        visitedBy: context.user?.id || 'unknown',
+      });
+
+      await team.reload();
+      return team;
+    },
+
     adminCompleteNode: async (_, { eventId, teamId, nodeId, congratsMessage }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 

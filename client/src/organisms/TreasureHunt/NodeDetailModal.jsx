@@ -122,6 +122,7 @@ export default function NodeDetailModal({
   onApplyBuff,
   appliedBuff: appliedBuffProp,
   currentUser,
+  onVisitInn,
   event, // Add event prop to access contentSelections
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -498,8 +499,8 @@ export default function NodeDetailModal({
                     colorScheme="green"
                     size="lg"
                     onClick={() => {
-                      onAdminComplete && onAdminComplete(node.nodeId);
                       onClose();
+                      onVisitInn?.();
                     }}
                     leftIcon={<Text fontSize="xl">🏠</Text>}
                   >
