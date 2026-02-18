@@ -55,7 +55,6 @@ import DevTestPanel from '../organisms/TreasureHunt/DevTestPanel';
 import { unlockAudio } from '../utils/celebrationUtils';
 import usePageTitle from '../hooks/usePageTitle';
 import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
-import { useActivityFeed } from '../hooks/useActivityFeed';
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -100,13 +99,8 @@ const TreasureTeamView = () => {
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
-  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
-    refetchQueries: ['GetTreasureEvent', 'GetTreasureTeam'],
-    awaitRefetchQueries: true,
-  });
-  const [visitInn] = useMutation(VISIT_INN, {
-    refetchQueries: ['GetTreasureTeam'],
-  });
+  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE);
+  const [visitInn] = useMutation(VISIT_INN);
 
   const handleVisitInn = async (nodeId) => {
     await visitInn({ variables: { eventId, teamId, nodeId } });
@@ -131,9 +125,6 @@ const TreasureTeamView = () => {
     },
     [refetchTeam, refetchEvent]
   );
-
-  // Pass empty array for teams since we don't need team lookup here
-  useActivityFeed(eventId, [], handleActivity);
 
   const checkTeamAccess = () => {
     // Admins can view any team
@@ -374,6 +365,7 @@ const TreasureTeamView = () => {
         },
       });
       await refetchTeam();
+      await refetchEvent();
       toast({
         title: 'Buff applied!',
         description: 'The buff has been successfully applied to this objective',
