@@ -639,6 +639,38 @@ export const ADMIN_COMPLETE_NODE = gql`
   }
 `;
 
+export const VISIT_INN = gql`
+  mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+      activeBuffs {
+        buffId
+        buffType
+        buffName
+        reduction
+        objectiveTypes
+        usesRemaining
+        maxUses
+        description
+      }
+      innTransactions {
+        nodeId
+        rewardId
+        keysSpent {
+          color
+          quantity
+        }
+        payout
+        purchasedAt
+      }
+    }
+  }
+`;
+
 export const ADMIN_UNCOMPLETE_NODE = gql`
   mutation AdminUncompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
     adminUncompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {

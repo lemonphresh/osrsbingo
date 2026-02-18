@@ -576,6 +576,7 @@ const typeDefs = gql`
       nodeId: ID!
       congratsMessage: String
     ): TreasureTeam!
+    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Gielinor Rush: Submissions ---

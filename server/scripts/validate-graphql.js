@@ -446,6 +446,20 @@ const operations = {
     }
   `,
 
+  VISIT_INN: `
+    mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+      visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+        teamId
+        completedNodes
+        availableNodes
+        currentPot
+        keysHeld
+        activeBuffs
+        innTransactions
+      }
+    }
+  `,
+
   INCREMENT_VISIT: `
     mutation IncrementVisit { incrementVisit }
   `,
