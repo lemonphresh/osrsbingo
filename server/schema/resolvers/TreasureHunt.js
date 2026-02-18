@@ -916,21 +916,27 @@ const TreasureHuntResolvers = {
       team.changed('buffHistory', true);
       await team.save();
 
-      await pubsub.publish(`TREASURE_ACTIVITY_${eventId}`, {
-        treasureHuntActivity: {
-          id: `buff_applied_${Date.now()}`,
-          eventId,
-          teamId,
-          type: 'buff_applied',
-          data: JSON.stringify({
-            buffName: buff.buffName,
-            nodeId,
-            nodeName: node.title,
-            savedAmount: saved,
-          }),
-          timestamp: new Date().toISOString(),
-        },
-      });
+      try {
+        await pubsub.publish(`TREASURE_ACTIVITY_${eventId}`, {
+          treasureHuntActivity: {
+            id: `buff_applied_${Date.now()}`,
+            eventId,
+            teamId,
+            type: 'buff_applied',
+            data: JSON.stringify({
+              buffName: buff.buffName,
+              buffId: buff.buffId,
+              nodeId,
+              nodeName: node.title,
+              reduction: buff.reduction,
+              savedAmount: saved,
+            }),
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (pubsubError) {
+        console.error('Failed to publish buff applied event:', pubsubError.message);
+      }
 
       await team.reload();
       return team;

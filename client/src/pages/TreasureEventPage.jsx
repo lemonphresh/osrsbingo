@@ -93,6 +93,8 @@ import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
 import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
+import { useCallback } from 'react';
+import { useActivityFeed } from '../hooks/useActivityFeed';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -185,6 +187,17 @@ const TreasureEventView = () => {
       showToast(`Error: ${error.message}`, 'error');
     },
   });
+
+  const handleActivity = useCallback(
+    (activity) => {
+      if (['buff_applied', 'node_completed', 'inn_visited'].includes(activity.type)) {
+        refetchEvent();
+      }
+    },
+    [refetchEvent]
+  );
+
+  useActivityFeed(eventId, [], handleActivity);
 
   const handleGenerateMap = () => {
     if (event.nodes && event.nodes.length > 0) {

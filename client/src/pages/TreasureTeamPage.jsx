@@ -55,6 +55,7 @@ import DevTestPanel from '../organisms/TreasureHunt/DevTestPanel';
 import { unlockAudio } from '../utils/celebrationUtils';
 import usePageTitle from '../hooks/usePageTitle';
 import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
+import { useActivityFeed } from '../hooks/useActivityFeed';
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -81,7 +82,11 @@ const TreasureTeamView = () => {
     onClose: onBuffListClose,
   } = useDisclosure();
 
-  const { data: eventData, loading: eventLoading } = useQuery(GET_TREASURE_EVENT, {
+  const {
+    data: eventData,
+    loading: eventLoading,
+    refetch: refetchEvent,
+  } = useQuery(GET_TREASURE_EVENT, {
     variables: { eventId },
   });
 
@@ -116,6 +121,19 @@ const TreasureTeamView = () => {
   const { user } = useAuth();
   const isAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+
+  const handleActivity = useCallback(
+    (activity) => {
+      if (['buff_applied', 'node_completed', 'inn_visited'].includes(activity.type)) {
+        refetchTeam();
+        refetchEvent();
+      }
+    },
+    [refetchTeam, refetchEvent]
+  );
+
+  // Pass empty array for teams since we don't need team lookup here
+  useActivityFeed(eventId, [], handleActivity);
 
   const checkTeamAccess = () => {
     // Admins can view any team
