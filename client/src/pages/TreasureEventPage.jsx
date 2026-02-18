@@ -57,7 +57,7 @@ import {
   InfoIcon,
 } from '@chakra-ui/icons';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import { formatDisplayDate } from '../utils/dateUtils';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
@@ -66,6 +66,7 @@ import {
   GENERATE_TREASURE_MAP,
   ADMIN_COMPLETE_NODE,
   UPDATE_TREASURE_EVENT,
+  TREASURE_ACTIVITY_SUB,
 } from '../graphql/mutations';
 import { useToastContext } from '../providers/ToastProvider';
 import Section from '../atoms/Section';
@@ -94,7 +95,6 @@ import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions'
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
 import { useCallback } from 'react';
-import { useActivityFeed } from '../hooks/useActivityFeed';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -188,16 +188,17 @@ const TreasureEventView = () => {
     },
   });
 
-  const handleActivity = useCallback(
-    (activity) => {
-      if (['buff_applied', 'node_completed', 'inn_visited'].includes(activity.type)) {
+  useSubscription(TREASURE_ACTIVITY_SUB, {
+    variables: { eventId },
+    onData: ({ data }) => {
+      const activity = data?.data?.treasureHuntActivity;
+      if (!activity) return;
+      if (activity.type === 'buff_applied') {
         refetchEvent();
       }
     },
-    [refetchEvent]
-  );
-
-  useActivityFeed(eventId, [], handleActivity);
+    skip: !eventId,
+  });
 
   const handleGenerateMap = () => {
     if (event.nodes && event.nodes.length > 0) {

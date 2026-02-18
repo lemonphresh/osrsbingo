@@ -99,7 +99,11 @@ const TreasureTeamView = () => {
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
-  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE);
+  const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
+    onCompleted: () => {
+      refetchEvent();
+    },
+  });
   const [visitInn] = useMutation(VISIT_INN);
 
   const handleVisitInn = async (nodeId) => {
@@ -115,16 +119,6 @@ const TreasureTeamView = () => {
   const { user } = useAuth();
   const isAdmin =
     user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
-
-  const handleActivity = useCallback(
-    (activity) => {
-      if (['buff_applied', 'node_completed', 'inn_visited'].includes(activity.type)) {
-        refetchTeam();
-        refetchEvent();
-      }
-    },
-    [refetchTeam, refetchEvent]
-  );
 
   const checkTeamAccess = () => {
     // Admins can view any team
