@@ -195,7 +195,7 @@ export default function NodeDetailModal({
       case 'xp_gain':
         return `Gain ${objective.quantity.toLocaleString()} XP in ${objective.target}`;
       case 'item_collection':
-        return `Collect ${objective.quantity} ${objective.target.trim()} ${
+        return `Collect ${objective.quantity} ${objective.target.trim()}${
           objective.quantity > 1 ? 's' : ''
         }`;
       case 'boss_kc':

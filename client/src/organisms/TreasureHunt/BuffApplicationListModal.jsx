@@ -14,6 +14,7 @@ import {
   useColorMode,
 } from '@chakra-ui/react';
 import { QuestionIcon } from '@chakra-ui/icons';
+import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 
 /**
  * Modal that displays all available nodes where a buff can be applied
@@ -125,12 +126,14 @@ const BuffApplicationListModal = ({
                 No Available Tasks
               </Text>
               <Text color="gray.400" fontSize="sm">
-                There are no available nodes where this buff can be applied right now.
+                There are no available nodes where this buff can be applied right now. Keep grinding
+                and unlocking nodes to find more opportunities!
               </Text>
               {selectedBuff && (
                 <Text color="gray.400" fontSize="xs" mt={2}>
                   This buff works on:{' '}
-                  {selectedBuff.objectiveTypes?.join(', ') || 'specific objectives'}
+                  {selectedBuff.objectiveTypes?.map((type) => OBJECTIVE_TYPES[type]).join(', ') ||
+                    'specific objectives'}
                 </Text>
               )}
             </Box>

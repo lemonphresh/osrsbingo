@@ -289,6 +289,7 @@ const TreasureEventView = () => {
 
       showToast('Node completed successfully!', 'success');
       refetchSubmissions();
+      refetchEvent();
       onCloseCompleteDialog();
       setNodeToComplete(null);
     } catch (error) {

@@ -938,6 +938,8 @@ const TreasureHuntResolvers = {
         console.error('Failed to publish buff applied event:', pubsubError.message);
       }
 
+      invalidateEventNodes(eventId);
+
       await team.reload();
       return team;
     },
