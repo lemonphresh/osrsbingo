@@ -2,7 +2,7 @@ import { useSubscription, useQuery } from '@apollo/client';
 import { useState, useEffect } from 'react';
 import { TREASURE_ACTIVITY_SUB, GET_TREASURE_ACTIVITIES } from '../graphql/mutations';
 
-export const useActivityFeed = (eventId, teams = []) => {
+export const useActivityFeed = (eventId, teams = [], onActivity = null) => {
   const [activities, setActivities] = useState([]);
 
   // Load historical activities
@@ -68,6 +68,8 @@ export const useActivityFeed = (eventId, teams = []) => {
         if (prev.find((a) => a.id === activity.id)) return prev;
         return [formattedActivity, ...prev.slice(0, 49)];
       });
+
+      onActivity?.(formattedActivity);
     }
   }, [subData, teams]);
 
