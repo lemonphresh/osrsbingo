@@ -916,6 +916,17 @@ const TreasureHuntResolvers = {
       team.changed('buffHistory', true);
       await team.save();
 
+      await pubsub.publish(`NODE_COMPLETED_${eventId}`, {
+        nodeCompleted: {
+          eventId,
+          teamId,
+          nodeId,
+          teamName: team.teamName,
+          nodeName: node.title,
+          rewards: null,
+        },
+      });
+
       await team.reload();
       return team;
     },
