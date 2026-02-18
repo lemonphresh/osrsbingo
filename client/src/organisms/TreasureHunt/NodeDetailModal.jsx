@@ -120,13 +120,14 @@ export default function NodeDetailModal({
   onAdminComplete,
   onAdminUncomplete,
   onApplyBuff,
-  appliedBuff,
+  appliedBuff: appliedBuffProp,
   currentUser,
   event, // Add event prop to access contentSelections
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const toast = useToast();
+  const appliedBuff = appliedBuffProp ?? node.objective?.appliedBuff ?? null;
 
   // Calculate acceptable drops for item_collection objectives
   const acceptableDrops = useMemo(() => {
@@ -190,8 +191,6 @@ export default function NodeDetailModal({
     if (!objective) return null;
 
     switch (objective.type) {
-      case 'kills':
-        return `Kill ${objective.quantity} ${objective.target}`;
       case 'xp_gain':
         return `Gain ${objective.quantity.toLocaleString()} XP in ${objective.target}`;
       case 'item_collection':
@@ -447,7 +446,7 @@ export default function NodeDetailModal({
                                   </VStack>
                                 </HStack>
                                 <Badge colorScheme={getBuffTierColor(buff.tier)} fontSize="xs">
-                                  {buff.tier.toUpperCase()}
+                                  {buff.tier?.toUpperCase()}
                                 </Badge>
                               </HStack>
                             </Box>

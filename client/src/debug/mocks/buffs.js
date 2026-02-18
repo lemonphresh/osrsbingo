@@ -1,0 +1,106 @@
+export const MOCK_BUFFS = {
+  none: [],
+
+  minor_kill: [
+    {
+      buffId: 'buff_001',
+      buffType: 'kill_reduction_minor',
+      buffName: "Slayer's Edge",
+      tier: 'minor',
+      reduction: 0.25,
+      objectiveTypes: ['boss_kc'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces kill count requirements by 25%',
+    },
+  ],
+
+  moderate_xp: [
+    {
+      buffId: 'buff_002',
+      buffType: 'xp_reduction_moderate',
+      buffName: 'Training Momentum',
+      tier: 'moderate',
+      reduction: 0.5,
+      objectiveTypes: ['xp_gain'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces XP requirements by 50%',
+    },
+  ],
+
+  major_item: [
+    {
+      buffId: 'buff_003',
+      buffType: 'item_reduction_major',
+      buffName: 'Legendary Gatherer',
+      tier: 'major',
+      reduction: 0.75,
+      objectiveTypes: ['item_collection'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces item collection requirements by 75%',
+    },
+  ],
+
+  universal: [
+    {
+      buffId: 'buff_004',
+      buffType: 'universal_moderate',
+      buffName: 'Versatile Training',
+      tier: 'universal',
+      reduction: 0.5,
+      objectiveTypes: ['boss_kc', 'xp_gain', 'item_collection'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces any objective requirement by 50%',
+    },
+  ],
+
+  multiple: [
+    {
+      buffId: 'buff_001',
+      buffType: 'kill_reduction_minor',
+      buffName: "Slayer's Edge",
+      tier: 'minor',
+      reduction: 0.25,
+      objectiveTypes: ['boss_kc'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces kill count requirements by 25%',
+    },
+    {
+      buffId: 'buff_002',
+      buffType: 'xp_reduction_moderate',
+      buffName: 'Training Momentum',
+      tier: 'moderate',
+      reduction: 0.5,
+      objectiveTypes: ['xp_gain'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces XP requirements by 50%',
+    },
+    {
+      buffId: 'buff_003',
+      buffType: 'item_reduction_major',
+      buffName: 'Legendary Gatherer',
+      tier: 'major',
+      reduction: 0.75,
+      objectiveTypes: ['item_collection'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces item collection requirements by 75%',
+    },
+    {
+      buffId: 'buff_004',
+      buffType: 'universal_moderate',
+      buffName: 'Versatile Training',
+      tier: 'universal',
+      reduction: 0.5,
+      objectiveTypes: ['boss_kc', 'xp_gain', 'item_collection'],
+      usesRemaining: 1,
+      maxUses: 1,
+      description: 'Reduces any objective requirement by 50%',
+    },
+  ],
+};
