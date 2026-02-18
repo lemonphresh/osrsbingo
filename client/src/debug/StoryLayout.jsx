@@ -195,7 +195,7 @@ export function DebugShell({ stories, activeId, onSelect, children }) {
       <Box flex={1} overflowY="auto" bg={colorMode === 'dark' ? 'gray.900' : 'gray.50'}>
         <HStack justify="end" px={8} pt={4}>
           <Badge colorScheme="yellow" fontSize="xs">
-            {process.env.NODE_ENV}
+            {process.env.REACT_APP_ENV}
           </Badge>
         </HStack>
         <Box px={8} pb={8}>

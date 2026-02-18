@@ -54,14 +54,14 @@ const STORIES = [
 // ============================================================
 // PRODUCTION GUARD
 // ============================================================
-if (process.env.NODE_ENV === 'production') {
+if (process.env.REACT_APP_ENV === 'production') {
   STORIES.length = 0;
 }
 
 export default function DebugIndex() {
   const [activeId, setActiveId] = useState(STORIES[0]?.id ?? null);
 
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.REACT_APP_ENV === 'production') {
     return (
       <Box p={8} textAlign="center">
         <Text color="red.400" fontWeight="bold">
