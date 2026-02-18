@@ -127,7 +127,7 @@ export default function NodeDetailModal({
   const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const toast = useToast();
-  const appliedBuff = appliedBuffProp ?? node.objective?.appliedBuff ?? null;
+  const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
 
   // Calculate acceptable drops for item_collection objectives
   const acceptableDrops = useMemo(() => {
