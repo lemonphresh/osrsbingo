@@ -20,10 +20,29 @@ import {
   AlertTitle,
   AlertDescription,
   Heading,
+  Tooltip,
 } from '@chakra-ui/react';
+import { StarIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
 import { GET_TREASURE_TEAM } from '../../graphql/queries';
+
+// Mirrors the icon logic from BuffInventory / NodeDetailModal
+const getBuffIcon = (buffType = '') => {
+  if (buffType.includes('kill_reduction')) return '⚔️';
+  if (buffType.includes('xp_reduction')) return '📚';
+  if (buffType.includes('item_reduction')) return '📦';
+  if (buffType.includes('universal')) return '✨';
+  return '🎁';
+};
+
+const getBuffTierColor = (buffType = '') => {
+  if (buffType.includes('major')) return 'purple';
+  if (buffType.includes('moderate')) return 'blue';
+  if (buffType.includes('minor')) return 'green';
+  if (buffType.includes('universal')) return 'yellow';
+  return 'gray';
+};
 
 export default function InnModal({
   isOpen,
@@ -40,39 +59,26 @@ export default function InnModal({
 
   const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD, {
     refetchQueries: [
-      // Refetch team data to update keysHeld and currentPot
       {
         query: GET_TREASURE_TEAM,
         variables: { eventId, teamId: team.teamId },
       },
     ],
     awaitRefetchQueries: true,
-
-    onCompleted: (data) => {
+    onCompleted: () => {
       toast({
         title: 'Purchase successful!',
-        description: 'Reward has been added to your pot and keys have been spent',
+        description: 'Rewards have been added to your team',
         status: 'success',
         duration: 3000,
         isClosable: true,
       });
-
       setSelectedReward(null);
-
-      // Call parent callback
-      if (onPurchaseComplete) {
-        onPurchaseComplete();
-      }
-
-      // Close modal after a brief delay to show success
-      setTimeout(() => {
-        onClose();
-      }, 500);
+      if (onPurchaseComplete) onPurchaseComplete();
+      setTimeout(() => onClose(), 500);
     },
-
     onError: (error) => {
       console.error('Purchase error:', error);
-
       toast({
         title: 'Purchase failed',
         description: error.message,
@@ -80,7 +86,6 @@ export default function InnModal({
         duration: 5000,
         isClosable: true,
       });
-
       setSelectedReward(null);
     },
   });
@@ -89,14 +94,18 @@ export default function InnModal({
     dark: {
       yellow: { base: '#F4D35E' },
       green: { base: '#43AA8B' },
+      purple: { base: '#7D5FFF' },
       textColor: '#F7FAFC',
       cardBg: '#2D3748',
+      buffBg: 'whiteAlpha.100',
     },
     light: {
       yellow: { base: '#F4D35E' },
       green: { base: '#43AA8B' },
+      purple: { base: '#7D5FFF' },
       textColor: '#171923',
       cardBg: 'white',
+      buffBg: 'blackAlpha.50',
     },
   };
 
@@ -108,23 +117,19 @@ export default function InnModal({
     currentUser?.discordUserId &&
     team?.members?.some((m) => m.toString() === currentUser.discordUserId.toString());
 
-  const formatGP = (gp) => {
-    return (gp / 1000000).toFixed(1) + 'M';
-  };
+  const formatGP = (gp) => (gp / 1000000).toFixed(1) + 'M';
 
   const hasAlreadyPurchased = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
   const availableRewards = node.availableRewards || [];
 
-  const canAfford = (keyCost) => {
-    return keyCost.every((cost) => {
+  const canAfford = (keyCost) =>
+    keyCost.every((cost) => {
       if (cost.color === 'any') {
-        const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
-        return totalKeys >= cost.quantity;
+        return team.keysHeld.reduce((sum, k) => sum + k.quantity, 0) >= cost.quantity;
       }
       const teamKey = team.keysHeld.find((k) => k.color === cost.color);
       return teamKey && teamKey.quantity >= cost.quantity;
     });
-  };
 
   const handlePurchase = async (rewardId) => {
     if (!isTeamMember) {
@@ -137,19 +142,9 @@ export default function InnModal({
       });
       return;
     }
-
     try {
-      await purchaseReward({
-        variables: {
-          eventId,
-          teamId: team.teamId,
-          rewardId,
-        },
-      });
-
-      // Success handling is in onCompleted callback above
+      await purchaseReward({ variables: { eventId, teamId: team.teamId, rewardId } });
     } catch (error) {
-      // Error handling is in onError callback above
       console.error('Purchase exception:', error);
     }
   };
@@ -205,6 +200,7 @@ export default function InnModal({
               </Alert>
             )}
 
+            {/* Keys display */}
             <Box bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} p={3} borderRadius="md">
               <Heading size="xs" mb={2} color={currentColors.textColor}>
                 Your Team's Keys
@@ -226,6 +222,7 @@ export default function InnModal({
 
             <Divider />
 
+            {/* Reward options */}
             <Box>
               <Heading size="sm" mb={3} color={currentColors.textColor}>
                 Shopkeep
@@ -240,6 +237,7 @@ export default function InnModal({
                   {availableRewards.map((reward) => {
                     const affordable = canAfford(reward.key_cost);
                     const isDisabled = !isTeamMember || !affordable || hasAlreadyPurchased;
+                    const hasBuff = reward.buffs && reward.buffs.length > 0;
 
                     return (
                       <Box
@@ -247,36 +245,103 @@ export default function InnModal({
                         p={4}
                         borderWidth={2}
                         borderColor={
-                          affordable && !hasAlreadyPurchased && isTeamMember
+                          hasBuff && affordable && !hasAlreadyPurchased && isTeamMember
+                            ? currentColors.purple.base
+                            : affordable && !hasAlreadyPurchased && isTeamMember
                             ? currentColors.green.base
                             : 'gray.500'
                         }
                         borderRadius="md"
                         bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
                         opacity={isDisabled ? 0.6 : 1}
+                        position="relative"
                       >
+                        {/* "Bonus Buff" badge in top-right corner */}
+                        {hasBuff && (
+                          <Badge
+                            colorScheme="purple"
+                            position="absolute"
+                            top={2}
+                            right={2}
+                            fontSize="xs"
+                          >
+                            ✨ Bonus Buff
+                          </Badge>
+                        )}
+
                         <HStack justify="space-between" align="start">
                           <VStack align="start" spacing={2} flex={1}>
+                            {/* Key cost */}
                             <HStack>
                               <Text fontWeight="bold" color={currentColors.textColor}>
                                 Trade:
                               </Text>
                               {reward.key_cost.map((cost, idx) => (
-                                <Badge key={idx} colorScheme={cost.color}>
+                                <Badge
+                                  key={idx}
+                                  colorScheme={cost.color === 'any' ? 'gray' : cost.color}
+                                >
                                   {cost.quantity}x {cost.color}
                                 </Badge>
                               ))}
                             </HStack>
 
+                            {/* GP payout */}
                             <HStack>
                               <Text fontSize="sm" color={currentColors.textColor}>
                                 →
                               </Text>
-                              <Text fontWeight="bold" color={currentColors.green.base}>
+                              <Text
+                                fontWeight="bold"
+                                color={currentColors.green.base}
+                                fontSize="lg"
+                              >
                                 {formatGP(reward.payout)} GP
                               </Text>
                             </HStack>
 
+                            {/* Buff reward — shown if present */}
+                            {hasBuff && (
+                              <Box
+                                mt={1}
+                                p={2}
+                                bg={currentColors.buffBg}
+                                borderRadius="md"
+                                borderWidth={1}
+                                borderColor={colorMode === 'dark' ? 'purple.600' : 'purple.200'}
+                                w="full"
+                              >
+                                {reward.buffs.map((buff, idx) => (
+                                  <HStack key={idx} spacing={2}>
+                                    <Text fontSize="sm">{getBuffIcon(buff.buffType)}</Text>
+                                    <Text
+                                      fontSize="sm"
+                                      fontWeight="bold"
+                                      color={currentColors.textColor}
+                                    >
+                                      {buff.buffName || buff.buffType}
+                                    </Text>
+                                    <Tooltip
+                                      label="Reduces a future objective requirement when applied to a node"
+                                      placement="top"
+                                    >
+                                      <Badge
+                                        colorScheme={getBuffTierColor(buff.buffType)}
+                                        fontSize="xs"
+                                        cursor="help"
+                                      >
+                                        <HStack spacing={1}>
+                                          <StarIcon boxSize={2} />
+                                          <Text>Buff</Text>
+                                        </HStack>
+                                      </Badge>
+                                    </Tooltip>
+                                  </HStack>
+                                ))}
+                              </Box>
+                            )}
+
+                            {/* Status hints */}
                             {!isTeamMember && (
                               <Text fontSize="xs" color="orange.500">
                                 Discord ID not linked
@@ -295,7 +360,7 @@ export default function InnModal({
                           </VStack>
 
                           <Button
-                            colorScheme="green"
+                            colorScheme={hasBuff ? 'purple' : 'green'}
                             size="sm"
                             isDisabled={isDisabled}
                             isLoading={purchasing && selectedReward === reward.reward_id}
@@ -303,6 +368,7 @@ export default function InnModal({
                               setSelectedReward(reward.reward_id);
                               handlePurchase(reward.reward_id);
                             }}
+                            mt={hasBuff ? 6 : 0} // offset to avoid "Bonus Buff" badge overlap
                           >
                             Trade
                           </Button>

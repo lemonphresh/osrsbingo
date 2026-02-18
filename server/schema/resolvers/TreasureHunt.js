@@ -1007,7 +1007,18 @@ const TreasureHuntResolvers = {
       const currentPotBigInt = BigInt(team.currentPot || 0);
       const payoutBigInt = BigInt(reward.payout || 0);
       team.currentPot = (currentPotBigInt + payoutBigInt).toString();
-
+      const activeBuffs = [...(team.activeBuffs || [])];
+      if (reward.buffs?.length > 0) {
+        reward.buffs.forEach((buffReward) => {
+          try {
+            activeBuffs.push(createBuff(buffReward.buffType));
+          } catch (err) {
+            console.warn(`Failed to create buff ${buffReward.buffType}:`, err.message);
+          }
+        });
+        team.activeBuffs = activeBuffs;
+        team.changed('activeBuffs', true);
+      }
       team.innTransactions = [
         ...(team.innTransactions || []),
         {
@@ -1015,6 +1026,7 @@ const TreasureHuntResolvers = {
           rewardId: reward.reward_id,
           keysSpent,
           payout: reward.payout,
+          buffsGranted: reward.buffs || [],
           purchasedAt: new Date().toISOString(),
         },
       ];

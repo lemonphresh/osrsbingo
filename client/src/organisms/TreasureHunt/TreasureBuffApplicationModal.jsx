@@ -102,8 +102,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
             {applicableBuffs.length === 0 ? (
               <Alert status="info">
                 <AlertIcon />
-                No buffs available for this objective type {OBJECTIVE_TYPES[node.objective.type]} (
-                {node.objective.type})
+                No buffs available for this objective type {OBJECTIVE_TYPES[node.objective.type]}
               </Alert>
             ) : (
               <>
@@ -179,7 +178,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                         You save:
                       </Text>
                       <Text fontWeight="bold" color="blue.400">
-                        {reduction.saved} {node.objective.type}!
+                        {reduction.saved} {OBJECTIVE_TYPES[node.objective.type]}!
                       </Text>
                     </HStack>
                   </VStack>

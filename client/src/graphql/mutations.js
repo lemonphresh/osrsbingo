@@ -761,6 +761,7 @@ export const PURCHASE_INN_REWARD = gql`
       currentPot
       keysHeld
       innTransactions
+      activeBuffs
     }
   }
 `;

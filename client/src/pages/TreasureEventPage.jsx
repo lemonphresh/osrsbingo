@@ -332,8 +332,6 @@ const TreasureEventView = () => {
         return `${q.toLocaleString()} XP`;
       case 'boss_kc':
         return `${q} KC`;
-      case 'kills':
-        return `${q} kills`;
       case 'minigame':
         return `${q} runs`;
       case 'item_collection':

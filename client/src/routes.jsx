@@ -24,6 +24,7 @@ const SupportPage = lazy(() => import('./pages/SupportTheSite'));
 const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
+const DebugComponentsPage = lazy(() => import('./debug/index'));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -133,6 +134,11 @@ const routes = [
       {
         path: '/changelog',
         element: withSuspense(ChangelogPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/debug/components',
+        element: withSuspense(DebugComponentsPage),
         errorElement: <ErrorPage />,
       },
       {

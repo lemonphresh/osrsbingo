@@ -100,16 +100,89 @@ const DIFFICULTY_MULTIPLIERS = {
   sweatlord: 2.0,
 };
 
-function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
-  const { total_nodes } = derivedValues;
+// ============================================================
+// INN BUFF POOLS — tiered by inn progression
+// Names are stored alongside buffType so the frontend can
+// display them without needing to call createBuff() at runtime.
+// ============================================================
+const INN_BUFF_POOL_BY_TIER = {
+  1: [
+    { buffType: 'kill_reduction_minor', buffName: "Slayer's Edge" },
+    { buffType: 'xp_reduction_minor', buffName: 'Training Efficiency' },
+    { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
+  ],
+  2: [
+    { buffType: 'kill_reduction_minor', buffName: "Slayer's Edge" },
+    { buffType: 'kill_reduction_moderate', buffName: "Slayer's Focus" },
+    { buffType: 'xp_reduction_minor', buffName: 'Training Efficiency' },
+    { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
+    { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
+    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
+  ],
+  3: [
+    { buffType: 'kill_reduction_moderate', buffName: "Slayer's Focus" },
+    { buffType: 'kill_reduction_major', buffName: "Slayer's Mastery" },
+    { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
+    { buffType: 'xp_reduction_major', buffName: 'Training Enlightenment' },
+    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
+    { buffType: 'item_reduction_major', buffName: 'Legendary Gatherer' },
+    { buffType: 'universal_moderate', buffName: 'Versatile Training' },
+  ],
+};
 
-  // Calculate how many nodes should have buffs (30% of standard nodes only)
+/**
+ * Injects buff rewards into inn availableRewards arrays.
+ * Guarantees at least 40% of inns have a buff on one purchase option.
+ * Higher-tier inns get access to stronger buffs.
+ *
+ * @param {Array} innNodes - All INN-type nodes with availableRewards already set
+ */
+function injectBuffsIntoInnRewards(innNodes) {
+  if (!innNodes || innNodes.length === 0) return;
+
+  const MIN_BUFF_RATIO = 0.4;
+  const minInnsWithBuff = Math.ceil(innNodes.length * MIN_BUFF_RATIO);
+
+  // Shuffle indices so guaranteed slots are spread randomly across all inns
+  const shuffledIndices = innNodes.map((_, i) => i).sort(() => Math.random() - 0.5);
+
+  let buffedCount = 0;
+
+  shuffledIndices.forEach((innIndex, i) => {
+    const inn = innNodes[innIndex];
+    if (!inn.availableRewards || inn.availableRewards.length === 0) return;
+
+    // Guaranteed for first minInnsWithBuff, 25% random chance for the rest
+    const shouldBuff = i < minInnsWithBuff || Math.random() < 0.25;
+    if (!shouldBuff) return;
+
+    // Pick a random reward slot to attach the buff to
+    const rewardIndex = Math.floor(Math.random() * inn.availableRewards.length);
+    const reward = inn.availableRewards[rewardIndex];
+
+    // Don't double-buff the same slot
+    if (reward.buffs && reward.buffs.length > 0) return;
+
+    // Select from tier-appropriate buff pool (clamp to max tier 3)
+    const tier = Math.min(inn.innTier || 1, 3);
+    const pool = INN_BUFF_POOL_BY_TIER[tier] || INN_BUFF_POOL_BY_TIER[1];
+    const chosen = pool[Math.floor(Math.random() * pool.length)];
+
+    reward.buffs = [{ buffType: chosen.buffType, buffName: chosen.buffName }];
+    buffedCount++;
+  });
+
+  console.log(
+    `Inn buff injection: ${buffedCount}/${innNodes.length} inns received a buff (min was ${minInnsWithBuff})`
+  );
+}
+
+function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
   const standardNodes = nodes.filter((n) => n.nodeType === 'STANDARD');
   const numBuffNodes = Math.floor(standardNodes.length * 0.3);
 
   console.log(`Assigning buffs to ${numBuffNodes} of ${standardNodes.length} standard nodes`);
 
-  // Categorize standard nodes by tier for buff distribution
   const tier1_2_nodes = standardNodes.filter((n) => n.difficultyTier >= 1 && n.difficultyTier <= 2);
   const tier3_4_nodes = standardNodes.filter((n) => n.difficultyTier >= 3 && n.difficultyTier <= 4);
   const tier5_6_nodes = standardNodes.filter((n) => n.difficultyTier >= 5);
@@ -118,31 +191,15 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
     `Tier distribution: T1-2: ${tier1_2_nodes.length}, T3-4: ${tier3_4_nodes.length}, T5-6: ${tier5_6_nodes.length}`
   );
 
-  // Assign buffs
   const buffAssignments = [
-    // Tier 1-2: Minor buffs (25% reduction)
     ...selectRandomNodes(tier1_2_nodes, Math.floor(numBuffNodes * 0.5)).map((node) => ({
       node,
-      buffs: [
-        {
-          buffType: getRandomBuffType('minor'),
-          tier: 'minor',
-        },
-      ],
+      buffs: [{ buffType: getRandomBuffType('minor'), tier: 'minor' }],
     })),
-
-    // Tier 3-4: Moderate buffs (50% reduction)
     ...selectRandomNodes(tier3_4_nodes, Math.floor(numBuffNodes * 0.35)).map((node) => ({
       node,
-      buffs: [
-        {
-          buffType: getRandomBuffType('moderate'),
-          tier: 'moderate',
-        },
-      ],
+      buffs: [{ buffType: getRandomBuffType('moderate'), tier: 'moderate' }],
     })),
-
-    // Tier 5-6: Major buffs (75% reduction) + Universal
     ...selectRandomNodes(tier5_6_nodes, Math.floor(numBuffNodes * 0.15)).map((node, idx) => ({
       node,
       buffs:
@@ -154,7 +211,6 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
 
   console.log(`Created ${buffAssignments.length} buff assignments`);
 
-  // Apply buff rewards to nodes
   buffAssignments.forEach(({ node, buffs }) => {
     if (!node.rewards) node.rewards = { gp: 0, keys: [] };
     node.rewards.buffs = buffs;
@@ -165,17 +221,13 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
 
 function getRandomBuffType(tier) {
   const types = ['kill_reduction', 'xp_reduction', 'item_reduction'];
-  const randomType = types[Math.floor(Math.random() * types.length)];
-  return `${randomType}_${tier}`;
+  return `${types[Math.floor(Math.random() * types.length)]}_${tier}`;
 }
 
 function selectRandomNodes(nodes, count) {
-  const shuffled = [...nodes].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, nodes.length));
+  return [...nodes].sort(() => Math.random() - 0.5).slice(0, Math.min(count, nodes.length));
 }
 
-// generate a random objective based on difficulty
-// objectiveUsageByDifficulty is an object like { easy: [], medium: [], hard: [] }
 function generateObjective(
   difficulty,
   difficultyMultiplier = 1.0,
@@ -190,7 +242,6 @@ function generateObjective(
     throw new Error(`No objectives available for difficulty: ${difficulty}`);
   }
 
-  // Build list of all possible objectives for this difficulty
   const allPossibleObjectives = [];
   availableObjectiveTypes.forEach((objType) => {
     objType.difficulties[difficulty].forEach((obj) => {
@@ -199,29 +250,19 @@ function generateObjective(
         target: obj?.target,
         quantity: Math.ceil(obj?.quantity * difficultyMultiplier),
         contentId: obj?.contentId,
-        // Create a unique key for tracking
         _key: `${objType.type}:${obj?.target || obj?.contentId}`,
       });
     });
   });
 
-  // Filter out recently used objectives if tracking is enabled
   let availableObjectives = allPossibleObjectives;
 
   if (objectiveUsageByDifficulty) {
-    // Get the usage queue for this specific difficulty
     const usageQueue = objectiveUsageByDifficulty[difficulty] || [];
-
-    // Dynamic cooldown: 60% of available objectives for this difficulty, minimum 3
     const dynamicCooldown = Math.max(3, Math.floor(allPossibleObjectives.length * 0.6));
-
-    // Get recently used objectives (within cooldown window)
     const recentlyUsed = new Set(usageQueue.slice(-dynamicCooldown));
-
-    // Filter to objectives not on cooldown
     availableObjectives = allPossibleObjectives.filter((obj) => !recentlyUsed.has(obj._key));
 
-    // If all objectives are on cooldown, allow all (oldest will naturally be pushed out)
     if (availableObjectives.length === 0) {
       console.warn(
         `All ${difficulty} objectives on cooldown (${allPossibleObjectives.length} total, cooldown ${dynamicCooldown}) - allowing all`
@@ -230,18 +271,13 @@ function generateObjective(
     }
   }
 
-  // Pick a random objective from available ones
   const selected = availableObjectives[Math.floor(Math.random() * availableObjectives.length)];
 
-  // Track this objective's usage for this difficulty
   if (objectiveUsageByDifficulty) {
-    if (!objectiveUsageByDifficulty[difficulty]) {
-      objectiveUsageByDifficulty[difficulty] = [];
-    }
+    if (!objectiveUsageByDifficulty[difficulty]) objectiveUsageByDifficulty[difficulty] = [];
     objectiveUsageByDifficulty[difficulty].push(selected._key);
   }
 
-  // Return without the internal tracking key
   return {
     type: selected.type,
     target: selected.target,
@@ -250,16 +286,8 @@ function generateObjective(
   };
 }
 
-// calculate GP reward based on difficulty and event config
 function calculateGPReward(difficultyTier, avgGpPerNode) {
-  const multipliers = {
-    1: 0.5, // Easy nodes
-    2: 0.75,
-    3: 1.0, // Medium nodes
-    4: 1.25,
-    5: 1.5, // Hard nodes
-  };
-
+  const multipliers = { 1: 0.5, 2: 0.75, 3: 1.0, 4: 1.25, 5: 1.5 };
   return Math.floor(avgGpPerNode * (multipliers[difficultyTier] || 1.0));
 }
 
@@ -270,6 +298,7 @@ function generateInnRewards(innTier, avgGpPerInn) {
     console.warn(`Warning: avgGpPerInn is ${avgGpPerInn} for inn tier ${innTier}`);
   }
 
+  // Buffs are intentionally absent here — injectBuffsIntoInnRewards() adds them after
   return [
     {
       reward_id: `inn${innTier}_gp_small`,
@@ -277,6 +306,7 @@ function generateInnRewards(innTier, avgGpPerInn) {
       description: 'Quick key trade',
       key_cost: [{ color: 'any', quantity: 2 }],
       payout: Math.floor(baseRewardPool * 0.8),
+      buffs: [],
     },
     {
       reward_id: `inn${innTier}_gp_medium`,
@@ -284,6 +314,7 @@ function generateInnRewards(innTier, avgGpPerInn) {
       description: 'Standard key trade',
       key_cost: [{ color: 'any', quantity: 4 }],
       payout: Math.floor(baseRewardPool * 1.0),
+      buffs: [],
     },
     {
       reward_id: `inn${innTier}_combo`,
@@ -294,19 +325,18 @@ function generateInnRewards(innTier, avgGpPerInn) {
         { color: 'blue', quantity: 2 },
         { color: 'green', quantity: 2 },
       ],
-      payout: Math.floor(baseRewardPool * 1.2), // HARD CAP
+      payout: Math.floor(baseRewardPool * 1.2),
+      buffs: [],
     },
   ];
 }
 
-// main map generation function
 function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const { node_to_inn_ratio, difficulty = 'normal' } = eventConfig;
   const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty] || 1.0;
 
   const { avg_gp_per_node, avg_gp_per_inn, num_of_inns, total_nodes } = derivedValues;
 
-  // NEW: Build formatted objectives
   const formattedObjectives = buildFormattedObjectives(
     contentSelections || getDefaultContentSelections()
   );
@@ -315,7 +345,6 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   console.log('Total nodes to generate:', total_nodes);
   console.log('Number of inns:', num_of_inns);
   console.log('Using custom content:', !!contentSelections);
-
   console.log({ contentSelections });
 
   const nodes = [];
@@ -327,32 +356,18 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     { path_id: 'coastal_path', key_color: 'green', difficulty: 'easy' },
   ];
 
-  const locationUsageQueue = []; // Track order of location usage for cooldown
-  const generatedNodeIds = new Set(); // Track generated IDs
+  const locationUsageQueue = [];
+  const generatedNodeIds = new Set();
 
-  // Track recently used objectives PER DIFFICULTY to prevent duplicates
-  // Each difficulty has its own cooldown queue since objectives differ by difficulty
-  const objectiveUsageByDifficulty = {
-    easy: [],
-    medium: [],
-    hard: [],
-  };
+  const objectiveUsageByDifficulty = { easy: [], medium: [], hard: [] };
 
-  // Minimum number of other locations that must be used before a location can repeat
-  // This ensures good geographic spread - set to 60% of total locations
   const LOCATION_COOLDOWN = Math.floor(OSRS_LOCATIONS.length * 0.6);
 
-  // helper to get a random unused location with cooldown
   const getRandomLocation = () => {
-    // Locations currently on cooldown (recently used)
     const cooldownLocations = new Set(locationUsageQueue.slice(-LOCATION_COOLDOWN));
-
-    // Filter to locations not on cooldown
     const available = OSRS_LOCATIONS.filter((loc) => !cooldownLocations.has(loc.name));
 
     if (available.length === 0) {
-      // Fallback: if somehow all locations are on cooldown, take the oldest used one
-      // This shouldn't happen with proper cooldown settings, but safety first
       console.warn('All locations on cooldown - using oldest location');
       const oldestLocation = locationUsageQueue.shift();
       const location = OSRS_LOCATIONS.find((loc) => loc.name === oldestLocation);
@@ -362,11 +377,9 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
 
     const location = available[Math.floor(Math.random() * available.length)];
     locationUsageQueue.push(location.name);
-
     return location;
   };
 
-  // Helper to generate unique node ID with event prefix
   const eventPrefix = `evt_${Date.now().toString(36)}_`;
   const generateNodeId = (counter) => {
     const id = `${eventPrefix}node_${String(counter).padStart(3, '0')}`;
@@ -388,14 +401,11 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
 
     const groupNodes = [];
     const groupNodeIds = [];
-
-    // Track targets used within THIS location group to prevent duplicates
     const usedTargetsInGroup = new Set();
 
     difficulties.forEach(({ name, tier }) => {
       const nodeId = generateNodeId(nodeCounter.value++);
 
-      // Keep generating until we get a unique target for this group
       let objective;
       let attempts = 0;
       const maxAttempts = 20;
@@ -416,7 +426,6 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         );
       }
 
-      // Track this target so other nodes in the group don't use it
       usedTargetsInGroup.add(objective.target);
 
       const node = {
@@ -446,22 +455,13 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       groupNodeIds.push(nodeId);
     });
 
-    // Track the group so we can sync unlocks later
-    locationGroups.push({
-      groupId,
-      location: location.name,
-      nodeIds: groupNodeIds,
-    });
+    locationGroups.push({ groupId, location: location.name, nodeIds: groupNodeIds });
 
     return groupNodes;
   };
 
-  // create start node
   const startLocation = getRandomLocation();
   const startNodeId = generateNodeId(0);
-
-  // Generate the initial path node IDs (will be location groups)
-  const initialPathNodeIds = [];
 
   nodes.push({
     nodeId: startNodeId,
@@ -471,9 +471,9 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       'Your adventure starts here. This is a free tile to help you and your team get accustomed to the gameplay loop and how submissions work!',
     coordinates: { x: startLocation.x, y: startLocation.y },
     mapLocation: startLocation.name,
-    locationGroupId: null, // Start node is not part of a group
+    locationGroupId: null,
     prerequisites: [],
-    unlocks: [], // Will be filled after creating initial location groups
+    unlocks: [],
     paths: paths.map((p) => p.path_id),
     objective: null,
     rewards: { gp: 0, keys: [] },
@@ -482,37 +482,27 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     availableRewards: null,
   });
 
-  let nodeCounter = { value: 1 }; // Use object to pass by reference
+  let nodeCounter = { value: 1 };
   let innCounter = 1;
   let nodesUntilNextInn = node_to_inn_ratio;
 
-  // track current nodes per path (now tracks location groups)
   const pathHeads = {
     mountain_path: [],
     trade_route: [],
     coastal_path: [],
   };
 
-  // Create initial location groups (one for each path)
   paths.forEach((path) => {
     const location = getRandomLocation();
     const groupNodes = createLocationGroup(location, path, [startNodeId], nodeCounter);
-
     nodes.push(...groupNodes);
 
-    // All nodes in the group are potential heads, but we'll track the easy one as the primary head
     const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
     pathHeads[path.path_id].push(easyNode.nodeId);
 
-    // Add all nodes from this group to start node's unlocks
     groupNodes.forEach((groupNode) => {
       nodes.find((n) => n.nodeId === startNodeId).unlocks.push(groupNode.nodeId);
-
-      edges.push({
-        from: startNodeId,
-        to: groupNode.nodeId,
-        path: path.path_id,
-      });
+      edges.push({ from: startNodeId, to: groupNode.nodeId, path: path.path_id });
     });
   });
 
@@ -520,15 +510,11 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     `Created start node and ${paths.length} initial location groups (counter at ${nodeCounter.value})`
   );
 
-  // Generate remaining nodes as location groups
   let pathIndex = 0;
   while (nodeCounter.value < total_nodes) {
-    // Time for an inn?
     if (nodesUntilNextInn <= 0 && innCounter <= num_of_inns) {
       const nodeId = generateNodeId(nodeCounter.value++);
       const location = getRandomLocation();
-
-      // Inn is available from all current path heads
       const prerequisites = Object.values(pathHeads).flat();
 
       console.log(`Creating inn ${innCounter} at node ${nodeId} (counter: ${nodeCounter.value})`);
@@ -540,7 +526,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         description: 'Rest and trade your keys for rewards',
         coordinates: { x: location.x, y: location.y },
         mapLocation: location.name,
-        locationGroupId: null, // Inns are not part of location groups
+        locationGroupId: null,
         prerequisites,
         unlocks: [],
         paths: paths.map((p) => p.path_id),
@@ -551,31 +537,19 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         availableRewards: generateInnRewards(innCounter, avg_gp_per_inn),
       });
 
-      // All paths connect to this inn
       prerequisites.forEach((prereq) => {
-        edges.push({
-          from: prereq,
-          to: nodeId,
-          path: 'all',
-        });
+        edges.push({ from: prereq, to: nodeId, path: 'all' });
       });
 
-      // Update path heads to this inn
       paths.forEach((path) => {
-        const location = getRandomLocation();
-        const groupNodes = createLocationGroup(location, path, [nodeId], nodeCounter);
+        const loc = getRandomLocation();
+        const groupNodes = createLocationGroup(loc, path, [nodeId], nodeCounter);
         nodes.push(...groupNodes);
 
-        // Connect inn to all nodes in this location group
         groupNodes.forEach((groupNode) => {
-          edges.push({
-            from: nodeId,
-            to: groupNode.nodeId,
-            path: path.path_id,
-          });
+          edges.push({ from: nodeId, to: groupNode.nodeId, path: path.path_id });
         });
 
-        // Update path head (only easy node as representative)
         const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
         pathHeads[path.path_id] = [easyNode.nodeId];
       });
@@ -585,40 +559,29 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       continue;
     }
 
-    // Decrement counter for this location group (3 nodes)
     nodesUntilNextInn -= 3;
 
-    // Create location group for current path
     const path = paths[pathIndex % paths.length];
     const location = getRandomLocation();
-
-    // Pick a random prerequisite from this path's heads
     const prerequisites = pathHeads[path.path_id];
+
     if (prerequisites.length === 0) {
       console.error(`No path heads available for ${path.path_id}`);
       throw new Error(`Path ${path.path_id} has no available heads`);
     }
 
     const prerequisite = prerequisites[Math.floor(Math.random() * prerequisites.length)];
-
     const groupNodes = createLocationGroup(location, path, [prerequisite], nodeCounter);
     nodes.push(...groupNodes);
 
-    // Connect prerequisite to all nodes in this location group
     groupNodes.forEach((groupNode) => {
-      edges.push({
-        from: prerequisite,
-        to: groupNode.nodeId,
-        path: path.path_id,
-      });
+      edges.push({ from: prerequisite, to: groupNode.nodeId, path: path.path_id });
     });
 
-    // FIXED: Only add the easy node as the path head (representative for the location group)
-    // But we'll handle the unlocks properly later when we connect the next location
     const easyNode = groupNodes.find((n) => n.difficultyTier === 1);
     pathHeads[path.path_id].push(easyNode.nodeId);
 
-    pathIndex++; // Move to next path
+    pathIndex++;
   }
 
   console.log(`Generated ${nodes.length} total nodes in ${locationGroups.length} location groups`);
@@ -630,12 +593,16 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     `Objectives generated - Easy: ${objectiveUsageByDifficulty.easy.length}, Medium: ${objectiveUsageByDifficulty.medium.length}, Hard: ${objectiveUsageByDifficulty.hard.length}`
   );
 
-  // Assign buffs to nodes AFTER all nodes are generated
-  console.log('Assigning buff rewards to nodes...');
+  // Assign buffs to standard nodes
+  console.log('Assigning buff rewards to standard nodes...');
   assignBuffRewards(nodes, { eventConfig, derivedValues });
-
   const nodesWithBuffs = nodes.filter((n) => n.rewards?.buffs && n.rewards.buffs.length > 0);
-  console.log(`Assigned buffs to ${nodesWithBuffs.length} nodes`);
+  console.log(`Assigned buffs to ${nodesWithBuffs.length} standard nodes`);
+
+  // Inject buffs into inn purchase options (at least 40% of inns guaranteed)
+  console.log('Injecting buffs into inn rewards...');
+  const innNodes = nodes.filter((n) => n.nodeType === 'INN');
+  injectBuffsIntoInnRewards(innNodes);
 
   // Update unlocks based on edges
   edges.forEach((edge) => {
@@ -645,25 +612,18 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     }
   });
 
-  // Make all nodes in a location group share the same unlocks
-  // This ensures completing ANY difficulty unlocks the next location group
+  // Sync unlocks across all nodes in each location group
   locationGroups.forEach((group) => {
     const groupNodesList = group.nodeIds.map((id) => nodes.find((n) => n.nodeId === id));
 
-    // Collect all unique unlocks from all nodes in the group
     const allUnlocks = new Set();
     groupNodesList.forEach((node) => {
-      if (node && node.unlocks) {
-        node.unlocks.forEach((unlock) => allUnlocks.add(unlock));
-      }
+      if (node?.unlocks) node.unlocks.forEach((u) => allUnlocks.add(u));
     });
 
-    // Apply all unlocks to all nodes in the group
     const unlocksArray = Array.from(allUnlocks);
     groupNodesList.forEach((node) => {
-      if (node) {
-        node.unlocks = [...unlocksArray];
-      }
+      if (node) node.unlocks = [...unlocksArray];
     });
 
     console.log(

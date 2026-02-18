@@ -409,7 +409,7 @@ const operations = {
   PURCHASE_INN_REWARD: `
     mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
       purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
-        teamId currentPot keysHeld innTransactions
+        teamId currentPot keysHeld innTransactions activeBuffs
       }
     }
   `,
