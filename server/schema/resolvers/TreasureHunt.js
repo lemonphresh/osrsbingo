@@ -921,7 +921,7 @@ const TreasureHuntResolvers = {
           id: `buff_applied_${Date.now()}`,
           eventId,
           teamId,
-          type: 'BUFF_APPLIED',
+          type: 'buff_applied',
           data: JSON.stringify({
             buffName: buff.buffName,
             nodeId,
