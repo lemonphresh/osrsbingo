@@ -58,6 +58,7 @@ const RecenterButton = () => {
   const [isOffCenter, setIsOffCenter] = useState(false);
   const bounds = getMapBounds();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const defaultCenter = [bounds.mapHeight / 2, bounds.mapWidth / 2];
   const defaultZoom = -3;
 

@@ -94,7 +94,6 @@ import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
 import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
-import { useCallback } from 'react';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();

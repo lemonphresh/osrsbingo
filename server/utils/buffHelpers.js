@@ -103,8 +103,12 @@ function createBuff(buffType, customConfig = {}) {
 function canApplyBuff(buff, objective) {
   if (!buff || buff.usesRemaining <= 0) return false;
   if (!objective || !objective.type) return false;
+  if (!buff.objectiveTypes.includes(objective.type)) return false;
 
-  return buff.objectiveTypes.includes(objective.type);
+  // item_collection buffs only apply if quantity > 3
+  if (objective.type === 'item_collection' && objective.quantity <= 3) return false;
+
+  return true;
 }
 
 function applyBuffToObjective(objective, buff) {

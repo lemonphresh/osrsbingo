@@ -115,6 +115,7 @@ const TreasureTeamView = () => {
 
   const event = eventData?.getTreasureEvent;
   const team = teamData?.getTreasureTeam;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const nodes = event?.nodes || [];
   const { user } = useAuth();
   const isAdmin =
@@ -166,6 +167,7 @@ const TreasureTeamView = () => {
       ...liveNode,
       status: getNodeStatus(liveNode),
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedNode, nodes, team]);
 
   const getNodeBadge = (node) => {
@@ -840,8 +842,13 @@ const TreasureTeamView = () => {
                       status === 'available' &&
                       team.activeBuffs?.length > 0 &&
                       node.objective &&
-                      team.activeBuffs.some((buff) =>
-                        buff.objectiveTypes.includes(node.objective.type)
+                      team.activeBuffs.some(
+                        (buff) =>
+                          buff.objectiveTypes.includes(node.objective.type) &&
+                          !(
+                            node.objective.type === 'item_collection' &&
+                            node.objective.quantity <= 3
+                          )
                       );
 
                     const hasBuffApplied = !!node.objective?.appliedBuff;

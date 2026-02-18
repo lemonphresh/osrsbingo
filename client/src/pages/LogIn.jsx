@@ -28,8 +28,6 @@ import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
 import usePageTitle from '../hooks/usePageTitle';
 
-const validatePassword = (pass) => !!pass && pass.length >= 4;
-
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
