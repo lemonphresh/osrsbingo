@@ -763,7 +763,11 @@ const TreasureMapVisualization = ({
                               (() => {
                                 const isTeamMember =
                                   currentUser?.discordUserId &&
-                                  team?.members?.includes(currentUser.discordUserId);
+                                  team?.members?.some(
+                                    (m) =>
+                                      m.discordUserId?.toString() ===
+                                      currentUser.discordUserId?.toString()
+                                  );
 
                                 return isTeamMember ? (
                                   <VStack align="center" spacing={1}>

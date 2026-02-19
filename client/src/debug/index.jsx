@@ -7,6 +7,7 @@ import NodeDetailModalStories from './stories/NodeDetailModal.stories';
 import BuffInventoryStories from './stories/BuffInventory.stories';
 import TeamAccessOverlayStories from './stories/TeamAccessOverlay.stories';
 import BuffApplicationModalStories from './stories/BuffApplicationModal.stories';
+import LaunchModalStories from './stories/LaunchModal.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -48,6 +49,13 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 5,
     component: BuffApplicationModalStories,
+  },
+  {
+    id: 'launch-modal',
+    label: 'Launch Modal',
+    category: 'Treasure Hunt',
+    scenarioCount: 5,
+    component: LaunchModalStories,
   },
 ];
 

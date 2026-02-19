@@ -5,7 +5,14 @@ const BASE_TEAM = {
   eventId: 'event_001',
   teamName: 'Team Red',
   discordRoleId: '333333333333333333',
-  members: ['111111111111111111'], // matches MOCK_USERS.member
+  members: [
+    {
+      discordUserId: '111111111111111111',
+      discordUsername: 'TestPlayer',
+      discordAvatar: null,
+      username: 'testplayer',
+    },
+  ],
   currentPot: '15000000',
   completedNodes: ['node_001', 'node_002'],
   availableNodes: ['node_003', 'node_inn_001', 'node_easy_001'],

@@ -59,7 +59,7 @@ import {
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
-import { formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDateTime } from '../utils/dateUtils';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
 import {
   REVIEW_SUBMISSION,
@@ -79,7 +79,7 @@ import MultiTeamTreasureMap from '../organisms/TreasureHunt/MultiTeamTreasureMap
 import EventAdminManager from '../organisms/TreasureHunt/TreasureAdminManager';
 import { useAuth } from '../providers/AuthProvider';
 import { MdOutlineArrowBack } from 'react-icons/md';
-import { FaCog, FaRocket } from 'react-icons/fa';
+import { FaCog } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
@@ -94,6 +94,7 @@ import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
 import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
+import LaunchCheckModal from '../organisms/TreasureHunt/LaunchCheckModal';
 
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -185,6 +186,7 @@ const TreasureEventView = () => {
     onError: (error) => {
       showToast(`Error: ${error.message}`, 'error');
     },
+    loading: eventLoading,
   });
 
   useSubscription(TREASURE_ACTIVITY_SUB, {
@@ -517,7 +519,7 @@ const TreasureEventView = () => {
                 {event.status}
               </Badge>
               <Text color={theme.colors.gray[300]}>
-                {formatDisplayDate(event.startDate)} - {formatDisplayDate(event.endDate)}
+                {formatDisplayDateTime(event.startDate)} - {formatDisplayDateTime(event.endDate)}
               </Text>
             </HStack>
             <Tooltip label="Click to copy Event ID" hasArrow>
@@ -1980,73 +1982,13 @@ const TreasureEventView = () => {
         </AlertDialogOverlay>
       </AlertDialog>
       {/* Launch Event Confirmation */}
-      <AlertDialog
+      <LaunchCheckModal
         isOpen={isLaunchConfirmOpen}
-        leastDestructiveRef={cancelRef}
         onClose={onLaunchConfirmClose}
-      >
-        <AlertDialogOverlay backdropFilter="blur(4px)">
-          <AlertDialogContent bg="gray.700" color="white">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
-              🚀 Launch Event?
-            </AlertDialogHeader>
-
-            <AlertDialogBody>
-              <VStack align="start" spacing={3}>
-                <Text color="gray.100">
-                  You're about to make <strong>{event.eventName}</strong> live!
-                </Text>
-
-                <Box
-                  p={3}
-                  bg="green.900"
-                  borderRadius="md"
-                  w="full"
-                  borderWidth="1px"
-                  borderColor="green.700"
-                >
-                  <Text fontSize="sm" color="green.200" fontWeight="bold">
-                    What happens next:
-                  </Text>
-                  <VStack align="start" spacing={1} mt={2} fontSize="sm" color="green.300">
-                    <Text>• Teams can view their maps and objectives</Text>
-                    <Text>• Players can submit completions</Text>
-                    <Text>• Discord commands become active</Text>
-                    <Text>• Event appears in public listings</Text>
-                  </VStack>
-                </Box>
-
-                <Text fontSize="sm" color="orange.300">
-                  ⚠️ You can still edit some event details after launching, but specific content
-                  settings, event length, etc. cannot be changed. The map cannot be regenerated
-                  while the event is active, either.
-                </Text>
-              </VStack>
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button
-                ref={cancelRef}
-                onClick={onLaunchConfirmClose}
-                variant="outline"
-                color="gray.300"
-                borderColor="gray.500"
-                _hover={{ bg: 'gray.600' }}
-              >
-                Cancel
-              </Button>
-              <Button
-                colorScheme="green"
-                onClick={handleLaunchEvent}
-                ml={3}
-                leftIcon={<Icon as={FaRocket} />}
-              >
-                Launch Event!
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+        onConfirm={handleLaunchEvent}
+        event={event}
+        isLaunching={eventLoading}
+      />
     </Flex>
   );
 };

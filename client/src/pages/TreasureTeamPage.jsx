@@ -115,6 +115,9 @@ const TreasureTeamView = () => {
 
   const event = eventData?.getTreasureEvent;
   const team = teamData?.getTreasureTeam;
+  const lastCompletedNodeId =
+    team?.completedNodes?.length > 0 ? team.completedNodes[team.completedNodes.length - 1] : null;
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const nodes = event?.nodes || [];
   const { user } = useAuth();
@@ -135,7 +138,7 @@ const TreasureTeamView = () => {
     // Check if user's Discord ID is in the team's member list
     const isTeamMember =
       user?.discordUserId &&
-      team?.members?.some((m) => m.toString() === user.discordUserId.toString());
+      team?.members?.some((m) => m.discordUserId?.toString() === user.discordUserId?.toString());
     if (!isTeamMember) {
       return { hasAccess: false, reason: 'not_member' };
     }
@@ -332,11 +335,13 @@ const TreasureTeamView = () => {
         variables: { eventId, teamId, nodeId },
       });
       await refetchTeam();
+
       toast({
         title: 'Node un-completed',
-        description: 'Successfully removed completion status',
+        description:
+          'Completion removed. GP, keys, and any unused buffs from this node have been returned/reversed.',
         status: 'success',
-        duration: 3000,
+        duration: 4000,
         isClosable: true,
       });
     } catch (error) {
@@ -1159,6 +1164,7 @@ const TreasureTeamView = () => {
           currentUser={user}
           event={event}
           appliedBuff={liveSelectedNode?.objective?.appliedBuff}
+          lastCompletedNodeId={lastCompletedNodeId}
         />
 
         <InnModal

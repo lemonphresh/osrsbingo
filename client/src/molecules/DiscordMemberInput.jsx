@@ -37,6 +37,7 @@ const DiscordMemberInput = ({
   colorMode = 'dark',
   conflictTeam = null,
   isDuplicateInForm = false,
+  resolvedUser = null,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
@@ -97,6 +98,22 @@ const DiscordMemberInput = ({
       fetchDiscordUser(value);
     }
   }, [value]);
+
+  useEffect(() => {
+    if (resolvedUser?.discordUserId) {
+      setDiscordUserInfo({
+        id: resolvedUser.discordUserId,
+        username: resolvedUser.discordUsername,
+        globalName: resolvedUser.discordUsername,
+        avatarUrl: resolvedUser.discordAvatar
+          ? `https://cdn.discordapp.com/avatars/${resolvedUser.discordUserId}/${resolvedUser.discordAvatar}.png`
+          : null,
+        siteUser: resolvedUser.username ? resolvedUser : null,
+      });
+    } else if (value && isValidDiscordId(value)) {
+      fetchDiscordUser(value);
+    }
+  }, [value, resolvedUser]);
 
   // Fetch Discord user info
   const fetchDiscordUser = async (discordId) => {

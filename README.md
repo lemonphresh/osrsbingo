@@ -72,7 +72,7 @@ osrs-bingo-hub/
 
 ### Prerequisites
 
-- Node.js v14+
+- Node.js v20.19.3 (via NVM — see setup below)
 - PostgreSQL v12+
 - Discord Bot Token _(optional)_
 
@@ -129,6 +129,102 @@ cd client && npm start
 # Terminal 3 — Bot (optional)
 cd bot && npm start
 ```
+
+---
+
+## 🧰 Local Development Setup (First-Time / Fresh Machine)
+
+This section covers everything you need to get fully running from scratch, including common pitfalls.
+
+### Node Version (NVM)
+
+This project uses **Node v20.19.3**. Managing it via NVM is strongly recommended.
+
+```bash
+# Install NVM (if not already installed via Homebrew)
+brew install nvm
+
+# Add to your shell config (~/.zshrc or ~/.bashrc):
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"
+
+# Reload your shell, then install and use the correct version
+nvm install 20.19.3
+nvm use 20.19.3
+
+# Verify
+node --version  # should print v20.19.3
+```
+
+> ⚠️ If you see `EBADENGINE` warnings during `npm install`, it means you're on the wrong Node version. Run `nvm use 20.19.3` before installing.
+
+The `bingostart` script handles this automatically per terminal tab — but for manual installs, always set your Node version first.
+
+---
+
+### PostgreSQL Setup
+
+#### 1. Install & Start PostgreSQL
+
+```bash
+brew install postgresql@14  # or whichever version you prefer (v12+)
+brew services start postgresql@14
+```
+
+To verify it's running:
+
+```bash
+brew services list  # postgresql should show "started"
+```
+
+#### 2. Create the `postgres` Role
+
+Homebrew installs PostgreSQL with your Mac username as the default superuser, **not** `postgres`. The app expects a `postgres` role, so create it:
+
+```bash
+psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"
+```
+
+> ⚠️ If you skip this step, you'll get: `ConnectionError: role "postgres" does not exist`
+
+#### 3. Create the Database
+
+```bash
+psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"
+```
+
+Replace `osrsbingo` with whatever your `DATABASE_URL` in `.env` points to if different.
+
+#### 4. Run Migrations
+
+```bash
+cd server/db
+npx sequelize-cli db:migrate
+```
+
+---
+
+### Common Errors & Fixes
+
+| Error | Cause | Fix |
+| ----- | ----- | --- |
+| `EBADENGINE` on `npm install` | Wrong Node version | `nvm use 20.19.3` |
+| `ECONNREFUSED` on port 5432 | PostgreSQL not running | `brew services start postgresql@14` |
+| `role "postgres" does not exist` | Homebrew uses your Mac username, not `postgres` | `psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"` |
+| `database "osrsbingo" does not exist` | DB not created yet | `psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"` |
+| `npm run dev` crashes immediately | Missing `.env` file | Copy `.env.example` to `.env` and fill in values |
+
+---
+
+### Using the `bingo` Script
+
+There's a helper script in `.zshrc` that opens all tabs and starts everything automatically:
+
+```bash
+bingo
+```
+
+This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3` and `npm i` per tab) and `bingostatus` together. Make sure PostgreSQL is already running before calling it, or the server tab will crash on startup.
 
 ---
 

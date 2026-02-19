@@ -586,7 +586,12 @@ export const CREATE_TREASURE_TEAM = gql`
       eventId
       teamName
       discordRoleId
-      members
+      members {
+        discordUserId
+        discordUsername
+        discordAvatar
+        username
+      }
       currentPot
       keysHeld
       completedNodes
@@ -661,6 +666,7 @@ export const ADMIN_UNCOMPLETE_NODE = gql`
       availableNodes
       currentPot
       keysHeld
+      activeBuffs
     }
   }
 `;
