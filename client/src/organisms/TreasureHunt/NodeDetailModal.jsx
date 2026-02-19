@@ -25,6 +25,7 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Tooltip,
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
@@ -33,7 +34,6 @@ import { FaDiscord } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 import { useMemo } from 'react';
-import { Tooltip } from 'react-leaflet';
 
 // Helper to get all acceptable drops for a boss/raid
 function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
@@ -184,7 +184,10 @@ export default function NodeDetailModal({
     localStorage.getItem('treasureHunt_startTutorial_completed') === 'true';
 
   const isTeamMember =
-    currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
+    currentUser?.discordUserId &&
+    team?.members?.some(
+      (m) => m.discordUserId?.toString() === currentUser.discordUserId?.toString()
+    );
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -264,7 +267,13 @@ export default function NodeDetailModal({
   const isLastCompleted = isCompleted && node.nodeId === lastCompletedNodeId;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      scrollBehavior="inside"
+      returnFocusOnClose={false}
+    >
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg} maxH="90vh">
         <ModalHeader color={currentColors.textColor}>

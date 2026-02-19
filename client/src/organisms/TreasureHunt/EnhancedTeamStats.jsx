@@ -125,21 +125,20 @@ export const EnhancedTeamStats = ({
         gap={4}
       >
         {/* GP Stat with Rank Context */}
-        <Stat
-          bg={currentColors.cardBg}
+        {/* <Stat
+          bg="blackAlpha.100"
           p={4}
           borderRadius="md"
           minH="130px"
           position="relative"
           textAlign="center"
-          w={['100%', '50%', 'auto']}
+          w={['100%', '75%', 'auto']}
           overflow="hidden"
           borderWidth={teamRank === 1 ? 2 : 1}
           borderColor={teamRank === 1 ? 'yellow.400' : 'transparent'}
           transition="all 0.3s"
           _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
         >
-          {/* Rank badge */}
           {teamRank && (
             <Badge
               position="absolute"
@@ -163,7 +162,6 @@ export const EnhancedTeamStats = ({
             </StatNumber>
           </HStack>
 
-          {/* Contextual help text */}
           <StatHelpText fontSize="xs" color="gray.500" mb={0}>
             {teamRank === 1 ? (
               <HStack spacing={1} justify="center">
@@ -182,7 +180,6 @@ export const EnhancedTeamStats = ({
             )}
           </StatHelpText>
 
-          {/* Progress bar to next rank */}
           {gpToNextRank > 0 && nextTeam && (
             <Popover trigger="hover" placement="top">
               <PopoverTrigger>
@@ -209,14 +206,14 @@ export const EnhancedTeamStats = ({
               </PopoverContent>
             </Popover>
           )}
-        </Stat>
+        </Stat> */}
 
         {/* Nodes Completed with Progress */}
         <Stat
-          bg={currentColors.cardBg}
+          bg="blackAlpha.100"
           p={4}
           minH="130px"
-          w={['100%', '50%', 'auto']}
+          w={['100%', '75%', 'auto']}
           borderRadius="md"
           position="relative"
           transition="all 0.3s"
@@ -226,8 +223,8 @@ export const EnhancedTeamStats = ({
           {hasRecentActivity && (
             <HStack
               position="absolute"
-              top={2}
-              right={2}
+              top={-2}
+              right={-2}
               spacing={1}
               bg="orange.500"
               px={2}
@@ -242,7 +239,7 @@ export const EnhancedTeamStats = ({
           )}
 
           <StatLabel fontWeight="semibold" color={currentColors.textColor} fontSize="sm" mb={1}>
-            Nodes Completed
+            Nodes Done
           </StatLabel>
 
           <HStack justifyContent="center" textAlign="center" w="100%" spacing={2} mb={2}>
@@ -278,9 +275,9 @@ export const EnhancedTeamStats = ({
 
         {/* Keys with Inn CTA */}
         <Stat
-          bg={currentColors.cardBg}
+          bg="blackAlpha.100"
           p={4}
-          w={['100%', '50%', 'auto']}
+          w={['100%', '75%', 'auto']}
           minH="130px"
           borderRadius="md"
           position="relative"

@@ -267,6 +267,7 @@ const MultiTeamTreasureMap = ({
   showAllNodes = false,
   onRefresh,
   isRefreshing,
+  highlightedTeamId = null,
 }) => {
   const [selectedTeams, setSelectedTeams] = useState(teams.map((t) => t.teamId));
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
@@ -282,11 +283,6 @@ const MultiTeamTreasureMap = ({
   const handleRefresh = () => {
     if (onRefresh) onRefresh();
     console.log('🔄 Refreshing event data...');
-  };
-
-  const formatGP = (gp) => {
-    if (!gp) return '0';
-    return (gp / 1000000).toFixed(1) + 'M';
   };
 
   // Calculate offset for overlapping nodes in a circular pattern
@@ -526,8 +522,17 @@ const MultiTeamTreasureMap = ({
     }, 2000);
   };
 
-  const { colors: currentColors, colorMode } = useThemeColors();
+  useEffect(() => {
+    if (!highlightedTeamId) return;
+    const team = teams.find((t) => t.teamId === highlightedTeamId);
+    if (team) handleTeamClick(team);
+  }, [highlightedTeamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const { colors: currentColors, colorMode } = useThemeColors();
+  const formatGP = (gp) => {
+    if (!gp) return '0';
+    return (gp / 1000000).toFixed(1) + 'M';
+  };
   const MapClickHandler = () => {
     useMapEvents({
       click: (e) => {
@@ -551,7 +556,7 @@ const MultiTeamTreasureMap = ({
         <MapContainer
           center={[bounds.mapHeight / 2, bounds.mapWidth / 2]}
           zoom={-3}
-          minZoom={-3}
+          minZoom={-4}
           maxZoom={2}
           crs={L.CRS.Simple}
           style={{ height: '100%', width: '100%', background: 'rgb(35,47,60)' }}
@@ -946,7 +951,30 @@ const MultiTeamTreasureMap = ({
           </HStack>
 
           <Collapse in={!isMobile || isOpen} animateOpacity>
-            <Box px={3} pb={3} maxH={{ base: '60vh', md: '350px' }} overflowY="auto">
+            <Box
+              px={3}
+              pb={3}
+              maxH={{ base: '60vh', md: '350px' }}
+              overflowY="auto"
+              css={{
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: 'transparent',
+                  borderRadius: '10px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: '#abb8ceff',
+                  borderRadius: '10px',
+                  '&:hover': {
+                    background: '#718096',
+                  },
+                },
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#abb8ceff transparent',
+              }}
+            >
               {showAllNodes && (
                 <Badge colorScheme="orange" fontSize="xs" mb={2} w="full" textAlign="center">
                   ADMIN MODE
@@ -1046,196 +1074,8 @@ const MultiTeamTreasureMap = ({
       {event.teams.length > 0 && (
         <VStack spacing={2} align="stretch">
           <Box mt={6}>
-            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+            <SimpleGrid>
               <LiveActivityFeed teams={event.teams || []} event={event} maxActivities={8} />
-
-              {/* Team Stats Grid */}
-              <VStack align="stretch" spacing={4}>
-                <HStack justify="space-between">
-                  <HStack spacing={2}>
-                    <Text fontWeight="bold" color={currentColors.white} fontSize="lg">
-                      Current Standings
-                    </Text>
-                    {onRefresh && (
-                      <IconButton
-                        icon={<RepeatIcon color={currentColors.white} />}
-                        size="sm"
-                        variant="ghost"
-                        color={isRefreshing ? 'gray.200' : 'white'}
-                        onClick={handleRefresh}
-                        aria-label="Refresh standings"
-                        disabled={isRefreshing}
-                        _hover={{
-                          bg: isRefreshing ? 'transparent' : 'blackAlpha.300',
-                        }}
-                      />
-                    )}
-                  </HStack>
-                  <Badge colorScheme="purple" fontSize="xs">
-                    {event.teams?.length || 0} teams
-                  </Badge>
-                </HStack>
-
-                {event.teams && event.teams.length > 0 ? (
-                  !isRefreshing ? (
-                    <VStack align="stretch" spacing={3} maxH="400px" overflowY="auto">
-                      {[...event.teams]
-                        .sort((a, b) => {
-                          const aGP = parseInt(a.currentPot) || 0;
-                          const bGP = parseInt(b.currentPot) || 0;
-                          const aNodes = a.completedNodes?.length || 0;
-                          const bNodes = b.completedNodes?.length || 0;
-
-                          if (aGP !== bGP) {
-                            return bGP - aGP;
-                          }
-
-                          return bNodes - aNodes;
-                        })
-                        .map((team, index) => {
-                          const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
-                          const isLeader = index === 0;
-
-                          return (
-                            <HStack
-                              key={team.teamId}
-                              p={4}
-                              bg={
-                                isLeader
-                                  ? colorMode === 'dark'
-                                    ? 'yellow.900'
-                                    : 'yellow.50'
-                                  : colorMode === 'dark'
-                                  ? 'whiteAlpha.50'
-                                  : 'blackAlpha.50'
-                              }
-                              borderRadius="md"
-                              border={isLeader ? '2px solid' : '1px solid'}
-                              borderColor={isLeader ? 'yellow.400' : 'transparent'}
-                              spacing={4}
-                              transition="all 0.2s"
-                              _hover={{
-                                shadow: 'md',
-                                backgroundColor: isLeader
-                                  ? colorMode === 'dark'
-                                    ? 'yellow.800'
-                                    : 'yellow.100'
-                                  : 'whiteAlpha.300',
-                              }}
-                              cursor="pointer"
-                              onClick={() => {
-                                handleTeamClick(team);
-                              }}
-                            >
-                              {/* Rank */}
-                              <Flex
-                                w={isLeader ? '32px' : '24px'}
-                                h={isLeader ? '32px' : '24px'}
-                                bg={isLeader ? 'yellow.400' : teamColor}
-                                borderRadius="full"
-                                align="center"
-                                justify="center"
-                                color="white"
-                                fontWeight="bold"
-                                fontSize="sm"
-                              >
-                                {isLeader ? <Icon as={FaCrown} /> : index + 1}
-                              </Flex>
-
-                              {/* Team Info */}
-                              <VStack align="start" spacing={1} flex={1}>
-                                <HStack>
-                                  <Text
-                                    fontWeight="bold"
-                                    color={isLeader ? currentColors.textColor : currentColors.white}
-                                    fontSize="md"
-                                  >
-                                    {team.teamName}
-                                  </Text>
-                                  {isLeader && (
-                                    <Badge colorScheme="yellow" fontSize="xs">
-                                      Leader
-                                    </Badge>
-                                  )}
-                                </HStack>
-                                <HStack spacing={4}>
-                                  <HStack spacing={1}>
-                                    <Icon as={FaCoins} color="yellow.400" boxSize={3} />
-                                    <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
-                                      {formatGP(team.currentPot || '0')} GP
-                                    </Text>
-                                  </HStack>
-                                  <HStack spacing={1}>
-                                    <Icon as={CheckCircleIcon} color="green.400" boxSize={3} />
-                                    <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
-                                      {team.completedNodes?.length || 0}{' '}
-                                      {team.completedNodes?.length === 1 ? 'node' : 'nodes'}
-                                    </Text>
-                                  </HStack>
-                                  {event.nodes && event.nodes.length > 0 && (
-                                    <Button
-                                      size="sm"
-                                      bg={isLeader ? 'blackAlpha.100' : 'whiteAlpha.200'}
-                                      color={isLeader ? 'gray.500' : 'gray.200'}
-                                      fontWeight="normal"
-                                      _hover={{
-                                        bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.300',
-                                      }}
-                                      onClick={() =>
-                                        window.open(
-                                          `/gielinor-rush/${event.eventId}/team/${team.teamId}`,
-                                          '_blank'
-                                        )
-                                      }
-                                      whiteSpace="nowrap"
-                                    >
-                                      <Icon as={FaMap} />
-                                      &nbsp; View Team Map
-                                    </Button>
-                                  )}
-                                </HStack>
-                              </VStack>
-
-                              {/* Progress Indicator */}
-                              <VStack align="center" spacing={1}>
-                                <Text fontSize="xs" color={isLeader ? 'gray.500' : 'gray.200'}>
-                                  Progress
-                                </Text>
-                                <CircularProgress
-                                  value={
-                                    ((team.completedNodes?.length || 0) /
-                                      Math.max(event.nodes?.length || 1, 1)) *
-                                    100
-                                  }
-                                  size="40px"
-                                  color={teamColor}
-                                  trackColor={isLeader ? 'gray.300' : 'gray.200'}
-                                  thickness="8px"
-                                  textColor={isLeader ? 'gray.500' : 'gray.200'}
-                                >
-                                  <CircularProgressLabel fontSize="xs">
-                                    {Math.round(
-                                      ((team.completedNodes?.length || 0) /
-                                        Math.max(event.nodes?.length || 1, 1)) *
-                                        100
-                                    )}
-                                    %
-                                  </CircularProgressLabel>
-                                </CircularProgress>
-                              </VStack>
-                            </HStack>
-                          );
-                        })}
-                    </VStack>
-                  ) : (
-                    <Spinner size="md" alignSelf="center" />
-                  )
-                ) : (
-                  <Text color="gray.500" textAlign="center" py={8}>
-                    No teams yet
-                  </Text>
-                )}
-              </VStack>
             </SimpleGrid>
           </Box>
         </VStack>

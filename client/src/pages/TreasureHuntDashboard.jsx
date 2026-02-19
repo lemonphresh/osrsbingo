@@ -706,7 +706,7 @@ const TreasureHuntDashboard = () => {
                   m="0 auto"
                   gap={4}
                 >
-                  <GemTitle size="xl" color={currentColors.textColor} gemColor="yellow">
+                  <GemTitle size="xl" gemColor="yellow">
                     Your Gielinor Rush Events
                   </GemTitle>
                   <Button
