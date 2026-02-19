@@ -159,8 +159,8 @@ const BuffApplicationListModal = ({
                       opacity={hasBuffApplied ? 0.6 : 1}
                       onClick={() => {
                         if (!hasBuffApplied) {
-                          onSelectNode(node);
-                          onClose();
+                          onClose(); // close first
+                          onSelectNode(node); // then open next modal
                         }
                       }}
                       _hover={

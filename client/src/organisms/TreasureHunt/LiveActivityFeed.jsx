@@ -663,7 +663,30 @@ const LiveActivityFeed = ({
                 </Text>
               </VStack>
             ) : (
-              <VStack align="stretch" spacing={2} maxH="300px" overflowY="auto">
+              <VStack
+                align="stretch"
+                spacing={2}
+                maxH="300px"
+                overflowY="auto"
+                css={{
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: 'transparent',
+                    borderRadius: '10px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#abb8ceff',
+                    borderRadius: '10px',
+                    '&:hover': {
+                      background: '#718096',
+                    },
+                  },
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#abb8ceff transparent',
+                }}
+              >
                 {activities.slice(0, maxActivities).map((activity) => {
                   // Find team index for color consistency
                   const teamIndex = teams.findIndex((t) => t.teamId === activity.teamId);
@@ -717,7 +740,7 @@ const LiveActivityFeed = ({
                             {getActivityTitle(activity).replace(`${activity.team.teamName} `, '')}
                           </Text>
                         </HStack>
-                        <Text fontSize="xs" color="gray.500" noOfLines={1}>
+                        <Text fontSize="xs" ml={2} color="gray.500" noOfLines={1}>
                           {getActivityDescription(activity)}
                         </Text>
                       </Flex>
