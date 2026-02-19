@@ -22,7 +22,7 @@ import { isGielinorRushEnabled } from '../config/featureFlags';
 const CHANGELOG_ENTRIES = [
   {
     version: '2.0.0',
-    date: 'October 2025 - January 2026',
+    date: 'October 2025 - March 2026',
     title: 'Gielinor Rush 🎉',
     type: isGielinorRushEnabled() ? 'major' : 'upcoming',
     icon: FaGamepad,
@@ -45,8 +45,26 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.6.0',
-    date: 'December 2025',
+    version: '1.8.0',
+    date: 'January–February 2026',
+    title: 'Performance, Polish & GR Progress',
+    type: 'improvement',
+    icon: FaRocket,
+    highlights: [
+      'DataLoader + database indexing dropped server load from 2.0+ to 0.04 avg and response times from 30s to under 3s',
+      'Live activity feed with real-time WebSocket updates',
+      'Discord OAuth verification for Gielinor Rush team members',
+      'Admin checklist fixes, map node improvements, content selection fixes',
+      'Icon API caching and BonusSettings resolver fix',
+      'Feature flag system for toggling Gielinor Rush per environment',
+      'Fixed navigation race conditions on board create, duplicate, and shuffle',
+      'All Boards search, filters, and empty states improved',
+      'UI cleanup across profile and board detail pages',
+    ],
+  },
+  {
+    version: '1.7.0',
+    date: 'January 2026',
     title: 'Polish & Performance',
     type: 'improvement',
     icon: FaRocket,
@@ -58,13 +76,10 @@ const CHANGELOG_ENTRIES = [
       'Revamped landing page design',
       'Added Privacy Policy, Terms of Service, and About pages',
       'Event password to help with screenshot verification on Gielinor Rush competitions',
-      'Discord user verification with Discord IDs',
-      'Backend icon caching and memory optimizations',
-      'Improved map node generation logic',
     ],
   },
   {
-    version: '1.5.0',
+    version: '1.6.0',
     date: 'July 2025',
     title: 'Wiki Integration Update',
     type: 'improvement',
@@ -76,7 +91,7 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.4.0',
+    version: '1.5.0',
     date: 'February 2025',
     title: 'Scoring Fixes',
     type: 'fix',
@@ -87,7 +102,7 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.3.0',
+    version: '1.4.0',
     date: 'January 2025',
     title: 'Privacy & Access Controls',
     type: 'feature',
@@ -100,7 +115,7 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.2.0',
+    version: '1.3.0',
     date: 'January 2025',
     title: 'Drag & Drop + UX Polish',
     type: 'feature',
@@ -112,7 +127,7 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.1.0',
+    version: '1.2.0',
     date: 'December 2024',
     title: 'Themes & Customization',
     type: 'feature',
@@ -125,7 +140,7 @@ const CHANGELOG_ENTRIES = [
     ],
   },
   {
-    version: '1.0.5',
+    version: '1.1.0',
     date: 'December 2024',
     title: 'Admin Powers & Board Sizes',
     type: 'feature',

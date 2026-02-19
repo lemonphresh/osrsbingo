@@ -78,9 +78,7 @@ const StatsPage = () => {
           <GemTitle size="xl" gemColor="purple">
             Site Stats
           </GemTitle>
-          <Text color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-            See what the OSRS Bingo Hub community has been up to
-          </Text>
+          <Text color="gray.400">See what the OSRS Bingo Hub community has been up to</Text>
         </VStack>
 
         {error && (

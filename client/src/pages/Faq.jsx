@@ -21,7 +21,7 @@ import { isGielinorRushEnabled } from '../config/featureFlags';
 const FAQ_SECTIONS = [
   {
     title: '📋 Bingo Boards',
-    colorKey: 'purple',
+    colorKey: 'pink',
     items: [
       {
         q: 'How do I get removed from an editors list?',
@@ -39,7 +39,7 @@ const FAQ_SECTIONS = [
   },
   isGielinorRushEnabled() && {
     title: '🗺️ Gielinor Rush',
-    colorKey: 'turquoise',
+    colorKey: 'yellow',
     items: [
       {
         q: 'What is Gielinor Rush mode?',
@@ -81,7 +81,7 @@ const FAQ_SECTIONS = [
   },
   {
     title: '💡 General',
-    colorKey: 'yellow',
+    colorKey: 'orange',
     items: [
       {
         q: 'What if I would like to request a feature?',

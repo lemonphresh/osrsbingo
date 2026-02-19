@@ -145,46 +145,36 @@ const UserDetails = () => {
       paddingY={['48px', '88px']}
       width="100%"
     >
-      <Flex
-        alignItems="flex-start"
-        justifyContent="space-between"
-        marginBottom="16px"
-        maxWidth="860px"
-        width="100%"
-      >
-        <Text
-          alignItems="center"
-          display="inline-flex"
-          _hover={{
-            borderBottom: '1px solid white',
-            marginBottom: '0px',
-          }}
-          fontWeight="bold"
-          justifyContent="center"
-          marginBottom="1px"
+      <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
+        {/* Top nav */}
+        <HStack
+          justifyContent="space-between"
+          borderBottom="1px solid"
+          borderColor="whiteAlpha.200"
+          paddingBottom="12px"
         >
-          <Icon as={MdOutlineStorage} marginRight="8px" />
-          <Link to="/boards"> View Public Boards</Link>
-        </Text>
-        {isGielinorRushEnabled() && (
           <Text
             alignItems="center"
             display="inline-flex"
-            _hover={{
-              borderBottom: '1px solid white',
-              marginBottom: '0px',
-            }}
+            _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
             fontWeight="bold"
-            justifyContent="center"
+            marginBottom="1px"
+          >
+            <Icon as={MdOutlineStorage} marginRight="8px" />
+            <Link to="/boards">View Public Boards</Link>
+          </Text>
+          <Text
+            alignItems="center"
+            display="inline-flex"
+            _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
+            fontWeight="bold"
             marginBottom="1px"
           >
             <Link to="/gielinor-rush">Gielinor Rush</Link>
             <Icon as={FaMap} marginLeft="8px" />
           </Text>
-        )}
-      </Flex>
+        </HStack>
 
-      <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" gridGap="24px">
           <GemTitle textAlign="center">
             {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
@@ -238,7 +228,7 @@ const UserDetails = () => {
               </Button>
             ) : null}
             {isCurrentUser && (
-              <Flex alignItems="center" height="40px" flexDirection="space-between" width="100%">
+              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
                 <Text width="100%">
                   <Text
                     as="span"
@@ -255,7 +245,7 @@ const UserDetails = () => {
               </Flex>
             )}
             {!fieldsEditing.displayName ? (
-              <Flex alignItems="center" flexDirection="space-between" width="100%">
+              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
                 <Text width="100%">
                   <Text
                     as="span"
@@ -306,7 +296,7 @@ const UserDetails = () => {
               />
             )}
             {!fieldsEditing.rsn ? (
-              <Flex alignItems="center" flexDirection="space-between" width="100%">
+              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
                 <Text width="100%">
                   <Text
                     as="span"
@@ -544,7 +534,7 @@ const UserDetails = () => {
                       }
                     >
                       View
-                    </Button>{' '}
+                    </Button>
                     {isCurrentUser && (
                       <Button
                         colorScheme="pink"
@@ -556,9 +546,7 @@ const UserDetails = () => {
                       </Button>
                     )}
                   </Flex>
-                ) : (
-                  <Flex />
-                )}
+                ) : null}
               </Flex>
             </Flex>
           </Section>
@@ -575,78 +563,46 @@ const UserDetails = () => {
               alignItems="center"
               justifyContent="space-around"
             >
-              <Flex
-                alignItems="center"
-                backgroundColor={theme.colors.teal[800]}
-                borderRadius="10px"
-                flexDirection="column"
-                justifyContent="center"
-                h="100%"
-                w={['100%', '150px']}
-                padding="8px"
-              >
-                <Image
-                  src="https://oldschool.runescape.wiki/images/thumb/Pirate_map.png/1200px-Pirate_map.png?9b490"
-                  alt="Gielinor Rush Map"
-                  maxWidth="128px"
-                  maxHeight="128px"
-                  h="100%"
-                  w="100%"
-                  my={3}
-                  borderRadius="8px"
-                />
-              </Flex>
-              <VStack>
-                {isGielinorRushEnabled() ? (
-                  <>
-                    <Text fontSize="16px" lineHeight="1.5">
-                      Create and manage your own Gielinor Rush events!
-                    </Text>
-                    <Text
-                      alignItems="center"
-                      display="inline-flex"
-                      _hover={{
-                        borderBottom: `1px solid ${theme.colors.yellow[200]}`,
-                        marginBottom: '0px',
-                      }}
-                      color={theme.colors.yellow[200]}
-                      fontWeight="bold"
-                      justifyContent="center"
-                      marginBottom="1px"
-                    >
-                      <Icon as={MdOutlineMap} marginRight="8px" />
-                      <Link to="/gielinor-rush">Go to Gielinor Rush Dashboard</Link>
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
-                      Coming Soon
-                    </Badge>
-                    <Text fontSize="16px" lineHeight="1.5">
-                      Something big is brewing in Gielinor... 👀
-                    </Text>
-                    <HStack spacing={2}>
-                      <Text
-                        as={Link}
-                        to="/gielinor-rush"
-                        fontSize="sm"
-                        color={theme.colors.yellow[200]}
-                        _hover={{ textDecoration: 'underline' }}
-                      >
-                        Learn more →
-                      </Text>
-                    </HStack>
-                  </>
-                )}
-              </VStack>
+              {isGielinorRushEnabled() ? (
+                <VStack spacing={3} align={['center']}>
+                  <Text fontSize="16px" lineHeight="1.5">
+                    Create and manage your own Gielinor Rush events!
+                  </Text>
+                  <Button
+                    as={Link}
+                    to="/gielinor-rush"
+                    colorScheme="yellow"
+                    leftIcon={<Icon as={MdOutlineMap} />}
+                  >
+                    Go to Gielinor Rush Dashboard
+                  </Button>
+                </VStack>
+              ) : (
+                <VStack spacing={3} align={['center', 'flex-start']}>
+                  <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
+                    Coming Soon
+                  </Badge>
+                  <Text fontSize="16px" lineHeight="1.5">
+                    Something big is brewing in Gielinor... 👀
+                  </Text>
+                  <Text
+                    as={Link}
+                    to="/gielinor-rush"
+                    fontSize="sm"
+                    color={theme.colors.yellow[200]}
+                    _hover={{ textDecoration: 'underline' }}
+                  >
+                    Learn more →
+                  </Text>
+                </VStack>
+              )}
             </Flex>
           </Section>
         )}
-        <Flex flexDirection="column">
-          <MiniStats />
-        </Flex>
+
+        <MiniStats />
       </Section>
+
       {!isCurrentUser && user?.admin && (
         <>
           <Button
@@ -685,25 +641,20 @@ const UserDetails = () => {
           </AlertDialog>
         </>
       )}
+
       {isCurrentUser && (
-        <Text
-          alignItems="center"
-          display="inline-flex"
-          _hover={{
-            borderBottom: '1px solid white',
-            marginBottom: '0px',
-          }}
-          fontSize="18px"
-          marginBottom="1px"
+        <Button
+          variant="ghost"
+          leftIcon={<Icon as={MdDoorBack} />}
           marginTop="48px"
-          justifyContent="center"
-          textAlign="center"
+          onClick={logout}
+          as={Link}
+          to="/"
+          color="white"
+          fontSize="18px"
         >
-          <Icon as={MdDoorBack} marginRight="8px" />
-          <Link onClick={logout} to="/">
-            Logout
-          </Link>
-        </Text>
+          Logout
+        </Button>
       )}
     </Flex>
   );
