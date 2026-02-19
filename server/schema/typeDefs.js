@@ -304,12 +304,19 @@ const typeDefs = gql`
   # GIELINOR RUSH: TEAMS
   # ============================================================
 
+  type TreasureTeamMember {
+    discordUserId: String!
+    discordUsername: String
+    discordAvatar: String
+    username: String
+  }
+
   type TreasureTeam {
     teamId: ID!
     eventId: ID!
     teamName: String!
     discordRoleId: String
-    members: [String!]
+    members: [TreasureTeamMember!]!
 
     # Progress
     currentPot: String

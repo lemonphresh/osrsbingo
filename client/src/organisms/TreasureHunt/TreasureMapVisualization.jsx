@@ -33,6 +33,7 @@ const RecenterButton = () => {
   const [isOffCenter, setIsOffCenter] = useState(false);
   const bounds = getMapBounds();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const defaultCenter = [bounds.mapHeight / 2, bounds.mapWidth / 2];
   const defaultZoom = -3;
 
@@ -762,7 +763,11 @@ const TreasureMapVisualization = ({
                               (() => {
                                 const isTeamMember =
                                   currentUser?.discordUserId &&
-                                  team?.members?.includes(currentUser.discordUserId);
+                                  team?.members?.some(
+                                    (m) =>
+                                      m.discordUserId?.toString() ===
+                                      currentUser.discordUserId?.toString()
+                                  );
 
                                 return isTeamMember ? (
                                   <VStack align="center" spacing={1}>

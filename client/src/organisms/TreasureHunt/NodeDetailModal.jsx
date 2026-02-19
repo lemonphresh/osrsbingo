@@ -33,6 +33,7 @@ import { FaDiscord } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 import { useMemo } from 'react';
+import { Tooltip } from 'react-leaflet';
 
 // Helper to get all acceptable drops for a boss/raid
 function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
@@ -123,6 +124,7 @@ export default function NodeDetailModal({
   appliedBuff: appliedBuffProp,
   currentUser,
   onVisitInn,
+  lastCompletedNodeId,
   event, // Add event prop to access contentSelections
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -258,6 +260,8 @@ export default function NodeDetailModal({
 
   // Check if this is an item collection task
   const isItemCollectionTask = node.objective?.type === 'item_collection';
+
+  const isLastCompleted = isCompleted && node.nodeId === lastCompletedNodeId;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
@@ -616,7 +620,7 @@ export default function NodeDetailModal({
                       >
                         Mark as Completed
                       </Button>
-                    ) : (
+                    ) : isLastCompleted ? (
                       <Button
                         colorScheme="red"
                         leftIcon={<CloseIcon />}
@@ -629,6 +633,24 @@ export default function NodeDetailModal({
                       >
                         Un-complete Node
                       </Button>
+                    ) : (
+                      // completed but NOT the most recent — show a disabled explanation
+                      <Tooltip
+                        label="Only the most recently completed node can be un-completed."
+                        hasArrow
+                      >
+                        <Button
+                          colorScheme="red"
+                          leftIcon={<CloseIcon />}
+                          isDisabled
+                          size="sm"
+                          flex={1}
+                          opacity={0.4}
+                          cursor="not-allowed"
+                        >
+                          Un-complete Node
+                        </Button>
+                      </Tooltip>
                     )}
                     <Button variant="outline" onClick={onClose} size="sm" flex={1}>
                       Cancel

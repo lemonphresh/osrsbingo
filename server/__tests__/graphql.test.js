@@ -333,7 +333,12 @@ describe('TreasureHunt Queries', () => {
         getTreasureTeam(eventId: $eventId, teamId: $teamId) {
           teamId
           teamName
-          members
+          members {
+            discordUserId
+            discordUsername
+            discordAvatar
+            username
+          }
           currentPot
           keysHeld
           completedNodes
@@ -762,7 +767,12 @@ describe('TreasureHunt Mutations', () => {
         createTreasureTeam(eventId: $eventId, input: $input) {
           teamId
           teamName
-          members
+          members {
+            discordUserId
+            discordUsername
+            discordAvatar
+            username
+          }
           currentPot
         }
       }

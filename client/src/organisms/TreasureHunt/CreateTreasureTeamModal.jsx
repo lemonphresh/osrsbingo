@@ -48,7 +48,7 @@ export default function CreateTeamModal({
   const [formData, setFormData] = useState({
     teamName: '',
     discordRoleId: '',
-    members: [''],
+    members: [],
   });
 
   const [createTeam, { loading }] = useMutation(CREATE_TREASURE_TEAM, {
@@ -63,10 +63,10 @@ export default function CreateTeamModal({
   });
 
   const getExistingMemberMap = () => {
-    const memberMap = new Map(); // discordId -> teamName
+    const memberMap = new Map();
     existingTeams.forEach((team) => {
-      team.members?.forEach((memberId) => {
-        memberMap.set(memberId, team.teamName);
+      team.members?.forEach((member) => {
+        memberMap.set(member.discordUserId, team.teamName);
       });
     });
     return memberMap;

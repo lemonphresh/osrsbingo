@@ -18,7 +18,7 @@ async function graphqlRequest(query, variables = {}, discordUserId = null) {
           // Add Discord user ID as a header for authentication
           ...(discordUserId && { 'X-Discord-User-Id': discordUserId }),
         },
-      }
+      },
     );
 
     if (response.data.errors) {
@@ -51,7 +51,12 @@ async function findTeamForUser(eventId, userId, userRoles) {
           teamId
           teamName
           discordRoleId
-          members
+          members {
+            discordUserId
+            discordUsername
+            discordAvatar
+            username
+          }
         }
       }
     }
@@ -62,13 +67,15 @@ async function findTeamForUser(eventId, userId, userRoles) {
 
   // Check if user's role matches a team's discordRoleId
   const teamByRole = teams.find(
-    (team) => team.discordRoleId && userRoles.includes(team.discordRoleId)
+    (team) => team.discordRoleId && userRoles.includes(team.discordRoleId),
   );
 
   if (teamByRole) return teamByRole;
 
   // Check if user is in team members
-  const teamByMember = teams.find((team) => team.members && team.members.includes(userId));
+  const teamByMember = teams.find(
+    (team) => team.members && team.members.some((m) => m.discordUserId === userId),
+  );
 
   return teamByMember;
 }

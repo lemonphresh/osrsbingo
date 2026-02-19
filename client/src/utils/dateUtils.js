@@ -101,3 +101,43 @@ export const getTodayInputValue = () => {
     now.getDate()
   ).padStart(2, '0')}`;
 };
+
+// src/utils/dateUtils.js
+
+/**
+ * Convert an ISO string (from DB/GraphQL) into a value suitable for
+ * <input type="datetime-local">  →  "2025-06-01T18:00"
+ * Falls back gracefully if the value is null/undefined.
+ */
+export function toDateTimeInputValue(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+/**
+ * Convert a datetime-local input value ("2025-06-01T18:00") into a UTC ISO
+ * string for storage.  The browser interprets datetime-local as the user's
+ * *local* time, so `new Date(s).toISOString()` correctly converts to UTC.
+ */
+export function dateTimeInputToISO(localDateTimeString) {
+  if (!localDateTimeString) return null;
+  return new Date(localDateTimeString).toISOString();
+}
+
+export function getTodayDateTimeInputValue() {
+  return toDateTimeInputValue(new Date().toISOString());
+}
+
+/**
+ * Returns the viewer's IANA timezone name, e.g. "America/Los_Angeles".
+ * Used to label datetime pickers so admins know what timezone they're entering.
+ */
+export function getViewerTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+}

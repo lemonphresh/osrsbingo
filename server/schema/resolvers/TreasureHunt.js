@@ -818,13 +818,22 @@ const TreasureHuntResolvers = {
       const filteredKeys = keysHeld.filter((k) => k.quantity > 0);
 
       let activeBuffs = [...(team.activeBuffs || [])];
+      const returnedBuffs = [];
+      const consumedBuffs = []; // buffs that were already used — can't be returned
+
       if (node.rewards?.buffs?.length > 0) {
         node.rewards.buffs.forEach((buffReward) => {
           const buffIndex = activeBuffs.findIndex(
             (buff) => buff.buffType === buffReward.buffType && buff.usesRemaining === buff.maxUses
           );
+
           if (buffIndex !== -1) {
+            returnedBuffs.push(activeBuffs[buffIndex].buffName);
             activeBuffs.splice(buffIndex, 1);
+          } else {
+            // buff was already consumed. note it but don't block the uncomplete
+            consumedBuffs.push(buffReward.buffType);
+            console.log(`  - Buff ${buffReward.buffType} was already used, cannot be returned`);
           }
         });
       }

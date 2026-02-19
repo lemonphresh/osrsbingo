@@ -15,7 +15,7 @@ module.exports = {
         '❌ Usage: `!submit <node_id> <proof_url>` OR `!submit <node_id>` with an attached image\n' +
           'Examples:\n' +
           '• `!submit evt_abc_node_042 link_to_screenshot_img`\n' +
-          '• `!submit evt_abc_node_042` (with image attached to your message)'
+          '• `!submit evt_abc_node_042` (with image attached to your message)',
       );
     }
 
@@ -25,14 +25,11 @@ module.exports = {
     let proofUrl;
 
     if (args.length >= 2) {
-      // Proof URL provided as argument
       proofUrl = args[1];
     } else if (message.attachments.size > 0) {
-      // Use first attachment
       const attachment = message.attachments.first();
       proofUrl = attachment.url;
 
-      // Validate it's an image
       const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
       const isValidImage =
         validImageTypes.includes(attachment.contentType) ||
@@ -41,14 +38,14 @@ module.exports = {
       if (!isValidImage) {
         return message.reply(
           '❌ Please attach an image file (PNG, JPEG, GIF, or WebP)\n' +
-            'Or provide an image URL as the second argument.'
+            'Or provide an image URL as the second argument.',
         );
       }
     } else {
       return message.reply(
         '❌ Please provide proof either as:\n' +
           '• A URL: `!submit <node_id> <proof_url>`\n' +
-          '• An attached image: `!submit <node_id>` (attach image to message)'
+          '• An attached image: `!submit <node_id>` (attach image to message)',
       );
     }
 
@@ -71,6 +68,7 @@ module.exports = {
           getTreasureEvent(eventId: $eventId) {
             status
             eventName
+            startDate
             mapStructure
             nodes {
               nodeId
@@ -109,7 +107,28 @@ module.exports = {
         const statusMessage =
           statusMessages[event.status] || `⚠️ This event is not active (status: ${event.status}).`;
 
-        return message.reply(`${statusMessage}\n\n` + `Event: **${event.eventName}**`);
+        return message.reply(`${statusMessage}\n\nEvent: **${event.eventName}**`);
+      }
+
+      // Check event hasn't started yet
+      if (event.startDate) {
+        const startDate = new Date(event.startDate);
+        const now = new Date();
+        if (now < startDate) {
+          const diffMs = startDate - now;
+          const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+          const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+          const countdown =
+            days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+          return message.reply(
+            `⏳ **${event.eventName}** hasn't started yet!\n\n` +
+              `The event begins <t:${Math.floor(startDate.getTime() / 1000)}:F> — that's **${countdown}** from now.\n\n` +
+              `Hang tight, submissions will open then.`,
+          );
+        }
       }
 
       if (!node) {
@@ -118,7 +137,7 @@ module.exports = {
 
       if (!teamData.availableNodes.includes(nodeId)) {
         return message.reply(
-          '❌ This node is not available to your team. It has either been completed, does not exist, or has not been unlocked yet.'
+          '❌ This node is not available to your team. It has either been completed, does not exist, or has not been unlocked yet.',
         );
       }
 
@@ -138,13 +157,12 @@ module.exports = {
               `❌ **Location Already Completed**\n\n` +
                 `Your team has already completed the **${completedDiff}** difficulty at **${node.mapLocation}**.\n` +
                 `Completed: "${completedNode?.title}"\n\n` +
-                `You cannot submit the **${attemptedDiff}** difficulty. Only one difficulty per location is allowed.`
+                `You cannot submit the **${attemptedDiff}** difficulty. Only one difficulty per location is allowed.`,
             );
           }
         }
       }
 
-      // FIXED: Remove the ! marks to make fields optional
       const mutation = `
         mutation SubmitNodeCompletion(
           $eventId: ID!
@@ -171,7 +189,6 @@ module.exports = {
         }
       `;
 
-      // Add logging to verify the data
       const submissionData = {
         eventId,
         teamId: team.teamId,
@@ -189,19 +206,17 @@ module.exports = {
       });
 
       const data = await graphqlRequest2(mutation, submissionData);
-
       const submission = data.submitNodeCompletion;
 
       const getDiffName = (tier) =>
         tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
       const difficultyBadge = node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : '';
 
-      // Get difficulty-based color
       const getDiffColor = (tier) => {
-        if (tier === 1) return '#4CAF50'; // Green for EASY
-        if (tier === 3) return '#FF9800'; // Orange for MEDIUM
-        if (tier === 5) return '#F44336'; // Red for HARD
-        return '#43AA8B'; // Default teal
+        if (tier === 1) return '#4CAF50';
+        if (tier === 3) return '#FF9800';
+        if (tier === 5) return '#F44336';
+        return '#43AA8B';
       };
 
       const embed = new EmbedBuilder2()
@@ -210,29 +225,13 @@ module.exports = {
         .setDescription(
           `**${node.title}**${difficultyBadge}\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
-            `Your submission has been received and is pending review.`
+            `Your submission has been received and is pending review.`,
         )
         .addFields(
-          {
-            name: '📍 Location',
-            value: node.mapLocation || 'Unknown',
-            inline: true,
-          },
-          {
-            name: '📊 Status',
-            value: `\`${submission.status}\``,
-            inline: true,
-          },
-          {
-            name: '👤 Submitted By',
-            value: message.author.username,
-            inline: true,
-          },
-          {
-            name: '🆔 Submission ID',
-            value: `\`${submission.submissionId}\``,
-            inline: false,
-          }
+          { name: '📍 Location', value: node.mapLocation || 'Unknown', inline: true },
+          { name: '📊 Status', value: `\`${submission.status}\``, inline: true },
+          { name: '👤 Submitted By', value: message.author.username, inline: true },
+          { name: '🆔 Submission ID', value: `\`${submission.submissionId}\``, inline: false },
         )
         .setTimestamp()
         .setFooter({
@@ -240,14 +239,9 @@ module.exports = {
           iconURL: message.author.displayAvatarURL(),
         });
 
-      // Add proof preview if it's an image
       if (proofUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || message.attachments.size > 0) {
         embed.setImage(proofUrl);
-        embed.addFields({
-          name: '📸 Proof',
-          value: '*(Image attached below)*',
-          inline: false,
-        });
+        embed.addFields({ name: '📸 Proof', value: '*(Image attached below)*', inline: false });
       } else {
         embed.addFields({ name: '🔗 Proof Link', value: proofUrl, inline: false });
       }
@@ -256,7 +250,6 @@ module.exports = {
     } catch (error) {
       console.error('Error:', error);
 
-      // Provide more helpful errors
       if (error.message.includes('Not authenticated')) {
         return message.reply('❌ Bot authentication error. Please contact an admin.');
       }

@@ -115,7 +115,9 @@ export default function InnModal({
 
   const isTeamMember =
     currentUser?.discordUserId &&
-    team?.members?.some((m) => m.toString() === currentUser.discordUserId.toString());
+    team?.members?.some(
+      (m) => m.discordUserId?.toString() === currentUser.discordUserId?.toString()
+    );
 
   const formatGP = (gp) => (gp / 1000000).toFixed(1) + 'M';
 

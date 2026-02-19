@@ -139,7 +139,7 @@ export const useSubmissionNotifications = (
         document.getElementsByTagName('head')[0].appendChild(link);
       }
     };
-  }, [allPendingIncompleteSubmissionsCount, isAdmin, drawFaviconBadge]);
+  }, [allPendingIncompleteSubmissionsCount, isAdmin, drawFaviconBadge, submissions]);
   // NOTE: intentionally removed `submissions` and `eventName` from the dep array —
   // `allPendingIncompleteSubmissionsCount` is the authoritative count and is already derived
   // from submissions upstream, so re-running on raw `submissions` just doubles the work.
