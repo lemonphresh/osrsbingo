@@ -6,6 +6,7 @@ import Gnomechild from '../assets/gnomechild.png';
 import Discord from '../assets/discord-small.png';
 import WebCounter from './WebCounter';
 import { Link } from 'react-router-dom';
+import PleaseEffect from '../atoms/PleaseEffect';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -66,16 +67,18 @@ const Footer = () => {
             <Image alt="Discord logo" src={Discord} width={['40px', '20px']} loading="lazy" />
           </Flex>
         </ChakraLink>
-        <Link to="/support">
-          <Button
-            leftIcon={<Image alt="Gnomechild" src={Gnomechild} width="20px" height="20px" />}
-            size="lg"
-            colorScheme="gray"
-            variant="solid"
-          >
-            Support the site
-          </Button>
-        </Link>
+        <PleaseEffect>
+          <Link to="/support">
+            <Button
+              leftIcon={<Image alt="Gnomechild" src={Gnomechild} width="20px" height="20px" />}
+              size="lg"
+              colorScheme="gray"
+              variant="solid"
+            >
+              Support the site
+            </Button>
+          </Link>
+        </PleaseEffect>
         {/* <Link
         alignItems="center"
         display="flex"

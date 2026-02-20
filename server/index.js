@@ -336,9 +336,11 @@ const server = new ApolloServer({
   ],
 });
 
-sequelize.sync({ alter: true }).then(() => {
-  console.log('📊 Database synced!');
-});
+if (process.env.NODE_ENV !== 'production') {
+  sequelize.sync({ alter: true });
+} else {
+  sequelize.authenticate(); // just verify connection
+}
 
 app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to the app!' });

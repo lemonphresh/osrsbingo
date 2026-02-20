@@ -23,6 +23,7 @@ import { MdContactSupport, MdClose } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { FaHeart } from 'react-icons/fa';
 import { isGielinorRushEnabled } from '../config/featureFlags';
+import PleaseEffect from '../atoms/PleaseEffect';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -109,7 +110,15 @@ const NavBar = () => {
                 />
               </Box>
               <VStack align="start" spacing={1} flex={1}>
-                <Text fontSize={['sm', 'md']}>
+                {/* short copy on mobile/tablet, full copy on desktop */}
+                <Text fontSize={['sm', 'md']} display={['block', 'block', 'none']}>
+                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="bold">
+                    Like the site?
+                  </Text>{' '}
+                  Solo dev here! No ads, just server bills. If the site helps your clan, consider
+                  supporting! 💛
+                </Text>
+                <Text fontSize="md" display={['none', 'none', 'block']}>
                   <Text as="span" color={theme.colors.yellow[400]} fontWeight="bold">
                     HEY YOU! Like the site?
                   </Text>{' '}
@@ -118,7 +127,7 @@ const NavBar = () => {
                 </Text>
                 {isGielinorRushEnabled() ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also go try <strong>Gielinor Rush</strong>, it's new, sailing and all!
+                    Also go try <strong>Gielinor Rush</strong>, it's new! It's cool! It's fun!
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
@@ -135,23 +144,25 @@ const NavBar = () => {
               flexShrink={0}
               w={['100%', 'auto']}
             >
-              <Link to="/support">
-                <Flex
-                  as="span"
-                  align="center"
-                  gap={2}
-                  backgroundColor={theme.colors.yellow[400]}
-                  color="gray.900"
-                  paddingX={5}
-                  paddingY={2}
-                  borderRadius="md"
-                  fontWeight="bold"
-                  fontSize="sm"
-                  _hover={{ backgroundColor: theme.colors.yellow[300] }}
-                >
-                  <FaHeart color={theme.colors.red[500]} /> Support
-                </Flex>
-              </Link>
+              <PleaseEffect>
+                <Link to="/support">
+                  <Flex
+                    as="span"
+                    align="center"
+                    gap={2}
+                    backgroundColor={theme.colors.yellow[400]}
+                    color="gray.900"
+                    paddingX={5}
+                    paddingY={2}
+                    borderRadius="md"
+                    fontWeight="bold"
+                    fontSize="sm"
+                    _hover={{ backgroundColor: theme.colors.yellow[300] }}
+                  >
+                    <FaHeart color={theme.colors.red[500]} /> Support
+                  </Flex>
+                </Link>
+              </PleaseEffect>
               {isGielinorRushEnabled() ? (
                 <Link to="/gielinor-rush">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
@@ -184,6 +195,7 @@ const NavBar = () => {
         paddingX={['16px', '32px']}
         paddingY="16px"
         position="relative"
+        zIndex={5}
       >
         <Link style={{ display: 'flex', alignItems: 'center' }} to="/faq">
           <Icon

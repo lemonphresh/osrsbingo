@@ -1,20 +1,24 @@
 const { Sequelize } = require('sequelize');
 
 const dbUrl = process.env.DATABASE_URL;
+const isDev = process.env.NODE_ENV === 'development';
+
+const sharedOptions = {
+  dialect: 'postgres',
+  benchmark: true,
+  logging: (sql, timing) => {
+    if (isDev) {
+      console.log(`[${timing}ms] ${sql}`);
+    } else if (timing > 1000) {
+      console.warn(`🐢 Slow query (${timing}ms):`, sql.substring(0, 100));
+    }
+  },
+};
 
 const sequelize = dbUrl
   ? new Sequelize(dbUrl, {
-      dialect: 'postgres',
+      ...sharedOptions,
       protocol: 'postgres',
-      logging: process.env.NODE_ENV === 'development' ? console.log : false,
-      benchmark: true,
-      hooks: {
-        afterQuery: (options, query) => {
-          if (options.benchmark && query.duration > 1000) {
-            console.warn(`🐢 Slow query (${query.duration}ms):`, options.type);
-          }
-        },
-      },
       dialectOptions: {
         ssl: {
           require: true,
@@ -23,9 +27,8 @@ const sequelize = dbUrl
       },
     })
   : new Sequelize('osrsbingo', 'postgres', 'password', {
+      ...sharedOptions,
       host: 'localhost',
-      dialect: 'postgres',
-      logging: process.env.NODE_ENV === 'development' ? console.log : false,
     });
 
 module.exports = sequelize;

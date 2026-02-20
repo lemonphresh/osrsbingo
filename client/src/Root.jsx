@@ -39,17 +39,6 @@ const Root = () => {
         minHeight="100vh"
       >
         <ScrollToTop />
-        {/* <Flex
-          as="section"
-          backgroundColor={`rgba(50, 104, 107, 1)`}
-          color="black"
-          justifyContent="center"
-          alignItems="center"
-          width="100%"
-          minHeight="90px"
-          zIndex="2"
-        >
-        </Flex> */}
         <NavBar />
         <AuthConsumer />
         <Footer />
