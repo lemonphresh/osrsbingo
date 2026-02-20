@@ -194,7 +194,7 @@ module.exports = {
         });
 
         const newTiles = originalTiles.map((tile) => ({
-          icon: tile.icon,
+          icon: tile.icon?.startsWith('data:') ? null : tile.icon,
           name: tile.name,
           isComplete: false,
           value: tile.value,

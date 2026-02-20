@@ -9,6 +9,9 @@ import {
   Switch,
   Text,
   useDisclosure,
+  Alert,
+  AlertIcon,
+  AlertDescription,
 } from '@chakra-ui/react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
@@ -238,6 +241,10 @@ const BoardDetails = () => {
     );
   }
 
+  const hasMissingIcons = board?.layout?.some((row) =>
+    row.some((tile) => tile && tile.icon === null && tile.name)
+  );
+
   if (board === 'Not Found') return null;
 
   return (
@@ -401,6 +408,24 @@ const BoardDetails = () => {
               <Text marginLeft="8px">{isEditMode ? 'Enabled' : 'Disabled'}</Text>
             </FormControl>
           </Flex>
+        )}
+
+        {hasMissingIcons && process.env.REACT_APP_MISSING_TILES_BANNER && (
+          <Alert
+            status="info"
+            colorScheme="blue"
+            borderRadius="md"
+            marginBottom="12px"
+            fontSize="sm"
+            color="gray.600"
+          >
+            <AlertIcon />
+            <AlertDescription>
+              Some old base64 tile icons were removed during a performance cleanup to keep the site
+              running smoothly. You can re-select them by clicking any tile and using the icon
+              search. Sorry for any inconvenience, love you! ❤️, Lemon The Dev
+            </AlertDescription>
+          </Alert>
         )}
 
         <BingoBoard

@@ -9,9 +9,15 @@ const sharedOptions = {
   logging: (sql, timing) => {
     if (isDev) {
       console.log(`[${timing}ms] ${sql}`);
-    } else if (timing > 1000) {
-      console.warn(`🐢 Slow query (${timing}ms):`, sql.substring(0, 100));
+    } else if (timing > 500) {
+      console.warn(`🐢 Slow query (${timing}ms):`, sql.substring(0, 200));
     }
+  },
+  pool: {
+    max: 10,
+    min: 2,
+    acquire: 30000,
+    idle: 10000,
   },
 };
 

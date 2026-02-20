@@ -127,6 +127,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                 <Image
                   alt={item.name}
                   cursor="pointer"
+                  loading="lazy"
                   onClick={async () => {
                     await updateTile({
                       variables: {
