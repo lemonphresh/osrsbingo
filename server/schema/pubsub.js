@@ -1,9 +1,21 @@
 const { PubSub } = require('graphql-subscriptions');
+const { EventEmitter } = require('events');
 
-// For development (single server):
+// raise the default listener cap (default is 10, way too low for concurrent events)
+EventEmitter.defaultMaxListeners = 100;
+
 const pubsub = new PubSub();
 
-// Subscription event names
+// warn if a single topic accumulates too many listeners (sign of a leak)
+const _publish = pubsub.publish.bind(pubsub);
+pubsub.publish = (topic, payload) => {
+  const listenerCount = pubsub.ee?.listenerCount?.(topic) ?? 0;
+  if (listenerCount > 50) {
+    console.warn(`⚠️ PubSub topic "${topic}" has ${listenerCount} listeners — possible leak`);
+  }
+  return _publish(topic, payload);
+};
+
 const SUBMISSION_TOPICS = {
   SUBMISSION_ADDED: 'SUBMISSION_ADDED',
   SUBMISSION_REVIEWED: 'SUBMISSION_REVIEWED',

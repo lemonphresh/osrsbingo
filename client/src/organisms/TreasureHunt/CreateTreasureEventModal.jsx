@@ -26,19 +26,27 @@ import { CREATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useNavigate } from 'react-router-dom';
 import ContentSelectionModal from './ContentSelectionModal';
-import { dateInputToISO, getTodayInputValue } from '../../utils/dateUtils';
+import {
+  dateTimeInputToISO,
+  getTodayDateTimeInputValue,
+  toDateTimeInputValue,
+  getViewerTimezone,
+} from '../../utils/dateUtils';
 
 const MAX_TOTAL_PLAYERS = 150;
-const MAX_GP = 20000000000; // 20 billion
+const MAX_GP = 20000000000;
 const MIN_NODES_PER_INN = 3;
 const MAX_NODES_PER_INN = 6;
-const MAX_EVENT_DURATION_DAYS = 31; // 1 month maximum
+const MAX_EVENT_DURATION_DAYS = 31;
 
 export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
   const navigate = useNavigate();
   const [contentSelections, setContentSelections] = useState(null);
   const [showContentModal, setShowContentModal] = useState(false);
   const { showToast } = useToastContext();
+
+  const today = getTodayDateTimeInputValue();
+  const viewerTZ = getViewerTimezone();
 
   const [formData, setFormData] = useState({
     eventName: '',
@@ -52,29 +60,29 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     estimatedHoursPerPlayerPerDay: 3.0,
   });
 
-  const today = getTodayInputValue();
-
-  // Calculate maximum end date (1 month from start date)
   const getMaxEndDate = () => {
     if (!formData.startDate) return '';
-    const startDate = new Date(formData.startDate);
-    const maxEndDate = new Date(startDate);
-    maxEndDate.setDate(maxEndDate.getDate() + MAX_EVENT_DURATION_DAYS);
-    return maxEndDate.toISOString().split('T')[0];
+    const start = new Date(formData.startDate);
+    const max = new Date(start);
+    max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+    return toDateTimeInputValue(max.toISOString());
   };
 
-  // Calculate event duration in days
   const getEventDuration = () => {
     if (!formData.startDate || !formData.endDate) return 0;
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+    const diff = new Date(formData.endDate) - new Date(formData.startDate);
+    return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
 
   const eventDuration = getEventDuration();
   const maxEndDate = getMaxEndDate();
+  const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
+
+  const getMaxTeams = () =>
+    formData.playersPerTeam === 0 ? 200 : Math.floor(MAX_TOTAL_PLAYERS / formData.playersPerTeam);
+
+  const getMaxPlayersPerTeam = () =>
+    formData.numOfTeams === 0 ? 200 : Math.floor(MAX_TOTAL_PLAYERS / formData.numOfTeams);
 
   const [createEvent, { loading }] = useMutation(CREATE_TREASURE_EVENT, {
     onCompleted: (data) => {
@@ -83,132 +91,77 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
       navigate(`/gielinor-rush/${data.createTreasureEvent.eventId}`);
       onClose();
     },
-    onError: (error) => {
-      showToast(`Error creating event: ${error.message}`, 'error');
-    },
+    onError: (err) => showToast(`Error creating event: ${err.message}`, 'error'),
   });
 
-  // Calculate current total players
-  const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
-
-  // Calculate max values based on current inputs
-  const getMaxTeams = () => {
-    if (formData.playersPerTeam === 0) return 200;
-    return Math.floor(MAX_TOTAL_PLAYERS / formData.playersPerTeam);
-  };
-
-  const getMaxPlayersPerTeam = () => {
-    if (formData.numOfTeams === 0) return 200;
-    return Math.floor(MAX_TOTAL_PLAYERS / formData.numOfTeams);
-  };
-
   const handleInputChange = (field, value) => {
-    if (typeof value === 'number' && isNaN(value)) {
-      value = 0;
-    }
+    if (typeof value === 'number' && isNaN(value)) value = 0;
 
     setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
+      const next = { ...prev, [field]: value };
 
-      // Enforce GP limit
       if (field === 'prizePoolTotal' && value > MAX_GP) {
-        showToast(`Maximum prize pool is ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'warning');
+        showToast(`Maximum prize pool is ${(MAX_GP / 1e9).toFixed(0)}B GP`, 'warning');
         return { ...prev, prizePoolTotal: MAX_GP };
       }
 
-      // Enforce nodes per inn limits
       if (field === 'nodeToInnRatio') {
-        if (value < MIN_NODES_PER_INN) {
-          return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
-        }
-        if (value > MAX_NODES_PER_INN) {
-          return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
-        }
+        if (value < MIN_NODES_PER_INN) return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
+        if (value > MAX_NODES_PER_INN) return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
       }
 
-      // Enforce event duration limit
       if (field === 'endDate' && prev.startDate) {
-        const start = new Date(prev.startDate);
-        const end = new Date(value);
-        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-
-        if (diffDays > MAX_EVENT_DURATION_DAYS) {
-          showToast(
-            `Maximum event duration is ${MAX_EVENT_DURATION_DAYS} days (1 month)`,
-            'warning'
-          );
-          // Auto-adjust to max allowed date
-          const maxDate = new Date(start);
-          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
-          return { ...prev, endDate: maxDate.toISOString().split('T')[0] };
+        const diff = Math.ceil(
+          (new Date(value) - new Date(prev.startDate)) / (1000 * 60 * 60 * 24)
+        );
+        if (diff > MAX_EVENT_DURATION_DAYS) {
+          showToast(`Maximum event duration is ${MAX_EVENT_DURATION_DAYS} days`, 'warning');
+          const max = new Date(prev.startDate);
+          max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+          return { ...prev, endDate: toDateTimeInputValue(max.toISOString()) };
         }
       }
 
-      // If start date changes, validate end date doesn't exceed max duration
       if (field === 'startDate' && prev.endDate) {
-        const start = new Date(value);
-        const end = new Date(prev.endDate);
-        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-
-        if (diffDays > MAX_EVENT_DURATION_DAYS) {
-          // Auto-adjust end date to max allowed
-          const maxDate = new Date(start);
-          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
-          return {
-            ...prev,
-            startDate: value,
-            endDate: maxDate.toISOString().split('T')[0],
-          };
+        const diff = Math.ceil((new Date(prev.endDate) - new Date(value)) / (1000 * 60 * 60 * 24));
+        if (diff > MAX_EVENT_DURATION_DAYS) {
+          const max = new Date(value);
+          max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+          return { ...prev, startDate: value, endDate: toDateTimeInputValue(max.toISOString()) };
         }
       }
 
-      // Enforce total player limit
       if (field === 'numOfTeams' || field === 'playersPerTeam') {
-        const newTotalPlayers =
-          field === 'numOfTeams' ? value * newData.playersPerTeam : newData.numOfTeams * value;
-
-        if (newTotalPlayers > MAX_TOTAL_PLAYERS) {
-          showToast(
-            `Maximum total players is ${MAX_TOTAL_PLAYERS}. Adjust teams or players per team.`,
-            'warning'
-          );
-
-          // Adjust the other field to stay within limit
+        const newTotal =
+          field === 'numOfTeams' ? value * next.playersPerTeam : next.numOfTeams * value;
+        if (newTotal > MAX_TOTAL_PLAYERS) {
+          showToast(`Maximum total players is ${MAX_TOTAL_PLAYERS}.`, 'warning');
           if (field === 'numOfTeams') {
-            // Keep teams, adjust players per team
-            const maxPlayersPerTeam = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
               numOfTeams: value,
-              playersPerTeam: Math.min(prev.playersPerTeam, maxPlayersPerTeam),
+              playersPerTeam: Math.min(prev.playersPerTeam, Math.floor(MAX_TOTAL_PLAYERS / value)),
             };
           } else {
-            // Keep players per team, adjust teams
-            const maxTeams = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
               playersPerTeam: value,
-              numOfTeams: Math.min(prev.numOfTeams, maxTeams),
+              numOfTeams: Math.min(prev.numOfTeams, Math.floor(MAX_TOTAL_PLAYERS / value)),
             };
           }
         }
       }
 
-      return newData;
+      return next;
     });
   };
 
   const handleCreateEvent = async () => {
-    if (
-      !formData.eventName ||
-      formData.eventName.trim().length < 3 ||
-      formData.eventName.trim().length > 50
-    ) {
-      showToast('Event name must be 3-50 characters', 'warning');
+    const name = formData.eventName.trim();
+    if (!name || name.length < 3 || name.length > 50) {
+      showToast('Event name must be 3–50 characters', 'warning');
       return;
     }
-
-    // Validate dates
     if (!formData.startDate || !formData.endDate) {
       showToast('Please select both start and end dates', 'warning');
       return;
@@ -217,49 +170,38 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
 
-    const today = new Date().toISOString().split('T')[0];
-    if (formData.startDate < today) {
+    if (start < new Date()) {
       showToast('Start date cannot be in the past', 'warning');
       return;
     }
-
     if (end <= start) {
       showToast('End date must be after start date', 'warning');
       return;
     }
-
-    // Validate event duration
     const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     if (duration > MAX_EVENT_DURATION_DAYS) {
       showToast(
-        `Event duration (${duration} days) exceeds maximum of ${MAX_EVENT_DURATION_DAYS} days`,
+        `Event duration (${duration} days) exceeds ${MAX_EVENT_DURATION_DAYS}-day maximum`,
         'error'
       );
       return;
     }
-
-    // Validate total players
     if (totalPlayers > MAX_TOTAL_PLAYERS) {
       showToast(`Total players (${totalPlayers}) exceeds maximum of ${MAX_TOTAL_PLAYERS}`, 'error');
       return;
     }
-
-    // Validate GP
     if (formData.prizePoolTotal > MAX_GP) {
-      showToast(`Prize pool exceeds maximum of ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'error');
+      showToast(`Prize pool exceeds maximum of ${(MAX_GP / 1e9).toFixed(0)}B GP`, 'error');
       return;
     }
-
-    const startDate = dateInputToISO(formData.startDate, false);
-    const endDate = dateInputToISO(formData.endDate, true);
 
     try {
       await createEvent({
         variables: {
           input: {
-            eventName: formData.eventName,
-            startDate: startDate,
-            endDate: endDate,
+            eventName: name,
+            startDate: dateTimeInputToISO(formData.startDate),
+            endDate: dateTimeInputToISO(formData.endDate),
             contentSelections,
             eventConfig: {
               prize_pool_total: formData.prizePoolTotal,
@@ -267,25 +209,30 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               players_per_team: formData.playersPerTeam,
               node_to_inn_ratio: formData.nodeToInnRatio,
               difficulty: formData.difficulty,
-              reward_split_ratio: {
-                nodes: 0.6,
-                inns: 0.25,
-                bonus_tasks: 0.15,
-              },
+              reward_split_ratio: { nodes: 0.6, inns: 0.25, bonus_tasks: 0.15 },
               keys_expire: true,
               estimated_hours_per_player_per_day: formData.estimatedHoursPerPlayerPerDay,
             },
           },
         },
       });
-    } catch (error) {
-      console.error('Error creating event:', error);
+    } catch (err) {
+      console.error('Error creating event:', err);
     }
   };
 
-  // Helper component for label with tooltip
+  // ─── Shared styles ────────────────────────────────────────────────────────
+  const inputStyles = {
+    color: 'white',
+    bg: 'gray.700',
+    borderColor: 'gray.600',
+    _hover: { borderColor: 'gray.500' },
+    _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' },
+    _placeholder: { color: 'gray.400' },
+  };
+
   const LabelWithTooltip = ({ label, tooltip }) => (
-    <HStack spacing={1}>
+    <HStack spacing={1} mb={0}>
       <FormLabel color="gray.100" mb={0}>
         {label}
       </FormLabel>
@@ -303,15 +250,21 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     </HStack>
   );
 
-  // Shared input styles
-  const inputStyles = {
-    color: 'white',
-    bg: 'gray.700',
-    borderColor: 'gray.600',
-    _hover: { borderColor: 'gray.500' },
-    _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' },
-    _placeholder: { color: 'gray.400' },
+  const mapStats = () => {
+    if (!formData.startDate || !formData.endDate) return null;
+    const days = Math.ceil(
+      (new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24)
+    );
+    const totalHours = formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+    const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+    const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+    const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+    const locations = Math.ceil(nodesNeeded / 3);
+    const inns = Math.floor(locations / formData.nodeToInnRatio);
+    return { totalHours: Math.round(totalHours), locations, inns, days };
   };
+
+  const stats = mapStats();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl">
@@ -321,6 +274,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6}>
           <VStack spacing={4}>
+            {/* Event Name */}
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Event Name"
@@ -334,14 +288,20 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               />
             </FormControl>
 
+            {/* Dates */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <LabelWithTooltip
-                  label="Start Date"
-                  tooltip="When teams can begin completing objectives"
-                />
+                <HStack justify="space-between" align="center" mb={1}>
+                  <LabelWithTooltip
+                    label="Start Date & Time"
+                    tooltip="When teams can begin completing objectives. Entered in your local timezone."
+                  />
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {viewerTZ}
+                  </Text>
+                </HStack>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   min={today}
                   value={formData.startDate}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
@@ -350,12 +310,17 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </FormControl>
 
               <FormControl isRequired>
-                <LabelWithTooltip
-                  label="End Date"
-                  tooltip={`Final deadline for objectives. Maximum duration: ${MAX_EVENT_DURATION_DAYS} days (1 month)`}
-                />
+                <HStack justify="space-between" align="center" mb={1}>
+                  <LabelWithTooltip
+                    label="End Date & Time"
+                    tooltip={`Final deadline. Max ${MAX_EVENT_DURATION_DAYS} days from start.`}
+                  />
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {viewerTZ}
+                  </Text>
+                </HStack>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   min={formData.startDate || today}
                   max={maxEndDate || undefined}
                   value={formData.endDate}
@@ -365,7 +330,6 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </FormControl>
             </SimpleGrid>
 
-            {/* Event Duration Display */}
             {formData.startDate && formData.endDate && (
               <Text
                 fontSize="sm"
@@ -378,6 +342,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </Text>
             )}
 
+            {/* Difficulty */}
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Difficulty Level"
@@ -389,27 +354,26 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 {...inputStyles}
               >
                 <option value="easy" style={{ backgroundColor: '#2D3748' }}>
-                  Easy (0.8x objectives) - Casual fun
+                  Easy (0.8x objectives) — Casual fun
                 </option>
                 <option value="normal" style={{ backgroundColor: '#2D3748' }}>
-                  Normal (1.0x objectives) - Balanced
+                  Normal (1.0x objectives) — Balanced
                 </option>
                 <option value="hard" style={{ backgroundColor: '#2D3748' }}>
-                  Hard (1.4x objectives) - Challenging
+                  Hard (1.4x objectives) — Challenging
                 </option>
                 <option value="sweatlord" style={{ backgroundColor: '#2D3748' }}>
-                  Sweatlord (2.0x objectives) - Extreme
+                  Sweatlord (2.0x objectives) — Extreme
                 </option>
               </Select>
             </FormControl>
 
+            {/* Hours per player */}
             <FormControl isRequired>
-              <FormLabel color="gray.100">
-                Est. Hours Per Player Per Day
-                <Tooltip label="How many hours per day will each player dedicate on average?">
-                  <InfoIcon ml={2} color="gray.500" />
-                </Tooltip>
-              </FormLabel>
+              <LabelWithTooltip
+                label="Est. Hours Per Player Per Day"
+                tooltip="How many hours per day will each player dedicate on average? Affects map size."
+              />
               <NumberInput
                 value={formData.estimatedHoursPerPlayerPerDay}
                 onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
@@ -419,78 +383,55 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               >
                 <NumberInputField {...inputStyles} />
               </NumberInput>
-              <HStack spacing={2} mt={2}>
-                <Button
-                  size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 1)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 1 ? 'solid' : 'outline'}
-                  colorScheme="purple"
-                >
-                  Casual (1h)
-                </Button>
-                <Button
-                  size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 3)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 3 ? 'solid' : 'outline'}
-                  colorScheme="purple"
-                >
-                  Average (3h)
-                </Button>
-                <Button
-                  size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 6)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 6 ? 'solid' : 'outline'}
-                  colorScheme="purple"
-                >
-                  Dedicated (6h)
-                </Button>
-                <Button
-                  size="xs"
-                  onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', 10)}
-                  variant={formData.estimatedHoursPerPlayerPerDay === 10 ? 'solid' : 'outline'}
-                  colorScheme="purple"
-                >
-                  Sweatlord (10h)
-                </Button>
+              <HStack spacing={2} mt={2} flexWrap="wrap">
+                {[
+                  { label: 'Casual (1h)', v: 1 },
+                  { label: 'Average (3h)', v: 3 },
+                  { label: 'Dedicated (6h)', v: 6 },
+                  { label: 'Sweatlord (10h)', v: 10 },
+                ].map((p) => (
+                  <Button
+                    key={p.v}
+                    size="xs"
+                    onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', p.v)}
+                    variant={formData.estimatedHoursPerPlayerPerDay === p.v ? 'solid' : 'outline'}
+                    colorScheme="purple"
+                  >
+                    {p.label}
+                  </Button>
+                ))}
               </HStack>
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                {(() => {
-                  if (!formData.startDate || !formData.endDate)
-                    return 'Select dates to see estimate';
-                  const days = Math.ceil(
-                    (new Date(formData.endDate) - new Date(formData.startDate)) /
-                      (1000 * 60 * 60 * 24)
-                  );
-                  const totalHours =
-                    formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                  return `Total per team: ${formData.playersPerTeam} players × ${days} days × ${formData.estimatedHoursPerPlayerPerDay}h = ${totalHours} player-hours`;
-                })()}
-              </Text>
+              {stats && (
+                <Text fontSize="xs" color="gray.400" mt={1}>
+                  Total per team: {formData.playersPerTeam} players × {stats.days} days ×{' '}
+                  {formData.estimatedHoursPerPlayerPerDay}h = {stats.totalHours} player-hours
+                </Text>
+              )}
             </FormControl>
 
-            <Button colorScheme="green" onClick={() => setShowContentModal(true)}>
-              {contentSelections ? 'Edit Content Selection' : 'Specify Content Selection'}
+            {/* Content selection */}
+            <Button colorScheme="green" onClick={() => setShowContentModal(true)} w="full">
+              {contentSelections ? '✓ Edit Content Selection' : 'Specify Content Selection'}
             </Button>
             <ContentSelectionModal
               isOpen={showContentModal}
               onClose={() => setShowContentModal(false)}
               currentSelections={contentSelections}
-              onSave={(selections) => {
-                setContentSelections(selections);
+              onSave={(s) => {
+                setContentSelections(s);
                 setShowContentModal(false);
               }}
             />
 
+            {/* Prize pool */}
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Total Prize Pool (GP)"
-                tooltip={`Total GP to be split among teams. Each team will work towards a maximum of ${(
+                tooltip={`Total GP split among teams. Each team targets ${(
                   formData.prizePoolTotal /
                   Math.max(formData.numOfTeams, 1) /
-                  1000000
-                ).toFixed(1)}M GP, which is the total (${
-                  formData.prizePoolTotal
-                } GP) divided by the ${Math.max(formData.numOfTeams, 1)} specified teams.`}
+                  1e6
+                ).toFixed(1)}M GP.`}
               />
               <NumberInput
                 value={formData.prizePoolTotal}
@@ -502,19 +443,20 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </NumberInput>
               <Text fontSize="xs" color="gray.400" mt={1}>
                 Per team goal:{' '}
-                {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1000000).toFixed(1)}M
-                GP • Your pool: {(formData.prizePoolTotal / 1000000).toFixed(1)} M GP • Maximum
-                pool: {(MAX_GP / 1000000000).toFixed(0)}B
+                {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1e6).toFixed(1)}M GP
+                • Total: {(formData.prizePoolTotal / 1e6).toFixed(1)}M GP • Max:{' '}
+                {(MAX_GP / 1e9).toFixed(0)}B GP
               </Text>
             </FormControl>
 
+            {/* Teams + players */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="Number of Teams"
-                  tooltip={`How many teams will compete. Max: ${getMaxTeams()} teams with ${
+                  tooltip={`How many teams will compete. Max ${getMaxTeams()} with ${
                     formData.playersPerTeam
-                  } players each`}
+                  } players each.`}
                 />
                 <NumberInput
                   value={formData.numOfTeams}
@@ -525,13 +467,12 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   <NumberInputField {...inputStyles} />
                 </NumberInput>
               </FormControl>
-
               <FormControl isRequired>
                 <LabelWithTooltip
                   label="Players per Team"
-                  tooltip={`Team size affects map generation. Max: ${getMaxPlayersPerTeam()} players on each of the allocated ${
+                  tooltip={`Max ${getMaxPlayersPerTeam()} players across ${
                     formData.numOfTeams
-                  } teams`}
+                  } teams.`}
                 />
                 <NumberInput
                   value={formData.playersPerTeam}
@@ -544,7 +485,6 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               </FormControl>
             </SimpleGrid>
 
-            {/* Total Players Counter */}
             <Text
               fontSize="sm"
               color={totalPlayers > MAX_TOTAL_PLAYERS ? 'red.400' : 'gray.400'}
@@ -554,10 +494,11 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               {totalPlayers > MAX_TOTAL_PLAYERS && ' ⚠️ Exceeds maximum!'}
             </Text>
 
+            {/* Nodes per inn */}
             <FormControl isRequired>
               <LabelWithTooltip
                 label="Nodes per Inn"
-                tooltip={`How many objective nodes between each Inn checkpoint. Range: ${MIN_NODES_PER_INN}-${MAX_NODES_PER_INN}. Lower = more trading opportunities.`}
+                tooltip={`How many objective nodes between each Inn checkpoint. Range: ${MIN_NODES_PER_INN}–${MAX_NODES_PER_INN}. Lower = more trading opportunities.`}
               />
               <NumberInput
                 value={formData.nodeToInnRatio}
@@ -568,11 +509,11 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 <NumberInputField {...inputStyles} />
               </NumberInput>
               <Text fontSize="xs" color="gray.400" mt={1}>
-                Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN} nodes per Inn
+                Range: {MIN_NODES_PER_INN}–{MAX_NODES_PER_INN} nodes per Inn
               </Text>
             </FormControl>
 
-            {/* Map Preview Stats */}
+            {/* Map preview */}
             <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
               <Text fontSize="sm" fontWeight="bold" color="white">
                 📊 Map Preview (Per Team)
@@ -581,57 +522,19 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 <VStack spacing={0}>
                   <Text color="gray.400">Player Hours</Text>
                   <Text fontWeight="bold" color="white">
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      return Math.round(
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay
-                      );
-                    })()}
-                    h
+                    {stats ? `${stats.totalHours}h` : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.400">Total Locations</Text>
                   <Text fontWeight="bold" color="white">
-                    ~
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      const totalHours =
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
-                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
-                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
-                      const locationGroups = Math.ceil(nodesNeeded / 3);
-                      return locationGroups;
-                    })()}
+                    ~{stats ? stats.locations : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.400">Inns</Text>
                   <Text fontWeight="bold" color="white">
-                    ~
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      const totalHours =
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
-                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
-                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
-                      const locationGroups = Math.ceil(nodesNeeded / 3);
-                      return Math.floor(locationGroups / formData.nodeToInnRatio);
-                    })()}
+                    ~{stats ? stats.inns : '?'}
                   </Text>
                 </VStack>
               </SimpleGrid>

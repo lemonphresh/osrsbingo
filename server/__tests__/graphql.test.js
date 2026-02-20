@@ -333,7 +333,12 @@ describe('TreasureHunt Queries', () => {
         getTreasureTeam(eventId: $eventId, teamId: $teamId) {
           teamId
           teamName
-          members
+          members {
+            discordUserId
+            discordUsername
+            discordAvatar
+            username
+          }
           currentPot
           keysHeld
           completedNodes
@@ -762,7 +767,12 @@ describe('TreasureHunt Mutations', () => {
         createTreasureTeam(eventId: $eventId, input: $input) {
           teamId
           teamName
-          members
+          members {
+            discordUserId
+            discordUsername
+            discordAvatar
+            username
+          }
           currentPot
         }
       }
@@ -946,6 +956,23 @@ describe('TreasureHunt Mutations', () => {
     `);
     expect(result.valid).toBe(true);
   });
+});
+
+test('VISIT_INN', () => {
+  const result = validateOperation(`
+      mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+        visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+          teamId
+          completedNodes
+          availableNodes
+          currentPot
+          keysHeld
+          activeBuffs
+          innTransactions
+        }
+      }
+    `);
+  expect(result.valid).toBe(true);
 });
 
 // ============================================================

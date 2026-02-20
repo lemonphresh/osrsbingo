@@ -34,11 +34,26 @@ const totalFormValidation = (values, hasAcknowledged) =>
   values.username?.length !== 0 &&
   hasAcknowledged;
 
+const HelperText = ({ text }) => (
+  <FormHelperText color={theme.colors.gray[400]}>
+    <InfoIcon
+      color={theme.colors.green[400]}
+      marginX="8px"
+      marginBottom="4px"
+      height="14px"
+      width="14px"
+    />
+    {text}
+  </FormHelperText>
+);
+
 const SignUp = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
   const [hasAcknowledgedPassword, setHasAcknowledgedPassword] = useState(false);
+
+  usePageTitle('Sign Up');
 
   const [createUser, { loading }] = useMutation(CREATE_USER, {
     onCompleted: (data) => {
@@ -78,12 +93,18 @@ const SignUp = () => {
     }
   );
 
-  const passwordError = useCallback(
+  const passwordsMatch = useCallback(
     () => validatePasswords(values.password, values.confirmedPassword),
     [values.password, values.confirmedPassword]
   );
 
-  usePageTitle('Sign Up');
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && totalFormValidation(values, hasAcknowledgedPassword)) {
+      onSubmit(e);
+    }
+  };
+
+  const isValid = totalFormValidation(values, hasAcknowledgedPassword);
 
   return (
     <Flex
@@ -101,50 +122,36 @@ const SignUp = () => {
         maxWidth="525px"
         width="100%"
       >
-        <form
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gridGap: '16px',
-            justifyContent: 'center',
-            width: '100%',
-          }}
-        >
-          <GemTitle>Get Started</GemTitle>
-          <Text>
-            Already have an account?{' '}
-            <NavLink to="/login">
-              <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
-                Log in here
-              </span>
-              .
-            </NavLink>
-          </Text>
-          <Flex
-            backgroundColor={theme.colors.gray[300]}
-            height="2px"
-            marginBottom="24px"
-            width="100%"
-          />
+        <GemTitle>Get Started</GemTitle>
+        <Text mt={2}>
+          Already have an account?{' '}
+          <NavLink to="/login">
+            <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
+              Log in here
+            </span>
+          </NavLink>
+          .
+        </Text>
 
+        <Flex backgroundColor={theme.colors.gray[300]} height="2px" marginY="24px" width="100%" />
+
+        <Flex flexDirection="column" gap="16px" width="100%">
           {errors.map((error) => (
             <Alert
               backgroundColor={theme.colors.pink[100]}
               borderRadius="8px"
-              key={error.message + 'a'}
-              marginY="16px"
+              key={error}
               textAlign="center"
             >
               <Text color={theme.colors.pink[500]}>
                 <WarningIcon
-                  alignSelf={['flex-start', undefined]}
                   color={theme.colors.pink[500]}
                   marginRight="8px"
-                  marginBottom="4px"
+                  marginBottom="2px"
                   height="14px"
                   width="14px"
                 />
-                {error.message}
+                {error}
               </Text>
             </Alert>
           ))}
@@ -158,18 +165,16 @@ const SignUp = () => {
             overflow="hidden"
             boxShadow="0 4px 12px rgba(244, 211, 94, 0.3)"
           >
-            {/* Decorative shield icon background */}
             <Box
               position="absolute"
               right="30px"
               top="50%"
               transform="translateY(-50%)"
               opacity={0.15}
-              fontSize="80px"
+              fontSize="160px"
             >
               🛡️
             </Box>
-
             <VStack align="stretch" spacing={3} position="relative" zIndex={1}>
               <HStack spacing={3}>
                 <Box backgroundColor="rgba(0,0,0,0.15)" borderRadius="full" padding="8px">
@@ -179,18 +184,15 @@ const SignUp = () => {
                   Write Down Your Password!
                 </Text>
               </HStack>
-
               <Text color="#1F271B" fontSize="sm" lineHeight="1.6">
                 <strong>There is no password recovery.</strong> We intentionally do not collect
                 emails to protect your OSRS account credentials from potential data breaches.
                 Everything is encrypted, so Lemon The Dev can't recover it either.
               </Text>
-
               <Box backgroundColor="rgba(0,0,0,0.1)" borderRadius="8px" padding="12px">
                 <Text color="#1F271B" fontSize="sm" fontWeight="medium">
-                  Tip: Use a password manager or write it somewhere safe. If you forget your
-                  password, you'll need to create a new account, and potentially lose all your
-                  boards!
+                  Use a password manager or write it somewhere safe. If you forget, you'll need a
+                  new account and could lose your boards.
                 </Text>
               </Box>
             </VStack>
@@ -200,25 +202,18 @@ const SignUp = () => {
             <FormLabel>Username</FormLabel>
             <Input
               autoComplete="username"
+              autoFocus
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
               maxLength={16}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="username"
               type="text"
             />
-            <FormHelperText color={theme.colors.gray[400]}>
-              <InfoIcon
-                alignSelf={['flex-start', undefined]}
-                color={theme.colors.green[400]}
-                marginX="8px"
-                marginBottom="4px"
-                height="14px"
-                width="14px"
-              />
-              Enter a username. (Max length of 16 characters.)
-            </FormHelperText>
+            <HelperText text="Max 16 characters." />
           </FormControl>
+
           <FormControl isInvalid={values.displayName?.length === 0} isRequired>
             <FormLabel>Display Name</FormLabel>
             <Input
@@ -226,87 +221,67 @@ const SignUp = () => {
               color={theme.colors.gray[700]}
               maxLength={16}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="displayName"
               type="text"
             />
-            <FormHelperText color={theme.colors.gray[400]}>
-              <InfoIcon
-                alignSelf={['flex-start', undefined]}
-                color={theme.colors.green[400]}
-                marginX="8px"
-                marginBottom="4px"
-                height="14px"
-                width="14px"
-              />
-              Enter a PUBLIC display name. (Max length of 16 characters.)
-            </FormHelperText>
+            <HelperText text="This is shown publicly. Max 16 characters." />
           </FormControl>
-          <FormControl isInvalid={values.RSN?.length === 0}>
-            <FormLabel>RSN</FormLabel>
+
+          <FormControl>
+            <FormLabel>
+              RSN{' '}
+              <Text as="span" fontSize="sm" color={theme.colors.gray[400]}>
+                (optional)
+              </Text>
+            </FormLabel>
             <Input
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
               maxLength={16}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="rsn"
               type="text"
             />
-            <FormHelperText color={theme.colors.gray[400]}>
-              <InfoIcon
-                alignSelf={['flex-start', undefined]}
-                color={theme.colors.green[400]}
-                marginX="8px"
-                marginBottom="4px"
-                height="14px"
-                width="14px"
-              />
-              Enter your RSN. (Optional, but helpful.)
-            </FormHelperText>
+            <HelperText text="Your in-game name. Helpful but not required." />
           </FormControl>
-          <FormControl isInvalid={passwordError() && values.password?.length === 0} isRequired>
+
+          <FormControl isInvalid={!passwordsMatch() && values.password?.length > 0} isRequired>
             <FormLabel>Password</FormLabel>
             <Input
               autoComplete="new-password"
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
-              defaultValue={values.password}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="password"
               type="password"
             />
-            {!passwordError() && values.password?.length === 0 ? (
-              <FormHelperText color={theme.colors.gray[400]}>Enter your password.</FormHelperText>
-            ) : (
-              <FormErrorMessage>Passwords must match.</FormErrorMessage>
-            )}
+            <FormErrorMessage>Passwords must match.</FormErrorMessage>
           </FormControl>
+
           <FormControl
-            isInvalid={passwordError() && values.confirmedPassword?.length === 0}
+            isInvalid={!passwordsMatch() && values.confirmedPassword?.length > 0}
             isRequired
           >
-            <FormLabel>Confirm password</FormLabel>
+            <FormLabel>Confirm Password</FormLabel>
             <Input
               autoComplete="new-password"
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
-              defaultValue={values.confirmedPassword}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="confirmedPassword"
               type="password"
             />
-            {!passwordError() && values.confirmedPassword?.length === 0 ? (
-              <FormHelperText color={theme.colors.gray[400]}>
-                Re-enter your password.
-              </FormHelperText>
-            ) : (
-              <FormErrorMessage>Passwords must match.</FormErrorMessage>
-            )}
+            <FormErrorMessage>Passwords must match.</FormErrorMessage>
           </FormControl>
 
           {/* Acknowledgment Checkbox */}
           <Box
             backgroundColor={
-              hasAcknowledgedPassword ? 'rgba(255,255,255, 0.8)' : theme.colors.gray[200]
+              hasAcknowledgedPassword ? 'rgba(255,255,255,0.8)' : theme.colors.gray[200]
             }
             borderRadius="8px"
             borderWidth="2px"
@@ -322,42 +297,31 @@ const SignUp = () => {
               size="lg"
             >
               <Text fontSize="sm" color={theme.colors.gray[600]} marginLeft="8px">
-                I understand there is <strong>no password recovery</strong> and I have saved my
+                I understand there is <strong>no password recovery</strong> and I've saved my
                 password somewhere safe.
               </Text>
             </Checkbox>
           </Box>
 
-          {loading && errors.length === 0 && (
-            <Flex alignSelf="center" gridGap="16px" justifySelf="center">
-              Loading
-            </Flex>
-          )}
           <Button
             alignSelf="center"
             backgroundColor={theme.colors.green[200]}
-            color={
-              !totalFormValidation(values, hasAcknowledgedPassword)
-                ? theme.colors.gray[400]
-                : theme.colors.gray[700]
-            }
-            disabled={!totalFormValidation(values, hasAcknowledgedPassword)}
+            color={isValid ? theme.colors.gray[700] : theme.colors.gray[400]}
+            isDisabled={!isValid}
+            isLoading={loading}
+            loadingText="Creating account..."
             onClick={(e) => {
-              if (totalFormValidation(values, hasAcknowledgedPassword)) {
-                onSubmit(e);
-              }
+              if (isValid) onSubmit(e);
             }}
-            marginTop="24px"
+            marginTop="8px"
             width={['100%', '250px']}
             _hover={{
-              backgroundColor: totalFormValidation(values, hasAcknowledgedPassword)
-                ? theme.colors.green[300]
-                : theme.colors.green[200],
+              backgroundColor: isValid ? theme.colors.green[300] : theme.colors.green[200],
             }}
           >
             Sign Up
           </Button>
-        </form>
+        </Flex>
       </Section>
     </Flex>
   );

@@ -28,39 +28,40 @@ import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
 import usePageTitle from '../hooks/usePageTitle';
 
-const validatePassword = (pass) => !!pass && pass.length >= 4;
-
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [errors, setErrors] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   usePageTitle('Log In');
 
   const [loginUser, { data, error }] = useMutation(LOGIN_USER);
 
   const { onChange, onSubmit, values } = useForm(
     () => {
+      setIsLoading(true);
       loginUser({
         variables: { username: values.username, password: values.password },
       });
     },
-    {
-      username: null,
-      password: null,
-    }
+    { username: null, password: null }
   );
 
   useEffect(() => {
+    setIsLoading(false);
     if (error) {
       setErrors([{ message: error.message }]);
     }
     if (data) {
       localStorage.setItem('authToken', data.loginUser.token);
-
       login(data.loginUser);
       navigate(`/user/${data.loginUser.user.id}`);
     }
   }, [data, error, login, navigate]);
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') onSubmit(e);
+  };
 
   return (
     <Flex
@@ -78,71 +79,70 @@ const Login = () => {
         maxWidth="525px"
         width="100%"
       >
-        <form
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gridGap: '16px',
-            justifyContent: 'center',
-            width: '100%',
-          }}
-        >
-          <GemTitle>Welcome back!</GemTitle>
-          {errors.map((error) => (
+        <GemTitle>Welcome back!</GemTitle>
+
+        <Flex flexDirection="column" gap="16px" width="100%" mt={4}>
+          {errors.map((err) => (
             <Alert
               backgroundColor={theme.colors.pink[100]}
               borderRadius="8px"
-              key={error.message}
-              marginY="16px"
+              key={err.message}
               textAlign="center"
             >
               <Text color={theme.colors.pink[500]}>
                 <WarningIcon
-                  alignSelf={['flex-start', undefined]}
                   color={theme.colors.pink[500]}
                   marginRight="8px"
-                  marginBottom="4px"
+                  marginBottom="2px"
                   height="14px"
                   width="14px"
                 />
-                {error.message}
+                {err.message}
               </Text>
             </Alert>
           ))}
+
           <FormControl isInvalid={values.username?.length === 0} isRequired>
             <FormLabel>Username</FormLabel>
             <Input
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="username"
               type="text"
+              autoFocus
             />
           </FormControl>
+
           <FormControl isRequired>
             <FormLabel>Password</FormLabel>
             <Input
-              autoComplete="password"
+              autoComplete="current-password"
               backgroundColor={theme.colors.gray[300]}
               color={theme.colors.gray[700]}
               defaultValue={values.password}
               onChange={onChange}
+              onKeyDown={handleKeyDown}
               name="password"
               type="password"
             />
           </FormControl>
+
           <Button
             alignSelf="center"
             backgroundColor={theme.colors.green[200]}
-            marginTop="24px"
+            isLoading={isLoading}
+            loadingText="Logging in..."
+            marginTop="8px"
             onClick={onSubmit}
             width={['100%', '250px']}
           >
             Log In
           </Button>
-        </form>
+        </Flex>
 
-        {/* Forgot Password Accordion */}
+        {/* Forgot Password */}
         <Accordion allowToggle width="100%" mt={6}>
           <AccordionItem border="none">
             <AccordionButton px={0} _hover={{ bg: 'transparent' }} justifyContent="center">
@@ -167,17 +167,11 @@ const Login = () => {
                     </Text>
                   </Flex>
                   <Text fontSize="sm" color={theme.colors.gray[600]} lineHeight="1.6">
-                    Passwords are fully encrypted and can't be recovered—not even by me. I also
+                    Passwords are fully encrypted and can't be recovered — not even by me. I also
                     don't collect emails (on purpose!) to protect your data from breaches, so
-                    implementing a password recovery feature isn't an option. This is a feature, not
-                    a bug. 🔒
+                    password recovery isn't an option. This is a feature, not a bug. 🔒
                   </Text>
-                  <Text
-                    fontSize="sm"
-                    color={theme.colors.gray[600]}
-                    lineHeight="1.6"
-                    fontWeight="medium"
-                  >
+                  <Text fontSize="sm" color={theme.colors.gray[600]} fontWeight="medium">
                     Your options:
                   </Text>
                   <VStack align="start" spacing={1} pl={2}>
@@ -192,13 +186,13 @@ const Login = () => {
                         color={theme.colors.green[500]}
                         textDecoration="underline"
                       >
-                        @buttlid on the Eternal Gems Discord server
+                        @buttlid on the Eternal Gems Discord
                       </ChakraLink>{' '}
-                      to delete the old account. There's a ticket system in place :)
+                      to delete the old account — there's a ticket system in place. :)
                     </Text>
                   </VStack>
                   <Text fontSize="xs" color={theme.colors.gray[500]} fontStyle="italic" pt={1}>
-                    Sorry for the inconvenience, but your security is really important to me.
+                    Sorry for the inconvenience. Your security really does matter to me.
                   </Text>
                 </VStack>
               </Box>
@@ -209,13 +203,13 @@ const Login = () => {
         <Flex backgroundColor={theme.colors.gray[300]} height="2px" marginTop="24px" width="100%" />
 
         <Text marginTop="16px">
-          New here? Go to{' '}
+          New here?{' '}
           <NavLink to="/signup">
             <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
-              the sign up page
+              Create an account
             </span>
-            .
           </NavLink>
+          .
         </Text>
       </Section>
     </Flex>

@@ -65,8 +65,8 @@ export default function EditTeamModal({
     existingTeams.forEach((t) => {
       if (t.teamId === team?.teamId) return;
 
-      t.members?.forEach((memberId) => {
-        memberMap.set(memberId, t.teamName);
+      t.members?.forEach((member) => {
+        memberMap.set(member.discordUserId, t.teamName);
       });
     });
     return memberMap;
@@ -89,7 +89,7 @@ export default function EditTeamModal({
       setFormData({
         teamName: team.teamName || '',
         discordRoleId: team.discordRoleId || '',
-        members: team.members && team.members.length > 0 ? team.members : [''],
+        members: team.members?.length > 0 ? team.members.map((m) => m.discordUserId) : [''],
       });
     }
   }, [team]);
@@ -253,18 +253,23 @@ export default function EditTeamModal({
                 </AccordionItem>
               </Accordion>
               <VStack spacing={3} align="stretch">
-                {formData.members.map((member, index) => (
-                  <DiscordMemberInput
-                    key={index}
-                    value={member}
-                    onChange={(newValue) => handleMemberChange(index, newValue)}
-                    onRemove={() => handleRemoveMember(index)}
-                    showRemove={formData.members.length > 1}
-                    colorMode="dark"
-                    conflictTeam={getMemberConflict(member)}
-                    isDuplicateInForm={getDuplicateInForm(member, index)}
-                  />
-                ))}
+                {formData.members.map((memberId, index) => {
+                  const resolvedMember = team?.members?.find((m) => m.discordUserId === memberId);
+
+                  return (
+                    <DiscordMemberInput
+                      key={index}
+                      value={memberId}
+                      onChange={(newValue) => handleMemberChange(index, newValue)}
+                      onRemove={() => handleRemoveMember(index)}
+                      showRemove={formData.members.length > 1}
+                      colorMode="dark"
+                      conflictTeam={getMemberConflict(memberId)}
+                      isDuplicateInForm={getDuplicateInForm(memberId, index)}
+                      resolvedUser={resolvedMember}
+                    />
+                  );
+                })}
                 <Button
                   leftIcon={<AddIcon />}
                   size="sm"

@@ -126,8 +126,10 @@ async function isEventAdmin(userId, eventId) {
 async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
   if (!discordUserId) return false;
   const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
-  if (!team) return false;
-  return team.members?.includes(discordUserId);
+  if (!team || !team.members) return false;
+
+  // Convert both to strings for comparison (Discord IDs can be numbers or strings)
+  return team.members.some((memberId) => memberId.toString() === discordUserId.toString());
 }
 
 async function isWebUserOnTeam(userId, teamId, eventId) {
@@ -142,10 +144,12 @@ async function canPerformTeamAction(context, teamId, eventId) {
     const isAdmin = await isEventAdmin(context.user.id, eventId);
     if (isAdmin) return { authorized: true, reason: 'admin' };
   }
-  if (context.discordUserId) {
-    const isOnTeam = await isDiscordUserOnTeam(context.discordUserId, teamId, eventId);
+  if (context.user?.discordUserId) {
+    const isOnTeam = await isDiscordUserOnTeam(context.user.discordUserId, teamId, eventId);
     if (isOnTeam) return { authorized: true, reason: 'discord_member' };
   }
+
+  // fallback: check if web user is directly on team (without Discord)
   if (context.user) {
     const isOnTeam = await isWebUserOnTeam(context.user.id, teamId, eventId);
     if (isOnTeam) return { authorized: true, reason: 'linked_member' };
@@ -569,6 +573,53 @@ const TreasureHuntResolvers = {
       return submission;
     },
 
+    visitInn: async (_, { eventId, teamId, nodeId }, context) => {
+      const authCheck = await canPerformTeamAction(context, teamId, eventId);
+      if (!authCheck.authorized) {
+        throw new Error('Not authorized. You must be a member of this team.');
+      }
+
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findByPk(nodeId),
+      ]);
+
+      if (!event) throw new Error('Event not found');
+      if (!team) throw new Error('Team not found');
+      if (!node || node.eventId !== eventId) throw new Error('Node not found');
+      if (node.nodeType !== 'INN') throw new Error('This node is not an Inn');
+      if (!team.availableNodes?.includes(nodeId))
+        throw new Error('This inn is not available to your team');
+      if (team.completedNodes?.includes(nodeId)) throw new Error('Inn already visited');
+
+      const completedNodes = [...(team.completedNodes || []), nodeId];
+      const availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+
+      // Unlock any nodes the inn unlocks
+      if (node.unlocks?.length > 0) {
+        node.unlocks.forEach((unlockedNodeId) => {
+          if (
+            !availableNodes.includes(unlockedNodeId) &&
+            !completedNodes.includes(unlockedNodeId)
+          ) {
+            availableNodes.push(unlockedNodeId);
+          }
+        });
+      }
+
+      await team.update({ completedNodes, availableNodes });
+
+      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
+        innId: nodeId,
+        innName: node.title,
+        visitedBy: context.user?.id || 'unknown',
+      });
+
+      await team.reload();
+      return team;
+    },
+
     adminCompleteNode: async (_, { eventId, teamId, nodeId, congratsMessage }, context) => {
       if (!context.user) throw new Error('Not authenticated');
 
@@ -767,13 +818,22 @@ const TreasureHuntResolvers = {
       const filteredKeys = keysHeld.filter((k) => k.quantity > 0);
 
       let activeBuffs = [...(team.activeBuffs || [])];
+      const returnedBuffs = [];
+      const consumedBuffs = []; // buffs that were already used — can't be returned
+
       if (node.rewards?.buffs?.length > 0) {
         node.rewards.buffs.forEach((buffReward) => {
           const buffIndex = activeBuffs.findIndex(
             (buff) => buff.buffType === buffReward.buffType && buff.usesRemaining === buff.maxUses
           );
+
           if (buffIndex !== -1) {
+            returnedBuffs.push(activeBuffs[buffIndex].buffName);
             activeBuffs.splice(buffIndex, 1);
+          } else {
+            // buff was already consumed. note it but don't block the uncomplete
+            consumedBuffs.push(buffReward.buffType);
+            console.log(`  - Buff ${buffReward.buffType} was already used, cannot be returned`);
           }
         });
       }
@@ -821,8 +881,10 @@ const TreasureHuntResolvers = {
       const reducedQuantity = Math.ceil(originalQuantity * (1 - buff.reduction));
       const saved = originalQuantity - reducedQuantity;
 
+      // Update the node with applied buff
       await node.update({
         objective: {
+          ...node.objective, // Preserve any other fields!
           type: node.objective.type,
           target: node.objective.target,
           quantity: reducedQuantity,
@@ -836,12 +898,12 @@ const TreasureHuntResolvers = {
         },
       });
 
-      const updatedBuffs = [...team.activeBuffs];
+      // DEEP COPY the buffs array to avoid mutation issues
+      const updatedBuffs = team.activeBuffs.map((b) => ({ ...b }));
       updatedBuffs[buffIndex].usesRemaining -= 1;
 
-      if (updatedBuffs[buffIndex].usesRemaining <= 0) {
-        updatedBuffs.splice(buffIndex, 1);
-      }
+      // Remove buff if no uses left
+      const finalBuffs = updatedBuffs.filter((b) => b.usesRemaining > 0);
 
       const buffHistory = [
         ...(team.buffHistory || []),
@@ -856,7 +918,37 @@ const TreasureHuntResolvers = {
         },
       ];
 
-      await team.update({ activeBuffs: updatedBuffs, buffHistory });
+      // Use team.set() + team.changed() + team.save() for reliability
+      team.activeBuffs = finalBuffs;
+      team.buffHistory = buffHistory;
+      team.changed('activeBuffs', true);
+      team.changed('buffHistory', true);
+      await team.save();
+
+      try {
+        await pubsub.publish(`TREASURE_ACTIVITY_${eventId}`, {
+          treasureHuntActivity: {
+            id: `buff_applied_${Date.now()}`,
+            eventId,
+            teamId,
+            type: 'buff_applied',
+            data: JSON.stringify({
+              buffName: buff.buffName,
+              buffId: buff.buffId,
+              nodeId,
+              nodeName: node.title,
+              reduction: buff.reduction,
+              savedAmount: saved,
+            }),
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (pubsubError) {
+        console.error('Failed to publish buff applied event:', pubsubError.message);
+      }
+
+      invalidateEventNodes(eventId);
+
       await team.reload();
       return team;
     },
@@ -991,11 +1083,22 @@ const TreasureHuntResolvers = {
       }
 
       team.keysHeld = team.keysHeld.filter((k) => k.quantity > 0);
-
+      team.changed('keysHeld', true);
       const currentPotBigInt = BigInt(team.currentPot || 0);
       const payoutBigInt = BigInt(reward.payout || 0);
       team.currentPot = (currentPotBigInt + payoutBigInt).toString();
-
+      const activeBuffs = [...(team.activeBuffs || [])];
+      if (reward.buffs?.length > 0) {
+        reward.buffs.forEach((buffReward) => {
+          try {
+            activeBuffs.push(createBuff(buffReward.buffType));
+          } catch (err) {
+            console.warn(`Failed to create buff ${buffReward.buffType}:`, err.message);
+          }
+        });
+        team.activeBuffs = activeBuffs;
+        team.changed('activeBuffs', true);
+      }
       team.innTransactions = [
         ...(team.innTransactions || []),
         {
@@ -1003,6 +1106,7 @@ const TreasureHuntResolvers = {
           rewardId: reward.reward_id,
           keysSpent,
           payout: reward.payout,
+          buffsGranted: reward.buffs || [],
           purchasedAt: new Date().toISOString(),
         },
       ];

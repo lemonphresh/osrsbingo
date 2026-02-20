@@ -16,22 +16,27 @@ const BoardCreation = () => {
   usePageTitle('Create Board');
   const [createBingoBoard] = useMutation(CREATE_BOARD, {
     update(cache, { data: { createBingoBoard } }) {
-      const existingData = cache.readQuery({
-        query: GET_USER,
-        variables: { id: user.id },
-      });
-
-      if (existingData) {
-        cache.writeQuery({
+      try {
+        const existingData = cache.readQuery({
           query: GET_USER,
           variables: { id: user.id },
-          data: {
-            getUser: {
-              ...existingData.getUser,
-              bingoBoards: [...existingData.getUser.bingoBoards, createBingoBoard],
-            },
-          },
         });
+
+        if (existingData) {
+          cache.writeQuery({
+            query: GET_USER,
+            variables: { id: user.id },
+            data: {
+              getUser: {
+                ...existingData.getUser,
+                bingoBoards: [...existingData.getUser.bingoBoards, createBingoBoard],
+              },
+            },
+          });
+        }
+      } catch (cacheErr) {
+        // Cache update failing shouldn't block navigation
+        console.warn('Cache update failed:', cacheErr);
       }
     },
   });
@@ -65,9 +70,17 @@ const BoardCreation = () => {
           },
         },
       });
-      navigate(`/boards/${response.data.createBingoBoard.id}`, { state: { isEditMode: true } });
+
+      const boardId = response?.data?.createBingoBoard?.id;
+      if (!boardId) {
+        showToast('Failed to create board.', 'error');
+        return;
+      }
+
       showToast('Board successfully created!', 'success');
+      navigate(`/boards/${boardId}`, { state: { isEditMode: true } });
     } catch (err) {
+      console.error('Board creation error:', err);
       showToast('Failed to create board.', 'error');
     }
   };

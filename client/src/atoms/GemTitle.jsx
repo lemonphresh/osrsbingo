@@ -76,8 +76,9 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
           borderRadius="2px 8px 2px 8px"
         />
         <Heading
-          color={theme.colors.white}
+          color={props.color ? props.color : theme.colors.white}
           fontSize={fontSize}
+          fontFamily="'Raleway', sans-serif"
           wordBreak="break-word"
           position="relative"
           width="fit-content"

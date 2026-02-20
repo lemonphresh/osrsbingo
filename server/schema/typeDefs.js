@@ -304,12 +304,19 @@ const typeDefs = gql`
   # GIELINOR RUSH: TEAMS
   # ============================================================
 
+  type TreasureTeamMember {
+    discordUserId: String!
+    discordUsername: String
+    discordAvatar: String
+    username: String
+  }
+
   type TreasureTeam {
     teamId: ID!
     eventId: ID!
     teamName: String!
     discordRoleId: String
-    members: [String!]
+    members: [TreasureTeamMember!]!
 
     # Progress
     currentPot: String
@@ -576,6 +583,7 @@ const typeDefs = gql`
       nodeId: ID!
       congratsMessage: String
     ): TreasureTeam!
+    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Gielinor Rush: Submissions ---

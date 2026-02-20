@@ -4,25 +4,22 @@ import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/700.css';
 import '@fontsource/raleway/400.css';
 import '@fontsource/raleway/800.css';
-import '@fontsource/roboto/400.css';
 import { ChakraProvider } from '@chakra-ui/react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { setContext } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, split } from '@apollo/client';
 
 import routes from './routes';
 import theme from './theme';
-import AuthProvider from './providers/AuthProvider';
-import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, split } from '@apollo/client';
 import { ToastProvider } from './providers/ToastProvider';
 
 const httpUrl = process.env.REACT_APP_SERVER_URL
   ? `${process.env.REACT_APP_SERVER_URL}/graphql`
   : '/graphql';
 
-// Convert http(s) to ws(s) for WebSocket URL
 const wsUrl = process.env.REACT_APP_SERVER_URL
   ? `${process.env.REACT_APP_SERVER_URL.replace(/^http/, 'ws')}/graphql`
   : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/graphql`;
@@ -51,7 +48,6 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-// Split based on operation type: subscriptions go to WS, everything else to HTTP
 const splitLink = split(
   ({ query }) => {
     const definition = getMainDefinition(query);
@@ -68,18 +64,14 @@ const client = new ApolloClient({
 
 const router = createBrowserRouter(routes);
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-
-root.render(
-  <ApolloProvider client={client}>
-    <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
-      <ToastProvider>
-        <AuthProvider>
-          <React.StrictMode>
-            <RouterProvider router={router} />
-          </React.StrictMode>
-        </AuthProvider>
-      </ToastProvider>
-    </ChakraProvider>
-  </ApolloProvider>
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <ApolloProvider client={client}>
+      <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
+        <ToastProvider>
+          <RouterProvider router={router} />
+        </ToastProvider>
+      </ChakraProvider>
+    </ApolloProvider>
+  </React.StrictMode>
 );

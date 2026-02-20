@@ -1,7 +1,7 @@
 const fonts = {
   body: `'Open Sans', sans-serif`,
   introText: `'Raleway', sans-serif`,
-  heading: `'Open Sans', sans-serif`,
+  heading: `'Raleway', sans-serif`,
   mono: 'Menlo, monospace',
 };
 

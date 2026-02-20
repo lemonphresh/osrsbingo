@@ -25,18 +25,18 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
 
   return (
     <Box
-      bg={colorMode === 'dark' ? 'gray.700' : 'white'}
+      bg={'gray.700'}
       p={6}
       borderRadius="lg"
       borderWidth="1px"
-      borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
+      borderColor={'gray.600'}
       transition="all 0.2s"
       _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
     >
       <Stat>
         <HStack spacing={3} mb={2}>
           <Icon as={icon} color={color} boxSize={5} />
-          <StatLabel color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>{label}</StatLabel>
+          <StatLabel color={'gray.400'}>{label}</StatLabel>
         </HStack>
         {isLoading ? (
           <Skeleton height="36px" width="80px" />
@@ -45,11 +45,7 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
             {value?.toLocaleString()}
           </StatNumber>
         )}
-        {helpText && (
-          <StatHelpText color={colorMode === 'dark' ? 'gray.500' : 'gray.500'}>
-            {helpText}
-          </StatHelpText>
-        )}
+        {helpText && <StatHelpText color={'gray.500'}>{helpText}</StatHelpText>}
       </Stat>
     </Box>
   );
@@ -78,9 +74,7 @@ const StatsPage = () => {
           <GemTitle size="xl" gemColor="purple">
             Site Stats
           </GemTitle>
-          <Text color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-            See what the OSRS Bingo Hub community has been up to
-          </Text>
+          <Text color="gray.400">See what the OSRS Bingo Hub community has been up to</Text>
         </VStack>
 
         {error && (
@@ -137,46 +131,9 @@ const StatsPage = () => {
           />
         </SimpleGrid>
 
-        {/* Completion Rate */}
-        {/* <Section bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'} w="100%">
-          <VStack spacing={4} py={6} px={4}>
-            <Text
-              fontWeight="bold"
-              fontSize="lg"
-              color={colorMode === 'dark' ? 'white' : 'gray.700'}
-            >
-              Global Tile Completion Rate
-            </Text>
-            {loading ? (
-              <Skeleton height="24px" width="100%" maxW="400px" />
-            ) : (
-              <Box w="100%" maxW="400px">
-                <Progress
-                  value={stats?.completionRate || 0}
-                  colorScheme="green"
-                  size="lg"
-                  borderRadius="full"
-                  bg={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-                />
-                <Text textAlign="center" mt={2} fontWeight="bold" color="green.400">
-                  {stats?.completionRate || 0}% of tiles completed
-                </Text>
-              </Box>
-            )}
-            <Text
-              fontSize="sm"
-              color={colorMode === 'dark' ? 'gray.500' : 'gray.500'}
-              textAlign="center"
-            >
-              That's {stats?.completedTiles?.toLocaleString() || 0} tiles completed across all
-              boards!
-            </Text>
-          </VStack>
-        </Section> */}
-
         {/* Fun Footer */}
         <Box textAlign="center" py={4}>
-          <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.500' : 'gray.500'}>
+          <Text fontSize="sm" color={'gray.500'}>
             Stats refresh every 5 minutes. Keep grinding! 🎮
           </Text>
         </Box>

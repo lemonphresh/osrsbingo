@@ -28,7 +28,12 @@ import { useToastContext } from '../../providers/ToastProvider';
 import ContentSelectionModal from './ContentSelectionModal';
 import { InfoIcon, WarningIcon, CheckCircleIcon } from '@chakra-ui/icons';
 import { FaMap, FaUsers, FaUserFriends, FaDiscord, FaCalendarCheck } from 'react-icons/fa';
-import { dateInputToISO, toDateInputValue, getTodayInputValue } from '../../utils/dateUtils';
+import {
+  dateTimeInputToISO,
+  toDateTimeInputValue,
+  getTodayDateTimeInputValue,
+  getViewerTimezone,
+} from '../../utils/dateUtils';
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000;
@@ -46,6 +51,8 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const [contentSelections, setContentSelections] = useState(null);
 
   const isEditable = event?.status === 'DRAFT';
+  const today = getTodayDateTimeInputValue();
+  const viewerTZ = getViewerTimezone();
 
   const [formData, setFormData] = useState({
     eventName: '',
@@ -60,27 +67,50 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     estimatedHoursPerPlayerPerDay: 3,
   });
 
-  const today = getTodayInputValue();
+  useEffect(() => {
+    if (event) {
+      setFormData({
+        eventName: event.eventName || '',
+        status: event.status || 'DRAFT',
+        startDate: toDateTimeInputValue(event.startDate),
+        endDate: toDateTimeInputValue(event.endDate),
+        prizePoolTotal: event.eventConfig?.prize_pool_total || 0,
+        numOfTeams: event.eventConfig?.num_of_teams || 0,
+        playersPerTeam: event.eventConfig?.players_per_team || 0,
+        nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
+        difficulty: event.eventConfig?.difficulty || 'normal',
+        estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 3,
+      });
+      setContentSelections(event.contentSelections || null);
+    }
+  }, [event]);
 
   const getMaxEndDate = () => {
     if (!formData.startDate) return '';
-    const startDate = new Date(formData.startDate);
-    const maxEndDate = new Date(startDate);
-    maxEndDate.setDate(maxEndDate.getDate() + MAX_EVENT_DURATION_DAYS);
-    return maxEndDate.toISOString().split('T')[0];
+    const start = new Date(formData.startDate);
+    const max = new Date(start);
+    max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+    return toDateTimeInputValue(max.toISOString());
   };
 
   const getEventDuration = () => {
     if (!formData.startDate || !formData.endDate) return 0;
-    const start = new Date(formData.startDate);
-    const end = new Date(formData.endDate);
-    const diffTime = Math.abs(end - start);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return Math.ceil(
+      (new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24)
+    );
   };
 
   const eventDuration = getEventDuration();
   const maxEndDate = getMaxEndDate();
+  const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
 
+  const getMaxTeams = () =>
+    formData.playersPerTeam === 0 ? 200 : Math.floor(MAX_TOTAL_PLAYERS / formData.playersPerTeam);
+
+  const getMaxPlayersPerTeam = () =>
+    formData.numOfTeams === 0 ? 200 : Math.floor(MAX_TOTAL_PLAYERS / formData.numOfTeams);
+
+  // ─── Launch readiness checks ───────────────────────────────────────────────
   const launchChecks = useMemo(() => {
     if (!event) return { allPassed: false, checks: [] };
 
@@ -92,16 +122,12 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     const hasEnoughTeams = teamCount >= requiredTeamCount;
 
     const teamsWithInsufficientMembers =
-      event.teams?.filter((team) => {
-        const memberCount = team.members?.length || 0;
-        return memberCount < requiredPlayersPerTeam;
-      }) || [];
+      event.teams?.filter((t) => (t.members?.length || 0) < requiredPlayersPerTeam) || [];
     const allTeamsHaveEnoughMembers = teamCount > 0 && teamsWithInsufficientMembers.length === 0;
 
     const hasDiscord = event.discordConfig?.confirmed === true;
-    const hasStartDate = !!event.startDate || !!formData.startDate;
-    const hasEndDate = !!event.endDate || !!formData.endDate;
-    const hasDates = hasStartDate && hasEndDate;
+    const hasDates =
+      (!!event.startDate || !!formData.startDate) && (!!event.endDate || !!formData.endDate);
 
     const checks = [
       {
@@ -118,7 +144,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         icon: FaUsers,
         message: hasEnoughTeams
           ? `${teamCount}/${requiredTeamCount} teams`
-          : `${teamCount}/${requiredTeamCount} teams (need ${requiredTeamCount - teamCount} more)`,
+          : `${teamCount}/${requiredTeamCount} (need ${requiredTeamCount - teamCount} more)`,
       },
       {
         key: 'members',
@@ -155,69 +181,34 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
   const canSetActive = launchChecks.allPassed;
   const shouldBeLockedOut = IS_DEV && event?.status === 'DRAFT' && !canSetActive;
 
-  useEffect(() => {
-    if (event) {
-      setFormData({
-        eventName: event.eventName || '',
-        status: event.status || 'DRAFT',
-        startDate: toDateInputValue(event.startDate),
-        endDate: toDateInputValue(event.endDate),
-        prizePoolTotal: event.eventConfig?.prize_pool_total || 0,
-        numOfTeams: event.eventConfig?.num_of_teams || 0,
-        playersPerTeam: event.eventConfig?.players_per_team || 0,
-        nodeToInnRatio: event.eventConfig?.node_to_inn_ratio || 5,
-        difficulty: event.eventConfig?.difficulty || 'normal',
-        estimatedHoursPerPlayerPerDay: event.eventConfig?.estimated_hours_per_player_per_day || 3,
-      });
-      setContentSelections(event.contentSelections || null);
-    }
-  }, [event]);
-
   const [updateEvent, { loading }] = useMutation(UPDATE_TREASURE_EVENT, {
     onCompleted: () => {
       showToast('Event updated successfully!', 'success');
       if (onSuccess) onSuccess();
       onClose();
     },
-    onError: (error) => {
-      showToast(`Error updating event: ${error.message}`, 'error');
-    },
+    onError: (err) => showToast(`Error updating event: ${err.message}`, 'error'),
   });
 
   const handleSaveContentSelections = async (selections) => {
     try {
       setContentSelections(selections);
       await updateEvent({
-        variables: {
-          eventId: event.eventId,
-          input: { contentSelections: selections },
-        },
+        variables: { eventId: event.eventId, input: { contentSelections: selections } },
       });
       showToast('Content selection updated!', 'success');
       setShowContentModal(false);
-    } catch (error) {
-      console.error('Error updating content selections:', error);
+    } catch (err) {
+      console.error('Error updating content selections:', err);
     }
-  };
-
-  const totalPlayers = formData.numOfTeams * formData.playersPerTeam;
-
-  const getMaxTeams = () => {
-    if (formData.playersPerTeam === 0) return 200;
-    return Math.floor(MAX_TOTAL_PLAYERS / formData.playersPerTeam);
-  };
-
-  const getMaxPlayersPerTeam = () => {
-    if (formData.numOfTeams === 0) return 200;
-    return Math.floor(MAX_TOTAL_PLAYERS / formData.numOfTeams);
   };
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => {
-      const newData = { ...prev, [field]: value };
+      const next = { ...prev, [field]: value };
 
       if (field === 'prizePoolTotal' && value > MAX_GP) {
-        showToast(`Maximum prize pool is ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'warning');
+        showToast(`Maximum prize pool is ${(MAX_GP / 1e9).toFixed(0)}B GP`, 'warning');
         return { ...prev, prizePoolTotal: MAX_GP };
       }
 
@@ -227,46 +218,42 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       }
 
       if (field === 'endDate' && prev.startDate) {
-        const start = new Date(prev.startDate);
-        const end = new Date(value);
-        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        if (diffDays > MAX_EVENT_DURATION_DAYS) {
+        const diff = Math.ceil(
+          (new Date(value) - new Date(prev.startDate)) / (1000 * 60 * 60 * 24)
+        );
+        if (diff > MAX_EVENT_DURATION_DAYS) {
           showToast(`Maximum event duration is ${MAX_EVENT_DURATION_DAYS} days`, 'warning');
-          const maxDate = new Date(start);
-          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
-          return { ...prev, endDate: maxDate.toISOString().split('T')[0] };
+          const max = new Date(prev.startDate);
+          max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+          return { ...prev, endDate: toDateTimeInputValue(max.toISOString()) };
         }
       }
 
       if (field === 'startDate' && prev.endDate) {
-        const start = new Date(value);
-        const end = new Date(prev.endDate);
-        const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-        if (diffDays > MAX_EVENT_DURATION_DAYS) {
-          const maxDate = new Date(start);
-          maxDate.setDate(maxDate.getDate() + MAX_EVENT_DURATION_DAYS);
-          return { ...prev, startDate: value, endDate: maxDate.toISOString().split('T')[0] };
+        const diff = Math.ceil((new Date(prev.endDate) - new Date(value)) / (1000 * 60 * 60 * 24));
+        if (diff > MAX_EVENT_DURATION_DAYS) {
+          const max = new Date(value);
+          max.setDate(max.getDate() + MAX_EVENT_DURATION_DAYS);
+          return { ...prev, startDate: value, endDate: toDateTimeInputValue(max.toISOString()) };
         }
       }
 
       if (field === 'numOfTeams' || field === 'playersPerTeam') {
-        const newTotalPlayers =
-          field === 'numOfTeams' ? value * newData.playersPerTeam : newData.numOfTeams * value;
-        if (newTotalPlayers > MAX_TOTAL_PLAYERS) {
+        const newTotal =
+          field === 'numOfTeams' ? value * next.playersPerTeam : next.numOfTeams * value;
+        if (newTotal > MAX_TOTAL_PLAYERS) {
           showToast(`Maximum total players is ${MAX_TOTAL_PLAYERS}.`, 'warning');
           if (field === 'numOfTeams') {
-            const maxPlayersPerTeam = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
               numOfTeams: value,
-              playersPerTeam: Math.min(prev.playersPerTeam, maxPlayersPerTeam),
+              playersPerTeam: Math.min(prev.playersPerTeam, Math.floor(MAX_TOTAL_PLAYERS / value)),
             };
           } else {
-            const maxTeams = Math.floor(MAX_TOTAL_PLAYERS / value);
             return {
               ...prev,
               playersPerTeam: value,
-              numOfTeams: Math.min(prev.numOfTeams, maxTeams),
+              numOfTeams: Math.min(prev.numOfTeams, Math.floor(MAX_TOTAL_PLAYERS / value)),
             };
           }
         }
@@ -277,24 +264,19 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         return prev;
       }
 
-      return newData;
+      return next;
     });
   };
 
   const handleUpdateEvent = async () => {
-    const trimmedName = formData.eventName.trim();
-    if (
-      !trimmedName ||
-      trimmedName.length < MIN_EVENT_NAME_LENGTH ||
-      trimmedName.length > MAX_EVENT_NAME_LENGTH
-    ) {
+    const name = formData.eventName.trim();
+    if (!name || name.length < MIN_EVENT_NAME_LENGTH || name.length > MAX_EVENT_NAME_LENGTH) {
       showToast(
-        `Event name must be ${MIN_EVENT_NAME_LENGTH}-${MAX_EVENT_NAME_LENGTH} characters`,
+        `Event name must be ${MIN_EVENT_NAME_LENGTH}–${MAX_EVENT_NAME_LENGTH} characters`,
         'warning'
       );
       return;
     }
-
     if (!formData.startDate || !formData.endDate) {
       showToast('Please select both start and end dates', 'warning');
       return;
@@ -303,52 +285,41 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
 
-    if (isEditable) {
-      const todayStr = new Date(new Date().setHours(0, 0, 0, 0)).toISOString().split('T')[0];
-      if (formData.startDate < todayStr) {
-        showToast('Start date cannot be in the past', 'warning');
-        return;
-      }
+    if (isEditable && start < new Date()) {
+      showToast('Start date cannot be in the past', 'warning');
+      return;
     }
-
     if (end <= start) {
       showToast('End date must be after start date', 'warning');
       return;
     }
-
     const duration = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
     if (duration > MAX_EVENT_DURATION_DAYS) {
       showToast(`Event duration exceeds maximum of ${MAX_EVENT_DURATION_DAYS} days`, 'error');
       return;
     }
-
     if (totalPlayers > MAX_TOTAL_PLAYERS) {
       showToast(`Total players exceeds maximum of ${MAX_TOTAL_PLAYERS}`, 'error');
       return;
     }
-
     if (formData.prizePoolTotal > MAX_GP) {
-      showToast(`Prize pool exceeds maximum of ${(MAX_GP / 1000000000).toFixed(0)}B GP`, 'error');
+      showToast(`Prize pool exceeds maximum of ${(MAX_GP / 1e9).toFixed(0)}B GP`, 'error');
       return;
     }
-
     if (shouldBeLockedOut) {
       showToast('Cannot activate event: complete all launch requirements first', 'error');
       return;
     }
-
-    const startDate = dateInputToISO(formData.startDate, false);
-    const endDate = dateInputToISO(formData.endDate, true);
 
     try {
       await updateEvent({
         variables: {
           eventId: event.eventId,
           input: {
-            eventName: trimmedName,
+            eventName: name,
             status: formData.status,
-            startDate,
-            endDate,
+            startDate: dateTimeInputToISO(formData.startDate),
+            endDate: dateTimeInputToISO(formData.endDate),
             eventConfig: {
               prize_pool_total: formData.prizePoolTotal,
               num_of_teams: formData.numOfTeams,
@@ -362,14 +333,39 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
           },
         },
       });
-    } catch (error) {
-      console.error('Error updating event:', error);
+    } catch (err) {
+      console.error('Error updating event:', err);
     }
   };
 
+  // ─── Shared styles ─────────────────────────────────────────────────────────
+  const inputStyles = {
+    color: 'white',
+    bg: 'gray.700',
+    borderColor: 'gray.600',
+    _hover: { borderColor: 'gray.500' },
+    _focus: { borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' },
+  };
+
+  const mapStats = () => {
+    if (!formData.startDate || !formData.endDate) return null;
+    const days = Math.ceil(
+      (new Date(formData.endDate) - new Date(formData.startDate)) / (1000 * 60 * 60 * 24)
+    );
+    const totalHours = formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
+    const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
+    const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
+    const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
+    const locations = Math.ceil(nodesNeeded / 3);
+    const inns = Math.floor(locations / formData.nodeToInnRatio);
+    return { totalHours: Math.round(totalHours), locations, inns, days };
+  };
+
+  const stats = mapStats();
+
+  // ─── Launch requirements warning ──────────────────────────────────────────
   const LaunchRequirementsWarning = () => {
     if (event?.status !== 'DRAFT' || canSetActive) return null;
-
     return (
       <Alert
         status="warning"
@@ -419,40 +415,37 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 color="orange.300"
                 fontWeight="bold"
                 fontSize="sm"
+                w="full"
+                textAlign="center"
               >
                 ⚠️ Only the event name and status can be modified after publishing.
               </Text>
             )}
 
+            {/* Event name */}
             <FormControl isRequired>
               <FormLabel color="gray.100">
-                Event Name ({MIN_EVENT_NAME_LENGTH}-{MAX_EVENT_NAME_LENGTH} chars)
+                Event Name ({MIN_EVENT_NAME_LENGTH}–{MAX_EVENT_NAME_LENGTH} chars)
               </FormLabel>
               <Input
                 placeholder="My Gielinor Rush"
                 value={formData.eventName}
                 onChange={(e) => handleInputChange('eventName', e.target.value)}
-                color="white"
-                bg="gray.700"
-                borderColor="gray.600"
-                _hover={{ borderColor: 'gray.500' }}
-                _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
                 maxLength={MAX_EVENT_NAME_LENGTH}
+                {...inputStyles}
               />
               <Text fontSize="xs" color="gray.500" mt={1}>
                 {formData.eventName.length}/{MAX_EVENT_NAME_LENGTH}
               </Text>
             </FormControl>
 
+            {/* Status */}
             <FormControl isRequired>
               <FormLabel color="gray.100">Status</FormLabel>
               <Select
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
-                color="white"
-                bg="gray.700"
-                borderColor="gray.600"
-                _hover={{ borderColor: 'gray.500' }}
+                {...inputStyles}
               >
                 <option value="DRAFT" style={{ background: '#2D3748' }}>
                   Draft
@@ -462,14 +455,14 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   disabled={shouldBeLockedOut}
                   style={{ background: '#2D3748' }}
                 >
-                  Active {shouldBeLockedOut ? '(requirements not met)' : ''}
+                  Active{shouldBeLockedOut ? ' (requirements not met)' : ''}
                 </option>
                 <option
                   value="COMPLETED"
                   disabled={shouldBeLockedOut}
                   style={{ background: '#2D3748' }}
                 >
-                  Completed {shouldBeLockedOut ? '(requirements not met)' : ''}
+                  Completed{shouldBeLockedOut ? ' (requirements not met)' : ''}
                 </option>
                 <option value="ARCHIVED" style={{ background: '#2D3748' }}>
                   Archived
@@ -479,38 +472,43 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
             {event?.status === 'DRAFT' && <LaunchRequirementsWarning />}
 
+            {/* Dates */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <FormLabel color="gray.100">Start Date</FormLabel>
+                <HStack justify="space-between" align="center" mb={1}>
+                  <FormLabel color="gray.100" mb={0}>
+                    Start Date & Time
+                  </FormLabel>
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {viewerTZ}
+                  </Text>
+                </HStack>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   min={today}
                   value={formData.startDate}
                   isDisabled={!isEditable}
                   onChange={(e) => handleInputChange('startDate', e.target.value)}
-                  color="white"
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: 'gray.500' }}
-                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                  {...inputStyles}
                 />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel color="gray.100">
-                  End Date • Max: {MAX_EVENT_DURATION_DAYS} days
-                </FormLabel>
+                <HStack justify="space-between" align="center" mb={1}>
+                  <FormLabel color="gray.100" mb={0}>
+                    End Date & Time • Max {MAX_EVENT_DURATION_DAYS}d
+                  </FormLabel>
+                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                    {viewerTZ}
+                  </Text>
+                </HStack>
                 <Input
-                  type="date"
+                  type="datetime-local"
                   min={formData.startDate || today}
                   max={maxEndDate || undefined}
                   value={formData.endDate}
                   isDisabled={!isEditable}
                   onChange={(e) => handleInputChange('endDate', e.target.value)}
-                  color="white"
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: 'gray.500' }}
-                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
+                  {...inputStyles}
                 />
               </FormControl>
             </SimpleGrid>
@@ -527,16 +525,14 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               </Text>
             )}
 
+            {/* Difficulty */}
             <FormControl isRequired>
               <FormLabel color="gray.100">Difficulty Level</FormLabel>
               <Select
                 value={formData.difficulty}
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
-                color="white"
-                bg="gray.700"
-                borderColor="gray.600"
-                _hover={{ borderColor: 'gray.500' }}
                 isDisabled={!isEditable}
+                {...inputStyles}
               >
                 <option value="easy" style={{ background: '#2D3748' }}>
                   Easy (0.8x objectives)
@@ -553,6 +549,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               </Select>
             </FormControl>
 
+            {/* Hours per player */}
             <FormControl isRequired>
               <FormLabel color="gray.100">
                 Est. Hours Per Player Per Day
@@ -563,69 +560,53 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               <NumberInput
                 isDisabled={!isEditable}
                 value={formData.estimatedHoursPerPlayerPerDay}
-                onChange={(_, valueNumber) => {
-                  if (!isNaN(valueNumber))
-                    handleInputChange('estimatedHoursPerPlayerPerDay', valueNumber);
+                onChange={(_, val) => {
+                  if (!isNaN(val)) handleInputChange('estimatedHoursPerPlayerPerDay', val);
                 }}
                 min={0.5}
                 max={12}
                 step={0.5}
               >
-                <NumberInputField
-                  color="white"
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: 'gray.500' }}
-                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
-                />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
-              <HStack spacing={2} mt={2}>
+              <HStack spacing={2} mt={2} flexWrap="wrap">
                 {[
-                  { label: 'Casual (1h)', value: 1 },
-                  { label: 'Average (3h)', value: 3 },
-                  { label: 'Dedicated (6h)', value: 6 },
-                  { label: 'Sweatlord (10h)', value: 10 },
-                ].map((preset) => (
+                  { label: 'Casual (1h)', v: 1 },
+                  { label: 'Average (3h)', v: 3 },
+                  { label: 'Dedicated (6h)', v: 6 },
+                  { label: 'Sweatlord (10h)', v: 10 },
+                ].map((p) => (
                   <Button
-                    key={preset.value}
+                    key={p.v}
                     isDisabled={!isEditable}
                     size="xs"
-                    onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', preset.value)}
-                    variant={
-                      formData.estimatedHoursPerPlayerPerDay === preset.value ? 'solid' : 'outline'
-                    }
+                    onClick={() => handleInputChange('estimatedHoursPerPlayerPerDay', p.v)}
+                    variant={formData.estimatedHoursPerPlayerPerDay === p.v ? 'solid' : 'outline'}
                     colorScheme="purple"
                   >
-                    {preset.label}
+                    {p.label}
                   </Button>
                 ))}
               </HStack>
-              <Text fontSize="xs" color="gray.500" mt={1}>
-                {(() => {
-                  if (!formData.startDate || !formData.endDate)
-                    return 'Select dates to see estimate';
-                  const days = Math.ceil(
-                    (new Date(formData.endDate) - new Date(formData.startDate)) /
-                      (1000 * 60 * 60 * 24)
-                  );
-                  const totalHours =
-                    formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                  return `Total per team: ${formData.playersPerTeam} players × ${days} days × ${formData.estimatedHoursPerPlayerPerDay}h = ${totalHours} player-hours`;
-                })()}
-              </Text>
+              {stats && (
+                <Text fontSize="xs" color="gray.500" mt={1}>
+                  Total per team: {formData.playersPerTeam} players × {stats.days} days ×{' '}
+                  {formData.estimatedHoursPerPlayerPerDay}h = {stats.totalHours} player-hours
+                </Text>
+              )}
             </FormControl>
 
+            {/* Content selection */}
             {isEditable && (
               <Button
                 variant="solid"
                 colorScheme="green"
-                color="white"
+                w="full"
                 onClick={() => setShowContentModal(true)}
               >
                 Edit Content Selection
               </Button>
             )}
-
             <ContentSelectionModal
               isOpen={showContentModal}
               onClose={() => setShowContentModal(false)}
@@ -633,9 +614,10 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               onSave={handleSaveContentSelections}
             />
 
+            {/* Prize pool */}
             <FormControl isRequired>
               <FormLabel color="gray.100">
-                Total Prize Pool (GP) • Max: {(MAX_GP / 1000000000).toFixed(0)}B
+                Total Prize Pool (GP) • Max: {(MAX_GP / 1e9).toFixed(0)}B
               </FormLabel>
               <NumberInput
                 isDisabled={!isEditable}
@@ -644,21 +626,15 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 min={0}
                 max={MAX_GP}
               >
-                <NumberInputField
-                  color="white"
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: 'gray.500' }}
-                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
-                />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
               <Text fontSize="xs" color="gray.500" mt={1}>
                 Per team max:{' '}
-                {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1000000).toFixed(1)}M
-                GP
+                {(formData.prizePoolTotal / Math.max(formData.numOfTeams, 1) / 1e6).toFixed(1)}M GP
               </Text>
             </FormControl>
 
+            {/* Teams + players */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
                 <FormLabel color="gray.100">Number of Teams • Max: {getMaxTeams()}</FormLabel>
@@ -669,13 +645,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   min={1}
                   max={getMaxTeams()}
                 >
-                  <NumberInputField
-                    color="white"
-                    bg="gray.700"
-                    borderColor="gray.600"
-                    _hover={{ borderColor: 'gray.500' }}
-                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
-                  />
+                  <NumberInputField {...inputStyles} />
                 </NumberInput>
               </FormControl>
               <FormControl isRequired>
@@ -689,13 +659,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   min={1}
                   max={getMaxPlayersPerTeam()}
                 >
-                  <NumberInputField
-                    color="white"
-                    bg="gray.700"
-                    borderColor="gray.600"
-                    _hover={{ borderColor: 'gray.500' }}
-                    _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
-                  />
+                  <NumberInputField {...inputStyles} />
                 </NumberInput>
               </FormControl>
             </SimpleGrid>
@@ -709,9 +673,10 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               {totalPlayers > MAX_TOTAL_PLAYERS && ' ⚠️ Exceeds maximum!'}
             </Text>
 
+            {/* Nodes per inn */}
             <FormControl isRequired>
               <FormLabel color="gray.100">
-                Locations Between Each Inn • Range: {MIN_NODES_PER_INN}-{MAX_NODES_PER_INN}
+                Locations Between Each Inn • Range: {MIN_NODES_PER_INN}–{MAX_NODES_PER_INN}
               </FormLabel>
               <NumberInput
                 isDisabled={!isEditable}
@@ -720,16 +685,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
               >
-                <NumberInputField
-                  color="white"
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  _hover={{ borderColor: 'gray.500' }}
-                  _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}
-                />
+                <NumberInputField {...inputStyles} />
               </NumberInput>
             </FormControl>
 
+            {/* Map preview */}
             <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
               <Text fontSize="sm" fontWeight="bold" color="white">
                 📊 Map Preview (Per Team)
@@ -738,56 +698,19 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 <VStack spacing={0}>
                   <Text color="gray.500">Player Hours</Text>
                   <Text fontWeight="bold" color="white">
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      return Math.round(
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay
-                      );
-                    })()}
-                    h
+                    {stats ? `${stats.totalHours}h` : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Total Locations</Text>
                   <Text fontWeight="bold" color="white">
-                    ~
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      const totalHours =
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
-                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
-                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
-                      return Math.ceil(nodesNeeded / 3);
-                    })()}
+                    ~{stats ? stats.locations : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Inns</Text>
                   <Text fontWeight="bold" color="white">
-                    ~
-                    {(() => {
-                      if (!formData.startDate || !formData.endDate) return '?';
-                      const days = Math.ceil(
-                        (new Date(formData.endDate) - new Date(formData.startDate)) /
-                          (1000 * 60 * 60 * 24)
-                      );
-                      const totalHours =
-                        formData.playersPerTeam * days * formData.estimatedHoursPerPlayerPerDay;
-                      const diffMult = { easy: 0.7, normal: 1.0, hard: 1.3, sweatlord: 1.6 };
-                      const hoursPerNode = 1.5 * (diffMult[formData.difficulty] || 1.0);
-                      const nodesNeeded = Math.ceil(totalHours / hoursPerNode);
-                      const locationGroups = Math.ceil(nodesNeeded / 3);
-                      return Math.floor(locationGroups / formData.nodeToInnRatio);
-                    })()}
+                    ~{stats ? stats.inns : '?'}
                   </Text>
                 </VStack>
               </SimpleGrid>

@@ -586,7 +586,12 @@ export const CREATE_TREASURE_TEAM = gql`
       eventId
       teamName
       discordRoleId
-      members
+      members {
+        discordUserId
+        discordUsername
+        discordAvatar
+        username
+      }
       currentPot
       keysHeld
       completedNodes
@@ -639,6 +644,20 @@ export const ADMIN_COMPLETE_NODE = gql`
   }
 `;
 
+export const VISIT_INN = gql`
+  mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      currentPot
+      keysHeld
+      activeBuffs
+      innTransactions
+    }
+  }
+`;
+
 export const ADMIN_UNCOMPLETE_NODE = gql`
   mutation AdminUncompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
     adminUncompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
@@ -647,6 +666,7 @@ export const ADMIN_UNCOMPLETE_NODE = gql`
       availableNodes
       currentPot
       keysHeld
+      activeBuffs
     }
   }
 `;
@@ -761,6 +781,7 @@ export const PURCHASE_INN_REWARD = gql`
       currentPot
       keysHeld
       innTransactions
+      activeBuffs
     }
   }
 `;

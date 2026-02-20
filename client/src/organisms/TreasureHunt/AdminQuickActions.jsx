@@ -9,7 +9,6 @@ import {
   Badge,
   Collapse,
   Tooltip,
-  useColorMode,
   Divider,
   SimpleGrid,
   Menu,
@@ -46,7 +45,6 @@ const AdminQuickActionsPanel = ({
   onOpenDiscordSetup,
   isEventAdmin = false,
 }) => {
-  const { colorMode } = useColorMode();
   const [isMinimized, setIsMinimized] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -57,7 +55,6 @@ const AdminQuickActionsPanel = ({
 
     const pendingSubmissions = submissions.filter((s) => {
       if (s.status !== 'PENDING_REVIEW') return false;
-      // Don't count as pending if the node is already complete
       const team = teams.find((t) => t.teamId === s.teamId);
       if (team?.completedNodes?.includes(s.nodeId)) {
         return false;
@@ -67,17 +64,9 @@ const AdminQuickActionsPanel = ({
 
     const approvedSubmissions = submissions.filter((s) => s.status === 'APPROVED');
     const deniedSubmissions = submissions.filter((s) => s.status === 'DENIED');
-
-    // Teams with activity (at least one completed node)
     const activeTeams = teams.filter((t) => t.completedNodes?.length > 0);
-
-    // Teams that haven't started
     const inactiveTeams = teams.filter((t) => !t.completedNodes || t.completedNodes.length === 0);
-
-    // Leading team
     const leadingTeam = [...teams].sort((a, b) => (b.currentPot || 0) - (a.currentPot || 0))[0];
-
-    // Teams without members
     const teamsWithoutMembers = teams.filter((t) => !t.members || t.members.length === 0);
 
     return {
@@ -93,46 +82,17 @@ const AdminQuickActionsPanel = ({
     };
   }, [event, isEventAdmin, submissions, teams]);
 
-  // Don't render if not an admin or event is in draft
   if (!isEventAdmin || !event || event.status === 'DRAFT') {
     return null;
   }
 
-  const colors = {
-    dark: {
-      bg: 'gray.800',
-      cardBg: 'gray.700',
-      text: 'white',
-      subtext: 'gray.300',
-      success: 'green.400',
-      warning: 'orange.400',
-      error: 'red.400',
-      info: 'blue.400',
-      border: 'orange.500',
-    },
-    light: {
-      bg: 'white',
-      cardBg: 'gray.50',
-      text: 'gray.800',
-      subtext: 'gray.600',
-      success: 'green.500',
-      warning: 'orange.500',
-      error: 'red.500',
-      info: 'blue.500',
-      border: 'orange.500',
-    },
-  };
-
-  const c = colors[colorMode];
-
-  // Determine if there are urgent items
   const hasUrgentItems = stats.pending > 0 || stats.teamsWithoutMembers > 0;
 
   const QuickStat = ({ label, value, icon, color, onClick, tooltip }) => (
     <Tooltip label={tooltip} hasArrow isDisabled={!tooltip}>
       <Box
         p={3}
-        bg={c.cardBg}
+        bg="gray.700"
         borderRadius="md"
         cursor={onClick ? 'pointer' : 'default'}
         onClick={onClick}
@@ -143,10 +103,10 @@ const AdminQuickActionsPanel = ({
       >
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="2xl" fontWeight="bold" color={c.text}>
+            <Text fontSize="2xl" fontWeight="bold" color="white">
               {value}
             </Text>
-            <Text fontSize="xs" color={c.subtext}>
+            <Text fontSize="xs" color="gray.300">
               {label}
             </Text>
           </VStack>
@@ -164,11 +124,11 @@ const AdminQuickActionsPanel = ({
       zIndex={1500}
       width={isMinimized ? 'auto' : isExpanded ? '350px' : '280px'}
       maxW="calc(100vw - 32px)"
-      bg={c.bg}
+      bg="gray.800"
       borderRadius="lg"
       boxShadow="2xl"
       border="2px solid"
-      borderColor={hasUrgentItems ? c.warning : c.border}
+      borderColor={hasUrgentItems ? 'orange.400' : 'orange.500'}
       overflow="hidden"
       transition="all 0.3s ease"
     >
@@ -240,7 +200,7 @@ const AdminQuickActionsPanel = ({
               label="Pending"
               value={stats.pending}
               icon={FaClipboardList}
-              color={stats.pending > 0 ? c.warning : c.success}
+              color={stats.pending > 0 ? 'orange.400' : 'green.400'}
               onClick={onNavigateToSubmissions}
               tooltip="Click to review submissions"
             />
@@ -248,7 +208,7 @@ const AdminQuickActionsPanel = ({
               label="Active Teams"
               value={`${stats.activeTeams}/${stats.totalTeams}`}
               icon={FaUsers}
-              color={c.info}
+              color="blue.400"
               onClick={onNavigateToTeams}
               tooltip="Teams that have started playing"
             />
@@ -257,28 +217,28 @@ const AdminQuickActionsPanel = ({
           {/* Expanded Stats */}
           <Collapse in={isExpanded} animateOpacity>
             <VStack spacing={2} align="stretch">
-              <Divider />
+              <Divider borderColor="gray.600" />
 
               {/* Submission breakdown */}
-              <Box p={2} bg={c.cardBg} borderRadius="md">
-                <Text fontSize="xs" fontWeight="bold" color={c.subtext} mb={2}>
+              <Box p={2} bg="gray.700" borderRadius="md">
+                <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={2}>
                   SUBMISSION STATS
                 </Text>
                 <HStack justify="space-between" fontSize="xs">
                   <HStack>
-                    <Icon as={CheckIcon} color={c.success} boxSize={3} />
-                    <Text color={c.text}>Approved</Text>
+                    <Icon as={CheckIcon} color="green.400" boxSize={3} />
+                    <Text color="white">Approved</Text>
                   </HStack>
-                  <Text color={c.success} fontWeight="bold">
+                  <Text color="green.400" fontWeight="bold">
                     {stats.approved}
                   </Text>
                 </HStack>
                 <HStack justify="space-between" fontSize="xs" mt={1}>
                   <HStack>
-                    <Icon as={CloseIcon} color={c.error} boxSize={3} />
-                    <Text color={c.text}>Denied</Text>
+                    <Icon as={CloseIcon} color="red.400" boxSize={3} />
+                    <Text color="white">Denied</Text>
                   </HStack>
-                  <Text color={c.error} fontWeight="bold">
+                  <Text color="red.400" fontWeight="bold">
                     {stats.denied}
                   </Text>
                 </HStack>
@@ -286,14 +246,14 @@ const AdminQuickActionsPanel = ({
 
               {/* Leading team */}
               {stats.leadingTeam && (
-                <Box p={2} bg={c.cardBg} borderRadius="md">
-                  <Text fontSize="xs" fontWeight="bold" color={c.subtext} mb={1}>
+                <Box p={2} bg="gray.700" borderRadius="md">
+                  <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={1}>
                     LEADING TEAM
                   </Text>
                   <HStack justify="space-between">
                     <HStack>
                       <Icon as={FaTrophy} color="yellow.400" boxSize={4} />
-                      <Text fontSize="sm" fontWeight="bold" color={c.text}>
+                      <Text fontSize="sm" fontWeight="bold" color="white">
                         {stats.leadingTeam.teamName}
                       </Text>
                     </HStack>
@@ -308,19 +268,19 @@ const AdminQuickActionsPanel = ({
               {stats.teamsWithoutMembers > 0 && (
                 <Box
                   p={2}
-                  bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'}
+                  bg="orange.900"
                   borderRadius="md"
                   borderLeft="3px solid"
-                  borderLeftColor={c.warning}
+                  borderLeftColor="orange.400"
                 >
                   <HStack>
-                    <Icon as={FaExclamationTriangle} color={c.warning} boxSize={4} />
+                    <Icon as={FaExclamationTriangle} color="orange.400" boxSize={4} />
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="xs" fontWeight="bold" color={c.text}>
+                      <Text fontSize="xs" fontWeight="bold" color="white">
                         {stats.teamsWithoutMembers} team
                         {stats.teamsWithoutMembers !== 1 ? 's' : ''} without members
                       </Text>
-                      <Text fontSize="xs" color={c.subtext}>
+                      <Text fontSize="xs" color="gray.300">
                         Players can't join these teams
                       </Text>
                     </VStack>
@@ -331,19 +291,19 @@ const AdminQuickActionsPanel = ({
               {stats.inactiveTeams > 0 && stats.inactiveTeams < stats.totalTeams && (
                 <Box
                   p={2}
-                  bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'}
+                  bg="blue.900"
                   borderRadius="md"
                   borderLeft="3px solid"
-                  borderLeftColor={c.info}
+                  borderLeftColor="blue.400"
                 >
                   <HStack>
-                    <Icon as={FaChartLine} color={c.info} boxSize={4} />
+                    <Icon as={FaChartLine} color="blue.400" boxSize={4} />
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="xs" fontWeight="bold" color={c.text}>
+                      <Text fontSize="xs" fontWeight="bold" color="white">
                         {stats.inactiveTeams} team{stats.inactiveTeams !== 1 ? 's' : ''} haven't
                         started
                       </Text>
-                      <Text fontSize="xs" color={c.subtext}>
+                      <Text fontSize="xs" color="gray.300">
                         No completions yet
                       </Text>
                     </VStack>
@@ -353,7 +313,7 @@ const AdminQuickActionsPanel = ({
             </VStack>
           </Collapse>
 
-          <Divider />
+          <Divider borderColor="gray.600" />
 
           {/* Quick Actions */}
           <HStack spacing={2} justify="center">
@@ -363,30 +323,36 @@ const AdminQuickActionsPanel = ({
                 icon={<SettingsIcon />}
                 size="sm"
                 variant="outline"
+                color="gray.300"
+                borderColor="gray.500"
+                _hover={{ bg: 'gray.600' }}
                 aria-label="More actions"
               />
-              <MenuList bg={c.bg} borderColor={c.border}>
+              <MenuList bg="gray.700" borderColor="gray.600">
                 <MenuItem
                   icon={<FaUsers />}
                   onClick={onNavigateToTeams}
-                  color={c.text}
-                  _hover={{ bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'gray.100' }}
+                  color="white"
+                  bg="gray.700"
+                  _hover={{ bg: 'gray.600' }}
                 >
                   Manage Teams
                 </MenuItem>
                 <MenuItem
                   icon={<FaDiscord />}
-                  color={c.text}
+                  color="white"
+                  bg="gray.700"
                   onClick={onOpenDiscordSetup}
-                  _hover={{ bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'gray.100' }}
+                  _hover={{ bg: 'gray.600' }}
                 >
                   Discord Setup
                 </MenuItem>
                 <MenuItem
                   icon={<SettingsIcon />}
-                  color={c.text}
+                  color="white"
+                  bg="gray.700"
                   onClick={onOpenSettings}
-                  _hover={{ bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'gray.100' }}
+                  _hover={{ bg: 'gray.600' }}
                 >
                   Event Settings
                 </MenuItem>
@@ -408,7 +374,7 @@ const AdminQuickActionsPanel = ({
           )}
           {stats.teamsWithoutMembers > 0 && (
             <Tooltip label={`${stats.teamsWithoutMembers} teams without members`} hasArrow>
-              <Icon as={FaExclamationTriangle} color={c.warning} boxSize={4} />
+              <Icon as={FaExclamationTriangle} color="orange.400" boxSize={4} />
             </Tooltip>
           )}
         </HStack>

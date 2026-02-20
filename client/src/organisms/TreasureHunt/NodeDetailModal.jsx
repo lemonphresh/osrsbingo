@@ -25,6 +25,7 @@ import {
   AlertIcon,
   AlertTitle,
   AlertDescription,
+  Tooltip,
 } from '@chakra-ui/react';
 import Casket from '../../assets/casket.png';
 import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
@@ -120,13 +121,16 @@ export default function NodeDetailModal({
   onAdminComplete,
   onAdminUncomplete,
   onApplyBuff,
-  appliedBuff,
+  appliedBuff: appliedBuffProp,
   currentUser,
+  onVisitInn,
+  lastCompletedNodeId,
   event, // Add event prop to access contentSelections
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const toast = useToast();
+  const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
 
   // Calculate acceptable drops for item_collection objectives
   const acceptableDrops = useMemo(() => {
@@ -180,7 +184,10 @@ export default function NodeDetailModal({
     localStorage.getItem('treasureHunt_startTutorial_completed') === 'true';
 
   const isTeamMember =
-    currentUser?.discordUserId && team?.members?.includes(currentUser.discordUserId);
+    currentUser?.discordUserId &&
+    team?.members?.some(
+      (m) => m.discordUserId?.toString() === currentUser.discordUserId?.toString()
+    );
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -190,12 +197,10 @@ export default function NodeDetailModal({
     if (!objective) return null;
 
     switch (objective.type) {
-      case 'kills':
-        return `Kill ${objective.quantity} ${objective.target}`;
       case 'xp_gain':
         return `Gain ${objective.quantity.toLocaleString()} XP in ${objective.target}`;
       case 'item_collection':
-        return `Collect ${objective.quantity} ${objective.target} ${
+        return `Collect ${objective.quantity} ${objective.target.trim()}${
           objective.quantity > 1 ? 's' : ''
         }`;
       case 'boss_kc':
@@ -259,8 +264,16 @@ export default function NodeDetailModal({
   // Check if this is an item collection task
   const isItemCollectionTask = node.objective?.type === 'item_collection';
 
+  const isLastCompleted = isCompleted && node.nodeId === lastCompletedNodeId;
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      scrollBehavior="inside"
+      returnFocusOnClose={false}
+    >
       <ModalOverlay />
       <ModalContent bg={currentColors.cardBg} maxH="90vh">
         <ModalHeader color={currentColors.textColor}>
@@ -447,7 +460,7 @@ export default function NodeDetailModal({
                                   </VStack>
                                 </HStack>
                                 <Badge colorScheme={getBuffTierColor(buff.tier)} fontSize="xs">
-                                  {buff.tier.toUpperCase()}
+                                  {buff.tier?.toUpperCase()}
                                 </Badge>
                               </HStack>
                             </Box>
@@ -499,8 +512,8 @@ export default function NodeDetailModal({
                     colorScheme="green"
                     size="lg"
                     onClick={() => {
-                      onAdminComplete && onAdminComplete(node.nodeId);
                       onClose();
+                      onVisitInn?.();
                     }}
                     leftIcon={<Text fontSize="xl">🏠</Text>}
                   >
@@ -616,7 +629,7 @@ export default function NodeDetailModal({
                       >
                         Mark as Completed
                       </Button>
-                    ) : (
+                    ) : isLastCompleted ? (
                       <Button
                         colorScheme="red"
                         leftIcon={<CloseIcon />}
@@ -629,6 +642,24 @@ export default function NodeDetailModal({
                       >
                         Un-complete Node
                       </Button>
+                    ) : (
+                      // completed but NOT the most recent — show a disabled explanation
+                      <Tooltip
+                        label="Only the most recently completed node can be un-completed."
+                        hasArrow
+                      >
+                        <Button
+                          colorScheme="red"
+                          leftIcon={<CloseIcon />}
+                          isDisabled
+                          size="sm"
+                          flex={1}
+                          opacity={0.4}
+                          cursor="not-allowed"
+                        >
+                          Un-complete Node
+                        </Button>
+                      </Tooltip>
                     )}
                     <Button variant="outline" onClick={onClose} size="sm" flex={1}>
                       Cancel

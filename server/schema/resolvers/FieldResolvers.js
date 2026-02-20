@@ -1,3 +1,19 @@
+const { User } = require('../../db/models');
+const axios = require('axios');
+
+const fetchDiscordUser = async (discordId) => {
+  try {
+    const res = await axios.get(`https://discord.com/api/v10/users/${discordId}`, {
+      headers: {
+        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+      },
+    });
+    return res.data;
+  } catch {
+    return null;
+  }
+};
+
 const DEFAULT_BONUS_SETTINGS = {
   allowDiagonals: false,
   horizontalBonus: 0,
@@ -73,6 +89,38 @@ const fieldResolvers = {
 
     event: async (team, _, { loaders }) => {
       return loaders.treasureEventById.load(team.eventId);
+    },
+
+    members: async (team) => {
+      if (!team.members?.length) return [];
+
+      const users = await User.findAll({
+        where: { discordUserId: team.members },
+        attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username'],
+      });
+
+      return Promise.all(
+        team.members.map(async (id) => {
+          const user = users.find((u) => u.discordUserId === id);
+          if (user) {
+            return {
+              discordUserId: id,
+              discordUsername: user.discordUsername,
+              discordAvatar: user.discordAvatar,
+              username: user.username,
+            };
+          }
+
+          // not registered — hit Discord API
+          const discordUser = await fetchDiscordUser(id);
+          return {
+            discordUserId: id,
+            discordUsername: discordUser?.username ?? null,
+            discordAvatar: discordUser?.avatar ?? null,
+            username: null,
+          };
+        })
+      );
     },
   },
 

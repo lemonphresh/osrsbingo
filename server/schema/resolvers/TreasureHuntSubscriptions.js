@@ -1,34 +1,30 @@
 const { pubsub } = require('../pubsub');
 
+const createSubscription = (topicFn) => ({
+  subscribe: (_, args) => {
+    const topic = topicFn(args);
+    console.log('🔥 Subscribing to:', topic);
+    const iterator = pubsub.asyncIterableIterator(topic);
+
+    //cleanup when client disconnects
+    return {
+      [Symbol.asyncIterator]() {
+        return iterator;
+      },
+      return() {
+        console.log('🧹 Cleaning up subscription:', topic);
+        if (iterator.return) iterator.return();
+        return Promise.resolve({ done: true });
+      },
+    };
+  },
+});
+
 module.exports = {
   Subscription: {
-    submissionAdded: {
-      subscribe: (_, args) => {
-        const topic = `SUBMISSION_ADDED_${args.eventId}`;
-        console.log('🔥 Subscribing to:', topic);
-        return pubsub.asyncIterableIterator(topic);
-      },
-    },
-    submissionReviewed: {
-      subscribe: (_, args) => {
-        const topic = `SUBMISSION_REVIEWED_${args.eventId}`;
-        console.log('🔥 Subscribing to:', topic);
-        return pubsub.asyncIterableIterator(topic);
-      },
-    },
-    nodeCompleted: {
-      subscribe: (_, args) => {
-        const topic = `NODE_COMPLETED_${args.eventId}`;
-        console.log('🔥 Subscribing to:', topic);
-        return pubsub.asyncIterableIterator(topic);
-      },
-    },
-    treasureHuntActivity: {
-      subscribe: (_, args) => {
-        const topic = `TREASURE_ACTIVITY_${args.eventId}`;
-        console.log('🔥 Subscribing to:', topic);
-        return pubsub.asyncIterableIterator(topic);
-      },
-    },
+    submissionAdded: createSubscription((args) => `SUBMISSION_ADDED_${args.eventId}`),
+    submissionReviewed: createSubscription((args) => `SUBMISSION_REVIEWED_${args.eventId}`),
+    nodeCompleted: createSubscription((args) => `NODE_COMPLETED_${args.eventId}`),
+    treasureHuntActivity: createSubscription((args) => `TREASURE_ACTIVITY_${args.eventId}`),
   },
 };

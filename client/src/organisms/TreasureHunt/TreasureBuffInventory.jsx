@@ -49,6 +49,7 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark', onBuffClick }) => {
             setIsBuffModalOpen(true);
           }}
           mt={2}
+          type="button"
         >
           Learn About Buffs
         </Button>

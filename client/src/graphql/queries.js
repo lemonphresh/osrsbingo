@@ -466,7 +466,12 @@ export const GET_TREASURE_EVENT = gql`
         teamId
         teamName
         discordRoleId
-        members
+        members {
+          discordUserId
+          discordUsername
+          discordAvatar
+          username
+        }
         currentPot
         keysHeld
         completedNodes
@@ -562,7 +567,12 @@ export const GET_TREASURE_TEAM = gql`
     getTreasureTeam(eventId: $eventId, teamId: $teamId) {
       teamId
       teamName
-      members
+      members {
+        discordUserId
+        discordUsername
+        discordAvatar
+        username
+      }
       currentPot
       keysHeld
       completedNodes

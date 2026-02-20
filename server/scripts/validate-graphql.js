@@ -409,7 +409,7 @@ const operations = {
   PURCHASE_INN_REWARD: `
     mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
       purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
-        teamId currentPot keysHeld innTransactions
+        teamId currentPot keysHeld innTransactions activeBuffs
       }
     }
   `,
@@ -442,6 +442,20 @@ const operations = {
     mutation AdminRemoveBuffFromNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
       adminRemoveBuffFromNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
         nodeId objective
+      }
+    }
+  `,
+
+  VISIT_INN: `
+    mutation VisitInn($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+      visitInn(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+        teamId
+        completedNodes
+        availableNodes
+        currentPot
+        keysHeld
+        activeBuffs
+        innTransactions
       }
     }
   `,

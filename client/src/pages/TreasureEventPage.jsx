@@ -34,18 +34,19 @@ import {
   TabPanels,
   Tab,
   TabPanel,
+  StatGroup,
   Stat,
   StatLabel,
   StatNumber,
-  StatGroup,
   IconButton,
   Tooltip,
   Spinner,
-  TableContainer,
   useDisclosure,
   useToast,
   Icon,
   Switch,
+  CircularProgress,
+  CircularProgressLabel,
 } from '@chakra-ui/react';
 import {
   AddIcon,
@@ -55,17 +56,19 @@ import {
   EditIcon,
   ExternalLinkIcon,
   InfoIcon,
+  CheckCircleIcon,
 } from '@chakra-ui/icons';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
-import { formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDateTime } from '../utils/dateUtils';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
 import {
   REVIEW_SUBMISSION,
   GENERATE_TREASURE_MAP,
   ADMIN_COMPLETE_NODE,
   UPDATE_TREASURE_EVENT,
+  TREASURE_ACTIVITY_SUB,
 } from '../graphql/mutations';
 import { useToastContext } from '../providers/ToastProvider';
 import Section from '../atoms/Section';
@@ -78,7 +81,7 @@ import MultiTeamTreasureMap from '../organisms/TreasureHunt/MultiTeamTreasureMap
 import EventAdminManager from '../organisms/TreasureHunt/TreasureAdminManager';
 import { useAuth } from '../providers/AuthProvider';
 import { MdOutlineArrowBack } from 'react-icons/md';
-import { FaCog, FaRocket } from 'react-icons/fa';
+import { FaCog, FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
@@ -93,7 +96,170 @@ import AdminLaunchChecklist from '../organisms/TreasureHunt/AdminChecklist';
 import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
+import LaunchCheckModal from '../organisms/TreasureHunt/LaunchCheckModal';
 
+const PRESET_COLORS = [
+  '#FF6B6B',
+  '#4ECDC4',
+  '#45B7D1',
+  '#96CEB4',
+  '#FFEAA7',
+  '#DDA0DD',
+  '#98D8C8',
+  '#F7DC6F',
+  '#BB8FCE',
+  '#85C1E9',
+];
+const formatGP = (gp) => {
+  if (!gp) return '0';
+  return (gp / 1000000).toFixed(1) + 'M';
+};
+// ─── StandingsCard — matches the look from MultiTeamTreasureMapVisualization ─
+const StandingsCard = ({
+  team,
+  index,
+  event,
+  currentColors,
+  colorMode,
+  onEditTeam,
+  onTeamClick,
+  onRefresh,
+  isRefreshing,
+}) => {
+  const navigate = useNavigate();
+  const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
+  const isLeader = index === 0 && (team.currentPot || 0) > 0;
+  const completedCount = team.completedNodes?.length || 0;
+  const totalNodes = Math.max(event.nodes?.length || 1, 1);
+  const progressPct = (completedCount / totalNodes) * 100;
+
+  return (
+    <HStack
+      p={4}
+      bg={
+        isLeader
+          ? colorMode === 'dark'
+            ? 'yellow.900'
+            : 'yellow.50'
+          : colorMode === 'dark'
+          ? 'whiteAlpha.50'
+          : 'blackAlpha.50'
+      }
+      borderRadius="md"
+      border={isLeader ? '2px solid' : '1px solid'}
+      borderColor={isLeader ? 'yellow.400' : 'transparent'}
+      spacing={4}
+      transition="all 0.2s"
+      _hover={{
+        shadow: 'md',
+        backgroundColor: isLeader
+          ? colorMode === 'dark'
+            ? 'yellow.800'
+            : 'yellow.100'
+          : 'whiteAlpha.300',
+      }}
+      cursor="pointer"
+      onClick={() => {
+        onTeamClick?.(team); // pulse the map nodes
+      }}
+    >
+      {/* Rank circle */}
+      <Flex
+        w={isLeader ? '32px' : '24px'}
+        h={isLeader ? '32px' : '24px'}
+        bg={isLeader ? 'yellow.400' : teamColor}
+        borderRadius="full"
+        align="center"
+        justify="center"
+        color="white"
+        fontWeight="bold"
+        fontSize="sm"
+        flexShrink={0}
+      >
+        {isLeader ? <Icon as={FaCrown} /> : index + 1}
+      </Flex>
+
+      {/* Team info */}
+      <VStack align="start" spacing={1} flex={1} minW={0}>
+        <HStack>
+          <Text
+            fontWeight="bold"
+            color={isLeader ? currentColors.textColor : currentColors.white}
+            fontSize="md"
+            isTruncated
+          >
+            {team.teamName}
+          </Text>
+          {isLeader && (
+            <Badge colorScheme="yellow" fontSize="xs">
+              Leader
+            </Badge>
+          )}
+        </HStack>
+        <HStack spacing={3} flexWrap="wrap">
+          <HStack spacing={1}>
+            <Icon as={FaCoins} color="yellow.400" boxSize={3} />
+            <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
+              {formatGP(team.currentPot || 0)} GP
+            </Text>
+          </HStack>
+          <HStack spacing={1}>
+            <Icon as={CheckCircleIcon} color="green.400" boxSize={3} />
+            <Text fontSize="sm" color={isLeader ? 'gray.500' : 'gray.200'}>
+              {completedCount} {completedCount === 1 ? 'node' : 'nodes'}
+            </Text>
+          </HStack>
+          {event.nodes?.length > 0 && (
+            <Button
+              size="sm"
+              bg={isLeader ? 'blackAlpha.100' : 'whiteAlpha.200'}
+              color={isLeader ? 'gray.500' : 'gray.200'}
+              fontWeight="normal"
+              _hover={{ bg: isLeader ? 'blackAlpha.200' : 'whiteAlpha.300' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/gielinor-rush/${event.eventId}/team/${team.teamId}`);
+              }}
+              whiteSpace="nowrap"
+            >
+              <Icon as={FaMap} />
+              &nbsp; View Team Map
+            </Button>
+          )}
+          {onEditTeam && (
+            <IconButton
+              size="xs"
+              icon={<EditIcon />}
+              bg={currentColors.turquoise.base}
+              color="white"
+              _hover={{ opacity: 0.8 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditTeam(team);
+              }}
+              aria-label="Edit team"
+            />
+          )}
+        </HStack>
+      </VStack>
+
+      {/* Circular progress */}
+      <CircularProgress
+        value={progressPct}
+        size="40px"
+        color={teamColor}
+        trackColor={isLeader ? 'gray.300' : 'gray.200'}
+        thickness="8px"
+      >
+        <CircularProgressLabel fontSize="xs" color={isLeader ? 'gray.500' : 'gray.200'}>
+          {Math.round(progressPct)}%
+        </CircularProgressLabel>
+      </CircularProgress>
+    </HStack>
+  );
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
 const TreasureEventView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { eventId } = useParams();
@@ -104,18 +270,17 @@ const TreasureEventView = () => {
   const settingsTabRef = useRef(null);
   const leaderboardTabRef = useRef(null);
 
+  // ── Modal disclosures ─────────────────────────────────────────────────────
   const {
     isOpen: isEditTeamOpen,
     onOpen: onEditTeamOpen,
     onClose: onEditTeamClose,
   } = useDisclosure();
-
   const {
     isOpen: isLaunchConfirmOpen,
     onOpen: onLaunchConfirmOpen,
     onClose: onLaunchConfirmClose,
   } = useDisclosure();
-
   const {
     isOpen: isCreateTeamOpen,
     onOpen: onCreateTeamOpen,
@@ -146,24 +311,26 @@ const TreasureEventView = () => {
     onOpen: onOpenCompleteDialog,
     onClose: onCloseCompleteDialog,
   } = useDisclosure();
+
   const [nodeToComplete, setNodeToComplete] = useState(null);
   const [completeLoading, setCompleteLoading] = useState(false);
   const [submissionToDeny, setSubmissionToDeny] = useState(null);
   const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
-  const cancelRef = React.useRef();
+  const [highlightedTeamId, setHighlightedTeamId] = useState(null);
 
+  const cancelRef = useRef();
+
+  // ── Queries ────────────────────────────────────────────────────────────────
   const {
     data: eventData,
     loading: eventLoading,
     refetch: refetchEvent,
-  } = useQuery(GET_TREASURE_EVENT, {
-    variables: { eventId },
-  });
-
+  } = useQuery(GET_TREASURE_EVENT, { variables: { eventId } });
   const { data: submissionsData, refetch: refetchSubmissions } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
   });
 
+  // ── Mutations ──────────────────────────────────────────────────────────────
   const [generateMap, { loading: generateLoading }] = useMutation(GENERATE_TREASURE_MAP, {
     refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
     awaitRefetchQueries: true,
@@ -171,27 +338,58 @@ const TreasureEventView = () => {
       showToast('Map generated successfully!', 'success');
       onRegenerateClose();
     },
-    onError: (error) => {
-      showToast(`Error generating map: ${error.message}`, 'error');
-    },
+    onError: (error) => showToast(`Error generating map: ${error.message}`, 'error'),
   });
 
   const [updateEvent] = useMutation(UPDATE_TREASURE_EVENT, {
     refetchQueries: ['GetTreasureEvent'],
-    onCompleted: () => {
-      showToast('Event updated successfully!', 'success');
-    },
-    onError: (error) => {
-      showToast(`Error: ${error.message}`, 'error');
-    },
+    onCompleted: () => showToast('Event updated successfully!', 'success'),
+    onError: (error) => showToast(`Error: ${error.message}`, 'error'),
   });
 
+  const [reviewSubmission] = useMutation(REVIEW_SUBMISSION, {
+    onCompleted: () => {
+      showToast('Submission reviewed!', 'success');
+      refetchSubmissions();
+    },
+    onError: (error) => showToast(`Error: ${error.message}`, 'error'),
+  });
+
+  const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
+
+  useSubscription(TREASURE_ACTIVITY_SUB, {
+    variables: { eventId },
+    onData: ({ data }) => {
+      const activity = data?.data?.treasureHuntActivity;
+      if (activity?.type === 'buff_applied') refetchEvent();
+    },
+    skip: !eventId,
+  });
+
+  const toast = useToast();
+
+  // ── Derived state ──────────────────────────────────────────────────────────
+  const event = eventData?.getTreasureEvent;
+  const teams = event?.teams || [];
+  const allSubmissions = submissionsData?.getAllSubmissions || [];
+  const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
+  const allPendingIncompleteSubmissionsCount = allPendingSubmissions.filter((s) => {
+    const t = teams.find((t) => t.teamId === s.teamId);
+    return !t?.completedNodes?.includes(s.nodeId);
+  }).length;
+
+  const sortedTeams = [...teams].sort((a, b) => {
+    const diff = Number(b.currentPot || 0) - Number(a.currentPot || 0);
+    if (diff !== 0) return diff;
+    return (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0);
+  });
+
+  const totalNodes = (event?.nodes || []).filter((n) => n.nodeType !== 'START').length;
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleGenerateMap = () => {
-    if (event.nodes && event.nodes.length > 0) {
-      onRegenerateOpen();
-    } else {
-      generateMap({ variables: { eventId } });
-    }
+    if (event.nodes?.length > 0) onRegenerateOpen();
+    else generateMap({ variables: { eventId } });
   };
 
   const handleNavigateToSubmissions = () => {
@@ -206,14 +404,7 @@ const TreasureEventView = () => {
 
   const handleLaunchEvent = async () => {
     try {
-      await updateEvent({
-        variables: {
-          eventId,
-          input: {
-            status: 'ACTIVE',
-          },
-        },
-      });
+      await updateEvent({ variables: { eventId, input: { status: 'ACTIVE' } } });
       showToast('🚀 Event is now LIVE! Teams can start competing!', 'success');
       onLaunchConfirmClose();
     } catch (error) {
@@ -224,6 +415,12 @@ const TreasureEventView = () => {
   const handleEditTeam = (team) => {
     setSelectedTeam(team);
     onEditTeamOpen();
+  };
+
+  const handleTeamCardClick = (team) => {
+    setHighlightedTeamId(team.teamId);
+    // clear after 2.5s (slightly longer than the pulse animation duration)
+    setTimeout(() => setHighlightedTeamId(null), 2500);
   };
 
   const handleConfirmDiscord = async () => {
@@ -247,39 +444,21 @@ const TreasureEventView = () => {
     }
   };
 
-  const [reviewSubmission] = useMutation(REVIEW_SUBMISSION, {
-    onCompleted: () => {
-      showToast('Submission reviewed!', 'success');
-      refetchSubmissions();
-    },
-    onError: (error) => {
-      showToast(`Error: ${error.message}`, 'error');
-    },
-  });
-
-  const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE, {
-    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
-    onError: (error) => {
-      console.error('Error completing node:', error);
-    },
-  });
-
   const handleCompleteNode = async (congratsMessage) => {
     if (!nodeToComplete) return;
-
     setCompleteLoading(true);
     try {
       await adminCompleteNode({
         variables: {
-          eventId: eventId,
+          eventId,
           teamId: nodeToComplete.teamId,
           nodeId: nodeToComplete.nodeId,
-          congratsMessage: congratsMessage,
+          congratsMessage,
         },
       });
-
       showToast('Node completed successfully!', 'success');
       refetchSubmissions();
+      refetchEvent();
       onCloseCompleteDialog();
       setNodeToComplete(null);
     } catch (error) {
@@ -289,33 +468,13 @@ const TreasureEventView = () => {
     }
   };
 
-  const toast = useToast();
-
-  const event = eventData?.getTreasureEvent;
-  const teams = event?.teams || [];
-  const allSubmissions = submissionsData?.getAllSubmissions || [];
-  const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
-  const allPendingIncompleteSubmissionsCount = allPendingSubmissions.filter((submission) => {
-    const team = teams.find((t) => t.teamId === submission.teamId);
-    return !team?.completedNodes?.includes(submission.nodeId);
-  }).length;
-
-  const formatGP = (gp) => {
-    return (gp / 1000000).toFixed(1) + 'M';
-  };
-
   const handleReviewSubmission = async (submissionId, approved, denialReason = null) => {
     try {
       await reviewSubmission({
-        variables: {
-          submissionId,
-          approved,
-          reviewerId: user?.username || 'admin',
-          denialReason,
-        },
+        variables: { submissionId, approved, reviewerId: user?.username || 'admin', denialReason },
       });
-    } catch (error) {
-      console.error('Error reviewing submission:', error);
+    } catch (err) {
+      console.error('Error reviewing submission:', err);
     }
   };
 
@@ -326,14 +485,11 @@ const TreasureEventView = () => {
   const formatObjectiveAmount = (node) => {
     if (!node?.objective) return '—';
     const q = node.objective.quantity ?? 0;
-
     switch (node.objective.type) {
       case 'xp_gain':
         return `${q.toLocaleString()} XP`;
       case 'boss_kc':
         return `${q} KC`;
-      case 'kills':
-        return `${q} kills`;
       case 'minigame':
         return `${q} runs`;
       case 'item_collection':
@@ -370,9 +526,9 @@ const TreasureEventView = () => {
       ? `(${pendingCount}) ${event.eventName}`
       : event.eventName
     : null;
-
   usePageTitle(pageTitle);
 
+  // ── Loading / not found ────────────────────────────────────────────────────
   if (eventLoading) {
     return (
       <Container
@@ -397,7 +553,7 @@ const TreasureEventView = () => {
     );
   }
 
-  // Check if event is draft and user is not admin
+  // ── Draft gate for non-admins ──────────────────────────────────────────────
   if (event.status === 'DRAFT' && !isEventAdmin) {
     return (
       <Flex
@@ -411,7 +567,7 @@ const TreasureEventView = () => {
         <EventStatusBanner event={event} isAdmin={isEventAdmin} />
         <Flex
           alignItems="center"
-          flexDirection={['column', 'row', 'row']}
+          flexDirection={['column', 'row']}
           justifyContent="space-between"
           marginBottom="16px"
           maxWidth="1200px"
@@ -420,23 +576,18 @@ const TreasureEventView = () => {
           <Text
             alignItems="center"
             display="inline-flex"
-            _hover={{
-              borderBottom: '1px solid white',
-              marginBottom: '0px',
-            }}
+            _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
             fontWeight="bold"
             justifyContent="center"
             marginBottom="1px"
           >
             <Icon as={MdOutlineArrowBack} marginRight="8px" />
-            <Link to={`/gielinor-rush`}> Back to Events</Link>
+            <Link to="/gielinor-rush"> Back to Events</Link>
           </Text>
         </Flex>
-
         <Section maxWidth="600px" width="100%" py={8}>
           <VStack spacing={6} align="center" textAlign="center">
             <Box fontSize="6xl">🔒</Box>
-
             <VStack spacing={2}>
               <Heading size="lg" color={currentColors.white}>
                 Event Not Available...Yet!
@@ -445,7 +596,6 @@ const TreasureEventView = () => {
                 This event is currently in draft mode
               </Text>
             </VStack>
-
             <Box p={4} bg="whiteAlpha.400" borderRadius="md" width="100%">
               <Text fontSize="sm" color={currentColors.white}>
                 This Gielinor Rush event is still being set up by the event organizers. It will
@@ -458,6 +608,7 @@ const TreasureEventView = () => {
     );
   }
 
+  // ── Main render ────────────────────────────────────────────────────────────
   return (
     <Flex
       alignItems="center"
@@ -468,9 +619,11 @@ const TreasureEventView = () => {
       marginX={['12px', '36px']}
     >
       <EventStatusBanner event={event} isAdmin={isEventAdmin} />
+
+      {/* Back nav */}
       <Flex
         alignItems="center"
-        flexDirection={['column', 'row', 'row']}
+        flexDirection={['column', 'row']}
         justifyContent="space-between"
         marginBottom="16px"
         maxWidth="1200px"
@@ -479,22 +632,21 @@ const TreasureEventView = () => {
         <Text
           alignItems="center"
           display="inline-flex"
-          _hover={{
-            borderBottom: '1px solid white',
-            marginBottom: '0px',
-          }}
+          _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
           fontWeight="bold"
           justifyContent="center"
           marginBottom="1px"
         >
           <Icon as={MdOutlineArrowBack} marginRight="8px" />
-          <Link to={`/gielinor-rush`}> Your Events</Link>
+          <Link to="/gielinor-rush"> Your Events</Link>
         </Text>
       </Flex>
+
       <Section maxWidth="1200px" width="100%" py={8}>
         <VStack spacing={8} align="stretch" width="100%">
+          {/* ── HERO STRIP ─────────────────────────────────────────────────── */}
           <VStack position="relative" align="center" spacing={1}>
-            <GemTitle size="xl" mb="0" color={currentColors.textColor}>
+            <GemTitle size="xl" mb="0">
               {event.eventName}
             </GemTitle>
 
@@ -510,97 +662,69 @@ const TreasureEventView = () => {
                 {event.status}
               </Badge>
               <Text color={theme.colors.gray[300]}>
-                {formatDisplayDate(event.startDate)} - {formatDisplayDate(event.endDate)}
+                {formatDisplayDateTime(event.startDate)} – {formatDisplayDateTime(event.endDate)}
               </Text>
             </HStack>
-            <Tooltip label="Click to copy Event ID" hasArrow>
-              <HStack
-                spacing={2}
-                px={3}
-                py={1}
-                mt={2}
-                bg="whiteAlpha.100"
-                borderRadius="md"
-                cursor="pointer"
-                transition="all 0.2s"
-                _hover={{ bg: 'whiteAlpha.400' }}
-                onClick={() => {
-                  navigator.clipboard.writeText(event.eventId);
-                  toast({
-                    title: 'Event ID Copied!',
-                    description: `Event ID: ${event.eventId}`,
-                    status: 'success',
-                    duration: 2000,
-                    isClosable: true,
-                  });
-                }}
-              >
-                <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
-                  ID: {event.eventId}
-                </Text>
-                <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
-              </HStack>
-            </Tooltip>
-            {event.eventPassword && (
-              <Tooltip label="Click to copy Event ID" hasArrow>
-                <HStack
-                  spacing={2}
-                  px={3}
-                  py={1}
-                  mt={2}
-                  bg="whiteAlpha.100"
-                  borderRadius="md"
-                  cursor="pointer"
-                  transition="all 0.2s"
-                  _hover={{ bg: 'whiteAlpha.400' }}
-                  onClick={() => {
-                    navigator.clipboard.writeText(event.eventId);
-                    toast({
-                      title: 'Event Password Copied!',
-                      description: `Event Password: ${event.eventId}`,
-                      status: 'success',
-                      duration: 2000,
-                      isClosable: true,
-                    });
-                  }}
-                >
-                  <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
-                    Event Password: {event.eventPassword}
-                  </Text>
-                  <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
-                </HStack>
-              </Tooltip>
-            )}
-            <Tooltip label="Click to copy shareable URL" hasArrow>
-              <HStack
-                spacing={2}
-                px={3}
-                py={1}
-                mt={2}
-                bg="whiteAlpha.100"
-                borderRadius="md"
-                cursor="pointer"
-                transition="all 0.2s"
-                _hover={{ bg: 'whiteAlpha.400' }}
-                onClick={() => {
-                  navigator.clipboard.writeText(window.location.href);
-                  toast({
-                    title: 'Shareable URL Copied!',
-                    description: `URL: ${window.location.href}`,
-                    status: 'success',
-                    duration: 2000,
-                    isClosable: true,
-                  });
-                }}
-              >
-                <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
-                  URL: {window.location.href}
-                </Text>
-                <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
-              </HStack>
-            </Tooltip>
 
-            {/* Banner when no nodes exist */}
+            {/* Copyable IDs / URL */}
+            <HStack spacing={2} flexWrap="wrap" justify="center" mt={2}>
+              {[
+                {
+                  label: `ID: ${event.eventId}`,
+                  value: event.eventId,
+                  toastTitle: 'Event ID Copied!',
+                },
+                ...(event.eventPassword
+                  ? [
+                      {
+                        label: `Password: ${event.eventPassword}`,
+                        value: event.eventPassword,
+                        toastTitle: 'Event Password Copied!',
+                      },
+                    ]
+                  : []),
+                {
+                  label: `URL: ${window.location.href}`,
+                  value: window.location.href,
+                  toastTitle: 'URL Copied!',
+                },
+              ].map(({ label, value, toastTitle }) => (
+                <Tooltip key={label} label={`Click to copy — ${value}`} hasArrow>
+                  <HStack
+                    spacing={2}
+                    px={3}
+                    py={1}
+                    bg="whiteAlpha.100"
+                    borderRadius="md"
+                    cursor="pointer"
+                    transition="all 0.2s"
+                    _hover={{ bg: 'whiteAlpha.400' }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(value);
+                      toast({
+                        title: toastTitle,
+                        status: 'success',
+                        duration: 2000,
+                        isClosable: true,
+                      });
+                    }}
+                  >
+                    <Text
+                      fontSize="xs"
+                      color={currentColors.orange}
+                      fontFamily="mono"
+                      maxW="260px"
+                      isTruncated
+                    >
+                      {label}
+                    </Text>
+                    <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
+                  </HStack>
+                </Tooltip>
+              ))}
+            </HStack>
+
+            {/* Map not generated warning */}
             {(!event.nodes || event.nodes.length === 0) && event.status === 'DRAFT' && (
               <Box
                 w="full"
@@ -610,18 +734,14 @@ const TreasureEventView = () => {
                 borderRadius="md"
                 borderWidth={2}
                 borderColor="orange.600"
-                boxShadow="lg"
                 animation="gentlePulse 2s ease-in-out infinite"
                 sx={{
                   '@keyframes gentlePulse': {
-                    '0%, 100%': {
-                      boxShadow: '0 0 20px rgba(237, 137, 54, 0.5)',
+                    '0%,100%': {
+                      boxShadow: '0 0 20px rgba(237,137,54,0.5)',
                       transform: 'scale(1)',
                     },
-                    '50%': {
-                      boxShadow: '0 0 30px rgba(237, 137, 54, 0.8)',
-                      transform: 'scale(1.01)',
-                    },
+                    '50%': { boxShadow: '0 0 30px rgba(237,137,54,0.8)', transform: 'scale(1.01)' },
                   },
                 }}
               >
@@ -640,32 +760,35 @@ const TreasureEventView = () => {
                 </HStack>
               </Box>
             )}
-          </VStack>
-          {isEventAdmin && (
-            <>
-              <Button
-                position="absolute"
-                alignSelf="end"
-                display={['none', 'none', 'block']}
-                bg={currentColors.purple.base}
-                color="white"
-                _hover={{ bg: currentColors.purple.light }}
-                onClick={onEditEventOpen}
-              >
-                Edit Event
-              </Button>
-              <IconButton
-                display={['block', 'block', 'none']}
-                icon={<EditIcon />}
-                bg={currentColors.purple.base}
-                color="white"
-                _hover={{ bg: currentColors.purple.light }}
-                onClick={onEditEventOpen}
-                aria-label="Edit Event"
-              />
-            </>
-          )}
 
+            {/* Admin edit button */}
+            {isEventAdmin && (
+              <>
+                <Button
+                  position="absolute"
+                  alignSelf="end"
+                  display={['none', 'none', 'block']}
+                  bg={currentColors.purple.base}
+                  color="white"
+                  _hover={{ bg: currentColors.purple.light }}
+                  onClick={onEditEventOpen}
+                >
+                  Edit Event
+                </Button>
+                <IconButton
+                  display={['block', 'block', 'none']}
+                  icon={<EditIcon />}
+                  bg={currentColors.purple.base}
+                  color="white"
+                  _hover={{ bg: currentColors.purple.light }}
+                  onClick={onEditEventOpen}
+                  aria-label="Edit Event"
+                />
+              </>
+            )}
+          </VStack>
+
+          {/* ── STAT BAR ───────────────────────────────────────────────────── */}
           <StatGroup
             alignSelf="center"
             alignItems="center"
@@ -720,48 +843,166 @@ const TreasureEventView = () => {
             </Stat>
           </StatGroup>
 
-          {event.nodes && event.nodes.length > 0 && (
-            <Box width="100%">
-              {isEventAdmin && event.status !== 'DRAFT' && (
-                <Card mb={4} bg={currentColors.cardBg} borderRadius="md">
-                  <CardBody>
-                    <HStack justify="space-between" align="center">
-                      <HStack>
-                        <Icon as={FaCog} boxSize={10} mr={2} color={currentColors.purple.base} />
-                        <VStack align="start" spacing={1}>
-                          <Text fontWeight="bold" color={currentColors.textColor}>
-                            Admin Map Controls
+          {/* ── MAIN BODY: two-column leaderboard + map ─────────────────────── */}
+          {event.nodes && event.nodes.length > 0 ? (
+            <Flex
+              gap={[0, 0, 0, 6]}
+              align="flex-start"
+              flexDirection={['column', 'column', 'column', 'row']}
+            >
+              {/* LEFT: Leaderboard — natural height, min width so it doesn't collapse */}
+              <Box
+                flexShrink={0}
+                flexGrow={0}
+                h={['auto', 'auto', 'auto', '96%']}
+                w={['100%', '100%', '100%', '340px']}
+                minW={0}
+                mb={[-2, -2, -2, 0]}
+              >
+                <HStack justify="space-between" mb={3}>
+                  <Heading size="sm" color={currentColors.white}>
+                    🏆 &nbsp;Leaderboard
+                  </Heading>
+                  {isEventAdmin && (
+                    <Button
+                      size="xs"
+                      leftIcon={<AddIcon />}
+                      bg={currentColors.turquoise.base}
+                      color="white"
+                      _hover={{ opacity: 0.8 }}
+                      onClick={onCreateTeamOpen}
+                    >
+                      Add Team
+                    </Button>
+                  )}
+                </HStack>
+
+                {sortedTeams.length === 0 ? (
+                  <Box p={6} textAlign="center" bg={currentColors.cardBg} borderRadius="md">
+                    <Text color="gray.400" mb={3}>
+                      No teams yet.
+                    </Text>
+                    {isEventAdmin && (
+                      <Button
+                        size="sm"
+                        leftIcon={<AddIcon />}
+                        bg={currentColors.turquoise.base}
+                        color="white"
+                        _hover={{ opacity: 0.8 }}
+                        onClick={onCreateTeamOpen}
+                      >
+                        Add the first team
+                      </Button>
+                    )}
+                  </Box>
+                ) : (
+                  <VStack
+                    align="stretch"
+                    h="100%"
+                    maxH={['250px', '250px', '250px', '100%']}
+                    py={3}
+                    pl={3}
+                    mb="0"
+                    bg="whiteAlpha.100"
+                    borderTopLeftRadius="8px"
+                    borderTopRightRadius="8px"
+                    spacing={3}
+                    overflow="scroll"
+                    css={{
+                      '&::-webkit-scrollbar': {
+                        width: '8px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: 'transparent',
+                        borderRadius: '10px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#abb8ceff',
+                        borderRadius: '10px',
+                        '&:hover': {
+                          background: '#718096',
+                        },
+                      },
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#abb8ceff transparent',
+                    }}
+                  >
+                    {sortedTeams.map((team, idx) => (
+                      <StandingsCard
+                        key={team.teamId}
+                        team={team}
+                        index={idx}
+                        event={event}
+                        currentColors={currentColors}
+                        colorMode={colorMode}
+                        onTeamClick={handleTeamCardClick}
+                        onEditTeam={isEventAdmin ? handleEditTeam : null}
+                      />
+                    ))}
+                  </VStack>
+                )}
+              </Box>
+
+              {/* RIGHT: Map — takes remaining space, full width on mobile */}
+              <Box flex={1} minW={0} w={['100%', '100%', '100%', 'auto']}>
+                {isEventAdmin && event.status !== 'DRAFT' && (
+                  <Card mb={3} bg={currentColors.cardBg} borderRadius="md">
+                    <CardBody py={3}>
+                      <HStack justify="space-between" align="center">
+                        <HStack>
+                          <Icon as={FaCog} boxSize={5} mr={1} color={currentColors.purple.base} />
+                          <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                            Show All Nodes
                           </Text>
-                          <Text fontSize="sm" color={currentColors.textColor} opacity={0.7}>
-                            Toggle to show/hide locked nodes on the map (for you only)
-                          </Text>
-                        </VStack>
-                      </HStack>
-                      <HStack spacing={3}>
-                        <Text fontSize="sm" color={currentColors.textColor}>
-                          Show All Nodes
-                        </Text>
+                        </HStack>
                         <Switch
-                          size="lg"
+                          size="md"
                           colorScheme="purple"
                           isChecked={showAllNodesToggle}
                           onChange={(e) => setShowAllNodesToggle(e.target.checked)}
                         />
                       </HStack>
-                    </HStack>
-                  </CardBody>
-                </Card>
-              )}
-              <MultiTeamTreasureMap
-                nodes={event.nodes || []}
-                teams={teams || []}
-                event={event}
-                onRefresh={() => refetchEvent()}
-                showAllNodes={isEventAdmin && showAllNodesToggle}
-              />
-            </Box>
+                    </CardBody>
+                  </Card>
+                )}
+                <MultiTeamTreasureMap
+                  nodes={event.nodes || []}
+                  teams={teams || []}
+                  event={event}
+                  onRefresh={() => refetchEvent()}
+                  showAllNodes={isEventAdmin && showAllNodesToggle}
+                  highlightedTeamId={highlightedTeamId}
+                />
+              </Box>
+            </Flex>
+          ) : (
+            /* no map yet — show leaderboard solo if there are teams */
+            teams.length > 0 && (
+              <Box>
+                <HStack justify="space-between" mb={3}>
+                  <Heading size="sm" color={currentColors.textColor}>
+                    🏆 Leaderboard
+                  </Heading>
+                </HStack>
+                <VStack align="stretch" spacing={3}>
+                  {sortedTeams.map((team, idx) => (
+                    <StandingsCard
+                      key={team.teamId}
+                      team={team}
+                      index={idx}
+                      event={event}
+                      currentColors={currentColors}
+                      colorMode={colorMode}
+                      onTeamClick={handleTeamCardClick}
+                      onEditTeam={isEventAdmin ? handleEditTeam : null}
+                    />
+                  ))}
+                </VStack>
+              </Box>
+            )
           )}
 
+          {/* ── TABS (admin tools + game rules) ────────────────────────────── */}
           <Tabs
             size="sm"
             position="relative"
@@ -774,25 +1015,13 @@ const TreasureEventView = () => {
               overflowY="hidden"
               overflowX="scroll"
               css={{
-                '&::-webkit-scrollbar': {
-                  display: 'none',
-                },
+                '&::-webkit-scrollbar': { display: 'none' },
                 '-ms-overflow-style': 'none',
                 'scrollbar-width': 'none',
               }}
             >
               {isEventAdmin && (
                 <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  Leaderboard
-                </Tab>
-              )}
-              {isEventAdmin && (
-                <Tab
-                  ref={submissionsTabRef}
-                  whiteSpace="nowrap"
-                  color={theme.colors.gray[400]}
-                  position="relative"
-                >
                   Submissions ({allPendingIncompleteSubmissionsCount} Pending)
                   {allPendingIncompleteSubmissionsCount > 0 && (
                     <Box
@@ -806,10 +1035,7 @@ const TreasureEventView = () => {
                       boxShadow="0 0 0 2px white"
                       animation="pulse 2s infinite"
                       sx={{
-                        '@keyframes pulse': {
-                          '0%, 100%': { opacity: 1 },
-                          '50%': { opacity: 0.5 },
-                        },
+                        '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.5 } },
                       }}
                     />
                   )}
@@ -823,7 +1049,7 @@ const TreasureEventView = () => {
               <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
                 Game Rules
               </Tab>
-              {isEventAdmin && event.nodes && event.nodes.length > 0 && (
+              {isEventAdmin && event.nodes?.length > 0 && (
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
                   All Nodes
                 </Tab>
@@ -831,118 +1057,7 @@ const TreasureEventView = () => {
             </TabList>
 
             <TabPanels>
-              {/* LEADERBOARD - Admin only */}
-              {isEventAdmin && (
-                <TabPanel px={0}>
-                  <Text fontWeight="bold" fontSize="12px" mb="4px" color={currentColors.white}>
-                    Admin View of Leaderboard:
-                  </Text>
-                  <Box bg={currentColors.cardBg} borderRadius="8px" padding="8px">
-                    <TableContainer width="100%">
-                      <Table variant="simple">
-                        <Thead>
-                          <Tr>
-                            <Th color={currentColors.textColor}>Rank</Th>
-                            <Th color={currentColors.textColor}>Team Name</Th>
-                            <Th isNumeric color={currentColors.textColor}>
-                              Current Pot
-                            </Th>
-                            <Th isNumeric color={currentColors.textColor}>
-                              Nodes Completed
-                            </Th>
-                            <Th color={currentColors.textColor}>Keys Held</Th>
-                            <Th color={currentColors.textColor}>Actions</Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {[...teams]
-                            .sort((a, b) => {
-                              const potA = Number(a.currentPot || 0);
-                              const potB = Number(b.currentPot || 0);
-                              if (potA > potB) return -1;
-                              if (potA < potB) return 1;
-                              return (
-                                (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0)
-                              );
-                            })
-                            .map((team, idx) => (
-                              <Tr key={team.teamId}>
-                                <Td fontWeight="bold" color={currentColors.textColor}>
-                                  #{idx + 1}
-                                </Td>
-                                <Td color={currentColors.textColor} whiteSpace="nowrap">
-                                  {team.teamName}
-                                </Td>
-                                <Td
-                                  isNumeric
-                                  fontWeight="bold"
-                                  color={currentColors.green.base}
-                                  whiteSpace="nowrap"
-                                >
-                                  {formatGP(team.currentPot)}
-                                </Td>
-                                <Td isNumeric color={currentColors.textColor}>
-                                  {team.completedNodes?.length || 0}
-                                </Td>
-                                <Td>
-                                  <HStack spacing={2}>
-                                    {team.keysHeld && team.keysHeld.length > 0 ? (
-                                      team.keysHeld.map((key) => (
-                                        <Badge key={key.color} colorScheme={key.color}>
-                                          {key.quantity}
-                                        </Badge>
-                                      ))
-                                    ) : (
-                                      <Text fontSize="sm" color="gray.500">
-                                        None
-                                      </Text>
-                                    )}
-                                  </HStack>
-                                </Td>
-                                <Td>
-                                  <HStack spacing={2}>
-                                    {event.nodes && event.nodes.length > 0 && (
-                                      <Button
-                                        size="sm"
-                                        bg={currentColors.purple.base}
-                                        color="white"
-                                        _hover={{ bg: currentColors.purple.light }}
-                                        onClick={() =>
-                                          window.open(
-                                            `/gielinor-rush/${event.eventId}/team/${team.teamId}`,
-                                            '_blank'
-                                          )
-                                        }
-                                        whiteSpace="nowrap"
-                                      >
-                                        View Map
-                                      </Button>
-                                    )}
-                                    <IconButton
-                                      size="sm"
-                                      icon={<EditIcon />}
-                                      bg={currentColors.turquoise.base}
-                                      color="white"
-                                      _hover={{ opacity: 0.8 }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedTeam(team);
-                                        onEditTeamOpen();
-                                      }}
-                                      aria-label="Edit team"
-                                    />
-                                  </HStack>
-                                </Td>
-                              </Tr>
-                            ))}
-                        </Tbody>
-                      </Table>
-                    </TableContainer>
-                  </Box>
-                </TabPanel>
-              )}
-
-              {/* SUBMISSIONS - Admin only */}
+              {/* SUBMISSIONS */}
               {isEventAdmin && (
                 <TabPanel px={0}>
                   <VStack spacing={4} align="stretch">
@@ -962,13 +1077,10 @@ const TreasureEventView = () => {
 
                     {(() => {
                       const groupedSubmissions = {};
-
-                      allSubmissions.forEach((submission) => {
-                        const key = `${submission.nodeId}_${submission.team?.teamId}`;
-                        if (!groupedSubmissions[key]) {
-                          groupedSubmissions[key] = [];
-                        }
-                        groupedSubmissions[key].push(submission);
+                      allSubmissions.forEach((s) => {
+                        const key = `${s.nodeId}_${s.team?.teamId}`;
+                        if (!groupedSubmissions[key]) groupedSubmissions[key] = [];
+                        groupedSubmissions[key].push(s);
                       });
 
                       const relevantGroups = Object.entries(groupedSubmissions).filter(([, subs]) =>
@@ -986,23 +1098,16 @@ const TreasureEventView = () => {
                       const sortedGroups = [...relevantGroups].sort((a, b) => {
                         const [, subsA] = a;
                         const [, subsB] = b;
-
                         const nodeIdA = subsA[0].nodeId;
-                        const teamIdA = subsA[0].team?.teamId;
-                        const teamA = event.teams?.find((t) => t.teamId === teamIdA);
+                        const teamA = event.teams?.find((t) => t.teamId === subsA[0].team?.teamId);
                         const isCompletedA = teamA?.completedNodes?.includes(nodeIdA);
-
                         const nodeIdB = subsB[0].nodeId;
-                        const teamIdB = subsB[0].team?.teamId;
-                        const teamB = event.teams?.find((t) => t.teamId === teamIdB);
+                        const teamB = event.teams?.find((t) => t.teamId === subsB[0].team?.teamId);
                         const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
-
                         if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
-
                         const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
                         const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
                         if (pendA !== pendB) return pendB - pendA;
-
                         const latestA = Math.max(
                           ...subsA.map((s) => new Date(s.submittedAt || 0).getTime())
                         );
@@ -1022,7 +1127,6 @@ const TreasureEventView = () => {
                             const teamId = submissions[0].team?.teamId;
                             const team = event.teams?.find((t) => t.teamId === teamId);
                             const isCompleted = team?.completedNodes?.includes(nodeId);
-
                             const pendingSubmissions = submissions.filter(
                               (s) => s.status === 'PENDING_REVIEW'
                             );
@@ -1281,7 +1385,6 @@ const TreasureEventView = () => {
                                                 )}
                                               </VStack>
                                             </HStack>
-
                                             <HStack justify="space-between">
                                               <Button
                                                 leftIcon={<ExternalLinkIcon />}
@@ -1294,7 +1397,6 @@ const TreasureEventView = () => {
                                               >
                                                 View Proof
                                               </Button>
-
                                               {submission.status === 'PENDING_REVIEW' && (
                                                 <HStack>
                                                   <Tooltip label="Deny Submission">
@@ -1339,7 +1441,7 @@ const TreasureEventView = () => {
                 </TabPanel>
               )}
 
-              {/* EVENT SETTINGS - Admin only */}
+              {/* EVENT SETTINGS */}
               {isEventAdmin && (
                 <TabPanel>
                   <Card bg={currentColors.cardBg}>
@@ -1386,49 +1488,37 @@ const TreasureEventView = () => {
                                                       'treasureHunt_sound_enabled'
                                                     ) !== 'false'
                                                   ) {
-                                                    const audioContext = new (window.AudioContext ||
+                                                    const ac = new (window.AudioContext ||
                                                       window.webkitAudioContext)();
-                                                    const playTone = (
-                                                      frequency,
-                                                      duration,
-                                                      startTime
-                                                    ) => {
-                                                      const oscillator =
-                                                        audioContext.createOscillator();
-                                                      const gainNode = audioContext.createGain();
-                                                      oscillator.connect(gainNode);
-                                                      gainNode.connect(audioContext.destination);
-                                                      oscillator.frequency.value = frequency;
-                                                      oscillator.type = 'sine';
-                                                      gainNode.gain.setValueAtTime(0, startTime);
-                                                      gainNode.gain.linearRampToValueAtTime(
-                                                        0.3,
-                                                        startTime + 0.01
-                                                      );
-                                                      gainNode.gain.exponentialRampToValueAtTime(
+                                                    const playTone = (f, d, t) => {
+                                                      const o = ac.createOscillator();
+                                                      const g = ac.createGain();
+                                                      o.connect(g);
+                                                      g.connect(ac.destination);
+                                                      o.frequency.value = f;
+                                                      o.type = 'sine';
+                                                      g.gain.setValueAtTime(0, t);
+                                                      g.gain.linearRampToValueAtTime(0.3, t + 0.01);
+                                                      g.gain.exponentialRampToValueAtTime(
                                                         0.01,
-                                                        startTime + duration
+                                                        t + d
                                                       );
-                                                      oscillator.start(startTime);
-                                                      oscillator.stop(startTime + duration);
+                                                      o.start(t);
+                                                      o.stop(t + d);
                                                     };
-                                                    const now = audioContext.currentTime;
+                                                    const now = ac.currentTime;
                                                     playTone(800, 0.1, now);
                                                     playTone(600, 0.15, now + 0.1);
                                                   }
-
-                                                  const testNotif = new Notification(
-                                                    'Test Notification',
-                                                    {
-                                                      body: 'If you can see this, notifications are working!',
-                                                      icon: '/favicon.ico',
-                                                      tag: 'manual-test',
-                                                      silent: true,
-                                                    }
-                                                  );
-                                                  testNotif.onclick = () => {
+                                                  const n = new Notification('Test Notification', {
+                                                    body: 'If you can see this, notifications are working!',
+                                                    icon: '/favicon.ico',
+                                                    tag: 'manual-test',
+                                                    silent: true,
+                                                  });
+                                                  n.onclick = () => {
                                                     window.focus();
-                                                    testNotif.close();
+                                                    n.close();
                                                   };
                                                 }
                                               }}
@@ -1470,16 +1560,6 @@ const TreasureEventView = () => {
                                         browser settings.
                                       </Text>
                                     )}
-                                    {notificationPermission === 'default' &&
-                                      !notificationsEnabled && (
-                                        <Text
-                                          fontSize="xs"
-                                          color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
-                                        >
-                                          Click "Enable Notifications" and allow permission when
-                                          prompted
-                                        </Text>
-                                      )}
 
                                     {notificationsEnabled && (
                                       <HStack
@@ -1518,28 +1598,22 @@ const TreasureEventView = () => {
                                               e.target.checked.toString()
                                             );
                                             if (e.target.checked) {
-                                              const audioContext = new (window.AudioContext ||
+                                              const ac = new (window.AudioContext ||
                                                 window.webkitAudioContext)();
-                                              const playTone = (frequency, duration, startTime) => {
-                                                const oscillator = audioContext.createOscillator();
-                                                const gainNode = audioContext.createGain();
-                                                oscillator.connect(gainNode);
-                                                gainNode.connect(audioContext.destination);
-                                                oscillator.frequency.value = frequency;
-                                                oscillator.type = 'sine';
-                                                gainNode.gain.setValueAtTime(0, startTime);
-                                                gainNode.gain.linearRampToValueAtTime(
-                                                  0.3,
-                                                  startTime + 0.01
-                                                );
-                                                gainNode.gain.exponentialRampToValueAtTime(
-                                                  0.01,
-                                                  startTime + duration
-                                                );
-                                                oscillator.start(startTime);
-                                                oscillator.stop(startTime + duration);
+                                              const playTone = (f, d, t) => {
+                                                const o = ac.createOscillator();
+                                                const g = ac.createGain();
+                                                o.connect(g);
+                                                g.connect(ac.destination);
+                                                o.frequency.value = f;
+                                                o.type = 'sine';
+                                                g.gain.setValueAtTime(0, t);
+                                                g.gain.linearRampToValueAtTime(0.3, t + 0.01);
+                                                g.gain.exponentialRampToValueAtTime(0.01, t + d);
+                                                o.start(t);
+                                                o.stop(t + d);
                                               };
-                                              const now = audioContext.currentTime;
+                                              const now = ac.currentTime;
                                               playTone(800, 0.1, now);
                                               playTone(600, 0.15, now + 0.1);
                                             }
@@ -1568,20 +1642,18 @@ const TreasureEventView = () => {
                               }
                               sx={{
                                 '@keyframes flashButton': {
-                                  '0%, 100%': {
-                                    boxShadow: '0 0 0 0 rgba(72, 187, 120, 0.7)',
+                                  '0%,100%': {
+                                    boxShadow: '0 0 0 0 rgba(72,187,120,0.7)',
                                     transform: 'scale(1)',
                                   },
                                   '50%': {
-                                    boxShadow: '0 0 20px 5px rgba(72, 187, 120, 0.9)',
+                                    boxShadow: '0 0 20px 5px rgba(72,187,120,0.9)',
                                     transform: 'scale(1.05)',
                                   },
                                 },
                               }}
                             >
-                              {event.nodes && event.nodes.length > 0
-                                ? 'Regenerate Map'
-                                : 'Generate Map'}
+                              {event.nodes?.length > 0 ? 'Regenerate Map' : 'Generate Map'}
                             </Button>
                             <Button
                               leftIcon={<AddIcon />}
@@ -1604,8 +1676,7 @@ const TreasureEventView = () => {
                               </HStack>
                               <Text fontSize="sm">
                                 Connect your Discord server to let teams interact with the Treasure
-                                Hunt directly from Discord. They can view progress, submit
-                                completions, and use buffs!
+                                Hunt directly from Discord.
                               </Text>
                               <Button
                                 size="sm"
@@ -1622,9 +1693,7 @@ const TreasureEventView = () => {
                         <hr />
                         <EventAdminManager
                           event={event}
-                          onUpdate={() => {
-                            window.location.reload();
-                          }}
+                          onUpdate={() => window.location.reload()}
                         />
                       </VStack>
                     </CardBody>
@@ -1632,35 +1701,31 @@ const TreasureEventView = () => {
                 </TabPanel>
               )}
 
-              {/* GAME RULES - Always visible */}
+              {/* GAME RULES */}
               <TabPanel px={0}>
                 <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
               </TabPanel>
 
-              {/* ALL NODES - Admin only, only if nodes exist */}
-              {isEventAdmin && event.nodes && event.nodes.length > 0 && (
+              {/* ALL NODES */}
+              {isEventAdmin && event.nodes?.length > 0 && (
                 <TabPanel px={0}>
                   <Box
                     bg={currentColors.cardBg}
                     borderRadius="8px"
                     overflow="hidden"
                     sx={{
-                      '&::-webkit-scrollbar': {
-                        width: '8px',
-                      },
+                      '&::-webkit-scrollbar': { width: '8px' },
                       '&::-webkit-scrollbar-track': {
-                        background: 'rgba(255, 255, 255, 0.1)',
+                        background: 'rgba(255,255,255,0.1)',
                         borderRadius: '4px',
                       },
                       '&::-webkit-scrollbar-thumb': {
-                        background: 'rgba(125, 95, 255, 0.6)',
+                        background: 'rgba(125,95,255,0.6)',
                         borderRadius: '4px',
-                        '&:hover': {
-                          background: 'rgba(125, 95, 255, 0.8)',
-                        },
+                        '&:hover': { background: 'rgba(125,95,255,0.8)' },
                       },
                       scrollbarWidth: 'thin',
-                      scrollbarColor: `rgba(125, 95, 255, 0.6)' rgba(255, 255, 255, 0.1)`,
+                      scrollbarColor: `rgba(125,95,255,0.6) rgba(255,255,255,0.1)`,
                     }}
                   >
                     <ScrollableTableContainer width="100%">
@@ -1706,11 +1771,9 @@ const TreasureEventView = () => {
                                   : node.difficultyTier === 1
                                   ? 'green'
                                   : 'gray';
-
                               const gp = node.rewards?.gp || 0;
                               const keys = node.rewards?.keys || [];
                               const buffs = node.rewards?.buffs || [];
-
                               const objective = node.objective ? ` ${node.objective.target}` : '—';
 
                               return (
@@ -1762,11 +1825,9 @@ const TreasureEventView = () => {
                                     )}
                                   </Td>
                                   <Td color={currentColors.textColor}>
-                                    <VStack align="start" spacing={0}>
-                                      <Text whiteSpace={'nowrap'} fontSize="sm">
-                                        {node.mapLocation || '—'}
-                                      </Text>
-                                    </VStack>
+                                    <Text whiteSpace="nowrap" fontSize="sm">
+                                      {node.mapLocation || '—'}
+                                    </Text>
                                   </Td>
                                   <Td isNumeric color={currentColors.green.base}>
                                     {node.nodeType === 'INN' ? (
@@ -1842,9 +1903,7 @@ const TreasureEventView = () => {
                                         </HStack>
                                       </Tooltip>
                                     ) : (
-                                      <Text whiteSpace={'nowrap'}>
-                                        {formatObjectiveAmount(node)}
-                                      </Text>
+                                      <Text whiteSpace="nowrap">{formatObjectiveAmount(node)}</Text>
                                     )}
                                   </Td>
                                   <Td isNumeric color={currentColors.textColor}>
@@ -1866,7 +1925,8 @@ const TreasureEventView = () => {
           </Tabs>
         </VStack>
       </Section>
-      {/* Admin Launch Checklist - Floating */}
+
+      {/* Floating admin panels */}
       {isEventAdmin && (
         <AdminLaunchChecklist
           event={event}
@@ -1891,6 +1951,8 @@ const TreasureEventView = () => {
           isEventAdmin={isEventAdmin}
         />
       )}
+
+      {/* Modals */}
       <CreateTeamModal
         isOpen={isCreateTeamOpen}
         onClose={onCreateTeamClose}
@@ -1939,7 +2001,8 @@ const TreasureEventView = () => {
         onComplete={handleCompleteNode}
         isLoading={completeLoading}
       />
-      {/* Regenerate Map Confirmation */}
+
+      {/* Regenerate map confirmation */}
       <AlertDialog
         isOpen={isRegenerateOpen}
         leastDestructiveRef={cancelRef}
@@ -1950,12 +2013,10 @@ const TreasureEventView = () => {
             <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
               Regenerate Map
             </AlertDialogHeader>
-
             <AlertDialogBody color={currentColors.textColor}>
               Are you sure you want to regenerate the map? This will delete all existing nodes and
               reset all team progress. This action cannot be undone.
             </AlertDialogBody>
-
             <AlertDialogFooter>
               <Button ref={cancelRef} onClick={onRegenerateClose}>
                 Cancel
@@ -1972,60 +2033,14 @@ const TreasureEventView = () => {
           </AlertDialogContent>
         </AlertDialogOverlay>
       </AlertDialog>
-      {/* Launch Event Confirmation */}
-      <AlertDialog
+
+      <LaunchCheckModal
         isOpen={isLaunchConfirmOpen}
-        leastDestructiveRef={cancelRef}
         onClose={onLaunchConfirmClose}
-      >
-        <AlertDialogOverlay>
-          <AlertDialogContent bg={currentColors.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
-              🚀 Launch Event?
-            </AlertDialogHeader>
-
-            <AlertDialogBody color={currentColors.textColor}>
-              <VStack align="start" spacing={3}>
-                <Text>
-                  You're about to make <strong>{event.eventName}</strong> live!
-                </Text>
-
-                <Box p={3} bg="green.50" borderRadius="md" w="full">
-                  <Text fontSize="sm" color="green.800" fontWeight="bold">
-                    What happens next:
-                  </Text>
-                  <VStack align="start" spacing={1} mt={2} fontSize="sm" color="green.700">
-                    <Text>• Teams can view their maps and objectives</Text>
-                    <Text>• Players can submit completions</Text>
-                    <Text>• Discord commands become active</Text>
-                    <Text>• Event appears in public listings</Text>
-                  </VStack>
-                </Box>
-
-                <Text fontSize="sm" color="orange.500">
-                  ⚠️ You can still edit some event details after launching, but specific content
-                  settings, event length, etc. cannot be changed. The map cannot be regenerated
-                  while the event is active, either.
-                </Text>
-              </VStack>
-            </AlertDialogBody>
-
-            <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={onLaunchConfirmClose}>
-                Cancel
-              </Button>
-              <Button
-                colorScheme="green"
-                onClick={handleLaunchEvent}
-                ml={3}
-                leftIcon={<Icon as={FaRocket} />}
-              >
-                Launch Event!
-              </Button>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialogOverlay>
-      </AlertDialog>
+        onConfirm={handleLaunchEvent}
+        event={event}
+        isLaunching={eventLoading}
+      />
     </Flex>
   );
 };

@@ -976,12 +976,12 @@ const SOLO_BOSSES = {
     },
     dropQuantities: {
       medium: {
-        min: 1,
-        max: 1,
+        min: 2,
+        max: 2,
       },
       hard: {
         min: 2,
-        max: 2,
+        max: 3,
       },
     },
   },

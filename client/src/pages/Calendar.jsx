@@ -120,22 +120,20 @@ const TYPE_COLOR = {
 export default function CalendarPage() {
   const toast = useToast();
 
-  // auth state
   const [authed, setAuthed] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false); // avoid flashing before first check
-
-  // toolbar & modal state
+  const [authChecked, setAuthChecked] = useState(false);
   const [selected, setSelected] = useState(null);
-  const form = useDisclosure();
-  const viewModal = useDisclosure();
-
-  const reschedule = useDisclosure();
   const [toRestore, setToRestore] = useState(null);
-
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0 });
+  const [hasDrift, setHasDrift] = useState(false);
+  const [baseline, setBaseline] = useState({ activeUpdatedAt: null, savedUpdatedAt: null });
 
-  // --- LIGHTWEIGHT AUTH CHECK ---
+  const form = useDisclosure();
+  const viewModal = useDisclosure();
+  const reschedule = useDisclosure();
+
+  // --- AUTH CHECK ---
   const [checkAuth, { loading: authLoading }] = useLazyQuery(GET_CALENDAR_EVENTS, {
     variables: { limit: 1, offset: 0 },
     fetchPolicy: 'network-only',
@@ -152,13 +150,12 @@ export default function CalendarPage() {
     },
   });
 
-  // run once on mount
   useEffect(() => {
     checkAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // --- MAIN EVENTS QUERY (only when authed) ---
+  // --- MAIN EVENTS QUERY ---
   const { data, loading, refetch } = useQuery(GET_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
@@ -170,48 +167,34 @@ export default function CalendarPage() {
     },
   });
 
-  // --- Version tracking ---
-  const [baseline, setBaseline] = useState({
-    activeUpdatedAt: null,
-    savedUpdatedAt: null,
-  });
-  const [hasDrift, setHasDrift] = useState(false);
-
-  const { data: verData } = useQuery(GET_CALENDAR_VERSION, {
-    skip: !authed,
-    pollInterval: 15000, // 15s; tune as you like
+  // --- VERSION DRIFT (no polling — manual check only) ---
+  const [checkVersion] = useLazyQuery(GET_CALENDAR_VERSION, {
     fetchPolicy: 'network-only',
+    onCompleted: (verData) => {
+      const active = new Date(verData.calendarVersion.lastUpdated).getTime();
+      const saved = new Date(verData.savedCalendarVersion.lastUpdated).getTime();
+
+      setBaseline((prev) => {
+        if (prev.activeUpdatedAt === null && prev.savedUpdatedAt === null) {
+          return { activeUpdatedAt: active, savedUpdatedAt: saved };
+        }
+        const drift =
+          (prev.activeUpdatedAt && active > prev.activeUpdatedAt) ||
+          (prev.savedUpdatedAt && saved > prev.savedUpdatedAt);
+        setHasDrift(!!drift);
+        return prev;
+      });
+    },
   });
 
-  // Use an effect so we read the *current* baseline, not a stale closure
+  // Check version once when authed, then again after user actions that mutate data
   useEffect(() => {
-    if (!authed || !verData) return;
+    if (authed) checkVersion();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authed]);
 
-    const active = new Date(verData.calendarVersion.lastUpdated).getTime();
-    const saved = new Date(verData.savedCalendarVersion.lastUpdated).getTime();
-
-    const noBaseline = baseline.activeUpdatedAt === null && baseline.savedUpdatedAt === null;
-
-    if (noBaseline) {
-      // First version snapshot becomes our baseline
-      setBaseline({ activeUpdatedAt: active, savedUpdatedAt: saved });
-      setHasDrift(false);
-      return;
-    }
-
-    const drift =
-      (baseline.activeUpdatedAt && active > baseline.activeUpdatedAt) ||
-      (baseline.savedUpdatedAt && saved > baseline.savedUpdatedAt);
-
-    setHasDrift(!!drift);
-  }, [authed, verData, baseline]);
-
-  // Saved events (persistent)
-  const {
-    data: savedData,
-    loading: savedLoading,
-    refetch: refetchSaved,
-  } = useQuery(GET_SAVED_CALENDAR_EVENTS, {
+  // --- SAVED EVENTS ---
+  const { data: savedData, refetch: refetchSaved } = useQuery(GET_SAVED_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
     onError: (e) => {
@@ -240,63 +223,21 @@ export default function CalendarPage() {
     }));
   }, [data]);
 
-  // keep baseline in sync when we do a full fetch of active items
-  useEffect(() => {
-    if (!loading && data?.calendarEvents?.items) {
-      const latest =
-        data.calendarEvents.items.reduce(
-          (max, e) => Math.max(max, new Date(e.updatedAt || e.start || 0).getTime()),
-          0
-        ) ||
-        baseline.activeUpdatedAt ||
-        0;
-      setBaseline((b) => ({
-        ...b,
-        activeUpdatedAt: Math.max(latest, b.activeUpdatedAt || 0),
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, data]);
-
-  // and when we fetch saved items
-  useEffect(() => {
-    if (!savedLoading && savedData?.savedCalendarEvents?.items) {
-      const latest =
-        savedData.savedCalendarEvents.items.reduce(
-          (max, e) => Math.max(max, new Date(e.updatedAt || 0).getTime()),
-          0
-        ) ||
-        baseline.savedUpdatedAt ||
-        0;
-      setBaseline((b) => ({
-        ...b,
-        savedUpdatedAt: Math.max(latest, b.savedUpdatedAt || 0),
-      }));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [savedLoading, savedData]);
-
   const doRefreshLists = async () => {
     await Promise.all([refetch(), refetchSaved()]);
-    if (verData) {
-      setBaseline({
-        activeUpdatedAt: new Date(verData.calendarVersion.lastUpdated).getTime(),
-        savedUpdatedAt: new Date(verData.savedCalendarVersion.lastUpdated).getTime(),
-      });
-    }
+    // Re-snapshot baseline after manual refresh
+    checkVersion();
+    setBaseline({ activeUpdatedAt: null, savedUpdatedAt: null });
     setHasDrift(false);
   };
 
   const openToolbar = (eventData, domEvt) => {
     setSelected(eventData);
-    const x = (domEvt?.clientX || 0) + 8;
-    const y = (domEvt?.clientY || 0) + 8;
-    setToolbarPos({ x, y });
+    setToolbarPos({ x: (domEvt?.clientX || 0) + 8, y: (domEvt?.clientY || 0) + 8 });
     setToolbarOpen(true);
   };
   const closeToolbar = () => setToolbarOpen(false);
 
-  // only treat UNAUTHENTICATED as logout
   const safeRun = async (fn) => {
     try {
       await fn();
@@ -317,9 +258,7 @@ export default function CalendarPage() {
     form.onOpen();
   };
 
-  const onSelectEvent = (e, domEvt) => {
-    openToolbar(e, domEvt);
-  };
+  const onSelectEvent = (e, domEvt) => openToolbar(e, domEvt);
 
   const handleSave = async (vals) => {
     await safeRun(async () => {
@@ -329,6 +268,7 @@ export default function CalendarPage() {
         await createEvent({ variables: { input: vals } });
       }
       await refetch();
+      checkVersion();
       toast({ status: 'success', title: 'Saved' });
     });
   };
@@ -336,8 +276,8 @@ export default function CalendarPage() {
   const handleDelete = async (id) => {
     await safeRun(async () => {
       await deleteEvent({ variables: { id } });
-      await refetch();
-      await refetchSaved();
+      await Promise.all([refetch(), refetchSaved()]);
+      checkVersion();
       toast({ status: 'success', title: 'Deleted' });
     });
   };
@@ -345,7 +285,8 @@ export default function CalendarPage() {
   const handleDeleteSaved = async (ev) => {
     await safeRun(async () => {
       await deleteEvent({ variables: { id: ev.id } });
-      await refetchSaved(); // refresh saved list
+      await refetchSaved();
+      checkVersion();
       toast({ status: 'success', title: 'Saved event deleted' });
     });
   };
@@ -364,7 +305,6 @@ export default function CalendarPage() {
 
   usePageTitle('EG Events Calendar');
 
-  // --- RENDER GUARDS ---
   if (!authChecked || authLoading) {
     return (
       <Flex align="center" justify="center" minHeight="60vh">
@@ -504,6 +444,7 @@ export default function CalendarPage() {
               await safeRun(async () => {
                 await saveEvent({ variables: { id: selected.id } });
                 await Promise.all([refetch(), refetchSaved()]);
+                checkVersion();
                 toast({ status: 'info', title: 'Saved for later' });
               });
               closeToolbar();
@@ -540,6 +481,7 @@ export default function CalendarPage() {
           try {
             await restoreEvent({ variables: { id: toRestore.id, start, end } });
             await Promise.all([refetch(), refetchSaved()]);
+            checkVersion();
             toast({ status: 'success', title: 'Event added back' });
           } catch {
             toast({ status: 'error', title: 'Failed to add back' });
