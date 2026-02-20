@@ -23,6 +23,11 @@ const discordRoutes = require('./routes/discord');
 
 dotenv.config();
 
+const userCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000;
+const searchCache = new Map(); // { query -> { results, cachedAt } }
+const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 const SECRET = process.env.JWTSECRETKEY;
 const app = express();
 const httpServer = createServer(app);
@@ -211,18 +216,28 @@ app.post('/users/batch', async (req, res) => {
 });
 
 app.get('/api/items', async (req, res) => {
-  try {
-    const { alpha } = req.query;
-    if (!alpha || alpha.trim().length === 0) {
-      return res.json([]);
-    }
-    const results = await itemsService.searchItems(alpha);
-    res.json(results);
-  } catch (error) {
-    console.error('Items search error:', error);
-    res.status(500).json({ error: 'Failed to fetch data from RuneScape API' });
+  const { alpha } = req.query;
+  if (!alpha || alpha.trim().length < 2) return res.json([]);
+
+  const key = alpha.trim().toLowerCase();
+  const cached = searchCache.get(key);
+  if (cached && Date.now() - cached.cachedAt < SEARCH_CACHE_TTL) {
+    return res.json(cached.results);
   }
+
+  const results = await itemsService.searchItems(alpha);
+  searchCache.set(key, { results, cachedAt: Date.now() });
+  res.json(results);
 });
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of searchCache.entries()) {
+    if (now - value.cachedAt > SEARCH_CACHE_TTL) {
+      searchCache.delete(key);
+    }
+  }
+}, SEARCH_CACHE_TTL);
 
 app.get('/api/cache-stats', (req, res) => {
   const stats = itemsService.getCacheStats();
@@ -265,8 +280,7 @@ const serverCleanup = useServer(
   },
   wsServer
 );
-const userCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000;
+
 // GraphQL Server setup
 const server = new ApolloServer({
   typeDefs,
