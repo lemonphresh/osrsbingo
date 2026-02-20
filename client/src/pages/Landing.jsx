@@ -37,7 +37,7 @@ const Landing = () => {
             backgroundImage: `url(${OsrsMap})`,
             backgroundSize: '140%',
             backgroundRepeat: 'no-repeat',
-            animation: 'mapPan 35s ease-in-out infinite alternate',
+            animation: 'mapPan 45s ease-in-out infinite alternate',
             transformOrigin: 'center center',
             '@keyframes mapPan': {
               '0%': { backgroundPosition: '0% 40%' },
@@ -143,9 +143,8 @@ const Landing = () => {
               />
             </Flex>
             <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
-              Create custom bingo boards to track any goals — boss kills, collection log slots,
-              skill milestones, or anything else. Share with your clan or browse public boards for
-              ideas.
+              Create custom bingo boards to track any goals: boss kills, collection log slots, skill
+              milestones, or anything else. Share with your clan or browse public boards for ideas.
             </Text>
             <Link to="/boards">
               <Button

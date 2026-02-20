@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';

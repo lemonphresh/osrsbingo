@@ -647,6 +647,9 @@ const UserDetails = () => {
           variant="ghost"
           leftIcon={<Icon as={MdDoorBack} />}
           marginTop="48px"
+          _hover={{
+            backgroundColor: 'gray.600',
+          }}
           onClick={logout}
           as={Link}
           to="/"
