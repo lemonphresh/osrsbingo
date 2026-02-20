@@ -7,6 +7,7 @@ import { FaCoffee, FaHeart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
 import { isGielinorRushEnabled } from '../config/featureFlags';
+import PleaseEffect from '../atoms/PleaseEffect';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -95,7 +96,8 @@ export default function SupportPage() {
 
           <p>
             That's about <strong style={{ color: '#F4D35E' }}>$90/month</strong> out of my pocket to
-            keep this thing running. Not gonna lie, it adds up and it's a bit stressful sometimes.
+            keep this thing running, and as much as I love doing it, that adds up fast. I don't know
+            if you've seen the price of groceries lately, but whew. Boy howdy.
           </p>
 
           <p>
@@ -118,50 +120,54 @@ export default function SupportPage() {
             flexWrap: 'wrap',
           }}
         >
-          <ChakraLink
-            href="https://cash.app/$lemonlikesgirls"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: '#F4D35E',
-              color: '#1a1a1a',
-              padding: '14px 28px',
-              borderRadius: 8,
-              fontWeight: 600,
-              textDecoration: 'none',
-              fontSize: 15,
-            }}
-            target="_blank"
-          >
-            <FaHeart size={18} /> Donate (Cash App)
-          </ChakraLink>
-          <ChakraLink
-            href="https://ko-fi.com/A667UUO"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              background: 'transparent',
-              color: 'white',
-              padding: '14px 28px',
-              borderRadius: 8,
-              fontWeight: 500,
-              textDecoration: 'none',
-              border: '1px solid rgba(255,255,255,0.3)',
-              fontSize: 15,
-            }}
-            target="_blank"
-          >
-            <FaCoffee size={18} /> Ko-fi
-          </ChakraLink>
+          <PleaseEffect>
+            <ChakraLink
+              href="https://cash.app/$lemonlikesgirls"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: '#F4D35E',
+                color: '#1a1a1a',
+                padding: '14px 28px',
+                borderRadius: 8,
+                fontWeight: 600,
+                textDecoration: 'none',
+                fontSize: 15,
+              }}
+              target="_blank"
+            >
+              <FaHeart size={18} /> Donate (CashApp)
+            </ChakraLink>
+          </PleaseEffect>
+          <PleaseEffect>
+            <ChakraLink
+              href="https://ko-fi.com/A667UUO"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'transparent',
+                color: 'white',
+                padding: '14px 28px',
+                borderRadius: 8,
+                fontWeight: 500,
+                textDecoration: 'none',
+                border: '1px solid rgba(255,255,255,0.3)',
+                fontSize: 15,
+              }}
+              target="_blank"
+            >
+              <FaCoffee size={18} /> Ko-fi
+            </ChakraLink>
+          </PleaseEffect>
         </div>
         {/* Sign off */}
         <p style={{ marginTop: 48, fontSize: 14, color: 'rgba(255,255,255,0.5)' }}>
           Thanks for reading this far. Love you. Fuck ICE. 🫶 <br /> If you really like reading,
           check out the{' '}
           <span style={{ color: '#F4D35E' }}>
-            <Link to="/changelog">change log</Link>
+            <Link to="/changelog">changelog</Link>
           </span>{' '}
           to see a more in-depth history of the site.
         </p>
