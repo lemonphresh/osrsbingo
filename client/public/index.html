@@ -23,10 +23,10 @@
     <!-- Open Graph / Facebook / Discord -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.osrsbingohub.com" />
-    <meta property="og:title" content="OSRS Bingo Hub - Create & Track Bingo Boards" />
+    <meta property="og:title" content="OSRS Bingo Hub" />
     <meta
       property="og:description"
-      content="Free tool for Old School RuneScape players to create bingo boards, track goals, and run clan events. 3,000+ boards created!"
+      content="Free bingo boards and team treasure hunt events for OSRS clans. Built by a player, for players. 3000+ boards created!"
     />
     <meta property="og:image" content="https://www.osrsbingohub.com/ogimage.webp" />
     <meta property="og:image:width" content="1200" />
@@ -36,10 +36,10 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://www.osrsbingohub.com" />
-    <meta name="twitter:title" content="OSRS Bingo Hub - Create & Track Bingo Boards" />
+    <meta name="twitter:title" content="OSRS Bingo Hub" />
     <meta
       name="twitter:description"
-      content="Free tool for Old School RuneScape players to create bingo boards, track goals, and run clan events. 3,000+ boards created!"
+      content="Free bingo boards and team treasure hunt events for OSRS clans. Built by a player, for players. 3000+ boards created!"
     />
     <meta name="twitter:image" content="https://www.osrsbingohub.com/ogimage.webp" />
 
@@ -50,13 +50,6 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://www.osrsbingohub.com" />
 
-    <!-- Preconnect for Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
     <link
       rel="stylesheet"
       href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -64,19 +57,20 @@
       crossorigin=""
     />
 
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then((reg) => console.log('✅ SW registered'))
+            .catch((err) => console.log('❌ SW failed:', err));
+        });
+      }
+    </script>
+
     <!-- Page Title -->
     <title>OSRS Bingo Hub - Create & Track Bingo Boards</title>
   </head>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/sw.js')
-          .then((reg) => console.log('✅ SW registered'))
-          .catch((err) => console.log('❌ SW failed:', err));
-      });
-    }
-  </script>
   <body style="height: 100vh">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
