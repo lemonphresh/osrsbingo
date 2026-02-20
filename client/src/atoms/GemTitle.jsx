@@ -78,6 +78,7 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
         <Heading
           color={props.color ? props.color : theme.colors.white}
           fontSize={fontSize}
+          fontFamily="'Raleway', sans-serif"
           wordBreak="break-word"
           position="relative"
           width="fit-content"
