@@ -3,7 +3,7 @@ import { Center, Spinner } from '@chakra-ui/react';
 import ErrorPage from './pages/ErrorPage';
 import Root from './Root';
 
-// Lazy load all pages
+// lazy load all pages
 const Landing = lazy(() => import('./pages/Landing'));
 const LogIn = lazy(() => import('./pages/LogIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
@@ -26,14 +26,14 @@ const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
 const DebugComponentsPage = lazy(() => import('./debug/index'));
 
-// Loading fallback component
+// loading fallback component
 const PageLoader = () => (
   <Center h="60vh">
     <Spinner size="xl" color="purple.500" thickness="4px" speed="0.65s" emptyColor="gray.200" />
   </Center>
 );
 
-// Wrap lazy components with Suspense
+// wrap lazy components with Suspense
 const withSuspense = (Component) => (
   <Suspense fallback={<PageLoader />}>
     <Component />

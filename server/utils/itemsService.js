@@ -93,7 +93,13 @@ async function loadItemsData() {
     });
 
     const itemsData = response.data;
-    const items = Object.values(itemsData);
+    const items = Object.values(itemsData).filter(
+      (item) =>
+        item.wiki_name && // has a wiki name
+        !item.noted && // not a noted variant
+        !item.placeholder && // not a placeholder
+        item.linked_id_item === null // not a noted/variant of another item
+    );
 
     // Build Fuse index once
     const fuse = new Fuse(items, CONFIG.FUSE_OPTIONS);
@@ -183,16 +189,20 @@ async function fetchInventoryIcon(itemName) {
  * Add to icon cache with size limit enforcement
  */
 function addToIconCache(key, url) {
-  // Enforce cache size limit by removing oldest entries
+  // Enforce cache size limit by removing oldest entries.
+  // Map iterates in insertion order, so the first keys are the oldest — no sort needed.
   if (iconCache.size >= CONFIG.MAX_ICON_CACHE_SIZE) {
-    // Remove ~10% of oldest entries
     const entriesToRemove = Math.floor(CONFIG.MAX_ICON_CACHE_SIZE * 0.1);
-    const sortedEntries = [...iconCache.entries()].sort((a, b) => a[1].fetchedAt - b[1].fetchedAt);
-    for (let i = 0; i < entriesToRemove; i++) {
-      iconCache.delete(sortedEntries[i][0]);
+    let removed = 0;
+    for (const k of iconCache.keys()) {
+      if (removed >= entriesToRemove) break;
+      iconCache.delete(k);
+      removed++;
     }
   }
 
+  // Delete before re-setting so updated entries move to the end of insertion order
+  iconCache.delete(key);
   iconCache.set(key, { url, fetchedAt: Date.now() });
 }
 
