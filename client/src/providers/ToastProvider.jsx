@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useToast, Flex, Text, Box, IconButton } from '@chakra-ui/react';
+import { useToast, Flex, Text, IconButton } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningIcon, InfoIcon, CloseIcon } from '@chakra-ui/icons';
 import { MdError } from 'react-icons/md';
 

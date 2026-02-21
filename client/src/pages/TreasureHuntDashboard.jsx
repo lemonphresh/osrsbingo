@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogContent,
   AlertDialogOverlay,
-  theme,
   Skeleton,
   SkeletonText,
   Menu,
