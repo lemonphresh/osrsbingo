@@ -34,6 +34,7 @@ import { FaDiscord } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 import { useMemo } from 'react';
+import { userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 
 // Helper to get all acceptable drops for a boss/raid
 function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
@@ -176,8 +177,6 @@ export default function NodeDetailModal({
   const isStartNode = node?.nodeType === 'START';
   const isInnNode = node?.nodeType === 'INN';
   const isFirstNode = team?.completedNodes?.length === 0;
-  const shouldShowTutorial = isStartNode && isFirstNode && !adminMode && showTutorial;
-
   // Check if user has seen tutorial before
   const hasSeenTutorial =
     typeof window !== 'undefined' &&
@@ -188,6 +187,9 @@ export default function NodeDetailModal({
     team?.members?.some(
       (m) => m.discordUserId?.toString() === currentUser.discordUserId?.toString()
     );
+
+  const shouldShowTutorial =
+    !adminMode && isTeamMember && showTutorial && userHasNeverSubmitted(team, currentUser);
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -294,26 +296,15 @@ export default function NodeDetailModal({
         <ModalCloseButton />
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
-            {/* Show Progressive Tutorial for START node on first visit */}
-            {shouldShowTutorial && !hasSeenTutorial && (
+            {shouldShowTutorial && (
               <>
                 <ProgressiveStartTutorial
+                  eventPassword={event.eventPassword}
+                  isStartNode={isStartNode}
                   nodeId={node.nodeId}
                   colorMode={colorMode}
+                  compact={hasSeenTutorial} // compact if they've seen it, full if brand new
                   onComplete={handleCloseTutorial}
-                />
-                <Divider />
-              </>
-            )}
-
-            {/* Show compact reminder if they've seen it before */}
-            {isStartNode && isFirstNode && hasSeenTutorial && (
-              <>
-                <ProgressiveStartTutorial
-                  nodeId={node.nodeId}
-                  colorMode={colorMode}
-                  compact={true}
-                  onComplete={() => {}}
                 />
                 <Divider />
               </>

@@ -357,11 +357,22 @@ const TreasureEventView = () => {
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
 
+  const REFETCH_ACTIVITY_TYPES = new Set([
+    'node_completed',
+    'buff_applied',
+    'inn_visited',
+    'submission_added',
+    'submission_reviewed',
+  ]);
+
   useSubscription(TREASURE_ACTIVITY_SUB, {
     variables: { eventId },
     onData: ({ data }) => {
       const activity = data?.data?.treasureHuntActivity;
-      if (activity?.type === 'buff_applied') refetchEvent();
+      if (activity && REFETCH_ACTIVITY_TYPES.has(activity.type)) {
+        refetchEvent();
+        refetchSubmissions();
+      }
     },
     skip: !eventId,
   });

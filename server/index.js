@@ -76,6 +76,11 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
     express.static(path.join(__dirname, 'public'), {
       maxAge: '1y',
       etag: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.webp') || filePath.endsWith('.png') || filePath.endsWith('.jpg')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
     })
   );
 } else {
@@ -222,22 +227,28 @@ app.get('/api/items', async (req, res) => {
   const key = alpha.trim().toLowerCase();
   const cached = searchCache.get(key);
   if (cached && Date.now() - cached.cachedAt < SEARCH_CACHE_TTL) {
+    console.log(`[/api/items] cache hit query="${key}"`);
     return res.json(cached.results);
   }
 
+  console.log(`[/api/items] cache miss query="${key}" - fetching...`);
+  const start = Date.now();
   const results = await itemsService.searchItems(alpha);
+  const duration = Date.now() - start;
+
+  if (duration > 500) {
+    console.warn(
+      `[/api/items] 🐢 slow search (${duration}ms) query="${key}" results=${results.length}`
+    );
+  } else {
+    console.log(
+      `[/api/items] ✅ completed (${duration}ms) query="${key}" results=${results.length}`
+    );
+  }
+
   searchCache.set(key, { results, cachedAt: Date.now() });
   res.json(results);
 });
-
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of searchCache.entries()) {
-    if (now - value.cachedAt > SEARCH_CACHE_TTL) {
-      searchCache.delete(key);
-    }
-  }
-}, SEARCH_CACHE_TTL);
 
 app.get('/api/cache-stats', (req, res) => {
   const stats = itemsService.getCacheStats();
@@ -386,6 +397,8 @@ router.post('/auth/signup', async (req, res) => {
       [username, hashedPassword, rsn]
     );
 
+    console.log(`[/auth/signup] ✅ signup success username=${username}`); // ❌ too early
+
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
@@ -404,6 +417,8 @@ router.post('/auth/login', async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.rows[0].password);
     if (!isMatch) {
+      console.log(`[/auth/login] ❌ login fail username=${username}`);
+
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
@@ -414,6 +429,8 @@ router.post('/auth/login', async (req, res) => {
       httpOnly: true,
       maxAge: 3 * 24 * 60 * 60 * 1000,
     });
+    console.log(`[/auth/login] ✅ login success username=${username}`);
+
     res.json({ msg: 'Login successful', token });
   } catch (err) {
     console.error(err);

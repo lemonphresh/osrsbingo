@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { MapContainer, ImageOverlay, Marker, Polyline, Popup, useMap } from 'react-leaflet';
 import {
   Box,
@@ -22,11 +22,12 @@ import { CheckIcon, CloseIcon, CopyIcon, ChevronDownIcon, ChevronUpIcon } from '
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
-import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+import { OBJECTIVE_TYPES, userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
 import OSRSMap from '../../assets/osrsmap12112025.png';
+import Gnome from '../../assets/gnomechild-small.webp';
 
 const RecenterButton = () => {
   const map = useMap();
@@ -249,6 +250,7 @@ const TreasureMapVisualization = ({
   onAdminComplete,
   onAdminUncomplete,
   currentUser,
+  onScrollToNode,
 }) => {
   const toast = useToast();
   const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
@@ -261,6 +263,11 @@ const TreasureMapVisualization = ({
     img.src = OSRSMap;
     img.onload = () => setImageLoaded(true);
   }, []);
+
+  const onScrollToNodeRef = useRef(onScrollToNode);
+  useEffect(() => {
+    onScrollToNodeRef.current = onScrollToNode;
+  }, [onScrollToNode]);
 
   if (!imageLoaded) {
     return <Spinner />;
@@ -874,6 +881,39 @@ const TreasureMapVisualization = ({
                         )}
                       </>
                     )}
+
+                    {!adminMode &&
+                      status !== 'completed' &&
+                      userHasNeverSubmitted(team, currentUser) && (
+                        <>
+                          <HStack
+                            mt={2}
+                            p={2}
+                            bg="blue.100"
+                            borderRadius="md"
+                            borderWidth={1}
+                            color="gray.600"
+                          >
+                            <img alt="Gnome child" width="36px" src={Gnome} />
+                            <Text fontSize="xs" mb={1}>
+                              First time? It's alright. Click the corresponding node card in the
+                              list below the map to open the Getting Started tutorial.
+                            </Text>
+                          </HStack>
+                          <Button
+                            size="xs"
+                            colorScheme="purple"
+                            w="full"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              console.log('[popup button] clicked, nodeId:', node.nodeId); // ← confirm
+                              onScrollToNodeRef.current?.(node.nodeId);
+                            }}
+                          >
+                            📋 Show me the node card
+                          </Button>
+                        </>
+                      )}
                   </VStack>
                 </Box>
               </Popup>

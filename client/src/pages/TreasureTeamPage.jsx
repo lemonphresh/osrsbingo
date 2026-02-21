@@ -258,6 +258,14 @@ const TreasureTeamView = () => {
     onNodeOpen();
   };
 
+  const scrollToNodeCard = (nodeId) => {
+    const el = document.getElementById(`node-card-${nodeId}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setFlashNodeId(nodeId);
+    setTimeout(() => setFlashNodeId(null), 2000); // flash for 2s
+  };
+
   const handleAdminCompleteNode = async (nodeId) => {
     try {
       await adminCompleteNode({ variables: { eventId, teamId, nodeId } });
@@ -338,6 +346,8 @@ const TreasureTeamView = () => {
     setShowLeftFade(el.scrollLeft > 0);
     setShowRightFade(el.scrollLeft < el.scrollWidth - el.clientWidth - 1);
   };
+
+  const [flashNodeId, setFlashNodeId] = useState(null);
 
   usePageTitle(event ? `Gielinor Rush - ${team ? team.teamName : 'Team'}` : 'Gielinor Rush Team');
 
@@ -658,10 +668,11 @@ const TreasureTeamView = () => {
           )}
 
           {/* ── TUTORIAL (first-timers only) ── */}
-          {team.completedNodes?.length === 0 && !adminMode && (
+          {!adminMode && (
             <TreasureHuntTutorial
+              eventPassword={event.eventPassword}
               colorMode={colorMode}
-              compact={false}
+              compact={team.completedNodes?.length === 0}
               eventId={eventId}
               collapsed={isAdmin}
             />
@@ -688,6 +699,7 @@ const TreasureTeamView = () => {
               onAdminComplete={handleAdminCompleteNode}
               onAdminUncomplete={handleAdminUncompleteNode}
               currentUser={user}
+              onScrollToNode={scrollToNodeCard}
             />
           </Box>
 
@@ -798,16 +810,22 @@ const TreasureTeamView = () => {
 
                         return (
                           <Box
+                            id={`node-card-${node.nodeId}`}
                             key={node.nodeId}
                             w="220px"
                             flexShrink={0}
-                            bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'white'}
+                            bg={
+                              flashNodeId === node.nodeId
+                                ? undefined // let the animation handle bg
+                                : colorMode === 'dark'
+                                ? 'whiteAlpha.100'
+                                : 'white'
+                            }
                             borderRadius="lg"
                             overflow="hidden"
                             border="1px solid"
                             borderColor={colorMode === 'dark' ? 'whiteAlpha.200' : 'gray.200'}
                             cursor="pointer"
-                            transition="all 0.2s"
                             _hover={{
                               transform: 'translateY(-4px)',
                               shadow: 'xl',
@@ -815,6 +833,22 @@ const TreasureTeamView = () => {
                             }}
                             onClick={() => handleNodeClick(node)}
                             position="relative"
+                            transition="background 0.3s ease"
+                            sx={
+                              flashNodeId === node.nodeId
+                                ? {
+                                    animation: 'cardFlash 0.5s ease-in-out 4',
+                                    '@keyframes cardFlash': {
+                                      '0%, 100%': {
+                                        background: 'rgba(166, 255, 230, 0.85)',
+                                      },
+                                      '50%': {
+                                        background: 'rgba(166, 255, 219, 0.5)',
+                                      },
+                                    },
+                                  }
+                                : {}
+                            }
                           >
                             <Box h="4px" bg={accentColor} w="100%" />
                             <Flex flexDirection="column" h="100%" p={3}>

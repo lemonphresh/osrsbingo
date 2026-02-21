@@ -179,6 +179,20 @@ export const GET_USER = gql`
   }
 `;
 
+export const GET_USER_BY_DISCORD_ID = gql`
+  query GetUserByDiscordId($discordUserId: String!) {
+    getUserByDiscordId(discordUserId: $discordUserId) {
+      id
+      username
+      displayName
+      rsn
+      discordUserId
+      discordAvatar
+      discordUsername
+    }
+  }
+`;
+
 export const SEARCH_USERS = gql`
   query SearchUsers($search: String!) {
     searchUsers(search: $search) {
