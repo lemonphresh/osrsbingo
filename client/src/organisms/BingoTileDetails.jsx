@@ -190,7 +190,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
 
     const input = {};
     if (tileState.name !== tile.name) input.name = tileState.name;
-    if (tileState.value !== tile.value) input.value = tileState.value;
+    if (tileState.value !== tile.value) input.value = parseInt(tileState.value, 10);
     if (tileState.completedBy !== tile.completedBy) input.completedBy = tileState.completedBy;
     if (tileState.isComplete !== tile.isComplete) {
       input.isComplete = tileState.isComplete;
@@ -269,7 +269,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
               value={tileState.value}
               inputType="number"
               isEditor={isEditor}
-              onChange={(val) => setTileState((s) => ({ ...s, value: val }))}
+              onChange={(val) => setTileState((s) => ({ ...s, value: parseInt(val, 10) || 0 }))}
             />
 
             <Flex flexDirection="column">
