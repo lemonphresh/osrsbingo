@@ -117,6 +117,8 @@ const Landing = () => {
           {/* Bingo Boards */}
           <Box
             flex="1"
+            display="flex"
+            flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
             padding={['20px', '28px']}
@@ -146,7 +148,7 @@ const Landing = () => {
               Create custom bingo boards to track any goals: boss kills, collection log slots, skill
               milestones, or anything else. Share with your clan or browse public boards for ideas.
             </Text>
-            <Link to="/boards">
+            <Link to="/boards" style={{ marginTop: 'auto' }}>
               <Button
                 width="100%"
                 backgroundColor={theme.colors.purple[500]}
@@ -160,6 +162,8 @@ const Landing = () => {
           {/* Gielinor Rush */}
           <Box
             flex="1"
+            display="flex"
+            flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
             padding={['20px', '28px']}
@@ -190,7 +194,7 @@ const Landing = () => {
               skilling, and collection objectives. Discord integration for submissions and
               guaranteed GP payouts.
             </Text>
-            <Link to="/gielinor-rush">
+            <Link to="/gielinor-rush" style={{ marginTop: 'auto' }}>
               <Button
                 width="100%"
                 backgroundColor={theme.colors.orange[500]}
