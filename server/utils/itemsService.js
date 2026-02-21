@@ -244,41 +244,38 @@ async function fetchWikiFallback(searchTerm) {
  * Main search function - call this from your route handler
  */
 async function searchItems(searchQuery) {
-  if (!searchQuery || searchQuery.trim().length === 0) {
-    return [];
-  }
+  if (!searchQuery || searchQuery.trim().length === 0) return [];
 
   const query = searchQuery.trim();
-
-  // Load items data (uses cache)
   const { fuse } = await loadItemsData();
 
-  // Search using pre-built Fuse index
+  const fuseStart = Date.now();
   const fuseResults = fuse.search(query).slice(0, CONFIG.MAX_RESULTS);
+  console.log(
+    `[searchItems] fuse search (${Date.now() - fuseStart}ms) query="${query}" hits=${
+      fuseResults.length
+    }`
+  );
 
-  // Fetch wiki fallback results in parallel
+  const fetchStart = Date.now();
   const wikiFallbackPromise = fetchWikiFallback(query);
-
-  // Process static JSON results with icon lookups
   const staticItemPromises = fuseResults.map(async (resultItem) => {
     const item = resultItem.item;
     const itemName = item.wiki_name || item.name;
     const imageUrl = await fetchInventoryIcon(itemName);
-
     if (!imageUrl) return null;
-
-    return {
-      name: itemName,
-      wikiUrl: item.wiki_url,
-      imageUrl,
-    };
+    return { name: itemName, wikiUrl: item.wiki_url, imageUrl };
   });
 
-  // Wait for all results
   const [staticResults, wikiFallbackItems] = await Promise.all([
     Promise.all(staticItemPromises),
     wikiFallbackPromise,
   ]);
+  console.log(
+    `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${
+      staticResults.filter(Boolean).length
+    } wiki=${wikiFallbackItems.length}`
+  );
 
   // Combine and deduplicate results
   const seenNames = new Set();

@@ -1,5 +1,5 @@
 // File: src/organisms/TreasureHunt/LaunchCheckModal.jsx
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
   Accordion,
   AccordionButton,
@@ -24,18 +24,75 @@ import {
   PopoverContent,
   PopoverHeader,
   PopoverTrigger,
+  Skeleton,
   Text,
   VStack,
 } from '@chakra-ui/react';
 import { FaDiscord, FaQuestionCircle, FaRocket } from 'react-icons/fa';
-import { useThemeColors } from '../../hooks/useThemeColors';
+import { useApolloClient } from '@apollo/client';
+import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries'; // adjust path as needed
+
+// ─── Safely extract a Discord ID from a member that may be a string or object ──
+function extractDiscordId(member) {
+  if (!member) return null;
+  if (typeof member === 'string') return member;
+  return member.discordUserId ?? member.id ?? null;
+}
+
+// ─── Hook: resolve an array of Discord IDs → enriched member objects ──────────
+function useResolvedMembers(teams) {
+  const client = useApolloClient();
+  const [resolvedMap, setResolvedMap] = useState({}); // discordId → enriched obj
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!teams?.length) return;
+
+    const allIds = [
+      ...new Set(teams.flatMap((t) => (t.members ?? []).map(extractDiscordId).filter(Boolean))),
+    ];
+    if (!allIds.length) return;
+
+    setLoading(true);
+
+    Promise.all(
+      allIds.map((discordUserId) =>
+        client
+          .query({
+            query: GET_USER_BY_DISCORD_ID,
+            variables: { discordUserId },
+            fetchPolicy: 'cache-first',
+          })
+          .then(({ data }) => ({ discordUserId, user: data?.getUserByDiscordId ?? null }))
+          .catch(() => ({ discordUserId, user: null }))
+      )
+    ).then((results) => {
+      const map = {};
+      results.forEach(({ discordUserId, user }) => {
+        map[discordUserId] = {
+          discordUserId,
+          // Site registration info (null if unregistered)
+          username: user?.username ?? null,
+          displayName: user?.displayName ?? null,
+          discordAvatar: user?.discordAvatar ?? null,
+          rsn: user?.rsn ?? null,
+        };
+      });
+      setResolvedMap(map);
+      setLoading(false);
+    });
+  }, [teams, client]);
+
+  return { resolvedMap, loading };
+}
 
 // ─── MemberRow ────────────────────────────────────────────────────────────────
-function MemberRow({ member, index }) {
-  const displayName = member.discordUsername ?? `Unknown (…${member.discordUserId.slice(-6)})`;
-  const isRegistered = !!member.username;
-  const avatarSrc = member.discordAvatar
-    ? `https://cdn.discordapp.com/avatars/${member.discordUserId}/${member.discordAvatar}.png`
+function MemberRow({ discordUserId, resolvedUser, index, isLoadingMembers }) {
+  const isRegistered = !!resolvedUser?.username;
+  const displayName =
+    resolvedUser?.displayName ?? resolvedUser?.username ?? `…${discordUserId.slice(-6)}`;
+  const avatarSrc = resolvedUser?.discordAvatar
+    ? `https://cdn.discordapp.com/avatars/${discordUserId}/${resolvedUser.discordAvatar}.png`
     : undefined;
 
   return (
@@ -47,23 +104,38 @@ function MemberRow({ member, index }) {
       _last={{ borderBottomRadius: 'md' }}
       spacing={3}
     >
-      <Avatar size="xs" name={displayName} src={avatarSrc} bg="blue.600" color="white" />
+      <Avatar
+        size="xs"
+        name={displayName}
+        src={avatarSrc}
+        bg={avatarSrc ? 'transparent' : 'blue.600'}
+        color="white"
+        border="0.5px solid gray"
+      />
       <VStack align="start" spacing={0} flex={1} minW={0}>
         <HStack spacing={2}>
           <Icon as={FaDiscord} color="blue.300" boxSize={3} />
-          <Text fontSize="sm" color="white" fontWeight="medium" isTruncated>
-            {displayName}
-          </Text>
+          {isLoadingMembers ? (
+            <Skeleton height="14px" width="120px" />
+          ) : (
+            <Text fontSize="sm" color="white" fontWeight="medium" isTruncated>
+              {displayName}
+            </Text>
+          )}
         </HStack>
-        {member.username && (
+        {resolvedUser?.rsn && (
           <Text fontSize="xs" color="gray.400" isTruncated>
-            @{member.username}
+            RSN: {resolvedUser.rsn}
           </Text>
         )}
       </VStack>
-      <Badge colorScheme={isRegistered ? 'green' : 'yellow'} fontSize="2xs" flexShrink={0}>
-        {isRegistered ? 'Registered' : 'Unregistered'}
-      </Badge>
+      {isLoadingMembers ? (
+        <Skeleton height="18px" width="70px" borderRadius="full" />
+      ) : (
+        <Badge colorScheme={isRegistered ? 'green' : 'yellow'} fontSize="2xs" flexShrink={0}>
+          {isRegistered ? 'Registered' : 'Unregistered'}
+        </Badge>
+      )}
     </HStack>
   );
 }
@@ -107,14 +179,14 @@ function UnregisteredBadge({ count }) {
         <PopoverBody>
           <VStack align="start" spacing={2}>
             <Text>
-              These players are in your Discord but haven't created an{' '}
+              These players haven't created an{' '}
               <Text as="span" color="yellow.300" fontWeight="semibold">
                 OSRS Bingo Hub
               </Text>{' '}
-              account and linked it to their Discord yet.
+              account linked to their Discord yet.
             </Text>
             <Text>
-              They can still play via Discord commands, but they{' '}
+              They can still play via Discord commands, but{' '}
               <Text as="span" color="red.300" fontWeight="semibold">
                 won't be able to access their team page
               </Text>{' '}
@@ -138,8 +210,7 @@ function UnregisteredBadge({ count }) {
                 <Text as="span" color="white" fontWeight="semibold">
                   osrsbingohub.com
                 </Text>
-                , then link their Discord in account settings. It's quick and keeps their
-                credentials safe — we never store passwords or share data.
+                , then link their Discord in account settings.
               </Text>
             </Box>
           </VStack>
@@ -150,7 +221,7 @@ function UnregisteredBadge({ count }) {
 }
 
 // ─── TeamsAccordion ───────────────────────────────────────────────────────────
-function TeamsAccordion({ teams }) {
+function TeamsAccordion({ teams, resolvedMap, isLoadingMembers }) {
   if (!teams?.length) {
     return (
       <Text fontSize="sm" color="red.400">
@@ -162,9 +233,14 @@ function TeamsAccordion({ teams }) {
   return (
     <Accordion allowMultiple>
       {teams.map((team) => {
-        const memberCount = team.members?.length ?? 0;
+        const memberIds = (team.members ?? []).map(extractDiscordId).filter(Boolean);
+        const memberCount = memberIds.length;
         const hasMembers = memberCount > 0;
-        const unregisteredCount = team.members?.filter((m) => !m.username).length ?? 0;
+
+        const unregisteredCount = isLoadingMembers
+          ? null
+          : memberIds.filter((id) => !resolvedMap[id]?.username).length;
+
         const accentColor = hasMembers ? 'blue.400' : 'red.400';
 
         return (
@@ -187,7 +263,7 @@ function TeamsAccordion({ teams }) {
                     <Badge colorScheme={hasMembers ? 'blue' : 'red'} fontSize="2xs" flexShrink={0}>
                       {memberCount} {memberCount === 1 ? 'member' : 'members'}
                     </Badge>
-                    <UnregisteredBadge count={unregisteredCount} />
+                    {!isLoadingMembers && <UnregisteredBadge count={unregisteredCount} />}
                   </HStack>
                   <AccordionIcon color="gray.400" ml={2} />
                 </AccordionButton>
@@ -202,8 +278,14 @@ function TeamsAccordion({ teams }) {
                 >
                   {hasMembers ? (
                     <VStack spacing={0} align="stretch">
-                      {team.members.map((member, idx) => (
-                        <MemberRow key={member.discordUserId ?? idx} member={member} index={idx} />
+                      {memberIds.map((discordUserId, idx) => (
+                        <MemberRow
+                          key={discordUserId}
+                          discordUserId={discordUserId}
+                          resolvedUser={resolvedMap[discordUserId]}
+                          index={idx}
+                          isLoadingMembers={isLoadingMembers}
+                        />
                       ))}
                     </VStack>
                   ) : (
@@ -224,15 +306,6 @@ function TeamsAccordion({ teams }) {
 }
 
 // ─── LaunchCheckModal ─────────────────────────────────────────────────────────
-/**
- * Props:
- *   isOpen       {boolean}   — controlled open state
- *   onClose      {function}  — called when the dialog should close
- *   onConfirm    {function}  — called when the admin clicks "Launch Event!"
- *                              (async-safe; button shows loading state)
- *   event        {object}    — TreasureEvent object from GraphQL
- *   isLaunching  {boolean}   — pass mutation loading state to disable the button
- */
 export default function LaunchCheckModal({
   isOpen,
   onClose,
@@ -240,8 +313,10 @@ export default function LaunchCheckModal({
   event,
   isLaunching = false,
 }) {
-  const { colors: currentColors } = useThemeColors();
   const cancelRef = useRef();
+  const { resolvedMap, loading: isLoadingMembers } = useResolvedMembers(
+    isOpen ? event?.teams : null // only fetch when modal is open
+  );
 
   if (!event) return null;
 
@@ -341,7 +416,11 @@ export default function LaunchCheckModal({
                 <Text fontWeight="bold" color="white" fontSize="sm" mb={2}>
                   👥 Teams ({teamCount})
                 </Text>
-                <TeamsAccordion teams={event.teams} />
+                <TeamsAccordion
+                  teams={event.teams}
+                  resolvedMap={resolvedMap}
+                  isLoadingMembers={isLoadingMembers}
+                />
               </Box>
 
               {/* ── What happens next ── */}

@@ -57,7 +57,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
         bg="gray.700"
         borderColor="gray.600"
         color="white"
-        placeholder="icon"
+        placeholder="Zombie axe, Dragon scimitar, etc..."
         _placeholder={{ color: 'gray.400' }}
         _hover={{ borderColor: 'gray.500' }}
         _focus={{ borderColor: 'purple.400', boxShadow: '0 0 0 1px #9F7AEA' }}

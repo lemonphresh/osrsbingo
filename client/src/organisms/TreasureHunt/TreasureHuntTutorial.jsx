@@ -19,6 +19,7 @@ import {
   CloseButton,
   Collapse,
   Button,
+  useClipboard,
 } from '@chakra-ui/react';
 import {
   InfoIcon,
@@ -27,6 +28,7 @@ import {
   CloseIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  CopyIcon,
 } from '@chakra-ui/icons';
 
 /**
@@ -39,10 +41,13 @@ export const TreasureHuntTutorial = ({
   compact = false,
   eventId = 'default',
   collapsed = false,
+  eventPassword = null,
 }) => {
   const storageKey = `treasureHunt_tutorial_dismissed_${eventId}`;
   const [isDismissed, setIsDismissed] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
+
+  const { hasCopied, onCopy } = useClipboard(eventPassword || '');
 
   const colors = {
     dark: {
@@ -105,6 +110,29 @@ export const TreasureHuntTutorial = ({
             </Badge>{' '}
             node first to unlock your initial nodes and begin the Gielinor Rush!
           </AlertDescription>
+          {eventPassword && (
+            <HStack mt={1} spacing={2}>
+              <Text fontSize="xs" color={currentColors.textColor}>
+                📸 Event password for screenshots: <Code fontSize="xs">{eventPassword}</Code>
+              </Text>
+              <IconButton
+                icon={<CopyIcon />}
+                size="xs"
+                variant="ghost"
+                aria-label="Copy password"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCopy();
+                }}
+                color={hasCopied ? 'green.400' : currentColors.textColor}
+              />
+              {hasCopied && (
+                <Text fontSize="xs" color="green.400">
+                  Copied!
+                </Text>
+              )}
+            </HStack>
+          )}
         </Box>
         <CloseButton
           size="sm"
@@ -142,7 +170,10 @@ export const TreasureHuntTutorial = ({
             🗺️ Welcome to the Gielinor Rush!
           </Heading>
           {isCollapsed && (
-            <Badge colorScheme="purple" fontSize="xs">
+            <Text color="gray.600">Read this Tutorial to get started with submissions!</Text>
+          )}
+          {isCollapsed && (
+            <Badge justifySelf="flex-end" colorScheme="purple" fontSize="xs">
               Click to expand
             </Badge>
           )}
@@ -269,11 +300,11 @@ export const TreasureHuntTutorial = ({
                 </Heading>
               </HStack>
               <VStack align="stretch" spacing={1} fontSize="sm" color={currentColors.textColor}>
-                <Text>✅ You'll earn GP and possibly keys</Text>
-                <Text>🔓 New nodes will unlock based on the map structure</Text>
-                <Text>🎯 You can begin completing harder objectives for bigger rewards</Text>
-                <Text>🏠 Complete Inn nodes to trade keys for bonus GP</Text>
-                <Text>✨ Earn buffs to reduce future objective requirements</Text>
+                <Text>✅ You'll earn GP, and possibly keys and buffs!</Text>
+                <Text>🔓 New nodes will unlock based on the map structure!</Text>
+                <Text>🎯 You can complete harder objectives for bigger rewards!</Text>
+                <Text>🏠 Complete Inn nodes to trade keys for bonus GP and/or buffs!</Text>
+                <Text>✨ Earn buffs to reduce future objective requirements!</Text>
               </VStack>
             </Box>
 
@@ -312,9 +343,51 @@ export const TreasureHuntTutorial = ({
               <HStack mb={2}>
                 <Icon as={WarningIcon} color="orange.400" />
                 <Heading size="xs" color={currentColors.textColor}>
-                  Important: Submit from Event Channel
+                  Important: Submit from Your Team Channel
                 </Heading>
               </HStack>
+              {eventPassword && (
+                <Box
+                  bg={colorMode === 'dark' ? 'teal.900' : 'teal.50'}
+                  p={3}
+                  borderRadius="md"
+                  borderWidth={1}
+                  my={2}
+                  borderColor="teal.400"
+                >
+                  <HStack mb={2}>
+                    <Text fontSize="lg">📸</Text>
+                    <Heading size="xs" color={currentColors.textColor}>
+                      Screenshot Password (Required)
+                    </Heading>
+                  </HStack>
+                  <Text fontSize="xs" color={currentColors.textColor} mb={2}>
+                    Include this password in all submission screenshots using the{' '}
+                    <strong>Wise Old Man</strong> or similar RuneLite overlay plugin. Submissions
+                    without the password visible may be rejected.
+                  </Text>
+                  <HStack
+                    bg="blackAlpha.400"
+                    p={2}
+                    borderRadius="md"
+                    justify="space-between"
+                    maxWidth="212px"
+                  >
+                    <Code fontSize="md" fontWeight="bold" letterSpacing="wider">
+                      {eventPassword}
+                    </Code>
+                    <Button
+                      size="xs"
+                      leftIcon={<CopyIcon />}
+                      onClick={onCopy}
+                      colorScheme={hasCopied ? 'green' : 'teal'}
+                      variant="solid"
+                    >
+                      {hasCopied ? 'Copied!' : 'Copy'}
+                    </Button>
+                  </HStack>
+                </Box>
+              )}
               <Text fontSize="xs" color={currentColors.textColor}>
                 Make sure to use the <Code fontSize="xs">!submit</Code> command in your event's
                 Discord channel. The bot reads the event ID from the channel topic, so submissions
