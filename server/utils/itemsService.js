@@ -303,14 +303,30 @@ async function searchItems(searchQuery) {
     }
   }
 
-  // Fire-and-forget background fetches so future requests benefit from the cache
-  if (uncachedItems.length > 0) {
+  let validResults = results.filter((r) => r.imageUrl !== null);
+
+  if (validResults.length === 0 && uncachedItems.length > 0) {
+    // No cached icons at all — block and fetch them now so this request returns something
+    await Promise.all(uncachedItems.map((name) => fetchInventoryIcon(name).catch(() => {})));
+    const now = Date.now();
+    validResults = fuseResults
+      .map((r) => {
+        const item = r.item;
+        const itemName = item.wiki_name || item.name;
+        const cached = iconCache.get(itemName.toLowerCase());
+        if (cached?.url && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
+          return { name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  } else if (uncachedItems.length > 0) {
+    // Some results already have icons — fetch the rest in the background
     setImmediate(() => {
       uncachedItems.forEach((name) => fetchInventoryIcon(name).catch(() => {}));
     });
   }
 
-  const validResults = results.filter((r) => r.imageUrl !== null);
   console.log(
     `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${validResults.length} wiki=0`
   );
