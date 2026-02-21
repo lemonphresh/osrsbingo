@@ -6,11 +6,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const sharedOptions = {
   dialect: 'postgres',
   benchmark: true,
-  logging: (sql, timing) => {
-    if (isDev) {
-      console.log(`[${timing}ms] ${sql}`);
-    }
-  },
+  logging: isDev ? (sql, timing) => console.log(`[${timing}ms] ${sql}`) : false,
   pool: {
     max: 10,
     min: 2,
