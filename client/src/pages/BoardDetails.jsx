@@ -241,7 +241,6 @@ const BoardDetails = () => {
     );
   }
 
-  console.log({ board });
   const boardCreatedBefore = board?.createdAt
     ? new Date(board.createdAt) < new Date('2025-10-01')
     : true;
