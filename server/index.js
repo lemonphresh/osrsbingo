@@ -315,10 +315,9 @@ const server = new ApolloServer({
     return { req, res, user, jwtSecret: SECRET, discordUserId, loaders: createLoaders(models) };
   },
   formatResponse: (response) => {
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV === 'dev') {
       console.log('GraphQL Response:', response);
     }
-    return response;
   },
   formatError: (err) => {
     console.error('❌ GraphQL Error:', {
