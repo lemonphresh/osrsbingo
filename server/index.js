@@ -76,6 +76,11 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
     express.static(path.join(__dirname, 'public'), {
       maxAge: '1y',
       etag: true,
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.webp') || filePath.endsWith('.png') || filePath.endsWith('.jpg')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
     })
   );
 } else {
