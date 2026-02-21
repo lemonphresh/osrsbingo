@@ -167,7 +167,7 @@ async function fetchInventoryIcon(itemName) {
             iconUrl = `https:${src}`;
           } else if (src.startsWith('/images/')) {
             iconUrl = `https://oldschool.runescape.wiki${src}`;
-          } else {
+          } else if (!src.startsWith('data:')) {
             iconUrl = src;
           }
         }
@@ -271,6 +271,14 @@ async function searchItems(searchQuery) {
     }`
   );
 
+  // If the JSON has no results, the item may be too new — fall back to wiki scraping
+  if (fuseResults.length === 0) {
+    console.log(`[searchItems] no JSON results for "${query}", falling back to wiki scrape`);
+    const wikiResults = await fetchWikiFallback(query);
+    console.log(`[searchItems] ✅ wiki fallback returned ${wikiResults.length} results`);
+    return wikiResults;
+  }
+
   const fetchStart = Date.now();
 
   // Build results using only cached icons — no blocking wiki fetches
@@ -301,9 +309,6 @@ async function searchItems(searchQuery) {
       uncachedItems.forEach((name) => fetchInventoryIcon(name).catch(() => {}));
     });
   }
-
-  // Skip wiki fallback entirely — it's slow and the static dataset is comprehensive enough
-  // If you want to keep it, make it fire-and-forget too (don't await it)
 
   const validResults = results.filter((r) => r.imageUrl !== null);
   console.log(
