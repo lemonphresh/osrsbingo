@@ -485,7 +485,7 @@ const LiveActivityFeed = ({
       case 'inn_visited':
         const keysText = Array.isArray(activity.keysSpent)
           ? `${activity.keysSpent.reduce((sum, k) => sum + k.quantity, 0)} keys`
-          : `${activity.keysSpent} keys`;
+          : '';
         return `Spent ${keysText} for ${formatGP(activity.gpEarned)} GP`;
       case 'submission_approved':
         return `${activity.nodeTitle} submission approved by ${activity.reviewedBy}`;
