@@ -106,9 +106,11 @@ const fieldResolvers = {
         attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username'],
       });
 
+      const userMap = new Map(users.map((u) => [u.discordUserId, u]));
+
       return Promise.all(
         team.members.map(async (id) => {
-          const user = users.find((u) => u.discordUserId === id);
+          const user = userMap.get(id);
           if (user) {
             return {
               discordUserId: id,

@@ -20,13 +20,13 @@ const sequelize = dbUrl
       ...sharedOptions,
       protocol: 'postgres',
       dialectOptions: {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false,
-        },
+        ssl:
+          process.env.NODE_ENV === 'production'
+            ? { require: true, rejectUnauthorized: false }
+            : false,
       },
     })
-  : new Sequelize('osrsbingo', 'postgres', 'password', {
+  : new Sequelize('osrsbingo', 'lemon', null, {
       ...sharedOptions,
       host: 'localhost',
     });

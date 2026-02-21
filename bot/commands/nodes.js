@@ -49,7 +49,6 @@ module.exports = {
 
       const data = await graphqlRequest(query, { eventId, teamId: team.teamId });
 
-      // FIXED: Add null checks for data
       if (!data || !data.getTreasureEvent) {
         return message.reply(
           `❌ Event not found with ID: \`${eventId}\`\n` +
@@ -68,7 +67,6 @@ module.exports = {
       const nodes = event.nodes || [];
       const mapStructure = event.mapStructure;
 
-      // FIXED: Check if nodes exist
       if (nodes.length === 0) {
         return message.reply(`❌ This event has no nodes configured yet. Contact an admin.`);
       }
@@ -81,33 +79,29 @@ module.exports = {
         return { name: '', emoji: '', color: '#28AFB0' };
       };
 
-      // Helper to check if location group is completed
-      const isLocationGroupCompleted = (node) => {
-        if (!node.locationGroupId || !mapStructure?.locationGroups) return false;
+      // Returns { isBlocked, completedNode } for a node's location group
+      const getLocationGroupInfo = (node) => {
+        if (!node.locationGroupId || !mapStructure?.locationGroups) {
+          return { isBlocked: false, completedNode: null };
+        }
         const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
-        if (!group) return false;
-        return group.nodeIds.some((nodeId) => teamData.completedNodes.includes(nodeId));
-      };
-
-      // Helper to get completed node in group
-      const getCompletedNodeInGroup = (node) => {
-        if (!node.locationGroupId || !mapStructure?.locationGroups) return null;
-        const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
-        if (!group) return null;
+        if (!group) return { isBlocked: false, completedNode: null };
         const completedId = group.nodeIds.find((nodeId) =>
           teamData.completedNodes.includes(nodeId)
         );
-        return nodes.find((n) => n.nodeId === completedId);
+        return {
+          isBlocked: !!completedId,
+          completedNode: completedId ? nodes.find((n) => n.nodeId === completedId) : null,
+        };
       };
 
       // Filter available nodes and check location groups
       const availableNodes = nodes
         .filter((n) => teamData.availableNodes?.includes(n.nodeId))
-        .map((node) => ({
-          ...node,
-          isLocationBlocked: isLocationGroupCompleted(node),
-          completedNodeInGroup: getCompletedNodeInGroup(node),
-        }));
+        .map((node) => {
+          const { isBlocked, completedNode } = getLocationGroupInfo(node);
+          return { ...node, isLocationBlocked: isBlocked, completedNodeInGroup: completedNode };
+        });
 
       // Separate into truly available and blocked by location
       const trulyAvailable = availableNodes.filter((n) => !n.isLocationBlocked);
@@ -260,7 +254,6 @@ module.exports = {
         return message.reply('❌ Data not found. The event may have been deleted.');
       }
 
-      // FIXED: Handle specific null reading errors
       if (error.message.includes('Cannot read properties of null')) {
         return message.reply(
           '❌ Could not load event or team data. The event may be deleted or corrupted.\n' +

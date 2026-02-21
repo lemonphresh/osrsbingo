@@ -33,12 +33,9 @@ module.exports = {
         return message.reply('❌ No teams found in this event yet.');
       }
 
-      // Determine color based on position (gold for leader, silver for 2nd, bronze for 3rd)
-      const leaderColor = teams.length > 0 ? '#FFD700' : '#F4D35E';
-
       const embed = new EmbedBuilder()
         .setTitle(`🏆 ${eventName} Leaderboard`)
-        .setColor(leaderColor)
+        .setColor('#FFD700')
         .setDescription(
           `━━━━━━━━━━━━━━━━━━━━\n` +
             `📊 **${teams.length}** team${teams.length !== 1 ? 's' : ''} competing`
@@ -105,7 +102,7 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error:', error);
+      console.error('[leaderboard] ❌ error:', error.message);
 
       // Provide more helpful errors
       if (error.message.includes('Not authenticated')) {

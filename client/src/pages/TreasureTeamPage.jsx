@@ -951,12 +951,6 @@ const TreasureTeamView = () => {
                   onVisitInn={onAvailableInnsOpen}
                   maxCompletableNodes={maxCompletableNodes}
                 />
-                <PlayerSubmissionsPanel
-                  submissions={teamSubmissions}
-                  nodes={nodes}
-                  teamId={teamId}
-                  loading={submissionsLoading}
-                />
               </Flex>
             </Flex>
             <Box bg={currentColors.cardBg} borderRadius="lg" p={4}>
@@ -980,6 +974,13 @@ const TreasureTeamView = () => {
               )}
             </Box>
           </SimpleGrid>
+
+          <PlayerSubmissionsPanel
+            submissions={teamSubmissions}
+            nodes={nodes}
+            teamId={teamId}
+            loading={submissionsLoading}
+          />
 
           {/* ── FULL NODE LIST ── */}
 

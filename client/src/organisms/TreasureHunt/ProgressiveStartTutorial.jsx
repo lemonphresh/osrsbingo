@@ -430,7 +430,7 @@ const ProgressiveStartTutorial = ({
             </Text>
             <HStack spacing={2}>
               {compact && !isExpanded && (
-                <Text fontSize="xs" color="whiteAlpha.800">
+                <Text fontSize="xs" color="whiteAlpha.800" ml={4}>
                   Quick Start: complete → screenshot →{' '}
                   <Code fontSize="xs" bg="whiteAlpha.300" color="white" px={1}>
                     !submit {nodeId}

@@ -14,7 +14,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
   const [updateTile] = useMutation(UPDATE_TILE);
 
   const searchItems = async (searchTerm) => {
-    if (!searchTerm || searchTerm.length < 2) {
+    if (!searchTerm || searchTerm.length < 3) {
       setResults([]);
       return;
     }
@@ -40,7 +40,7 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSearch = useCallback(
-    debounce((searchTerm) => searchItems(searchTerm), 500),
+    debounce((searchTerm) => searchItems(searchTerm), 750),
     []
   );
 

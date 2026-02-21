@@ -21,22 +21,15 @@ import {
   Collapse,
   useDisclosure,
   useBreakpointValue,
-  Icon,
-  CircularProgress,
-  CircularProgressLabel,
   SimpleGrid,
-  Flex,
-  Spinner,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, RepeatIcon } from '@chakra-ui/icons';
+import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
-import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
-import { useThemeColors } from '../../hooks/useThemeColors';
 import LiveActivityFeed from './LiveActivityFeed';
 import OSRSMap from '../../assets/osrsmap12112025.webp';
 
@@ -280,10 +273,6 @@ const MultiTeamTreasureMap = ({
 
   const bounds = getMapBounds();
   const mapBounds = bounds.default;
-  const handleRefresh = () => {
-    if (onRefresh) onRefresh();
-    console.log('🔄 Refreshing event data...');
-  };
 
   // Calculate offset for overlapping nodes in a circular pattern
   const getNodePosition = (node, allNodes) => {
@@ -528,7 +517,6 @@ const MultiTeamTreasureMap = ({
     if (team) handleTeamClick(team);
   }, [highlightedTeamId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { colors: currentColors, colorMode } = useThemeColors();
   const formatGP = (gp) => {
     if (!gp) return '0';
     return (gp / 1000000).toFixed(1) + 'M';

@@ -93,7 +93,13 @@ async function loadItemsData() {
     });
 
     const itemsData = response.data;
-    const items = Object.values(itemsData);
+    const items = Object.values(itemsData).filter(
+      (item) =>
+        item.wiki_name && // has a wiki name
+        !item.noted && // not a noted variant
+        !item.placeholder && // not a placeholder
+        item.linked_id_item === null // not a noted/variant of another item
+    );
 
     // Build Fuse index once
     const fuse = new Fuse(items, CONFIG.FUSE_OPTIONS);
@@ -183,16 +189,20 @@ async function fetchInventoryIcon(itemName) {
  * Add to icon cache with size limit enforcement
  */
 function addToIconCache(key, url) {
-  // Enforce cache size limit by removing oldest entries
+  // Enforce cache size limit by removing oldest entries.
+  // Map iterates in insertion order, so the first keys are the oldest — no sort needed.
   if (iconCache.size >= CONFIG.MAX_ICON_CACHE_SIZE) {
-    // Remove ~10% of oldest entries
     const entriesToRemove = Math.floor(CONFIG.MAX_ICON_CACHE_SIZE * 0.1);
-    const sortedEntries = [...iconCache.entries()].sort((a, b) => a[1].fetchedAt - b[1].fetchedAt);
-    for (let i = 0; i < entriesToRemove; i++) {
-      iconCache.delete(sortedEntries[i][0]);
+    let removed = 0;
+    for (const k of iconCache.keys()) {
+      if (removed >= entriesToRemove) break;
+      iconCache.delete(k);
+      removed++;
     }
   }
 
+  // Delete before re-setting so updated entries move to the end of insertion order
+  iconCache.delete(key);
   iconCache.set(key, { url, fetchedAt: Date.now() });
 }
 
@@ -247,6 +257,10 @@ async function searchItems(searchQuery) {
   if (!searchQuery || searchQuery.trim().length === 0) return [];
 
   const query = searchQuery.trim();
+
+  // Enforce minimum length to kill queries like "go", "gp"
+  if (query.length < 3) return [];
+
   const { fuse } = await loadItemsData();
 
   const fuseStart = Date.now();
@@ -258,34 +272,50 @@ async function searchItems(searchQuery) {
   );
 
   const fetchStart = Date.now();
-  const wikiFallbackPromise = fetchWikiFallback(query);
-  const staticItemPromises = fuseResults.map(async (resultItem) => {
+
+  // Build results using only cached icons — no blocking wiki fetches
+  const results = [];
+  const uncachedItems = [];
+
+  for (const resultItem of fuseResults) {
     const item = resultItem.item;
     const itemName = item.wiki_name || item.name;
-    const imageUrl = await fetchInventoryIcon(itemName);
-    if (!imageUrl) return null;
-    return { name: itemName, wikiUrl: item.wiki_url, imageUrl };
-  });
+    const cacheKey = itemName.toLowerCase();
+    const cached = iconCache.get(cacheKey);
+    const now = Date.now();
 
-  const [staticResults, wikiFallbackItems] = await Promise.all([
-    Promise.all(staticItemPromises),
-    wikiFallbackPromise,
-  ]);
+    if (cached && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
+      if (cached.url) {
+        results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url });
+      }
+    } else {
+      // No cached icon — include in results with null imageUrl, fetch in background
+      results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: null });
+      uncachedItems.push(itemName);
+    }
+  }
+
+  // Fire-and-forget background fetches so future requests benefit from the cache
+  if (uncachedItems.length > 0) {
+    setImmediate(() => {
+      uncachedItems.forEach((name) => fetchInventoryIcon(name).catch(() => {}));
+    });
+  }
+
+  // Skip wiki fallback entirely — it's slow and the static dataset is comprehensive enough
+  // If you want to keep it, make it fire-and-forget too (don't await it)
+
+  const validResults = results.filter((r) => r.imageUrl !== null);
   console.log(
-    `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${
-      staticResults.filter(Boolean).length
-    } wiki=${wikiFallbackItems.length}`
+    `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${validResults.length} wiki=0`
+  );
+  console.log(
+    `[searchItems] ✅ completed (${Date.now() - fuseStart}ms) query="${query}" results=${
+      validResults.length
+    }`
   );
 
-  // Combine and deduplicate results
-  const seenNames = new Set();
-  const combined = [...wikiFallbackItems, ...staticResults.filter(Boolean)].filter((item) => {
-    if (!item || seenNames.has(item.name.toLowerCase())) return false;
-    seenNames.add(item.name.toLowerCase());
-    return true;
-  });
-
-  return combined;
+  return validResults;
 }
 
 /**

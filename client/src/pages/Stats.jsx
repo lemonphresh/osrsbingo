@@ -9,7 +9,6 @@ import {
   StatHelpText,
   Text,
   Skeleton,
-  useColorMode,
   VStack,
   HStack,
   Icon,
@@ -21,8 +20,6 @@ import usePageTitle from '../hooks/usePageTitle';
 import { FaUsers, FaThLarge, FaCheckCircle, FaEye, FaCalendarWeek, FaGlobe } from 'react-icons/fa';
 
 const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
-  const { colorMode } = useColorMode();
-
   return (
     <Box
       bg={'gray.700'}
@@ -53,7 +50,6 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
 
 const StatsPage = () => {
   usePageTitle('Site Stats');
-  const { colorMode } = useColorMode();
   const { data, loading, error } = useQuery(GET_SITE_STATS);
 
   const stats = data?.getSiteStats;

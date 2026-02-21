@@ -1,9 +1,22 @@
-const { EmbedBuilder: EmbedBuilder2 } = require('discord.js');
+// commands/submit.js
 const {
-  graphqlRequest: graphqlRequest2,
-  findTeamForUser: findTeamForUser2,
-  getEventIdFromChannel: getEventIdFromChannel2,
-} = require('../utils/graphql');
+  ContainerBuilder,
+  TextDisplayBuilder,
+  SeparatorBuilder,
+  SeparatorSpacingSize,
+  SectionBuilder,
+  ThumbnailBuilder,
+  MediaGalleryBuilder,
+  MediaGalleryItemBuilder,
+  MessageFlags,
+} = require('discord.js');
+const { graphqlRequest, findTeamForUser, getEventIdFromChannel } = require('../utils/graphql');
+
+const DIFF_LABEL = (tier) =>
+  tier === 1 ? 'Easy' : tier === 3 ? 'Medium' : tier === 5 ? 'Hard' : null;
+const DIFF_EMOJI = (tier) => (tier === 1 ? '🟢' : tier === 3 ? '🟡' : tier === 5 ? '🔴' : '⚪');
+const DIFF_COLOR = (tier) =>
+  tier === 1 ? 0x4caf50 : tier === 3 ? 0xff9800 : tier === 5 ? 0xf44336 : 0xf4a732;
 
 module.exports = {
   name: 'submit',
@@ -12,18 +25,17 @@ module.exports = {
   async execute(message, args) {
     if (args.length < 1) {
       return message.reply(
-        '❌ Usage: `!submit <node_id>` with an image attached to your message\n' +
-          'Example: `!submit evt_abc_node_042` (attach your screenshot to the message)',
+        '❌ Usage: `!submit <node_id>` with an image attached\n' +
+          'Example: `!submit evt_abc_node_042`',
       );
     }
 
     const nodeId = args[0];
 
-    // Attachments only — no URL argument
     if (message.attachments.size === 0) {
       return message.reply(
         '❌ Please attach a screenshot to your message.\n' +
-          'Example: `!submit evt_abc_node_042` (attach your screenshot to the message)',
+          'Example: `!submit evt_abc_node_042` (with screenshot attached)',
       );
     }
 
@@ -40,13 +52,13 @@ module.exports = {
     const proofUrl = attachment.url;
 
     try {
-      const eventId = getEventIdFromChannel2(message.channel);
+      const eventId = getEventIdFromChannel(message.channel);
       if (!eventId) {
         return message.reply('❌ This channel is not linked to a Gielinor Rush event.');
       }
 
       const userRoles = message.member.roles.cache.map((role) => role.id);
-      const team = await findTeamForUser2(eventId, message.author.id, userRoles);
+      const team = await findTeamForUser(eventId, message.author.id, userRoles);
 
       if (!team) {
         return message.reply('❌ You are not part of any team in this event.');
@@ -74,26 +86,24 @@ module.exports = {
         }
       `;
 
-      const verifyData = await graphqlRequest2(verifyQuery, { eventId, teamId: team.teamId });
+      const verifyData = await graphqlRequest(verifyQuery, { eventId, teamId: team.teamId });
       const event = verifyData.getTreasureEvent;
       const node = event.nodes.find((n) => n.nodeId === nodeId);
       const teamData = verifyData.getTreasureTeam;
       const mapStructure = event.mapStructure;
 
-      // Check event status
       if (event.status !== 'ACTIVE') {
         const statusMessages = {
           DRAFT:
-            '🚧 This event is still in **DRAFT** mode. Submissions will be enabled once the event organizer activates it.',
-          COMPLETED: '🏁 This event has **COMPLETED**. Submissions are no longer accepted.',
-          CANCELLED: '❌ This event has been **CANCELLED**. Submissions are no longer accepted.',
+            '🚧 This event is still in **DRAFT** mode. Submissions will open once the event organizer activates it.',
+          COMPLETED: '🏁 This event has **ended**. Submissions are no longer accepted.',
+          CANCELLED: '❌ This event has been **cancelled**.',
         };
         return message.reply(
-          `${statusMessages[event.status] || `⚠️ This event is not active (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,
+          `${statusMessages[event.status] || `⚠️ Event not active (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,
         );
       }
 
-      // Check event hasn't started yet
       if (event.startDate) {
         const startDate = new Date(event.startDate);
         if (new Date() < startDate) {
@@ -103,40 +113,33 @@ module.exports = {
           const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
           const countdown =
             days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-
           return message.reply(
-            `⏳ **${event.eventName}** hasn't started yet!\n\n` +
-              `The event begins <t:${Math.floor(startDate.getTime() / 1000)}:F> — that's **${countdown}** from now.\n\n` +
-              `Hang tight, submissions will open then.`,
+            `⏳ **${event.eventName}** hasn't started yet!\n` +
+              `Begins <t:${Math.floor(startDate.getTime() / 1000)}:F> — **${countdown}** from now.`,
           );
         }
       }
 
       if (!node) {
-        return message.reply('❌ Node not found.');
+        return message.reply('❌ Node not found. Double-check your node ID and try again.');
       }
 
       if (!teamData.availableNodes.includes(nodeId)) {
         return message.reply(
-          '❌ This node is not available to your team. It has either been completed, does not exist, or has not been unlocked yet.',
+          '❌ This node is not available to your team — it may be locked, already completed, or not yet unlocked.',
         );
       }
 
-      // Check if location group is already completed
       if (node.locationGroupId && mapStructure?.locationGroups) {
         const group = mapStructure.locationGroups.find((g) => g.groupId === node.locationGroupId);
         if (group) {
           const completedNodeId = group.nodeIds.find((id) => teamData.completedNodes.includes(id));
           if (completedNodeId) {
             const completedNode = event.nodes.find((n) => n.nodeId === completedNodeId);
-            const getDiffName = (tier) =>
-              tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
-
             return message.reply(
-              `❌ **Location Already Completed**\n\n` +
-                `Your team has already completed the **${getDiffName(completedNode?.difficultyTier)}** difficulty at **${node.mapLocation}**.\n` +
-                `Completed: "${completedNode?.title}"\n\n` +
-                `You cannot submit the **${getDiffName(node.difficultyTier)}** difficulty. Only one difficulty per location is allowed.`,
+              `❌ **Location Already Cleared**\n\n` +
+                `Your team already completed **${DIFF_LABEL(completedNode?.difficultyTier)}** at **${node.mapLocation}**. ` +
+                `Only one difficulty per location is allowed.`,
             );
           }
         }
@@ -168,7 +171,7 @@ module.exports = {
         }
       `;
 
-      const data = await graphqlRequest2(mutation, {
+      const data = await graphqlRequest(mutation, {
         eventId,
         teamId: team.teamId,
         nodeId,
@@ -179,47 +182,57 @@ module.exports = {
       });
 
       const submission = data.submitNodeCompletion;
-      const getDiffName = (tier) =>
-        tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
-      const getDiffColor = (tier) =>
-        tier === 1 ? '#4CAF50' : tier === 3 ? '#FF9800' : tier === 5 ? '#F44336' : '#43AA8B';
+      const diffLabel = DIFF_LABEL(node.difficultyTier);
+      const diffEmoji = DIFF_EMOJI(node.difficultyTier);
 
-      const embed = new EmbedBuilder2()
-        .setTitle('🎯 Submission Received!')
-        .setColor(getDiffColor(node.difficultyTier))
-        .setDescription(
-          `**${node.title}**${node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : ''}\n` +
-            `━━━━━━━━━━━━━━━━━━━━\n` +
-            `Your submission has been received and is pending review.`,
+      const container = new ContainerBuilder()
+        .setAccentColor(DIFF_COLOR(node.difficultyTier))
+        .addSectionComponents(
+          new SectionBuilder()
+            .addTextDisplayComponents(
+              new TextDisplayBuilder().setContent(
+                [
+                  `📜  **${node.title}**`,
+                  `📍 ${node.mapLocation || 'Unknown Location'}${diffLabel ? `  ·  ${diffEmoji} ${diffLabel}` : ''}`,
+                  `👥 ${team.teamName || 'Your Team'}  ·  👤 ${message.author.username}`,
+                ].join('\n'),
+              ),
+            )
+            .setThumbnailAccessory(
+              new ThumbnailBuilder({ media: { url: message.author.displayAvatarURL() } }),
+            ),
         )
-        .addFields(
-          { name: '📍 Location', value: node.mapLocation || 'Unknown', inline: true },
-          { name: '📊 Status', value: `\`${submission.status}\``, inline: true },
-          { name: '👤 Submitted By', value: message.author.username, inline: true },
-          { name: '🆔 Submission ID', value: `\`${submission.submissionId}\``, inline: false },
-          { name: '📸 Proof', value: '*(Screenshot attached below)*', inline: false },
+        .addSeparatorComponents(
+          new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
         )
-        .setImage(proofUrl)
-        .setTimestamp()
-        .setFooter({
-          text: '⏳ Awaiting admin review',
-          iconURL: message.author.displayAvatarURL(),
-        });
+        .addMediaGalleryComponents(
+          new MediaGalleryBuilder().addItems(
+            new MediaGalleryItemBuilder({
+              media: { url: proofUrl },
+              description: 'Proof screenshot',
+            }),
+          ),
+        )
+        .addSeparatorComponents(
+          new SeparatorBuilder().setDivider(true).setSpacing(SeparatorSpacingSize.Small),
+        )
+        .addTextDisplayComponents(
+          new TextDisplayBuilder().setContent(
+            `-# ⏳ Awaiting admin review  ·  🆔 \`${submission.submissionId}\``,
+          ),
+        );
 
-      return message.reply({ embeds: [embed] });
+      return message.reply({ components: [container], flags: MessageFlags.IsComponentsV2 });
     } catch (error) {
       console.error(
         `[submit] ❌ error nodeId=${nodeId} user=${message.author.username}:`,
         error.message,
       );
-
-      if (error.message.includes('Not authenticated')) {
+      if (error.message.includes('Not authenticated'))
         return message.reply('❌ Bot authentication error. Please contact an admin.');
-      }
-      if (error.message.includes('not found')) {
+      if (error.message.includes('not found'))
         return message.reply('❌ Data not found. The event may have been deleted.');
-      }
-      return message.reply(`❌ Error: ${error.message}`);
+      return message.reply(`❌ ${error.message}`);
     }
   },
 };

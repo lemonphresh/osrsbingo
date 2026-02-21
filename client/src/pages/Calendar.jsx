@@ -127,7 +127,7 @@ export default function CalendarPage() {
   const [toolbarOpen, setToolbarOpen] = useState(false);
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0 });
   const [hasDrift, setHasDrift] = useState(false);
-  const [baseline, setBaseline] = useState({ activeUpdatedAt: null, savedUpdatedAt: null });
+  const [, setBaseline] = useState({ activeUpdatedAt: null, savedUpdatedAt: null });
 
   const form = useDisclosure();
   const viewModal = useDisclosure();
@@ -156,7 +156,7 @@ export default function CalendarPage() {
   }, []);
 
   // --- MAIN EVENTS QUERY ---
-  const { data, loading, refetch } = useQuery(GET_CALENDAR_EVENTS, {
+  const { data, refetch } = useQuery(GET_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
     onError: (e) => {

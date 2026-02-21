@@ -590,11 +590,13 @@ const TreasureHuntResolvers = {
           channelId: submission.channelId,
           submissionId: submission.submissionId,
           submittedBy: submission.submittedBy,
-          submittedByUsername: submission.submittedByUsername,
           nodeName: node?.title || 'Unknown Node',
+          nodeLocation: node?.mapLocation || null,
+          difficultyTier: node?.difficultyTier || null,
           teamName: submission.team?.teamName || 'Unknown Team',
           reviewerName: context.user?.displayName || context.user?.username || reviewerId,
           proofUrl: submission.proofUrl,
+          teamPageUrl: `${process.env.FRONTEND_URL}/gielinor-rush/${submission.team.eventId}/team/${submission.team.teamId}`,
         };
 
         try {
@@ -603,7 +605,9 @@ const TreasureHuntResolvers = {
           } else {
             await sendSubmissionDenialNotification({
               ...notificationData,
-              denialReason: denialReason || 'No reason provided.',
+              denialReason:
+                denialReason ||
+                'No specific reason provided, but common issues include missing proof or incorrect event password.',
             });
           }
         } catch (notifError) {
@@ -791,20 +795,30 @@ const TreasureHuntResolvers = {
       const submissions = await TreasureSubmission.findAll({ where: { nodeId, teamId } });
       if (submissions.length > 0) {
         const channelIds = submissions.map((s) => s.channelId).filter(Boolean);
+        const notificationChannels =
+          channelIds.length > 0
+            ? channelIds
+            : [
+                event.discordConfig?.submissionChannelId ||
+                  event.discordConfig?.channels?.submissions,
+              ].filter(Boolean);
+
         const submitters = submissions.map((s) => ({
           discordId: s.submittedBy,
           username: s.submittedByUsername || 'Unknown',
         }));
 
         await sendNodeCompletionNotification({
-          channelIds,
+          channelIds: notificationChannels,
           submitters,
           nodeName: node.title,
+          nodeLocation: node.mapLocation,
+          difficultyTier: node.difficultyTier,
           teamName: team.teamName,
           gpReward: node.rewards?.gp || 0,
           keyRewards: node.rewards?.keys || [],
           buffRewards: node.rewards?.buffs || [],
-          congratsMessage,
+          teamPageUrl: `${process.env.FRONTEND_URL}/gielinor-rush/${eventId}/team/${teamId}`,
         });
       }
 
