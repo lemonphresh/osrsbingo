@@ -1,13 +1,20 @@
 const { User } = require('../../db/models');
 const axios = require('axios');
 
+const discordUserCache = new Map();
+const DISCORD_CACHE_TTL = 30 * 60 * 1000;
+
 const fetchDiscordUser = async (discordId) => {
+  const cached = discordUserCache.get(discordId);
+  if (cached && Date.now() - cached.fetchedAt < DISCORD_CACHE_TTL) {
+    return cached.data;
+  }
+
   try {
     const res = await axios.get(`https://discord.com/api/v10/users/${discordId}`, {
-      headers: {
-        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-      },
+      headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
     });
+    discordUserCache.set(discordId, { data: res.data, fetchedAt: Date.now() });
     return res.data;
   } catch {
     return null;
