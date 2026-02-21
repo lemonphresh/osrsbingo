@@ -395,8 +395,6 @@ const TreasureEventView = () => {
     return (b.completedNodes?.length || 0) - (a.completedNodes?.length || 0);
   });
 
-  const totalNodes = (event?.nodes || []).filter((n) => n.nodeType !== 'START').length;
-
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleGenerateMap = () => {
     if (event.nodes?.length > 0) onRegenerateOpen();

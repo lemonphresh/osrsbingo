@@ -117,6 +117,8 @@ const Landing = () => {
           {/* Bingo Boards */}
           <Box
             flex="1"
+            display="flex"
+            flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
             padding={['20px', '28px']}
@@ -146,7 +148,7 @@ const Landing = () => {
               Create custom bingo boards to track any goals: boss kills, collection log slots, skill
               milestones, or anything else. Share with your clan or browse public boards for ideas.
             </Text>
-            <Link to="/boards">
+            <Link to="/boards" style={{ marginTop: 'auto' }}>
               <Button
                 width="100%"
                 backgroundColor={theme.colors.purple[500]}
@@ -160,6 +162,8 @@ const Landing = () => {
           {/* Gielinor Rush */}
           <Box
             flex="1"
+            display="flex"
+            flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
             padding={['20px', '28px']}
@@ -190,7 +194,7 @@ const Landing = () => {
               skilling, and collection objectives. Discord integration for submissions and
               guaranteed GP payouts.
             </Text>
-            <Link to="/gielinor-rush">
+            <Link to="/gielinor-rush" style={{ marginTop: 'auto' }}>
               <Button
                 width="100%"
                 backgroundColor={theme.colors.orange[500]}
@@ -232,7 +236,7 @@ const Landing = () => {
               {
                 icon: Gold,
                 alt: 'Gold coin',
-                color: theme.colors.orange,
+                color: theme.colors.green,
                 label: 'Prize Pool Events',
                 desc: 'Host GP tournaments with Gielinor Rush. Set a budget, generate a map, and let teams battle for the prize pool.',
               },
@@ -247,7 +251,16 @@ const Landing = () => {
                 flexDirection="column"
               >
                 <Flex justifyContent="start" marginBottom="8px">
-                  <Image src={icon} alt={alt} boxSize="20px" marginRight="8px" />
+                  <Flex
+                    p={2}
+                    borderRadius="24px"
+                    alignItems="center"
+                    justifyContent="center"
+                    backgroundColor={color[300]}
+                    marginRight="8px"
+                  >
+                    <Image src={icon} alt={alt} height="20px" width="20px" />
+                  </Flex>
                   <Text fontWeight="bold" color={color[300]}>
                     {label}
                   </Text>

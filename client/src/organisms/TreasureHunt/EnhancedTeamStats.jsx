@@ -6,7 +6,6 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
-  StatArrow,
   Image,
   HStack,
   VStack,
@@ -18,16 +17,10 @@ import {
   Button,
   useColorMode,
   Skeleton,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverBody,
-  PopoverArrow,
 } from '@chakra-ui/react';
 import { InfoIcon, WarningIcon } from '@chakra-ui/icons';
-import { FaFire, FaTrophy, FaHome } from 'react-icons/fa';
+import { FaFire, FaHome } from 'react-icons/fa';
 import Key from '../../assets/Key.png';
-import Gold from '../../assets/gold-small.webp';
 import AdventurePath from '../../assets/adventurepath-small.webp';
 
 /**
@@ -66,22 +59,22 @@ export const EnhancedTeamStats = ({
 
   const currentColors = colors[colorMode];
 
-  // Calculate team rank
-  const teamRank = useMemo(() => {
-    if (!allTeams.length) return null;
-    const sorted = [...allTeams].sort((a, b) => b.currentPot - a.currentPot);
-    return sorted.findIndex((t) => t.teamId === team.teamId) + 1;
-  }, [allTeams, team]);
+  // // Calculate team rank
+  // const teamRank = useMemo(() => {
+  //   if (!allTeams.length) return null;
+  //   const sorted = [...allTeams].sort((a, b) => b.currentPot - a.currentPot);
+  //   return sorted.findIndex((t) => t.teamId === team.teamId) + 1;
+  // }, [allTeams, team]);
 
-  // Find next team to beat
-  const nextTeam = useMemo(() => {
-    if (!allTeams.length) return null;
-    return allTeams
-      .filter((t) => t.currentPot > team.currentPot)
-      .sort((a, b) => a.currentPot - b.currentPot)[0];
-  }, [allTeams, team]);
+  // // Find next team to beat
+  // const nextTeam = useMemo(() => {
+  //   if (!allTeams.length) return null;
+  //   return allTeams
+  //     .filter((t) => t.currentPot > team.currentPot)
+  //     .sort((a, b) => a.currentPot - b.currentPot)[0];
+  // }, [allTeams, team]);
 
-  const gpToNextRank = nextTeam ? nextTeam.currentPot - team.currentPot : 0;
+  // const gpToNextRank = nextTeam ? nextTeam.currentPot - team.currentPot : 0;
 
   // Calculate completion percentage
   const completionRate =
@@ -100,11 +93,11 @@ export const EnhancedTeamStats = ({
   // Total keys count
   const totalKeys = team.keysHeld?.reduce((sum, k) => sum + k.quantity, 0) || 0;
   // Format GP helper
-  const formatGP = (gp) => {
-    if (gp >= 1000000) return `${(gp / 1000000).toFixed(1)}M`;
-    if (gp >= 1000) return `${(gp / 1000).toFixed(1)}K`;
-    return gp.toString();
-  };
+  // const formatGP = (gp) => {
+  //   if (gp >= 1000000) return `${(gp / 1000000).toFixed(1)}M`;
+  //   if (gp >= 1000) return `${(gp / 1000).toFixed(1)}K`;
+  //   return gp.toString();
+  // };
 
   if (loading) {
     return (

@@ -93,6 +93,12 @@ const typeDefs = gql`
     dateCompleted: String
   }
 
+  type PopularTile {
+    name: String!
+    icon: String
+    usageCount: Int!
+  }
+
   type BonusSettings {
     allowDiagonals: Boolean
     horizontalBonus: Float
@@ -481,6 +487,7 @@ const typeDefs = gql`
     ): PaginatedBoards!
     getAllBoards(limit: Int, offset: Int, category: String, searchQuery: String): PaginatedBoards!
     getFeaturedBoards(limit: Int, offset: Int): PaginatedBoards!
+    getPopularTiles: [PopularTile!]
 
     # --- Editor Invitations ---
     pendingInvitations: [EditorInvitation!]!
