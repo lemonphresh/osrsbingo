@@ -4,7 +4,7 @@ import GemTitle from '../atoms/GemTitle';
 import OsrsWikiLogo from '../assets/osrswikilogo.png';
 import ExampleGR from '../assets/exampleGR.png';
 import ExampleBoard from '../assets/ExampleBoard.png';
-import OsrsMap from '../assets/osrsmap12112025cropped.jpg';
+import OsrsMap from '../assets/osrsmap12112025cropped.webp';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
 import { Link, NavLink, useNavigate } from 'react-router-dom';

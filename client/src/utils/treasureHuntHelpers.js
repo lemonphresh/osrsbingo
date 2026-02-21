@@ -581,6 +581,13 @@ const getAllBossContent = () => {
   };
 };
 
+function userHasNeverSubmitted(team, currentUser) {
+  if (!currentUser?.discordUserId || !team?.submissions?.length) return true;
+  return !team.submissions.some(
+    (s) => s.submittedBy?.toString() === currentUser.discordUserId?.toString()
+  );
+}
+
 module.exports = {
   OBJECTIVE_TYPES,
   SOLO_BOSSES,
@@ -594,4 +601,5 @@ module.exports = {
   getEnabledMinigames,
   getContentByTags,
   getAllBossContent,
+  userHasNeverSubmitted,
 };

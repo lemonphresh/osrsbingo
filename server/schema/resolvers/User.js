@@ -208,14 +208,20 @@ module.exports = {
         throw new ApolloError('Failed to fetch user');
       }
     },
-
     getUserByDiscordId: async (_, { discordUserId }) => {
       try {
         const user = await User.findOne({
           where: { discordUserId },
-          attributes: ['id', 'displayName', 'username', 'rsn', 'discordUserId'],
+          attributes: [
+            'id',
+            'displayName',
+            'username',
+            'rsn',
+            'discordUserId',
+            'discordAvatar',
+            'discordUsername',
+          ],
         });
-
         return user;
       } catch (error) {
         console.error('Error fetching user by Discord ID:', error);
