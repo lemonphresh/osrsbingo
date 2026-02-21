@@ -8,50 +8,39 @@ const {
 module.exports = {
   name: 'submit',
   description: 'Submit node completion',
-  usage: '!submit <node_id> link_to_screenshot_img OR attach an image',
+  usage: '!submit <node_id> (with image attached)',
   async execute(message, args) {
     if (args.length < 1) {
       return message.reply(
-        '❌ Usage: `!submit <node_id> <proof_url>` OR `!submit <node_id>` with an attached image\n' +
-          'Examples:\n' +
-          '• `!submit evt_abc_node_042 link_to_screenshot_img`\n' +
-          '• `!submit evt_abc_node_042` (with image attached to your message)',
+        '❌ Usage: `!submit <node_id>` with an image attached to your message\n' +
+          'Example: `!submit evt_abc_node_042` (attach your screenshot to the message)',
       );
     }
 
     const nodeId = args[0];
 
-    // Check for proof URL in args or attachment in message
-    let proofUrl;
-
-    if (args.length >= 2) {
-      proofUrl = args[1];
-    } else if (message.attachments.size > 0) {
-      const attachment = message.attachments.first();
-      proofUrl = attachment.url;
-
-      const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-      const isValidImage =
-        validImageTypes.includes(attachment.contentType) ||
-        /\.(png|jpe?g|gif|webp)$/i.test(attachment.name);
-
-      if (!isValidImage) {
-        return message.reply(
-          '❌ Please attach an image file (PNG, JPEG, GIF, or WebP)\n' +
-            'Or provide an image URL as the second argument.',
-        );
-      }
-    } else {
+    // Attachments only — no URL argument
+    if (message.attachments.size === 0) {
       return message.reply(
-        '❌ Please provide proof either as:\n' +
-          '• A URL: `!submit <node_id> <proof_url>`\n' +
-          '• An attached image: `!submit <node_id>` (attach image to message)',
+        '❌ Please attach a screenshot to your message.\n' +
+          'Example: `!submit evt_abc_node_042` (attach your screenshot to the message)',
       );
     }
 
+    const attachment = message.attachments.first();
+    const validImageTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+    const isValidImage =
+      validImageTypes.includes(attachment.contentType) ||
+      /\.(png|jpe?g|gif|webp)$/i.test(attachment.name);
+
+    if (!isValidImage) {
+      return message.reply('❌ Please attach an image file (PNG, JPEG, GIF, or WebP)');
+    }
+
+    const proofUrl = attachment.url;
+
     try {
       const eventId = getEventIdFromChannel2(message.channel);
-      console.log('Extracted eventId:', eventId);
       if (!eventId) {
         return message.reply('❌ This channel is not linked to a Gielinor Rush event.');
       }
@@ -85,11 +74,7 @@ module.exports = {
         }
       `;
 
-      const verifyData = await graphqlRequest2(verifyQuery, {
-        eventId,
-        teamId: team.teamId,
-      });
-
+      const verifyData = await graphqlRequest2(verifyQuery, { eventId, teamId: team.teamId });
       const event = verifyData.getTreasureEvent;
       const node = event.nodes.find((n) => n.nodeId === nodeId);
       const teamData = verifyData.getTreasureTeam;
@@ -103,23 +88,19 @@ module.exports = {
           COMPLETED: '🏁 This event has **COMPLETED**. Submissions are no longer accepted.',
           CANCELLED: '❌ This event has been **CANCELLED**. Submissions are no longer accepted.',
         };
-
-        const statusMessage =
-          statusMessages[event.status] || `⚠️ This event is not active (status: ${event.status}).`;
-
-        return message.reply(`${statusMessage}\n\nEvent: **${event.eventName}**`);
+        return message.reply(
+          `${statusMessages[event.status] || `⚠️ This event is not active (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,
+        );
       }
 
       // Check event hasn't started yet
       if (event.startDate) {
         const startDate = new Date(event.startDate);
-        const now = new Date();
-        if (now < startDate) {
-          const diffMs = startDate - now;
+        if (new Date() < startDate) {
+          const diffMs = startDate - new Date();
           const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
           const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
           const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
           const countdown =
             days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 
@@ -150,14 +131,12 @@ module.exports = {
             const completedNode = event.nodes.find((n) => n.nodeId === completedNodeId);
             const getDiffName = (tier) =>
               tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
-            const completedDiff = getDiffName(completedNode?.difficultyTier);
-            const attemptedDiff = getDiffName(node.difficultyTier);
 
             return message.reply(
               `❌ **Location Already Completed**\n\n` +
-                `Your team has already completed the **${completedDiff}** difficulty at **${node.mapLocation}**.\n` +
+                `Your team has already completed the **${getDiffName(completedNode?.difficultyTier)}** difficulty at **${node.mapLocation}**.\n` +
                 `Completed: "${completedNode?.title}"\n\n` +
-                `You cannot submit the **${attemptedDiff}** difficulty. Only one difficulty per location is allowed.`,
+                `You cannot submit the **${getDiffName(node.difficultyTier)}** difficulty. Only one difficulty per location is allowed.`,
             );
           }
         }
@@ -189,7 +168,7 @@ module.exports = {
         }
       `;
 
-      const submissionData = {
+      const data = await graphqlRequest2(mutation, {
         eventId,
         teamId: team.teamId,
         nodeId,
@@ -197,33 +176,19 @@ module.exports = {
         submittedBy: message.author.id,
         submittedByUsername: message.author.username,
         channelId: message.channel.id,
-      };
-
-      console.log('Submitting with data:', {
-        submittedBy: submissionData.submittedBy,
-        submittedByUsername: submissionData.submittedByUsername,
-        channelId: submissionData.channelId,
       });
 
-      const data = await graphqlRequest2(mutation, submissionData);
       const submission = data.submitNodeCompletion;
-
       const getDiffName = (tier) =>
         tier === 1 ? 'EASY' : tier === 3 ? 'MEDIUM' : tier === 5 ? 'HARD' : '';
-      const difficultyBadge = node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : '';
-
-      const getDiffColor = (tier) => {
-        if (tier === 1) return '#4CAF50';
-        if (tier === 3) return '#FF9800';
-        if (tier === 5) return '#F44336';
-        return '#43AA8B';
-      };
+      const getDiffColor = (tier) =>
+        tier === 1 ? '#4CAF50' : tier === 3 ? '#FF9800' : tier === 5 ? '#F44336' : '#43AA8B';
 
       const embed = new EmbedBuilder2()
         .setTitle('🎯 Submission Received!')
         .setColor(getDiffColor(node.difficultyTier))
         .setDescription(
-          `**${node.title}**${difficultyBadge}\n` +
+          `**${node.title}**${node.difficultyTier ? ` [${getDiffName(node.difficultyTier)}]` : ''}\n` +
             `━━━━━━━━━━━━━━━━━━━━\n` +
             `Your submission has been received and is pending review.`,
         )
@@ -232,32 +197,28 @@ module.exports = {
           { name: '📊 Status', value: `\`${submission.status}\``, inline: true },
           { name: '👤 Submitted By', value: message.author.username, inline: true },
           { name: '🆔 Submission ID', value: `\`${submission.submissionId}\``, inline: false },
+          { name: '📸 Proof', value: '*(Screenshot attached below)*', inline: false },
         )
+        .setImage(proofUrl)
         .setTimestamp()
         .setFooter({
           text: '⏳ Awaiting admin review',
           iconURL: message.author.displayAvatarURL(),
         });
 
-      if (proofUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) || message.attachments.size > 0) {
-        embed.setImage(proofUrl);
-        embed.addFields({ name: '📸 Proof', value: '*(Image attached below)*', inline: false });
-      } else {
-        embed.addFields({ name: '🔗 Proof Link', value: proofUrl, inline: false });
-      }
-
       return message.reply({ embeds: [embed] });
     } catch (error) {
-      console.error('Error:', error);
+      console.error(
+        `[submit] ❌ error nodeId=${nodeId} user=${message.author.username}:`,
+        error.message,
+      );
 
       if (error.message.includes('Not authenticated')) {
         return message.reply('❌ Bot authentication error. Please contact an admin.');
       }
-
       if (error.message.includes('not found')) {
         return message.reply('❌ Data not found. The event may have been deleted.');
       }
-
       return message.reply(`❌ Error: ${error.message}`);
     }
   },

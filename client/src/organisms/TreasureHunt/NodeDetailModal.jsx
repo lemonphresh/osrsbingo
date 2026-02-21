@@ -564,7 +564,7 @@ export default function NodeDetailModal({
                       px={2}
                       py={1}
                     >
-                      !submit {node.nodeId} link_to_screenshot
+                      !submit {node.nodeId}
                     </Code>
                     <IconButton
                       icon={<CopyIcon />}
@@ -575,7 +575,7 @@ export default function NodeDetailModal({
                     />
                   </HStack>
                   <Text fontSize="xs" color="gray.500" textAlign="center">
-                    or attach an image file to your message.{' '}
+                    and attach an image file to your message.{' '}
                     {isInnNode && ' Since this is an inn, show me your favorite cat!'}
                   </Text>
                 </VStack>

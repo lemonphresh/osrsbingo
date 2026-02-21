@@ -254,22 +254,11 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                   </Text>
                   <VStack align="start" spacing={1} mt={2}>
                     <HStack>
-                      <Badge size="sm" colorScheme="green" fontSize="xs">
-                        Option 1
-                      </Badge>
-                      <Code fontSize="xs" bg="transparent" color="gray.500">
-                        !submit evt_abc_node_042 https://imgur.com/...
-                      </Code>
-                    </HStack>
-                    <HStack>
-                      <Badge size="sm" colorScheme="green" fontSize="xs">
-                        Option 2
-                      </Badge>
                       <Code fontSize="xs" bg="transparent" color="gray.500">
                         !submit evt_abc_node_042
                       </Code>
                       <Text fontSize="xs" color="gray.500">
-                        (attach image)
+                        (attach your screenshot to the message)
                       </Text>
                     </HStack>
                   </VStack>

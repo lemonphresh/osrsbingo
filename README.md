@@ -206,13 +206,13 @@ npx sequelize-cli db:migrate
 
 ### Common Errors & Fixes
 
-| Error | Cause | Fix |
-| ----- | ----- | --- |
-| `EBADENGINE` on `npm install` | Wrong Node version | `nvm use 20.19.3` |
-| `ECONNREFUSED` on port 5432 | PostgreSQL not running | `brew services start postgresql@14` |
-| `role "postgres" does not exist` | Homebrew uses your Mac username, not `postgres` | `psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"` |
-| `database "osrsbingo" does not exist` | DB not created yet | `psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"` |
-| `npm run dev` crashes immediately | Missing `.env` file | Copy `.env.example` to `.env` and fill in values |
+| Error                                 | Cause                                           | Fix                                                             |
+| ------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------- |
+| `EBADENGINE` on `npm install`         | Wrong Node version                              | `nvm use 20.19.3`                                               |
+| `ECONNREFUSED` on port 5432           | PostgreSQL not running                          | `brew services start postgresql@14`                             |
+| `role "postgres" does not exist`      | Homebrew uses your Mac username, not `postgres` | `psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"` |
+| `database "osrsbingo" does not exist` | DB not created yet                              | `psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"`  |
+| `npm run dev` crashes immediately     | Missing `.env` file                             | Copy `.env.example` to `.env` and fill in values                |
 
 ---
 
@@ -235,7 +235,7 @@ This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3
 1. **Navigate** — Teams start at the START node and unlock paths across the map
 2. **Choose** — Each location offers Easy, Medium, or Hard objectives (pick ONE)
 3. **Complete** — Finish OSRS tasks (boss KC, XP gains, item collection, etc.)
-4. **Submit** — Upload proof via Discord or web interface
+4. **Submit** — Upload proof via Discord bot
 5. **Earn** — Approved submissions grant GP + keys
 6. **Trade** — Spend keys at Inns for bonus GP rewards
 7. **Win** — Highest GP total at event end takes the prize!
@@ -305,13 +305,12 @@ Integrate your event directly into Discord for seamless team coordination.
 
 ### Commands
 
-| Command                         | Description                            |
-| ------------------------------- | -------------------------------------- |
-| `!treasurehunt` / `!th`         | View team status and available nodes   |
-| `!nodes`                        | List all available and completed nodes |
-| `!submit <node_id> <proof_url>` | Submit completion proof                |
-| `!leaderboard` / `!lb`          | View current event rankings            |
-| `!buffs`                        | Check team's available buffs           |
+| Command                          | Description                            |
+| -------------------------------- | -------------------------------------- |
+| `!treasurehunt` / `!th`          | View team status and available nodes   |
+| `!nodes`                         | List all available and completed nodes |
+| `!submit <node_id>` + upload img | Submit completion proof                |
+| `!leaderboard` / `!lb`           | View current event rankings            |
 
 ---
 
@@ -367,9 +366,8 @@ cd bot && npm run dev
 ```
 server/
 ├── index.js                    # Entry point
-├── graphql/
+├── schema/
 │   ├── resolvers/              # Query & mutation handlers
-│   ├── subscriptions/          # Real-time subscriptions
 │   └── typeDefs.js             # GraphQL schema
 ├── db/
 │   ├── models/                 # Sequelize models

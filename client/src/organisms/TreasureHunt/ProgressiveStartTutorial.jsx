@@ -260,9 +260,6 @@ const ProgressiveStartTutorial = ({
             </Box>
           </Alert>
           <Box>
-            <Text fontSize="sm" fontWeight="bold" mb={3} color={currentColors.textColor}>
-              Choose your submission method:
-            </Text>
             <Box
               bg={currentColors.stepBg}
               p={4}
@@ -271,7 +268,7 @@ const ProgressiveStartTutorial = ({
               borderColor="green.400"
             >
               <Badge colorScheme="green" mb={2}>
-                Direct File Upload
+                Attach Your Screenshot to the Message
               </Badge>
               <VStack align="stretch" spacing={2}>
                 <Text fontSize="sm">Attach your screenshot file directly:</Text>

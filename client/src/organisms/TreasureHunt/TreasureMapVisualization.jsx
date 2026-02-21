@@ -839,7 +839,7 @@ const TreasureMapVisualization = ({
                                       fontSize: '11px',
                                     }}
                                   >
-                                    !submit {node.nodeId} link_to_screenshot_img
+                                    !submit {node.nodeId} + attach image file
                                   </code>
                                   <IconButton
                                     icon={<CopyIcon />}

@@ -771,24 +771,13 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   Submit a node completion for review
                 </Text>
                 <Box p={2} bg="blackAlpha.300" borderRadius="sm" fontSize="xs">
-                  <Text color={currentColors.white} mb={1} fontWeight="bold">
-                    Two ways to submit:
-                  </Text>
-                  <Text color={currentColors.white}>
-                    1. With URL:
-                    <br />
-                    <Badge size="sm" colorScheme="gray" mr={1}>
-                      !submit
-                    </Badge>
-                    <Badge size="sm">node_id</Badge> <Badge size="sm">proof_url</Badge>
-                  </Text>
                   <Text color={currentColors.white} mt={1}>
-                    2. With attachment:
+                    Attach your screenshot with the event password visible:
                     <br />
                     <Badge size="sm" colorScheme="gray" mr={1}>
                       !submit
                     </Badge>
-                    <Badge size="sm">node_id</Badge> (attach image)
+                    <Badge size="sm">node_id</Badge> (attach your screenshot to the message)
                   </Text>
                 </Box>
               </Box>

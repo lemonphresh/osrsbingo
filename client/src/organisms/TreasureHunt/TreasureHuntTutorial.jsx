@@ -248,16 +248,10 @@ export const TreasureHuntTutorial = ({
                   <Text as="span" fontWeight="bold">
                     Submit via Discord bot
                   </Text>{' '}
-                  using one of these commands:
+                  using this command:
                   <VStack align="stretch" mt={2} spacing={1}>
                     <Code fontSize="xs" p={2} borderRadius="md">
-                      !submit node_abc123 https://i.imgur.com/example.png
-                    </Code>
-                    <Text fontSize="xs" color="gray.500" textAlign="center">
-                      or attach an image directly
-                    </Text>
-                    <Code fontSize="xs" p={2} borderRadius="md">
-                      !submit node_abc123 (attach image file)
+                      !submit node_abc123 (attach your screenshot to the message)
                     </Code>
                   </VStack>
                   <Box
