@@ -1,4 +1,6 @@
 // discordNotifications.js
+const fs = require('fs');
+const path = require('path');
 const axios = require('axios');
 
 const C = {
@@ -16,15 +18,26 @@ const DIFF_LABEL = (tier) =>
   tier === 1 ? 'Easy' : tier === 3 ? 'Medium' : tier === 5 ? 'Hard' : null;
 const DIFF_EMOJI = (tier) => (tier === 1 ? '🟢' : tier === 3 ? '🟡' : tier === 5 ? '🔴' : '⚪');
 
-async function sendDiscordMessage(webhookUrl, messageData) {
+async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
   try {
     if (!webhookUrl) {
       console.warn('No Discord webhook URL provided, skipping notification');
       return { success: false, reason: 'no_webhook' };
     }
 
+    let requestData = messageData;
+
+    if (filePath) {
+      const form = new FormData();
+      const fileBuffer = fs.readFileSync(filePath);
+      const fileName = path.basename(filePath);
+      form.append('files[0]', new Blob([fileBuffer], { type: 'image/gif' }), fileName);
+      form.append('payload_json', JSON.stringify(messageData));
+      requestData = form;
+    }
+
     if (webhookUrl.includes('discord.com/api/webhooks/')) {
-      await axios.post(webhookUrl, messageData);
+      await axios.post(webhookUrl, requestData);
       return { success: true };
     }
 
@@ -34,10 +47,9 @@ async function sendDiscordMessage(webhookUrl, messageData) {
       return { success: false, reason: 'no_bot_token' };
     }
 
-    await axios.post(`https://discord.com/api/v10/channels/${webhookUrl}/messages`, messageData, {
+    await axios.post(`https://discord.com/api/v10/channels/${webhookUrl}/messages`, requestData, {
       headers: {
         Authorization: `Bot ${botToken}`,
-        'Content-Type': 'application/json',
       },
     });
 
@@ -212,34 +224,43 @@ async function sendNodeCompletionNotification({
 
   for (const channelId of uniqueChannels) {
     try {
-      const result = await sendDiscordMessage(channelId, {
-        flags: IS_COMPONENTS_V2,
-        components: [
-          {
-            type: C.Container,
-            accent_color: 0xf4a732,
-            components: [
-              ...(mentions ? [{ type: C.TextDisplay, content: mentions }] : []),
-              {
-                type: C.TextDisplay,
-                content: [
-                  `🏆  **${nodeName}** — conquered!`,
-                  `${diffLabel ? `${diffEmoji} ${diffLabel}` : ''}`,
-                  `Team: ${teamName}`,
-                ].join('\n'),
-              },
-              ...(rewardLines.length > 0
-                ? [sep, { type: C.TextDisplay, content: rewardLines.join('\n') }]
-                : []),
-              sep,
-              {
-                type: C.TextDisplay,
-                content: `-# ✨ [View your team's map](${teamPageUrl})`,
-              },
-            ],
-          },
-        ],
-      });
+      const result = await sendDiscordMessage(
+        channelId,
+        {
+          flags: IS_COMPONENTS_V2,
+          attachments: [{ id: 0, filename: 'dancing.gif' }],
+          components: [
+            {
+              type: C.Container,
+              accent_color: 0xf4a732,
+              components: [
+                ...(mentions ? [{ type: C.TextDisplay, content: mentions }] : []),
+                {
+                  type: C.MediaGallery,
+                  items: [{ media: { url: 'attachment://dancing.gif' } }],
+                },
+                {
+                  type: C.TextDisplay,
+                  content: [
+                    `🏆  **${nodeName}** — conquered!`,
+                    `${diffLabel ? `${diffEmoji} ${diffLabel}` : ''}`,
+                    `Team: ${teamName}`,
+                  ].join('\n'),
+                },
+                ...(rewardLines.length > 0
+                  ? [sep, { type: C.TextDisplay, content: rewardLines.join('\n') }]
+                  : []),
+                sep,
+                {
+                  type: C.TextDisplay,
+                  content: `-# ✨ [View your team's map](${teamPageUrl})`,
+                },
+              ],
+            },
+          ],
+        },
+        path.join(__dirname, 'assets/dancing.gif')
+      );
       results.push({ channelId, success: result.success });
     } catch (error) {
       console.error(`Failed to send completion notification to channel ${channelId}:`, error);
