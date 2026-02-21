@@ -1,3 +1,6 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const path = require('path');
 const { Pool } = require('pg');
@@ -8,7 +11,6 @@ const { typeDefs, resolvers } = require('./schema');
 const sequelize = require('./db/db');
 const models = require('./db/models');
 const { ApolloServer } = require('apollo-server-express');
-const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const calendarRoutes = require('./calendarRoutes');
@@ -20,8 +22,6 @@ const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
-
-dotenv.config();
 
 const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;

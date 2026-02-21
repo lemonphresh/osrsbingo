@@ -272,6 +272,15 @@ export const GET_BOARD = gql`
     }
   }
 `;
+export const GET_POPULAR_TILES = gql`
+  query GetPopularTiles {
+    getPopularTiles {
+      name
+      icon
+      usageCount
+    }
+  }
+`;
 
 export const GET_PUBLIC_BOARDS = gql`
   query GetPublicBoards($limit: Int, $offset: Int, $category: String, $searchQuery: String) {

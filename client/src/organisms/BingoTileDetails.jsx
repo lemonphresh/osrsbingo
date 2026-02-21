@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Accordion,
+  AccordionButton,
+  AccordionIcon,
+  AccordionItem,
+  AccordionPanel,
   Button,
   Checkbox,
   Flex,
@@ -13,12 +18,26 @@ import {
   ModalOverlay,
   Text,
   Spinner,
+  Wrap,
+  WrapItem,
+  Tooltip,
 } from '@chakra-ui/react';
 import { format } from 'date-fns';
+import { useQuery, useMutation } from '@apollo/client';
+import { gql } from '@apollo/client';
 import theme from '../theme';
 import IconSearch from './IconSearch';
 import { UPDATE_TILE } from '../graphql/mutations';
-import { useMutation } from '@apollo/client';
+
+const GET_POPULAR_TILES = gql`
+  query GetPopularTiles {
+    getPopularTiles {
+      name
+      icon
+      usageCount
+    }
+  }
+`;
 
 const formatDate = (date) => {
   if (!date) return null;
@@ -28,12 +47,10 @@ const formatDate = (date) => {
   );
 };
 
-// Simple inline text editor — no mutation, just calls onChange
 const InlineEditField = ({ label, value, onChange, inputType = 'text', isEditor }) => {
   const [editing, setEditing] = useState(false);
   const [local, setLocal] = useState(value);
 
-  // Keep local in sync if parent resets (e.g. modal reopens)
   useEffect(() => {
     setLocal(value);
   }, [value]);
@@ -103,12 +120,59 @@ const InlineEditField = ({ label, value, onChange, inputType = 'text', isEditor 
   );
 };
 
+const PopularTiles = ({ onSelect }) => {
+  const { data, loading } = useQuery(GET_POPULAR_TILES);
+
+  if (loading)
+    return (
+      <Flex justify="center" py={3}>
+        <Spinner size="sm" color="purple.300" />
+      </Flex>
+    );
+
+  const tiles = data?.getPopularTiles || [];
+
+  return (
+    <Wrap spacing="4px" maxHeight="180px" overflowY="auto" paddingY="8px">
+      {tiles.map((t) => (
+        <WrapItem key={t.name}>
+          <Tooltip label={t.name} placement="top" hasArrow openDelay={300}>
+            <Flex
+              alignItems="center"
+              justifyContent="center"
+              backgroundColor="gray.700"
+              borderRadius="6px"
+              cursor="pointer"
+              height="36px"
+              width="36px"
+              onClick={() => onSelect(t)}
+              _hover={{
+                backgroundColor: 'purple.700',
+                outline: '2px solid',
+                outlineColor: 'purple.400',
+              }}
+              transition="all 0.1s"
+            >
+              {t.icon ? (
+                <Image src={t.icon} maxH="24px" maxW="24px" loading="lazy" />
+              ) : (
+                <Text fontSize="10px" color="gray.400" textAlign="center" px="2px" noOfLines={2}>
+                  {t.name}
+                </Text>
+              )}
+            </Flex>
+          </Tooltip>
+        </WrapItem>
+      ))}
+    </Wrap>
+  );
+};
+
 const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
   const [tileState, setTileState] = useState(null);
   const [saving, setSaving] = useState(false);
   const [updateTile] = useMutation(UPDATE_TILE);
 
-  // Reset state whenever the modal opens with a new tile
   useEffect(() => {
     if (tile) {
       setTileState({
@@ -124,7 +188,6 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
       return;
     }
 
-    // Build diff — only send fields that changed
     const input = {};
     if (tileState.name !== tile.name) input.name = tileState.name;
     if (tileState.value !== tile.value) input.value = tileState.value;
@@ -146,6 +209,19 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
     }
 
     onClose();
+  };
+
+  const handlePopularTileSelect = async (popularTile) => {
+    await updateTile({
+      variables: {
+        id: tile.id,
+        input: {
+          name: popularTile.name,
+          icon: popularTile.icon,
+        },
+      },
+    });
+    setTileState((s) => ({ ...s, name: popularTile.name, icon: popularTile.icon }));
   };
 
   if (!tileState) return null;
@@ -250,11 +326,39 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
           </Flex>
 
           {isEditor && (
-            <Flex flexDirection="column" marginTop="20px" marginX="16px">
-              <Text as="span" color={theme.colors.purple[300]} fontWeight="bold" marginRight="4px">
-                Update Icon:
-              </Text>
-              <IconSearch setTileState={setTileState} tile={tile} tileState={tileState} />
+            <Flex flexDirection="column" marginTop="20px" marginX="16px" gap="12px">
+              <Flex flexDirection="column">
+                <Text
+                  as="span"
+                  color={theme.colors.purple[300]}
+                  fontWeight="bold"
+                  marginBottom="4px"
+                >
+                  Update Icon:
+                </Text>
+                <IconSearch setTileState={setTileState} tile={tile} tileState={tileState} />
+              </Flex>
+
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton
+                    px={0}
+                    _hover={{ backgroundColor: 'transparent' }}
+                    color={theme.colors.purple[300]}
+                  >
+                    <Text fontWeight="bold" flex={1} textAlign="left" fontSize="sm">
+                      Need suggestions?
+                    </Text>
+                    <AccordionIcon />
+                  </AccordionButton>
+                  <AccordionPanel px={0} pb={2}>
+                    <Text fontSize="xs" color="gray.400" mb={2}>
+                      Click any tile to apply its name and icon.
+                    </Text>
+                    <PopularTiles onSelect={handlePopularTileSelect} />
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
             </Flex>
           )}
         </ModalBody>
