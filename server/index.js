@@ -252,7 +252,9 @@ app.get('/api/items', async (req, res) => {
     );
   }
 
-  searchCache.set(key, { results, cachedAt: Date.now() });
+  if (results.length > 0) {
+    searchCache.set(key, { results, cachedAt: Date.now() });
+  }
   res.json(results);
 });
 
