@@ -271,60 +271,42 @@ async function searchItems(searchQuery) {
     }`
   );
 
-  // If the JSON has no results, the item may be too new — fall back to wiki scraping
-  if (fuseResults.length === 0) {
-    console.log(`[searchItems] no JSON results for "${query}", falling back to wiki scrape`);
-    const wikiResults = await fetchWikiFallback(query);
-    console.log(`[searchItems] ✅ wiki fallback returned ${wikiResults.length} results`);
-    return wikiResults;
-  }
-
   const fetchStart = Date.now();
 
-  // Build results using only cached icons — no blocking wiki fetches
-  const results = [];
-  const uncachedItems = [];
+  // Collect items that need their icon fetched
+  const uncachedItems = fuseResults
+    .map((r) => r.item.wiki_name || r.item.name)
+    .filter((itemName) => {
+      const cached = iconCache.get(itemName.toLowerCase());
+      return !cached || Date.now() - cached.fetchedAt >= CONFIG.ICON_CACHE_TTL_MS;
+    });
 
-  for (const resultItem of fuseResults) {
-    const item = resultItem.item;
-    const itemName = item.wiki_name || item.name;
-    const cacheKey = itemName.toLowerCase();
-    const cached = iconCache.get(cacheKey);
-    const now = Date.now();
-
-    if (cached && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
-      if (cached.url) {
-        results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url });
-      }
-    } else {
-      // No cached icon — include in results with null imageUrl, fetch in background
-      results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: null });
-      uncachedItems.push(itemName);
-    }
+  // Await all uncached fetches so every result is included in this response.
+  // The icon cache means subsequent requests for the same query are instant.
+  if (uncachedItems.length > 0) {
+    await Promise.all(uncachedItems.map((name) => fetchInventoryIcon(name).catch(() => {})));
   }
 
-  let validResults = results.filter((r) => r.imageUrl !== null);
+  const now = Date.now();
+  let validResults = fuseResults
+    .map((r) => {
+      const item = r.item;
+      const itemName = item.wiki_name || item.name;
+      const cached = iconCache.get(itemName.toLowerCase());
+      if (cached?.url && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
+        return { name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url };
+      }
+      return null;
+    })
+    .filter(Boolean);
 
-  if (validResults.length === 0 && uncachedItems.length > 0) {
-    // No cached icons at all — block and fetch them now so this request returns something
-    await Promise.all(uncachedItems.map((name) => fetchInventoryIcon(name).catch(() => {})));
-    const now = Date.now();
-    validResults = fuseResults
-      .map((r) => {
-        const item = r.item;
-        const itemName = item.wiki_name || item.name;
-        const cached = iconCache.get(itemName.toLowerCase());
-        if (cached?.url && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
-          return { name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  } else if (uncachedItems.length > 0) {
-    // Some results already have icons — fetch the rest in the background
-    setImmediate(() => {
-      uncachedItems.forEach((name) => fetchInventoryIcon(name).catch(() => {}));
-    });
+  // If fuse came up short, supplement with wiki results up to MAX_RESULTS
+  if (validResults.length < 8) {
+    const wikiResults = await fetchWikiFallback(query);
+    const fuseNames = new Set(validResults.map((r) => r.name.toLowerCase()));
+    const newFromWiki = wikiResults.filter((r) => !fuseNames.has(r.name.toLowerCase()));
+    validResults = [...validResults, ...newFromWiki].slice(0, CONFIG.MAX_RESULTS);
+    console.log(`[searchItems] supplemented with wiki: ${newFromWiki.length} new results`);
   }
 
   console.log(
