@@ -9,7 +9,7 @@ module.exports = {
       .setTitle('🗺️ Gielinor Rush Commands')
       .setColor('#7D5FFF')
       .setDescription(
-        'Compete with your team to complete OSRS objectives and earn the highest GP pot!'
+        'Compete with your team to complete OSRS objectives and earn the highest GP pot!',
       )
       .addFields(
         {
@@ -20,7 +20,7 @@ module.exports = {
         },
         {
           name: '⚔️ Action Commands',
-          value: '`!submit <node_id> <proof_url or file upload>` - Submit node completion\n',
+          value: '`!submit <node_id> <file upload>` - Submit node completion\n',
           inline: false,
         },
         {
@@ -28,7 +28,7 @@ module.exports = {
           value:
             'Visit the web dashboard for detailed maps, to apply buffs, and to buy your rewards from inns.',
           inline: false,
-        }
+        },
       );
 
     return message.reply({ embeds: [embed] });
