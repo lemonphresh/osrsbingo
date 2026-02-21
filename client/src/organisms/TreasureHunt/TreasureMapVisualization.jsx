@@ -26,7 +26,7 @@ import { OBJECTIVE_TYPES, userHasNeverSubmitted } from '../../utils/treasureHunt
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
-import OSRSMap from '../../assets/osrsmap12112025.png';
+import OSRSMap from '../../assets/osrsmap12112025.webp';
 import Gnome from '../../assets/gnomechild-small.webp';
 
 const RecenterButton = () => {

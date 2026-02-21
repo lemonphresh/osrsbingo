@@ -38,7 +38,7 @@ import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
 import { FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import LiveActivityFeed from './LiveActivityFeed';
-import OSRSMap from '../../assets/osrsmap12112025.png';
+import OSRSMap from '../../assets/osrsmap12112025.webp';
 
 const PRESET_COLORS = [
   '#FF6B6B',
