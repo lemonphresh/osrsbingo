@@ -241,9 +241,13 @@ const BoardDetails = () => {
     );
   }
 
-  const hasMissingIcons = board?.layout?.some((row) =>
-    row.some((tile) => tile && tile.icon === null && tile.name)
-  );
+  const boardCreatedBefore = board?.createdAt
+    ? new Date(board.createdAt) < new Date('2025-10-01')
+    : true;
+
+  const hasMissingIcons =
+    boardCreatedBefore &&
+    board?.layout?.some((row) => row.some((tile) => tile && tile.icon === null && tile.name));
 
   if (board === 'Not Found') return null;
 

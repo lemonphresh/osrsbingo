@@ -248,6 +248,7 @@ export const GET_BOARD = gql`
       isPublic
       theme
       userId
+      createdAt
       team
       totalValue
       totalValueCompleted
