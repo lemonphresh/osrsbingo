@@ -372,9 +372,8 @@ router.post('/auth/signup', async (req, res) => {
   try {
     const user = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
 
-    if (!user.rows.length) {
-      console.warn(`⚠️ Failed login attempt - user not found: ${username}`);
-      return res.status(400).json({ msg: 'Invalid credentials' });
+    if (user.rows.length) {
+      return res.status(400).json({ msg: 'Username already taken' });
     }
 
     const isMatch = await bcrypt.compare(password, user.rows[0].password);
