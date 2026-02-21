@@ -221,6 +221,12 @@ app.post('/users/batch', async (req, res) => {
 });
 
 app.get('/api/items', async (req, res) => {
+  const query = req.query.alpha?.trim();
+
+  if (!query || query.length < 3) {
+    return res.json([]);
+  }
+
   const { alpha } = req.query;
   if (!alpha || alpha.trim().length < 2) return res.json([]);
 

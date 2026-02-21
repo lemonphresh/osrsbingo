@@ -220,7 +220,7 @@ const TreasureHuntDashboard = () => {
     );
 
   // ── Feature disabled ──
-  if (!isGielinorRushEnabled())
+  if (isGielinorRushEnabled())
     return (
       <Flex flex="1" flexDirection="column" px={['16px', '24px', '64px']} py="72px">
         <TreasureHuntSummary />

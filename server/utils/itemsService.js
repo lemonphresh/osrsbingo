@@ -247,6 +247,10 @@ async function searchItems(searchQuery) {
   if (!searchQuery || searchQuery.trim().length === 0) return [];
 
   const query = searchQuery.trim();
+
+  // Enforce minimum length to kill queries like "go", "gp"
+  if (query.length < 3) return [];
+
   const { fuse } = await loadItemsData();
 
   const fuseStart = Date.now();
@@ -258,34 +262,50 @@ async function searchItems(searchQuery) {
   );
 
   const fetchStart = Date.now();
-  const wikiFallbackPromise = fetchWikiFallback(query);
-  const staticItemPromises = fuseResults.map(async (resultItem) => {
+
+  // Build results using only cached icons — no blocking wiki fetches
+  const results = [];
+  const uncachedItems = [];
+
+  for (const resultItem of fuseResults) {
     const item = resultItem.item;
     const itemName = item.wiki_name || item.name;
-    const imageUrl = await fetchInventoryIcon(itemName);
-    if (!imageUrl) return null;
-    return { name: itemName, wikiUrl: item.wiki_url, imageUrl };
-  });
+    const cacheKey = itemName.toLowerCase();
+    const cached = iconCache.get(cacheKey);
+    const now = Date.now();
 
-  const [staticResults, wikiFallbackItems] = await Promise.all([
-    Promise.all(staticItemPromises),
-    wikiFallbackPromise,
-  ]);
+    if (cached && now - cached.fetchedAt < CONFIG.ICON_CACHE_TTL_MS) {
+      if (cached.url) {
+        results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: cached.url });
+      }
+    } else {
+      // No cached icon — include in results with null imageUrl, fetch in background
+      results.push({ name: itemName, wikiUrl: item.wiki_url, imageUrl: null });
+      uncachedItems.push(itemName);
+    }
+  }
+
+  // Fire-and-forget background fetches so future requests benefit from the cache
+  if (uncachedItems.length > 0) {
+    setImmediate(() => {
+      uncachedItems.forEach((name) => fetchInventoryIcon(name).catch(() => {}));
+    });
+  }
+
+  // Skip wiki fallback entirely — it's slow and the static dataset is comprehensive enough
+  // If you want to keep it, make it fire-and-forget too (don't await it)
+
+  const validResults = results.filter((r) => r.imageUrl !== null);
   console.log(
-    `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${
-      staticResults.filter(Boolean).length
-    } wiki=${wikiFallbackItems.length}`
+    `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${validResults.length} wiki=0`
+  );
+  console.log(
+    `[searchItems] ✅ completed (${Date.now() - fuseStart}ms) query="${query}" results=${
+      validResults.length
+    }`
   );
 
-  // Combine and deduplicate results
-  const seenNames = new Set();
-  const combined = [...wikiFallbackItems, ...staticResults.filter(Boolean)].filter((item) => {
-    if (!item || seenNames.has(item.name.toLowerCase())) return false;
-    seenNames.add(item.name.toLowerCase());
-    return true;
-  });
-
-  return combined;
+  return validResults;
 }
 
 /**
