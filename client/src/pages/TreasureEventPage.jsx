@@ -534,6 +534,7 @@ const TreasureEventView = () => {
         marginX={['12px', '36px']}
       >
         <EventStatusBanner event={event} isAdmin={isEventAdmin} />
+
         <Flex
           alignItems="center"
           flexDirection={['column', 'row']}
@@ -588,7 +589,28 @@ const TreasureEventView = () => {
       marginX={['12px', '36px']}
     >
       <EventStatusBanner event={event} isAdmin={isEventAdmin} />
-
+      {isEventAdmin &&
+        event.status === 'ACTIVE' &&
+        new Date(event.endDate) - new Date() <= 8 * 60 * 60 * 1000 &&
+        new Date(event.endDate) > new Date() && (
+          <Box
+            w="full"
+            maxW="1200px"
+            bg="orange.800"
+            border="1px solid"
+            borderColor="orange.500"
+            borderRadius="lg"
+            px={4}
+            py={3}
+            mb={6}
+          >
+            <Text color="orange.100" fontWeight="semibold" fontSize="sm">
+              ⏰ <strong>Admin Eyes Only:</strong> The event ends soon. Once it's over, open the{' '}
+              <strong>Edit Event</strong> form and set the status to <strong>COMPLETE</strong> to
+              publish the final summary at this URL and send the Discord announcement.
+            </Text>
+          </Box>
+        )}
       {/* Back nav */}
       <Flex
         alignItems="center"

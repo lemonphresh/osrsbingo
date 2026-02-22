@@ -290,70 +290,7 @@ const LiveActivityFeed = ({
     }, 1000);
   }, []);
 
-  const triggerMegaConfetti = useCallback(() => {
-    // First, trigger the normal confetti 3 times
-    triggerConfetti();
-    setTimeout(() => triggerConfetti(), 300);
-    setTimeout(() => triggerConfetti(), 600);
-
-    // Add firework bursts from corners
-    const createFirework = (startX, startY) => {
-      const colors = ['#FFD700', '#FFA500', '#FF6347', '#FFD700', '#FFFFFF'];
-
-      for (let i = 0; i < 30; i++) {
-        const particle = document.createElement('div');
-        const angle = (i / 30) * Math.PI * 2;
-        const velocity = 100 + Math.random() * 150;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        const size = 4 + Math.random() * 8;
-
-        particle.style.cssText = `
-        position: fixed;
-        width: ${size}px;
-        height: ${size}px;
-        background: ${color};
-        border-radius: 50%;
-        left: ${startX}px;
-        top: ${startY}px;
-        pointer-events: none;
-        z-index: 10000;
-        box-shadow: 0 0 ${size}px ${color};
-      `;
-
-        document.body.appendChild(particle);
-
-        // Animate outward
-        let progress = 0;
-        const animate = () => {
-          progress += 0.02;
-          const x = startX + Math.cos(angle) * velocity * progress;
-          const y = startY + Math.sin(angle) * velocity * progress + progress * progress * 200; // gravity
-          const opacity = 1 - progress;
-
-          particle.style.left = `${x}px`;
-          particle.style.top = `${y}px`;
-          particle.style.opacity = opacity;
-
-          if (progress < 1) {
-            requestAnimationFrame(animate);
-          } else {
-            particle.remove();
-          }
-        };
-
-        requestAnimationFrame(animate);
-      }
-    };
-
-    // Launch fireworks from corners
-    setTimeout(() => createFirework(100, window.innerHeight - 100), 200);
-    setTimeout(() => createFirework(window.innerWidth - 100, window.innerHeight - 100), 400);
-    setTimeout(() => createFirework(window.innerWidth / 2, window.innerHeight - 50), 600);
-    setTimeout(() => createFirework(100, window.innerHeight - 100), 1000);
-    setTimeout(() => createFirework(window.innerWidth - 100, window.innerHeight - 100), 1200);
-  }, [triggerConfetti]);
-
-  const getActivityIcon = (type) => {
+const getActivityIcon = (type) => {
     switch (type) {
       case 'team_victory':
         return FaTrophy;
@@ -493,14 +430,7 @@ const LiveActivityFeed = ({
         onTeamActivity(latestActivity);
       }
     }
-  }, [
-    activities,
-    triggerConfetti,
-    triggerMegaConfetti,
-    onTeamActivity,
-    getActivityDescription,
-    event?.eventName,
-  ]);
+  }, [activities, triggerConfetti, onTeamActivity, getActivityDescription, event?.eventName]);
 
   // Log connection errors
   if (error) {
