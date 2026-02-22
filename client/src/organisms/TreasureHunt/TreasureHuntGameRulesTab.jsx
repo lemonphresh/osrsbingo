@@ -110,8 +110,8 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               </Text>
             </HStack>
             <Text fontSize="xs" color={currentColors.textColor}>
-              Take screenshots showing your completion and submit them via Discord bot or the
-              website. Include timestamps and RSN.
+              Take screenshots showing your completion and submit them via Discord bot. Include
+              timestamps, event password and RSN.
             </Text>
           </Box>
 
@@ -164,8 +164,9 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
-                    Where every team begins. No objective - automatically unlocks the first set of
-                    nodes.
+                    Where every team begins. No objective, and automatically unlocks the first set
+                    of nodes. Think of it as a tutorial node that gets you onto the map and familiar
+                    with the gameplay.
                   </Text>
                 </Box>
 
@@ -206,8 +207,8 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
-                    Safe havens where you can trade keys for bonus GP. Inns connect multiple paths
-                    and provide strategic rest points.
+                    Safe havens where you can trade keys for bonus GP and/or buffs. Inns connect
+                    multiple paths and provide strategic rest points.
                   </Text>
                 </Box>
               </VStack>
@@ -235,7 +236,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   <HStack mb={2}>
                     <Text fontSize="lg">💵</Text>
                     <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
-                      GP (Gold Points)
+                      GP (Gold Pieces)
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor} mb={2}>
@@ -339,8 +340,8 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor} mb={2}>
-                    Powerful rewards that reduce future objective requirements by 25-75%. Some nodes
-                    grant buffs as rewards.
+                    Powerful rewards that do cool things like reduce future objective requirements
+                    by 25-75%. Some nodes and inns grant buffs as rewards.
                   </Text>
                   <Button
                     size="sm"
@@ -427,38 +428,6 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </Text>
                   </Box>
                 </Box>
-
-                <Divider />
-
-                <Box>
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
-                    Three Paths to Victory
-                  </Text>
-                  <VStack spacing={2} align="stretch">
-                    <HStack>
-                      <Badge colorScheme="red">MOUNTAIN PATH</Badge>
-                      <Text fontSize="xs" color={currentColors.textColor}>
-                        Grants red keys
-                      </Text>
-                    </HStack>
-                    <HStack>
-                      <Badge colorScheme="blue">TRADE ROUTE</Badge>
-                      <Text fontSize="xs" color={currentColors.textColor}>
-                        Grants blue keys
-                      </Text>
-                    </HStack>
-                    <HStack>
-                      <Badge colorScheme="green">COASTAL PATH</Badge>
-                      <Text fontSize="xs" color={currentColors.textColor}>
-                        Grants green keys
-                      </Text>
-                    </HStack>
-                  </VStack>
-                  <Text fontSize="xs" color={currentColors.textColor} mt={2}>
-                    💡 Tip: You can switch between paths! Each path leads to the same Inns, allowing
-                    strategic routing. Diversify to collect different key colors for combo trades.
-                  </Text>
-                </Box>
               </VStack>
             </AccordionPanel>
           </AccordionItem>
@@ -482,7 +451,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <VStack spacing={3} align="stretch">
                 <Text fontSize="sm" color={currentColors.textColor}>
                   Inns are special checkpoint nodes where you can trade your collected keys for
-                  bonus GP. They're strategically placed throughout the map.
+                  bonus GP and/or buffs. They're strategically placed throughout the map.
                 </Text>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="md">
@@ -494,7 +463,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
                     Each team can only make <strong>ONE purchase</strong> from each Inn. Choose your
-                    trade wisely - you can't come back for more!
+                    trade wisely, you can't come back for more!
                   </Text>
                 </Box>
 
@@ -560,7 +529,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </ListItem>
                     <ListItem>
                       <ListIcon as={StarIcon} color="blue.400" />
-                      Don't hoard keys forever - you can only trade at each Inn once!
+                      Don't hoard keys forever, you can only trade at each Inn once!
                     </ListItem>
                   </List>
                 </Box>
@@ -600,7 +569,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="green.400" />
-                      Your RSN (RuneScape Name) visible in the proof
+                      Your RSN (RuneScape Name) and event password visible in the proof
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="green.400" />
@@ -617,6 +586,10 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="red.400" />
                       Blurry or edited screenshots
+                    </ListItem>
+                    <ListItem>
+                      <ListIcon as={CheckCircleIcon} color="red.400" />
+                      Lacking visible timestamps, RSN, or event password presence
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="red.400" />
@@ -838,16 +811,16 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           <List color="gray.600" spacing={2} fontSize="sm">
             <ListItem>
               <ListIcon as={CheckCircleIcon} color="purple.400" />
-              Use <Badge size="sm">!nodes</Badge> to find node IDs - you'll need these for
-              submissions
+              Use <Badge size="sm">!nodes</Badge> to find node IDs as an alternative to looking at
+              the map
             </ListItem>
             <ListItem>
               <ListIcon as={CheckCircleIcon} color="purple.400" />
-              When submitting, include your RSN and timestamps in your screenshots
+              When submitting, include your RSN, event password and timestamps in your screenshots
             </ListItem>
             <ListItem>
               <ListIcon as={CheckCircleIcon} color="purple.400" />
-              You can upload images directly to Discord instead of using external URLs
+              Upload images directly to Discord instead of using external URLs when submitting proof
             </ListItem>
           </List>
         </Box>
@@ -864,8 +837,9 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               Can I work on multiple nodes at once?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
-              Yes! You can work on any available node simultaneously. Submit completions in any
-              order.
+              Yes! You can work on any available node simultaneously, but check with your team on
+              which tiles you actually should be working on...strategizing and communication is part
+              of the fun! Then submit completions in any order.
             </Text>
           </Box>
 
@@ -904,8 +878,8 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               Do I need to complete every node?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
-              No! Teams can choose their own path. Focus on maximizing your GP pot, not completing
-              every single node.
+              No, and actually, you can't! Focus on maximizing your GP pot, not completing every
+              single node.
             </Text>
           </Box>
 
@@ -914,7 +888,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               Can team members split up objectives?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
-              Yes! Teams can divide and conquer. Multiple members can contribute to the same
+              Yes! Teams can divide and conquer. Multiple members can contribute/submit to the same
               objective.
             </Text>
           </Box>

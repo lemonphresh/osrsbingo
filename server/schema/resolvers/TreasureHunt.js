@@ -18,6 +18,8 @@ const {
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
+const { verifyGuild } = require('../../../bot/utils/verify');
+const { sendLaunchMessage } = require('../../../bot/verify');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -218,6 +220,11 @@ const TreasureHuntResolvers = {
         limit,
       });
     },
+
+    verifyDiscordGuild: async (_, { guildId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      return verifyGuild(guildId);
+    },
   },
 
   Mutation: {
@@ -280,6 +287,52 @@ const TreasureHuntResolvers = {
 
       const event = await TreasureEvent.create(eventData);
       console.log(`[createTreasureEvent] ✅ created eventId=${eventId}`);
+      return event;
+    },
+
+    confirmDiscordSetup: async (_, { eventId, guildId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      // Verify bot is actually in the guild before confirming
+      const { success, error } = verifyGuild(guildId);
+      if (!success) throw new Error(error || 'Bot not found in that server');
+
+      await event.update({
+        discordConfig: {
+          ...event.discordConfig,
+          guildId,
+          confirmed: true,
+        },
+      });
+
+      return { success: true, guildId };
+    },
+
+    launchEvent: async (_, { eventId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const isAdmin = await isEventAdmin(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+      const event = await TreasureEvent.findByPk(eventId, {
+        include: [{ model: TreasureTeam, as: 'teams' }],
+      });
+      if (!event) throw new Error('Event not found');
+      if (event.status !== 'DRAFT') throw new Error('Event is not in draft status');
+
+      await event.update({ status: 'ACTIVE' });
+
+      const { guildId } = event.discordConfig || {};
+      if (guildId) {
+        sendLaunchMessage(guildId, eventId, event.eventName, event.teams).catch((err) =>
+          console.error('[launchEvent] launch message failed:', err.message)
+        );
+      }
+
+      console.log(`[launchEvent] ✅ eventId=${eventId} launched`);
       return event;
     },
 

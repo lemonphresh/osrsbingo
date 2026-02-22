@@ -27,34 +27,41 @@ import {
   Skeleton,
   Text,
   VStack,
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
 import { FaDiscord, FaQuestionCircle, FaRocket } from 'react-icons/fa';
-import { useApolloClient } from '@apollo/client';
-import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries'; // adjust path as needed
+import { useApolloClient, useMutation, gql } from '@apollo/client';
+import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 
-// ─── Safely extract a Discord ID from a member that may be a string or object ──
+const LAUNCH_EVENT = gql`
+  mutation LaunchEvent($eventId: ID!) {
+    launchEvent(eventId: $eventId) {
+      eventId
+      status
+      eventName
+    }
+  }
+`;
+
 function extractDiscordId(member) {
   if (!member) return null;
   if (typeof member === 'string') return member;
   return member.discordUserId ?? member.id ?? null;
 }
 
-// ─── Hook: resolve an array of Discord IDs → enriched member objects ──────────
 function useResolvedMembers(teams) {
   const client = useApolloClient();
-  const [resolvedMap, setResolvedMap] = useState({}); // discordId → enriched obj
+  const [resolvedMap, setResolvedMap] = useState({});
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!teams?.length) return;
-
     const allIds = [
       ...new Set(teams.flatMap((t) => (t.members ?? []).map(extractDiscordId).filter(Boolean))),
     ];
     if (!allIds.length) return;
-
     setLoading(true);
-
     Promise.all(
       allIds.map((discordUserId) =>
         client
@@ -71,7 +78,6 @@ function useResolvedMembers(teams) {
       results.forEach(({ discordUserId, user }) => {
         map[discordUserId] = {
           discordUserId,
-          // Site registration info (null if unregistered)
           username: user?.username ?? null,
           displayName: user?.displayName ?? null,
           discordAvatar: user?.discordAvatar ?? null,
@@ -86,7 +92,6 @@ function useResolvedMembers(teams) {
   return { resolvedMap, loading };
 }
 
-// ─── MemberRow ────────────────────────────────────────────────────────────────
 function MemberRow({ discordUserId, resolvedUser, index, isLoadingMembers }) {
   const isRegistered = !!resolvedUser?.username;
   const displayName =
@@ -140,7 +145,6 @@ function MemberRow({ discordUserId, resolvedUser, index, isLoadingMembers }) {
   );
 }
 
-// ─── UnregisteredBadge (with popover) ────────────────────────────────────────
 function UnregisteredBadge({ count }) {
   if (!count) return null;
   return (
@@ -220,15 +224,13 @@ function UnregisteredBadge({ count }) {
   );
 }
 
-// ─── TeamsAccordion ───────────────────────────────────────────────────────────
 function TeamsAccordion({ teams, resolvedMap, isLoadingMembers }) {
-  if (!teams?.length) {
+  if (!teams?.length)
     return (
       <Text fontSize="sm" color="red.400">
         ⚠️ No teams created
       </Text>
     );
-  }
 
   return (
     <Accordion allowMultiple>
@@ -236,11 +238,9 @@ function TeamsAccordion({ teams, resolvedMap, isLoadingMembers }) {
         const memberIds = (team.members ?? []).map(extractDiscordId).filter(Boolean);
         const memberCount = memberIds.length;
         const hasMembers = memberCount > 0;
-
         const unregisteredCount = isLoadingMembers
           ? null
           : memberIds.filter((id) => !resolvedMap[id]?.username).length;
-
         const accentColor = hasMembers ? 'blue.400' : 'red.400';
 
         return (
@@ -267,7 +267,6 @@ function TeamsAccordion({ teams, resolvedMap, isLoadingMembers }) {
                   </HStack>
                   <AccordionIcon color="gray.400" ml={2} />
                 </AccordionButton>
-
                 <AccordionPanel
                   p={0}
                   bg="gray.750"
@@ -306,23 +305,36 @@ function TeamsAccordion({ teams, resolvedMap, isLoadingMembers }) {
 }
 
 // ─── LaunchCheckModal ─────────────────────────────────────────────────────────
-export default function LaunchCheckModal({
-  isOpen,
-  onClose,
-  onConfirm,
-  event,
-  isLaunching = false,
-}) {
+export default function LaunchCheckModal({ isOpen, onClose, event, onEventLaunched }) {
   const cancelRef = useRef();
+  const [launchError, setLaunchError] = useState(null);
+
   const { resolvedMap, loading: isLoadingMembers } = useResolvedMembers(
-    isOpen ? event?.teams : null // only fetch when modal is open
+    isOpen ? event?.teams : null
   );
+
+  const [launchEvent, { loading: isLaunching }] = useMutation(LAUNCH_EVENT, {
+    onCompleted: (data) => {
+      setLaunchError(null);
+      onClose();
+      onEventLaunched?.(data.launchEvent);
+    },
+    onError: (err) => {
+      setLaunchError(err.message);
+    },
+  });
+
+  const handleConfirm = () => {
+    setLaunchError(null);
+    launchEvent({ variables: { eventId: event.eventId } });
+  };
 
   if (!event) return null;
 
   const nodeCount = event.nodes?.length ?? 0;
   const teamCount = event.teams?.length ?? 0;
-  const discordConfirmed = event.discordConfig?.confirmed === true;
+  const discordConfirmed =
+    event.discordConfig?.confirmed === true && !!event.discordConfig?.guildId;
 
   return (
     <AlertDialog
@@ -346,7 +358,7 @@ export default function LaunchCheckModal({
 
           <AlertDialogBody color="white" overflowY="auto" flex="1">
             <VStack align="stretch" spacing={4}>
-              {/* ── Event Details ── */}
+              {/* Event Details */}
               <Box
                 p={3}
                 bg="gray.700"
@@ -405,13 +417,13 @@ export default function LaunchCheckModal({
                   <HStack justify="space-between">
                     <Text color="gray.400">Discord</Text>
                     <Badge colorScheme={discordConfirmed ? 'green' : 'red'} fontSize="xs">
-                      {discordConfirmed ? '✓ Confirmed' : 'Not confirmed'}
+                      {discordConfirmed ? '✓ Bot verified' : '⚠️ Not confirmed'}
                     </Badge>
                   </HStack>
                 </VStack>
               </Box>
 
-              {/* ── Teams ── */}
+              {/* Teams */}
               <Box>
                 <Text fontWeight="bold" color="white" fontSize="sm" mb={2}>
                   👥 Teams ({teamCount})
@@ -423,7 +435,7 @@ export default function LaunchCheckModal({
                 />
               </Box>
 
-              {/* ── What happens next ── */}
+              {/* What happens next */}
               <Box
                 p={3}
                 bg="green.900"
@@ -437,12 +449,13 @@ export default function LaunchCheckModal({
                 <VStack align="start" spacing={1} fontSize="xs" color="green.200">
                   <Text>• Teams can view their maps and objectives</Text>
                   <Text>• Players can submit completions via Discord</Text>
+                  <Text>• The bot will post a launch message in all team channels</Text>
                   <Text>• Discord commands become active</Text>
                   <Text>• Event appears in public listings</Text>
                 </VStack>
               </Box>
 
-              {/* ── Warning ── */}
+              {/* Warning */}
               <Box
                 p={3}
                 bg="orange.900"
@@ -455,6 +468,14 @@ export default function LaunchCheckModal({
                   and members above before launching.
                 </Text>
               </Box>
+
+              {/* Launch error */}
+              {launchError && (
+                <Alert status="error" borderRadius="md" bg="red.900" fontSize="sm">
+                  <AlertIcon color="red.400" />
+                  <Text color="red.200">{launchError}</Text>
+                </Alert>
+              )}
             </VStack>
           </AlertDialogBody>
 
@@ -473,7 +494,7 @@ export default function LaunchCheckModal({
               colorScheme="green"
               ml={3}
               leftIcon={<Icon as={FaRocket} />}
-              onClick={onConfirm}
+              onClick={handleConfirm}
               isLoading={isLaunching}
               loadingText="Launching…"
             >

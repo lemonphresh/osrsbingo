@@ -149,13 +149,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
       boxShadow="lg"
       position="relative"
       mb="24px"
-      animation={statusConfig.pulse ? 'pulse 2s ease-in-out infinite' : undefined}
-      sx={{
-        '@keyframes pulse': {
-          '0%, 100%': { boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.4)' },
-          '50%': { boxShadow: '0 0 20px 5px rgba(255, 255, 255, 0.2)' },
-        },
-      }}
+      borderLeft={statusConfig.pulse ? '4px solid rgba(255,255,255,0.8)' : undefined}
     >
       {/* Main content */}
       <HStack p={4} justify="space-between" align="center" flexWrap="wrap" spacing={4}>

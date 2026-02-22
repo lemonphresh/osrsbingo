@@ -42,7 +42,6 @@ import {
   Tooltip,
   Spinner,
   useDisclosure,
-  useToast,
   Icon,
   Switch,
   CircularProgress,
@@ -341,12 +340,6 @@ const TreasureEventView = () => {
     onError: (error) => showToast(`Error generating map: ${error.message}`, 'error'),
   });
 
-  const [updateEvent] = useMutation(UPDATE_TREASURE_EVENT, {
-    refetchQueries: ['GetTreasureEvent'],
-    onCompleted: () => showToast('Event updated successfully!', 'success'),
-    onError: (error) => showToast(`Error: ${error.message}`, 'error'),
-  });
-
   const [reviewSubmission] = useMutation(REVIEW_SUBMISSION, {
     onCompleted: () => {
       showToast('Submission reviewed!', 'success');
@@ -376,8 +369,6 @@ const TreasureEventView = () => {
     },
     skip: !eventId,
   });
-
-  const toast = useToast();
 
   // ── Derived state ──────────────────────────────────────────────────────────
   const event = eventData?.getTreasureEvent;
@@ -411,16 +402,6 @@ const TreasureEventView = () => {
     leaderboardTabRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 
-  const handleLaunchEvent = async () => {
-    try {
-      await updateEvent({ variables: { eventId, input: { status: 'ACTIVE' } } });
-      showToast('🚀 Event is now LIVE! Teams can start competing!', 'success');
-      onLaunchConfirmClose();
-    } catch (error) {
-      showToast(`Failed to launch: ${error.message}`, 'error');
-    }
-  };
-
   const handleEditTeam = (team) => {
     setSelectedTeam(team);
     onEditTeamOpen();
@@ -430,27 +411,6 @@ const TreasureEventView = () => {
     setHighlightedTeamId(team.teamId);
     // clear after 2.5s (slightly longer than the pulse animation duration)
     setTimeout(() => setHighlightedTeamId(null), 2500);
-  };
-
-  const handleConfirmDiscord = async () => {
-    try {
-      await updateEvent({
-        variables: {
-          eventId,
-          input: {
-            discordConfig: {
-              ...(event.discordConfig || {}),
-              confirmed: true,
-              confirmedAt: new Date().toISOString(),
-              confirmedBy: user?.username || user?.id,
-            },
-          },
-        },
-      });
-      showToast('Discord setup confirmed!', 'success');
-    } catch (error) {
-      showToast(`Error: ${error.message}`, 'error');
-    }
   };
 
   const handleCompleteNode = async (congratsMessage) => {
@@ -710,12 +670,7 @@ const TreasureEventView = () => {
                     _hover={{ bg: 'whiteAlpha.400' }}
                     onClick={() => {
                       navigator.clipboard.writeText(value);
-                      toast({
-                        title: toastTitle,
-                        status: 'success',
-                        duration: 2000,
-                        isClosable: true,
-                      });
+                      showToast(toastTitle, 'success');
                     }}
                   >
                     <Text
@@ -732,43 +687,6 @@ const TreasureEventView = () => {
                 </Tooltip>
               ))}
             </HStack>
-
-            {/* Map not generated warning */}
-            {(!event.nodes || event.nodes.length === 0) && event.status === 'DRAFT' && (
-              <Box
-                w="full"
-                mt={4}
-                p={4}
-                bg="orange.500"
-                borderRadius="md"
-                borderWidth={2}
-                borderColor="orange.600"
-                animation="gentlePulse 2s ease-in-out infinite"
-                sx={{
-                  '@keyframes gentlePulse': {
-                    '0%,100%': {
-                      boxShadow: '0 0 20px rgba(237,137,54,0.5)',
-                      transform: 'scale(1)',
-                    },
-                    '50%': { boxShadow: '0 0 30px rgba(237,137,54,0.8)', transform: 'scale(1.01)' },
-                  },
-                }}
-              >
-                <HStack justify="center" spacing={3}>
-                  <Text fontSize="2xl">⚠️</Text>
-                  <VStack align="start" spacing={0}>
-                    <Text fontWeight="bold" fontSize="lg" color="white">
-                      Map Not Generated Yet
-                    </Text>
-                    <Text fontSize="sm" color="whiteAlpha.900">
-                      Generate your treasure map in Event Settings below before participants can
-                      start
-                    </Text>
-                  </VStack>
-                  <Text fontSize="2xl">⚠️</Text>
-                </HStack>
-              </Box>
-            )}
 
             {/* Admin edit button */}
             {isEventAdmin && (
@@ -1943,7 +1861,6 @@ const TreasureEventView = () => {
           onAddTeam={onCreateTeamOpen}
           onEditTeam={handleEditTeam}
           onOpenDiscordSetup={onDiscordSetupOpen}
-          onConfirmDiscord={handleConfirmDiscord}
           onLaunchEvent={onLaunchConfirmOpen}
           isGeneratingMap={generateLoading}
         />
@@ -1995,6 +1912,9 @@ const TreasureEventView = () => {
         isOpen={isDiscordSetupOpen}
         onClose={onDiscordSetupClose}
         eventId={eventId}
+        onConfirmed={async () => {
+          await refetchEvent();
+        }}
       />
       <DenialReasonModal
         isOpen={isDenialModalOpen}
@@ -2046,9 +1966,11 @@ const TreasureEventView = () => {
       <LaunchCheckModal
         isOpen={isLaunchConfirmOpen}
         onClose={onLaunchConfirmClose}
-        onConfirm={handleLaunchEvent}
         event={event}
-        isLaunching={eventLoading}
+        onEventLaunched={async () => {
+          onLaunchConfirmClose();
+          await refetchEvent();
+        }}
       />
     </Flex>
   );

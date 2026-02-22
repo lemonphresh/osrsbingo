@@ -1,10 +1,6 @@
 const { gql } = require('graphql-tag');
 
 const typeDefs = gql`
-  # ============================================================
-  # SCALARS
-  # ============================================================
-
   scalar DateTime
   scalar JSON
 
@@ -112,7 +108,6 @@ const typeDefs = gql`
     totalCount: Int!
   }
 
-  # Bingo Board Inputs
   input CreateBingoBoardInput {
     name: String!
     type: BingoBoardType!
@@ -259,25 +254,17 @@ const typeDefs = gql`
     eventPassword: String
     status: TreasureEventStatus!
     clanId: String
-
-    # Dates
     startDate: DateTime
     endDate: DateTime
     createdAt: DateTime
     updatedAt: DateTime
-
-    # Configuration
     eventConfig: JSON
     derivedValues: JSON
     contentSelections: JSON
     mapStructure: JSON
     discordConfig: JSON
-
-    # Relationships
     teams: [TreasureTeam!]
     nodes: [TreasureNode!]
-
-    # Ownership
     creatorId: ID
     creator: User
     adminIds: [ID!]
@@ -307,6 +294,21 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # GIELINOR RUSH: DISCORD
+  # ============================================================
+
+  type DiscordVerifyResponse {
+    success: Boolean!
+    guildName: String
+    error: String
+  }
+
+  type DiscordConfirmResponse {
+    success: Boolean!
+    guildId: String
+  }
+
+  # ============================================================
   # GIELINOR RUSH: TEAMS
   # ============================================================
 
@@ -323,19 +325,13 @@ const typeDefs = gql`
     teamName: String!
     discordRoleId: String
     members: [TreasureTeamMember!]!
-
-    # Progress
     currentPot: String
     completedNodes: [String!]
     availableNodes: [String!]
-
-    # Inventory
     keysHeld: JSON
     activeBuffs: JSON
     buffHistory: JSON
     innTransactions: JSON
-
-    # Relationships
     submissions: [TreasureSubmission!]
     event: TreasureEvent
   }
@@ -363,23 +359,15 @@ const typeDefs = gql`
     nodeType: TreasureNodeType!
     title: String!
     description: String
-
-    # Location
     coordinates: JSON
     mapLocation: String
     locationGroupId: String
-
-    # Graph connections
     prerequisites: [String!]
     unlocks: [String!]
     paths: [String!]
-
-    # Objective & Rewards
     objective: JSON
     rewards: JSON
     difficultyTier: Int
-
-    # Inn-specific
     innTier: Int
     availableRewards: JSON
   }
@@ -399,20 +387,14 @@ const typeDefs = gql`
     eventId: ID!
     teamId: ID!
     nodeId: ID!
-
-    # Submitter info
     submittedBy: String!
     submittedByUsername: String
     channelId: String
     proofUrl: String
-
-    # Review
     status: TreasureSubmissionStatus!
     reviewedBy: String
     reviewedAt: DateTime
     submittedAt: DateTime!
-
-    # Relationships
     team: TreasureTeam
   }
 
@@ -511,6 +493,7 @@ const typeDefs = gql`
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
+    verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
 
     # --- Analytics ---
     getVisitCount: Int!
@@ -572,6 +555,10 @@ const typeDefs = gql`
     updateTreasureEvent(eventId: ID!, input: UpdateTreasureEventInput!): TreasureEvent!
     deleteTreasureEvent(eventId: ID!): MutationResponse!
     generateTreasureMap(eventId: ID!): TreasureEvent!
+    launchEvent(eventId: ID!): TreasureEvent!
+
+    # --- Gielinor Rush: Discord ---
+    confirmDiscordSetup(eventId: ID!, guildId: String!): DiscordConfirmResponse!
 
     # --- Gielinor Rush: Event Admins ---
     addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
@@ -625,7 +612,6 @@ const typeDefs = gql`
   # ============================================================
 
   type Subscription {
-    # Gielinor Rush real-time updates
     submissionAdded(eventId: ID!): TreasureSubmission!
     submissionReviewed(eventId: ID!): TreasureSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
