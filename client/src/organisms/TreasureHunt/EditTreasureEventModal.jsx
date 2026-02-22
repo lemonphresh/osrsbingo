@@ -22,7 +22,7 @@ import {
   AlertIcon,
   Icon,
 } from '@chakra-ui/react';
-import { useMutation } from '@apollo/client';
+import { useMutation, gql } from '@apollo/client';
 import { UPDATE_TREASURE_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import ContentSelectionModal from './ContentSelectionModal';
@@ -34,6 +34,16 @@ import {
   getTodayDateTimeInputValue,
   getViewerTimezone,
 } from '../../utils/dateUtils';
+
+const COMPLETE_EVENT = gql`
+  mutation CompleteEvent($eventId: ID!) {
+    completeEvent(eventId: $eventId) {
+      eventId
+      status
+      eventName
+    }
+  }
+`;
 
 const MAX_TOTAL_PLAYERS = 150;
 const MAX_GP = 20000000000;
@@ -190,6 +200,15 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     onError: (err) => showToast(`Error updating event: ${err.message}`, 'error'),
   });
 
+  const [completeEvent, { loading: completeLoading }] = useMutation(COMPLETE_EVENT, {
+    onCompleted: () => {
+      showToast('Event completed — final standings sent to Discord!', 'success');
+      if (onSuccess) onSuccess();
+      onClose();
+    },
+    onError: (err) => showToast(`Error completing event: ${err.message}`, 'error'),
+  });
+
   const handleSaveContentSelections = async (selections) => {
     try {
       setContentSelections(selections);
@@ -308,6 +327,15 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
     }
     if (shouldBeLockedOut) {
       showToast('Cannot activate event: complete all launch requirements first', 'error');
+      return;
+    }
+
+    if (formData.status === 'COMPLETED' && event?.status !== 'COMPLETED') {
+      try {
+        await completeEvent({ variables: { eventId: event.eventId } });
+      } catch (err) {
+        console.error('Error completing event:', err);
+      }
       return;
     }
 
@@ -723,7 +751,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               colorScheme="purple"
               w="full"
               onClick={handleUpdateEvent}
-              isLoading={loading}
+              isLoading={loading || completeLoading}
               isDisabled={
                 totalPlayers > MAX_TOTAL_PLAYERS ||
                 eventDuration > MAX_EVENT_DURATION_DAYS ||

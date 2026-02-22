@@ -66,7 +66,6 @@ import {
   REVIEW_SUBMISSION,
   GENERATE_TREASURE_MAP,
   ADMIN_COMPLETE_NODE,
-  UPDATE_TREASURE_EVENT,
   TREASURE_ACTIVITY_SUB,
 } from '../graphql/mutations';
 import { useToastContext } from '../providers/ToastProvider';
@@ -96,6 +95,7 @@ import AdminQuickActionsPanel from '../organisms/TreasureHunt/AdminQuickActions'
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import usePageTitle from '../hooks/usePageTitle';
 import LaunchCheckModal from '../organisms/TreasureHunt/LaunchCheckModal';
+import EventSummaryPanel from '../organisms/TreasureHunt/EventSummaryPanel';
 
 const PRESET_COLORS = [
   '#FF6B6B',
@@ -616,7 +616,7 @@ const TreasureEventView = () => {
           {/* ── HERO STRIP ─────────────────────────────────────────────────── */}
           <VStack position="relative" align="center" spacing={1}>
             <GemTitle size="xl" mb="0">
-              {event.eventName}
+              {event.status === 'COMPLETED' ? 'Summary' : event.eventName}
             </GemTitle>
 
             <HStack>
@@ -716,144 +716,209 @@ const TreasureEventView = () => {
           </VStack>
 
           {/* ── STAT BAR ───────────────────────────────────────────────────── */}
-          <StatGroup
-            alignSelf="center"
-            alignItems="center"
-            maxWidth="740px"
-            w="100%"
-            justifyContent={['center', 'center', 'space-between']}
-            flexDirection={['column', 'column', 'row']}
-            gap={4}
-          >
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              textAlign="center"
-              borderRadius="md"
+          {event.status !== 'COMPLETED' && (
+            <StatGroup
+              alignSelf="center"
+              alignItems="center"
+              maxWidth="740px"
+              w="100%"
+              justifyContent={['center', 'center', 'space-between']}
+              flexDirection={['column', 'column', 'row']}
+              gap={4}
             >
-              <StatLabel mb={2} color={currentColors.textColor}>
-                Total Prize Pool
-              </StatLabel>
-              <Image h="32px" m="0 auto" src={Gold} />
-              <StatNumber color={currentColors.green.base}>
-                {event.eventConfig ? formatGP(event.eventConfig.prize_pool_total) : 'N/A'}
-              </StatNumber>
-            </Stat>
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              textAlign="center"
-              borderRadius="md"
-            >
-              <StatLabel mb={2} color={currentColors.textColor}>
-                Total Teams
-              </StatLabel>
-              <Image h="32px" m="0 auto" src={Clan} />
-              <StatNumber color={currentColors.textColor}>{teams.length}</StatNumber>
-            </Stat>
-            <Stat
-              bg={currentColors.cardBg}
-              py="6px"
-              minW={['216px', '216px', 'auto']}
-              textAlign="center"
-              borderRadius="md"
-            >
-              <StatLabel mb={2} color={currentColors.textColor}>
-                Pending Submissions
-              </StatLabel>
-              <Image h="32px" m="0 auto" src={Dossier} />
-              <StatNumber color={currentColors.textColor}>
-                {allPendingIncompleteSubmissionsCount}
-              </StatNumber>
-            </Stat>
-          </StatGroup>
+              <Stat
+                bg={currentColors.cardBg}
+                py="6px"
+                minW={['216px', '216px', 'auto']}
+                textAlign="center"
+                borderRadius="md"
+              >
+                <StatLabel mb={2} color={currentColors.textColor}>
+                  Total Prize Pool
+                </StatLabel>
+                <Image h="32px" m="0 auto" src={Gold} />
+                <StatNumber color={currentColors.green.base}>
+                  {event.eventConfig ? formatGP(event.eventConfig.prize_pool_total) : 'N/A'}
+                </StatNumber>
+              </Stat>
+              <Stat
+                bg={currentColors.cardBg}
+                py="6px"
+                minW={['216px', '216px', 'auto']}
+                textAlign="center"
+                borderRadius="md"
+              >
+                <StatLabel mb={2} color={currentColors.textColor}>
+                  Total Teams
+                </StatLabel>
+                <Image h="32px" m="0 auto" src={Clan} />
+                <StatNumber color={currentColors.textColor}>{teams.length}</StatNumber>
+              </Stat>
+              <Stat
+                bg={currentColors.cardBg}
+                py="6px"
+                minW={['216px', '216px', 'auto']}
+                textAlign="center"
+                borderRadius="md"
+              >
+                <StatLabel mb={2} color={currentColors.textColor}>
+                  Pending Submissions
+                </StatLabel>
+                <Image h="32px" m="0 auto" src={Dossier} />
+                <StatNumber color={currentColors.textColor}>
+                  {allPendingIncompleteSubmissionsCount}
+                </StatNumber>
+              </Stat>
+            </StatGroup>
+          )}
+
+          {event.status === 'COMPLETED' && (
+            <EventSummaryPanel event={event} teams={teams} nodes={event.nodes || []} />
+          )}
 
           {/* ── MAIN BODY: two-column leaderboard + map ─────────────────────── */}
-          {event.nodes && event.nodes.length > 0 ? (
-            <Flex
-              gap={[0, 0, 0, 6]}
-              align="flex-start"
-              flexDirection={['column', 'column', 'column', 'row']}
-            >
-              {/* LEFT: Leaderboard — natural height, min width so it doesn't collapse */}
-              <Box
-                flexShrink={0}
-                flexGrow={0}
-                h={['auto', 'auto', 'auto', '96%']}
-                w={['100%', '100%', '100%', '340px']}
-                minW={0}
-                mb={[-2, -2, -2, 0]}
+          {event.status !== 'COMPLETED' &&
+            (event.nodes && event.nodes.length > 0 ? (
+              <Flex
+                gap={[0, 0, 0, 6]}
+                align="flex-start"
+                flexDirection={['column', 'column', 'column', 'row']}
               >
-                <HStack justify="space-between" mb={3}>
-                  <Heading size="sm" color={currentColors.white}>
-                    🏆 &nbsp;Leaderboard
-                  </Heading>
-                  {isEventAdmin && (
-                    <Button
-                      size="xs"
-                      leftIcon={<AddIcon />}
-                      bg={currentColors.turquoise.base}
-                      color="white"
-                      _hover={{ opacity: 0.8 }}
-                      onClick={onCreateTeamOpen}
-                    >
-                      Add Team
-                    </Button>
-                  )}
-                </HStack>
-
-                {sortedTeams.length === 0 ? (
-                  <Box p={6} textAlign="center" bg={currentColors.cardBg} borderRadius="md">
-                    <Text color="gray.400" mb={3}>
-                      No teams yet.
-                    </Text>
+                {/* LEFT: Leaderboard — natural height, min width so it doesn't collapse */}
+                <Box
+                  flexShrink={0}
+                  flexGrow={0}
+                  h={['auto', 'auto', 'auto', '96%']}
+                  w={['100%', '100%', '100%', '340px']}
+                  minW={0}
+                  mb={[-2, -2, -2, 0]}
+                >
+                  <HStack justify="space-between" mb={3}>
+                    <Heading size="sm" color={currentColors.white}>
+                      🏆 &nbsp;Leaderboard
+                    </Heading>
                     {isEventAdmin && (
                       <Button
-                        size="sm"
+                        size="xs"
                         leftIcon={<AddIcon />}
                         bg={currentColors.turquoise.base}
                         color="white"
                         _hover={{ opacity: 0.8 }}
                         onClick={onCreateTeamOpen}
                       >
-                        Add the first team
+                        Add Team
                       </Button>
                     )}
-                  </Box>
-                ) : (
-                  <VStack
-                    align="stretch"
-                    h="100%"
-                    maxH={['250px', '250px', '250px', '100%']}
-                    py={3}
-                    pl={3}
-                    mb="0"
-                    bg="whiteAlpha.100"
-                    borderTopLeftRadius="8px"
-                    borderTopRightRadius="8px"
-                    spacing={3}
-                    overflow="scroll"
-                    css={{
-                      '&::-webkit-scrollbar': {
-                        width: '8px',
-                      },
-                      '&::-webkit-scrollbar-track': {
-                        background: 'transparent',
-                        borderRadius: '10px',
-                      },
-                      '&::-webkit-scrollbar-thumb': {
-                        background: '#abb8ceff',
-                        borderRadius: '10px',
-                        '&:hover': {
-                          background: '#718096',
+                  </HStack>
+
+                  {sortedTeams.length === 0 ? (
+                    <Box p={6} textAlign="center" bg={currentColors.cardBg} borderRadius="md">
+                      <Text color="gray.400" mb={3}>
+                        No teams yet.
+                      </Text>
+                      {isEventAdmin && (
+                        <Button
+                          size="sm"
+                          leftIcon={<AddIcon />}
+                          bg={currentColors.turquoise.base}
+                          color="white"
+                          _hover={{ opacity: 0.8 }}
+                          onClick={onCreateTeamOpen}
+                        >
+                          Add the first team
+                        </Button>
+                      )}
+                    </Box>
+                  ) : (
+                    <VStack
+                      align="stretch"
+                      h="100%"
+                      maxH={['250px', '250px', '250px', '100%']}
+                      py={3}
+                      pl={3}
+                      mb="0"
+                      bg="whiteAlpha.100"
+                      borderTopLeftRadius="8px"
+                      borderTopRightRadius="8px"
+                      spacing={3}
+                      overflow="scroll"
+                      css={{
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
                         },
-                      },
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: '#abb8ceff transparent',
-                    }}
-                  >
+                        '&::-webkit-scrollbar-track': {
+                          background: 'transparent',
+                          borderRadius: '10px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: '#abb8ceff',
+                          borderRadius: '10px',
+                          '&:hover': {
+                            background: '#718096',
+                          },
+                        },
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#abb8ceff transparent',
+                      }}
+                    >
+                      {sortedTeams.map((team, idx) => (
+                        <StandingsCard
+                          key={team.teamId}
+                          team={team}
+                          index={idx}
+                          event={event}
+                          currentColors={currentColors}
+                          colorMode={colorMode}
+                          onTeamClick={handleTeamCardClick}
+                          onEditTeam={isEventAdmin ? handleEditTeam : null}
+                        />
+                      ))}
+                    </VStack>
+                  )}
+                </Box>
+
+                {/* RIGHT: Map — takes remaining space, full width on mobile */}
+                <Box flex={1} minW={0} w={['100%', '100%', '100%', 'auto']}>
+                  {isEventAdmin && event.status !== 'DRAFT' && (
+                    <Card mb={3} bg={currentColors.cardBg} borderRadius="md">
+                      <CardBody py={3}>
+                        <HStack justify="space-between" align="center">
+                          <HStack>
+                            <Icon as={FaCog} boxSize={5} mr={1} color={currentColors.purple.base} />
+                            <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                              Show All Nodes
+                            </Text>
+                          </HStack>
+                          <Switch
+                            size="md"
+                            colorScheme="purple"
+                            isChecked={showAllNodesToggle}
+                            onChange={(e) => setShowAllNodesToggle(e.target.checked)}
+                          />
+                        </HStack>
+                      </CardBody>
+                    </Card>
+                  )}
+                  <MultiTeamTreasureMap
+                    nodes={event.nodes || []}
+                    teams={teams || []}
+                    event={event}
+                    onRefresh={() => refetchEvent()}
+                    showAllNodes={isEventAdmin && showAllNodesToggle}
+                    highlightedTeamId={highlightedTeamId}
+                  />
+                </Box>
+              </Flex>
+            ) : (
+              /* no map yet — show leaderboard solo if there are teams */
+              teams.length > 0 && (
+                <Box>
+                  <HStack justify="space-between" mb={3}>
+                    <Heading size="sm" color={currentColors.textColor}>
+                      🏆 Leaderboard
+                    </Heading>
+                  </HStack>
+                  <VStack align="stretch" spacing={3}>
                     {sortedTeams.map((team, idx) => (
                       <StandingsCard
                         key={team.teamId}
@@ -867,989 +932,963 @@ const TreasureEventView = () => {
                       />
                     ))}
                   </VStack>
-                )}
-              </Box>
-
-              {/* RIGHT: Map — takes remaining space, full width on mobile */}
-              <Box flex={1} minW={0} w={['100%', '100%', '100%', 'auto']}>
-                {isEventAdmin && event.status !== 'DRAFT' && (
-                  <Card mb={3} bg={currentColors.cardBg} borderRadius="md">
-                    <CardBody py={3}>
-                      <HStack justify="space-between" align="center">
-                        <HStack>
-                          <Icon as={FaCog} boxSize={5} mr={1} color={currentColors.purple.base} />
-                          <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
-                            Show All Nodes
-                          </Text>
-                        </HStack>
-                        <Switch
-                          size="md"
-                          colorScheme="purple"
-                          isChecked={showAllNodesToggle}
-                          onChange={(e) => setShowAllNodesToggle(e.target.checked)}
-                        />
-                      </HStack>
-                    </CardBody>
-                  </Card>
-                )}
-                <MultiTeamTreasureMap
-                  nodes={event.nodes || []}
-                  teams={teams || []}
-                  event={event}
-                  onRefresh={() => refetchEvent()}
-                  showAllNodes={isEventAdmin && showAllNodesToggle}
-                  highlightedTeamId={highlightedTeamId}
-                />
-              </Box>
-            </Flex>
-          ) : (
-            /* no map yet — show leaderboard solo if there are teams */
-            teams.length > 0 && (
-              <Box>
-                <HStack justify="space-between" mb={3}>
-                  <Heading size="sm" color={currentColors.textColor}>
-                    🏆 Leaderboard
-                  </Heading>
-                </HStack>
-                <VStack align="stretch" spacing={3}>
-                  {sortedTeams.map((team, idx) => (
-                    <StandingsCard
-                      key={team.teamId}
-                      team={team}
-                      index={idx}
-                      event={event}
-                      currentColors={currentColors}
-                      colorMode={colorMode}
-                      onTeamClick={handleTeamCardClick}
-                      onEditTeam={isEventAdmin ? handleEditTeam : null}
-                    />
-                  ))}
-                </VStack>
-              </Box>
-            )
-          )}
+                </Box>
+              )
+            ))}
 
           {/* ── TABS (admin tools + game rules) ────────────────────────────── */}
-          <Tabs
-            size="sm"
-            position="relative"
-            variant="soft-rounded"
-            maxW="100%"
-            defaultIndex={isEventAdmin && teams.length === 0 ? 2 : 0}
-          >
-            <TabList
-              pb="6px"
-              overflowY="hidden"
-              overflowX="scroll"
-              css={{
-                '&::-webkit-scrollbar': { display: 'none' },
-                '-ms-overflow-style': 'none',
-                'scrollbar-width': 'none',
-              }}
+          {event.status !== 'COMPLETED' && (
+            <Tabs
+              size="sm"
+              position="relative"
+              variant="soft-rounded"
+              maxW="100%"
+              defaultIndex={isEventAdmin && teams.length === 0 ? 2 : 0}
             >
-              {isEventAdmin && (
-                <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  Submissions ({allPendingIncompleteSubmissionsCount} Pending)
-                  {allPendingIncompleteSubmissionsCount > 0 && (
-                    <Box
-                      position="absolute"
-                      top="4px"
-                      right="8px"
-                      w="8px"
-                      h="8px"
-                      bg="tomato"
-                      borderRadius="full"
-                      boxShadow="0 0 0 2px white"
-                      animation="pulse 2s infinite"
-                      sx={{
-                        '@keyframes pulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.5 } },
-                      }}
-                    />
-                  )}
-                </Tab>
-              )}
-              {isEventAdmin && (
-                <Tab ref={settingsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  Event Settings
-                </Tab>
-              )}
-              <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                Game Rules
-              </Tab>
-              {isEventAdmin && event.nodes?.length > 0 && (
+              <TabList
+                pb="6px"
+                overflowY="hidden"
+                overflowX="scroll"
+                css={{
+                  '&::-webkit-scrollbar': { display: 'none' },
+                  '-ms-overflow-style': 'none',
+                  'scrollbar-width': 'none',
+                }}
+              >
+                {isEventAdmin && (
+                  <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                    Submissions ({allPendingIncompleteSubmissionsCount} Pending)
+                    {allPendingIncompleteSubmissionsCount > 0 && (
+                      <Box
+                        position="absolute"
+                        top="4px"
+                        right="8px"
+                        w="8px"
+                        h="8px"
+                        bg="tomato"
+                        borderRadius="full"
+                        boxShadow="0 0 0 2px white"
+                        animation="pulse 2s infinite"
+                        sx={{
+                          '@keyframes pulse': {
+                            '0%,100%': { opacity: 1 },
+                            '50%': { opacity: 0.5 },
+                          },
+                        }}
+                      />
+                    )}
+                  </Tab>
+                )}
+                {isEventAdmin && (
+                  <Tab ref={settingsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                    Event Settings
+                  </Tab>
+                )}
                 <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                  All Nodes
+                  Game Rules
                 </Tab>
-              )}
-            </TabList>
+                {isEventAdmin && event.nodes?.length > 0 && (
+                  <Tab whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                    All Nodes
+                  </Tab>
+                )}
+              </TabList>
 
-            <TabPanels>
-              {/* SUBMISSIONS */}
-              {isEventAdmin && (
-                <TabPanel px={0}>
-                  <VStack spacing={4} align="stretch">
-                    <Box bg={currentColors.turquoise.base} color="white" p={3} borderRadius="md">
-                      <Text fontWeight="bold" fontSize="sm" mb={1}>
-                        📋 Submission Review Workflow
-                      </Text>
-                      <Text fontSize="xs">
-                        1. Review and approve/deny individual submissions below
-                        <br />
-                        2. Track progress toward node objectives
-                        <br />
-                        3. When cumulative goal is met, complete the node to grant rewards and
-                        unlock next nodes
-                      </Text>
-                    </Box>
+              <TabPanels>
+                {/* SUBMISSIONS */}
+                {isEventAdmin && (
+                  <TabPanel px={0}>
+                    <VStack spacing={4} align="stretch">
+                      <Box bg={currentColors.turquoise.base} color="white" p={3} borderRadius="md">
+                        <Text fontWeight="bold" fontSize="sm" mb={1}>
+                          📋 Submission Review Workflow
+                        </Text>
+                        <Text fontSize="xs">
+                          1. Review and approve/deny individual submissions below
+                          <br />
+                          2. Track progress toward node objectives
+                          <br />
+                          3. When cumulative goal is met, complete the node to grant rewards and
+                          unlock next nodes
+                        </Text>
+                      </Box>
 
-                    {(() => {
-                      const groupedSubmissions = {};
-                      allSubmissions.forEach((s) => {
-                        const key = `${s.nodeId}_${s.team?.teamId}`;
-                        if (!groupedSubmissions[key]) groupedSubmissions[key] = [];
-                        groupedSubmissions[key].push(s);
-                      });
+                      {(() => {
+                        const groupedSubmissions = {};
+                        allSubmissions.forEach((s) => {
+                          const key = `${s.nodeId}_${s.team?.teamId}`;
+                          if (!groupedSubmissions[key]) groupedSubmissions[key] = [];
+                          groupedSubmissions[key].push(s);
+                        });
 
-                      const relevantGroups = Object.entries(groupedSubmissions).filter(([, subs]) =>
-                        subs.some((s) => s.status === 'PENDING_REVIEW' || s.status === 'APPROVED')
-                      );
+                        const relevantGroups = Object.entries(groupedSubmissions).filter(
+                          ([, subs]) =>
+                            subs.some(
+                              (s) => s.status === 'PENDING_REVIEW' || s.status === 'APPROVED'
+                            )
+                        );
 
-                      if (relevantGroups.length === 0) {
+                        if (relevantGroups.length === 0) {
+                          return (
+                            <Text color={currentColors.white} textAlign="center" py={8}>
+                              No pending submissions
+                            </Text>
+                          );
+                        }
+
+                        const sortedGroups = [...relevantGroups].sort((a, b) => {
+                          const [, subsA] = a;
+                          const [, subsB] = b;
+                          const nodeIdA = subsA[0].nodeId;
+                          const teamA = event.teams?.find(
+                            (t) => t.teamId === subsA[0].team?.teamId
+                          );
+                          const isCompletedA = teamA?.completedNodes?.includes(nodeIdA);
+                          const nodeIdB = subsB[0].nodeId;
+                          const teamB = event.teams?.find(
+                            (t) => t.teamId === subsB[0].team?.teamId
+                          );
+                          const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
+                          if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
+                          const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
+                          const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
+                          if (pendA !== pendB) return pendB - pendA;
+                          const latestA = Math.max(
+                            ...subsA.map((s) => new Date(s.submittedAt || 0).getTime())
+                          );
+                          const latestB = Math.max(
+                            ...subsB.map((s) => new Date(s.submittedAt || 0).getTime())
+                          );
+                          return latestB - latestA;
+                        });
+
                         return (
-                          <Text color={currentColors.white} textAlign="center" py={8}>
-                            No pending submissions
-                          </Text>
-                        );
-                      }
+                          <Accordion allowMultiple>
+                            {sortedGroups.map(([key, submissions]) => {
+                              const nodeId = submissions[0].nodeId;
+                              const node = event.nodes?.find((n) => n.nodeId === nodeId);
+                              const nodeTitle = node ? node.title : nodeId;
+                              const nodeType = node ? node.nodeType : 'STANDARD';
+                              const teamId = submissions[0].team?.teamId;
+                              const team = event.teams?.find((t) => t.teamId === teamId);
+                              const isCompleted = team?.completedNodes?.includes(nodeId);
+                              const pendingSubmissions = submissions.filter(
+                                (s) => s.status === 'PENDING_REVIEW'
+                              );
+                              const approvedSubmissions = submissions.filter(
+                                (s) => s.status === 'APPROVED'
+                              );
+                              const deniedSubmissions = submissions.filter(
+                                (s) => s.status === 'DENIED'
+                              );
 
-                      const sortedGroups = [...relevantGroups].sort((a, b) => {
-                        const [, subsA] = a;
-                        const [, subsB] = b;
-                        const nodeIdA = subsA[0].nodeId;
-                        const teamA = event.teams?.find((t) => t.teamId === subsA[0].team?.teamId);
-                        const isCompletedA = teamA?.completedNodes?.includes(nodeIdA);
-                        const nodeIdB = subsB[0].nodeId;
-                        const teamB = event.teams?.find((t) => t.teamId === subsB[0].team?.teamId);
-                        const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
-                        if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
-                        const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
-                        const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
-                        if (pendA !== pendB) return pendB - pendA;
-                        const latestA = Math.max(
-                          ...subsA.map((s) => new Date(s.submittedAt || 0).getTime())
-                        );
-                        const latestB = Math.max(
-                          ...subsB.map((s) => new Date(s.submittedAt || 0).getTime())
-                        );
-                        return latestB - latestA;
-                      });
-
-                      return (
-                        <Accordion allowMultiple>
-                          {sortedGroups.map(([key, submissions]) => {
-                            const nodeId = submissions[0].nodeId;
-                            const node = event.nodes?.find((n) => n.nodeId === nodeId);
-                            const nodeTitle = node ? node.title : nodeId;
-                            const nodeType = node ? node.nodeType : 'STANDARD';
-                            const teamId = submissions[0].team?.teamId;
-                            const team = event.teams?.find((t) => t.teamId === teamId);
-                            const isCompleted = team?.completedNodes?.includes(nodeId);
-                            const pendingSubmissions = submissions.filter(
-                              (s) => s.status === 'PENDING_REVIEW'
-                            );
-                            const approvedSubmissions = submissions.filter(
-                              (s) => s.status === 'APPROVED'
-                            );
-                            const deniedSubmissions = submissions.filter(
-                              (s) => s.status === 'DENIED'
-                            );
-
-                            return (
-                              <AccordionItem
-                                key={key}
-                                border="1px solid"
-                                borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-                                borderRadius="md"
-                                mb={2}
-                                bg={currentColors.cardBg}
-                                opacity={isCompleted ? 0.75 : 1}
-                              >
-                                <h2>
-                                  <AccordionButton
-                                    _hover={{
-                                      bg: colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50',
-                                    }}
-                                    py={4}
-                                  >
-                                    <HStack justify="space-between" align="start" flex={1}>
-                                      <VStack align="start" spacing={1} flex={1}>
-                                        <HStack>
-                                          <AccordionIcon color={currentColors.textColor} />
-                                          <Text
-                                            fontWeight="bold"
-                                            fontSize="lg"
-                                            color={currentColors.textColor}
-                                          >
-                                            {nodeType === 'INN' ? '🏠 ' : ''}
-                                            {nodeTitle}
-                                          </Text>
-                                          <Badge
-                                            bg={
-                                              nodeType === 'INN'
-                                                ? theme.colors.yellow.base
-                                                : nodeType === 'START'
-                                                ? currentColors.purple.base
-                                                : currentColors.turquoise.base
-                                            }
-                                            color="white"
-                                          >
-                                            {nodeType}
-                                          </Badge>
-                                          {isCompleted && (
-                                            <Badge colorScheme="green">✅ COMPLETED</Badge>
-                                          )}
-                                        </HStack>
-                                        <HStack ml={6}>
-                                          <Badge bg={currentColors.purple.base} color="white">
-                                            {submissions[0].team?.teamName || 'Unknown Team'}
-                                          </Badge>
-                                          {pendingSubmissions.length > 0 && (
-                                            <Badge colorScheme="orange">
-                                              {pendingSubmissions.length} pending
+                              return (
+                                <AccordionItem
+                                  key={key}
+                                  border="1px solid"
+                                  borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
+                                  borderRadius="md"
+                                  mb={2}
+                                  bg={currentColors.cardBg}
+                                  opacity={isCompleted ? 0.75 : 1}
+                                >
+                                  <h2>
+                                    <AccordionButton
+                                      _hover={{
+                                        bg:
+                                          colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50',
+                                      }}
+                                      py={4}
+                                    >
+                                      <HStack justify="space-between" align="start" flex={1}>
+                                        <VStack align="start" spacing={1} flex={1}>
+                                          <HStack>
+                                            <AccordionIcon color={currentColors.textColor} />
+                                            <Text
+                                              fontWeight="bold"
+                                              fontSize="lg"
+                                              color={currentColors.textColor}
+                                            >
+                                              {nodeType === 'INN' ? '🏠 ' : ''}
+                                              {nodeTitle}
+                                            </Text>
+                                            <Badge
+                                              bg={
+                                                nodeType === 'INN'
+                                                  ? theme.colors.yellow.base
+                                                  : nodeType === 'START'
+                                                  ? currentColors.purple.base
+                                                  : currentColors.turquoise.base
+                                              }
+                                              color="white"
+                                            >
+                                              {nodeType}
                                             </Badge>
-                                          )}
-                                          {approvedSubmissions.length > 0 && (
-                                            <Badge colorScheme="green">
-                                              {approvedSubmissions.length} approved
+                                            {isCompleted && (
+                                              <Badge colorScheme="green">✅ COMPLETED</Badge>
+                                            )}
+                                          </HStack>
+                                          <HStack ml={6}>
+                                            <Badge bg={currentColors.purple.base} color="white">
+                                              {submissions[0].team?.teamName || 'Unknown Team'}
                                             </Badge>
-                                          )}
-                                          {deniedSubmissions.length > 0 && (
-                                            <Badge colorScheme="red">
-                                              {deniedSubmissions.length} denied
-                                            </Badge>
-                                          )}
-                                        </HStack>
-                                        <Text ml={6} fontSize="xs" color="gray.500">
-                                          Node ID: {nodeId}
-                                        </Text>
-                                      </VStack>
-
-                                      {!isCompleted && approvedSubmissions.length > 0 && (
-                                        <VStack
-                                          spacing={1}
-                                          align="end"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <Text
-                                            fontSize="14px"
-                                            lineHeight="16px"
-                                            textAlign="right"
-                                            color="gray.700"
-                                            mb="4px"
-                                          >
-                                            Once the objective is completed <br />
-                                            and submissions approved:
-                                          </Text>
-                                          <Button
-                                            size="sm"
-                                            colorScheme="green"
-                                            leftIcon={<CheckIcon />}
-                                            onClick={() => {
-                                              setNodeToComplete({
-                                                nodeId,
-                                                teamId,
-                                                nodeTitle,
-                                                teamName:
-                                                  submissions[0].team?.teamName || team?.teamName,
-                                              });
-                                              onOpenCompleteDialog();
-                                            }}
-                                          >
-                                            Complete This Node
-                                          </Button>
-                                          <Text fontSize="xs" color="gray.500">
-                                            Grant rewards
+                                            {pendingSubmissions.length > 0 && (
+                                              <Badge colorScheme="orange">
+                                                {pendingSubmissions.length} pending
+                                              </Badge>
+                                            )}
+                                            {approvedSubmissions.length > 0 && (
+                                              <Badge colorScheme="green">
+                                                {approvedSubmissions.length} approved
+                                              </Badge>
+                                            )}
+                                            {deniedSubmissions.length > 0 && (
+                                              <Badge colorScheme="red">
+                                                {deniedSubmissions.length} denied
+                                              </Badge>
+                                            )}
+                                          </HStack>
+                                          <Text ml={6} fontSize="xs" color="gray.500">
+                                            Node ID: {nodeId}
                                           </Text>
                                         </VStack>
-                                      )}
-                                    </HStack>
-                                  </AccordionButton>
-                                </h2>
 
-                                <AccordionPanel pb={4}>
-                                  <VStack align="stretch" spacing={3}>
-                                    {node?.objective && (
-                                      <Box
-                                        p={2}
-                                        bg={
-                                          colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'
-                                        }
-                                        borderRadius="md"
-                                      >
-                                        <Text
-                                          fontSize="xs"
-                                          fontWeight="bold"
-                                          color={currentColors.textColor}
-                                        >
-                                          Objective:
-                                        </Text>
-                                        <Text
-                                          fontSize="xs"
-                                          color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                                        >
-                                          {OBJECTIVE_TYPES[node.objective.type]}:{' '}
-                                          {node.objective.quantity} {node.objective.target}
-                                        </Text>
-                                        {node.objective.appliedBuff && (
-                                          <Badge colorScheme="blue" fontSize="xs" mt={1}>
-                                            ✨ Buff Applied: -
-                                            {(node.objective.appliedBuff.reduction * 100).toFixed(
-                                              0
-                                            )}
-                                            %
-                                          </Badge>
-                                        )}
-                                      </Box>
-                                    )}
-
-                                    {isCompleted && (
-                                      <Box
-                                        p={2}
-                                        bg={currentColors.green.base}
-                                        color="white"
-                                        borderRadius="md"
-                                      >
-                                        <Text fontSize="xs" fontWeight="bold">
-                                          ℹ️ This node is already completed. Submissions can still
-                                          be reviewed for record-keeping.
-                                        </Text>
-                                      </Box>
-                                    )}
-
-                                    <VStack align="stretch" spacing={2}>
-                                      {submissions
-                                        .sort((a, b) => {
-                                          const order = {
-                                            PENDING_REVIEW: 0,
-                                            APPROVED: 1,
-                                            DENIED: 2,
-                                          };
-                                          return order[a.status] - order[b.status];
-                                        })
-                                        .map((submission) => (
-                                          <Box
-                                            key={submission.submissionId}
-                                            p={3}
-                                            bg={
-                                              submission.status === 'APPROVED'
-                                                ? colorMode === 'dark'
-                                                  ? 'green.900'
-                                                  : 'green.50'
-                                                : submission.status === 'DENIED'
-                                                ? colorMode === 'dark'
-                                                  ? 'red.900'
-                                                  : 'red.50'
-                                                : colorMode === 'dark'
-                                                ? '#1A202C'
-                                                : '#F7FAFC'
-                                            }
-                                            borderRadius="md"
-                                            borderWidth={submission.status === 'APPROVED' ? 2 : 1}
-                                            borderColor={
-                                              submission.status === 'APPROVED'
-                                                ? currentColors.green.base
-                                                : submission.status === 'DENIED'
-                                                ? currentColors.red
-                                                : 'transparent'
-                                            }
+                                        {!isCompleted && approvedSubmissions.length > 0 && (
+                                          <VStack
+                                            spacing={1}
+                                            align="end"
+                                            onClick={(e) => e.stopPropagation()}
                                           >
-                                            <HStack justify="space-between" mb={2}>
-                                              <VStack align="start" spacing={0}>
-                                                <HStack>
-                                                  <Text
-                                                    fontSize="sm"
-                                                    fontWeight="bold"
-                                                    color={currentColors.textColor}
-                                                  >
-                                                    Submitted by {submission.submittedByUsername}{' '}
-                                                    (ID: {submission.submittedBy})
-                                                  </Text>
-                                                  {submission.status !== 'PENDING_REVIEW' && (
-                                                    <Badge
-                                                      colorScheme={
-                                                        submission.status === 'APPROVED'
-                                                          ? 'green'
-                                                          : 'red'
-                                                      }
-                                                      fontSize="xs"
-                                                    >
-                                                      {submission.status}
-                                                    </Badge>
-                                                  )}
-                                                </HStack>
-                                                <Text
-                                                  fontSize="xs"
-                                                  color={
-                                                    colorMode === 'dark' ? 'gray.400' : 'gray.600'
-                                                  }
-                                                >
-                                                  {new Date(
-                                                    submission.submittedAt
-                                                  ).toLocaleString()}
-                                                </Text>
-                                                {submission.reviewedAt && (
-                                                  <Text
-                                                    fontSize="xs"
-                                                    color={
-                                                      colorMode === 'dark' ? 'gray.500' : 'gray.600'
-                                                    }
-                                                  >
-                                                    Reviewed:{' '}
-                                                    {new Date(
-                                                      submission.reviewedAt
-                                                    ).toLocaleString()}
-                                                  </Text>
-                                                )}
-                                              </VStack>
-                                            </HStack>
-                                            <HStack justify="space-between">
-                                              <Button
-                                                leftIcon={<ExternalLinkIcon />}
-                                                size="sm"
-                                                variant="outline"
-                                                as="a"
-                                                href={submission.proofUrl}
-                                                target="_blank"
-                                                color={currentColors.textColor}
-                                              >
-                                                View Proof
-                                              </Button>
-                                              {submission.status === 'PENDING_REVIEW' && (
-                                                <HStack>
-                                                  <Tooltip label="Deny Submission">
-                                                    <IconButton
-                                                      icon={<CloseIcon />}
-                                                      colorScheme="red"
-                                                      size="sm"
-                                                      onClick={() => {
-                                                        setSubmissionToDeny(submission);
-                                                        onDenialModalOpen();
-                                                      }}
-                                                    />
-                                                  </Tooltip>
-                                                  <Tooltip label="Approve Submission">
-                                                    <IconButton
-                                                      icon={<CheckIcon />}
-                                                      colorScheme="green"
-                                                      size="sm"
-                                                      onClick={() =>
-                                                        handleReviewSubmission(
-                                                          submission.submissionId,
-                                                          true
-                                                        )
-                                                      }
-                                                    />
-                                                  </Tooltip>
-                                                </HStack>
-                                              )}
-                                            </HStack>
-                                          </Box>
-                                        ))}
-                                    </VStack>
-                                  </VStack>
-                                </AccordionPanel>
-                              </AccordionItem>
-                            );
-                          })}
-                        </Accordion>
-                      );
-                    })()}
-                  </VStack>
-                </TabPanel>
-              )}
-
-              {/* EVENT SETTINGS */}
-              {isEventAdmin && (
-                <TabPanel>
-                  <Card bg={currentColors.cardBg}>
-                    <CardBody>
-                      <VStack align="stretch" spacing={4}>
-                        <Heading size="md" color={currentColors.textColor}>
-                          Event Configuration
-                        </Heading>
-
-                        {notificationsSupported && (
-                          <Card bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}>
-                            <CardBody>
-                              <VStack align="stretch" spacing={3}>
-                                <HStack justify="space-between" align="start">
-                                  <VStack align="start" spacing={2} flex={1}>
-                                    <HStack>
-                                      <Text fontSize="2xl">
-                                        {notificationsEnabled ? '🔔' : '🔕'}
-                                      </Text>
-                                      <Heading size="sm" color={currentColors.textColor}>
-                                        Submission Notifications
-                                      </Heading>
-                                      {notificationsEnabled && (
-                                        <Badge colorScheme="green" fontSize="xs">
-                                          ACTIVE
-                                        </Badge>
-                                      )}
-                                      <HStack
-                                        borderLeft="1px solid gray"
-                                        paddingLeft={3}
-                                        marginLeft={2}
-                                        spacing={2}
-                                      >
-                                        {notificationsEnabled ? (
-                                          <>
+                                            <Text
+                                              fontSize="14px"
+                                              lineHeight="16px"
+                                              textAlign="right"
+                                              color="gray.700"
+                                              mb="4px"
+                                            >
+                                              Once the objective is completed <br />
+                                              and submissions approved:
+                                            </Text>
                                             <Button
                                               size="sm"
-                                              colorScheme="blue"
-                                              variant="outline"
+                                              colorScheme="green"
+                                              leftIcon={<CheckIcon />}
                                               onClick={() => {
-                                                if (Notification.permission === 'granted') {
-                                                  if (
-                                                    localStorage.getItem(
-                                                      'treasureHunt_sound_enabled'
-                                                    ) !== 'false'
-                                                  ) {
-                                                    const ac = new (window.AudioContext ||
-                                                      window.webkitAudioContext)();
-                                                    const playTone = (f, d, t) => {
-                                                      const o = ac.createOscillator();
-                                                      const g = ac.createGain();
-                                                      o.connect(g);
-                                                      g.connect(ac.destination);
-                                                      o.frequency.value = f;
-                                                      o.type = 'sine';
-                                                      g.gain.setValueAtTime(0, t);
-                                                      g.gain.linearRampToValueAtTime(0.3, t + 0.01);
-                                                      g.gain.exponentialRampToValueAtTime(
-                                                        0.01,
-                                                        t + d
-                                                      );
-                                                      o.start(t);
-                                                      o.stop(t + d);
-                                                    };
-                                                    const now = ac.currentTime;
-                                                    playTone(800, 0.1, now);
-                                                    playTone(600, 0.15, now + 0.1);
-                                                  }
-                                                  const n = new Notification('Test Notification', {
-                                                    body: 'If you can see this, notifications are working!',
-                                                    icon: '/favicon.ico',
-                                                    tag: 'manual-test',
-                                                    silent: true,
-                                                  });
-                                                  n.onclick = () => {
-                                                    window.focus();
-                                                    n.close();
-                                                  };
-                                                }
+                                                setNodeToComplete({
+                                                  nodeId,
+                                                  teamId,
+                                                  nodeTitle,
+                                                  teamName:
+                                                    submissions[0].team?.teamName || team?.teamName,
+                                                });
+                                                onOpenCompleteDialog();
                                               }}
                                             >
-                                              Send Test
+                                              Complete This Node
                                             </Button>
-                                            <Button
-                                              size="sm"
-                                              colorScheme="red"
-                                              variant="outline"
-                                              onClick={disableNotifications}
-                                            >
-                                              Disable
-                                            </Button>
-                                          </>
-                                        ) : (
-                                          <Button
-                                            size="sm"
-                                            colorScheme="green"
-                                            onClick={requestNotificationPermission}
-                                            isDisabled={notificationPermission === 'denied'}
-                                          >
-                                            Enable Notifications
-                                          </Button>
+                                            <Text fontSize="xs" color="gray.500">
+                                              Grant rewards
+                                            </Text>
+                                          </VStack>
                                         )}
                                       </HStack>
-                                    </HStack>
-                                    <Text
-                                      fontSize="sm"
-                                      color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                                    >
-                                      {notificationsEnabled
-                                        ? "You'll receive browser notifications when new submissions arrive"
-                                        : 'Enable notifications to get alerts for new submissions'}
-                                    </Text>
-                                    {notificationPermission === 'denied' && (
-                                      <Text fontSize="xs" color="red.500">
-                                        ⚠️ Notifications are blocked. Please enable them in your
-                                        browser settings.
-                                      </Text>
-                                    )}
+                                    </AccordionButton>
+                                  </h2>
 
-                                    {notificationsEnabled && (
-                                      <HStack
-                                        p={2}
-                                        bg={
-                                          colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'
-                                        }
-                                        borderRadius="md"
-                                        w="full"
-                                      >
-                                        <Text fontSize="2xl">🔊</Text>
-                                        <VStack align="start" spacing={0} flex={1}>
+                                  <AccordionPanel pb={4}>
+                                    <VStack align="stretch" spacing={3}>
+                                      {node?.objective && (
+                                        <Box
+                                          p={2}
+                                          bg={
+                                            colorMode === 'dark'
+                                              ? 'whiteAlpha.100'
+                                              : 'blackAlpha.50'
+                                          }
+                                          borderRadius="md"
+                                        >
                                           <Text
-                                            fontSize="sm"
+                                            fontSize="xs"
                                             fontWeight="bold"
                                             color={currentColors.textColor}
                                           >
-                                            Notification Sound
+                                            Objective:
                                           </Text>
                                           <Text
                                             fontSize="xs"
                                             color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                                           >
-                                            Play a sound when new submissions arrive
+                                            {OBJECTIVE_TYPES[node.objective.type]}:{' '}
+                                            {node.objective.quantity} {node.objective.target}
                                           </Text>
-                                        </VStack>
-                                        <Switch
-                                          colorScheme="purple"
-                                          defaultChecked={
-                                            localStorage.getItem('treasureHunt_sound_enabled') !==
-                                            'false'
-                                          }
-                                          onChange={(e) => {
-                                            localStorage.setItem(
-                                              'treasureHunt_sound_enabled',
-                                              e.target.checked.toString()
-                                            );
-                                            if (e.target.checked) {
-                                              const ac = new (window.AudioContext ||
-                                                window.webkitAudioContext)();
-                                              const playTone = (f, d, t) => {
-                                                const o = ac.createOscillator();
-                                                const g = ac.createGain();
-                                                o.connect(g);
-                                                g.connect(ac.destination);
-                                                o.frequency.value = f;
-                                                o.type = 'sine';
-                                                g.gain.setValueAtTime(0, t);
-                                                g.gain.linearRampToValueAtTime(0.3, t + 0.01);
-                                                g.gain.exponentialRampToValueAtTime(0.01, t + d);
-                                                o.start(t);
-                                                o.stop(t + d);
-                                              };
-                                              const now = ac.currentTime;
-                                              playTone(800, 0.1, now);
-                                              playTone(600, 0.15, now + 0.1);
-                                            }
-                                          }}
-                                        />
+                                          {node.objective.appliedBuff && (
+                                            <Badge colorScheme="blue" fontSize="xs" mt={1}>
+                                              ✨ Buff Applied: -
+                                              {(node.objective.appliedBuff.reduction * 100).toFixed(
+                                                0
+                                              )}
+                                              %
+                                            </Badge>
+                                          )}
+                                        </Box>
+                                      )}
+
+                                      {isCompleted && (
+                                        <Box
+                                          p={2}
+                                          bg={currentColors.green.base}
+                                          color="white"
+                                          borderRadius="md"
+                                        >
+                                          <Text fontSize="xs" fontWeight="bold">
+                                            ℹ️ This node is already completed. Submissions can still
+                                            be reviewed for record-keeping.
+                                          </Text>
+                                        </Box>
+                                      )}
+
+                                      <VStack align="stretch" spacing={2}>
+                                        {submissions
+                                          .sort((a, b) => {
+                                            const order = {
+                                              PENDING_REVIEW: 0,
+                                              APPROVED: 1,
+                                              DENIED: 2,
+                                            };
+                                            return order[a.status] - order[b.status];
+                                          })
+                                          .map((submission) => (
+                                            <Box
+                                              key={submission.submissionId}
+                                              p={3}
+                                              bg={
+                                                submission.status === 'APPROVED'
+                                                  ? colorMode === 'dark'
+                                                    ? 'green.900'
+                                                    : 'green.50'
+                                                  : submission.status === 'DENIED'
+                                                  ? colorMode === 'dark'
+                                                    ? 'red.900'
+                                                    : 'red.50'
+                                                  : colorMode === 'dark'
+                                                  ? '#1A202C'
+                                                  : '#F7FAFC'
+                                              }
+                                              borderRadius="md"
+                                              borderWidth={submission.status === 'APPROVED' ? 2 : 1}
+                                              borderColor={
+                                                submission.status === 'APPROVED'
+                                                  ? currentColors.green.base
+                                                  : submission.status === 'DENIED'
+                                                  ? currentColors.red
+                                                  : 'transparent'
+                                              }
+                                            >
+                                              <HStack justify="space-between" mb={2}>
+                                                <VStack align="start" spacing={0}>
+                                                  <HStack>
+                                                    <Text
+                                                      fontSize="sm"
+                                                      fontWeight="bold"
+                                                      color={currentColors.textColor}
+                                                    >
+                                                      Submitted by {submission.submittedByUsername}{' '}
+                                                      (ID: {submission.submittedBy})
+                                                    </Text>
+                                                    {submission.status !== 'PENDING_REVIEW' && (
+                                                      <Badge
+                                                        colorScheme={
+                                                          submission.status === 'APPROVED'
+                                                            ? 'green'
+                                                            : 'red'
+                                                        }
+                                                        fontSize="xs"
+                                                      >
+                                                        {submission.status}
+                                                      </Badge>
+                                                    )}
+                                                  </HStack>
+                                                  <Text
+                                                    fontSize="xs"
+                                                    color={
+                                                      colorMode === 'dark' ? 'gray.400' : 'gray.600'
+                                                    }
+                                                  >
+                                                    {new Date(
+                                                      submission.submittedAt
+                                                    ).toLocaleString()}
+                                                  </Text>
+                                                  {submission.reviewedAt && (
+                                                    <Text
+                                                      fontSize="xs"
+                                                      color={
+                                                        colorMode === 'dark'
+                                                          ? 'gray.500'
+                                                          : 'gray.600'
+                                                      }
+                                                    >
+                                                      Reviewed:{' '}
+                                                      {new Date(
+                                                        submission.reviewedAt
+                                                      ).toLocaleString()}
+                                                    </Text>
+                                                  )}
+                                                </VStack>
+                                              </HStack>
+                                              <HStack justify="space-between">
+                                                <Button
+                                                  leftIcon={<ExternalLinkIcon />}
+                                                  size="sm"
+                                                  variant="outline"
+                                                  as="a"
+                                                  href={submission.proofUrl}
+                                                  target="_blank"
+                                                  color={currentColors.textColor}
+                                                >
+                                                  View Proof
+                                                </Button>
+                                                {submission.status === 'PENDING_REVIEW' && (
+                                                  <HStack>
+                                                    <Tooltip label="Deny Submission">
+                                                      <IconButton
+                                                        icon={<CloseIcon />}
+                                                        colorScheme="red"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                          setSubmissionToDeny(submission);
+                                                          onDenialModalOpen();
+                                                        }}
+                                                      />
+                                                    </Tooltip>
+                                                    <Tooltip label="Approve Submission">
+                                                      <IconButton
+                                                        icon={<CheckIcon />}
+                                                        colorScheme="green"
+                                                        size="sm"
+                                                        onClick={() =>
+                                                          handleReviewSubmission(
+                                                            submission.submissionId,
+                                                            true
+                                                          )
+                                                        }
+                                                      />
+                                                    </Tooltip>
+                                                  </HStack>
+                                                )}
+                                              </HStack>
+                                            </Box>
+                                          ))}
+                                      </VStack>
+                                    </VStack>
+                                  </AccordionPanel>
+                                </AccordionItem>
+                              );
+                            })}
+                          </Accordion>
+                        );
+                      })()}
+                    </VStack>
+                  </TabPanel>
+                )}
+
+                {/* EVENT SETTINGS */}
+                {isEventAdmin && (
+                  <TabPanel>
+                    <Card bg={currentColors.cardBg}>
+                      <CardBody>
+                        <VStack align="stretch" spacing={4}>
+                          <Heading size="md" color={currentColors.textColor}>
+                            Event Configuration
+                          </Heading>
+
+                          {notificationsSupported && (
+                            <Card bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}>
+                              <CardBody>
+                                <VStack align="stretch" spacing={3}>
+                                  <HStack justify="space-between" align="start">
+                                    <VStack align="start" spacing={2} flex={1}>
+                                      <HStack>
+                                        <Text fontSize="2xl">
+                                          {notificationsEnabled ? '🔔' : '🔕'}
+                                        </Text>
+                                        <Heading size="sm" color={currentColors.textColor}>
+                                          Submission Notifications
+                                        </Heading>
+                                        {notificationsEnabled && (
+                                          <Badge colorScheme="green" fontSize="xs">
+                                            ACTIVE
+                                          </Badge>
+                                        )}
+                                        <HStack
+                                          borderLeft="1px solid gray"
+                                          paddingLeft={3}
+                                          marginLeft={2}
+                                          spacing={2}
+                                        >
+                                          {notificationsEnabled ? (
+                                            <>
+                                              <Button
+                                                size="sm"
+                                                colorScheme="blue"
+                                                variant="outline"
+                                                onClick={() => {
+                                                  if (Notification.permission === 'granted') {
+                                                    if (
+                                                      localStorage.getItem(
+                                                        'treasureHunt_sound_enabled'
+                                                      ) !== 'false'
+                                                    ) {
+                                                      const ac = new (window.AudioContext ||
+                                                        window.webkitAudioContext)();
+                                                      const playTone = (f, d, t) => {
+                                                        const o = ac.createOscillator();
+                                                        const g = ac.createGain();
+                                                        o.connect(g);
+                                                        g.connect(ac.destination);
+                                                        o.frequency.value = f;
+                                                        o.type = 'sine';
+                                                        g.gain.setValueAtTime(0, t);
+                                                        g.gain.linearRampToValueAtTime(
+                                                          0.3,
+                                                          t + 0.01
+                                                        );
+                                                        g.gain.exponentialRampToValueAtTime(
+                                                          0.01,
+                                                          t + d
+                                                        );
+                                                        o.start(t);
+                                                        o.stop(t + d);
+                                                      };
+                                                      const now = ac.currentTime;
+                                                      playTone(800, 0.1, now);
+                                                      playTone(600, 0.15, now + 0.1);
+                                                    }
+                                                    const n = new Notification(
+                                                      'Test Notification',
+                                                      {
+                                                        body: 'If you can see this, notifications are working!',
+                                                        icon: '/favicon.ico',
+                                                        tag: 'manual-test',
+                                                        silent: true,
+                                                      }
+                                                    );
+                                                    n.onclick = () => {
+                                                      window.focus();
+                                                      n.close();
+                                                    };
+                                                  }
+                                                }}
+                                              >
+                                                Send Test
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                colorScheme="red"
+                                                variant="outline"
+                                                onClick={disableNotifications}
+                                              >
+                                                Disable
+                                              </Button>
+                                            </>
+                                          ) : (
+                                            <Button
+                                              size="sm"
+                                              colorScheme="green"
+                                              onClick={requestNotificationPermission}
+                                              isDisabled={notificationPermission === 'denied'}
+                                            >
+                                              Enable Notifications
+                                            </Button>
+                                          )}
+                                        </HStack>
                                       </HStack>
-                                    )}
-                                  </VStack>
+                                      <Text
+                                        fontSize="sm"
+                                        color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                                      >
+                                        {notificationsEnabled
+                                          ? "You'll receive browser notifications when new submissions arrive"
+                                          : 'Enable notifications to get alerts for new submissions'}
+                                      </Text>
+                                      {notificationPermission === 'denied' && (
+                                        <Text fontSize="xs" color="red.500">
+                                          ⚠️ Notifications are blocked. Please enable them in your
+                                          browser settings.
+                                        </Text>
+                                      )}
+
+                                      {notificationsEnabled && (
+                                        <HStack
+                                          p={2}
+                                          bg={
+                                            colorMode === 'dark'
+                                              ? 'whiteAlpha.100'
+                                              : 'blackAlpha.50'
+                                          }
+                                          borderRadius="md"
+                                          w="full"
+                                        >
+                                          <Text fontSize="2xl">🔊</Text>
+                                          <VStack align="start" spacing={0} flex={1}>
+                                            <Text
+                                              fontSize="sm"
+                                              fontWeight="bold"
+                                              color={currentColors.textColor}
+                                            >
+                                              Notification Sound
+                                            </Text>
+                                            <Text
+                                              fontSize="xs"
+                                              color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+                                            >
+                                              Play a sound when new submissions arrive
+                                            </Text>
+                                          </VStack>
+                                          <Switch
+                                            colorScheme="purple"
+                                            defaultChecked={
+                                              localStorage.getItem('treasureHunt_sound_enabled') !==
+                                              'false'
+                                            }
+                                            onChange={(e) => {
+                                              localStorage.setItem(
+                                                'treasureHunt_sound_enabled',
+                                                e.target.checked.toString()
+                                              );
+                                              if (e.target.checked) {
+                                                const ac = new (window.AudioContext ||
+                                                  window.webkitAudioContext)();
+                                                const playTone = (f, d, t) => {
+                                                  const o = ac.createOscillator();
+                                                  const g = ac.createGain();
+                                                  o.connect(g);
+                                                  g.connect(ac.destination);
+                                                  o.frequency.value = f;
+                                                  o.type = 'sine';
+                                                  g.gain.setValueAtTime(0, t);
+                                                  g.gain.linearRampToValueAtTime(0.3, t + 0.01);
+                                                  g.gain.exponentialRampToValueAtTime(0.01, t + d);
+                                                  o.start(t);
+                                                  o.stop(t + d);
+                                                };
+                                                const now = ac.currentTime;
+                                                playTone(800, 0.1, now);
+                                                playTone(600, 0.15, now + 0.1);
+                                              }
+                                            }}
+                                          />
+                                        </HStack>
+                                      )}
+                                    </VStack>
+                                  </HStack>
+                                </VStack>
+                              </CardBody>
+                            </Card>
+                          )}
+
+                          <hr />
+                          {event.status === 'DRAFT' && (
+                            <HStack gap={4}>
+                              <Button
+                                colorScheme="green"
+                                onClick={handleGenerateMap}
+                                isLoading={generateLoading}
+                                animation={
+                                  !event.nodes || event.nodes.length === 0
+                                    ? 'flashButton 1.5s ease-in-out infinite'
+                                    : 'none'
+                                }
+                                sx={{
+                                  '@keyframes flashButton': {
+                                    '0%,100%': {
+                                      boxShadow: '0 0 0 0 rgba(72,187,120,0.7)',
+                                      transform: 'scale(1)',
+                                    },
+                                    '50%': {
+                                      boxShadow: '0 0 20px 5px rgba(72,187,120,0.9)',
+                                      transform: 'scale(1.05)',
+                                    },
+                                  },
+                                }}
+                              >
+                                {event.nodes?.length > 0 ? 'Regenerate Map' : 'Generate Map'}
+                              </Button>
+                              <Button
+                                leftIcon={<AddIcon />}
+                                bg={currentColors.turquoise.base}
+                                color="white"
+                                _hover={{ opacity: 0.8 }}
+                                onClick={onCreateTeamOpen}
+                              >
+                                Add Team
+                              </Button>
+                            </HStack>
+                          )}
+
+                          <Card bg={currentColors.purple.base} color="white" borderRadius="md">
+                            <CardBody>
+                              <VStack align="start" spacing={3}>
+                                <HStack>
+                                  <Icon as={InfoIcon} boxSize={5} />
+                                  <Heading size="sm">Discord Integration</Heading>
                                 </HStack>
+                                <Text fontSize="sm">
+                                  Connect your Discord server to let teams interact with the
+                                  Treasure Hunt directly from Discord.
+                                </Text>
+                                <Button
+                                  size="sm"
+                                  colorScheme="whiteAlpha"
+                                  variant="solid"
+                                  onClick={onDiscordSetupOpen}
+                                  leftIcon={<InfoIcon />}
+                                >
+                                  View Setup Instructions
+                                </Button>
                               </VStack>
                             </CardBody>
                           </Card>
-                        )}
+                          <hr />
+                          <EventAdminManager
+                            event={event}
+                            onUpdate={() => window.location.reload()}
+                          />
+                        </VStack>
+                      </CardBody>
+                    </Card>
+                  </TabPanel>
+                )}
 
-                        <hr />
-                        {event.status === 'DRAFT' && (
-                          <HStack gap={4}>
-                            <Button
-                              colorScheme="green"
-                              onClick={handleGenerateMap}
-                              isLoading={generateLoading}
-                              animation={
-                                !event.nodes || event.nodes.length === 0
-                                  ? 'flashButton 1.5s ease-in-out infinite'
-                                  : 'none'
-                              }
-                              sx={{
-                                '@keyframes flashButton': {
-                                  '0%,100%': {
-                                    boxShadow: '0 0 0 0 rgba(72,187,120,0.7)',
-                                    transform: 'scale(1)',
-                                  },
-                                  '50%': {
-                                    boxShadow: '0 0 20px 5px rgba(72,187,120,0.9)',
-                                    transform: 'scale(1.05)',
-                                  },
-                                },
-                              }}
-                            >
-                              {event.nodes?.length > 0 ? 'Regenerate Map' : 'Generate Map'}
-                            </Button>
-                            <Button
-                              leftIcon={<AddIcon />}
-                              bg={currentColors.turquoise.base}
-                              color="white"
-                              _hover={{ opacity: 0.8 }}
-                              onClick={onCreateTeamOpen}
-                            >
-                              Add Team
-                            </Button>
-                          </HStack>
-                        )}
-
-                        <Card bg={currentColors.purple.base} color="white" borderRadius="md">
-                          <CardBody>
-                            <VStack align="start" spacing={3}>
-                              <HStack>
-                                <Icon as={InfoIcon} boxSize={5} />
-                                <Heading size="sm">Discord Integration</Heading>
-                              </HStack>
-                              <Text fontSize="sm">
-                                Connect your Discord server to let teams interact with the Treasure
-                                Hunt directly from Discord.
-                              </Text>
-                              <Button
-                                size="sm"
-                                colorScheme="whiteAlpha"
-                                variant="solid"
-                                onClick={onDiscordSetupOpen}
-                                leftIcon={<InfoIcon />}
-                              >
-                                View Setup Instructions
-                              </Button>
-                            </VStack>
-                          </CardBody>
-                        </Card>
-                        <hr />
-                        <EventAdminManager
-                          event={event}
-                          onUpdate={() => window.location.reload()}
-                        />
-                      </VStack>
-                    </CardBody>
-                  </Card>
-                </TabPanel>
-              )}
-
-              {/* GAME RULES */}
-              <TabPanel px={0}>
-                <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
-              </TabPanel>
-
-              {/* ALL NODES */}
-              {isEventAdmin && event.nodes?.length > 0 && (
+                {/* GAME RULES */}
                 <TabPanel px={0}>
-                  <Box
-                    bg={currentColors.cardBg}
-                    borderRadius="8px"
-                    overflow="hidden"
-                    sx={{
-                      '&::-webkit-scrollbar': { width: '8px' },
-                      '&::-webkit-scrollbar-track': {
-                        background: 'rgba(255,255,255,0.1)',
-                        borderRadius: '4px',
-                      },
-                      '&::-webkit-scrollbar-thumb': {
-                        background: 'rgba(125,95,255,0.6)',
-                        borderRadius: '4px',
-                        '&:hover': { background: 'rgba(125,95,255,0.8)' },
-                      },
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: `rgba(125,95,255,0.6) rgba(255,255,255,0.1)`,
-                    }}
-                  >
-                    <ScrollableTableContainer width="100%">
-                      <Table size="sm" variant="simple">
-                        <Thead>
-                          <Tr>
-                            <Th color={currentColors.textColor}>ID</Th>
-                            <Th color={currentColors.textColor}>Title</Th>
-                            <Th color={currentColors.textColor}>Type</Th>
-                            <Th color={currentColors.textColor}>Difficulty</Th>
-                            <Th color={currentColors.textColor}>Location / Path</Th>
-                            <Th isNumeric color={currentColors.textColor}>
-                              GP
-                            </Th>
-                            <Th color={currentColors.textColor}>Keys</Th>
-                            <Th color={currentColors.textColor}>Buffs</Th>
-                            <Th color={currentColors.textColor}>Objective</Th>
-                            <Th isNumeric>Amount</Th>
-                            <Th isNumeric color={currentColors.textColor}>
-                              Prereqs
-                            </Th>
-                            <Th isNumeric color={currentColors.textColor}>
-                              Unlocks
-                            </Th>
-                          </Tr>
-                        </Thead>
-                        <Tbody>
-                          {[...(event.nodes || [])]
-                            .sort((a, b) => {
-                              const order = { START: 0, INN: 1, STANDARD: 2, TREASURE: 3 };
-                              const ta = order[a.nodeType] ?? 99;
-                              const tb = order[b.nodeType] ?? 99;
-                              if (ta !== tb) return ta - tb;
-                              return (a.title || '').localeCompare(b.title || '');
-                            })
-                            .map((node) => {
-                              const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
-                              const diffBadgeScheme =
-                                node.difficultyTier === 5
-                                  ? 'red'
-                                  : node.difficultyTier === 3
-                                  ? 'orange'
-                                  : node.difficultyTier === 1
-                                  ? 'green'
-                                  : 'gray';
-                              const gp = node.rewards?.gp || 0;
-                              const keys = node.rewards?.keys || [];
-                              const buffs = node.rewards?.buffs || [];
-                              const objective = node.objective ? ` ${node.objective.target}` : '—';
+                  <GameRulesTab colorMode={colorMode} currentColors={currentColors} event={event} />
+                </TabPanel>
 
-                              return (
-                                <Tr key={node.nodeId}>
-                                  <Td>
-                                    <HStack spacing={2}>
-                                      <Tooltip label="Copy Node ID">
-                                        <IconButton
-                                          aria-label="Copy Node ID"
-                                          icon={<CopyIcon />}
-                                          size="xs"
-                                          variant="ghost"
-                                          onClick={() => navigator.clipboard.writeText(node.nodeId)}
-                                        />
-                                      </Tooltip>
-                                      <Text
-                                        color={currentColors.textColor}
-                                        fontSize="xs"
-                                        fontFamily="mono"
-                                      >
-                                        {node.nodeId}
-                                      </Text>
-                                    </HStack>
-                                  </Td>
-                                  <Td color={currentColors.textColor} maxW="280px" isTruncated>
-                                    {node.title || '—'}
-                                  </Td>
-                                  <Td>
-                                    <Badge
-                                      bg={
-                                        node.nodeType === 'INN'
-                                          ? 'yellow.300'
-                                          : node.nodeType === 'START'
-                                          ? currentColors.purple.base
-                                          : currentColors.turquoise.base
-                                      }
-                                      color="white"
-                                    >
-                                      {node.nodeType}
-                                    </Badge>
-                                  </Td>
-                                  <Td>
-                                    {node.nodeType === 'STANDARD' ? (
-                                      <Badge colorScheme={diffBadgeScheme}>
-                                        {diffMap[node.difficultyTier] || '—'}
-                                      </Badge>
-                                    ) : (
-                                      <Badge colorScheme="gray">—</Badge>
-                                    )}
-                                  </Td>
-                                  <Td color={currentColors.textColor}>
-                                    <Text whiteSpace="nowrap" fontSize="sm">
-                                      {node.mapLocation || '—'}
-                                    </Text>
-                                  </Td>
-                                  <Td isNumeric color={currentColors.green.base}>
-                                    {node.nodeType === 'INN' ? (
-                                      node.availableRewards?.length > 0 ? (
-                                        <Tooltip label="Inn trade rewards (min - max)">
-                                          <Text whiteSpace="nowrap">
-                                            {formatGP(
-                                              Math.min(
-                                                ...node.availableRewards.map((r) => r.payout)
-                                              )
-                                            )}{' '}
-                                            -{' '}
-                                            {formatGP(
-                                              Math.max(
-                                                ...node.availableRewards.map((r) => r.payout)
-                                              )
-                                            )}
-                                          </Text>
+                {/* ALL NODES */}
+                {isEventAdmin && event.nodes?.length > 0 && (
+                  <TabPanel px={0}>
+                    <Box
+                      bg={currentColors.cardBg}
+                      borderRadius="8px"
+                      overflow="hidden"
+                      sx={{
+                        '&::-webkit-scrollbar': { width: '8px' },
+                        '&::-webkit-scrollbar-track': {
+                          background: 'rgba(255,255,255,0.1)',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          background: 'rgba(125,95,255,0.6)',
+                          borderRadius: '4px',
+                          '&:hover': { background: 'rgba(125,95,255,0.8)' },
+                        },
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: `rgba(125,95,255,0.6) rgba(255,255,255,0.1)`,
+                      }}
+                    >
+                      <ScrollableTableContainer width="100%">
+                        <Table size="sm" variant="simple">
+                          <Thead>
+                            <Tr>
+                              <Th color={currentColors.textColor}>ID</Th>
+                              <Th color={currentColors.textColor}>Title</Th>
+                              <Th color={currentColors.textColor}>Type</Th>
+                              <Th color={currentColors.textColor}>Difficulty</Th>
+                              <Th color={currentColors.textColor}>Location / Path</Th>
+                              <Th isNumeric color={currentColors.textColor}>
+                                GP
+                              </Th>
+                              <Th color={currentColors.textColor}>Keys</Th>
+                              <Th color={currentColors.textColor}>Buffs</Th>
+                              <Th color={currentColors.textColor}>Objective</Th>
+                              <Th isNumeric>Amount</Th>
+                              <Th isNumeric color={currentColors.textColor}>
+                                Prereqs
+                              </Th>
+                              <Th isNumeric color={currentColors.textColor}>
+                                Unlocks
+                              </Th>
+                            </Tr>
+                          </Thead>
+                          <Tbody>
+                            {[...(event.nodes || [])]
+                              .sort((a, b) => {
+                                const order = { START: 0, INN: 1, STANDARD: 2, TREASURE: 3 };
+                                const ta = order[a.nodeType] ?? 99;
+                                const tb = order[b.nodeType] ?? 99;
+                                if (ta !== tb) return ta - tb;
+                                return (a.title || '').localeCompare(b.title || '');
+                              })
+                              .map((node) => {
+                                const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+                                const diffBadgeScheme =
+                                  node.difficultyTier === 5
+                                    ? 'red'
+                                    : node.difficultyTier === 3
+                                    ? 'orange'
+                                    : node.difficultyTier === 1
+                                    ? 'green'
+                                    : 'gray';
+                                const gp = node.rewards?.gp || 0;
+                                const keys = node.rewards?.keys || [];
+                                const buffs = node.rewards?.buffs || [];
+                                const objective = node.objective
+                                  ? ` ${node.objective.target}`
+                                  : '—';
+
+                                return (
+                                  <Tr key={node.nodeId}>
+                                    <Td>
+                                      <HStack spacing={2}>
+                                        <Tooltip label="Copy Node ID">
+                                          <IconButton
+                                            aria-label="Copy Node ID"
+                                            icon={<CopyIcon />}
+                                            size="xs"
+                                            variant="ghost"
+                                            onClick={() =>
+                                              navigator.clipboard.writeText(node.nodeId)
+                                            }
+                                          />
                                         </Tooltip>
+                                        <Text
+                                          color={currentColors.textColor}
+                                          fontSize="xs"
+                                          fontFamily="mono"
+                                        >
+                                          {node.nodeId}
+                                        </Text>
+                                      </HStack>
+                                    </Td>
+                                    <Td color={currentColors.textColor} maxW="280px" isTruncated>
+                                      {node.title || '—'}
+                                    </Td>
+                                    <Td>
+                                      <Badge
+                                        bg={
+                                          node.nodeType === 'INN'
+                                            ? 'yellow.300'
+                                            : node.nodeType === 'START'
+                                            ? currentColors.purple.base
+                                            : currentColors.turquoise.base
+                                        }
+                                        color="white"
+                                      >
+                                        {node.nodeType}
+                                      </Badge>
+                                    </Td>
+                                    <Td>
+                                      {node.nodeType === 'STANDARD' ? (
+                                        <Badge colorScheme={diffBadgeScheme}>
+                                          {diffMap[node.difficultyTier] || '—'}
+                                        </Badge>
                                       ) : (
-                                        '—'
-                                      )
-                                    ) : gp ? (
-                                      formatGP(gp)
-                                    ) : (
-                                      '0.0M'
-                                    )}
-                                  </Td>
-                                  <Td>
-                                    <HStack spacing={1} wrap="wrap">
-                                      {keys.length > 0 ? (
-                                        keys.map((k, i) => (
-                                          <Badge key={i} colorScheme={k.color}>
-                                            {k.quantity} {k.color}
-                                          </Badge>
-                                        ))
+                                        <Badge colorScheme="gray">—</Badge>
+                                      )}
+                                    </Td>
+                                    <Td color={currentColors.textColor}>
+                                      <Text whiteSpace="nowrap" fontSize="sm">
+                                        {node.mapLocation || '—'}
+                                      </Text>
+                                    </Td>
+                                    <Td isNumeric color={currentColors.green.base}>
+                                      {node.nodeType === 'INN' ? (
+                                        node.availableRewards?.length > 0 ? (
+                                          <Tooltip label="Inn trade rewards (min - max)">
+                                            <Text whiteSpace="nowrap">
+                                              {formatGP(
+                                                Math.min(
+                                                  ...node.availableRewards.map((r) => r.payout)
+                                                )
+                                              )}{' '}
+                                              -{' '}
+                                              {formatGP(
+                                                Math.max(
+                                                  ...node.availableRewards.map((r) => r.payout)
+                                                )
+                                              )}
+                                            </Text>
+                                          </Tooltip>
+                                        ) : (
+                                          '—'
+                                        )
+                                      ) : gp ? (
+                                        formatGP(gp)
+                                      ) : (
+                                        '0.0M'
+                                      )}
+                                    </Td>
+                                    <Td>
+                                      <HStack spacing={1} wrap="wrap">
+                                        {keys.length > 0 ? (
+                                          keys.map((k, i) => (
+                                            <Badge key={i} colorScheme={k.color}>
+                                              {k.quantity} {k.color}
+                                            </Badge>
+                                          ))
+                                        ) : (
+                                          <Text fontSize="xs" color="gray.500">
+                                            —
+                                          </Text>
+                                        )}
+                                      </HStack>
+                                    </Td>
+                                    <Td>
+                                      {buffs.length > 0 ? (
+                                        <Badge colorScheme="purple">{buffs.length}</Badge>
                                       ) : (
                                         <Text fontSize="xs" color="gray.500">
                                           —
                                         </Text>
                                       )}
-                                    </HStack>
-                                  </Td>
-                                  <Td>
-                                    {buffs.length > 0 ? (
-                                      <Badge colorScheme="purple">{buffs.length}</Badge>
-                                    ) : (
-                                      <Text fontSize="xs" color="gray.500">
-                                        —
-                                      </Text>
-                                    )}
-                                  </Td>
-                                  <Td color={currentColors.textColor} maxW="320px" isTruncated>
-                                    {objective}
-                                  </Td>
-                                  <Td color={currentColors.textColor} isNumeric>
-                                    {node?.objective?.appliedBuff ? (
-                                      <Tooltip
-                                        hasArrow
-                                        label={`Reduced from ${(
-                                          node.objective.originalQuantity ?? node.objective.quantity
-                                        ).toLocaleString()}`}
-                                      >
-                                        <HStack justify="flex-end" spacing={2}>
-                                          <Text>{formatObjectiveAmount(node)}</Text>
-                                          <Badge colorScheme="blue">
-                                            -
-                                            {(node.objective.appliedBuff.reduction * 100).toFixed(
-                                              0
-                                            )}
-                                            %
-                                          </Badge>
-                                        </HStack>
-                                      </Tooltip>
-                                    ) : (
-                                      <Text whiteSpace="nowrap">{formatObjectiveAmount(node)}</Text>
-                                    )}
-                                  </Td>
-                                  <Td isNumeric color={currentColors.textColor}>
-                                    {node.prerequisites?.length || 0}
-                                  </Td>
-                                  <Td isNumeric color={currentColors.textColor}>
-                                    {node.unlocks?.length || 0}
-                                  </Td>
-                                </Tr>
-                              );
-                            })}
-                        </Tbody>
-                      </Table>
-                    </ScrollableTableContainer>
-                  </Box>
-                </TabPanel>
-              )}
-            </TabPanels>
-          </Tabs>
+                                    </Td>
+                                    <Td color={currentColors.textColor} maxW="320px" isTruncated>
+                                      {objective}
+                                    </Td>
+                                    <Td color={currentColors.textColor} isNumeric>
+                                      {node?.objective?.appliedBuff ? (
+                                        <Tooltip
+                                          hasArrow
+                                          label={`Reduced from ${(
+                                            node.objective.originalQuantity ??
+                                            node.objective.quantity
+                                          ).toLocaleString()}`}
+                                        >
+                                          <HStack justify="flex-end" spacing={2}>
+                                            <Text>{formatObjectiveAmount(node)}</Text>
+                                            <Badge colorScheme="blue">
+                                              -
+                                              {(node.objective.appliedBuff.reduction * 100).toFixed(
+                                                0
+                                              )}
+                                              %
+                                            </Badge>
+                                          </HStack>
+                                        </Tooltip>
+                                      ) : (
+                                        <Text whiteSpace="nowrap">
+                                          {formatObjectiveAmount(node)}
+                                        </Text>
+                                      )}
+                                    </Td>
+                                    <Td isNumeric color={currentColors.textColor}>
+                                      {node.prerequisites?.length || 0}
+                                    </Td>
+                                    <Td isNumeric color={currentColors.textColor}>
+                                      {node.unlocks?.length || 0}
+                                    </Td>
+                                  </Tr>
+                                );
+                              })}
+                          </Tbody>
+                        </Table>
+                      </ScrollableTableContainer>
+                    </Box>
+                  </TabPanel>
+                )}
+              </TabPanels>
+            </Tabs>
+          )}
         </VStack>
       </Section>
 

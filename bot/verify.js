@@ -84,4 +84,73 @@ async function sendLaunchMessage(guildId, eventId, eventName, teams) {
   return { success: sent > 0, channelsSent: sent };
 }
 
-module.exports = { registerClient, sendLaunchMessage };
+async function sendCompleteMessage(guildId, eventId, eventName, teams) {
+  if (!botClient?.isReady()) return { success: false, error: 'Bot not ready' };
+
+  const guild = botClient.guilds.cache.get(guildId);
+  if (!guild) return { success: false, error: 'Guild not found' };
+
+  const channels = guild.channels.cache.filter(
+    (ch) => ch.topic && ch.topic.includes(eventId) && ch.isTextBased(),
+  );
+
+  if (channels.size === 0)
+    return { success: false, error: 'No channels found with event ID in topic' };
+
+  const { EmbedBuilder } = require('discord.js');
+  const eventUrl = `${FRONTEND_URL}/gielinor-rush/${eventId}`;
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const formatGp = (gpStr) => {
+    const n = BigInt(gpStr || '0');
+    return n.toLocaleString();
+  };
+
+  const sorted = [...(teams || [])].sort((a, b) =>
+    BigInt(b.currentPot || '0') > BigInt(a.currentPot || '0') ? 1 : -1,
+  );
+
+  const standingsLines = sorted.length
+    ? sorted.map((t, i) => {
+        const prefix = medals[i] ?? `${i + 1}.`;
+        return `${prefix} **${t.teamName}** — ${formatGp(t.currentPot)} gp`;
+      })
+    : ['No teams recorded'];
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🏁  ${eventName}  🏁`)
+    .setColor(0x00b4d8)
+    .setDescription(
+      [
+        `# 🏆 The Gielinor Rush has ended!`,
+        ``,
+        `> The dust has settled and the scores are in.`,
+        `> Thanks to everyone who competed, it was a sweet-ass race!`,
+        ``,
+        `## **[🔗 View Final Results →](${eventUrl})**`,
+      ].join('\n'),
+    )
+    .addFields(
+      {
+        name: '​',
+        value: '────────────────────────────────────────',
+      },
+      {
+        name: '🏆  Final Standings',
+        value: standingsLines.join('\n'),
+      },
+      {
+        name: '​',
+        value: '────────────────────────────────────────',
+      },
+    )
+    .setFooter({ text: '🎉 Thanks for playing, see you next time!' })
+    .setTimestamp();
+
+  const results = await Promise.allSettled(channels.map((ch) => ch.send({ embeds: [embed] })));
+
+  const sent = results.filter((r) => r.status === 'fulfilled').length;
+  return { success: sent > 0, channelsSent: sent };
+}
+
+module.exports = { registerClient, sendLaunchMessage, sendCompleteMessage };

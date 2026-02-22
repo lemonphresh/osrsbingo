@@ -19,7 +19,7 @@ const {
 const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild } = require('../../../bot/utils/verify');
-const { sendLaunchMessage } = require('../../../bot/verify');
+const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -333,6 +333,31 @@ const TreasureHuntResolvers = {
       }
 
       console.log(`[launchEvent] ✅ eventId=${eventId} launched`);
+      return event;
+    },
+
+    completeEvent: async (_, { eventId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+
+      const isAdmin = await isEventAdmin(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+
+      const event = await TreasureEvent.findByPk(eventId, {
+        include: [{ model: TreasureTeam, as: 'teams' }],
+      });
+      if (!event) throw new Error('Event not found');
+      if (event.status !== 'ACTIVE') throw new Error('Event is not active');
+
+      await event.update({ status: 'COMPLETED' });
+
+      const { guildId } = event.discordConfig || {};
+      if (guildId) {
+        sendCompleteMessage(guildId, eventId, event.eventName, event.teams).catch((err) =>
+          console.error('[completeEvent] complete message failed:', err.message)
+        );
+      }
+
+      console.log(`[completeEvent] ✅ eventId=${eventId} completed`);
       return event;
     },
 

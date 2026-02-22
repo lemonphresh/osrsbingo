@@ -556,6 +556,7 @@ const typeDefs = gql`
     deleteTreasureEvent(eventId: ID!): MutationResponse!
     generateTreasureMap(eventId: ID!): TreasureEvent!
     launchEvent(eventId: ID!): TreasureEvent!
+    completeEvent(eventId: ID!): TreasureEvent!
 
     # --- Gielinor Rush: Discord ---
     confirmDiscordSetup(eventId: ID!, guildId: String!): DiscordConfirmResponse!
