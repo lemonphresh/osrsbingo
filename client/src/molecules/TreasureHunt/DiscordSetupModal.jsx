@@ -15,7 +15,6 @@ import {
   Divider,
   OrderedList,
   ListItem,
-  UnorderedList,
   Icon,
   Button,
   Link,
@@ -27,13 +26,7 @@ import {
   Spinner,
   Tooltip,
 } from '@chakra-ui/react';
-import {
-  InfoIcon,
-  ExternalLinkIcon,
-  CheckCircleIcon,
-  WarningIcon,
-  CopyIcon,
-} from '@chakra-ui/icons';
+import { InfoIcon, ExternalLinkIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
 import { useLazyQuery, useMutation, gql } from '@apollo/client';
 import theme from '../../theme';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -285,7 +278,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
               </HStack>
               <OrderedList spacing={2} fontSize="sm" color="gray.300">
                 <ListItem>
-                  Create a text channel for each team (e.g.,{' '}
+                  Create a text channel for each team (i.e.,{' '}
                   <Code bg="gray.800" color="gray.100">
                     #team-dragons
                   </Code>
@@ -323,6 +316,11 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                       <Icon as={CopyIcon} boxSize={3} color="gray.200" />
                     </HStack>
                   </Tooltip>
+                </ListItem>
+                <ListItem>
+                  Add all players to their respective team channels and ensure they can send
+                  messages there. The bot uses the presence of specific Discord user IDs to
+                  determine which team a player belongs to.
                 </ListItem>
               </OrderedList>
               <Box

@@ -16,7 +16,6 @@ import {
   Image,
   useDisclosure,
   IconButton,
-  useToast,
   Code,
   Icon,
   Wrap,
@@ -35,6 +34,7 @@ import { useThemeColors } from '../../hooks/useThemeColors';
 import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 import { useMemo } from 'react';
 import { userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
+import { useToastContext } from '../../providers/ToastProvider';
 
 // Helper to get all acceptable drops for a boss/raid
 function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
@@ -130,9 +130,8 @@ export default function NodeDetailModal({
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
-  const toast = useToast();
   const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
-
+  const { showToast } = useToastContext();
   // Calculate acceptable drops for item_collection objectives
   const acceptableDrops = useMemo(() => {
     if (!node?.objective) return null;
@@ -254,13 +253,7 @@ export default function NodeDetailModal({
 
   const handleCopySubmitCommand = () => {
     navigator.clipboard.writeText(`!submit ${node.nodeId}`);
-    toast({
-      title: 'Copied!',
-      description: 'Command copied to clipboard',
-      status: 'success',
-      duration: 2000,
-      isClosable: true,
-    });
+    showToast('Submission commandcopied to clipboard!', 'success');
   };
 
   // Check if this is an item collection task

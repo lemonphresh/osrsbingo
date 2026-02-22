@@ -1,5 +1,4 @@
 import { useEffect, useRef } from 'react';
-import { useToast } from '@chakra-ui/react';
 import { useSubscription } from '@apollo/client';
 import {
   celebrateSubmissionApproved,
@@ -7,6 +6,7 @@ import {
   celebrateSubmissionDenied,
 } from '../utils/celebrationUtils';
 import { NODE_COMPLETED_SUB, SUBMISSION_REVIEWED_SUB } from '../graphql/mutations';
+import { useToastContext } from '../providers/ToastProvider';
 
 /**
  * Hook that subscribes to submission/node events and triggers celebrations
@@ -23,9 +23,8 @@ const useSubmissionCelebrations = (
   enabled = true,
   onNodeCompleted = null
 ) => {
-  const toast = useToast();
   const initializedRef = useRef(false);
-
+  const { showToast } = useToastContext();
   // Small delay to prevent celebrations on initial load/reconnect
   useEffect(() => {
     if (!enabled) return;
@@ -51,27 +50,10 @@ const useSubmissionCelebrations = (
       if (sub.status === 'APPROVED') {
         celebrateSubmissionApproved(nodeTitle, node?.rewards?.gp);
 
-        toast({
-          title: '✅ Submission Approved!',
-          description: `Your submission for "${nodeTitle}" was approved!`,
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-          position: 'top',
-        });
+        showToast('✅ Submission Approved!', 'success');
       } else if (sub.status === 'DENIED') {
         celebrateSubmissionDenied();
-
-        toast({
-          title: '❌ Submission Denied',
-          description: sub.denialReason
-            ? `"${nodeTitle}": ${sub.denialReason}`
-            : `Your submission for "${nodeTitle}" was not approved.`,
-          status: 'error',
-          duration: 7000,
-          isClosable: true,
-          position: 'top',
-        });
+        showToast('❌ Submission Denied', 'error');
       }
     },
   });
@@ -91,16 +73,7 @@ const useSubmissionCelebrations = (
 
       celebrateNodeCompleted(nodeTitle, node?.rewards?.gp, node?.rewards?.keys);
 
-      toast({
-        title: '🎯 Node Completed!',
-        description: `"${nodeTitle}" is complete! ${
-          node?.rewards?.gp ? `+${formatGP(node.rewards.gp)} GP` : ''
-        }`,
-        status: 'success',
-        duration: 6000,
-        isClosable: true,
-        position: 'top',
-      });
+      showToast('🎯 Node Completed!', 'success');
 
       if (onNodeCompleted) {
         onNodeCompleted(ev);
@@ -109,13 +82,6 @@ const useSubmissionCelebrations = (
   });
 
   return null;
-};
-
-const formatGP = (gp) => {
-  if (!gp) return '0';
-  if (gp >= 1000000) return (gp / 1000000).toFixed(1) + 'M';
-  if (gp >= 1000) return (gp / 1000).toFixed(0) + 'K';
-  return gp.toString();
 };
 
 export default useSubmissionCelebrations;
