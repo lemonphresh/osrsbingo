@@ -253,7 +253,7 @@ export default function NodeDetailModal({
 
   const handleCopySubmitCommand = () => {
     navigator.clipboard.writeText(`!submit ${node.nodeId}`);
-    showToast('Submission commandcopied to clipboard!', 'success');
+    showToast('Submission command copied to clipboard!', 'success');
   };
 
   // Check if this is an item collection task
