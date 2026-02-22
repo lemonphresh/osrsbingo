@@ -4,31 +4,36 @@ const sequelize = require('../../db/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+let popularTilesCache = { data: null, fetchedAt: null };
+const POPULAR_TILES_TTL = 10 * 60 * 1000;
+
 module.exports = {
   Query: {
     getPopularTiles: async () => {
+      const now = Date.now();
+      if (popularTilesCache.data && now - popularTilesCache.fetchedAt < POPULAR_TILES_TTL) {
+        return popularTilesCache.data.sort(() => Math.random() - 0.5).slice(0, 100);
+      }
+
       try {
         const { QueryTypes } = require('sequelize');
         const results = await sequelize.query(
           `
-  SELECT name, icon, usage_count as "usageCount"
-  FROM (
-    SELECT DISTINCT ON (name) name, icon, COUNT(*) OVER (PARTITION BY name) as usage_count
-    FROM (
-      SELECT name, icon, COUNT(*) as usage_count
-      FROM "BingoTiles"
-      WHERE name IS NOT NULL AND icon IS NOT NULL
-      GROUP BY name, icon
-    ) sub
-    ORDER BY name, usage_count DESC
-    LIMIT 1000
-  ) top1000
-  ORDER BY RANDOM()
-  LIMIT 105
-`,
+        SELECT DISTINCT ON (name) name, icon, COUNT(*) OVER (PARTITION BY name) as "usageCount"
+        FROM (
+          SELECT name, icon, COUNT(*) as usage_count
+          FROM "BingoTiles"
+          WHERE name IS NOT NULL AND icon IS NOT NULL
+          GROUP BY name, icon
+        ) sub
+        ORDER BY name, "usageCount" DESC
+        LIMIT 1000
+      `,
           { type: QueryTypes.SELECT }
         );
-        return results;
+
+        popularTilesCache = { data: results, fetchedAt: now };
+        return results.sort(() => Math.random() - 0.5).slice(0, 100);
       } catch (e) {
         console.error('[getPopularTiles] error:', e.message);
         return [];
