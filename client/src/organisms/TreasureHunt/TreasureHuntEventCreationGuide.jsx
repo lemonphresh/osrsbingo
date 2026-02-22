@@ -94,13 +94,13 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Start & End Dates:</strong> When the event runs, this determines how
-                        many nodes are generated
+                        <strong>Start & End Dates:</strong> When the event runs, this alongside a
+                        difficulty setting will determine how many nodes are generated
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
                         <strong>Event Password:</strong> A code displayed on team dashboards for
-                        screenshot verification (auto-generated if left blank)
+                        screenshot verification
                       </ListItem>
                     </List>
                   </Box>
@@ -333,7 +333,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     <HStack spacing={2}>
                       <Badge colorScheme="blue">Low (3:1)</Badge>
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        More frequent checkpoints, more key trading opportunities
+                        More frequent checkpoints, more key and buff trading opportunities
                       </Text>
                     </HStack>
                     <HStack spacing={2} mt={1}>
@@ -373,8 +373,9 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               <AccordionPanel pb={4}>
                 <VStack spacing={3} align="stretch">
                   <Text fontSize="sm" color={currentColors.textColor}>
-                    After creating the event, click "Generate Map" in the Event Settings tab to
-                    automatically create your Gielinor Rush!
+                    After creating the event, follow the Admin Checklist to generate the map, set up
+                    your Discord channels, and onboard teams. The system will create a unique,
+                    balanced treasure map based on your settings, so no two events are the same!
                   </Text>
 
                   <Box
@@ -389,12 +390,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
                         <strong>Three Paths:</strong> Easy, Medium, and Hard routes with different
-                        key colors
+                        key colors and buffs
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Location Groups:</strong> Each location has 3 difficulty variants -
-                        complete only one per location
+                        <strong>Location Groups:</strong> Each location has 3 difficulty variants,
+                        but teams can only complete one difficulty per location group
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
@@ -409,12 +410,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
                         <strong>Inn Checkpoints:</strong> Safe havens where teams can trade keys for
-                        bonus GP
+                        bonus GP and/or buffs
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="purple.400" />
-                        <strong>Buff Rewards:</strong> ~30% of nodes grant buffs to reduce future
-                        objective requirements
+                        <strong>Buff Rewards:</strong> Some nodes and inns grant buffs to reduce
+                        future objective requirements
                       </ListItem>
                     </List>
                   </Box>
@@ -440,15 +441,15 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     <List spacing={1} fontSize="xs">
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="orange.400" />
-                        <strong>Easy:</strong> Lower requirements, lower GP rewards, 1 key
+                        <strong>Easy:</strong> Lower requirements, lower GP rewards
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="orange.400" />
-                        <strong>Medium:</strong> Moderate requirements, moderate rewards, 1 key
+                        <strong>Medium:</strong> Moderate requirements, moderate rewards
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="orange.400" />
-                        <strong>Hard:</strong> Higher requirements, higher GP rewards, 2 keys
+                        <strong>Hard:</strong> Higher requirements, higher GP rewards
                       </ListItem>
                     </List>
                     <Text fontSize="xs" color={currentColors.textColor} mt={2} fontStyle="italic">
@@ -543,11 +544,11 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   <List spacing={2} fontSize="sm">
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="cyan.400" />
-                      Click "Add Team" in the Event Settings tab
+                      Click "Add Team" via the Admin Checklist or in the Event Settings tab
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="cyan.400" />
-                      Give each team a name and optional Discord role
+                      Give each team a name and add their players
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="cyan.400" />
@@ -555,7 +556,8 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     </ListItem>
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="cyan.400" />
-                      Change event status from DRAFT to ACTIVE when ready
+                      Complete the Admin Checklist to set up Discord channels and review the event
+                      in DRAFT mode before going ACTIVE
                     </ListItem>
                   </List>
 
@@ -602,10 +604,6 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
                 Consider team skill levels when choosing difficulty
-              </ListItem>
-              <ListItem>
-                <ListIcon as={CheckCircleIcon} color="blue.400" />
-                Enable Discord integration for easier team management and submissions
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />

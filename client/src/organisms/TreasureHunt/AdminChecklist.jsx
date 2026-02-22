@@ -29,14 +29,12 @@ import {
   FaCalendarCheck,
   FaUserFriends,
 } from 'react-icons/fa';
-
 const AdminLaunchChecklist = ({
   event,
   onGenerateMap,
   onAddTeam,
   onOpenDiscordSetup,
   onLaunchEvent,
-  onConfirmDiscord,
   onEditTeam,
   isGeneratingMap = false,
 }) => {
@@ -52,18 +50,12 @@ const AdminLaunchChecklist = ({
     const hasEnoughTeams = teamCount >= requiredTeamCount;
 
     const teamsWithInsufficientMembers =
-      event.teams?.filter((team) => {
-        const memberCount = team.members?.length || 0;
-        return memberCount < requiredPlayersPerTeam;
-      }) || [];
-
+      event.teams?.filter((team) => (team.members?.length || 0) < requiredPlayersPerTeam) || [];
     const allTeamsHaveEnoughMembers =
       teamCount > 0 && teamsWithInsufficientMembers.length === 0 && hasEnoughTeams;
 
-    const hasDiscord = event.discordConfig?.confirmed === true;
-    const hasStartDate = !!event.startDate;
-    const hasEndDate = !!event.endDate;
-    const hasDates = hasStartDate && hasEndDate;
+    const hasDiscord = event.discordConfig?.confirmed === true && !!event.discordConfig?.guildId;
+    const hasDates = !!event.startDate && !!event.endDate;
 
     return {
       map: {
@@ -92,9 +84,7 @@ const AdminLaunchChecklist = ({
         description: allTeamsHaveEnoughMembers
           ? `All teams have ${requiredPlayersPerTeam}+ members ✓`
           : hasEnoughTeams
-          ? `${teamsWithInsufficientMembers.length} team${
-              teamsWithInsufficientMembers.length !== 1 ? 's' : ''
-            } need more members`
+          ? `${teamsWithInsufficientMembers.length} team(s) need more members`
           : 'Finish adding teams first',
         icon: FaUserFriends,
         action: null,
@@ -107,12 +97,10 @@ const AdminLaunchChecklist = ({
       discord: {
         done: hasDiscord,
         label: 'Discord Integration',
-        description: hasDiscord ? 'Setup confirmed ✓' : 'Connect Discord bot',
+        description: hasDiscord ? `Bot verified & connected ✓` : 'Connect and verify Discord bot',
         icon: FaDiscord,
-        action: hasDiscord ? null : onOpenDiscordSetup,
-        actionLabel: 'Setup Discord',
-        secondaryAction: hasDiscord ? null : onConfirmDiscord,
-        secondaryActionLabel: "I've Set It Up",
+        action: onOpenDiscordSetup,
+        actionLabel: hasDiscord ? 'Reconfigure' : 'Setup Discord',
         required: true,
       },
       dates: {
@@ -129,13 +117,11 @@ const AdminLaunchChecklist = ({
         required: true,
       },
     };
-  }, [event, onGenerateMap, onAddTeam, onOpenDiscordSetup, onConfirmDiscord]);
+  }, [event, onGenerateMap, onAddTeam, onOpenDiscordSetup]);
 
-  if (!event || event.status !== 'DRAFT') {
-    return null;
-  }
+  if (!event || event.status !== 'DRAFT') return null;
 
-  const completedCount = Object.values(checks).filter((check) => check.done).length;
+  const completedCount = Object.values(checks).filter((c) => c.done).length;
   const totalCount = Object.values(checks).length;
   const allComplete = completedCount === totalCount;
   const progressPercent = (completedCount / totalCount) * 100;
@@ -186,37 +172,20 @@ const AdminLaunchChecklist = ({
               aria-label="Show details"
             />
           )}
-
-          {!check.done && (check.action || check.secondaryAction) && (
-            <VStack spacing={1} align="end">
-              {check.action && (
-                <Button
-                  size="xs"
-                  colorScheme={check.icon === FaDiscord ? 'purple' : 'blue'}
-                  onClick={check.action}
-                  isLoading={check.icon === FaMap && isGeneratingMap}
-                >
-                  {check.actionLabel}
-                </Button>
-              )}
-              {check.secondaryAction && (
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme="green"
-                  onClick={check.secondaryAction}
-                >
-                  {check.secondaryActionLabel}
-                </Button>
-              )}
-            </VStack>
+          {check.action && (
+            <Button
+              size="xs"
+              colorScheme={check.icon === FaDiscord ? 'purple' : 'blue'}
+              onClick={check.action}
+              isLoading={check.icon === FaMap && isGeneratingMap}
+            >
+              {check.actionLabel}
+            </Button>
           )}
-
           {check.done && <Icon as={CheckCircleIcon} color="green.400" boxSize={5} />}
         </HStack>
       </HStack>
 
-      {/* Expandable team details */}
       {checkKey === 'teamMembers' && check.expandable && (
         <Collapse in={showTeamDetails} animateOpacity>
           <Box
@@ -232,13 +201,12 @@ const AdminLaunchChecklist = ({
               <HStack>
                 <Icon as={WarningIcon} color="red.400" boxSize={4} />
                 <Text fontSize="xs" fontWeight="bold" color="white">
-                  Teams need at least {check.requiredPlayersPerTeam} member
-                  {check.requiredPlayersPerTeam !== 1 ? 's' : ''} each:
+                  Teams need at least {check.requiredPlayersPerTeam} member(s) each:
                 </Text>
               </HStack>
               {check.teamsWithInsufficientMembers?.map((team) => {
-                const currentCount = team.members?.length || 0;
-                const deficit = check.requiredPlayersPerTeam - currentCount;
+                const current = team.members?.length || 0;
+                const deficit = check.requiredPlayersPerTeam - current;
                 return (
                   <HStack
                     key={team.teamId}
@@ -252,7 +220,7 @@ const AdminLaunchChecklist = ({
                         {team.teamName}
                       </Text>
                       <Text fontSize="xs" color="red.300">
-                        {currentCount}/{check.requiredPlayersPerTeam} members (need {deficit} more)
+                        {current}/{check.requiredPlayersPerTeam} members (need {deficit} more)
                       </Text>
                     </VStack>
                     {onEditTeam && (
@@ -268,10 +236,6 @@ const AdminLaunchChecklist = ({
                   </HStack>
                 );
               })}
-              <Text fontSize="xs" color="gray.400" mt={1}>
-                Add Discord User IDs to each team so players can submit completions and track
-                progress.
-              </Text>
             </VStack>
           </Box>
         </Collapse>
@@ -312,7 +276,6 @@ const AdminLaunchChecklist = ({
               : 'Launch Checklist'}
           </Text>
         </HStack>
-
         <HStack spacing={2}>
           {!isMinimized && (
             <Badge colorScheme={allComplete ? 'green' : 'yellow'} fontSize="xs">
@@ -347,7 +310,6 @@ const AdminLaunchChecklist = ({
       {/* Content */}
       <Collapse in={!isMinimized} animateOpacity>
         <VStack p={4} spacing={3} align="stretch">
-          {/* Status Banner */}
           <HStack p={2} bg="whiteAlpha.100" borderRadius="md" justify="center">
             <Badge colorScheme="orange" fontSize="sm" px={3} py={1}>
               DRAFT MODE
@@ -357,22 +319,17 @@ const AdminLaunchChecklist = ({
             </Tooltip>
           </HStack>
 
-          {/* Checklist Items */}
           {Object.entries(checks).map(([key, check]) => (
             <ChecklistItem key={key} check={check} checkKey={key} />
           ))}
 
-          {/* Warning if not all complete */}
           {!allComplete && (
             <Alert status="warning" borderRadius="md" fontSize="xs" bg="orange.900">
               <AlertIcon boxSize={4} color="orange.300" />
-              <Text color="orange.200">
-                Complete all required steps before launching your event.
-              </Text>
+              <Text color="orange.200">Complete all required steps before launching.</Text>
             </Alert>
           )}
 
-          {/* Launch Button */}
           <Button
             mt={2}
             colorScheme="green"
@@ -381,17 +338,14 @@ const AdminLaunchChecklist = ({
             leftIcon={<FaRocket />}
             isDisabled={!allComplete}
             onClick={onLaunchEvent}
-            _disabled={{
-              opacity: 0.6,
-              cursor: 'not-allowed',
-            }}
+            _disabled={{ opacity: 0.6, cursor: 'not-allowed' }}
           >
             {allComplete ? 'Launch Event! 🎉' : 'Complete All Steps to Launch'}
           </Button>
         </VStack>
       </Collapse>
 
-      {/* Minimized state - show quick status */}
+      {/* Minimized dots */}
       {isMinimized && !allComplete && (
         <HStack p={2} justify="center" spacing={1}>
           {Object.values(checks).map((check, idx) => (

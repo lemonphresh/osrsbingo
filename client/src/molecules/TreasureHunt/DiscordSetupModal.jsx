@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -15,16 +15,91 @@ import {
   Divider,
   OrderedList,
   ListItem,
-  UnorderedList,
   Icon,
   Button,
   Link,
+  Input,
+  InputGroup,
+  InputRightElement,
+  Alert,
+  AlertIcon,
+  Spinner,
+  Tooltip,
 } from '@chakra-ui/react';
-import { InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import { InfoIcon, ExternalLinkIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
+import { useLazyQuery, useMutation, gql } from '@apollo/client';
 import theme from '../../theme';
+import { useToastContext } from '../../providers/ToastProvider';
 
-const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
+const VERIFY_DISCORD_GUILD = gql`
+  query VerifyDiscordGuild($guildId: String!) {
+    verifyDiscordGuild(guildId: $guildId) {
+      success
+      guildName
+      error
+    }
+  }
+`;
+
+const CONFIRM_DISCORD_SETUP = gql`
+  mutation ConfirmDiscordSetup($eventId: ID!, $guildId: String!) {
+    confirmDiscordSetup(eventId: $eventId, guildId: $guildId) {
+      success
+      guildId
+    }
+  }
+`;
+
+const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
   const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
+  const [guildId, setGuildId] = useState('');
+  const [verifyState, setVerifyState] = useState('idle'); // idle | loading | success | error
+  const [verifiedGuildName, setVerifiedGuildName] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  const [verifyGuild] = useLazyQuery(VERIFY_DISCORD_GUILD, { fetchPolicy: 'network-only' });
+  const [confirmSetup, { loading: confirming }] = useMutation(CONFIRM_DISCORD_SETUP);
+
+  const { showToast } = useToastContext();
+
+  const handleVerify = async () => {
+    if (!guildId.trim()) return;
+    setVerifyState('loading');
+    setErrorMsg(null);
+
+    try {
+      const { data } = await verifyGuild({ variables: { guildId: guildId.trim() } });
+      if (data?.verifyDiscordGuild?.success) {
+        setVerifyState('success');
+        setVerifiedGuildName(data.verifyDiscordGuild.guildName);
+      } else {
+        setVerifyState('error');
+        setErrorMsg(data?.verifyDiscordGuild?.error || 'Bot not found in that server');
+      }
+    } catch {
+      setVerifyState('error');
+      setErrorMsg('Something went wrong. Try again.');
+    }
+  };
+
+  const handleConfirm = async () => {
+    try {
+      await confirmSetup({ variables: { eventId, guildId: guildId.trim() } });
+      onConfirmed?.();
+      onClose();
+    } catch (e) {
+      setVerifyState('error');
+      setErrorMsg(e.message);
+    }
+  };
+
+  const scrollbarStyles = {
+    '&::-webkit-scrollbar': { width: '8px' },
+    '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
+    '&::-webkit-scrollbar-thumb': { background: '#4A5568', borderRadius: '10px' },
+    scrollbarWidth: 'thin',
+    scrollbarColor: '#4A5568 transparent',
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" scrollBehavior="inside">
@@ -37,27 +112,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
           </HStack>
         </ModalHeader>
         <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
-        <ModalBody
-          pb={6}
-          css={{
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-              borderRadius: '10px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-              background: '#4A5568',
-              borderRadius: '10px',
-              '&:hover': {
-                background: '#718096',
-              },
-            },
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#4A5568 transparent',
-          }}
-        >
+        <ModalBody pb={6} css={scrollbarStyles}>
           <VStack spacing={4} align="stretch">
             {/* Overview */}
             <Box>
@@ -66,8 +121,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               </Text>
               <Text fontSize="sm" color="gray.300">
                 The Discord bot lets your teams interact with Gielinor Rush directly from Discord.
-                Teams can view their progress, check available nodes, submit completions, and view
-                the leaderboard - all without leaving your server!
+                Teams can view progress, check nodes, submit completions, and view the leaderboard —
+                all without leaving your server!
               </Text>
             </Box>
 
@@ -85,9 +140,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               </HStack>
               <VStack align="stretch" spacing={3}>
                 <Text fontSize="sm" color="gray.300">
-                  First, you need to add the Gielinor Rush bot to your Discord server.
+                  Add the Gielinor Rush bot to your Discord server.
                 </Text>
-
                 <Box p={3} bg="gray.800" borderRadius="md">
                   <Button
                     as={Link}
@@ -102,21 +156,121 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                     Add Bot to Discord Server
                   </Button>
                 </Box>
-
                 <Text fontSize="xs" color="gray.400">
-                  You'll need "Manage Server" permissions to add the bot. The bot requires
-                  permissions to read messages, send messages, and embed links.
+                  You'll need "Manage Server" permissions to add the bot.
                 </Text>
               </VStack>
             </Box>
 
             <Divider borderColor="gray.600" />
 
-            {/* Step 1: Create Channels */}
+            {/* Step 0.5: Verify Guild — THE HANDSHAKE */}
             <Box>
               <HStack mb={2}>
                 <Badge colorScheme="purple" fontSize="sm">
                   Step 1
+                </Badge>
+                <Text fontWeight="bold" color="white">
+                  Verify Bot Connection
+                </Text>
+              </HStack>
+              <VStack align="stretch" spacing={3}>
+                <Text fontSize="sm" color="gray.300">
+                  Paste your Discord Server ID below to confirm the bot was added successfully.
+                </Text>
+                <Box
+                  p={2}
+                  bg="yellow.900"
+                  borderRadius="md"
+                  borderWidth="1px"
+                  borderColor="yellow.700"
+                >
+                  <Text fontSize="xs" color="yellow.200">
+                    ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode), then
+                    right-click your server icon → Copy Server ID
+                  </Text>
+                </Box>
+
+                <InputGroup size="md">
+                  <Input
+                    placeholder="e.g. 123456789012345678"
+                    value={guildId}
+                    onChange={(e) => {
+                      setGuildId(e.target.value);
+                      setVerifyState('idle');
+                    }}
+                    bg="gray.800"
+                    border="1px solid"
+                    borderColor={
+                      verifyState === 'success'
+                        ? 'green.400'
+                        : verifyState === 'error'
+                        ? 'red.400'
+                        : 'gray.600'
+                    }
+                    color="white"
+                    _placeholder={{ color: 'gray.500' }}
+                    isDisabled={verifyState === 'success'}
+                  />
+                  <InputRightElement width="5.5rem">
+                    {verifyState === 'success' ? (
+                      <Icon as={CheckCircleIcon} color="green.400" />
+                    ) : (
+                      <Button
+                        h="1.75rem"
+                        size="sm"
+                        mr={1}
+                        colorScheme="purple"
+                        isDisabled={!guildId.trim() || verifyState === 'loading'}
+                        onClick={handleVerify}
+                      >
+                        {verifyState === 'loading' ? <Spinner size="xs" /> : 'Verify'}
+                      </Button>
+                    )}
+                  </InputRightElement>
+                </InputGroup>
+                <Box minH="72px" mt={2}>
+                  {verifyState === 'success' && (
+                    <Alert
+                      status="success"
+                      borderRadius="md"
+                      display="inline-flex"
+                      bg="green.800"
+                      fontSize="sm"
+                      flexDirection="column"
+                      alignItems="start"
+                    >
+                      <HStack mb={1}>
+                        <AlertIcon color="green.400" />
+                        <Text>
+                          Bot detected in{' '}
+                          <span style={{ fontWeight: 'bold', color: theme.colors.green[400] }}>
+                            {verifiedGuildName}
+                          </span>
+                          !
+                        </Text>
+                      </HStack>
+                      Yeehaw! Don't forget to add the bot to your event channels and set the correct
+                      topic. See steps below.
+                    </Alert>
+                  )}
+                  {verifyState === 'error' && (
+                    <Alert status="error" borderRadius="md" bg="red.900" fontSize="sm">
+                      <AlertIcon color="red.400" />
+                      {errorMsg} — double check the ID and that the bot was added.
+                    </Alert>
+                  )}
+                </Box>
+              </VStack>
+            </Box>
+
+            <Divider borderColor="gray.600" />
+
+            {/* Step 2: Create Channels */}
+            <Box>
+              <HStack mb={2}>
+                <Badge colorScheme="purple" fontSize="sm">
+                  Step 2
                 </Badge>
                 <Text fontWeight="bold" color="white">
                   Create Event Channels
@@ -124,24 +278,49 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
               </HStack>
               <OrderedList spacing={2} fontSize="sm" color="gray.300">
                 <ListItem>
-                  Create a text channel for your event (e.g.,{' '}
+                  Create a text channel for each team (i.e.,{' '}
                   <Code bg="gray.800" color="gray.100">
-                    #gielinor-rush-2025
+                    #team-dragons
                   </Code>
                   )
                 </ListItem>
-                <ListItem>
-                  Set the channel topic to your Event ID:{' '}
-                  <Code bg="gray.800" color={theme.colors.purple[300]}>
-                    {eventId}
-                  </Code>
+                <ListItem>Add the bot to each channel</ListItem>
+                <ListItem flexDirection="row" display="flex">
+                  Set each channel's topic to your Event ID:{' '}
+                  <Tooltip label={`Click to copy the event ID`} w="fit-content" hasArrow>
+                    <HStack
+                      spacing={2}
+                      px={3}
+                      py={1}
+                      ml={2}
+                      bg="whiteAlpha.200"
+                      borderRadius="md"
+                      cursor="pointer"
+                      transition="all 0.2s"
+                      w="fit-content"
+                      _hover={{ bg: 'whiteAlpha.400' }}
+                      onClick={() => {
+                        navigator.clipboard.writeText(eventId);
+                        showToast('Event ID copied to clipboard!', 'success');
+                      }}
+                    >
+                      <Text
+                        fontSize="xs"
+                        color="gray.200"
+                        fontFamily="mono"
+                        maxW="260px"
+                        isTruncated
+                      >
+                        {eventId}
+                      </Text>
+                      <Icon as={CopyIcon} boxSize={3} color="gray.200" />
+                    </HStack>
+                  </Tooltip>
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
-                    Important:
-                  </Text>{' '}
-                  The Event ID must be in the channel topic exactly as shown above for the bot to
-                  work
+                  Add all players to their respective team channels and ensure they can send
+                  messages there. The bot uses the presence of specific Discord user IDs to
+                  determine which team a player belongs to.
                 </ListItem>
               </OrderedList>
               <Box
@@ -153,244 +332,87 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId }) => {
                 borderColor="teal.700"
               >
                 <Text fontSize="xs" color="teal.100" fontWeight="bold">
-                  💡 Pro Tip: You can create multiple channels for the same event (one per team) by
-                  using the same Event ID in each channel's topic!
+                  💡 The same Event ID goes in every team channel's topic and the bot figures out
+                  which team is which based on team membership.
                 </Text>
               </Box>
             </Box>
 
             <Divider borderColor="gray.600" />
 
-            {/* Step 2: Create Teams */}
+            {/* Commands */}
             <Box>
               <HStack mb={2}>
                 <Badge colorScheme="purple" fontSize="sm">
-                  Step 2
-                </Badge>
-                <Text fontWeight="bold" color="white">
-                  Set Up Teams
-                </Text>
-              </HStack>
-              <Text fontSize="sm" color="gray.300" mb={2}>
-                Team members are identified by their Discord User ID:
-              </Text>
-              <UnorderedList spacing={2} fontSize="sm" color="gray.300">
-                <ListItem>
-                  <Text as="span" fontWeight="bold">
-                    Member List
-                  </Text>{' '}
-                  - Add Discord User IDs to each team. This allows members to use Discord commands
-                  to submit screenshots, check progress, and more. They can also use the website to
-                  manage buffs and inn items{' '}
-                  <Text as="span" fontWeight="bold">
-                    if their Discord ID is linked to their OSRS Bingo Hub profile
-                  </Text>
-                  .
-                </ListItem>
-              </UnorderedList>
-              <Box
-                mt={2}
-                p={2}
-                bg="yellow.900"
-                borderRadius="md"
-                borderWidth="1px"
-                borderColor="yellow.700"
-              >
-                <Text fontSize="xs" color="yellow.200">
-                  ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode) to copy
-                  User IDs by right-clicking on users
-                </Text>
-              </Box>
-            </Box>
-
-            <Divider borderColor="gray.600" />
-
-            {/* Step 3: Bot Commands */}
-            <Box>
-              <HStack mb={2}>
-                <Badge colorScheme="purple" fontSize="sm">
-                  Step 3
+                  Commands
                 </Badge>
                 <Text fontWeight="bold" color="white">
                   Available Commands
                 </Text>
               </HStack>
               <VStack align="stretch" spacing={2}>
-                {/* Help Command */}
-                <Box p={2} bg="gray.800" borderRadius="md">
-                  <HStack>
-                    <Code bg="transparent" color={theme.colors.purple[300]}>
-                      !treasurehunt
-                    </Code>
-                    <Text color="gray.500" fontSize="sm">
-                      or
-                    </Text>
-                    <Code bg="transparent" color={theme.colors.purple[300]}>
-                      !th
-                    </Code>
-                  </HStack>
-                  <Text fontSize="xs" mt={1} color="gray.400">
-                    Show all available commands and help information
-                  </Text>
-                </Box>
-
-                {/* Nodes Command */}
-                <Box p={2} bg="gray.800" borderRadius="md">
-                  <Code bg="transparent" color="teal.300">
-                    !nodes
-                  </Code>
-                  <Text fontSize="xs" mt={1} color="gray.400">
-                    View your team's available nodes and current progress
-                  </Text>
-                </Box>
-
-                {/* Submit Command */}
-                <Box p={2} bg="gray.800" borderRadius="md">
-                  <Code bg="transparent" color="orange.300">
-                    !submit &lt;node_id&gt; [image_url]
-                  </Code>
-                  <Text fontSize="xs" mt={1} color="gray.400">
-                    Submit a node completion with proof screenshot
-                  </Text>
-                  <VStack align="start" spacing={1} mt={2}>
+                {[
+                  {
+                    cmd: '!nodes',
+                    color: 'teal.300',
+                    desc: "View your team's available nodes and progress",
+                  },
+                  {
+                    cmd: '!submit <node_id>',
+                    color: 'orange.300',
+                    desc: 'Submit a node completion with proof screenshot',
+                  },
+                  {
+                    cmd: '!leaderboard',
+                    color: 'teal.300',
+                    desc: 'View current standings',
+                    alias: '!lb',
+                  },
+                  {
+                    cmd: '!treasurehunt',
+                    color: 'purple.300',
+                    desc: 'Show all commands and help',
+                    alias: '!th',
+                  },
+                ].map(({ cmd, color, desc, alias }) => (
+                  <Box key={cmd} p={2} bg="gray.800" borderRadius="md">
                     <HStack>
-                      <Code fontSize="xs" bg="transparent" color="gray.500">
-                        !submit evt_abc_node_042
+                      <Code bg="transparent" color={color}>
+                        {cmd}
                       </Code>
-                      <Text fontSize="xs" color="gray.500">
-                        (attach your screenshot to the message)
-                      </Text>
+                      {alias && (
+                        <>
+                          <Text color="gray.500" fontSize="sm">
+                            or
+                          </Text>
+                          <Code bg="transparent" color={color}>
+                            {alias}
+                          </Code>
+                        </>
+                      )}
                     </HStack>
-                  </VStack>
-                </Box>
-
-                {/* Leaderboard Command */}
-                <Box p={2} bg="gray.800" borderRadius="md">
-                  <HStack>
-                    <Code bg="transparent" color="teal.300">
-                      !leaderboard
-                    </Code>
-                    <Text color="gray.500" fontSize="sm">
-                      or
+                    <Text fontSize="xs" mt={1} color="gray.400">
+                      {desc}
                     </Text>
-                    <Code bg="transparent" color="teal.300">
-                      !lb
-                    </Code>
-                  </HStack>
-                  <Text fontSize="xs" mt={1} color="gray.400">
-                    View the current event leaderboard with team standings
-                  </Text>
-                </Box>
+                  </Box>
+                ))}
               </VStack>
             </Box>
 
             <Divider borderColor="gray.600" />
 
-            {/* Step 4: Admin Workflow */}
-            <Box>
-              <HStack mb={2}>
-                <Badge colorScheme="purple" fontSize="sm">
-                  Step 4
-                </Badge>
-                <Text fontWeight="bold" color="white">
-                  Admin Workflow
-                </Text>
-              </HStack>
-              <OrderedList spacing={2} fontSize="sm" color="gray.300">
-                <ListItem>
-                  Teams submit completions via Discord using{' '}
-                  <Code bg="gray.800" color="gray.100">
-                    !submit node_id
-                  </Code>
-                </ListItem>
-                <ListItem>
-                  Review submissions on this website in the "Pending Submissions" tab
-                </ListItem>
-                <ListItem>Approve or deny individual submissions as they come in</ListItem>
-                <ListItem>
-                  When a node's cumulative goal is met, click "Complete Node" to grant rewards
-                </ListItem>
-                <ListItem>
-                  Teams see updates immediately with{' '}
-                  <Code bg="gray.800" color="gray.100">
-                    !nodes
-                  </Code>{' '}
-                  and{' '}
-                  <Code bg="gray.800" color="gray.100">
-                    !leaderboard
-                  </Code>
-                </ListItem>
-              </OrderedList>
-            </Box>
-
-            <Divider borderColor="gray.600" />
-
-            {/* Troubleshooting */}
-            <Box>
-              <Text fontWeight="bold" color="white" mb={2}>
-                🔧 Troubleshooting
-              </Text>
-              <VStack align="stretch" spacing={3} fontSize="sm">
-                <Box>
-                  <Text fontWeight="bold" color="gray.200" mb={1}>
-                    Bot doesn't respond:
-                  </Text>
-                  <UnorderedList spacing={1} color="gray.400">
-                    <ListItem>Verify the bot is installed in your server</ListItem>
-                    <ListItem>Verify Event ID is in the channel topic</ListItem>
-                    <ListItem>Check bot has permission to read/send messages</ListItem>
-                    <ListItem>Ensure the bot appears online in the member list</ListItem>
-                  </UnorderedList>
-                </Box>
-
-                <Box>
-                  <Text fontWeight="bold" color="gray.200" mb={1}>
-                    "You are not part of any team":
-                  </Text>
-                  <UnorderedList spacing={1} color="gray.400">
-                    <ListItem>
-                      Verify your Discord User ID is added to a team's member list
-                    </ListItem>
-                    <ListItem>
-                      Make sure you're using commands in a channel with the correct Event ID
-                    </ListItem>
-                  </UnorderedList>
-                </Box>
-
-                <Box>
-                  <Text fontWeight="bold" color="gray.200" mb={1}>
-                    Submissions not appearing:
-                  </Text>
-                  <UnorderedList spacing={1} color="gray.400">
-                    <ListItem>Refresh the Pending Submissions tab</ListItem>
-                    <ListItem>Check that the node ID matches an actual node</ListItem>
-                    <ListItem>Ensure the image URL is accessible or file is attached</ListItem>
-                  </UnorderedList>
-                </Box>
-              </VStack>
-            </Box>
-
-            <Divider borderColor="gray.600" />
-
-            {/* Quick Reference */}
-            <Box p={3} bg="purple.800" borderRadius="md" borderWidth="1px" borderColor="purple.600">
-              <Text fontWeight="bold" color="white" mb={2}>
-                📋 Quick Reference
-              </Text>
-              <VStack align="stretch" spacing={1}>
-                <HStack justify="space-between">
-                  <Text fontSize="sm" color="white">
-                    Event ID:
-                  </Text>
-                  <Code bg="whiteAlpha.300" color="white" fontSize="sm" px={2} borderRadius="md">
-                    {eventId}
-                  </Code>
-                </HStack>
-                <Text fontSize="xs" color="whiteAlpha.800" mt={2}>
-                  Add this to your Discord channel's topic to link it to this event
-                </Text>
-              </VStack>
-            </Box>
+            {/* Confirm Button */}
+            <Button
+              colorScheme="green"
+              size="lg"
+              width="100%"
+              isDisabled={verifyState !== 'success'}
+              isLoading={confirming}
+              onClick={handleConfirm}
+              leftIcon={<CheckCircleIcon />}
+            >
+              {verifyState === 'success' ? 'Confirm Setup' : 'Verify connection above to continue'}
+            </Button>
           </VStack>
         </ModalBody>
       </ModalContent>

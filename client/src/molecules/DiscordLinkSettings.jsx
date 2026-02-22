@@ -9,7 +9,7 @@ export default function DiscordLinkSettings({ user }) {
 
   const [linkDiscord] = useMutation(LINK_DISCORD_ACCOUNT, {
     onCompleted: () => {
-      showToast({ title: 'Discord account linked!', status: 'success' });
+      showToast('Discord account linked!', 'success');
     },
   });
 
