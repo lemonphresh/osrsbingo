@@ -563,7 +563,7 @@ const UserDetails = () => {
               alignItems="center"
               justifyContent="space-around"
             >
-              {isGielinorRushEnabled() ? (
+              {isGielinorRushEnabled(user) ? (
                 <VStack spacing={3} align={['center']}>
                   <Text fontSize="16px" lineHeight="1.5">
                     Create and manage your own Gielinor Rush events!

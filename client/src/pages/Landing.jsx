@@ -175,7 +175,7 @@ const Landing = () => {
                 Gielinor Rush
               </Text>
               <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
-                {isGielinorRushEnabled() ? 'NEW' : 'COMING SOON'}
+                {isGielinorRushEnabled(user) ? 'NEW' : 'COMING SOON'}
               </Text>
             </HStack>
             <Flex justifyContent="center" marginBottom="20px">
@@ -200,7 +200,7 @@ const Landing = () => {
                 backgroundColor={theme.colors.orange[500]}
                 _hover={{ backgroundColor: theme.colors.orange[600] }}
               >
-                {isGielinorRushEnabled() ? 'Get Started' : 'Learn More'}
+                {isGielinorRushEnabled(user) ? 'Get Started' : 'Learn More'}
               </Button>
             </Link>
           </Box>

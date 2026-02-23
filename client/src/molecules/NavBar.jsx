@@ -125,7 +125,7 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
                   Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                {isGielinorRushEnabled() ? (
+                {isGielinorRushEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
                     Also, clan leaders, go try <strong>Gielinor Rush</strong>, it's new! It's cool!
                     It's fun!
@@ -164,7 +164,7 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isGielinorRushEnabled() ? (
+              {isGielinorRushEnabled(user) ? (
                 <Link to="/gielinor-rush">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Gielinor Rush →

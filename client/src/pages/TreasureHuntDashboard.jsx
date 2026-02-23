@@ -169,7 +169,7 @@ const TreasureHuntDashboard = () => {
     }[status] ?? c.sapphire.base);
 
   const handleCreateEventClick = () => {
-    if (!isGielinorRushEnabled()) return;
+    if (!isGielinorRushEnabled(user)) return;
     if (!user?.id) onAuthModalOpen();
     else onOpen();
   };
@@ -219,7 +219,7 @@ const TreasureHuntDashboard = () => {
     );
 
   // ── Feature disabled ──
-  if (!isGielinorRushEnabled())
+  if (!isGielinorRushEnabled(user))
     return (
       <Flex flex="1" flexDirection="column" px={['16px', '24px', '64px']} py="72px">
         <TreasureHuntSummary />
@@ -375,7 +375,7 @@ const TreasureHuntDashboard = () => {
             prize.
           </Text>
 
-          {isGielinorRushEnabled() && (
+          {isGielinorRushEnabled(user) && (
             <Box
               as="button"
               onClick={() => navigate('/gielinor-rush/active')}
@@ -546,7 +546,7 @@ const TreasureHuntDashboard = () => {
             Your Events
           </GemTitle>
           <HStack>
-            {isGielinorRushEnabled() && (
+            {isGielinorRushEnabled(user) && (
               <Box
                 as="button"
                 onClick={() => navigate('/gielinor-rush/active')}

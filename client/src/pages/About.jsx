@@ -7,9 +7,11 @@ import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
 import { isGielinorRushEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
+import { useAuth } from '../providers/AuthProvider';
 
 const AboutPage = () => {
   usePageTitle('About');
+  const { user } = useAuth();
   return (
     <Flex
       alignItems="center"
@@ -36,7 +38,7 @@ const AboutPage = () => {
               {[
                 'Create custom bingo boards with your own objectives',
                 'Track progress and compete with friends and clanmates',
-                isGielinorRushEnabled()
+                isGielinorRushEnabled(user)
                   ? 'Run Gielinor Rush events: team-based treasure hunts across Gielinor'
                   : undefined,
                 'Share public boards with the community',
