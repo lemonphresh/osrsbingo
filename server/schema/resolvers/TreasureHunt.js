@@ -702,7 +702,7 @@ const TreasureHuntResolvers = {
         throw new Error('Not authorized. Admin or ref access required.');
       }
 
-      if (submission.status !== 'PENDING') {
+      if (submission.status !== 'PENDING_REVIEW') {
         throw new Error(
           `Submission has already been ${submission.status.toLowerCase()}. Refresh and try again.`
         );

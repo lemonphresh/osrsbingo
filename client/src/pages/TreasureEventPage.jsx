@@ -1031,7 +1031,7 @@ const TreasureEventView = () => {
                 }}
               >
                 {isEventAdminOrRef && (
-                  <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  <Tab ref={submissionsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
                     Submissions ({allPendingIncompleteSubmissionsCount} Pending)
                     {allPendingIncompleteSubmissionsCount > 0 && (
                       <Box

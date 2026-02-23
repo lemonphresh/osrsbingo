@@ -12,6 +12,7 @@ import {
   Box,
   Code,
   Badge,
+  Checkbox,
   Divider,
   OrderedList,
   ListItem,
@@ -56,6 +57,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
   const [verifyState, setVerifyState] = useState('idle'); // idle | loading | success | error
   const [verifiedGuildName, setVerifiedGuildName] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [channelsAcknowledged, setChannelsAcknowledged] = useState(false);
 
   const [verifyGuild] = useLazyQuery(VERIFY_DISCORD_GUILD, { fetchPolicy: 'network-only' });
   const [confirmSetup, { loading: confirming }] = useMutation(CONFIRM_DISCORD_SETUP);
@@ -76,7 +78,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
         setVerifyState('error');
         setErrorMsg(data?.verifyDiscordGuild?.error || 'Bot not found in that server');
       }
-    } catch {
+      document.getElementById('channel-setup')?.scrollIntoView({ behavior: 'smooth' });
+    } catch (e) {
       setVerifyState('error');
       setErrorMsg('Something went wrong. Try again.');
     }
@@ -193,7 +196,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
 
                 <InputGroup size="md">
                   <Input
-                    placeholder="e.g. 123456789012345678"
+                    placeholder="i.e. 123456789012345678"
                     value={guildId}
                     onChange={(e) => {
                       setGuildId(e.target.value);
@@ -267,7 +270,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
             <Divider borderColor="gray.600" />
 
             {/* Step 2: Create Channels */}
-            <Box>
+            <Box id="channel-setup">
               <HStack mb={2}>
                 <Badge colorScheme="purple" fontSize="sm">
                   Step 2
@@ -336,6 +339,17 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                   which team is which based on team membership.
                 </Text>
               </Box>
+              <Checkbox
+                mt={4}
+                colorScheme="purple"
+                isChecked={channelsAcknowledged}
+                onChange={(e) => setChannelsAcknowledged(e.target.checked)}
+              >
+                <Text fontSize="sm" color="yellow.200" fontWeight="semibold">
+                  I understand that channels must be set up before launching. The bot will NOT work
+                  without them.
+                </Text>
+              </Checkbox>
             </Box>
 
             <Divider borderColor="gray.600" />
@@ -406,7 +420,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
               colorScheme="green"
               size="lg"
               width="100%"
-              isDisabled={verifyState !== 'success'}
+              isDisabled={verifyState !== 'success' || !channelsAcknowledged}
               isLoading={confirming}
               onClick={handleConfirm}
               leftIcon={<CheckCircleIcon />}
