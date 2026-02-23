@@ -533,7 +533,6 @@ const TreasureEventView = () => {
     isEventAdminOrRef,
     event?.eventName || 'Event',
     refetchSubmissions,
-    10000,
     event?.id,
     allPendingIncompleteSubmissionsCount
   );

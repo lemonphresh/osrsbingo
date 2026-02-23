@@ -12,7 +12,6 @@ export const useSubmissionNotifications = (
   isAdmin = false,
   eventName = '',
   refetchSubmissions = null,
-  pollingInterval = 10000,
   eventId,
   allPendingIncompleteSubmissionsCount = 0
 ) => {
@@ -27,7 +26,6 @@ export const useSubmissionNotifications = (
 
   const previousSubmissionIds = useRef(new Set());
   const isInitialized = useRef(false);
-  const pollingIntervalRef = useRef(null);
   const audioContextRef = useRef(null);
   const originalFaviconRef = useRef(null);
   // Cache the loaded favicon Image element so we never re-fetch it
@@ -433,27 +431,6 @@ export const useSubmissionNotifications = (
       refetchSubmissions?.();
     },
   });
-
-  // ===== Polling fallback =====
-  // When subscriptions are active, back off to 30s minimum to reduce DB load.
-  useEffect(() => {
-    const canPoll = isAdmin && typeof refetchSubmissions === 'function';
-    const effectiveInterval = canSubscribe ? Math.max(30000, pollingInterval) : pollingInterval;
-
-    if (!canPoll) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-      return;
-    }
-
-    refetchSubmissions();
-    pollingIntervalRef.current = setInterval(refetchSubmissions, Math.max(5000, effectiveInterval));
-
-    return () => {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    };
-  }, [isAdmin, refetchSubmissions, pollingInterval, canSubscribe]);
 
   // ===== Refetch on tab focus / visibility =====
   useEffect(() => {
