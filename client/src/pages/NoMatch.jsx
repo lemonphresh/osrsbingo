@@ -25,7 +25,7 @@ const NoMatch = () => (
       Ah... That page doesn't exist.
     </Text>
     <Link to="/">
-      <Text color={theme.colors.cyan[300]} fontWeight="bold" textDecoration="underline">
+      <Text color={theme.colors.cyan[300]} fontWeight="semibold" textDecoration="underline">
         Back to Lumby! Sit, rat.
       </Text>
     </Link>

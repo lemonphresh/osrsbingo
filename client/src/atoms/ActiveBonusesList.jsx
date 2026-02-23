@@ -21,7 +21,7 @@ const ActiveBonusesList = ({ board }) => {
         as="span"
         color={theme.colors.teal[300]}
         display="inline"
-        fontWeight="bold"
+        fontWeight="semibold"
         marginBottom="4px"
       >
         Active bonuses:

@@ -59,6 +59,11 @@ module.exports = (sequelize) => {
         defaultValue: [],
         comment: 'Array of user IDs who have admin access to this event',
       },
+      refIds: {
+        type: DataTypes.ARRAY(DataTypes.INTEGER),
+        defaultValue: [],
+        comment: 'Array of user IDs who have ref access to this event',
+      },
     },
     {
       sequelize,

@@ -200,7 +200,7 @@ const AdminLaunchChecklist = ({
             <VStack align="stretch" spacing={2}>
               <HStack>
                 <Icon as={WarningIcon} color="red.400" boxSize={4} />
-                <Text fontSize="xs" fontWeight="bold" color="white">
+                <Text fontSize="xs" fontWeight="semibold" color="white">
                   Teams need at least {check.requiredPlayersPerTeam} member(s) each:
                 </Text>
               </HStack>
@@ -270,7 +270,7 @@ const AdminLaunchChecklist = ({
       >
         <HStack spacing={2}>
           <Icon as={FaRocket} color="white" />
-          <Text fontWeight="bold" color="white" fontSize="sm">
+          <Text fontWeight="semibold" color="white" fontSize="sm">
             {isMinimized
               ? `Launch Checklist (${completedCount}/${totalCount})`
               : 'Launch Checklist'}

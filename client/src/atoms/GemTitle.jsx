@@ -12,23 +12,23 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
   switch (size) {
     case 'sm':
       fontSize = ['16px', '18px', '20px'];
-      iconHW = ['20px', '24px'];
-      highlightHeight = '12px';
+      iconHW = ['14px', '16px'];
+      highlightHeight = '9px';
       break;
     case 'md':
       fontSize = ['24px', '28px', '32px'];
-      iconHW = ['32px', '40px'];
-      highlightHeight = '14px';
+      iconHW = ['22px', '26px'];
+      highlightHeight = '11px';
       break;
     case 'lg':
       fontSize = ['32px', '36px', '40px'];
-      iconHW = ['40px', '48px'];
-      highlightHeight = '16px';
+      iconHW = ['28px', '34px'];
+      highlightHeight = '13px';
       break;
     default:
       fontSize = ['24px', '28px', '32px'];
-      iconHW = ['32px', '40px'];
-      highlightHeight = '14px';
+      iconHW = ['22px', '26px'];
+      highlightHeight = '11px';
   }
 
   switch (gemColor) {
@@ -66,12 +66,12 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
         {/* Brushstroke highlight behind text */}
         <Box
           position="absolute"
-          bottom="10px"
+          bottom="13px"
           left="5%"
           width="90%"
           height={highlightHeight}
           backgroundColor={highlightColor}
-          opacity={0.6}
+          opacity={0.35}
           transform="skewX(-12deg)"
           borderRadius="2px 8px 2px 8px"
         />
@@ -79,6 +79,7 @@ const GemTitle = ({ children, gemColor = 'default', size = 'md', ...props }) => 
           color={props.color ? props.color : theme.colors.white}
           fontSize={fontSize}
           fontFamily="'Raleway', sans-serif"
+          fontWeight="semibold"
           wordBreak="break-word"
           position="relative"
           width="fit-content"

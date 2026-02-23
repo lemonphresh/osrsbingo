@@ -404,7 +404,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
       >
         <HStack mb={2}>
           <AlertIcon color="orange.300" />
-          <Text fontWeight="bold" fontSize="sm" color="orange.200">
+          <Text fontWeight="semibold" fontSize="sm" color="orange.200">
             Complete these requirements to activate:
           </Text>
         </HStack>
@@ -441,7 +441,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 bg="orange.900"
                 borderRadius="md"
                 color="orange.300"
-                fontWeight="bold"
+                fontWeight="semibold"
                 fontSize="sm"
                 w="full"
                 textAlign="center"
@@ -719,25 +719,25 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
             {/* Map preview */}
             <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
-              <Text fontSize="sm" fontWeight="bold" color="white">
+              <Text fontSize="sm" fontWeight="semibold" color="white">
                 📊 Map Preview (Per Team)
               </Text>
               <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
                 <VStack spacing={0}>
                   <Text color="gray.500">Player Hours</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     {stats ? `${stats.totalHours}h` : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Total Locations</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     ~{stats ? stats.locations : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.500">Inns</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     ~{stats ? stats.inns : '?'}
                   </Text>
                 </VStack>

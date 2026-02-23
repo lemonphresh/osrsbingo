@@ -101,7 +101,7 @@ const AdminBuffManager = ({ eventId, team, onUpdate }) => {
 
         {/* Current Buffs */}
         <Box>
-          <Text fontSize="sm" fontWeight="bold" color="white" mb={2}>
+          <Text fontSize="sm" fontWeight="semibold" color="white" mb={2}>
             Current Buffs ({team.activeBuffs?.length || 0})
           </Text>
           {!team.activeBuffs || team.activeBuffs.length === 0 ? (
@@ -121,7 +121,7 @@ const AdminBuffManager = ({ eventId, team, onUpdate }) => {
                   <HStack>
                     <Text fontSize="lg">{buff.icon}</Text>
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="sm" fontWeight="bold" color="white">
+                      <Text fontSize="sm" fontWeight="semibold" color="white">
                         {buff.buffName}
                       </Text>
                       <HStack spacing={1}>
@@ -154,7 +154,7 @@ const AdminBuffManager = ({ eventId, team, onUpdate }) => {
 
         {/* Give Buff */}
         <Box>
-          <Text fontSize="sm" fontWeight="bold" color="white" mb={2}>
+          <Text fontSize="sm" fontWeight="semibold" color="white" mb={2}>
             Give Buff
           </Text>
           <VStack spacing={2}>

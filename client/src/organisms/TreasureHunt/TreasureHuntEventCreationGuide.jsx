@@ -21,8 +21,10 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircleIcon, StarIcon, WarningIcon } from '@chakra-ui/icons';
 import { isGielinorRushEnabled } from '../../config/featureFlags';
+import { useAuth } from '../../providers/AuthProvider';
 
 const EventCreationGuide = ({ colorMode, currentColors }) => {
+  const { user } = useAuth();
   return (
     <Card
       maxW="800px"
@@ -42,7 +44,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
           </HStack>
 
           <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
-            {isGielinorRushEnabled() ? (
+            {isGielinorRushEnabled(user) ? (
               <>
                 Follow these steps to set up your perfect competitive event. The system will
                 automatically generate a balanced treasure map based on your settings!
@@ -73,7 +75,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <Box flex="1" textAlign="left">
                   <HStack>
                     <Badge colorScheme="purple">STEP 1</Badge>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       Basic Event Information
                     </Text>
                   </HStack>
@@ -83,7 +85,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               <AccordionPanel pb={4}>
                 <VStack spacing={3} align="stretch">
                   <Box>
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       What You'll Enter:
                     </Text>
                     <List spacing={2} fontSize="sm">
@@ -124,7 +131,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <Box flex="1" textAlign="left">
                   <HStack>
                     <Badge colorScheme="green">STEP 2</Badge>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       Prize Pool & Teams
                     </Text>
                   </HStack>
@@ -134,7 +141,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               <AccordionPanel pb={4}>
                 <VStack spacing={3} align="stretch">
                   <Box>
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       Key Settings:
                     </Text>
                     <List spacing={2} fontSize="sm">
@@ -163,7 +175,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   >
                     <HStack mb={2}>
                       <Text fontSize="lg">🔒</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                         Hard-Capped Budget System
                       </Text>
                     </HStack>
@@ -194,7 +206,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   </Box>
 
                   <Box p={3} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
-                    <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={1}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={1}
+                    >
                       💡 What This Means For You:
                     </Text>
                     <Text fontSize="xs" color={currentColors.textColor}>
@@ -211,7 +228,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     borderWidth={1}
                     borderColor="yellow.400"
                   >
-                    <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       💰 What To Do With Leftover GP:
                     </Text>
                     <Text fontSize="xs" color={currentColors.textColor} mb={2}>
@@ -258,7 +280,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <Box flex="1" textAlign="left">
                   <HStack>
                     <Badge colorScheme="orange">STEP 3</Badge>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       Difficulty & Balance Settings
                     </Text>
                   </HStack>
@@ -268,7 +290,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               <AccordionPanel pb={4}>
                 <VStack spacing={3} align="stretch">
                   <Box>
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       Choose Your Challenge Level:
                     </Text>
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
@@ -323,7 +350,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   </Box>
 
                   <Box>
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       Node-to-Inn Ratio:
                     </Text>
                     <Text fontSize="sm" color={currentColors.textColor} mb={2}>
@@ -363,7 +395,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <Box flex="1" textAlign="left">
                   <HStack>
                     <Badge colorScheme="yellow">STEP 4</Badge>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       Map Generation & Setup
                     </Text>
                   </HStack>
@@ -383,7 +415,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'}
                     borderRadius="md"
                   >
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       🎲 What Gets Generated:
                     </Text>
                     <List spacing={1} fontSize="xs">
@@ -429,7 +466,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   >
                     <HStack mb={2}>
                       <WarningIcon color="orange.400" />
-                      <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                         Location Group System
                       </Text>
                     </HStack>
@@ -463,38 +500,43 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
                     borderRadius="md"
                   >
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       📊 Example Budget Breakdown:
                     </Text>
                     <VStack spacing={2} align="stretch" fontSize="xs">
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>Prize Pool:</Text>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
+                        <Text fontWeight="semibold" color={currentColors.textColor}>
                           10,000M GP (10B)
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>Teams:</Text>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
+                        <Text fontWeight="semibold" color={currentColors.textColor}>
                           10
                         </Text>
                       </HStack>
                       <Divider />
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>→ Max per team:</Text>
-                        <Text fontWeight="bold" color="green.400">
+                        <Text fontWeight="semibold" color="green.400">
                           1,000M GP (1B)
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>→ Average team earnings:</Text>
-                        <Text fontWeight="bold" color="blue.400">
+                        <Text fontWeight="semibold" color="blue.400">
                           ~670M GP
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
                         <Text color={currentColors.textColor}>→ Your maximum payout:</Text>
-                        <Text fontWeight="bold" color="green.400">
+                        <Text fontWeight="semibold" color="green.400">
                           ≤ 10,000M GP ✓
                         </Text>
                       </HStack>
@@ -528,7 +570,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                 <Box flex="1" textAlign="left">
                   <HStack>
                     <Badge colorScheme="cyan">STEP 5</Badge>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       Add Teams & Launch
                     </Text>
                   </HStack>
@@ -562,7 +604,12 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                   </List>
 
                   <Box p={3} bg={colorMode === 'dark' ? 'green.900' : 'green.50'} borderRadius="md">
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       🎉 You're Ready!
                     </Text>
                     <Text fontSize="xs" color={currentColors.textColor}>
@@ -579,7 +626,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
           <Box p={4} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
             <HStack mb={2}>
               <StarIcon color="blue.400" />
-              <Text fontWeight="bold" color={currentColors.textColor}>
+              <Text fontWeight="semibold" color={currentColors.textColor}>
                 Pro Tips for Event Runners
               </Text>
             </HStack>

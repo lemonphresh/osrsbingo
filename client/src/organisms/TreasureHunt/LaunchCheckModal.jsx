@@ -173,7 +173,7 @@ function UnregisteredBadge({ count }) {
       >
         <PopoverArrow bg="gray.700" />
         <PopoverHeader
-          fontWeight="bold"
+          fontWeight="semibold"
           color="yellow.300"
           borderBottomColor="gray.600"
           fontSize="xs"
@@ -205,7 +205,7 @@ function UnregisteredBadge({ count }) {
             >
               <HStack spacing={1.5} mb={1}>
                 <Icon as={FaDiscord} color="blue.300" boxSize={3} />
-                <Text fontWeight="bold" color="blue.300">
+                <Text fontWeight="semibold" color="blue.300">
                   How to register
                 </Text>
               </HStack>
@@ -352,7 +352,7 @@ export default function LaunchCheckModal({ isOpen, onClose, event, onEventLaunch
           display="flex"
           flexDirection="column"
         >
-          <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
+          <AlertDialogHeader fontSize="lg" fontWeight="semibold" color="white">
             🚀 Ready to Launch?
           </AlertDialogHeader>
 
@@ -366,13 +366,13 @@ export default function LaunchCheckModal({ isOpen, onClose, event, onEventLaunch
                 borderLeft="3px solid"
                 borderLeftColor="purple.400"
               >
-                <Text fontWeight="bold" color="purple.300" fontSize="sm" mb={2}>
+                <Text fontWeight="semibold" color="purple.300" fontSize="sm" mb={2}>
                   📋 Event Details
                 </Text>
                 <VStack align="stretch" spacing={1} fontSize="sm">
                   <HStack justify="space-between">
                     <Text color="gray.400">Name</Text>
-                    <Text fontWeight="bold" color="white">
+                    <Text fontWeight="semibold" color="white">
                       {event.eventName}
                     </Text>
                   </HStack>
@@ -425,7 +425,7 @@ export default function LaunchCheckModal({ isOpen, onClose, event, onEventLaunch
 
               {/* Teams */}
               <Box>
-                <Text fontWeight="bold" color="white" fontSize="sm" mb={2}>
+                <Text fontWeight="semibold" color="white" fontSize="sm" mb={2}>
                   👥 Teams ({teamCount})
                 </Text>
                 <TeamsAccordion
@@ -443,7 +443,7 @@ export default function LaunchCheckModal({ isOpen, onClose, event, onEventLaunch
                 borderLeft="3px solid"
                 borderLeftColor="green.400"
               >
-                <Text fontWeight="bold" color="green.300" fontSize="sm" mb={2}>
+                <Text fontWeight="semibold" color="green.300" fontSize="sm" mb={2}>
                   ✅ What happens when you launch
                 </Text>
                 <VStack align="start" spacing={1} fontSize="xs" color="green.200">

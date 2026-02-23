@@ -23,7 +23,7 @@ export function StoryLayout({ title, description, tags = [], children }) {
         <HStack justify="space-between" align="start">
           <VStack align="start" spacing={0}>
             <Text
-              fontWeight="bold"
+              fontWeight="semibold"
               fontSize="sm"
               color={colorMode === 'dark' ? 'white' : 'gray.800'}
             >
@@ -70,7 +70,11 @@ export function StoryPage({ title, description, children }) {
   return (
     <Box>
       <VStack align="start" spacing={1} mb={6}>
-        <Text fontSize="2xl" fontWeight="bold" color={colorMode === 'dark' ? 'white' : 'gray.900'}>
+        <Text
+          fontSize="2xl"
+          fontWeight="semibold"
+          color={colorMode === 'dark' ? 'white' : 'gray.900'}
+        >
           {title}
         </Text>
         {description && (
@@ -120,7 +124,7 @@ export function DebugShell({ stories, activeId, onSelect, children }) {
             <VStack align="start" spacing={0}>
               <Text
                 fontSize="sm"
-                fontWeight="bold"
+                fontWeight="semibold"
                 color={colorMode === 'dark' ? 'white' : 'gray.900'}
               >
                 🧪 Debug
@@ -144,7 +148,7 @@ export function DebugShell({ stories, activeId, onSelect, children }) {
                 px={4}
                 pb={1}
                 fontSize="xs"
-                fontWeight="bold"
+                fontWeight="semibold"
                 textTransform="uppercase"
                 letterSpacing="wide"
                 color="gray.500"

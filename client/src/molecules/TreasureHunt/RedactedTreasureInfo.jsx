@@ -135,7 +135,7 @@ const UnlockedNodeCard = ({
 
             <VStack align="start" spacing={2} flex={1}>
               <HStack>
-                <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
+                <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
                   {node.title}
                 </Text>
                 <Badge
@@ -156,7 +156,7 @@ const UnlockedNodeCard = ({
 
           {node.rewards && (
             <VStack align="end" spacing={1}>
-              <Text fontWeight="bold" color={currentColors.green.base}>
+              <Text fontWeight="semibold" color={currentColors.green.base}>
                 {formatGP(node.rewards.gp)}
               </Text>
               {node.rewards.keys && node.rewards.keys.length > 0 && (

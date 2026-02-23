@@ -515,25 +515,25 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
 
             {/* Map preview */}
             <VStack w="full" p={3} bg="whiteAlpha.100" borderRadius="md" spacing={2}>
-              <Text fontSize="sm" fontWeight="bold" color="white">
+              <Text fontSize="sm" fontWeight="semibold" color="white">
                 📊 Map Preview (Per Team)
               </Text>
               <SimpleGrid columns={3} spacing={2} w="full" fontSize="xs">
                 <VStack spacing={0}>
                   <Text color="gray.400">Player Hours</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     {stats ? `${stats.totalHours}h` : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.400">Total Locations</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     ~{stats ? stats.locations : '?'}
                   </Text>
                 </VStack>
                 <VStack spacing={0}>
                   <Text color="gray.400">Inns</Text>
-                  <Text fontWeight="bold" color="white">
+                  <Text fontWeight="semibold" color="white">
                     ~{stats ? stats.inns : '?'}
                   </Text>
                 </VStack>

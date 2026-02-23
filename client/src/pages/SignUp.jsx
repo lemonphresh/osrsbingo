@@ -180,7 +180,7 @@ const SignUp = () => {
                 <Box backgroundColor="rgba(0,0,0,0.15)" borderRadius="full" padding="8px">
                   <LockIcon color="#1F271B" boxSize={5} />
                 </Box>
-                <Text color="#1F271B" fontWeight="bold" fontSize="lg">
+                <Text color="#1F271B" fontWeight="semibold" fontSize="lg">
                   Write Down Your Password!
                 </Text>
               </HStack>

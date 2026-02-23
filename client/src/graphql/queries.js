@@ -484,6 +484,12 @@ export const GET_TREASURE_EVENT = gql`
         displayName
         username
       }
+      refIds
+      refs {
+        id
+        displayName
+        username
+      }
 
       # Teams (with full details)
       teams {
@@ -556,6 +562,7 @@ export const GET_ALL_TREASURE_EVENTS = gql`
         teamName
         currentPot
         completedNodes
+        updatedAt
       }
     }
   }

@@ -19,7 +19,7 @@ const ErrorPage = () => {
       <Text>Sorry, an unexpected error has occurred.</Text>
       <Text>{error.statusText || error.message}</Text>
       <Link to="/">
-        <Text color={theme.colors.cyan[300]} fontWeight="bold" textDecoration="underline">
+        <Text color={theme.colors.cyan[300]} fontWeight="semibold" textDecoration="underline">
           Back to Lumby! Sit, rat.
         </Text>
       </Link>

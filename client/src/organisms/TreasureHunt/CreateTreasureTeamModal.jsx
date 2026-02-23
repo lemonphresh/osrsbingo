@@ -200,7 +200,7 @@ export default function CreateTeamModal({
                     <Box flex="1" textAlign="left">
                       <HStack>
                         <Icon as={InfoIcon} color="purple.300" />
-                        <Text fontSize="sm" fontWeight="bold" color="gray.100">
+                        <Text fontSize="sm" fontWeight="semibold" color="gray.100">
                           How do I find Discord User IDs?
                         </Text>
                       </HStack>

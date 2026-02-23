@@ -67,7 +67,7 @@ function AcceptableDropsList({ drops, colorMode, currentColors }) {
     if (items.length === 0) return null;
     return (
       <Box>
-        <Text fontSize="xs" fontWeight="bold" color="gray.500" mb={1}>
+        <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1}>
           {label}
         </Text>
         <Wrap spacing={1}>
@@ -92,7 +92,7 @@ function AcceptableDropsList({ drops, colorMode, currentColors }) {
       borderColor={colorMode === 'dark' ? 'green.700' : 'green.200'}
     >
       <HStack mb={2}>
-        <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+        <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
           ✅ Acceptable Drops
         </Text>
         <Badge colorScheme="green" fontSize="xs">
@@ -384,7 +384,7 @@ export default function NodeDetailModal({
                     <Image h="32px" src={Casket} />
                   </VStack>
                   <VStack ml={2} align="start" spacing={2}>
-                    <Text fontWeight="bold" color={currentColors.green.base}>
+                    <Text fontWeight="semibold" color={currentColors.green.base}>
                       {formatGP(node.rewards?.gp || 0)} GP
                     </Text>
                     {node.rewards?.keys && node.rewards.keys?.length > 0 && (
@@ -403,7 +403,7 @@ export default function NodeDetailModal({
                     {showBuffRewards && (
                       <Box w="full" mt={2}>
                         <HStack mb={2}>
-                          <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                          <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                             Buff Rewards:
                           </Text>
                           {node.rewards?.buffs?.length ? (
@@ -431,7 +431,7 @@ export default function NodeDetailModal({
                                   <VStack align="start" spacing={0}>
                                     <Text
                                       fontSize="sm"
-                                      fontWeight="bold"
+                                      fontWeight="semibold"
                                       color={currentColors.textColor}
                                     >
                                       {buff.buffType
@@ -465,7 +465,7 @@ export default function NodeDetailModal({
 
             {appliedBuff && (
               <Box>
-                <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                   Buff Applied:
                 </Text>
                 <Badge colorScheme="blue" fontSize="xs" mt={1}>
@@ -542,7 +542,7 @@ export default function NodeDetailModal({
                   <Icon as={FaDiscord} boxSize="16px" />
                   <Text
                     fontSize="xs"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     color={currentColors.textColor}
                     textAlign="center"
                   >
@@ -587,7 +587,7 @@ export default function NodeDetailModal({
                   borderColor={currentColors.purple.light}
                 >
                   <HStack mb={3}>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       🛡️ Admin Controls
                     </Text>
                     <Badge colorScheme="purple" fontSize="xs">

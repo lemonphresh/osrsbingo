@@ -221,31 +221,31 @@ export const TreasureHuntTutorial = ({
               </Heading>
               <OrderedList spacing={2} fontSize="sm" color={currentColors.textColor} pl={2}>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Find the START node
                   </Text>{' '}
                   in your map or available nodes list below
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Click on it
                   </Text>{' '}
                   to view the objective details
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Complete the objective
                   </Text>{' '}
                   in Old School RuneScape
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Take a screenshot
                   </Text>{' '}
                   as proof of completion
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Submit via Discord bot
                   </Text>{' '}
                   using this command:
@@ -270,7 +270,7 @@ export const TreasureHuntTutorial = ({
                   </Box>
                 </ListItem>
                 <ListItem>
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     Wait for admin approval
                   </Text>{' '}
                   - your submission will be reviewed shortly
@@ -367,7 +367,7 @@ export const TreasureHuntTutorial = ({
                     justify="space-between"
                     maxWidth="212px"
                   >
-                    <Code fontSize="md" fontWeight="bold" letterSpacing="wider">
+                    <Code fontSize="md" fontWeight="semibold" letterSpacing="wider">
                       {eventPassword}
                     </Code>
                     <Button
@@ -480,7 +480,7 @@ export const StartNodeTutorial = ({ colorMode = 'dark', nodeId, eventId = 'defau
         <Divider borderColor={currentColors.purple} opacity={0.3} />
 
         <Box>
-          <Text fontSize="xs" fontWeight="bold" mb={2} color={currentColors.textColor}>
+          <Text fontSize="xs" fontWeight="semibold" mb={2} color={currentColors.textColor}>
             To submit completion:
           </Text>
           <VStack align="stretch" spacing={2}>

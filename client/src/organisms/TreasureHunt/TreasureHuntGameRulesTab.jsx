@@ -52,7 +52,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <Box>
         <HStack mb={2}>
           <InfoIcon color="blue.400" boxSize={6} />
-          <Text fontSize="2xl" fontWeight="bold" color={currentColors.white}>
+          <Text fontSize="2xl" fontWeight="semibold" color={currentColors.white}>
             How to Play Gielinor Rush
           </Text>
         </HStack>
@@ -65,7 +65,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <Box bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} p={4} borderRadius="md">
         <HStack mb={3}>
           <Text fontSize="2xl">🎯</Text>
-          <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
+          <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
             Quick Start Guide
           </Text>
         </HStack>
@@ -75,7 +75,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Badge colorScheme="blue" fontSize="sm">
                 STEP 1
               </Badge>
-              <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+              <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                 View Your Map
               </Text>
             </HStack>
@@ -90,7 +90,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Badge colorScheme="green" fontSize="sm">
                 STEP 2
               </Badge>
-              <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+              <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                 Complete Objectives
               </Text>
             </HStack>
@@ -105,7 +105,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Badge colorScheme="orange" fontSize="sm">
                 STEP 3
               </Badge>
-              <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+              <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                 Submit Proof
               </Text>
             </HStack>
@@ -120,7 +120,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Badge colorScheme="purple" fontSize="sm">
                 STEP 4
               </Badge>
-              <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+              <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                 Claim Rewards & Advance
               </Text>
             </HStack>
@@ -134,7 +134,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <Divider />
       {/* Core Concepts */}
       <Box>
-        <Text fontSize="xl" fontWeight="bold" color={currentColors.white} mb={4}>
+        <Text fontSize="xl" fontWeight="semibold" color={currentColors.white} mb={4}>
           📚 Core Concepts
         </Text>
 
@@ -147,7 +147,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Box flex="1" textAlign="left">
                 <HStack>
                   <Text fontSize="lg">🗺️</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="semibold" color={currentColors.textColor}>
                     Node Types
                   </Text>
                 </HStack>
@@ -159,7 +159,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box p={3} bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'} borderRadius="md">
                   <HStack mb={1}>
                     <Badge colorScheme="purple">START</Badge>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Starting Node
                     </Text>
                   </HStack>
@@ -175,7 +175,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     <Badge colorScheme="green">EASY</Badge>
                     <Badge colorScheme="yellow">MEDIUM</Badge>
                     <Badge colorScheme="red">HARD</Badge>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Challenge Nodes
                     </Text>
                   </HStack>
@@ -188,7 +188,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box p={3} bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'} borderRadius="md">
                   <HStack mb={1}>
                     <WarningIcon color="orange.400" mr={1} />
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       One Difficulty Per Location
                     </Text>
                   </HStack>
@@ -202,7 +202,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box p={3} bg={colorMode === 'dark' ? 'yellow.900' : 'yellow.50'} borderRadius="md">
                   <HStack mb={1}>
                     <Badge colorScheme="yellow">INN</Badge>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Inn Checkpoints
                     </Text>
                   </HStack>
@@ -223,7 +223,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Box flex="1" textAlign="left">
                 <HStack>
                   <Text fontSize="lg">💰</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="semibold" color={currentColors.textColor}>
                     Rewards System
                   </Text>
                 </HStack>
@@ -235,7 +235,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box>
                   <HStack mb={2}>
                     <Text fontSize="lg">💵</Text>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       GP (Gold Pieces)
                     </Text>
                   </HStack>
@@ -251,7 +251,12 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     borderRadius="md"
                     mb={3}
                   >
-                    <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="semibold"
+                      color={currentColors.textColor}
+                      mb={2}
+                    >
                       Prize Pool Distribution:
                     </Text>
                     <List spacing={1} color={currentColors.textColor} fontSize="xs">
@@ -312,7 +317,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box>
                   <HStack mb={2}>
                     <Text fontSize="lg">🔑</Text>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Keys
                     </Text>
                   </HStack>
@@ -335,7 +340,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box>
                   <HStack mb={2}>
                     <Text fontSize="lg">✨</Text>
-                    <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Buffs
                     </Text>
                   </HStack>
@@ -364,7 +369,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Box flex="1" textAlign="left">
                 <HStack>
                   <Text fontSize="lg">🔓</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="semibold" color={currentColors.textColor}>
                     Node Progression & Paths
                   </Text>
                 </HStack>
@@ -378,7 +383,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
                   borderRadius="md"
                 >
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     <LockIcon mr={2} />
                     Locked Nodes
                   </Text>
@@ -389,7 +394,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     <UnlockIcon mr={2} />
                     Available Nodes
                   </Text>
@@ -400,7 +405,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'green.900' : 'green.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     <CheckCircleIcon mr={2} />
                     Completed Nodes
                   </Text>
@@ -413,7 +418,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Divider />
 
                 <Box>
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     Location Groups
                   </Text>
                   <Text fontSize="xs" color={currentColors.textColor} mb={2}>
@@ -440,7 +445,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Box flex="1" textAlign="left">
                 <HStack>
                   <Text fontSize="lg">🏠</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="semibold" color={currentColors.textColor}>
                     How Inns Work
                   </Text>
                 </HStack>
@@ -457,7 +462,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="md">
                   <HStack mb={1}>
                     <WarningIcon color="red.400" />
-                    <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                       One Purchase Per Inn
                     </Text>
                   </HStack>
@@ -468,7 +473,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'yellow.900' : 'yellow.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     Available Trades
                   </Text>
                   <TableContainer>
@@ -515,7 +520,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     💡 Strategic Tips
                   </Text>
                   <List spacing={1} color="gray.600" fontSize="xs">
@@ -545,7 +550,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               <Box flex="1" textAlign="left">
                 <HStack>
                   <Text fontSize="lg">📸</Text>
-                  <Text fontWeight="bold" color={currentColors.textColor}>
+                  <Text fontWeight="semibold" color={currentColors.textColor}>
                     Submission Guidelines
                   </Text>
                 </HStack>
@@ -555,7 +560,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             <AccordionPanel pb={4}>
               <VStack spacing={3} align="stretch">
                 <Box p={3} bg={colorMode === 'dark' ? 'green.900' : 'green.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     ✅ Valid Submissions Must Include:
                   </Text>
                   <List spacing={1} color="gray.600" fontSize="xs">
@@ -579,7 +584,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box p={3} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     ❌ Invalid Submissions:
                   </Text>
                   <List spacing={1} color="gray.600" fontSize="xs">
@@ -607,7 +612,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                 </Box>
 
                 <Box>
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     Review Process
                   </Text>
                   <Text fontSize="xs" color={currentColors.textColor}>
@@ -625,7 +630,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <Box p={4} bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'} borderRadius="md">
         <HStack mb={3}>
           <Text fontSize="2xl">🏆</Text>
-          <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
+          <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
             How to Win
           </Text>
         </HStack>
@@ -640,7 +645,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
               bg={colorMode === 'dark' ? 'whiteAlpha.200' : 'blackAlpha.100'}
               borderRadius="md"
             >
-              <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor}>
+              <Text fontSize="xs" fontWeight="semibold" color={currentColors.textColor}>
                 This Event's Prize Pool: {formatGP(event.eventConfig.prize_pool_total)}
               </Text>
               {event?.derivedValues?.max_reward_per_team && (
@@ -659,14 +664,14 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       </Box>
       <hr />
       <Box>
-        <Text fontSize="xl" fontWeight="bold" color={currentColors.white} mb={4}>
+        <Text fontSize="xl" fontWeight="semibold" color={currentColors.white} mb={4}>
           🤖 Discord Bot Commands
         </Text>
 
         <Box p={4} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md" mb={4}>
           <HStack mb={2}>
             <InfoIcon color="blue.400" />
-            <Text fontWeight="bold" color={currentColors.textColor}>
+            <Text fontWeight="semibold" color={currentColors.textColor}>
               Using the Discord Bot
             </Text>
           </HStack>
@@ -684,7 +689,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           <Box p={4} bg="blackAlpha.300" borderRadius="md">
             <HStack mb={3}>
               <Text fontSize="lg">📊</Text>
-              <Text fontWeight="bold" color={currentColors.white}>
+              <Text fontWeight="semibold" color={currentColors.white}>
                 View Commands
               </Text>
             </HStack>
@@ -731,7 +736,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           <Box p={4} bg="blackAlpha.300" borderRadius="md">
             <HStack mb={3}>
               <Text fontSize="lg">⚔️</Text>
-              <Text fontWeight="bold" color={currentColors.white}>
+              <Text fontWeight="semibold" color={currentColors.white}>
                 Action Commands
               </Text>
             </HStack>
@@ -762,7 +767,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
         <Box mt={4} p={4} bg={colorMode === 'dark' ? 'green.900' : 'green.50'} borderRadius="md">
           <HStack mb={3}>
             <Text fontSize="lg">📖</Text>
-            <Text fontWeight="bold" color={currentColors.textColor}>
+            <Text fontWeight="semibold" color={currentColors.textColor}>
               Example Workflow
             </Text>
           </HStack>
@@ -804,7 +809,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
         <Box mt={4} p={4} bg="purple.50" borderRadius="md">
           <HStack mb={2}>
             <StarIcon color="purple.400" />
-            <Text fontWeight="bold" color={currentColors.textColor}>
+            <Text fontWeight="semibold" color={currentColors.textColor}>
               Discord Bot Pro Tips
             </Text>
           </HStack>
@@ -828,12 +833,12 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <hr />
       {/* FAQ */}
       <Box>
-        <Text fontSize="xl" fontWeight="bold" color={currentColors.white} mb={4}>
+        <Text fontSize="xl" fontWeight="semibold" color={currentColors.white} mb={4}>
           ❓ Frequently Asked Questions
         </Text>
         <VStack spacing={2} align="stretch">
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               Can I work on multiple nodes at once?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -844,7 +849,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               What happens if I complete Easy at a location, can I also do Hard?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -854,7 +859,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               Can I trade at an Inn multiple times?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -864,7 +869,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               What if I make a mistake in my submission?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -874,7 +879,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               Do I need to complete every node?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -884,7 +889,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               Can team members split up objectives?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -894,7 +899,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
           </Box>
 
           <Box p={3} bg="blackAlpha.50" borderRadius="md">
-            <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={1}>
+            <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={1}>
               What happens if the event ends before I submit proof?
             </Text>
             <Text fontSize="xs" color={currentColors.white}>
@@ -907,7 +912,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
       <hr />
       {/* Help Section */}
       <Box p={4} bg="blackAlpha.200" borderRadius="md" textAlign="center">
-        <Text fontSize="sm" fontWeight="bold" color={currentColors.white} mb={2}>
+        <Text fontSize="sm" fontWeight="semibold" color={currentColors.white} mb={2}>
           Need More Help?
         </Text>
         <Text fontSize="xs" color={currentColors.white}>

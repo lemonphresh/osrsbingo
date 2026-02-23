@@ -130,7 +130,7 @@ const BoardViewAllAdmin = () => {
                           <Text
                             display={['-webkit-box']}
                             fontSize="lg"
-                            fontWeight="bold"
+                            fontWeight="semibold"
                             mb={2}
                             overflow="hidden"
                             textOverflow="ellipsis"

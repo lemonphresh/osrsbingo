@@ -231,7 +231,7 @@ const RandomTilePickerModal = ({ isOpen, onClose, tiles, themeName, onSelectTile
               </Text>
               <VStack spacing={2}>
                 {selectedTile.icon && <Image src={selectedTile.icon} maxH="32px" maxW="32px" />}
-                <Text fontSize="lg" fontWeight="bold" color="white">
+                <Text fontSize="lg" fontWeight="semibold" color="white">
                   {selectedTile.name}
                 </Text>
               </VStack>

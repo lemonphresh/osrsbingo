@@ -116,7 +116,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
           <VStack spacing={4} align="stretch">
             {/* Overview */}
             <Box>
-              <Text fontWeight="bold" color="white" mb={2}>
+              <Text fontWeight="semibold" color="white" mb={2}>
                 📱 Overview
               </Text>
               <Text fontSize="sm" color="gray.300">
@@ -134,7 +134,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                 <Badge colorScheme="purple" fontSize="sm">
                   Step 0
                 </Badge>
-                <Text fontWeight="bold" color="white">
+                <Text fontWeight="semibold" color="white">
                   Install the Bot
                 </Text>
               </HStack>
@@ -170,7 +170,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                 <Badge colorScheme="purple" fontSize="sm">
                   Step 1
                 </Badge>
-                <Text fontWeight="bold" color="white">
+                <Text fontWeight="semibold" color="white">
                   Verify Bot Connection
                 </Text>
               </HStack>
@@ -272,7 +272,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                 <Badge colorScheme="purple" fontSize="sm">
                   Step 2
                 </Badge>
-                <Text fontWeight="bold" color="white">
+                <Text fontWeight="semibold" color="white">
                   Create Event Channels
                 </Text>
               </HStack>
@@ -331,7 +331,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                 borderWidth="1px"
                 borderColor="teal.700"
               >
-                <Text fontSize="xs" color="teal.100" fontWeight="bold">
+                <Text fontSize="xs" color="teal.100" fontWeight="semibold">
                   💡 The same Event ID goes in every team channel's topic and the bot figures out
                   which team is which based on team membership.
                 </Text>
@@ -346,7 +346,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                 <Badge colorScheme="purple" fontSize="sm">
                   Commands
                 </Badge>
-                <Text fontWeight="bold" color="white">
+                <Text fontWeight="semibold" color="white">
                   Available Commands
                 </Text>
               </HStack>

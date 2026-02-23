@@ -162,7 +162,7 @@ const Login = () => {
                 <VStack align="start" spacing={3}>
                   <Flex align="center" gap={2}>
                     <FaLock color={theme.colors.yellow[600]} size={14} />
-                    <Text fontWeight="bold" fontSize="sm" color={theme.colors.gray[700]}>
+                    <Text fontWeight="semibold" fontSize="sm" color={theme.colors.gray[700]}>
                       Here's the deal...
                     </Text>
                   </Flex>

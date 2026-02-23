@@ -73,7 +73,7 @@ const BoardCreationForm = ({ onSubmit }) => {
     >
       <VStack spacing={4} width="100%">
         <FormControl isRequired>
-          <FormLabel fontWeight="bold">Name: </FormLabel>
+          <FormLabel fontWeight="semibold">Name: </FormLabel>
           <Input
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
@@ -86,7 +86,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl>
-          <FormLabel fontWeight="bold">Description: </FormLabel>
+          <FormLabel fontWeight="semibold">Description: </FormLabel>
           <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
             Note: you can use{' '}
             <a
@@ -112,7 +112,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel fontWeight="bold">Category:</FormLabel>
+          <FormLabel fontWeight="semibold">Category:</FormLabel>
           <Select
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
@@ -129,7 +129,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel fontWeight="bold">Color Scheme:</FormLabel>
+          <FormLabel fontWeight="semibold">Color Scheme:</FormLabel>
           <Select
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
@@ -151,7 +151,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl isRequired>
-          <FormLabel fontWeight="bold">Board Type:</FormLabel>
+          <FormLabel fontWeight="semibold">Board Type:</FormLabel>
           <Select
             backgroundColor={theme.colors.gray[300]}
             color={theme.colors.gray[700]}
@@ -165,7 +165,7 @@ const BoardCreationForm = ({ onSubmit }) => {
         </FormControl>
 
         <FormControl>
-          <FormLabel fontWeight="bold">Base Tile Value:</FormLabel>
+          <FormLabel fontWeight="semibold">Base Tile Value:</FormLabel>
           <Text fontSize="14px" marginBottom="4px" marginLeft="8px">
             This will apply to every tile upon board creation. You can change individual tile values
             later!
@@ -201,7 +201,7 @@ const BoardCreationForm = ({ onSubmit }) => {
 
         <FormControl display="flex" justifyContent="center" flexDirection="column">
           <Flex>
-            <FormLabel fontWeight="bold" mb="0">
+            <FormLabel fontWeight="semibold" mb="0">
               Public Board:
             </FormLabel>
             <Switch name="isPublic" isChecked={formData.isPublic} onChange={handleChange} />

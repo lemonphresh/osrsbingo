@@ -112,22 +112,23 @@ const NavBar = () => {
               <VStack align="start" spacing={1} flex={1}>
                 {/* short copy on mobile/tablet, full copy on desktop */}
                 <Text fontSize={['sm', 'md']} display={['block', 'block', 'none']}>
-                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="bold">
+                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="semibold">
                     Like the site?
                   </Text>{' '}
                   Solo dev here! No ads, just server bills. If the site helps your clan, consider
                   supporting! 💛
                 </Text>
                 <Text fontSize="md" display={['none', 'none', 'block']}>
-                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="bold">
+                  <Text as="span" color={theme.colors.yellow[400]} fontWeight="semibold">
                     HEY YOU! Like the site?
                   </Text>{' '}
                   I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
                   Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                {isGielinorRushEnabled() ? (
+                {isGielinorRushEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also go try <strong>Gielinor Rush</strong>, it's new! It's cool! It's fun!
+                    Also, clan leaders, go try <strong>Gielinor Rush</strong>, it's new! It's cool!
+                    It's fun!
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
@@ -155,7 +156,7 @@ const NavBar = () => {
                     paddingX={5}
                     paddingY={2}
                     borderRadius="md"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     fontSize="sm"
                     _hover={{ backgroundColor: theme.colors.yellow[300] }}
                   >
@@ -163,7 +164,7 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isGielinorRushEnabled() ? (
+              {isGielinorRushEnabled(user) ? (
                 <Link to="/gielinor-rush">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Gielinor Rush →
@@ -307,7 +308,7 @@ const NavBar = () => {
                 color="white"
                 borderRadius="full"
                 fontSize="10px"
-                fontWeight="bold"
+                fontWeight="semibold"
                 minWidth="18px"
                 height="18px"
                 display="flex"

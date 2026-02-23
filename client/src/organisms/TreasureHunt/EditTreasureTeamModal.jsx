@@ -228,7 +228,7 @@ export default function EditTeamModal({
                     <Box flex="1" textAlign="left">
                       <HStack>
                         <Icon as={InfoIcon} color="blue.400" />
-                        <Text fontSize="sm" fontWeight="bold" color="blue.200">
+                        <Text fontSize="sm" fontWeight="semibold" color="blue.200">
                           How do I find Discord User IDs?
                         </Text>
                       </HStack>
@@ -300,7 +300,7 @@ export default function EditTeamModal({
       <AlertDialog isOpen={isDeleteOpen} leastDestructiveRef={cancelRef} onClose={onDeleteClose}>
         <AlertDialogOverlay backdropFilter="blur(4px)">
           <AlertDialogContent bg="gray.800" color="white">
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color="white">
+            <AlertDialogHeader fontSize="lg" fontWeight="semibold" color="white">
               Delete Team
             </AlertDialogHeader>
 

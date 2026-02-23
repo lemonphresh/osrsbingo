@@ -49,7 +49,7 @@ const DiscordLinkBanner = ({ onDismiss }) => {
       <HStack spacing={3} flex={1} align="start">
         <Icon as={FaDiscord} boxSize={6} color="white" mt={1} />
         <VStack align="start" spacing={1} flex={1}>
-          <AlertTitle color="white" fontWeight="bold" fontSize="md">
+          <AlertTitle color="white" fontWeight="semibold" fontSize="md">
             Link Your Discord for Full Access
           </AlertTitle>
           <AlertDescription color="whiteAlpha.900" fontSize="sm">

@@ -9,7 +9,7 @@ const ColorScheme = ({ board, canEdit, onChange }) =>
         as="span"
         color={theme.colors.teal[300]}
         display="inline"
-        fontWeight="bold"
+        fontWeight="semibold"
         marginY="8px"
         textAlign="center"
       >

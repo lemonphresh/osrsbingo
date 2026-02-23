@@ -125,6 +125,17 @@ async function isEventAdmin(userId, eventId) {
   return event.creatorId === userId || event.adminIds?.includes(userId);
 }
 
+async function isEventAdminOrRef(userId, eventId) {
+  if (!userId) return false;
+  const event = await TreasureEvent.findByPk(eventId);
+  if (!event) return false;
+  return (
+    event.creatorId === userId ||
+    event.adminIds?.includes(userId) ||
+    event.refIds?.includes(userId)
+  );
+}
+
 async function isDiscordUserOnTeam(discordUserId, teamId, eventId) {
   if (!discordUserId) return false;
   const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
@@ -572,6 +583,46 @@ const TreasureHuntResolvers = {
       return TreasureEvent.findByPk(eventId);
     },
 
+    addEventRef: async (_, { eventId, userId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      console.log(
+        `[addEventRef] eventId=${eventId} newRefUserId=${userId} requestedBy=${context.user.id}`
+      );
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      const isAdmin =
+        event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+      if (!isAdmin) throw new Error('Not authorized to add refs');
+
+      const refIds = event.refIds || [];
+      if (!refIds.includes(Number(userId))) {
+        await event.update({ refIds: [...refIds, Number(userId)] });
+      }
+
+      return TreasureEvent.findByPk(eventId);
+    },
+
+    removeEventRef: async (_, { eventId, userId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      console.log(
+        `[removeEventRef] eventId=${eventId} removingUserId=${userId} requestedBy=${context.user.id}`
+      );
+
+      const event = await TreasureEvent.findByPk(eventId);
+      if (!event) throw new Error('Event not found');
+
+      const isAdmin =
+        event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
+      if (!isAdmin) throw new Error('Not authorized to remove refs');
+
+      await event.update({
+        refIds: (event.refIds || []).filter((id) => id !== Number(userId)),
+      });
+      return TreasureEvent.findByPk(eventId);
+    },
+
     submitNodeCompletion: async (
       _,
       { eventId, teamId, nodeId, proofUrl, submittedBy, submittedByUsername, channelId },
@@ -646,6 +697,16 @@ const TreasureHuntResolvers = {
       });
 
       if (!submission) throw new Error('Submission not found');
+
+      if (!(await isEventAdminOrRef(context.user?.id, submission.team.eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      if (submission.status !== 'PENDING') {
+        throw new Error(
+          `Submission has already been ${submission.status.toLowerCase()}. Refresh and try again.`
+        );
+      }
 
       const nodes = context.loaders
         ? await context.loaders.nodesByEventId.load(submission.team.eventId)
@@ -752,8 +813,8 @@ const TreasureHuntResolvers = {
         `[adminCompleteNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
       );
 
-      const isAdmin = await isEventAdmin(context.user.id, eventId);
-      if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
 
       const [event, team, node] = await Promise.all([
         TreasureEvent.findByPk(eventId),
@@ -914,8 +975,8 @@ const TreasureHuntResolvers = {
         `[adminUncompleteNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
       );
 
-      const isAdmin = await isEventAdmin(context.user.id, eventId);
-      if (!isAdmin) throw new Error('Not authorized. Admin access required.');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
 
       const [event, team, node] = await Promise.all([
         TreasureEvent.findByPk(eventId),
@@ -1027,6 +1088,9 @@ const TreasureHuntResolvers = {
       const buff = team.activeBuffs[buffIndex];
 
       if (!node.objective) throw new Error('This node does not have an objective');
+      if (node.objective.appliedBuff) {
+        throw new Error('A buff has already been applied to this node');
+      }
       if (!buff.objectiveTypes.includes(node.objective.type)) {
         throw new Error(`This buff cannot be applied to ${node.objective.type} objectives.`);
       }
@@ -1213,6 +1277,8 @@ const TreasureHuntResolvers = {
 
       if (!reward || !innNode) throw new Error('Reward not found');
 
+      // reload to get the freshest state before the critical section
+      await team.reload();
       const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
       if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
 

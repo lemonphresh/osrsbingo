@@ -84,7 +84,7 @@ const BuffInventory = ({ buffs = [], colorMode = 'dark', onBuffClick }) => {
                 <Text fontSize="2xl">{getBuffIcon(buff.buffType)}</Text>
                 <VStack align="start" spacing={0}>
                   <HStack>
-                    <Text fontWeight="bold" color={currentColors.textColor}>
+                    <Text fontWeight="semibold" color={currentColors.textColor}>
                       {buff.buffName}
                     </Text>
                     <Badge colorScheme={getBuffColor(buff.reduction)} fontSize="xs">

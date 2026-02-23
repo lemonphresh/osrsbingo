@@ -53,7 +53,7 @@ export default function SavedEventsPanel({ items, onRestore, onView, onDelete })
           >
             <HStack justify="space-between" align="start">
               <VStack align="start" spacing={1}>
-                <Text fontWeight="bold">{e.title}</Text>
+                <Text fontWeight="semibold">{e.title}</Text>
                 {e.eventType && (
                   <Badge backgroundColor={TYPE_COLOR[e.eventType] || undefined} color="white">
                     {TYPE_LABEL[e.eventType] || e.eventType}

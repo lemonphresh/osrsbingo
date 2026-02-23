@@ -275,7 +275,7 @@ export default function InnModal({
                           <VStack align="start" spacing={2} flex={1}>
                             {/* Key cost */}
                             <HStack>
-                              <Text fontWeight="bold" color={currentColors.textColor}>
+                              <Text fontWeight="semibold" color={currentColors.textColor}>
                                 Trade:
                               </Text>
                               {reward.key_cost.map((cost, idx) => (
@@ -294,7 +294,7 @@ export default function InnModal({
                                 →
                               </Text>
                               <Text
-                                fontWeight="bold"
+                                fontWeight="semibold"
                                 color={currentColors.green.base}
                                 fontSize="lg"
                               >
@@ -318,7 +318,7 @@ export default function InnModal({
                                     <Text fontSize="sm">{getBuffIcon(buff.buffType)}</Text>
                                     <Text
                                       fontSize="sm"
-                                      fontWeight="bold"
+                                      fontWeight="semibold"
                                       color={currentColors.textColor}
                                     >
                                       {buff.buffName || buff.buffType}

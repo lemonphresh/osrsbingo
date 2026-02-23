@@ -118,7 +118,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
             <Box p={4} bg={colorMode === 'dark' ? 'purple.900' : 'purple.50'} borderRadius="md">
               <HStack mb={2}>
                 <InfoIcon color="purple.400" />
-                <Text fontWeight="bold" color={currentColors.textColor}>
+                <Text fontWeight="semibold" color={currentColors.textColor}>
                   What are Buffs?
                 </Text>
               </HStack>
@@ -133,7 +133,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
 
             {/* How to Get Buffs */}
             <Box>
-              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor} mb={3}>
+              <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor} mb={3}>
                 💎 How to Earn Buffs
               </Text>
               <List spacing={2}>
@@ -160,7 +160,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
 
             {/* Buff Tiers */}
             <Box>
-              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor} mb={3}>
+              <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor} mb={3}>
                 🏆 Buff Tiers
               </Text>
               <VStack spacing={3}>
@@ -177,7 +177,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                     <HStack justify="space-between" mb={1}>
                       <HStack>
                         <Text fontSize="xl">{buff.icon}</Text>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
+                        <Text fontWeight="semibold" color={currentColors.textColor}>
                           {buff.tier}
                         </Text>
                         <Badge colorScheme={buff.color}>{buff.reduction} Reduction</Badge>
@@ -202,7 +202,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
 
             {/* Buff Types */}
             <Box>
-              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor} mb={3}>
+              <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor} mb={3}>
                 🎯 Buff Types
               </Text>
               <VStack spacing={3}>
@@ -216,7 +216,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                   >
                     <HStack mb={2}>
                       <Text fontSize="xl">{buff.icon}</Text>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" color={currentColors.textColor}>
                         {buff.type}
                       </Text>
                       <Badge colorScheme={buff.color} fontSize="xs">
@@ -229,7 +229,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                       borderRadius="sm"
                     >
                       <Text fontSize="xs" color={currentColors.textColor}>
-                        <Text as="span" fontWeight="bold">
+                        <Text as="span" fontWeight="semibold">
                           Example:{' '}
                         </Text>
                         {buff.example}
@@ -244,7 +244,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
 
             {/* How to Use Buffs */}
             <Box>
-              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor} mb={3}>
+              <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor} mb={3}>
                 🎮 How to Use Buffs
               </Text>
               <Accordion allowMultiple>
@@ -256,7 +256,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                     mb={2}
                   >
                     <Box flex="1" textAlign="left">
-                      <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                         Step 1: View Available Nodes
                       </Text>
                     </Box>
@@ -278,7 +278,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                     mb={2}
                   >
                     <Box flex="1" textAlign="left">
-                      <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                         Step 2: Click Node with Compatible Buff
                       </Text>
                     </Box>
@@ -303,7 +303,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                     mb={2}
                   >
                     <Box flex="1" textAlign="left">
-                      <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                         Step 3: Apply Your Buff
                       </Text>
                     </Box>
@@ -324,7 +324,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
                     borderRadius="md"
                   >
                     <Box flex="1" textAlign="left">
-                      <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                         Step 4: Complete Reduced Objective
                       </Text>
                     </Box>
@@ -346,7 +346,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
             <Box p={4} bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} borderRadius="md">
               <HStack mb={2}>
                 <StarIcon color="blue.400" />
-                <Text fontWeight="bold" color={currentColors.textColor}>
+                <Text fontWeight="semibold" color={currentColors.textColor}>
                   Strategic Tips
                 </Text>
               </HStack>
@@ -372,7 +372,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
 
             {/* Important Notes */}
             <Box p={4} bg={colorMode === 'dark' ? 'orange.900' : 'orange.50'} borderRadius="md">
-              <Text fontWeight="bold" fontSize="sm" color={currentColors.textColor} mb={2}>
+              <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor} mb={2}>
                 ⚠️ Important Notes
               </Text>
               <VStack align="start" spacing={1}>

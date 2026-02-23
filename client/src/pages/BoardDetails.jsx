@@ -273,7 +273,7 @@ const BoardDetails = () => {
           alignItems="center"
           display="inline-flex"
           _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-          fontWeight="bold"
+          fontWeight="semibold"
           marginBottom="1px"
         >
           <Icon as={MdOutlineStorage} marginRight="8px" />

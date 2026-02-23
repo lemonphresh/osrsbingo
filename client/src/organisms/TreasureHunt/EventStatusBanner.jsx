@@ -172,7 +172,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
                 bg="whiteAlpha.300"
                 color="white"
                 fontSize="xs"
-                fontWeight="bold"
+                fontWeight="semibold"
                 px={2}
                 py={0.5}
                 borderRadius="full"
@@ -192,7 +192,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
                 </Badge>
               )}
             </HStack>
-            <Text color="white" fontWeight="bold" fontSize={['md', 'lg']}>
+            <Text color="white" fontWeight="semibold" fontSize={['md', 'lg']}>
               {statusConfig.title}
             </Text>
             <Text color="whiteAlpha.800" fontSize="sm">
@@ -212,7 +212,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
             borderRadius="md"
             minW="100px"
           >
-            <Text color="white" fontSize="2xl" fontWeight="bold" fontFamily="mono">
+            <Text color="white" fontSize="2xl" fontWeight="semibold" fontFamily="mono">
               {statusConfig.countdown}
             </Text>
             <Text color="whiteAlpha.800" fontSize="xs" textTransform="uppercase">

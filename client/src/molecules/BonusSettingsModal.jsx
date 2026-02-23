@@ -73,7 +73,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               />
             </Flex>
 
-            <Text color={theme.colors.purple[300]} fontWeight="bold">
+            <Text color={theme.colors.purple[300]} fontWeight="semibold">
               Multipliers
             </Text>
             <Text color="gray.400" fontSize="12px">
@@ -167,7 +167,7 @@ const BonusSettingsModal = ({ board, isOpen, onClose, onUpdateField }) => {
               </Flex>
             )}
 
-            <Text color={theme.colors.purple[300]} fontWeight="bold">
+            <Text color={theme.colors.purple[300]} fontWeight="semibold">
               Point Bonus
             </Text>
             <Text color="gray.400" fontSize="12px">

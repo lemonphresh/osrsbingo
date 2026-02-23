@@ -648,7 +648,12 @@ const MultiTeamTreasureMap = ({
                           </>
                         ) : (
                           <>
-                            <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
+                            <Text
+                              m="0!important"
+                              fontWeight="semibold"
+                              fontSize="md"
+                              color="#1a1a1a"
+                            >
                               {node.title}
                             </Text>
                             <Badge colorScheme={node.nodeType === 'INN' ? 'yellow' : 'blue'}>
@@ -701,7 +706,7 @@ const MultiTeamTreasureMap = ({
                               <Text
                                 fontSize="xs"
                                 m="0!important"
-                                fontWeight="bold"
+                                fontWeight="semibold"
                                 color="#2d3748"
                                 pb={1}
                               >
@@ -724,7 +729,7 @@ const MultiTeamTreasureMap = ({
 
                           {completion.completed.length > 0 && (
                             <Box>
-                              <Text fontSize="xs" fontWeight="bold" color="#2d3748" pb={1}>
+                              <Text fontSize="xs" fontWeight="semibold" color="#2d3748" pb={1}>
                                 Completed by:
                               </Text>
                               <VStack align="start" spacing={1}>
@@ -745,7 +750,7 @@ const MultiTeamTreasureMap = ({
                               <Text
                                 fontSize="xs"
                                 m="0!important"
-                                fontWeight="bold"
+                                fontWeight="semibold"
                                 color="#2d3748"
                                 pb={1}
                               >
@@ -783,7 +788,7 @@ const MultiTeamTreasureMap = ({
                                 <Text
                                   m="0!important"
                                   fontSize="xs"
-                                  fontWeight="bold"
+                                  fontWeight="semibold"
                                   color="#2d3748"
                                   pb={1}
                                 >
@@ -810,7 +815,7 @@ const MultiTeamTreasureMap = ({
                                       m="0!important"
                                       pb={1}
                                       fontSize="xs"
-                                      fontWeight="bold"
+                                      fontWeight="semibold"
                                       color="#2d3748"
                                     >
                                       🎁 Buff Rewards:
@@ -880,14 +885,14 @@ const MultiTeamTreasureMap = ({
                   keepInView={true}
                 >
                   <VStack align="start" spacing={2}>
-                    <Text fontWeight="bold" fontSize="sm" color="#1a1a1a">
+                    <Text fontWeight="semibold" fontSize="sm" color="#1a1a1a">
                       Teams at this node:
                     </Text>
                     {teamsAtNode.map(({ team, color }) => (
                       <HStack key={team.teamId}>
                         <Box w={4} h={4} bg={color} borderRadius="full" />
                         <VStack align="start" spacing={0}>
-                          <Text fontSize="sm" m="0!important" fontWeight="bold">
+                          <Text fontSize="sm" m="0!important" fontWeight="semibold">
                             {team.teamName}
                           </Text>
                           <Text fontSize="xs" m="0!important" color="#718096">
@@ -925,7 +930,7 @@ const MultiTeamTreasureMap = ({
             cursor={isMobile ? 'pointer' : 'default'}
             onClick={isMobile ? onToggle : undefined}
           >
-            <Text fontWeight="bold" fontSize="sm" color="#2d3748">
+            <Text fontWeight="semibold" fontSize="sm" color="#2d3748">
               Legend
             </Text>
             {isMobile && (
@@ -995,7 +1000,7 @@ const MultiTeamTreasureMap = ({
                   <Text color="#2d3748">Inn</Text>
                 </HStack>
                 <Text
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   fontSize="xs"
                   mt={2}
                   mb={1}
@@ -1020,7 +1025,7 @@ const MultiTeamTreasureMap = ({
               </VStack>
 
               <Text
-                fontWeight="bold"
+                fontWeight="semibold"
                 fontSize="sm"
                 mb={2}
                 color="#2d3748"

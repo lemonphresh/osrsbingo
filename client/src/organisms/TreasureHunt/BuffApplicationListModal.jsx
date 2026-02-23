@@ -180,7 +180,7 @@ const BuffApplicationListModal = ({
                           <QuestionIcon color={currentColors.orange} boxSize={5} />
                           <VStack align="start" spacing={1} flex={1}>
                             <HStack flexWrap="wrap">
-                              <Text fontWeight="bold" color={currentColors.textColor}>
+                              <Text fontWeight="semibold" color={currentColors.textColor}>
                                 {node.title}
                               </Text>
                               <Badge colorScheme={diffBadge.scheme} fontSize="xs">

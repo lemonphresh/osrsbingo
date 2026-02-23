@@ -90,7 +90,7 @@ const ProgressiveStartTutorial = ({
             <VStack align="stretch" spacing={2}>
               <HStack>
                 <Icon as={InfoIcon} color="blue.400" />
-                <Text fontSize="sm" fontWeight="bold">
+                <Text fontSize="sm" fontWeight="semibold">
                   Pro Tips:
                 </Text>
               </HStack>
@@ -121,7 +121,7 @@ const ProgressiveStartTutorial = ({
         <VStack align="stretch" spacing={3}>
           <Box bg={currentColors.stepBg} p={4} borderRadius="md">
             <VStack align="stretch" spacing={3}>
-              <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+              <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                 ✅ Good Screenshot Checklist:
               </Text>
               <VStack align="stretch" spacing={2} pl={4}>
@@ -144,7 +144,7 @@ const ProgressiveStartTutorial = ({
           <Alert status="warning" borderRadius="md">
             <AlertIcon />
             <Box>
-              <Text fontSize="sm" fontWeight="bold" mb={1}>
+              <Text fontSize="sm" fontWeight="semibold" mb={1}>
                 Common Rejection Reasons:
               </Text>
               <UnorderedList fontSize="xs" spacing={1}>
@@ -185,7 +185,7 @@ const ProgressiveStartTutorial = ({
               borderRadius="full"
             />
             <VStack spacing={3}>
-              <Text color="white" fontWeight="bold" fontSize="lg">
+              <Text color="white" fontWeight="semibold" fontSize="lg">
                 Your Node ID:
               </Text>
               <HStack
@@ -198,7 +198,7 @@ const ProgressiveStartTutorial = ({
               >
                 <Code
                   fontSize="xl"
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   bg="transparent"
                   color="white"
                   letterSpacing="wider"
@@ -250,7 +250,7 @@ const ProgressiveStartTutorial = ({
           <Alert status="warning" borderRadius="md" variant="left-accent">
             <AlertIcon />
             <Box>
-              <Text fontSize="sm" fontWeight="bold" mb={1}>
+              <Text fontSize="sm" fontWeight="semibold" mb={1}>
                 ⚠️ Important: Use the correct channel!
               </Text>
               <Text fontSize="xs">
@@ -297,7 +297,7 @@ const ProgressiveStartTutorial = ({
             <HStack>
               <Icon as={InfoIcon} color="purple.500" />
               <VStack align="start" spacing={0} flex={1}>
-                <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor}>
+                <Text fontSize="xs" fontWeight="semibold" color={currentColors.textColor}>
                   After Submission:
                 </Text>
                 <Text fontSize="xs" color="gray.600">
@@ -339,7 +339,7 @@ const ProgressiveStartTutorial = ({
           </Box>
           <Box bg={currentColors.stepBg} p={4} borderRadius="md">
             <VStack align="stretch" spacing={3}>
-              <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+              <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
                 What happens next:
               </Text>
               <VStack align="stretch" spacing={2} pl={4}>
@@ -369,7 +369,7 @@ const ProgressiveStartTutorial = ({
           <Alert status="success" borderRadius="md">
             <AlertIcon />
             <Box>
-              <Text fontSize="sm" fontWeight="bold" mb={1}>
+              <Text fontSize="sm" fontWeight="semibold" mb={1}>
                 🎉 Great job completing the tutorial!
               </Text>
               <Text fontSize="xs">
@@ -425,7 +425,7 @@ const ProgressiveStartTutorial = ({
       >
         <VStack align="start" spacing={1} flex={1}>
           <HStack w="full" justify="space-between">
-            <Text fontSize="sm" fontWeight="bold" color="white">
+            <Text fontSize="sm" fontWeight="semibold" color="white">
               🎓 Getting Started Tutorial
             </Text>
             <HStack spacing={2}>
