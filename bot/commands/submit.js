@@ -97,7 +97,7 @@ module.exports = {
           DRAFT:
             '🚧 This event is still in **DRAFT** mode. Submissions will open once the event organizer activates it.',
           COMPLETED: '🏁 This event has **ended**. Submissions are no longer accepted.',
-          CANCELLED: '❌ This event has been **cancelled**.',
+          ARCHIVED: 'This event has been **archived**.',
         };
         return message.reply(
           `${statusMessages[event.status] || `⚠️ Event not active (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,

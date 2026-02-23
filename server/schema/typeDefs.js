@@ -334,6 +334,7 @@ const typeDefs = gql`
     innTransactions: JSON
     submissions: [TreasureSubmission!]
     event: TreasureEvent
+    updatedAt: String
   }
 
   input CreateTreasureTeamInput {

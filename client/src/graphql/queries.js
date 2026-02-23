@@ -556,6 +556,7 @@ export const GET_ALL_TREASURE_EVENTS = gql`
         teamName
         currentPot
         completedNodes
+        updatedAt
       }
     }
   }

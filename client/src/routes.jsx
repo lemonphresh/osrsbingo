@@ -24,6 +24,7 @@ const SupportPage = lazy(() => import('./pages/SupportTheSite'));
 const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
+const TreasureHuntActiveEventsPage = lazy(() => import('./pages/TreasureHuntActiveEvents'));
 const DebugComponentsPage = lazy(() => import('./debug/index'));
 
 // loading fallback component
@@ -99,6 +100,11 @@ const routes = [
       {
         path: '/gielinor-rush',
         element: withSuspense(TreasureHuntDashboard),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/gielinor-rush/active',
+        element: withSuspense(TreasureHuntActiveEventsPage),
         errorElement: <ErrorPage />,
       },
       {

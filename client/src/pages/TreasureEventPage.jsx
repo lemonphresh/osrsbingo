@@ -122,13 +122,13 @@ const StandingsCard = ({
   colorMode,
   onEditTeam,
   onTeamClick,
-  onRefresh,
-  isRefreshing,
+  userDiscordId,
 }) => {
   const navigate = useNavigate();
   const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
   const isLeader = index === 0 && (team.currentPot || 0) > 0;
   const completedCount = team.completedNodes?.length || 0;
+  const isOnTeam = userDiscordId && team.members?.some((m) => m.discordUserId === userDiscordId);
   const totalNodes = Math.max(event.nodes?.length || 1, 1);
   const progressPct = (completedCount / totalNodes) * 100;
 
@@ -208,7 +208,7 @@ const StandingsCard = ({
               {completedCount} {completedCount === 1 ? 'node' : 'nodes'}
             </Text>
           </HStack>
-          {event.nodes?.length > 0 && (
+          {event.nodes?.length > 0 && (isOnTeam || onEditTeam) && (
             <Button
               size="sm"
               bg={isLeader ? 'blackAlpha.100' : 'whiteAlpha.200'}
@@ -794,9 +794,10 @@ const TreasureEventView = () => {
             </StatGroup>
           )}
 
-          {event.status === 'COMPLETED' && (
-            <EventSummaryPanel event={event} teams={teams} nodes={event.nodes || []} />
-          )}
+          {event.status === 'COMPLETED' ||
+            (event.status === 'ARCHIVED' && (
+              <EventSummaryPanel event={event} teams={teams} nodes={event.nodes || []} />
+            ))}
 
           {/* ── MAIN BODY: two-column leaderboard + map ─────────────────────── */}
           {event.status !== 'COMPLETED' &&
@@ -893,6 +894,7 @@ const TreasureEventView = () => {
                           colorMode={colorMode}
                           onTeamClick={handleTeamCardClick}
                           onEditTeam={isEventAdmin ? handleEditTeam : null}
+                          userDiscordId={user?.discordUserId}
                         />
                       ))}
                     </VStack>

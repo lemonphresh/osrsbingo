@@ -375,6 +375,43 @@ const TreasureHuntDashboard = () => {
             prize.
           </Text>
 
+          {isGielinorRushEnabled() && (
+            <Box
+              as="button"
+              onClick={() => navigate('/gielinor-rush/active')}
+              px={4}
+              py={2}
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor={c.green.base}
+              color={c.green.base}
+              fontSize="sm"
+              fontWeight="semibold"
+              _hover={{ bg: 'whiteAlpha.100' }}
+              transition="all 0.2s"
+              display="flex"
+              alignItems="center"
+              gap={2}
+            >
+              <Box
+                w="7px"
+                h="7px"
+                borderRadius="full"
+                bg={c.green.base}
+                boxShadow={`0 0 6px ${c.green.base}`}
+                flexShrink={0}
+                sx={{
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%, 100%': { opacity: 1 },
+                    '50%': { opacity: 0.4 },
+                  },
+                }}
+              />
+              Spectate live events
+            </Box>
+          )}
+
           <Box
             w="100%"
             borderRadius="10px"

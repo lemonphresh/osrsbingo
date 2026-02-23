@@ -70,14 +70,16 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
           </Text>
         </VStack>
 
-        <Image
-          src={SuccessImg}
-          maxHeight="300px"
-          objectFit="contain"
-          borderRadius="lg"
-          alignSelf="center"
-          my={3}
-        />
+        {event.status !== 'ARCHIVED' && (
+          <Image
+            src={SuccessImg}
+            maxHeight="300px"
+            objectFit="contain"
+            borderRadius="lg"
+            alignSelf="center"
+            my={3}
+          />
+        )}
 
         {/* Stats row */}
         <StatGroup w="full">
