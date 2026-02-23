@@ -16,6 +16,9 @@ node_modules/
 /client/build
 /server/public
 
+# generated at build time
+/client/public/version.json
+
 # misc
 .DS_Store
 .env.local

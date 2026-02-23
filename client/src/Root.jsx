@@ -3,9 +3,10 @@ import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
-import { Flex, Spinner } from '@chakra-ui/react';
+import { Alert, AlertIcon, AlertTitle, Button, Flex, HStack, Spinner } from '@chakra-ui/react';
 import theme from './theme';
 import ScrollToTop from './atoms/ScrollToTop';
+import { useAppVersion } from './hooks/useAppVersion';
 
 const AuthConsumer = () => {
   const { isCheckingAuth } = useAuth();
@@ -29,6 +30,8 @@ const AuthConsumer = () => {
 };
 
 const Root = () => {
+  const updateAvailable = useAppVersion();
+
   return (
     <AuthProvider>
       <Flex
@@ -40,6 +43,17 @@ const Root = () => {
       >
         <ScrollToTop />
         <NavBar />
+        {updateAvailable && (
+          <Alert status="info" colorScheme="pink" textColor={theme.colors.light.textColor}>
+            <AlertIcon />
+            <HStack justify="space-between" w="100%">
+              <AlertTitle>A new version is available</AlertTitle>
+              <Button size="sm" onClick={() => window.location.reload()}>
+                Refresh
+              </Button>
+            </HStack>
+          </Alert>
+        )}
         <AuthConsumer />
         <Footer />
       </Flex>
