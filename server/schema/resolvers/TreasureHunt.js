@@ -234,7 +234,7 @@ const TreasureHuntResolvers = {
 
     verifyDiscordGuild: async (_, { guildId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      return verifyGuild(guildId);
+      return await verifyGuild(guildId);
     },
   },
 
@@ -308,7 +308,7 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
 
       // Verify bot is actually in the guild before confirming
-      const { success, error } = verifyGuild(guildId);
+      const { success, error } = await verifyGuild(guildId);
       if (!success) throw new Error(error || 'Bot not found in that server');
 
       await event.update({
