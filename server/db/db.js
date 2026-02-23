@@ -20,10 +20,7 @@ const sequelize = dbUrl
       ...sharedOptions,
       protocol: 'postgres',
       dialectOptions: {
-        ssl:
-          process.env.NODE_ENV === 'production'
-            ? { require: true, rejectUnauthorized: false }
-            : false,
+        ssl: { require: true, rejectUnauthorized: false },
       },
     })
   : new Sequelize('osrsbingo', 'lemon', null, {
