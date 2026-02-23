@@ -190,7 +190,7 @@ export const EnhancedTeamStats = ({
                 <PopoverArrow />
                 <PopoverBody fontSize="xs">
                   <VStack align="start" spacing={0}>
-                    <Text fontWeight="bold">Next Team: {nextTeam.teamName}</Text>
+                    <Text fontWeight="semibold">Next Team: {nextTeam.teamName}</Text>
                     <Text color="gray.500">
                       {formatGP(nextTeam.currentPot)} GP ({formatGP(gpToNextRank)} ahead)
                     </Text>
@@ -225,7 +225,7 @@ export const EnhancedTeamStats = ({
               borderRadius="full"
             >
               <Icon as={FaFire} color="white" boxSize={3} />
-              <Text fontSize="xs" color="white" fontWeight="bold">
+              <Text fontSize="xs" color="white" fontWeight="semibold">
                 Active
               </Text>
             </HStack>

@@ -40,7 +40,7 @@ const PleaseEffect = ({ children }) => {
           left={`${x}%`}
           transform="translateX(-50%)"
           fontSize="11px"
-          fontWeight="bold"
+          fontWeight="semibold"
           color="yellow.300"
           pointerEvents="none"
           userSelect="none"

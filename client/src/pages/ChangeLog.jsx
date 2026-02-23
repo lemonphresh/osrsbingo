@@ -306,7 +306,7 @@ const ChangelogEntry = ({ entry, isLatest }) => {
           </Text>
         </HStack>
 
-        <Text fontSize="xl" fontWeight="bold" color="white">
+        <Text fontSize="xl" fontWeight="semibold" color="white">
           {entry.title}
         </Text>
 
@@ -368,11 +368,11 @@ export default function ChangelogPage() {
           >
             <HStack spacing={2} mb={2}>
               <FaRocket color="#F4D35E" />
-              <Text fontWeight="bold" color="#F4D35E" fontSize="sm">
+              <Text fontWeight="semibold" color="#F4D35E" fontSize="sm">
                 LATEST MAJOR RELEASE
               </Text>
             </HStack>
-            <Text color="white" fontWeight="bold" fontSize="lg">
+            <Text color="white" fontWeight="semibold" fontSize="lg">
               Gielinor Rush is here!
             </Text>
             <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
@@ -410,7 +410,7 @@ export default function ChangelogPage() {
           flexWrap="wrap"
         >
           <VStack spacing={0}>
-            <Text fontSize={['xl', '2xl']} fontWeight="bold" color="#F4D35E">
+            <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
               14+
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">
@@ -418,7 +418,7 @@ export default function ChangelogPage() {
             </Text>
           </VStack>
           <VStack spacing={0}>
-            <Text fontSize={['xl', '2xl']} fontWeight="bold" color="#F4D35E">
+            <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
               200+
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">
@@ -426,7 +426,7 @@ export default function ChangelogPage() {
             </Text>
           </VStack>
           <VStack spacing={0}>
-            <Text fontSize={['xl', '2xl']} fontWeight="bold" color="#F4D35E">
+            <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
               1
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">

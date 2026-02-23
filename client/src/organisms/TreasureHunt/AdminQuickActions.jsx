@@ -103,7 +103,7 @@ const AdminQuickActionsPanel = ({
       >
         <HStack justify="space-between">
           <VStack align="start" spacing={0}>
-            <Text fontSize="2xl" fontWeight="bold" color="white">
+            <Text fontSize="2xl" fontWeight="semibold" color="white">
               {value}
             </Text>
             <Text fontSize="xs" color="gray.300">
@@ -143,7 +143,7 @@ const AdminQuickActionsPanel = ({
       >
         <HStack spacing={2}>
           <Icon as={FaCog} color="white" />
-          <Text fontWeight="bold" color="white" fontSize="sm">
+          <Text fontWeight="semibold" color="white" fontSize="sm">
             Admin Panel
           </Text>
           {hasUrgentItems && !isMinimized && (
@@ -221,7 +221,7 @@ const AdminQuickActionsPanel = ({
 
               {/* Submission breakdown */}
               <Box p={2} bg="gray.700" borderRadius="md">
-                <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={2}>
+                <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={2}>
                   SUBMISSION STATS
                 </Text>
                 <HStack justify="space-between" fontSize="xs">
@@ -229,7 +229,7 @@ const AdminQuickActionsPanel = ({
                     <Icon as={CheckIcon} color="green.400" boxSize={3} />
                     <Text color="white">Approved</Text>
                   </HStack>
-                  <Text color="green.400" fontWeight="bold">
+                  <Text color="green.400" fontWeight="semibold">
                     {stats.approved}
                   </Text>
                 </HStack>
@@ -238,7 +238,7 @@ const AdminQuickActionsPanel = ({
                     <Icon as={CloseIcon} color="red.400" boxSize={3} />
                     <Text color="white">Denied</Text>
                   </HStack>
-                  <Text color="red.400" fontWeight="bold">
+                  <Text color="red.400" fontWeight="semibold">
                     {stats.denied}
                   </Text>
                 </HStack>
@@ -247,13 +247,13 @@ const AdminQuickActionsPanel = ({
               {/* Leading team */}
               {stats.leadingTeam && (
                 <Box p={2} bg="gray.700" borderRadius="md">
-                  <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={1}>
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={1}>
                     LEADING TEAM
                   </Text>
                   <HStack justify="space-between">
                     <HStack>
                       <Icon as={FaTrophy} color="yellow.400" boxSize={4} />
-                      <Text fontSize="sm" fontWeight="bold" color="white">
+                      <Text fontSize="sm" fontWeight="semibold" color="white">
                         {stats.leadingTeam.teamName}
                       </Text>
                     </HStack>
@@ -276,7 +276,7 @@ const AdminQuickActionsPanel = ({
                   <HStack>
                     <Icon as={FaExclamationTriangle} color="orange.400" boxSize={4} />
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="xs" fontWeight="bold" color="white">
+                      <Text fontSize="xs" fontWeight="semibold" color="white">
                         {stats.teamsWithoutMembers} team
                         {stats.teamsWithoutMembers !== 1 ? 's' : ''} without members
                       </Text>
@@ -299,7 +299,7 @@ const AdminQuickActionsPanel = ({
                   <HStack>
                     <Icon as={FaChartLine} color="blue.400" boxSize={4} />
                     <VStack align="start" spacing={0}>
-                      <Text fontSize="xs" fontWeight="bold" color="white">
+                      <Text fontSize="xs" fontWeight="semibold" color="white">
                         {stats.inactiveTeams} team{stats.inactiveTeams !== 1 ? 's' : ''} haven't
                         started
                       </Text>

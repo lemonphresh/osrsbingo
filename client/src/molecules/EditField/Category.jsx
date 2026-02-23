@@ -9,7 +9,7 @@ const Category = ({ board, canEdit, fieldActive, onChange, onClickEdit, user }) 
       as="span"
       color={theme.colors.teal[300]}
       display="inline"
-      fontWeight="bold"
+      fontWeight="semibold"
       marginTop="8px"
       textAlign="center"
     >

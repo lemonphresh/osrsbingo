@@ -83,7 +83,7 @@ const Landing = () => {
                 height="52px"
                 paddingX="36px"
                 fontSize="md"
-                fontWeight="bold"
+                fontWeight="semibold"
                 _hover={{ backgroundColor: theme.colors.blue[300] }}
               >
                 Sign Up Free
@@ -127,7 +127,7 @@ const Landing = () => {
           >
             <Text
               fontSize="xl"
-              fontWeight="bold"
+              fontWeight="semibold"
               color={theme.colors.purple[300]}
               marginBottom="16px"
             >
@@ -171,7 +171,7 @@ const Landing = () => {
             borderColor={theme.colors.orange[400]}
           >
             <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="bold" color={theme.colors.orange[300]}>
+              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.orange[300]}>
                 Gielinor Rush
               </Text>
               <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
@@ -210,7 +210,7 @@ const Landing = () => {
         <Box marginBottom="48px">
           <Text
             fontSize="lg"
-            fontWeight="bold"
+            fontWeight="semibold"
             textAlign="center"
             marginBottom="24px"
             color={theme.colors.yellow[300]}
@@ -261,7 +261,7 @@ const Landing = () => {
                   >
                     <Image src={icon} alt={alt} height="20px" width="20px" />
                   </Flex>
-                  <Text fontWeight="bold" color={color[300]}>
+                  <Text fontWeight="semibold" color={color[300]}>
                     {label}
                   </Text>
                 </Flex>
@@ -282,7 +282,12 @@ const Landing = () => {
           borderWidth="1px"
           borderColor={theme.colors.teal[600]}
         >
-          <Text fontSize="md" fontWeight="bold" marginBottom="12px" color={theme.colors.pink[300]}>
+          <Text
+            fontSize="md"
+            fontWeight="semibold"
+            marginBottom="12px"
+            color={theme.colors.pink[300]}
+          >
             About This Project
           </Text>
           <Flex alignItems="center" flexDirection={['column', 'column', 'row']}>

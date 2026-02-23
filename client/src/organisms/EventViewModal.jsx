@@ -50,7 +50,7 @@ export default function EventViewModal({ isOpen, onClose, event }) {
             </HStack>
 
             <Box>
-              <Text fontWeight="bold" mb={1}>
+              <Text fontWeight="semibold" mb={1}>
                 When
               </Text>
               {hasStart ? (
@@ -72,7 +72,7 @@ export default function EventViewModal({ isOpen, onClose, event }) {
             <Divider />
 
             <Box>
-              <Text fontWeight="bold" mb={1}>
+              <Text fontWeight="semibold" mb={1}>
                 Description
               </Text>
               <Text whiteSpace="pre-wrap" color="gray.200">

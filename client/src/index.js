@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import '@fontsource/open-sans/400.css';
 import '@fontsource/open-sans/700.css';
 import '@fontsource/raleway/400.css';
+import '@fontsource/raleway/600.css';
 import '@fontsource/raleway/800.css';
 import { ChakraProvider } from '@chakra-ui/react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';

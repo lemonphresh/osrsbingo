@@ -85,7 +85,7 @@ function ChakraToolbar({ label, onNavigate, onView, views, view }) {
         paddingX="16px"
         borderRadius="6px"
         fontSize="lg"
-        fontWeight="bold"
+        fontWeight="semibold"
       >
         {label}
       </Text>

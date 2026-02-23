@@ -57,7 +57,7 @@ const CompleteNodeDialog = memo(
           <AlertDialogContent bg={colorMode === 'dark' ? '#2D3748' : 'white'}>
             <AlertDialogHeader
               fontSize="lg"
-              fontWeight="bold"
+              fontWeight="semibold"
               color={colorMode === 'dark' ? '#F7FAFC' : '#171923'}
             >
               Complete Node
@@ -67,11 +67,11 @@ const CompleteNodeDialog = memo(
               <VStack align="stretch" spacing={3}>
                 <Text>
                   Are you sure you want to complete{' '}
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     "{nodeToComplete.nodeTitle}"
                   </Text>{' '}
                   for{' '}
-                  <Text as="span" fontWeight="bold">
+                  <Text as="span" fontWeight="semibold">
                     {nodeToComplete.teamName}
                   </Text>
                   ?
@@ -84,7 +84,7 @@ const CompleteNodeDialog = memo(
                   borderWidth={1}
                   borderColor={currentColors.green.base}
                 >
-                  <Text fontSize="sm" fontWeight="bold" mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>
                     This will:
                   </Text>
                   <VStack align="start" spacing={1} fontSize="sm">
@@ -113,7 +113,7 @@ const CompleteNodeDialog = memo(
 
                 {/* Congratulatory Message Input */}
                 <FormControl>
-                  <FormLabel fontSize="sm" fontWeight="bold">
+                  <FormLabel fontSize="sm" fontWeight="semibold">
                     🎉 Congratulatory Message (Optional)
                   </FormLabel>
                   <Textarea

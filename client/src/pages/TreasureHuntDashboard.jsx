@@ -335,7 +335,7 @@ const TreasureHuntDashboard = () => {
               >
                 Teams:
               </Text>
-              <Text fontSize="sm" fontWeight="bold" color={c.purple.base}>
+              <Text fontSize="sm" fontWeight="semibold" color={c.purple.base}>
                 {event.teams.length}
               </Text>
             </HStack>
@@ -463,13 +463,13 @@ const TreasureHuntDashboard = () => {
                   alignItems="center"
                   justifyContent="center"
                   fontSize="xs"
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   mx="auto"
                   mb={2}
                 >
                   {i + 1}
                 </Box>
-                <Text fontSize="xs" fontWeight="bold" color={c.textColor} mb={1}>
+                <Text fontSize="xs" fontWeight="semibold" color={c.textColor} mb={1}>
                   {label}
                 </Text>
                 <Text
@@ -546,15 +546,54 @@ const TreasureHuntDashboard = () => {
             Your Events
           </GemTitle>
           <HStack>
-            <Tooltip label="Setup guide" hasArrow>
-              <IconButton
-                icon={<QuestionIcon />}
-                size="sm"
-                variant="solid"
-                aria-label="Toggle setup guide"
-                onClick={() => setGuideOpen((o) => !o)}
-              />
-            </Tooltip>
+            {isGielinorRushEnabled() && (
+              <Box
+                as="button"
+                onClick={() => navigate('/gielinor-rush/active')}
+                position="relative"
+                overflow="hidden"
+                px={4}
+                py={2}
+                borderRadius="lg"
+                bgGradient="linear(to-r, green.800, teal.800)"
+                border="1px solid"
+                borderColor="green.600"
+                _hover={{
+                  bgGradient: 'linear(to-r, green.700, teal.700)',
+                  transform: 'translateY(-1px)',
+                  shadow: '0 4px 16px rgba(67,170,139,0.3)',
+                  borderColor: 'green.400',
+                }}
+                _active={{ transform: 'translateY(0)' }}
+                transition="all 0.2s"
+                display="flex"
+                alignItems="center"
+              >
+                <HStack spacing={2}>
+                  <Box
+                    w="7px"
+                    h="7px"
+                    borderRadius="full"
+                    bg={c.green.base}
+                    boxShadow={`0 0 6px ${c.green.base}, 0 0 12px ${c.green.base}55`}
+                    flexShrink={0}
+                    sx={{
+                      animation: 'pulse 2s infinite',
+                      '@keyframes pulse': {
+                        '0%, 100%': { opacity: 1, transform: 'scale(1)' },
+                        '50%': { opacity: 0.6, transform: 'scale(0.85)' },
+                      },
+                    }}
+                  />
+                  <Text color="green.100" fontSize="sm" fontWeight="semibold">
+                    Spectate live events
+                  </Text>
+                  <Text color="green.400" fontSize="sm">
+                    →
+                  </Text>
+                </HStack>
+              </Box>
+            )}
             <Button
               leftIcon={<AddIcon />}
               bg={c.purple.base}
@@ -566,7 +605,16 @@ const TreasureHuntDashboard = () => {
               transition="all 0.2s"
             >
               New Event
-            </Button>
+            </Button>{' '}
+            <Tooltip label="Setup guide" hasArrow>
+              <IconButton
+                icon={<QuestionIcon />}
+                size="sm"
+                variant="solid"
+                aria-label="Toggle setup guide"
+                onClick={() => setGuideOpen((o) => !o)}
+              />
+            </Tooltip>
           </HStack>
         </HStack>
 
@@ -679,13 +727,13 @@ const TreasureHuntDashboard = () => {
       >
         <AlertDialogOverlay>
           <AlertDialogContent bg={c.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={c.textColor}>
+            <AlertDialogHeader fontSize="lg" fontWeight="semibold" color={c.textColor}>
               Delete Event
             </AlertDialogHeader>
             <AlertDialogBody color={c.textColor}>
               Are you sure? This will permanently delete all teams, progress, nodes, and submission
               history.
-              <Text mt={2} fontWeight="bold" color="red.500">
+              <Text mt={2} fontWeight="semibold" color="red.500">
                 This cannot be undone.
               </Text>
             </AlertDialogBody>

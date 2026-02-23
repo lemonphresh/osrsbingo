@@ -171,7 +171,7 @@ const StandingsCard = ({
         align="center"
         justify="center"
         color="white"
-        fontWeight="bold"
+        fontWeight="semibold"
         fontSize="sm"
         flexShrink={0}
       >
@@ -182,7 +182,7 @@ const StandingsCard = ({
       <VStack align="start" spacing={1} flex={1} minW={0}>
         <HStack>
           <Text
-            fontWeight="bold"
+            fontWeight="semibold"
             color={isLeader ? currentColors.textColor : currentColors.white}
             fontSize="md"
             isTruncated
@@ -547,7 +547,7 @@ const TreasureEventView = () => {
             alignItems="center"
             display="inline-flex"
             _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="bold"
+            fontWeight="semibold"
             justifyContent="center"
             marginBottom="1px"
           >
@@ -624,7 +624,7 @@ const TreasureEventView = () => {
           alignItems="center"
           display="inline-flex"
           _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-          fontWeight="bold"
+          fontWeight="semibold"
           justifyContent="center"
           marginBottom="1px"
         >
@@ -909,7 +909,11 @@ const TreasureEventView = () => {
                         <HStack justify="space-between" align="center">
                           <HStack>
                             <Icon as={FaCog} boxSize={5} mr={1} color={currentColors.purple.base} />
-                            <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor}>
+                            <Text
+                              fontSize="sm"
+                              fontWeight="semibold"
+                              color={currentColors.textColor}
+                            >
                               Show All Nodes
                             </Text>
                           </HStack>
@@ -1024,7 +1028,7 @@ const TreasureEventView = () => {
                   <TabPanel px={0}>
                     <VStack spacing={4} align="stretch">
                       <Box bg={currentColors.turquoise.base} color="white" p={3} borderRadius="md">
-                        <Text fontWeight="bold" fontSize="sm" mb={1}>
+                        <Text fontWeight="semibold" fontSize="sm" mb={1}>
                           📋 Submission Review Workflow
                         </Text>
                         <Text fontSize="xs">
@@ -1129,7 +1133,7 @@ const TreasureEventView = () => {
                                           <HStack>
                                             <AccordionIcon color={currentColors.textColor} />
                                             <Text
-                                              fontWeight="bold"
+                                              fontWeight="semibold"
                                               fontSize="lg"
                                               color={currentColors.textColor}
                                             >
@@ -1233,7 +1237,7 @@ const TreasureEventView = () => {
                                         >
                                           <Text
                                             fontSize="xs"
-                                            fontWeight="bold"
+                                            fontWeight="semibold"
                                             color={currentColors.textColor}
                                           >
                                             Objective:
@@ -1264,7 +1268,7 @@ const TreasureEventView = () => {
                                           color="white"
                                           borderRadius="md"
                                         >
-                                          <Text fontSize="xs" fontWeight="bold">
+                                          <Text fontSize="xs" fontWeight="semibold">
                                             ℹ️ This node is already completed. Submissions can still
                                             be reviewed for record-keeping.
                                           </Text>
@@ -1313,7 +1317,7 @@ const TreasureEventView = () => {
                                                   <HStack>
                                                     <Text
                                                       fontSize="sm"
-                                                      fontWeight="bold"
+                                                      fontWeight="semibold"
                                                       color={currentColors.textColor}
                                                     >
                                                       Submitted by {submission.submittedByUsername}{' '}
@@ -1556,7 +1560,7 @@ const TreasureEventView = () => {
                                           <VStack align="start" spacing={0} flex={1}>
                                             <Text
                                               fontSize="sm"
-                                              fontWeight="bold"
+                                              fontWeight="semibold"
                                               color={currentColors.textColor}
                                             >
                                               Notification Sound
@@ -2002,7 +2006,7 @@ const TreasureEventView = () => {
       >
         <AlertDialogOverlay>
           <AlertDialogContent bg={currentColors.cardBg}>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold" color={currentColors.textColor}>
+            <AlertDialogHeader fontSize="lg" fontWeight="semibold" color={currentColors.textColor}>
               Regenerate Map
             </AlertDialogHeader>
             <AlertDialogBody color={currentColors.textColor}>

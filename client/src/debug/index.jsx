@@ -72,7 +72,7 @@ export default function DebugIndex() {
   if (process.env.REACT_APP_ENV === 'production') {
     return (
       <Box p={8} textAlign="center">
-        <Text color="red.400" fontWeight="bold">
+        <Text color="red.400" fontWeight="semibold">
           🚫 Not available in production.
         </Text>
       </Box>

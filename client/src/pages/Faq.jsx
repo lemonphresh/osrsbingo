@@ -90,7 +90,7 @@ const FAQ_SECTIONS = [
             I would encourage you to DM me on the{' '}
             <Link
               color={theme.colors.dark.turquoise.base}
-              fontWeight="bold"
+              fontWeight="semibold"
               href="https://www.discord.gg/eternalgems"
               isExternal
             >
@@ -105,7 +105,7 @@ const FAQ_SECTIONS = [
         a: (
           <>
             First of all, thank you. Secondly,{' '}
-            <Link color={theme.colors.dark.turquoise.base} fontWeight="bold" href="/support">
+            <Link color={theme.colors.dark.turquoise.base} fontWeight="semibold" href="/support">
               go here to learn more
             </Link>
             .

@@ -156,7 +156,7 @@ const PlayerSubmissionsPanel = ({ submissions = [], nodes = [], teamId, loading 
             boxSize={5}
           />
           <VStack align="start" spacing={0}>
-            <Text fontWeight="bold" fontSize="sm" color={c.text}>
+            <Text fontWeight="semibold" fontSize="sm" color={c.text}>
               This Team's Submissions
             </Text>
             <HStack spacing={2} fontSize="xs">

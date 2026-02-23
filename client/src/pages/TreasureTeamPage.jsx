@@ -422,7 +422,7 @@ const TreasureTeamView = () => {
             alignItems="center"
             display="inline-flex"
             _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="bold"
+            fontWeight="semibold"
             justifyContent="center"
             marginBottom="1px"
           >
@@ -480,7 +480,7 @@ const TreasureTeamView = () => {
           alignItems="center"
           display="inline-flex"
           _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-          fontWeight="bold"
+          fontWeight="semibold"
           justifyContent="center"
           marginBottom="1px"
         >
@@ -500,7 +500,7 @@ const TreasureTeamView = () => {
             _hover={{ opacity: 0.85 }}
           >
             <Icon as={FaCog} color={adminMode ? 'white' : 'gray.400'} />
-            <Text fontSize="sm" fontWeight="bold" color={adminMode ? 'white' : 'gray.300'}>
+            <Text fontSize="sm" fontWeight="semibold" color={adminMode ? 'white' : 'gray.300'}>
               {adminMode ? '⚠️ Admin Mode ON' : 'Admin Mode'}
             </Text>
             <Switch
@@ -640,7 +640,7 @@ const TreasureTeamView = () => {
                 <Button
                   bg="yellow.400"
                   color="gray.900"
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   leftIcon={<Icon as={MdHome} />}
                   onClick={onAvailableInnsOpen}
                   animation="pulseInn 2s ease-in-out infinite"
@@ -659,7 +659,7 @@ const TreasureTeamView = () => {
 
           {adminMode && (
             <Box bg={currentColors.red.base} color="white" p={3} borderRadius="md" fontSize="sm">
-              <Text fontWeight="bold">⚠️ Admin Mode Active</Text>
+              <Text fontWeight="semibold">⚠️ Admin Mode Active</Text>
               <Text fontSize="xs" mt={1}>
                 Click any node in the map or list below to view details and toggle completion
                 status.
@@ -873,7 +873,7 @@ const TreasureTeamView = () => {
                                 )}
                               </HStack>
                               <Text
-                                fontWeight="bold"
+                                fontWeight="semibold"
                                 color={colorMode === 'dark' ? 'white' : 'gray.800'}
                                 fontSize="sm"
                                 mb={1}
@@ -899,7 +899,7 @@ const TreasureTeamView = () => {
                                 </Text>
                               )}
                               {isInn && (
-                                <Text fontSize="xs" color="yellow.400" mb={2} fontWeight="bold">
+                                <Text fontSize="xs" color="yellow.400" mb={2} fontWeight="semibold">
                                   Trade keys for GP →
                                 </Text>
                               )}
@@ -912,7 +912,7 @@ const TreasureTeamView = () => {
                                 {node.rewards?.gp && !isInn && (
                                   <HStack spacing={1}>
                                     <Icon as={FaCoins} color="yellow.500" boxSize={3} />
-                                    <Text fontSize="xs" color="yellow.500" fontWeight="bold">
+                                    <Text fontSize="xs" color="yellow.500" fontWeight="semibold">
                                       {formatGP(node.rewards.gp)} GP
                                     </Text>
                                   </HStack>
@@ -994,7 +994,7 @@ const TreasureTeamView = () => {
                 _hover={{ bg: 'transparent' }}
                 justifyContent="space-between"
               >
-                <Text fontWeight="bold" mb={0}>
+                <Text fontWeight="semibold" mb={0}>
                   All Nodes
                 </Text>
                 <HStack spacing={2}>
@@ -1134,7 +1134,7 @@ const TreasureTeamView = () => {
                                         {isLocationLocked ? (
                                           <>
                                             <Text
-                                              fontWeight="bold"
+                                              fontWeight="semibold"
                                               fontSize="lg"
                                               color={currentColors.textColor}
                                             >
@@ -1166,7 +1166,7 @@ const TreasureTeamView = () => {
                                     ) : (
                                       <>
                                         <Text
-                                          fontWeight="bold"
+                                          fontWeight="semibold"
                                           fontSize="lg"
                                           color={currentColors.textColor}
                                         >
@@ -1258,7 +1258,7 @@ const TreasureTeamView = () => {
                                         >
                                           <Text
                                             fontSize="xs"
-                                            fontWeight="bold"
+                                            fontWeight="semibold"
                                             color={currentColors.textColor}
                                           >
                                             Objective:
@@ -1331,7 +1331,7 @@ const TreasureTeamView = () => {
                                 !isInn &&
                                 (adminMode || status === 'completed') && (
                                   <VStack align="end" spacing={1}>
-                                    <Text fontWeight="bold" color={currentColors.green.base}>
+                                    <Text fontWeight="semibold" color={currentColors.green.base}>
                                       {formatGP(node.rewards.gp)}
                                     </Text>
                                     {node.rewards.keys?.length > 0 && (

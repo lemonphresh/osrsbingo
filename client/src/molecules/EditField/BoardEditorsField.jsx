@@ -12,7 +12,7 @@ const BoardEditorsField = ({ board, canEdit, fieldActive, onClickEdit, onSave })
         as="span"
         color={theme.colors.teal[300]}
         display="inline"
-        fontWeight="bold"
+        fontWeight="semibold"
         marginRight="8px"
       >
         Editor(s):

@@ -478,7 +478,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
             {/* Stats bar */}
             <HStack spacing={6} p={3} bg="purple.900" borderRadius="md" justify="center">
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color="purple.300">
+                <Text fontSize="lg" fontWeight="semibold" color="purple.300">
                   {stats.enabledBosses}
                 </Text>
                 <Text fontSize="xs" color="gray.300">
@@ -486,7 +486,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 </Text>
               </VStack>
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color="purple.300">
+                <Text fontSize="lg" fontWeight="semibold" color="purple.300">
                   {stats.enabledRaids}
                 </Text>
                 <Text fontSize="xs" color="gray.300">
@@ -494,7 +494,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 </Text>
               </VStack>
               <VStack spacing={0}>
-                <Text fontSize="lg" fontWeight="bold" color="purple.300">
+                <Text fontSize="lg" fontWeight="semibold" color="purple.300">
                   {stats.enabledDrops}
                 </Text>
                 <Text fontSize="xs" color="gray.300">
@@ -525,7 +525,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color="white">
+                      <Text fontWeight="semibold" color="white">
                         ⚔️ Bosses & Unique Drops
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledBosses} bosses</Badge>
@@ -563,7 +563,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
                     {/* God Wars Dungeon */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.100" mb={2}>
                         God Wars Dungeon
                       </Text>
                       {bossCategories.gwd.map((boss) => (
@@ -584,7 +584,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
                     {/* Slayer Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.100" mb={2}>
                         Slayer Bosses
                       </Text>
                       {bossCategories.slayer.map((boss) => (
@@ -605,7 +605,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
                     {/* Wilderness Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.100" mb={2}>
                         Wilderness Bosses
                       </Text>
                       {bossCategories.wilderness.map((boss) => (
@@ -626,7 +626,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
                     {/* Other Bosses */}
                     <Box>
-                      <Text fontSize="sm" fontWeight="bold" color="gray.100" mb={2}>
+                      <Text fontSize="sm" fontWeight="semibold" color="gray.100" mb={2}>
                         Other Bosses
                       </Text>
                       {bossCategories.other.map((boss) => (
@@ -651,7 +651,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color="white">
+                      <Text fontWeight="semibold" color="white">
                         🏛️ Raids & Unique Drops
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledRaids} raids</Badge>
@@ -708,7 +708,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color="white">
+                      <Text fontWeight="semibold" color="white">
                         📊 Skills
                       </Text>
                       <Badge colorScheme="purple">
@@ -779,7 +779,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         <HStack justify="space-between" mb={2}>
                           <Text
                             fontSize="sm"
-                            fontWeight="bold"
+                            fontWeight="semibold"
                             color="gray.100"
                             textTransform="capitalize"
                           >
@@ -829,7 +829,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color="white">
+                      <Text fontWeight="semibold" color="white">
                         🎮 Minigames & Rewards
                       </Text>
                       <Badge colorScheme="purple">
@@ -896,7 +896,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                       <Box key={category}>
                         <Text
                           fontSize="sm"
-                          fontWeight="bold"
+                          fontWeight="semibold"
                           color="gray.100"
                           textTransform="capitalize"
                           mb={2}
@@ -931,7 +931,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 <AccordionButton _hover={{ bg: 'whiteAlpha.100' }}>
                   <Box flex="1" textAlign="left">
                     <HStack>
-                      <Text fontWeight="bold" color="white">
+                      <Text fontWeight="semibold" color="white">
                         📜 Clue Scrolls
                       </Text>
                       <Badge colorScheme="purple">{stats.enabledClues} selected</Badge>
@@ -999,7 +999,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
               <Alert status="error" borderRadius="md" bg="red.900">
                 <AlertIcon color="red.300" />
                 <VStack align="start" spacing={0}>
-                  <Text fontSize="sm" fontWeight="bold" color="red.200">
+                  <Text fontSize="sm" fontWeight="semibold" color="red.200">
                     Not enough content enabled
                   </Text>
                   <Text fontSize="xs" color="red.300">

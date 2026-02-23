@@ -98,7 +98,7 @@ const InlineEditField = ({ label, value, onChange, inputType = 'text', isEditor 
         </Flex>
       ) : (
         <Text width="100%" color="gray.100">
-          <Text as="span" color={theme.colors.purple[300]} fontWeight="bold" marginRight="8px">
+          <Text as="span" color={theme.colors.purple[300]} fontWeight="semibold" marginRight="8px">
             {label}:
           </Text>
           {value}
@@ -283,7 +283,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 <Text
                   as="span"
                   color={theme.colors.purple[300]}
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   marginRight="8px"
                 >
                   Is Completed:
@@ -331,7 +331,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 <Text
                   as="span"
                   color={theme.colors.purple[300]}
-                  fontWeight="bold"
+                  fontWeight="semibold"
                   marginBottom="4px"
                 >
                   Update Icon:
@@ -346,7 +346,7 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                     _hover={{ backgroundColor: 'transparent' }}
                     color={theme.colors.purple[300]}
                   >
-                    <Text fontWeight="bold" flex={1} textAlign="left" fontSize="sm">
+                    <Text fontWeight="semibold" flex={1} textAlign="left" fontSize="sm">
                       Need suggestions?
                     </Text>
                     <AccordionIcon />

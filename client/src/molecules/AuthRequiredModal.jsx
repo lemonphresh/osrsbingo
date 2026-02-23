@@ -122,7 +122,7 @@ const AuthRequiredModal = ({ isOpen, onClose, feature = 'this feature' }) => {
               p={4}
               borderRadius="md"
             >
-              <Text fontSize="xs" fontWeight="bold" color={currentColors.textColor}>
+              <Text fontSize="xs" fontWeight="semibold" color={currentColors.textColor}>
                 ✨ What you can do with an account:
               </Text>
               <VStack

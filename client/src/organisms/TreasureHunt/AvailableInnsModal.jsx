@@ -93,7 +93,7 @@ const AvailableInnsModal = ({ isOpen, onClose, availableInns, onSelectInn }) => 
                     <HStack spacing={3} flex={1}>
                       <CheckCircleIcon color={currentColors.green.base} boxSize={5} />
                       <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold" color={currentColors.textColor}>
+                        <Text fontWeight="semibold" color={currentColors.textColor}>
                           {inn.title}
                         </Text>
                         <Text fontSize="sm" color="gray.500">

@@ -125,7 +125,7 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
                 const diff = getDiffBreakdown(team.completedNodes, nodes);
                 return (
                   <Tr key={team.teamId}>
-                    <Td color={currentColors.white} fontWeight="bold">
+                    <Td color={currentColors.white} fontWeight="semibold">
                       {MEDALS[i] ?? i + 1}
                     </Td>
                     <Td color={currentColors.white} fontWeight={i === 0 ? 'bold' : 'normal'}>

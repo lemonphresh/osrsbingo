@@ -18,7 +18,7 @@ const MiniStats = ({ showLink = true }) => {
       {loading ? (
         <Skeleton height="28px" width="50px" borderRadius="md" />
       ) : (
-        <Text fontWeight="bold" fontSize="2xl" color="white">
+        <Text fontWeight="semibold" fontSize="2xl" color="white">
           {value?.toLocaleString()}
         </Text>
       )}
@@ -48,7 +48,7 @@ const MiniStats = ({ showLink = true }) => {
       py={5}
       gap={3}
     >
-      <GemTitle size="sm" fontWeight="bold" color="white" gemColor="green">
+      <GemTitle size="sm" fontWeight="semibold" color="white" gemColor="green">
         Community Stats
       </GemTitle>
 

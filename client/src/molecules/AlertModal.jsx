@@ -46,7 +46,7 @@ const AlertModal = ({
       <AlertDialog isOpen={isOpen} leastDestructiveRef={cancelRef} onClose={onClose}>
         <AlertDialogOverlay>
           <AlertDialogContent>
-            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+            <AlertDialogHeader fontSize="lg" fontWeight="semibold">
               {dialogHeader}
             </AlertDialogHeader>
             <AlertDialogBody>{dialogBody}</AlertDialogBody>

@@ -290,7 +290,7 @@ const LiveActivityFeed = ({
     }, 1000);
   }, []);
 
-const getActivityIcon = (type) => {
+  const getActivityIcon = (type) => {
     switch (type) {
       case 'team_victory':
         return FaTrophy;
@@ -459,7 +459,7 @@ const getActivityIcon = (type) => {
             <HStack justify="space-between">
               <HStack>
                 <Icon as={FaFire} color={currentColors.orange} boxSize={5} />
-                <Text fontWeight="bold" color={currentColors.textColor} fontSize="lg">
+                <Text fontWeight="semibold" color={currentColors.textColor} fontSize="lg">
                   Live Activity
                 </Text>
                 {activities.length > 0 && (
@@ -486,7 +486,7 @@ const getActivityIcon = (type) => {
                       justifyContent="center"
                       fontSize="xs"
                       color="white"
-                      fontWeight="bold"
+                      fontWeight="semibold"
                     >
                       {getTeamInitials(team.teamName)}
                     </Box>
@@ -574,7 +574,7 @@ const getActivityIcon = (type) => {
                         justifyContent="center"
                         fontSize="xs"
                         color="white"
-                        fontWeight="bold"
+                        fontWeight="semibold"
                         flexShrink={0}
                       >
                         {getTeamInitials(activity.team.teamName)}

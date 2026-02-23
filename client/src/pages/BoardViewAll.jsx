@@ -164,7 +164,7 @@ const BoardViewAll = () => {
                   <Flex flexDirection="column" minHeight="72px" width="100%">
                     <Text
                       fontSize="lg"
-                      fontWeight="bold"
+                      fontWeight="semibold"
                       mb={2}
                       overflow="hidden"
                       textOverflow="ellipsis"
@@ -267,7 +267,7 @@ const BoardViewAll = () => {
             width="100%"
           >
             <Text fontSize="32px">🔍</Text>
-            <Text fontWeight="bold">No boards found</Text>
+            <Text fontWeight="semibold">No boards found</Text>
             <Text fontSize="sm" color={theme.colors.gray[400]}>
               {debouncedSearchQuery
                 ? `No results for "${debouncedSearchQuery}"`
@@ -297,7 +297,7 @@ const BoardViewAll = () => {
                   <Flex flexDirection="column" flex="1" minWidth={0}>
                     <Text
                       fontSize="lg"
-                      fontWeight="bold"
+                      fontWeight="semibold"
                       mb={1}
                       overflow="hidden"
                       textOverflow="ellipsis"

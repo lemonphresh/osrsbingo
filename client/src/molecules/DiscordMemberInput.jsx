@@ -249,7 +249,7 @@ const DiscordMemberInput = ({
               />
               <VStack align="start" spacing={0}>
                 <HStack>
-                  <Text fontSize="sm" fontWeight="bold" color="gray.800">
+                  <Text fontSize="sm" fontWeight="semibold" color="gray.800">
                     {discordUserInfo?.globalName || discordUserInfo?.username || 'Discord User'}
                   </Text>
                   {discordUserInfo?.siteUser && (
@@ -411,7 +411,7 @@ const DiscordMemberInput = ({
                 />
                 <VStack align="start" spacing={0} flex={1}>
                   <HStack>
-                    <Text fontSize="sm" fontWeight="bold" color={c.text}>
+                    <Text fontSize="sm" fontWeight="semibold" color={c.text}>
                       {user.displayName || user.discordUsername || 'Unknown'}
                     </Text>
                     {user.type === 'site' ? (

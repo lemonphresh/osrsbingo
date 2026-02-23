@@ -647,6 +647,12 @@ const TreasureHuntResolvers = {
 
       if (!submission) throw new Error('Submission not found');
 
+      if (submission.status !== 'PENDING') {
+        throw new Error(
+          `Submission has already been ${submission.status.toLowerCase()}. Refresh and try again.`
+        );
+      }
+
       const nodes = context.loaders
         ? await context.loaders.nodesByEventId.load(submission.team.eventId)
         : [];
@@ -1027,6 +1033,9 @@ const TreasureHuntResolvers = {
       const buff = team.activeBuffs[buffIndex];
 
       if (!node.objective) throw new Error('This node does not have an objective');
+      if (node.objective.appliedBuff) {
+        throw new Error('A buff has already been applied to this node');
+      }
       if (!buff.objectiveTypes.includes(node.objective.type)) {
         throw new Error(`This buff cannot be applied to ${node.objective.type} objectives.`);
       }
@@ -1213,6 +1222,8 @@ const TreasureHuntResolvers = {
 
       if (!reward || !innNode) throw new Error('Reward not found');
 
+      // reload to get the freshest state before the critical section
+      await team.reload();
       const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
       if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
 

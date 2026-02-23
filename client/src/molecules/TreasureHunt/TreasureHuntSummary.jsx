@@ -87,7 +87,7 @@ const TreasureHuntSummary = () => {
           <GemTitle size="lg" gemColor="blue">
             Gielinor Rush
           </GemTitle>
-          <Text fontSize="xl" fontWeight="bold" color={c.textColor} maxW="650px">
+          <Text fontSize="xl" fontWeight="semibold" color={c.textColor} maxW="650px">
             Competitive team events for OSRS clans. Generate a map, form your squads, and race to
             complete objectives across Gielinor for a GP prize pool.
           </Text>
@@ -153,7 +153,7 @@ const TreasureHuntSummary = () => {
                     display="flex"
                     alignItems="center"
                     justifyContent="center"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     fontSize="sm"
                   >
                     {i + 1}
@@ -161,7 +161,7 @@ const TreasureHuntSummary = () => {
                   <VStack align="start" spacing={1}>
                     <HStack>
                       <Icon as={step.icon} color="yellow.400" boxSize={4} />
-                      <Text fontWeight="bold" fontSize="sm" color={c.textColor}>
+                      <Text fontWeight="semibold" fontSize="sm" color={c.textColor}>
                         {step.title}
                       </Text>
                     </HStack>
@@ -189,7 +189,7 @@ const TreasureHuntSummary = () => {
               <CardBody py={4}>
                 <VStack spacing={2}>
                   <Image h="40px" src={f.img} alt={f.alt} />
-                  <Text fontWeight="bold" fontSize="xs" color={c.textColor} textAlign="center">
+                  <Text fontWeight="semibold" fontSize="xs" color={c.textColor} textAlign="center">
                     {f.title}
                   </Text>
                   <Text fontSize="xs" color={c.subtext} textAlign="center">
@@ -210,7 +210,7 @@ const TreasureHuntSummary = () => {
           <HStack spacing={4} align="start">
             <Icon as={FaDiscord} boxSize={8} color="#5865F2" flexShrink={0} mt={1} />
             <VStack align="start" spacing={1}>
-              <Text fontWeight="bold" color={c.textColor}>
+              <Text fontWeight="semibold" color={c.textColor}>
                 Built around Discord
               </Text>
               <Text fontSize="sm" color={c.subtext}>

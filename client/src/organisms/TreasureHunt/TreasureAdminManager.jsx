@@ -31,7 +31,7 @@ const EventAdminManager = ({ event }) => {
 
   return (
     <VStack align="stretch" spacing={4}>
-      <Text fontWeight="bold">Event Admins</Text>
+      <Text fontWeight="semibold">Event Admins</Text>
 
       {/* Current admins */}
       {event.admins?.map((admin) => (
@@ -39,7 +39,7 @@ const EventAdminManager = ({ event }) => {
           <HStack>
             <Avatar size="sm" name={admin.displayName} />
             <VStack align="start" spacing={0}>
-              <Text fontSize="sm" fontWeight="bold">
+              <Text fontSize="sm" fontWeight="semibold">
                 {admin.displayName}
               </Text>
               <Text fontSize="xs" color="gray.500">

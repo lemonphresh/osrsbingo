@@ -157,7 +157,7 @@ const UserDetails = () => {
             alignItems="center"
             display="inline-flex"
             _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="bold"
+            fontWeight="semibold"
             marginBottom="1px"
           >
             <Icon as={MdOutlineStorage} marginRight="8px" />
@@ -167,7 +167,7 @@ const UserDetails = () => {
             alignItems="center"
             display="inline-flex"
             _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="bold"
+            fontWeight="semibold"
             marginBottom="1px"
           >
             <Link to="/gielinor-rush">Gielinor Rush</Link>
@@ -234,7 +234,7 @@ const UserDetails = () => {
                     as="span"
                     color={theme.colors.teal[200]}
                     display="inline"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     marginRight="4px"
                   >
                     Username:
@@ -251,7 +251,7 @@ const UserDetails = () => {
                     as="span"
                     color={theme.colors.teal[200]}
                     display="inline"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     marginRight="4px"
                   >
                     Public Display Name:
@@ -302,7 +302,7 @@ const UserDetails = () => {
                     as="span"
                     color={theme.colors.teal[200]}
                     display="inline"
-                    fontWeight="bold"
+                    fontWeight="semibold"
                     marginRight="4px"
                   >
                     RSN:
@@ -381,7 +381,7 @@ const UserDetails = () => {
                         marginBottom: '0px',
                       }}
                       color={theme.colors.pink[200]}
-                      fontWeight="bold"
+                      fontWeight="semibold"
                       margin="0 auto"
                       marginBottom="1px"
                       marginTop="16px"
@@ -476,7 +476,7 @@ const UserDetails = () => {
                         borderRadius="8px"
                         color={theme.colors.pink[900]}
                         cursor="pointer"
-                        fontWeight="bold"
+                        fontWeight="semibold"
                         margin="0 auto"
                         marginTop="8px"
                         opacity="0.85"
@@ -495,7 +495,7 @@ const UserDetails = () => {
 
           <Section flexDirection="column" width="100%">
             <Flex flexDirection="column" justifyContent="space-between" height="100%">
-              <Heading marginBottom="24px" size="sm" textAlign="center">
+              <Heading fontWeight="semibold" marginBottom="24px" size="sm" textAlign="center">
                 {shownBoard.board?.name
                   ? `Preview: ${shownBoard.board.name}`
                   : `Click a board from the "${
@@ -621,7 +621,7 @@ const UserDetails = () => {
           >
             <AlertDialogOverlay>
               <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="bold">
+                <AlertDialogHeader fontSize="lg" fontWeight="semibold">
                   Delete User
                 </AlertDialogHeader>
                 <AlertDialogBody>

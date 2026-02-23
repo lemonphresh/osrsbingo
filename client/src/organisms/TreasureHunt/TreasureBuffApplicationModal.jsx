@@ -90,7 +90,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
               <Text fontSize="sm" color="gray.500" mb={1}>
                 Current Objective:
               </Text>
-              <Text fontWeight="bold" fontSize="lg" color={currentColors.textColor}>
+              <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
                 {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
                 {node.objective.target}
               </Text>
@@ -106,7 +106,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
               </Alert>
             ) : (
               <>
-                <Text fontWeight="bold" color={currentColors.textColor}>
+                <Text fontWeight="semibold" color={currentColors.textColor}>
                   Select a buff to apply:
                 </Text>
                 <RadioGroup onChange={setSelectedBuffId} value={selectedBuffId}>
@@ -128,7 +128,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                             <Text fontSize="xl">{getBuffIcon(buff.buffType)}</Text>
                             <VStack align="start" spacing={0}>
                               <HStack>
-                                <Text fontWeight="bold" color={currentColors.textColor}>
+                                <Text fontWeight="semibold" color={currentColors.textColor}>
                                   {buff.buffName}
                                 </Text>
                                 <Badge colorScheme="blue">
@@ -153,7 +153,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
               <>
                 <Divider />
                 <Box bg={colorMode === 'dark' ? 'blue.900' : 'blue.50'} p={4} borderRadius="md">
-                  <Text fontSize="sm" fontWeight="bold" color={currentColors.textColor} mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor} mb={2}>
                     📊 Reduction Preview
                   </Text>
                   <VStack spacing={2} align="stretch">
@@ -161,7 +161,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                       <Text fontSize="sm" color="gray.500">
                         Original requirement:
                       </Text>
-                      <Text fontWeight="bold" color={currentColors.textColor}>
+                      <Text fontWeight="semibold" color={currentColors.textColor}>
                         {reduction.original}
                       </Text>
                     </HStack>
@@ -169,7 +169,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                       <Text fontSize="sm" color="gray.500">
                         With buff applied:
                       </Text>
-                      <Text fontWeight="bold" color="green.400">
+                      <Text fontWeight="semibold" color="green.400">
                         {reduction.reduced} ✨
                       </Text>
                     </HStack>
@@ -177,7 +177,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                       <Text fontSize="sm" color="gray.500">
                         You save:
                       </Text>
-                      <Text fontWeight="bold" color="blue.400">
+                      <Text fontWeight="semibold" color="blue.400">
                         {reduction.saved} {OBJECTIVE_TYPES[node.objective.type]}!
                       </Text>
                     </HStack>

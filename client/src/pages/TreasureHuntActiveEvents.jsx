@@ -153,7 +153,7 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
                   },
                 }}
               />
-              <Text fontSize="xs" color={c.green.base} fontWeight="bold">
+              <Text fontSize="xs" color={c.green.base} fontWeight="semibold">
                 LIVE
               </Text>
             </HStack>
@@ -196,7 +196,7 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
               borderRight={i < 2 ? '1px solid' : 'none'}
               borderColor="whiteAlpha.100"
             >
-              <Text fontSize="sm" fontWeight="bold" color={color}>
+              <Text fontSize="sm" fontWeight="semibold" color={color}>
                 {value}
               </Text>
               <Text

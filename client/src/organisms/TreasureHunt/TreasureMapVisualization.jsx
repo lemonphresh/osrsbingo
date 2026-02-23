@@ -107,7 +107,7 @@ function AcceptableDropsCompact({ drops }) {
 
   return (
     <Box mt={2} p={2} bg="#e6ffed" borderRadius="md" borderWidth={1} borderColor="#b7e4c7">
-      <Text fontSize="xs" fontWeight="bold" color="#2d3748" mb={1}>
+      <Text fontSize="xs" fontWeight="semibold" color="#2d3748" mb={1}>
         ✅ Acceptable Drops ({drops.length} items)
       </Text>
       <Wrap spacing={1}>
@@ -555,7 +555,7 @@ const TreasureMapVisualization = ({
                         </>
                       ) : (
                         <>
-                          <Text m="0!important" fontWeight="bold" fontSize="md" color="#1a1a1a">
+                          <Text m="0!important" fontWeight="semibold" fontSize="md" color="#1a1a1a">
                             {node.title}
                           </Text>
                           <Badge
@@ -621,7 +621,7 @@ const TreasureMapVisualization = ({
                             <Text
                               m="0!important"
                               fontSize="xs"
-                              fontWeight="bold"
+                              fontWeight="semibold"
                               color="#2d3748"
                               mb={1}
                             >
@@ -661,7 +661,7 @@ const TreasureMapVisualization = ({
                               <Text
                                 m="0!important"
                                 fontSize="xs"
-                                fontWeight="bold"
+                                fontWeight="semibold"
                                 color="#2d3748"
                                 mb={1}
                               >
@@ -688,7 +688,7 @@ const TreasureMapVisualization = ({
                                   <Text
                                     fontSize="xs"
                                     m="0!important"
-                                    fontWeight="bold"
+                                    fontWeight="semibold"
                                     color="#2d3748"
                                     mb={1}
                                   >
@@ -724,7 +724,7 @@ const TreasureMapVisualization = ({
 
                         {adminMode && (
                           <Box w="full" pt={2} borderTop="1px solid #e2e8f0">
-                            <Text fontSize="xs" fontWeight="bold" color="#7D5FFF" mb={2}>
+                            <Text fontSize="xs" fontWeight="semibold" color="#7D5FFF" mb={2}>
                               🛡️ Admin Controls
                             </Text>
                             <Text fontSize="xs" color="#718096" mb={2}>
@@ -942,7 +942,7 @@ const TreasureMapVisualization = ({
           cursor={isMobile ? 'pointer' : 'default'}
           onClick={isMobile ? onToggle : undefined}
         >
-          <Text fontWeight="bold" fontSize="sm" color="#2d3748">
+          <Text fontWeight="semibold" fontSize="sm" color="#2d3748">
             Map Legend
           </Text>
           {isMobile && (
@@ -964,7 +964,7 @@ const TreasureMapVisualization = ({
             )}
             <VStack align="start" spacing={2} fontSize="xs">
               {/* Status */}
-              <Text fontWeight="bold" fontSize="xs" color="#2d3748">
+              <Text fontWeight="semibold" fontSize="xs" color="#2d3748">
                 Status
               </Text>
               <HStack>
@@ -989,7 +989,7 @@ const TreasureMapVisualization = ({
 
               {/* Node Types */}
               <Text
-                fontWeight="bold"
+                fontWeight="semibold"
                 fontSize="xs"
                 color="#2d3748"
                 mt={2}
@@ -1009,7 +1009,7 @@ const TreasureMapVisualization = ({
 
               {/* Difficulty */}
               <Text
-                fontWeight="bold"
+                fontWeight="semibold"
                 fontSize="xs"
                 color="#2d3748"
                 mt={2}
@@ -1056,7 +1056,7 @@ const TreasureMapVisualization = ({
           border="1px solid #e2e8f0"
         >
           <VStack align="start" spacing={1}>
-            <Text fontWeight="bold" fontSize="sm" color="#2d3748">
+            <Text fontWeight="semibold" fontSize="sm" color="#2d3748">
               Progress
             </Text>
             <HStack spacing={4}>
@@ -1064,7 +1064,7 @@ const TreasureMapVisualization = ({
                 <Text fontSize="xs" color="#718096">
                   Completed
                 </Text>
-                <Text fontSize="lg" fontWeight="bold" color={colors.green}>
+                <Text fontSize="lg" fontWeight="semibold" color={colors.green}>
                   {team.completedNodes?.length || 0}
                 </Text>
               </VStack>
@@ -1072,7 +1072,7 @@ const TreasureMapVisualization = ({
                 <Text fontSize="xs" color="#718096">
                   Available
                 </Text>
-                <Text fontSize="lg" fontWeight="bold" color={colors.turquoise}>
+                <Text fontSize="lg" fontWeight="semibold" color={colors.turquoise}>
                   {team.availableNodes?.length || 0}
                 </Text>
               </VStack>
@@ -1080,7 +1080,7 @@ const TreasureMapVisualization = ({
                 <Text fontSize="xs" color="#718096">
                   Total GP
                 </Text>
-                <Text fontSize="lg" fontWeight="bold" color={colors.green}>
+                <Text fontSize="lg" fontWeight="semibold" color={colors.green}>
                   {formatGP(team.currentPot || 0)}
                 </Text>
               </VStack>
