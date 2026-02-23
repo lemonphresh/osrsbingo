@@ -15,12 +15,14 @@ const sharedOptions = {
   },
 };
 
+const isRemoteDb = dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1');
+
 const sequelize = dbUrl
   ? new Sequelize(dbUrl, {
       ...sharedOptions,
       protocol: 'postgres',
       dialectOptions: {
-        ssl: { require: true, rejectUnauthorized: false },
+        ssl: isRemoteDb ? { require: true, rejectUnauthorized: false } : false,
       },
     })
   : new Sequelize('osrsbingo', 'lemon', null, {

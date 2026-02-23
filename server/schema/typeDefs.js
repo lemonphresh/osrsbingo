@@ -269,6 +269,8 @@ const typeDefs = gql`
     creator: User
     adminIds: [ID!]
     admins: [User!]
+    refIds: [ID!]
+    refs: [User!]
   }
 
   input CreateTreasureEventInput {
@@ -566,6 +568,10 @@ const typeDefs = gql`
     addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
     removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
     updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
+
+    # --- Gielinor Rush: Event Refs ---
+    addEventRef(eventId: ID!, userId: ID!): TreasureEvent!
+    removeEventRef(eventId: ID!, userId: ID!): TreasureEvent!
 
     # --- Gielinor Rush: Teams ---
     createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!

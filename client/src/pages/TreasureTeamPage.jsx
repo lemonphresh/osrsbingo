@@ -128,7 +128,11 @@ const TreasureTeamView = () => {
   const nodes = event?.nodes || [];
   const { user } = useAuth();
   const isAdmin =
-    user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
+    user &&
+    event &&
+    (user.id === event.creatorId ||
+      event.adminIds?.includes(user.id) ||
+      event.refIds?.includes(user.id));
 
   const checkTeamAccess = () => {
     if (isAdmin) return { hasAccess: true, reason: 'authorized' };

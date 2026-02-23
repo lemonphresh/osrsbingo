@@ -343,7 +343,7 @@ const LiveActivityFeed = ({
   const getActivityTitle = (activity) => {
     switch (activity.type) {
       case 'team_victory':
-        return `🏆 ${activity.team.teamName} HAS FINISHED!`;
+        return `⚡ ${activity.team.teamName} HAS FINISHED ALL NODES!`;
       case 'node_completed':
         return `🎯 ${activity.team.teamName} completed a node!`;
       case 'inn_visited':
@@ -599,7 +599,11 @@ const LiveActivityFeed = ({
                           </Text>
                         </HStack>
                         <Text fontSize="xs" ml={2} color="gray.500" noOfLines={1}>
-                          {getActivityDescription(activity)}
+                          <Text as="span" fontWeight="semibold" color="gray.600">
+                            {activity.team.teamName}
+                          </Text>
+                          {getActivityDescription(activity) &&
+                            ` · ${getActivityDescription(activity)}`}
                         </Text>
                       </Flex>
 

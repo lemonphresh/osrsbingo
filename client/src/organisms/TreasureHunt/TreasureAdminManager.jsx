@@ -31,34 +31,14 @@ const EventAdminManager = ({ event }) => {
 
   return (
     <VStack align="stretch" spacing={4}>
-      <Text fontWeight="semibold">Event Admins</Text>
-
-      {/* Current admins */}
-      {event.admins?.map((admin) => (
-        <HStack key={admin.id} justify="space-between">
-          <HStack>
-            <Avatar size="sm" name={admin.displayName} />
-            <VStack align="start" spacing={0}>
-              <Text fontSize="sm" fontWeight="semibold">
-                {admin.displayName}
-              </Text>
-              <Text fontSize="xs" color="gray.500">
-                {admin.username}
-              </Text>
-            </VStack>
-            {admin.id === event.creatorId && <Badge colorScheme="purple">Creator</Badge>}
-          </HStack>
-          {admin.id !== event.creatorId && (
-            <IconButton
-              icon={<DeleteIcon />}
-              size="sm"
-              colorScheme="red"
-              onClick={() => handleRemoveAdmin(admin.id)}
-              aria-label="Remove admin"
-            />
-          )}
-        </HStack>
-      ))}
+      <VStack align="start">
+        <Text fontWeight="semibold">Event Admins</Text>
+        <Text fontSize="xs" color="gray.500">
+          Admins can approve submissions, complete nodes, and edit event details. Be cautious when
+          adding admins, as they have significant control over the event and the overall event
+          outcome.
+        </Text>
+      </VStack>
 
       {/* Add new admin */}
       <Box>
@@ -86,6 +66,32 @@ const EventAdminManager = ({ event }) => {
           </VStack>
         )}
       </Box>
+      {/* Current admins */}
+      {event.admins?.map((admin) => (
+        <HStack key={admin.id} justify="space-between">
+          <HStack>
+            <Avatar size="sm" name={admin.displayName} />
+            <VStack align="start" spacing={0}>
+              <Text fontSize="sm" fontWeight="semibold">
+                {admin.displayName}
+              </Text>
+              <Text fontSize="xs" color="gray.500">
+                {admin.username}
+              </Text>
+            </VStack>
+            {admin.id === event.creatorId && <Badge colorScheme="purple">Creator</Badge>}
+          </HStack>
+          {admin.id !== event.creatorId && (
+            <IconButton
+              icon={<DeleteIcon />}
+              size="sm"
+              colorScheme="red"
+              onClick={() => handleRemoveAdmin(admin.id)}
+              aria-label="Remove admin"
+            />
+          )}
+        </HStack>
+      ))}
     </VStack>
   );
 };

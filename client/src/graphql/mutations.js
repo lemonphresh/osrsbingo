@@ -576,6 +576,33 @@ export const UPDATE_EVENT_ADMINS = gql`
 `;
 
 // ============================================================
+// GIELINOR RUSH: EVENT REFS
+// ============================================================
+
+export const ADD_EVENT_REF = gql`
+  mutation AddEventRef($eventId: ID!, $userId: ID!) {
+    addEventRef(eventId: $eventId, userId: $userId) {
+      eventId
+      refIds
+      refs {
+        id
+        displayName
+        username
+      }
+    }
+  }
+`;
+
+export const REMOVE_EVENT_REF = gql`
+  mutation RemoveEventRef($eventId: ID!, $userId: ID!) {
+    removeEventRef(eventId: $eventId, userId: $userId) {
+      eventId
+      refIds
+    }
+  }
+`;
+
+// ============================================================
 // GIELINOR RUSH: TEAMS
 // ============================================================
 

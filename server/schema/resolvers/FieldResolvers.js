@@ -80,6 +80,14 @@ const fieldResolvers = {
       return admins.filter(Boolean);
     },
 
+    refs: async (event, _, { loaders }) => {
+      if (!event.refIds?.length) return [];
+      const refs = await Promise.all(
+        event.refIds.map((id) => loaders.userById.load(id.toString()))
+      );
+      return refs.filter(Boolean);
+    },
+
     creator: async (event, _, { loaders }) => {
       if (!event.creatorId) return null;
       return loaders.userById.load(event.creatorId.toString());
