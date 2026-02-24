@@ -15,7 +15,6 @@ import {
   Divider,
   UnorderedList,
   ListItem,
-  Kbd,
   Collapse,
   IconButton,
 } from '@chakra-ui/react';
@@ -39,7 +38,6 @@ const ProgressiveStartTutorial = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState([]);
-  const [copiedNodeId, setCopiedNodeId] = useState(false);
   const [isExpanded, setIsExpanded] = useState(!compact);
 
   // When compact prop changes, sync expanded state
@@ -122,7 +120,7 @@ const ProgressiveStartTutorial = ({
           <Box bg={currentColors.stepBg} p={4} borderRadius="md">
             <VStack align="stretch" spacing={3}>
               <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
-                ✅ Good Screenshot Checklist:
+                Good Screenshot Checklist:
               </Text>
               <VStack align="stretch" spacing={2} pl={4}>
                 {[
@@ -162,85 +160,6 @@ const ProgressiveStartTutorial = ({
     },
     {
       id: 2,
-      title: 'Copy the Node ID',
-      icon: CopyIcon,
-      iconColor: 'orange.500',
-      description: "You'll need this ID to submit your completion via Discord.",
-      content: (
-        <VStack align="stretch" spacing={3}>
-          <Box
-            bg={currentColors.purple}
-            p={4}
-            borderRadius="md"
-            position="relative"
-            overflow="hidden"
-          >
-            <Box
-              position="absolute"
-              top="-20px"
-              right="-20px"
-              width="100px"
-              height="100px"
-              bg="whiteAlpha.200"
-              borderRadius="full"
-            />
-            <VStack spacing={3}>
-              <Text color="white" fontWeight="semibold" fontSize="lg">
-                Your Node ID:
-              </Text>
-              <HStack
-                bg="whiteAlpha.300"
-                px={6}
-                py={3}
-                borderRadius="md"
-                spacing={3}
-                backdropFilter="blur(10px)"
-              >
-                <Code
-                  fontSize="xl"
-                  fontWeight="semibold"
-                  bg="transparent"
-                  color="white"
-                  letterSpacing="wider"
-                >
-                  {nodeId}
-                </Code>
-                <Button
-                  size="sm"
-                  colorScheme="whiteAlpha"
-                  leftIcon={<CopyIcon />}
-                  onClick={() => {
-                    navigator.clipboard.writeText(nodeId);
-                    setCopiedNodeId(true);
-                    setTimeout(() => setCopiedNodeId(false), 2000);
-                  }}
-                >
-                  {copiedNodeId ? 'Copied!' : 'Copy'}
-                </Button>
-              </HStack>
-              {copiedNodeId && (
-                <HStack color="white">
-                  <CheckCircleIcon />
-                  <Text fontSize="sm">Copied to clipboard!</Text>
-                </HStack>
-              )}
-            </VStack>
-          </Box>
-          <Alert status="info" borderRadius="md">
-            <AlertIcon />
-            <Text fontSize="xs">
-              <strong>Tip:</strong> You can also find this ID anytime by using the{' '}
-              <Kbd fontSize="xs">!nodes</Kbd> command in Discord
-            </Text>
-          </Alert>
-        </VStack>
-      ),
-      actionLabel: 'Node ID copied ✓',
-      canSkip: false,
-      skipLabel: 'Skip',
-    },
-    {
-      id: 3,
       title: 'Submit via Discord',
       icon: FaDiscord,
       iconColor: 'blue.500',
@@ -313,7 +232,7 @@ const ProgressiveStartTutorial = ({
       canSkip: false,
     },
     {
-      id: 4,
+      id: 3,
       title: 'Wait for approval',
       icon: CheckCircleIcon,
       iconColor: 'green.500',
@@ -424,17 +343,18 @@ const ProgressiveStartTutorial = ({
         justify="space-between"
       >
         <VStack align="start" spacing={1} flex={1}>
-          <HStack w="full" justify="space-between">
+          <VStack w="full" justify="space-between">
             <Text fontSize="sm" fontWeight="semibold" color="white">
               🎓 Getting Started Tutorial
             </Text>
             <HStack spacing={2}>
               {compact && !isExpanded && (
                 <Text fontSize="xs" color="whiteAlpha.800" ml={4}>
-                  Quick Start: complete → screenshot →{' '}
+                  Quick Start: complete node → screenshot proof →{' '}
                   <Code fontSize="xs" bg="whiteAlpha.300" color="white" px={1}>
                     !submit {nodeId}
-                  </Code>
+                  </Code>{' '}
+                  + attach screenshot and send in your team's Discord channel.
                 </Text>
               )}
               <IconButton
@@ -450,7 +370,7 @@ const ProgressiveStartTutorial = ({
                 }}
               />
             </HStack>
-          </HStack>
+          </VStack>
           {isExpanded && (
             <Progress
               value={progress}

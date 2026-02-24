@@ -859,22 +859,6 @@ const TreasureMapVisualization = ({
                                     }}
                                   />
                                 </HStack>
-                                <Text
-                                  textAlign="center"
-                                  fontSize="xs"
-                                  color="#4a5568"
-                                  fontStyle="italic"
-                                  mt={1}
-                                  sx={{
-                                    code: { backgroundColor: '#e7ffeaff' },
-                                  }}
-                                >
-                                  or
-                                  <br />
-                                  <code className="code">
-                                    !submit {node.nodeId} (attach image file)
-                                  </code>
-                                </Text>
                               </>
                             )}
                           </Box>
