@@ -24,7 +24,7 @@ const getBuffIcon = (buffName = '') => {
 
 const BuffHistoryPanel = ({ buffHistory = [], nodes = [] }) => {
   const { colorMode } = useColorMode();
-  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: false });
+  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
 
   const colors = {
     dark: {

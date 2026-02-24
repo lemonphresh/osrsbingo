@@ -131,13 +131,12 @@ const StandingsCard = ({
   const navigate = useNavigate();
   const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
   const isLeader = index === 0 && (team.currentPot || 0) > 0;
-  const completeableNodes = event.nodes?.filter(
-    (n) => n.nodeType !== 'INN' && n.nodeType !== 'START'
-  ) || [];
-  const completedCount =
-    team.completedNodes?.filter((id) => completeableNodes.some((n) => n.nodeId === id)).length || 0;
   const isOnTeam = userDiscordId && team.members?.some((m) => m.discordUserId === userDiscordId);
-  const totalNodes = Math.max(completeableNodes.length || 1, 1);
+  const standardCount = event.nodes?.filter((n) => n.nodeType === 'STANDARD').length ?? 0;
+  const innCount = event.nodes?.filter((n) => n.nodeType === 'INN').length ?? 0;
+  const startCount = event.nodes?.filter((n) => n.nodeType === 'START').length ?? 0;
+  const totalNodes = Math.max(Math.round(standardCount / 3) + innCount + startCount, 1);
+  const completedCount = team.completedNodes?.length || 0;
   const progressPct = (completedCount / totalNodes) * 100;
 
   return (
