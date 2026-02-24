@@ -53,11 +53,11 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
   const sorted = [...(event.teams || [])].sort(
     (a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0)
   );
-  const totalGP = (event.teams || []).reduce((sum, t) => sum + Number(t.currentPot || 0), 0);
-  const totalNodes = (event.teams || []).reduce(
-    (sum, t) => sum + (t.completedNodes?.length || 0),
-    0
-  );
+  const totalGP = Number(event.derivedValues?.max_reward_per_team || 0);
+  const totalNodes =
+    Math.round((event.nodes || []).filter((n) => n.nodeType === 'STANDARD').length / 3) +
+    (event.nodes || []).filter((n) => n.nodeType === 'INN').length +
+    (event.nodes || []).filter((n) => n.nodeType === 'START').length;
   const countdown = isCompleted ? null : formatCountdown(event.endDate, now);
   const isEndingSoon =
     !isCompleted &&
@@ -184,8 +184,8 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
         {/* Stats row */}
         <HStack spacing={0} mb={4} bg="whiteAlpha.50" borderRadius="lg" overflow="hidden">
           {[
-            { label: 'GP pot', value: `${formatGP(totalGP)} gp`, color: 'yellow.400' },
-            { label: 'nodes', value: totalNodes, color: c.textColor },
+            { label: 'GP pot', value: `${formatGP(totalGP)}`, color: 'yellow.400' },
+            { label: 'locations', value: totalNodes, color: c.textColor },
             { label: 'teams', value: event.teams?.length ?? 0, color: c.purple.base },
           ].map(({ label, value, color }, i) => (
             <VStack

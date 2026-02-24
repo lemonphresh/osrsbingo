@@ -557,6 +557,11 @@ export const GET_ALL_TREASURE_EVENTS = gql`
       createdAt
       updatedAt
       adminIds
+      derivedValues
+      nodes {
+        nodeId
+        nodeType
+      }
       teams {
         teamId
         teamName
