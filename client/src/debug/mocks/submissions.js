@@ -1,0 +1,140 @@
+const TEAM_ID = 'team_001';
+
+const now = new Date();
+const hoursAgo = (h) => new Date(now - h * 3600000).toISOString();
+
+export const MOCK_SUBMISSIONS = {
+  empty: [],
+
+  pending_only: [
+    {
+      submissionId: 'sub_001',
+      teamId: TEAM_ID,
+      nodeId: 'node_003',
+      status: 'PENDING_REVIEW',
+      submittedAt: hoursAgo(0.5),
+      submittedByUsername: 'testplayer',
+      proofUrl: 'https://i.imgur.com/example1.png',
+      denialReason: null,
+    },
+    {
+      submissionId: 'sub_002',
+      teamId: TEAM_ID,
+      nodeId: 'node_easy_001',
+      status: 'PENDING_REVIEW',
+      submittedAt: hoursAgo(1.2),
+      submittedByUsername: 'gamer99',
+      proofUrl: 'https://i.imgur.com/example2.png',
+      denialReason: null,
+    },
+  ],
+
+  mixed: [
+    {
+      submissionId: 'sub_001',
+      teamId: TEAM_ID,
+      nodeId: 'node_003',
+      status: 'PENDING_REVIEW',
+      submittedAt: hoursAgo(0.3),
+      submittedByUsername: 'testplayer',
+      proofUrl: 'https://i.imgur.com/example1.png',
+      denialReason: null,
+    },
+    {
+      submissionId: 'sub_002',
+      teamId: TEAM_ID,
+      nodeId: 'node_001',
+      status: 'APPROVED',
+      submittedAt: hoursAgo(3),
+      submittedByUsername: 'testplayer',
+      proofUrl: 'https://i.imgur.com/example2.png',
+      denialReason: null,
+    },
+    {
+      submissionId: 'sub_003',
+      teamId: TEAM_ID,
+      nodeId: 'node_easy_001',
+      status: 'DENIED',
+      submittedAt: hoursAgo(6),
+      submittedByUsername: 'gamer99',
+      proofUrl: 'https://i.imgur.com/example3.png',
+      denialReason: 'Wrong password — resubmit with the correct event password.',
+    },
+    {
+      submissionId: 'sub_004',
+      teamId: TEAM_ID,
+      nodeId: 'node_med_001',
+      status: 'APPROVED',
+      submittedAt: hoursAgo(24),
+      submittedByUsername: 'runescape_irl',
+      proofUrl: null,
+      denialReason: null,
+    },
+  ],
+
+  all_approved: [
+    {
+      submissionId: 'sub_001',
+      teamId: TEAM_ID,
+      nodeId: 'node_001',
+      status: 'APPROVED',
+      submittedAt: hoursAgo(2),
+      submittedByUsername: 'testplayer',
+      proofUrl: 'https://i.imgur.com/example1.png',
+      denialReason: null,
+    },
+    {
+      submissionId: 'sub_002',
+      teamId: TEAM_ID,
+      nodeId: 'node_easy_001',
+      status: 'APPROVED',
+      submittedAt: hoursAgo(8),
+      submittedByUsername: 'gamer99',
+      proofUrl: 'https://i.imgur.com/example2.png',
+      denialReason: null,
+    },
+    {
+      submissionId: 'sub_003',
+      teamId: TEAM_ID,
+      nodeId: 'node_med_001',
+      status: 'APPROVED',
+      submittedAt: hoursAgo(48),
+      submittedByUsername: 'runescape_irl',
+      proofUrl: null,
+      denialReason: null,
+    },
+  ],
+
+  denied_with_reasons: [
+    {
+      submissionId: 'sub_001',
+      teamId: TEAM_ID,
+      nodeId: 'node_003',
+      status: 'DENIED',
+      submittedAt: hoursAgo(1),
+      submittedByUsername: 'testplayer',
+      proofUrl: 'https://i.imgur.com/example1.png',
+      denialReason: 'Screenshot is missing the kill count overlay.',
+    },
+    {
+      submissionId: 'sub_002',
+      teamId: TEAM_ID,
+      nodeId: 'node_easy_001',
+      status: 'DENIED',
+      submittedAt: hoursAgo(4),
+      submittedByUsername: 'gamer99',
+      proofUrl: 'https://i.imgur.com/example2.png',
+      denialReason: 'Wrong password — resubmit with the correct event password.',
+    },
+    {
+      submissionId: 'sub_003',
+      teamId: TEAM_ID,
+      nodeId: 'node_med_001',
+      status: 'PENDING_REVIEW',
+      submittedAt: hoursAgo(0.1),
+      submittedByUsername: 'gamer99',
+      proofUrl: 'https://i.imgur.com/example3.png',
+      denialReason: null,
+    },
+  ],
+};

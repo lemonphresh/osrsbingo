@@ -271,6 +271,72 @@ async function sendNodeCompletionNotification({
   return results;
 }
 
+/**
+ * All nodes completed — sent to the team's submission channel(s)
+ */
+async function sendAllNodesCompletedNotification({
+  channelIds,
+  teamName,
+  teamPageUrl,
+  finalPot,
+  nodesCompleted,
+  gpFromNodes,
+  buffsUsed,
+}) {
+  const uniqueChannels = [...new Set(channelIds.filter(Boolean))];
+
+  const statsLines = [];
+  if (nodesCompleted != null)
+    statsLines.push(`🗺️ **${nodesCompleted}** location${nodesCompleted !== 1 ? 's' : ''} conquered`);
+  if (gpFromNodes > 0)
+    statsLines.push(`💰 **${(gpFromNodes / 1_000_000).toFixed(1)}M GP** earned from locations`);
+  if (finalPot)
+    statsLines.push(`🏦 **${(Number(BigInt(finalPot)) / 1_000_000).toFixed(1)}M GP** final pot`);
+  if (buffsUsed > 0)
+    statsLines.push(`✨ **${buffsUsed}** buff${buffsUsed !== 1 ? 's' : ''} used`);
+
+  const results = [];
+
+  for (const channelId of uniqueChannels) {
+    try {
+      const result = await sendDiscordMessage(channelId, {
+        flags: IS_COMPONENTS_V2,
+        components: [
+          {
+            type: C.Container,
+            accent_color: 0xf4d35e,
+            components: [
+              {
+                type: C.TextDisplay,
+                content: `# 🗺️ ${teamName} — Map Complete!`,
+              },
+              sep,
+              {
+                type: C.TextDisplay,
+                content: `Your team has conquered every location on the map. Well played!`,
+              },
+              ...(statsLines.length > 0
+                ? [sep, { type: C.TextDisplay, content: statsLines.join('\n') }]
+                : []),
+              sep,
+              {
+                type: C.TextDisplay,
+                content: `-# ✨ [View your team's final map](${teamPageUrl})`,
+              },
+            ],
+          },
+        ],
+      });
+      results.push({ channelId, success: result.success });
+    } catch (error) {
+      console.error(`Failed to send all-nodes-completed notification to channel ${channelId}:`, error);
+      results.push({ channelId, success: false, error: error.message });
+    }
+  }
+
+  return results;
+}
+
 function getSubmissionChannelId(event) {
   if (!event.discordConfig) return null;
   return (
@@ -287,6 +353,7 @@ module.exports = {
   sendSubmissionApprovalNotification,
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
+  sendAllNodesCompletedNotification,
   getSubmissionChannelId,
   getChannelFromSubmission,
 };

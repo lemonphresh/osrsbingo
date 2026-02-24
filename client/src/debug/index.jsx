@@ -8,6 +8,8 @@ import BuffInventoryStories from './stories/BuffInventory.stories';
 import TeamAccessOverlayStories from './stories/TeamAccessOverlay.stories';
 import BuffApplicationModalStories from './stories/BuffApplicationModal.stories';
 import LaunchModalStories from './stories/LaunchModal.stories';
+import BuffHistoryPanelStories from './stories/BuffHistoryPanel.stories';
+import PlayerSubmissionsPanelStories from './stories/PlayerSubmissionsPanel.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -35,6 +37,20 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 6,
     component: BuffInventoryStories,
+  },
+  {
+    id: 'buff-history-panel',
+    label: 'BuffHistoryPanel',
+    category: 'Treasure Hunt',
+    scenarioCount: 3,
+    component: BuffHistoryPanelStories,
+  },
+  {
+    id: 'player-submissions-panel',
+    label: 'PlayerSubmissionsPanel',
+    category: 'Treasure Hunt',
+    scenarioCount: 5,
+    component: PlayerSubmissionsPanelStories,
   },
   {
     id: 'team-access-overlay',

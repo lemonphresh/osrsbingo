@@ -131,9 +131,13 @@ const StandingsCard = ({
   const navigate = useNavigate();
   const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
   const isLeader = index === 0 && (team.currentPot || 0) > 0;
-  const completedCount = team.completedNodes?.length || 0;
+  const completeableNodes = event.nodes?.filter(
+    (n) => n.nodeType !== 'INN' && n.nodeType !== 'START'
+  ) || [];
+  const completedCount =
+    team.completedNodes?.filter((id) => completeableNodes.some((n) => n.nodeId === id)).length || 0;
   const isOnTeam = userDiscordId && team.members?.some((m) => m.discordUserId === userDiscordId);
-  const totalNodes = Math.max(event.nodes?.length || 1, 1);
+  const totalNodes = Math.max(completeableNodes.length || 1, 1);
   const progressPct = (completedCount / totalNodes) * 100;
 
   return (
@@ -332,6 +336,7 @@ const TreasureEventView = () => {
   } = useQuery(GET_TREASURE_EVENT, { variables: { eventId } });
   const { data: submissionsData, refetch: refetchSubmissions } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
+    pollInterval: 5 * 60 * 1000, // 5-minute fallback poll in case WebSocket misses an event
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -867,7 +872,7 @@ const TreasureEventView = () => {
                     <Heading size="sm" color={currentColors.white}>
                       🏆 &nbsp;Leaderboard
                     </Heading>
-                    {isEventAdmin && (
+                    {isEventAdmin && event.status === 'DRAFT' && (
                       <Button
                         size="xs"
                         leftIcon={<AddIcon />}
@@ -886,7 +891,7 @@ const TreasureEventView = () => {
                       <Text color="gray.400" mb={3}>
                         No teams yet.
                       </Text>
-                      {isEventAdmin && (
+                      {isEventAdmin && event.status === 'DRAFT' && (
                         <Button
                           size="sm"
                           leftIcon={<AddIcon />}
@@ -2031,6 +2036,7 @@ const TreasureEventView = () => {
         team={selectedTeam}
         eventId={eventId}
         existingTeams={event?.teams || []}
+        allowDelete={event?.status === 'DRAFT'}
         onSuccess={async () => {
           await refetchEvent();
           await refetchSubmissions();

@@ -15,11 +15,13 @@ const {
   sendSubmissionApprovalNotification,
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
+  sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
+const { OBJECTIVE_TYPES } = require('../../../client/src/utils/treasureHuntHelpers');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -130,9 +132,7 @@ async function isEventAdminOrRef(userId, eventId) {
   const event = await TreasureEvent.findByPk(eventId);
   if (!event) return false;
   return (
-    event.creatorId === userId ||
-    event.adminIds?.includes(userId) ||
-    event.refIds?.includes(userId)
+    event.creatorId === userId || event.adminIds?.includes(userId) || event.refIds?.includes(userId)
   );
 }
 
@@ -212,14 +212,48 @@ const TreasureHuntResolvers = {
     },
 
     getAllSubmissions: async (_, { eventId }) => {
-      console.log(`[getAllSubmissions] eventId=${eventId}`);
-      return TreasureSubmission.findAll({
-        where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
-        include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
-        order: [
-          ['status', 'ASC'],
-          ['submittedAt', 'DESC'],
-        ],
+      const [submissions, nodes] = await Promise.all([
+        TreasureSubmission.findAll({
+          where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
+          include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
+          order: [
+            ['status', 'ASC'],
+            ['submittedAt', 'DESC'],
+          ],
+        }),
+        TreasureNode.findAll({
+          where: { eventId },
+          attributes: ['nodeId', 'locationGroupId'],
+        }),
+      ]);
+
+      // Build nodeId -> locationGroupId lookup
+      const nodeToGroup = {};
+      nodes.forEach((n) => {
+        if (n.locationGroupId) nodeToGroup[n.nodeId] = n.locationGroupId;
+      });
+
+      // For each team, map locationGroupId -> the nodeId they actually completed
+      const teamCompletedGroupMap = {};
+      submissions.forEach((sub) => {
+        const team = sub.team;
+        if (!team?.completedNodes) return;
+        if (!teamCompletedGroupMap[team.teamId]) {
+          teamCompletedGroupMap[team.teamId] = {};
+          team.completedNodes.forEach((nId) => {
+            const groupId = nodeToGroup[nId];
+            if (groupId) teamCompletedGroupMap[team.teamId][groupId] = nId;
+          });
+        }
+      });
+
+      // Drop any submission for a node the team passed over in favor of a sibling at the same location
+      return submissions.filter((sub) => {
+        const groupId = nodeToGroup[sub.nodeId];
+        if (!groupId) return true;
+        const completedNodeInGroup = teamCompletedGroupMap[sub.team?.teamId]?.[groupId];
+        if (!completedNodeInGroup) return true;
+        return completedNodeInGroup === sub.nodeId;
       });
     },
 
@@ -961,6 +995,52 @@ const TreasureHuntResolvers = {
         });
       }
 
+      // Check if the team has now completed every completeable location (non-INN, non-START)
+      if (nodes.length > 0) {
+        const completeableNodeIds = nodes
+          .filter((n) => n.nodeType !== 'INN' && n.nodeType !== 'START')
+          .map((n) => n.nodeId);
+
+        const allCompleted =
+          completeableNodeIds.length > 0 &&
+          completeableNodeIds.every((nId) => completedNodes.includes(nId));
+
+        if (allCompleted) {
+          const allTeamSubmissions = await TreasureSubmission.findAll({
+            where: { teamId },
+            attributes: ['channelId'],
+          });
+          const teamChannelIds = [
+            ...new Set(allTeamSubmissions.map((s) => s.channelId).filter(Boolean)),
+          ];
+
+          if (teamChannelIds.length > 0) {
+            const completeableNodes = nodes.filter(
+              (n) => n.nodeType !== 'INN' && n.nodeType !== 'START'
+            );
+            const gpFromNodes = completeableNodes.reduce(
+              (sum, n) => sum + (n.rewards?.gp || 0),
+              0
+            );
+
+            sendAllNodesCompletedNotification({
+              channelIds: teamChannelIds,
+              teamName: team.teamName,
+              teamPageUrl: `${process.env.FRONTEND_URL}/gielinor-rush/${eventId}/team/${teamId}`,
+              finalPot: currentPot.toString(),
+              nodesCompleted: completeableNodes.length,
+              gpFromNodes,
+              buffsUsed: team.buffHistory?.length || 0,
+            }).catch((err) =>
+              console.error(
+                '[adminCompleteNode] all-nodes-completed notification failed:',
+                err.message
+              )
+            );
+          }
+        }
+      }
+
       console.log(
         `[adminCompleteNode] ✅ node completed teamId=${teamId} nodeId=${nodeId} gp=${
           node.rewards?.gp || 0
@@ -1128,7 +1208,7 @@ const TreasureHuntResolvers = {
           usedAt: new Date().toISOString(),
           originalRequirement: originalQuantity,
           reducedRequirement: reducedQuantity,
-          benefit: `Saved ${saved} ${node.objective.type}`,
+          benefit: `Saved ${saved} ${OBJECTIVE_TYPES[node.objective.type]}`,
         },
       ];
 

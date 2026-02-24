@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 
-const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onApplyBuff }) => {
+const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onApplyBuff, onApplyComplete }) => {
   const { colorMode } = useColorMode();
   const [selectedBuffId, setSelectedBuffId] = useState(null);
   const [applying, setApplying] = useState(false);
@@ -35,10 +35,12 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
 
   if (!node || !node.objective) return null;
 
-  // Filter buffs that can be applied to this objective
-  const applicableBuffs = availableBuffs.filter((buff) =>
-    buff.objectiveTypes.includes(node.objective.type)
-  );
+  // Filter buffs that can be applied to this objective and would result in a meaningful reduction
+  const applicableBuffs = availableBuffs.filter((buff) => {
+    if (!buff.objectiveTypes.includes(node.objective.type)) return false;
+    const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
+    return Number(reduced.toFixed(0)) !== 0;
+  });
 
   const selectedBuff = applicableBuffs.find((b) => b.buffId === selectedBuffId);
 
@@ -68,6 +70,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
     try {
       await onApplyBuff(selectedBuffId);
       onClose();
+      onApplyComplete?.();
     } catch (error) {
       console.error('Error applying buff:', error);
     } finally {

@@ -32,6 +32,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import PlayerSubmissionsPanel from '../organisms/TreasureHunt/PlayerSubmissionsPanel';
+import BuffHistoryPanel from '../organisms/TreasureHunt/BuffHistoryPanel';
 import {
   ADMIN_COMPLETE_NODE,
   ADMIN_UNCOMPLETE_NODE,
@@ -114,6 +115,8 @@ const TreasureTeamView = () => {
 
   const handleVisitInn = async (nodeId) => {
     await visitInn({ variables: { eventId, teamId, nodeId } });
+    await refetchTeam();
+    await refetchEvent();
   };
 
   const [selectedNode, setSelectedNode] = useState(null);
@@ -979,12 +982,18 @@ const TreasureTeamView = () => {
             </Box>
           </SimpleGrid>
 
-          <PlayerSubmissionsPanel
-            submissions={teamSubmissions}
-            nodes={nodes}
-            teamId={teamId}
-            loading={submissionsLoading}
-          />
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+            <PlayerSubmissionsPanel
+              submissions={teamSubmissions}
+              nodes={nodes}
+              teamId={teamId}
+              loading={submissionsLoading}
+            />
+            <BuffHistoryPanel
+              buffHistory={team.buffHistory || []}
+              nodes={nodes}
+            />
+          </SimpleGrid>
 
           {/* ── FULL NODE LIST ── */}
 
@@ -1424,6 +1433,7 @@ const TreasureTeamView = () => {
         eventId={eventId}
         onApplyBuff={handleApplyBuff}
         availableBuffs={team?.activeBuffs || []}
+        onApplyComplete={onNodeOpen}
       />
       <AvailableInnsModal
         isOpen={isAvailableInnsOpen}

@@ -230,7 +230,7 @@ export const MOCK_NODES = {
         description: 'Standard trade + major buff',
         key_cost: [{ color: 'any', quantity: 4 }],
         payout: 13000000,
-        buffs: [{ buffType: 'universal_moderate', buffName: 'Versatile Training' }],
+        buffs: [{ buffType: 'universal_reduction', buffName: 'Versatile Training' }],
       },
       {
         reward_id: 'inn3_combo',
