@@ -86,14 +86,14 @@ export default function EditTeamModal({
   };
 
   useEffect(() => {
-    if (team) {
+    if (isOpen && team) {
       setFormData({
         teamName: team.teamName || '',
         discordRoleId: team.discordRoleId || '',
         members: team.members?.length > 0 ? team.members.map((m) => m.discordUserId) : [''],
       });
     }
-  }, [team]);
+  }, [isOpen, team]);
 
   const [updateTeam, { loading }] = useMutation(UPDATE_TREASURE_TEAM, {
     onCompleted: () => {
