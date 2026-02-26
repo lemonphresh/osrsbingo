@@ -248,8 +248,15 @@ const TreasureTeamView = () => {
       if (node.nodeType !== 'STANDARD') return false;
       if (!node.objective) return false;
       if (node.objective.appliedBuff) return false;
-      if (!buff.objectiveTypes || buff.objectiveTypes.length === 0) return true;
-      return buff.objectiveTypes.includes(node.objective.type);
+      if (buff.objectiveTypes && buff.objectiveTypes.length > 0) {
+        if (!buff.objectiveTypes.includes(node.objective.type)) return false;
+      }
+      // Mirror server-side canApplyBuff: item_collection with <= 3 items can't be reduced
+      if (node.objective.type === 'item_collection' && node.objective.quantity <= 3) return false;
+      // Buff must result in a meaningful reduction
+      const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
+      if (reduced === 0 || reduced >= node.objective.quantity) return false;
+      return true;
     });
   };
 
