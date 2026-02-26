@@ -68,6 +68,9 @@ import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import { FaCog, FaCoins } from 'react-icons/fa';
 
+const GROUP_COLORS = ['red', 'blue', 'yellow', 'green', 'orange', 'teal', 'purple', 'cyan', 'pink'];
+const GROUP_SHAPES = ['◆', '▲', '●', '■', '★', '⬟', '⬢', '✦', '❖'];
+
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
 
@@ -774,6 +777,14 @@ const TreasureTeamView = () => {
 
             if (availableNodes.length === 0) return null;
 
+            // Assign alternating color indices by location group order
+            const groupColorMap = {};
+            let groupIndex = 0;
+            availableNodes.forEach((node) => {
+              const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
+              if (!(groupKey in groupColorMap)) groupColorMap[groupKey] = groupIndex++;
+            });
+
             return (
               <Box>
                 <HStack justify="space-between" mb={3}>
@@ -855,18 +866,23 @@ const TreasureTeamView = () => {
                           ? 'orange.400'
                           : 'green.400';
 
+                        const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
+                        const groupIdx = groupColorMap[groupKey] ?? 0;
+                        const groupColor = GROUP_COLORS[groupIdx % GROUP_COLORS.length];
+                        const groupShape = GROUP_SHAPES[groupIdx % GROUP_SHAPES.length];
+
                         return (
                           <Box
                             id={`node-card-${node.nodeId}`}
                             key={node.nodeId}
                             w="220px"
                             flexShrink={0}
-                            bg={
-                              flashNodeId === node.nodeId
-                                ? undefined // let the animation handle bg
-                                : colorMode === 'dark'
-                                ? 'whiteAlpha.100'
-                                : 'white'
+                            style={
+                              flashNodeId !== node.nodeId
+                                ? {
+                                    backgroundColor: `color-mix(in srgb, var(--chakra-colors-${groupColor}-100) 45%, white)`,
+                                  }
+                                : undefined
                             }
                             borderRadius="lg"
                             overflow="hidden"
@@ -900,14 +916,27 @@ const TreasureTeamView = () => {
                             <Box h="4px" bg={accentColor} w="100%" />
                             <Flex flexDirection="column" h="100%" p={3}>
                               <HStack justify="space-between" mb={2}>
-                                <Badge
-                                  colorScheme={
-                                    isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'
-                                  }
-                                  fontSize="xs"
-                                >
-                                  {isInn ? '🏠 Inn' : diffMap[node.difficultyTier] || node.nodeType}
-                                </Badge>
+                                <HStack spacing={1}>
+                                  <Text
+                                    fontSize="sm"
+                                    color="gray.600"
+                                    opacity="0.7"
+                                    userSelect="none"
+                                    lineHeight={1}
+                                  >
+                                    {groupShape}
+                                  </Text>
+                                  <Badge
+                                    colorScheme={
+                                      isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'
+                                    }
+                                    fontSize="xs"
+                                  >
+                                    {isInn
+                                      ? '🏠 Inn'
+                                      : diffMap[node.difficultyTier] || node.nodeType}
+                                  </Badge>
+                                </HStack>
                                 {hasBuffApplied && (
                                   <Badge colorScheme="blue" fontSize="xs">
                                     ✨ Buffed
@@ -946,7 +975,7 @@ const TreasureTeamView = () => {
                                 </Text>
                               )}
                               {isInn && (
-                                <Text fontSize="xs" color="yellow.400" mb={2} fontWeight="semibold">
+                                <Text fontSize="xs" color="yellow.500" mb={2} fontWeight="semibold">
                                   Trade keys for GP →
                                 </Text>
                               )}

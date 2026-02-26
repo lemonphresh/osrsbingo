@@ -10,6 +10,7 @@ import BuffApplicationModalStories from './stories/BuffApplicationModal.stories'
 import LaunchModalStories from './stories/LaunchModal.stories';
 import BuffHistoryPanelStories from './stories/BuffHistoryPanel.stories';
 import PlayerSubmissionsPanelStories from './stories/PlayerSubmissionsPanel.stories';
+import AvailableTasksStripStories from './stories/AvailableTasksStrip.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -72,6 +73,13 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 5,
     component: LaunchModalStories,
+  },
+  {
+    id: 'available-tasks-strip',
+    label: 'AvailableTasksStrip',
+    category: 'Treasure Hunt',
+    scenarioCount: 11,
+    component: AvailableTasksStripStories,
   },
 ];
 
