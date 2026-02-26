@@ -231,11 +231,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         return { ...prev, prizePoolTotal: MAX_GP };
       }
 
-      if (field === 'nodeToInnRatio') {
-        if (value < MIN_NODES_PER_INN) return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
-        if (value > MAX_NODES_PER_INN) return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
-      }
-
       if (field === 'endDate' && prev.startDate) {
         const diff = Math.ceil(
           (new Date(value) - new Date(prev.startDate)) / (1000 * 60 * 60 * 24)
@@ -592,7 +587,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   if (!isNaN(val)) handleInputChange('estimatedHoursPerPlayerPerDay', val);
                 }}
                 min={0.5}
-                max={12}
+                max={24}
                 step={0.5}
               >
                 <NumberInputField {...inputStyles} />
@@ -712,6 +707,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 onChange={(_, val) => handleInputChange('nodeToInnRatio', val)}
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
+                keepWithinRange={false}
               >
                 <NumberInputField {...inputStyles} />
               </NumberInput>

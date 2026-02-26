@@ -249,6 +249,7 @@ const TreasureMapVisualization = ({
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
+  onVisitInn,
   currentUser,
   onScrollToNode,
 }) => {
@@ -785,8 +786,8 @@ const TreasureMapVisualization = ({
                                       leftIcon={<Text fontSize="xl">🏠</Text>}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (onAdminComplete) {
-                                          onAdminComplete(node.nodeId);
+                                        if (onVisitInn) {
+                                          onVisitInn(node.nodeId);
                                         }
                                       }}
                                     >

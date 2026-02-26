@@ -1225,14 +1225,14 @@ const TreasureHuntResolvers = {
             eventId,
             teamId,
             type: 'buff_applied',
-            data: JSON.stringify({
+            data: {
               buffName: buff.buffName,
               buffId: buff.buffId,
               nodeId,
               nodeName: node.title,
               reduction: buff.reduction,
               savedAmount: saved,
-            }),
+            },
             timestamp: new Date().toISOString(),
           },
         });

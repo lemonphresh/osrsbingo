@@ -29,7 +29,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircleIcon, CopyIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import PlayerSubmissionsPanel from '../organisms/TreasureHunt/PlayerSubmissionsPanel';
 import BuffHistoryPanel from '../organisms/TreasureHunt/BuffHistoryPanel';
@@ -38,6 +38,8 @@ import {
   ADMIN_UNCOMPLETE_NODE,
   APPLY_BUFF_TO_NODE,
   VISIT_INN,
+  SUBMISSION_ADDED_SUB,
+  SUBMISSION_REVIEWED_SUB,
 } from '../graphql/mutations';
 import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
 import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
@@ -147,8 +149,25 @@ const TreasureTeamView = () => {
     return { hasAccess: true, reason: 'authorized' };
   };
 
-  const { data: submissionsData, loading: submissionsLoading } = useQuery(GET_ALL_SUBMISSIONS, {
+  const {
+    data: submissionsData,
+    loading: submissionsLoading,
+    refetch: refetchSubmissions,
+  } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
+    pollInterval: 5 * 60 * 1000,
+  });
+
+  useSubscription(SUBMISSION_ADDED_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchSubmissions(),
+  });
+
+  useSubscription(SUBMISSION_REVIEWED_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchSubmissions(),
   });
 
   const accessCheck = checkTeamAccess();
@@ -324,7 +343,11 @@ const TreasureTeamView = () => {
         variables: { eventId, teamId, nodeId: selectedNode.nodeId, buffId },
       });
       await refetchTeam();
-      await refetchEvent();
+      const { data: freshEventData } = await refetchEvent();
+      const updatedNode = freshEventData?.getTreasureEvent?.nodes?.find(
+        (n) => n.nodeId === selectedNode.nodeId
+      );
+      if (updatedNode) setSelectedNode(updatedNode);
       toast({
         title: 'Buff applied!',
         description: 'The buff has been successfully applied to this objective',
@@ -367,6 +390,15 @@ const TreasureTeamView = () => {
   }, [submissionsData?.getAllSubmissions, teamId]);
 
   useSubmissionCelebrations(eventId, teamId, nodes, true, () => refetchTeam());
+
+  // Refetch team data when tab regains focus, in case WebSocket missed an event
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetchTeam();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refetchTeam]);
 
   useEffect(() => {
     const unlock = () => {
@@ -658,7 +690,7 @@ const TreasureTeamView = () => {
                     },
                   }}
                 >
-                  🏠 {availableInns} Inn{availableInns > 1 ? 's' : ''} Available!
+                  {availableInns} Inn{availableInns > 1 ? 's' : ''} Available!
                 </Button>
               )}
             </HStack>
@@ -705,6 +737,7 @@ const TreasureTeamView = () => {
               adminMode={adminMode}
               onAdminComplete={handleAdminCompleteNode}
               onAdminUncomplete={handleAdminUncompleteNode}
+              onVisitInn={handleVisitInn}
               currentUser={user}
               onScrollToNode={scrollToNodeCard}
             />
@@ -989,10 +1022,7 @@ const TreasureTeamView = () => {
               teamId={teamId}
               loading={submissionsLoading}
             />
-            <BuffHistoryPanel
-              buffHistory={team.buffHistory || []}
-              nodes={nodes}
-            />
+            <BuffHistoryPanel buffHistory={team.buffHistory || []} nodes={nodes} />
           </SimpleGrid>
 
           {/* ── FULL NODE LIST ── */}

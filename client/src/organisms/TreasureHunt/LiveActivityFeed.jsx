@@ -356,6 +356,8 @@ const LiveActivityFeed = ({
         return `❌ ${activity.team.teamName} submission denied`;
       case 'team_created':
         return `👥 ${activity.team.teamName} joined!`;
+      case 'buff_applied':
+        return `✨ ${activity.team.teamName} used a buff!`;
       default:
         return `⚡ ${activity.team.teamName} activity`;
     }
