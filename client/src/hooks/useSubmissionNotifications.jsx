@@ -27,92 +27,11 @@ export const useSubmissionNotifications = (
   const previousSubmissionIds = useRef(new Set());
   const isInitialized = useRef(false);
   const audioContextRef = useRef(null);
-  const originalFaviconRef = useRef(null);
-  // Cache the loaded favicon Image element so we never re-fetch it
-  const faviconImgRef = useRef(null);
   const toast = useToast();
 
   const isSupported = notificationsApiSupported;
 
-  // ===== Favicon Badge =====
-  // Draws a red badge onto the favicon canvas. Reuses a single cached Image
-  // so the browser only makes one request for /favicon.ico per session.
-  const drawFaviconBadge = useCallback(
-    (count) => {
-      if (!isBrowser) return;
-
-      if (count === 0) {
-        if (originalFaviconRef.current) {
-          const link =
-            document.querySelector("link[rel*='icon']") || document.createElement('link');
-          link.type = 'image/x-icon';
-          link.rel = 'shortcut icon';
-          link.href = originalFaviconRef.current;
-          document.getElementsByTagName('head')[0].appendChild(link);
-        }
-        return;
-      }
-
-      try {
-        if (!originalFaviconRef.current) {
-          const existingLink = document.querySelector("link[rel*='icon']");
-          originalFaviconRef.current = existingLink?.href || '/favicon.ico';
-        }
-
-        const renderBadge = (img) => {
-          const canvas = document.createElement('canvas');
-          canvas.width = 32;
-          canvas.height = 32;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, 32, 32);
-
-          const badgeSize = 18;
-          const x = canvas.width - badgeSize / 2 - 2;
-          const y = badgeSize / 2 + 2;
-
-          ctx.fillStyle = '#FF4B5C';
-          ctx.strokeStyle = '#FFFFFF';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.arc(x, y, badgeSize / 2, 0, 2 * Math.PI);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(count > 99 ? '99+' : count.toString(), x, y);
-
-          const link =
-            document.querySelector("link[rel*='icon']") || document.createElement('link');
-          link.type = 'image/x-icon';
-          link.rel = 'shortcut icon';
-          link.href = canvas.toDataURL();
-          document.getElementsByTagName('head')[0].appendChild(link);
-        };
-
-        if (faviconImgRef.current) {
-          // Already loaded — draw immediately, no network request
-          renderBadge(faviconImgRef.current);
-        } else {
-          const img = document.createElement('img');
-          img.crossOrigin = 'anonymous';
-          img.onload = () => {
-            faviconImgRef.current = img; // cache for all future calls
-            renderBadge(img);
-          };
-          img.onerror = () => console.warn('Could not load favicon for badge');
-          img.src = originalFaviconRef.current;
-        }
-      } catch (err) {
-        console.error('Error drawing favicon badge:', err);
-      }
-    },
-    [isBrowser]
-  );
-
-  // Update favicon + document title whenever the pending count changes
+  // Update document title whenever the pending count changes
   useEffect(() => {
     if (!isAdmin) return;
 
@@ -121,26 +40,15 @@ export const useSubmissionNotifications = (
         ? allPendingIncompleteSubmissionsCount
         : submissions.filter((s) => s.status === 'PENDING_REVIEW').length;
 
-    drawFaviconBadge(count);
     document.title =
       count > 0
         ? `(${count}) OSRS Bingo Hub - Create and Share Bingo Boards`
         : 'OSRS Bingo Hub - Create and Share Bingo Boards';
 
     return () => {
-      // Restore original favicon on unmount
-      if (originalFaviconRef.current) {
-        const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-        link.type = 'image/x-icon';
-        link.rel = 'shortcut icon';
-        link.href = originalFaviconRef.current;
-        document.getElementsByTagName('head')[0].appendChild(link);
-      }
+      document.title = 'OSRS Bingo Hub - Create and Share Bingo Boards';
     };
-  }, [allPendingIncompleteSubmissionsCount, isAdmin, drawFaviconBadge, submissions]);
-  // NOTE: intentionally removed `submissions` and `eventName` from the dep array —
-  // `allPendingIncompleteSubmissionsCount` is the authoritative count and is already derived
-  // from submissions upstream, so re-running on raw `submissions` just doubles the work.
+  }, [allPendingIncompleteSubmissionsCount, isAdmin, submissions]);
 
   const pendingToShow =
     typeof allPendingIncompleteSubmissionsCount === 'number'

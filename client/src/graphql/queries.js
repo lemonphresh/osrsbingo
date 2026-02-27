@@ -508,6 +508,7 @@ export const GET_TREASURE_EVENT = gql`
         availableNodes
         activeBuffs
         buffHistory
+        nodeNotes
         submissions {
           submissionId
           submittedByUsername

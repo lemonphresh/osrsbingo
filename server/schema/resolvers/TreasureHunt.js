@@ -1328,6 +1328,60 @@ const TreasureHuntResolvers = {
       return node;
     },
 
+    addNodeComment: async (_, { eventId, teamId, nodeId, text }, context) => {
+      if (!(await isEventAdminOrRef(context.user?.id, eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      const [team, author] = await Promise.all([
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        User.findByPk(context.user.id),
+      ]);
+      if (!team) throw new Error('Team not found');
+
+      const comment = {
+        id: `c_${uuidv4().substring(0, 8)}`,
+        text,
+        authorId: context.user.id,
+        authorName: author?.displayName || author?.username || 'Unknown',
+        timestamp: new Date().toISOString(),
+      };
+
+      const existing = team.nodeNotes || {};
+      const updatedNotes = { ...existing, [nodeId]: [...(existing[nodeId] || []), comment] };
+      await team.update({ nodeNotes: updatedNotes });
+      await team.reload();
+
+      console.log(`[addNodeComment] ✅ teamId=${teamId} nodeId=${nodeId} by=${comment.authorName}`);
+      return team;
+    },
+
+    deleteNodeComment: async (_, { eventId, teamId, nodeId, commentId }, context) => {
+      if (!(await isEventAdminOrRef(context.user?.id, eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+      if (!team) throw new Error('Team not found');
+
+      const existing = team.nodeNotes || {};
+      const comments = existing[nodeId] || [];
+      const comment = comments.find((c) => c.id === commentId);
+
+      if (!comment) throw new Error('Comment not found');
+      const isAdmin = context.user?.admin;
+      if (!isAdmin && comment.authorId !== context.user?.id) {
+        throw new Error('You can only delete your own comments.');
+      }
+
+      const updatedNotes = { ...existing, [nodeId]: comments.filter((c) => c.id !== commentId) };
+      await team.update({ nodeNotes: updatedNotes });
+      await team.reload();
+
+      console.log(`[deleteNodeComment] ✅ commentId=${commentId} teamId=${teamId}`);
+      return team;
+    },
+
     purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {
       console.log(`[purchaseInnReward] eventId=${eventId} teamId=${teamId} rewardId=${rewardId}`);
 

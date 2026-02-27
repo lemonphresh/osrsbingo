@@ -50,6 +50,10 @@ module.exports = (sequelize) => {
       completedNodes: DataTypes.ARRAY(DataTypes.STRING),
       availableNodes: DataTypes.ARRAY(DataTypes.STRING),
       innTransactions: DataTypes.JSONB,
+      nodeNotes: {
+        type: DataTypes.JSONB,
+        defaultValue: {},
+      },
     },
     {
       sequelize,

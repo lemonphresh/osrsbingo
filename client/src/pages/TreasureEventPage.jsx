@@ -86,6 +86,7 @@ import { MdOutlineArrowBack } from 'react-icons/md';
 import { FaCog, FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
+import NodeNoteEditor from '../organisms/TreasureHunt/NodeNoteEditor';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
 import Gold from '../assets/gold-small.webp';
 import Dossier from '../assets/dossier.png';
@@ -358,6 +359,7 @@ const TreasureEventView = () => {
   });
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
+
 
   const REFETCH_ACTIVITY_TYPES = new Set([
     'node_completed',
@@ -1458,6 +1460,15 @@ const TreasureEventView = () => {
                                             </Box>
                                           ))}
                                       </VStack>
+
+                                      {/* Admin / Ref Notes */}
+                                      <NodeNoteEditor
+                                        eventId={event.eventId}
+                                        teamId={teamId}
+                                        nodeId={nodeId}
+                                        initialComments={team?.nodeNotes?.[nodeId] || []}
+                                        isAdmin={isEventAdmin}
+                                      />
                                     </VStack>
                                   </AccordionPanel>
                                 </AccordionItem>
