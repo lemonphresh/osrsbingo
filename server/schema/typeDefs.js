@@ -243,7 +243,7 @@ const typeDefs = gql`
 
   enum TreasureEventStatus {
     DRAFT
-    ACTIVE
+    PUBLIC
     COMPLETED
     ARCHIVED
   }

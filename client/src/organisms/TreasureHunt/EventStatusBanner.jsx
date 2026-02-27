@@ -55,14 +55,14 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
           badge: isAdmin ? 'Only visible to admins' : null,
         };
 
-      case 'ACTIVE':
+      case 'PUBLIC':
         const isStartingSoon = msUntilStart > 0 && msUntilStart < 24 * 60 * 60 * 1000;
         const isEndingSoon = msUntilEnd > 0 && msUntilEnd < 24 * 60 * 60 * 1000;
         const hasStarted = msUntilStart <= 0;
         const hasEnded = msUntilEnd <= 0;
 
         if (!hasStarted) {
-          // Event is active but hasn't started yet
+          // Event is public but hasn't started yet
           return {
             icon: FaClock,
             color: 'blue',

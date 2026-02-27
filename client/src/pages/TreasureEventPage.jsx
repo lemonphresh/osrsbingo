@@ -230,7 +230,7 @@ const StandingsCard = ({
               whiteSpace="nowrap"
             >
               <Icon as={FaMap} />
-              &nbsp; View Team Map
+              &nbsp; View Page
             </Button>
           )}
           {onEditTeam && (
@@ -359,7 +359,6 @@ const TreasureEventView = () => {
   });
 
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
-
 
   const REFETCH_ACTIVITY_TYPES = new Set([
     'node_completed',
@@ -643,7 +642,7 @@ const TreasureEventView = () => {
     >
       <EventStatusBanner event={event} isAdmin={isEventAdmin} />
       {isEventAdmin &&
-        event.status === 'ACTIVE' &&
+        event.status === 'PUBLIC' &&
         new Date(event.endDate) - new Date() <= 8 * 60 * 60 * 1000 &&
         new Date(event.endDate) > new Date() && (
           <Box
@@ -1506,7 +1505,7 @@ const TreasureEventView = () => {
                                         </Heading>
                                         {notificationsEnabled && (
                                           <Badge colorScheme="green" fontSize="xs">
-                                            ACTIVE
+                                            PUBLIC
                                           </Badge>
                                         )}
                                         <HStack
@@ -2008,7 +2007,7 @@ const TreasureEventView = () => {
           isGeneratingMap={generateLoading}
         />
       )}
-      {isEventAdmin && event.status === 'ACTIVE' && (
+      {isEventAdmin && event.status === 'PUBLIC' && (
         <AdminQuickActionsPanel
           event={event}
           teams={teams}

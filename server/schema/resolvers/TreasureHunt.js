@@ -368,7 +368,7 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
       if (event.status !== 'DRAFT') throw new Error('Event is not in draft status');
 
-      await event.update({ status: 'ACTIVE' });
+      await event.update({ status: 'PUBLIC' });
 
       const { guildId } = event.discordConfig || {};
       if (guildId) {
@@ -391,7 +391,7 @@ const TreasureHuntResolvers = {
         include: [{ model: TreasureTeam, as: 'teams' }],
       });
       if (!event) throw new Error('Event not found');
-      if (event.status !== 'ACTIVE') throw new Error('Event is not active');
+      if (event.status !== 'PUBLIC') throw new Error('Event is not active');
 
       await event.update({ status: 'COMPLETED' });
 

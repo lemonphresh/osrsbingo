@@ -92,7 +92,7 @@ module.exports = {
       const teamData = verifyData.getTreasureTeam;
       const mapStructure = event.mapStructure;
 
-      if (event.status !== 'ACTIVE') {
+      if (event.status !== 'PUBLIC') {
         const statusMessages = {
           DRAFT:
             '🚧 This event is still in **DRAFT** mode. Submissions will open once the event organizer activates it.',
@@ -100,7 +100,7 @@ module.exports = {
           ARCHIVED: 'This event has been **archived**.',
         };
         return message.reply(
-          `${statusMessages[event.status] || `⚠️ Event not active (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,
+          `${statusMessages[event.status] || `⚠️ Event not public (status: ${event.status}).`}\n\nEvent: **${event.eventName}**`,
         );
       }
 

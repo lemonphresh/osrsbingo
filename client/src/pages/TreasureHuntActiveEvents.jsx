@@ -255,7 +255,7 @@ const TreasureHuntActiveEvents = () => {
   const [clickedEventId, setClickedEventId] = useState(null);
   const [now, setNow] = useState(new Date());
 
-  usePageTitle('Active Gielinor Rush Events');
+  usePageTitle('Public Gielinor Rush Events');
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 60000);
@@ -268,7 +268,7 @@ const TreasureHuntActiveEvents = () => {
   const activeEvents = useMemo(
     () =>
       [...(data?.getAllTreasureEvents || [])]
-        .filter((e) => e.status === 'ACTIVE')
+        .filter((e) => e.status === 'PUBLIC')
         .sort((a, b) => {
           const lastActivity = (e) =>
             Math.max(...(e.teams || []).map((t) => new Date(t.updatedAt || 0).getTime()), 0);
