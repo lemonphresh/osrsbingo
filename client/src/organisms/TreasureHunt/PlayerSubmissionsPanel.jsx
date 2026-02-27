@@ -193,7 +193,31 @@ const PlayerSubmissionsPanel = ({ submissions = [], nodes = [], teamId, loading 
 
       {/* Content */}
       <Collapse in={isOpen} animateOpacity>
-        <VStack p={3} spacing={2} align="stretch" maxH="300px" overflowY="auto">
+        <VStack
+          css={{
+            '&::-webkit-scrollbar': {
+              width: '8px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'transparent',
+              borderRadius: '10px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: '#4A5568',
+              borderRadius: '10px',
+              '&:hover': {
+                background: '#718096',
+              },
+            },
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#4A5568 transparent',
+          }}
+          p={3}
+          spacing={2}
+          align="stretch"
+          maxH="300px"
+          overflowY="auto"
+        >
           {loading ? (
             <HStack justify="center" py={4}>
               <Spinner size="sm" />

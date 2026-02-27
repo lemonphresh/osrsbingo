@@ -768,6 +768,29 @@ export const APPLY_BUFF_TO_NODE = gql`
   }
 `;
 
+export const ADD_NODE_COMMENT = gql`
+  mutation AddNodeComment($eventId: ID!, $teamId: ID!, $nodeId: ID!, $text: String!) {
+    addNodeComment(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, text: $text) {
+      teamId
+      nodeNotes
+    }
+  }
+`;
+
+export const DELETE_NODE_COMMENT = gql`
+  mutation DeleteNodeComment($eventId: ID!, $teamId: ID!, $nodeId: ID!, $commentId: ID!) {
+    deleteNodeComment(
+      eventId: $eventId
+      teamId: $teamId
+      nodeId: $nodeId
+      commentId: $commentId
+    ) {
+      teamId
+      nodeNotes
+    }
+  }
+`;
+
 export const ADMIN_GIVE_BUFF = gql`
   mutation AdminGiveBuff($eventId: ID!, $teamId: ID!, $buffType: String!) {
     adminGiveBuff(eventId: $eventId, teamId: $teamId, buffType: $buffType) {

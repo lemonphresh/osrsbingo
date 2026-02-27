@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   ModalOverlay,
@@ -56,6 +56,11 @@ export default function InnModal({
   const { colorMode } = useColorMode();
   const toast = useToast();
   const [selectedReward, setSelectedReward] = useState(null);
+  const [justPurchased, setJustPurchased] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) setJustPurchased(false);
+  }, [isOpen]);
 
   const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD, {
     refetchQueries: [
@@ -66,6 +71,7 @@ export default function InnModal({
     ],
     awaitRefetchQueries: true,
     onCompleted: () => {
+      setJustPurchased(true);
       toast({
         title: 'Purchase successful!',
         description: 'Rewards have been added to your team',
@@ -189,7 +195,7 @@ export default function InnModal({
               </Alert>
             )}
 
-            {hasAlreadyPurchased && (
+            {hasAlreadyPurchased && !justPurchased && (
               <Alert status="success" borderRadius="md">
                 <AlertIcon />
                 <Box flex="1">

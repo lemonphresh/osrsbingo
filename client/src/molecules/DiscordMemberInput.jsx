@@ -111,7 +111,10 @@ const DiscordMemberInput = ({
         siteUser: resolvedUser.username ? resolvedUser : null,
       });
     } else if (value && isValidDiscordId(value)) {
+      setDiscordUserInfo(null); // clear stale card before fetching new user
       fetchDiscordUser(value);
+    } else {
+      setDiscordUserInfo(null);
     }
   }, [value, resolvedUser]);
 

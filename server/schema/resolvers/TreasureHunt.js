@@ -15,11 +15,13 @@ const {
   sendSubmissionApprovalNotification,
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
+  sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
+const { OBJECTIVE_TYPES } = require('../../../client/src/utils/treasureHuntHelpers');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -130,9 +132,7 @@ async function isEventAdminOrRef(userId, eventId) {
   const event = await TreasureEvent.findByPk(eventId);
   if (!event) return false;
   return (
-    event.creatorId === userId ||
-    event.adminIds?.includes(userId) ||
-    event.refIds?.includes(userId)
+    event.creatorId === userId || event.adminIds?.includes(userId) || event.refIds?.includes(userId)
   );
 }
 
@@ -212,14 +212,48 @@ const TreasureHuntResolvers = {
     },
 
     getAllSubmissions: async (_, { eventId }) => {
-      console.log(`[getAllSubmissions] eventId=${eventId}`);
-      return TreasureSubmission.findAll({
-        where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
-        include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
-        order: [
-          ['status', 'ASC'],
-          ['submittedAt', 'DESC'],
-        ],
+      const [submissions, nodes] = await Promise.all([
+        TreasureSubmission.findAll({
+          where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
+          include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
+          order: [
+            ['status', 'ASC'],
+            ['submittedAt', 'DESC'],
+          ],
+        }),
+        TreasureNode.findAll({
+          where: { eventId },
+          attributes: ['nodeId', 'locationGroupId'],
+        }),
+      ]);
+
+      // Build nodeId -> locationGroupId lookup
+      const nodeToGroup = {};
+      nodes.forEach((n) => {
+        if (n.locationGroupId) nodeToGroup[n.nodeId] = n.locationGroupId;
+      });
+
+      // For each team, map locationGroupId -> the nodeId they actually completed
+      const teamCompletedGroupMap = {};
+      submissions.forEach((sub) => {
+        const team = sub.team;
+        if (!team?.completedNodes) return;
+        if (!teamCompletedGroupMap[team.teamId]) {
+          teamCompletedGroupMap[team.teamId] = {};
+          team.completedNodes.forEach((nId) => {
+            const groupId = nodeToGroup[nId];
+            if (groupId) teamCompletedGroupMap[team.teamId][groupId] = nId;
+          });
+        }
+      });
+
+      // Drop any submission for a node the team passed over in favor of a sibling at the same location
+      return submissions.filter((sub) => {
+        const groupId = nodeToGroup[sub.nodeId];
+        if (!groupId) return true;
+        const completedNodeInGroup = teamCompletedGroupMap[sub.team?.teamId]?.[groupId];
+        if (!completedNodeInGroup) return true;
+        return completedNodeInGroup === sub.nodeId;
       });
     },
 
@@ -234,7 +268,7 @@ const TreasureHuntResolvers = {
 
     verifyDiscordGuild: async (_, { guildId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      return verifyGuild(guildId);
+      return await verifyGuild(guildId);
     },
   },
 
@@ -308,7 +342,7 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
 
       // Verify bot is actually in the guild before confirming
-      const { success, error } = verifyGuild(guildId);
+      const { success, error } = await verifyGuild(guildId);
       if (!success) throw new Error(error || 'Bot not found in that server');
 
       await event.update({
@@ -334,7 +368,7 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
       if (event.status !== 'DRAFT') throw new Error('Event is not in draft status');
 
-      await event.update({ status: 'ACTIVE' });
+      await event.update({ status: 'PUBLIC' });
 
       const { guildId } = event.discordConfig || {};
       if (guildId) {
@@ -357,7 +391,7 @@ const TreasureHuntResolvers = {
         include: [{ model: TreasureTeam, as: 'teams' }],
       });
       if (!event) throw new Error('Event not found');
-      if (event.status !== 'ACTIVE') throw new Error('Event is not active');
+      if (event.status !== 'PUBLIC') throw new Error('Event is not active');
 
       await event.update({ status: 'COMPLETED' });
 
@@ -702,7 +736,7 @@ const TreasureHuntResolvers = {
         throw new Error('Not authorized. Admin or ref access required.');
       }
 
-      if (submission.status !== 'PENDING') {
+      if (submission.status !== 'PENDING_REVIEW') {
         throw new Error(
           `Submission has already been ${submission.status.toLowerCase()}. Refresh and try again.`
         );
@@ -961,6 +995,52 @@ const TreasureHuntResolvers = {
         });
       }
 
+      // Check if the team has now completed every completeable location (non-INN, non-START)
+      if (nodes.length > 0) {
+        const completeableNodeIds = nodes
+          .filter((n) => n.nodeType !== 'INN' && n.nodeType !== 'START')
+          .map((n) => n.nodeId);
+
+        const allCompleted =
+          completeableNodeIds.length > 0 &&
+          completeableNodeIds.every((nId) => completedNodes.includes(nId));
+
+        if (allCompleted) {
+          const allTeamSubmissions = await TreasureSubmission.findAll({
+            where: { teamId },
+            attributes: ['channelId'],
+          });
+          const teamChannelIds = [
+            ...new Set(allTeamSubmissions.map((s) => s.channelId).filter(Boolean)),
+          ];
+
+          if (teamChannelIds.length > 0) {
+            const completeableNodes = nodes.filter(
+              (n) => n.nodeType !== 'INN' && n.nodeType !== 'START'
+            );
+            const gpFromNodes = completeableNodes.reduce(
+              (sum, n) => sum + (n.rewards?.gp || 0),
+              0
+            );
+
+            sendAllNodesCompletedNotification({
+              channelIds: teamChannelIds,
+              teamName: team.teamName,
+              teamPageUrl: `${process.env.FRONTEND_URL}/gielinor-rush/${eventId}/team/${teamId}`,
+              finalPot: currentPot.toString(),
+              nodesCompleted: completeableNodes.length,
+              gpFromNodes,
+              buffsUsed: team.buffHistory?.length || 0,
+            }).catch((err) =>
+              console.error(
+                '[adminCompleteNode] all-nodes-completed notification failed:',
+                err.message
+              )
+            );
+          }
+        }
+      }
+
       console.log(
         `[adminCompleteNode] ✅ node completed teamId=${teamId} nodeId=${nodeId} gp=${
           node.rewards?.gp || 0
@@ -1128,7 +1208,7 @@ const TreasureHuntResolvers = {
           usedAt: new Date().toISOString(),
           originalRequirement: originalQuantity,
           reducedRequirement: reducedQuantity,
-          benefit: `Saved ${saved} ${node.objective.type}`,
+          benefit: `Saved ${saved} ${OBJECTIVE_TYPES[node.objective.type]}`,
         },
       ];
 
@@ -1145,14 +1225,14 @@ const TreasureHuntResolvers = {
             eventId,
             teamId,
             type: 'buff_applied',
-            data: JSON.stringify({
+            data: {
               buffName: buff.buffName,
               buffId: buff.buffId,
               nodeId,
               nodeName: node.title,
               reduction: buff.reduction,
               savedAmount: saved,
-            }),
+            },
             timestamp: new Date().toISOString(),
           },
         });
@@ -1246,6 +1326,60 @@ const TreasureHuntResolvers = {
       invalidateEventNodes(eventId);
       console.log(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId}`);
       return node;
+    },
+
+    addNodeComment: async (_, { eventId, teamId, nodeId, text }, context) => {
+      if (!(await isEventAdminOrRef(context.user?.id, eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      const [team, author] = await Promise.all([
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        User.findByPk(context.user.id),
+      ]);
+      if (!team) throw new Error('Team not found');
+
+      const comment = {
+        id: `c_${uuidv4().substring(0, 8)}`,
+        text,
+        authorId: context.user.id,
+        authorName: author?.displayName || author?.username || 'Unknown',
+        timestamp: new Date().toISOString(),
+      };
+
+      const existing = team.nodeNotes || {};
+      const updatedNotes = { ...existing, [nodeId]: [...(existing[nodeId] || []), comment] };
+      await team.update({ nodeNotes: updatedNotes });
+      await team.reload();
+
+      console.log(`[addNodeComment] ✅ teamId=${teamId} nodeId=${nodeId} by=${comment.authorName}`);
+      return team;
+    },
+
+    deleteNodeComment: async (_, { eventId, teamId, nodeId, commentId }, context) => {
+      if (!(await isEventAdminOrRef(context.user?.id, eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+      if (!team) throw new Error('Team not found');
+
+      const existing = team.nodeNotes || {};
+      const comments = existing[nodeId] || [];
+      const comment = comments.find((c) => c.id === commentId);
+
+      if (!comment) throw new Error('Comment not found');
+      const isAdmin = context.user?.admin;
+      if (!isAdmin && comment.authorId !== context.user?.id) {
+        throw new Error('You can only delete your own comments.');
+      }
+
+      const updatedNotes = { ...existing, [nodeId]: comments.filter((c) => c.id !== commentId) };
+      await team.update({ nodeNotes: updatedNotes });
+      await team.reload();
+
+      console.log(`[deleteNodeComment] ✅ commentId=${commentId} teamId=${teamId}`);
+      return team;
     },
 
     purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {

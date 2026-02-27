@@ -29,14 +29,17 @@ import {
 } from '@chakra-ui/react';
 import { CheckCircleIcon, CopyIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import PlayerSubmissionsPanel from '../organisms/TreasureHunt/PlayerSubmissionsPanel';
+import BuffHistoryPanel from '../organisms/TreasureHunt/BuffHistoryPanel';
 import {
   ADMIN_COMPLETE_NODE,
   ADMIN_UNCOMPLETE_NODE,
   APPLY_BUFF_TO_NODE,
   VISIT_INN,
+  SUBMISSION_ADDED_SUB,
+  SUBMISSION_REVIEWED_SUB,
 } from '../graphql/mutations';
 import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
 import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
@@ -64,6 +67,9 @@ import usePageTitle from '../hooks/usePageTitle';
 import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
 import { FaCog, FaCoins } from 'react-icons/fa';
+
+const GROUP_COLORS = ['red', 'blue', 'yellow', 'green', 'orange', 'teal', 'purple', 'cyan', 'pink'];
+const GROUP_SHAPES = ['◆', '▲', '●', '■', '★', '⬟', '⬢', '✦', '❖'];
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -114,6 +120,8 @@ const TreasureTeamView = () => {
 
   const handleVisitInn = async (nodeId) => {
     await visitInn({ variables: { eventId, teamId, nodeId } });
+    await refetchTeam();
+    await refetchEvent();
   };
 
   const [selectedNode, setSelectedNode] = useState(null);
@@ -144,8 +152,25 @@ const TreasureTeamView = () => {
     return { hasAccess: true, reason: 'authorized' };
   };
 
-  const { data: submissionsData, loading: submissionsLoading } = useQuery(GET_ALL_SUBMISSIONS, {
+  const {
+    data: submissionsData,
+    loading: submissionsLoading,
+    refetch: refetchSubmissions,
+  } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
+    pollInterval: 5 * 60 * 1000,
+  });
+
+  useSubscription(SUBMISSION_ADDED_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchSubmissions(),
+  });
+
+  useSubscription(SUBMISSION_REVIEWED_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchSubmissions(),
   });
 
   const accessCheck = checkTeamAccess();
@@ -226,8 +251,15 @@ const TreasureTeamView = () => {
       if (node.nodeType !== 'STANDARD') return false;
       if (!node.objective) return false;
       if (node.objective.appliedBuff) return false;
-      if (!buff.objectiveTypes || buff.objectiveTypes.length === 0) return true;
-      return buff.objectiveTypes.includes(node.objective.type);
+      if (buff.objectiveTypes && buff.objectiveTypes.length > 0) {
+        if (!buff.objectiveTypes.includes(node.objective.type)) return false;
+      }
+      // Mirror server-side canApplyBuff: item_collection with <= 3 items can't be reduced
+      if (node.objective.type === 'item_collection' && node.objective.quantity <= 3) return false;
+      // Buff must result in a meaningful reduction
+      const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
+      if (reduced === 0 || reduced >= node.objective.quantity) return false;
+      return true;
     });
   };
 
@@ -321,7 +353,11 @@ const TreasureTeamView = () => {
         variables: { eventId, teamId, nodeId: selectedNode.nodeId, buffId },
       });
       await refetchTeam();
-      await refetchEvent();
+      const { data: freshEventData } = await refetchEvent();
+      const updatedNode = freshEventData?.getTreasureEvent?.nodes?.find(
+        (n) => n.nodeId === selectedNode.nodeId
+      );
+      if (updatedNode) setSelectedNode(updatedNode);
       toast({
         title: 'Buff applied!',
         description: 'The buff has been successfully applied to this objective',
@@ -364,6 +400,15 @@ const TreasureTeamView = () => {
   }, [submissionsData?.getAllSubmissions, teamId]);
 
   useSubmissionCelebrations(eventId, teamId, nodes, true, () => refetchTeam());
+
+  // Refetch team data when tab regains focus, in case WebSocket missed an event
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') refetchTeam();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [refetchTeam]);
 
   useEffect(() => {
     const unlock = () => {
@@ -655,7 +700,7 @@ const TreasureTeamView = () => {
                     },
                   }}
                 >
-                  🏠 {availableInns} Inn{availableInns > 1 ? 's' : ''} Available!
+                  {availableInns} Inn{availableInns > 1 ? 's' : ''} Available!
                 </Button>
               )}
             </HStack>
@@ -702,6 +747,7 @@ const TreasureTeamView = () => {
               adminMode={adminMode}
               onAdminComplete={handleAdminCompleteNode}
               onAdminUncomplete={handleAdminUncompleteNode}
+              onVisitInn={handleVisitInn}
               currentUser={user}
               onScrollToNode={scrollToNodeCard}
             />
@@ -730,6 +776,14 @@ const TreasureTeamView = () => {
               });
 
             if (availableNodes.length === 0) return null;
+
+            // Assign alternating color indices by location group order
+            const groupColorMap = {};
+            let groupIndex = 0;
+            availableNodes.forEach((node) => {
+              const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
+              if (!(groupKey in groupColorMap)) groupColorMap[groupKey] = groupIndex++;
+            });
 
             return (
               <Box>
@@ -812,18 +866,23 @@ const TreasureTeamView = () => {
                           ? 'orange.400'
                           : 'green.400';
 
+                        const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
+                        const groupIdx = groupColorMap[groupKey] ?? 0;
+                        const groupColor = GROUP_COLORS[groupIdx % GROUP_COLORS.length];
+                        const groupShape = GROUP_SHAPES[groupIdx % GROUP_SHAPES.length];
+
                         return (
                           <Box
                             id={`node-card-${node.nodeId}`}
                             key={node.nodeId}
                             w="220px"
                             flexShrink={0}
-                            bg={
-                              flashNodeId === node.nodeId
-                                ? undefined // let the animation handle bg
-                                : colorMode === 'dark'
-                                ? 'whiteAlpha.100'
-                                : 'white'
+                            style={
+                              flashNodeId !== node.nodeId
+                                ? {
+                                    backgroundColor: `color-mix(in srgb, var(--chakra-colors-${groupColor}-100) 45%, white)`,
+                                  }
+                                : undefined
                             }
                             borderRadius="lg"
                             overflow="hidden"
@@ -857,14 +916,27 @@ const TreasureTeamView = () => {
                             <Box h="4px" bg={accentColor} w="100%" />
                             <Flex flexDirection="column" h="100%" p={3}>
                               <HStack justify="space-between" mb={2}>
-                                <Badge
-                                  colorScheme={
-                                    isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'
-                                  }
-                                  fontSize="xs"
-                                >
-                                  {isInn ? '🏠 Inn' : diffMap[node.difficultyTier] || node.nodeType}
-                                </Badge>
+                                <HStack spacing={1}>
+                                  <Text
+                                    fontSize="sm"
+                                    color="gray.600"
+                                    opacity="0.7"
+                                    userSelect="none"
+                                    lineHeight={1}
+                                  >
+                                    {groupShape}
+                                  </Text>
+                                  <Badge
+                                    colorScheme={
+                                      isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'
+                                    }
+                                    fontSize="xs"
+                                  >
+                                    {isInn
+                                      ? '🏠 Inn'
+                                      : diffMap[node.difficultyTier] || node.nodeType}
+                                  </Badge>
+                                </HStack>
                                 {hasBuffApplied && (
                                   <Badge colorScheme="blue" fontSize="xs">
                                     ✨ Buffed
@@ -903,7 +975,7 @@ const TreasureTeamView = () => {
                                 </Text>
                               )}
                               {isInn && (
-                                <Text fontSize="xs" color="yellow.400" mb={2} fontWeight="semibold">
+                                <Text fontSize="xs" color="yellow.500" mb={2} fontWeight="semibold">
                                   Trade keys for GP →
                                 </Text>
                               )}
@@ -979,12 +1051,15 @@ const TreasureTeamView = () => {
             </Box>
           </SimpleGrid>
 
-          <PlayerSubmissionsPanel
-            submissions={teamSubmissions}
-            nodes={nodes}
-            teamId={teamId}
-            loading={submissionsLoading}
-          />
+          <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+            <PlayerSubmissionsPanel
+              submissions={teamSubmissions}
+              nodes={nodes}
+              teamId={teamId}
+              loading={submissionsLoading}
+            />
+            <BuffHistoryPanel buffHistory={team.buffHistory || []} nodes={nodes} />
+          </SimpleGrid>
 
           {/* ── FULL NODE LIST ── */}
 
@@ -1424,6 +1499,7 @@ const TreasureTeamView = () => {
         eventId={eventId}
         onApplyBuff={handleApplyBuff}
         availableBuffs={team?.activeBuffs || []}
+        onApplyComplete={onNodeOpen}
       />
       <AvailableInnsModal
         isOpen={isAvailableInnsOpen}

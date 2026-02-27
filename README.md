@@ -301,7 +301,7 @@ Integrate your event directly into Discord for seamless team coordination.
 1. Create a Discord app at [discord.com/developers](https://discord.com/developers)
 2. Add a bot and copy the token to your `.env`
 3. Invite bot to your server with permissions: Send Messages, Read Messages, Embed Links
-4. Set any channel's **topic** to your Event ID (e.g., `event_abc123`)
+4. Set any channel's **topic** to your Event ID (i.e., `event_abc123`)
 
 ### Commands
 

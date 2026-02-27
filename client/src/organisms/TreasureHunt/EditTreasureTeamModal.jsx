@@ -49,6 +49,7 @@ export default function EditTeamModal({
   existingTeams = [],
   eventId,
   onSuccess,
+  allowDelete = true,
 }) {
   const { showToast } = useToastContext();
   const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
@@ -85,14 +86,14 @@ export default function EditTeamModal({
   };
 
   useEffect(() => {
-    if (team) {
+    if (isOpen && team) {
       setFormData({
         teamName: team.teamName || '',
         discordRoleId: team.discordRoleId || '',
         members: team.members?.length > 0 ? team.members.map((m) => m.discordUserId) : [''],
       });
     }
-  }, [team]);
+  }, [isOpen, team]);
 
   const [updateTeam, { loading }] = useMutation(UPDATE_TREASURE_TEAM, {
     onCompleted: () => {
@@ -288,11 +289,14 @@ export default function EditTeamModal({
               Update Team
             </Button>
 
-            <Divider borderColor="gray.600" />
-
-            <Button colorScheme="red" variant="outline" w="full" onClick={onDeleteOpen}>
-              Delete Team
-            </Button>
+            {allowDelete && (
+              <>
+                <Divider borderColor="gray.600" />
+                <Button colorScheme="red" variant="outline" w="full" onClick={onDeleteOpen}>
+                  Delete Team
+                </Button>
+              </>
+            )}
           </VStack>
         </ModalBody>
       </ModalContent>

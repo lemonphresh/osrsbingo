@@ -231,11 +231,6 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         return { ...prev, prizePoolTotal: MAX_GP };
       }
 
-      if (field === 'nodeToInnRatio') {
-        if (value < MIN_NODES_PER_INN) return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
-        if (value > MAX_NODES_PER_INN) return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
-      }
-
       if (field === 'endDate' && prev.startDate) {
         const diff = Math.ceil(
           (new Date(value) - new Date(prev.startDate)) / (1000 * 60 * 60 * 24)
@@ -278,8 +273,8 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
         }
       }
 
-      if (field === 'status' && value === 'ACTIVE' && shouldBeLockedOut) {
-        showToast('Complete all launch requirements before setting to Active', 'warning');
+      if (field === 'status' && value === 'PUBLIC' && shouldBeLockedOut) {
+        showToast('Complete all launch requirements before setting to Public', 'warning');
         return prev;
       }
 
@@ -479,11 +474,11 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   Draft
                 </option>
                 <option
-                  value="ACTIVE"
+                  value="PUBLIC"
                   disabled={shouldBeLockedOut}
                   style={{ background: '#2D3748' }}
                 >
-                  Active{shouldBeLockedOut ? ' (requirements not met)' : ''}
+                  Public{shouldBeLockedOut ? ' (requirements not met)' : ''}
                 </option>
                 <option
                   value="COMPLETED"
@@ -592,7 +587,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                   if (!isNaN(val)) handleInputChange('estimatedHoursPerPlayerPerDay', val);
                 }}
                 min={0.5}
-                max={12}
+                max={24}
                 step={0.5}
               >
                 <NumberInputField {...inputStyles} />
@@ -712,6 +707,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 onChange={(_, val) => handleInputChange('nodeToInnRatio', val)}
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
+                keepWithinRange={false}
               >
                 <NumberInputField {...inputStyles} />
               </NumberInput>
@@ -755,7 +751,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
               isDisabled={
                 totalPlayers > MAX_TOTAL_PLAYERS ||
                 eventDuration > MAX_EVENT_DURATION_DAYS ||
-                (formData.status === 'ACTIVE' && shouldBeLockedOut)
+                (formData.status === 'PUBLIC' && shouldBeLockedOut)
               }
             >
               Update Event

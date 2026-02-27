@@ -188,7 +188,7 @@ export default function NodeDetailModal({
     );
 
   const shouldShowTutorial =
-    !adminMode && isTeamMember && showTutorial && userHasNeverSubmitted(team, currentUser);
+    !adminMode && !isInnNode && isTeamMember && showTutorial && userHasNeverSubmitted(team, currentUser);
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -546,7 +546,7 @@ export default function NodeDetailModal({
                     color={currentColors.textColor}
                     textAlign="center"
                   >
-                    Submit {isInnNode ? 'visit to inn' : 'completion'} via Discord bot:
+                    Submit completion via Discord bot:
                   </Text>
                 </HStack>
                 <VStack spacing={2} align="stretch">

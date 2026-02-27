@@ -105,10 +105,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         return { ...prev, prizePoolTotal: MAX_GP };
       }
 
-      if (field === 'nodeToInnRatio') {
-        if (value < MIN_NODES_PER_INN) return { ...prev, nodeToInnRatio: MIN_NODES_PER_INN };
-        if (value > MAX_NODES_PER_INN) return { ...prev, nodeToInnRatio: MAX_NODES_PER_INN };
-      }
+
 
       if (field === 'endDate' && prev.startDate) {
         const diff = Math.ceil(
@@ -378,7 +375,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 value={formData.estimatedHoursPerPlayerPerDay}
                 onChange={(_, val) => handleInputChange('estimatedHoursPerPlayerPerDay', val)}
                 min={0.5}
-                max={8}
+                max={24}
                 step={0.5}
               >
                 <NumberInputField {...inputStyles} />
@@ -505,6 +502,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 onChange={(_, val) => handleInputChange('nodeToInnRatio', val)}
                 min={MIN_NODES_PER_INN}
                 max={MAX_NODES_PER_INN}
+                keepWithinRange={false}
               >
                 <NumberInputField {...inputStyles} />
               </NumberInput>

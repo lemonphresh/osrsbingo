@@ -135,7 +135,7 @@ export function getTodayDateTimeInputValue() {
 }
 
 /**
- * Returns the viewer's IANA timezone name, e.g. "America/Los_Angeles".
+ * Returns the viewer's IANA timezone name, i.e. "America/Los_Angeles".
  * Used to label datetime pickers so admins know what timezone they're entering.
  */
 export function getViewerTimezone() {

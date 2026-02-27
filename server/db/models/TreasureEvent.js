@@ -29,7 +29,7 @@ module.exports = (sequelize) => {
       clanId: DataTypes.STRING,
       eventName: DataTypes.STRING,
       status: {
-        type: DataTypes.ENUM('draft', 'active', 'completed', 'archived'),
+        type: DataTypes.ENUM('draft', 'PUBLIC', 'completed', 'archived'),
         defaultValue: 'draft',
       },
       startDate: DataTypes.DATE,

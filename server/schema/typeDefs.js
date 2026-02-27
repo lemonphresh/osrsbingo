@@ -243,7 +243,7 @@ const typeDefs = gql`
 
   enum TreasureEventStatus {
     DRAFT
-    ACTIVE
+    PUBLIC
     COMPLETED
     ARCHIVED
   }
@@ -334,6 +334,7 @@ const typeDefs = gql`
     activeBuffs: JSON
     buffHistory: JSON
     innTransactions: JSON
+    nodeNotes: JSON
     submissions: [TreasureSubmission!]
     event: TreasureEvent
     updatedAt: String
@@ -610,6 +611,10 @@ const typeDefs = gql`
     adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
     adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
     adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
+
+    # --- Gielinor Rush: Admin Notes ---
+    addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): TreasureTeam!
+    deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): TreasureTeam!
 
     # --- Gielinor Rush: Inns ---
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!

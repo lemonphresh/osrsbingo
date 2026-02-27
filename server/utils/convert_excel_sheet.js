@@ -29,7 +29,7 @@ function parseTags(tagString) {
     .filter(Boolean);
 }
 
-// Helper to parse sources (e.g., "bosses:vorkath" or "bosses:vorkath,raids:cox")
+// Helper to parse sources (i.e., "bosses:vorkath" or "bosses:vorkath,raids:cox")
 function parseSources(sourceString) {
   if (!sourceString || typeof sourceString !== 'string') return [];
   return sourceString

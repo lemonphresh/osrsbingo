@@ -1,5 +1,63 @@
 import { MOCK_BUFFS } from './buffs';
 
+const now = new Date();
+const hoursAgo = (h) => new Date(now - h * 3600000).toISOString();
+
+export const MOCK_BUFF_HISTORY = {
+  empty: [],
+
+  single: [
+    {
+      buffId: 'buff_001',
+      buffName: "Slayer's Edge",
+      usedOn: 'node_003',
+      usedAt: hoursAgo(2),
+      originalRequirement: 100,
+      reducedRequirement: 75,
+      benefit: 'Saved 25 boss_kc',
+    },
+  ],
+
+  multiple: [
+    {
+      buffId: 'buff_001',
+      buffName: "Slayer's Edge",
+      usedOn: 'node_003',
+      usedAt: hoursAgo(1),
+      originalRequirement: 100,
+      reducedRequirement: 75,
+      benefit: 'Saved 25 boss_kc',
+    },
+    {
+      buffId: 'buff_002',
+      buffName: 'Training Momentum',
+      usedOn: 'node_med_001',
+      usedAt: hoursAgo(6),
+      originalRequirement: 50000,
+      reducedRequirement: 25000,
+      benefit: 'Saved 25000 xp_gain',
+    },
+    {
+      buffId: 'buff_003',
+      buffName: 'Legendary Gatherer',
+      usedOn: 'node_easy_001',
+      usedAt: hoursAgo(24),
+      originalRequirement: 500,
+      reducedRequirement: 125,
+      benefit: 'Saved 375 item_collection',
+    },
+    {
+      buffId: 'buff_004',
+      buffName: 'Versatile Training',
+      usedOn: 'node_buff_applied',
+      usedAt: hoursAgo(48),
+      originalRequirement: 200,
+      reducedRequirement: 100,
+      benefit: 'Saved 100 boss_kc',
+    },
+  ],
+};
+
 const BASE_TEAM = {
   teamId: 'team_001',
   eventId: 'event_001',
@@ -16,7 +74,7 @@ const BASE_TEAM = {
   currentPot: '15000000',
   completedNodes: ['node_001', 'node_002'],
   availableNodes: ['node_003', 'node_inn_001', 'node_easy_001'],
-  buffHistory: [],
+  buffHistory: MOCK_BUFF_HISTORY.empty,
   innTransactions: [],
 };
 

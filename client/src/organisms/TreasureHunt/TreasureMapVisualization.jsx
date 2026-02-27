@@ -249,6 +249,7 @@ const TreasureMapVisualization = ({
   adminMode = false,
   onAdminComplete,
   onAdminUncomplete,
+  onVisitInn,
   currentUser,
   onScrollToNode,
 }) => {
@@ -785,8 +786,8 @@ const TreasureMapVisualization = ({
                                       leftIcon={<Text fontSize="xl">🏠</Text>}
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        if (onAdminComplete) {
-                                          onAdminComplete(node.nodeId);
+                                        if (onVisitInn) {
+                                          onVisitInn(node.nodeId);
                                         }
                                       }}
                                     >
@@ -859,22 +860,6 @@ const TreasureMapVisualization = ({
                                     }}
                                   />
                                 </HStack>
-                                <Text
-                                  textAlign="center"
-                                  fontSize="xs"
-                                  color="#4a5568"
-                                  fontStyle="italic"
-                                  mt={1}
-                                  sx={{
-                                    code: { backgroundColor: '#e7ffeaff' },
-                                  }}
-                                >
-                                  or
-                                  <br />
-                                  <code className="code">
-                                    !submit {node.nodeId} (attach image file)
-                                  </code>
-                                </Text>
                               </>
                             )}
                           </Box>

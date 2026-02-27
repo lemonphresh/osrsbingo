@@ -508,6 +508,7 @@ export const GET_TREASURE_EVENT = gql`
         availableNodes
         activeBuffs
         buffHistory
+        nodeNotes
         submissions {
           submissionId
           submittedByUsername
@@ -557,6 +558,11 @@ export const GET_ALL_TREASURE_EVENTS = gql`
       createdAt
       updatedAt
       adminIds
+      derivedValues
+      nodes {
+        nodeId
+        nodeType
+      }
       teams {
         teamId
         teamName

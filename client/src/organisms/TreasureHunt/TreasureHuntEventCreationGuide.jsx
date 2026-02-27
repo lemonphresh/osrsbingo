@@ -599,7 +599,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                     <ListItem>
                       <ListIcon as={CheckCircleIcon} color="cyan.400" />
                       Complete the Admin Checklist to set up Discord channels and review the event
-                      in DRAFT mode before going ACTIVE
+                      in DRAFT mode before going PUBLIC
                     </ListItem>
                   </List>
 
@@ -646,7 +646,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />
-                Explore your event in DRAFT mode before going ACTIVE
+                Explore your event in DRAFT mode before going PUBLIC
               </ListItem>
               <ListItem>
                 <ListIcon as={CheckCircleIcon} color="blue.400" />

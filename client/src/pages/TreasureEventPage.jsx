@@ -86,6 +86,7 @@ import { MdOutlineArrowBack } from 'react-icons/md';
 import { FaCog, FaCoins, FaCrown, FaMap } from 'react-icons/fa';
 import DiscordSetupModal from '../molecules/TreasureHunt/DiscordSetupModal';
 import GameRulesTab from '../organisms/TreasureHunt/TreasureHuntGameRulesTab';
+import NodeNoteEditor from '../organisms/TreasureHunt/NodeNoteEditor';
 import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
 import Gold from '../assets/gold-small.webp';
 import Dossier from '../assets/dossier.png';
@@ -131,9 +132,12 @@ const StandingsCard = ({
   const navigate = useNavigate();
   const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
   const isLeader = index === 0 && (team.currentPot || 0) > 0;
-  const completedCount = team.completedNodes?.length || 0;
   const isOnTeam = userDiscordId && team.members?.some((m) => m.discordUserId === userDiscordId);
-  const totalNodes = Math.max(event.nodes?.length || 1, 1);
+  const standardCount = event.nodes?.filter((n) => n.nodeType === 'STANDARD').length ?? 0;
+  const innCount = event.nodes?.filter((n) => n.nodeType === 'INN').length ?? 0;
+  const startCount = event.nodes?.filter((n) => n.nodeType === 'START').length ?? 0;
+  const totalNodes = Math.max(Math.round(standardCount / 3) + innCount + startCount, 1);
+  const completedCount = team.completedNodes?.length || 0;
   const progressPct = (completedCount / totalNodes) * 100;
 
   return (
@@ -226,7 +230,7 @@ const StandingsCard = ({
               whiteSpace="nowrap"
             >
               <Icon as={FaMap} />
-              &nbsp; View Team Map
+              &nbsp; View Page
             </Button>
           )}
           {onEditTeam && (
@@ -332,6 +336,7 @@ const TreasureEventView = () => {
   } = useQuery(GET_TREASURE_EVENT, { variables: { eventId } });
   const { data: submissionsData, refetch: refetchSubmissions } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
+    pollInterval: 5 * 60 * 1000, // 5-minute fallback poll in case WebSocket misses an event
   });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
@@ -637,7 +642,7 @@ const TreasureEventView = () => {
     >
       <EventStatusBanner event={event} isAdmin={isEventAdmin} />
       {isEventAdmin &&
-        event.status === 'ACTIVE' &&
+        event.status === 'PUBLIC' &&
         new Date(event.endDate) - new Date() <= 8 * 60 * 60 * 1000 &&
         new Date(event.endDate) > new Date() && (
           <Box
@@ -867,7 +872,7 @@ const TreasureEventView = () => {
                     <Heading size="sm" color={currentColors.white}>
                       🏆 &nbsp;Leaderboard
                     </Heading>
-                    {isEventAdmin && (
+                    {isEventAdmin && event.status === 'DRAFT' && (
                       <Button
                         size="xs"
                         leftIcon={<AddIcon />}
@@ -886,7 +891,7 @@ const TreasureEventView = () => {
                       <Text color="gray.400" mb={3}>
                         No teams yet.
                       </Text>
-                      {isEventAdmin && (
+                      {isEventAdmin && event.status === 'DRAFT' && (
                         <Button
                           size="sm"
                           leftIcon={<AddIcon />}
@@ -1031,7 +1036,7 @@ const TreasureEventView = () => {
                 }}
               >
                 {isEventAdminOrRef && (
-                  <Tab ref={leaderboardTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
+                  <Tab ref={submissionsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
                     Submissions ({allPendingIncompleteSubmissionsCount} Pending)
                     {allPendingIncompleteSubmissionsCount > 0 && (
                       <Box
@@ -1454,6 +1459,15 @@ const TreasureEventView = () => {
                                             </Box>
                                           ))}
                                       </VStack>
+
+                                      {/* Admin / Ref Notes */}
+                                      <NodeNoteEditor
+                                        eventId={event.eventId}
+                                        teamId={teamId}
+                                        nodeId={nodeId}
+                                        initialComments={team?.nodeNotes?.[nodeId] || []}
+                                        isAdmin={isEventAdmin}
+                                      />
                                     </VStack>
                                   </AccordionPanel>
                                 </AccordionItem>
@@ -1491,7 +1505,7 @@ const TreasureEventView = () => {
                                         </Heading>
                                         {notificationsEnabled && (
                                           <Badge colorScheme="green" fontSize="xs">
-                                            ACTIVE
+                                            PUBLIC
                                           </Badge>
                                         )}
                                         <HStack
@@ -1993,7 +2007,7 @@ const TreasureEventView = () => {
           isGeneratingMap={generateLoading}
         />
       )}
-      {isEventAdmin && event.status === 'ACTIVE' && (
+      {isEventAdmin && event.status === 'PUBLIC' && (
         <AdminQuickActionsPanel
           event={event}
           teams={teams}
@@ -2031,6 +2045,7 @@ const TreasureEventView = () => {
         team={selectedTeam}
         eventId={eventId}
         existingTeams={event?.teams || []}
+        allowDelete={event?.status === 'DRAFT'}
         onSuccess={async () => {
           await refetchEvent();
           await refetchSubmissions();

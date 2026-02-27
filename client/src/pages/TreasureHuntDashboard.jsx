@@ -162,7 +162,7 @@ const TreasureHuntDashboard = () => {
 
   const getStatusColor = (status) =>
     ({
-      ACTIVE: c.green.base,
+      PUBLIC: c.green.base,
       DRAFT: c.red,
       COMPLETED: c.turquoise.base,
       ARCHIVED: c.purple.base,
@@ -656,7 +656,7 @@ const TreasureHuntDashboard = () => {
             _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
           >
             <option value="ALL">All Status</option>
-            <option value="ACTIVE">Active</option>
+            <option value="PUBLIC">Public</option>
             <option value="DRAFT">Draft</option>
             <option value="COMPLETED">Completed</option>
             <option value="ARCHIVED">Archived</option>

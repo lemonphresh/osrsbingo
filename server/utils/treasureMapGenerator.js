@@ -126,7 +126,7 @@ const INN_BUFF_POOL_BY_TIER = {
     { buffType: 'xp_reduction_major', buffName: 'Training Enlightenment' },
     { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
     { buffType: 'item_reduction_major', buffName: 'Legendary Gatherer' },
-    { buffType: 'universal_moderate', buffName: 'Versatile Training' },
+    { buffType: 'universal_reduction', buffName: 'Versatile Training' },
   ],
 };
 
