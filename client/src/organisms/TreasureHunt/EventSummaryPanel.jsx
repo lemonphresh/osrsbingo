@@ -156,6 +156,54 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
           </Table>
         </Box>
       </VStack>
+
+      <VStack>
+        <Text fontSize="sm" color="gray.300">
+          Thanks for participating in the Gielinor Rush! If you had fun, please consider donating to
+          help cover hosting costs and keep the site running.
+        </Text>
+
+        <Box display="flex" gap={4} mt={4} flexWrap="wrap">
+          <Text
+            as="a"
+            href="https://cash.app/$lemonlikesgirls"
+            target="_blank"
+            rel="noopener noreferrer"
+            display="inline-flex"
+            alignItems="center"
+            gap={2}
+            bg="#F4D35E"
+            color="#111"
+            px={5}
+            py={3}
+            borderRadius="8px"
+            fontWeight="600"
+            textDecoration="none"
+          >
+            ❤️ Donate (Cash App)
+          </Text>
+
+          <Text
+            as="a"
+            href="https://ko-fi.com/A667UUO"
+            target="_blank"
+            rel="noopener noreferrer"
+            display="inline-flex"
+            alignItems="center"
+            gap={2}
+            bg="transparent"
+            color={currentColors.white}
+            px={5}
+            py={3}
+            borderRadius="8px"
+            fontWeight="600"
+            textDecoration="none"
+            border="1px solid rgba(255,255,255,0.25)"
+          >
+            ☕ Ko-fi
+          </Text>
+        </Box>
+      </VStack>
     </Box>
   );
 }

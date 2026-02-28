@@ -33,6 +33,7 @@ import {
   FaChartLine,
   FaDiscord,
   FaEyeSlash,
+  FaQuestionCircle,
 } from 'react-icons/fa';
 
 const AdminQuickActionsPanel = ({
@@ -43,6 +44,7 @@ const AdminQuickActionsPanel = ({
   onNavigateToTeams,
   onOpenSettings,
   onOpenDiscordSetup,
+  onOpenLaunchFAQ,
   isEventAdmin = false,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
@@ -356,6 +358,17 @@ const AdminQuickActionsPanel = ({
                 >
                   Event Settings
                 </MenuItem>
+                {onOpenLaunchFAQ && (
+                  <MenuItem
+                    icon={<FaQuestionCircle />}
+                    color="white"
+                    bg="gray.700"
+                    onClick={onOpenLaunchFAQ}
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    Participant FAQ
+                  </MenuItem>
+                )}
               </MenuList>
             </Menu>
           </HStack>

@@ -372,7 +372,7 @@ const TreasureHuntResolvers = {
 
       const { guildId } = event.discordConfig || {};
       if (guildId) {
-        sendLaunchMessage(guildId, eventId, event.eventName, event.teams).catch((err) =>
+        sendLaunchMessage(guildId, eventId, event.eventName, event.teams, event.startDate).catch((err) =>
           console.error('[launchEvent] launch message failed:', err.message)
         );
       }
@@ -411,9 +411,26 @@ const TreasureHuntResolvers = {
       const sequelize = TreasureEvent.sequelize;
       const transaction = await sequelize.transaction();
 
+      const MAP_COOLDOWN_MS = 60 * 1000; // 60 seconds
+
       try {
         const event = await TreasureEvent.findByPk(eventId);
         if (!event) throw new Error('Event not found');
+
+        if (event.status.toLowerCase() !== 'draft') {
+          throw new Error(
+            `Map cannot be regenerated once the event is ${event.status.toLowerCase()}. Only draft events can have their map regenerated.`
+          );
+        }
+
+        if (event.lastMapGeneratedAt) {
+          const elapsed = Date.now() - new Date(event.lastMapGeneratedAt).getTime();
+          if (elapsed < MAP_COOLDOWN_MS) {
+            const secondsLeft = Math.ceil((MAP_COOLDOWN_MS - elapsed) / 1000);
+            throw new Error(`Map was recently generated. Please wait ${secondsLeft} more second${secondsLeft === 1 ? '' : 's'} before regenerating.`);
+          }
+        }
+
         if (!event.eventConfig) throw new Error('Event configuration is missing');
         if (!event.derivedValues) throw new Error('Event derived values are missing');
 
@@ -448,7 +465,7 @@ const TreasureHuntResolvers = {
           availableRewards: node.availableRewards || null,
         }));
 
-        await event.update({ mapStructure }, { transaction });
+        await event.update({ mapStructure, lastMapGeneratedAt: new Date() }, { transaction });
         await TreasureNode.bulkCreate(validatedNodes, { transaction, validate: true });
 
         const startNode = validatedNodes.find((n) => n.nodeType === 'START');

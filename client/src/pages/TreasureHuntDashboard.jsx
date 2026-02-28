@@ -1,18 +1,15 @@
 import {
   Flex,
   Button,
-  Heading,
   VStack,
   HStack,
   Text,
   Card,
   CardHeader,
   CardBody,
-  Badge,
   SimpleGrid,
   useDisclosure,
   useColorMode,
-  Image,
   IconButton,
   AlertDialog,
   AlertDialogBody,
@@ -22,46 +19,32 @@ import {
   AlertDialogOverlay,
   Skeleton,
   SkeletonText,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Input,
   InputGroup,
   InputLeftElement,
   Select,
   Box,
-  Spinner,
   Collapse,
   Tooltip,
   useBreakpointValue,
 } from '@chakra-ui/react';
-import {
-  AddIcon,
-  DeleteIcon,
-  SearchIcon,
-  QuestionIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from '@chakra-ui/icons';
+import { AddIcon, QuestionIcon, SearchIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import CreateEventModal from '../organisms/TreasureHunt/CreateTreasureEventModal';
 import { GET_ALL_TREASURE_EVENTS } from '../graphql/queries';
 import { useAuth } from '../providers/AuthProvider';
 import GemTitle from '../atoms/GemTitle';
-import { MdMoreVert } from 'react-icons/md';
-import ExampleGR from '../assets/exampleGR2.png';
 import { DELETE_TREASURE_EVENT } from '../graphql/mutations';
 import { useState, useMemo, useRef } from 'react';
 import { useToastContext } from '../providers/ToastProvider';
-import EventCreationGuide from '../organisms/TreasureHunt/TreasureHuntEventCreationGuide';
 import AuthRequiredModal from '../molecules/AuthRequiredModal';
-import EternalGem from '../assets/gemoji.png';
-import { formatDisplayDate } from '../utils/dateUtils';
 import usePageTitle from '../hooks/usePageTitle';
 import { isGielinorRushEnabled } from '../config/featureFlags';
 import TreasureHuntSummary from '../molecules/TreasureHunt/TreasureHuntSummary';
+import EventCreationGuide from '../organisms/TreasureHunt/TreasureHuntEventCreationGuide';
+import EventCard from '../organisms/TreasureHunt/EventCard';
+import DashboardEmptyState from '../organisms/TreasureHunt/DashboardEmptyState';
 
 const colors = {
   dark: {
@@ -83,18 +66,6 @@ const colors = {
     red: '#FF4B5C',
   },
 };
-
-const HOW_IT_WORKS = [
-  { label: 'Set Parameters', desc: 'Choose map size, difficulty, teams, content, and time frame.' },
-  {
-    label: 'Generate Map',
-    desc: 'A unique map is created with objectives, buffs, and checkpoints.',
-  },
-  {
-    label: 'Teams Compete',
-    desc: 'Teams navigate the map, complete objectives, and race to the treasure.',
-  },
-];
 
 const TreasureHuntDashboard = () => {
   const { colorMode } = useColorMode();
@@ -160,14 +131,6 @@ const TreasureHuntDashboard = () => {
     });
   }, [events, searchQuery, statusFilter, sortBy]);
 
-  const getStatusColor = (status) =>
-    ({
-      PUBLIC: c.green.base,
-      DRAFT: c.red,
-      COMPLETED: c.turquoise.base,
-      ARCHIVED: c.purple.base,
-    }[status] ?? c.sapphire.base);
-
   const handleCreateEventClick = () => {
     if (!isGielinorRushEnabled(user)) return;
     if (!user?.id) onAuthModalOpen();
@@ -226,314 +189,23 @@ const TreasureHuntDashboard = () => {
       </Flex>
     );
 
-  const renderEventCard = (event) => (
-    <Card
-      key={event.eventId}
-      cursor="pointer"
-      bg={c.cardBg}
-      borderWidth="1px"
-      borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-      _hover={{ transform: 'translateY(-4px)', shadow: 'xl', borderColor: c.purple.base }}
-      _focus={{ outline: '2px solid', outlineColor: c.purple.base, outlineOffset: '2px' }}
-      transition="all 0.2s ease-in-out"
-      onClick={() => handleEventClick(event.eventId)}
-      position="relative"
-      overflow="hidden"
-      role="group"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handleEventClick(event.eventId);
-        }
-      }}
-    >
-      <Image
-        src={EternalGem}
-        alt=""
-        aria-hidden
-        position="absolute"
-        right="-15px"
-        top="15px"
-        width="100px"
-        height="100px"
-        opacity={0.25}
-        pointerEvents="none"
-      />
-      {clickedEventId === event.eventId && (
-        <Flex
-          position="absolute"
-          inset={0}
-          bg={colorMode === 'dark' ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.7)'}
-          alignItems="center"
-          justifyContent="center"
-          borderRadius="md"
-          zIndex={10}
-        >
-          <Spinner size="xl" color={c.purple.base} thickness="4px" />
-        </Flex>
-      )}
-      <Menu>
-        <MenuButton
-          as={IconButton}
-          icon={<MdMoreVert />}
-          position="absolute"
-          top={2}
-          right={2}
-          size="sm"
-          variant="ghost"
-          opacity={isMobile ? 1 : 0}
-          _groupHover={{ opacity: 1 }}
-          _focus={{ opacity: 1 }}
-          transition="opacity 0.2s"
-          onClick={(e) => e.stopPropagation()}
-          aria-label="Event options"
-          zIndex={2}
-        />
-        <MenuList bg={c.cardBg} borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}>
-          <MenuItem
-            icon={<DeleteIcon />}
-            onClick={(e) => handleDeleteClick(e, event.eventId)}
-            color="red.500"
-            _hover={{ bg: colorMode === 'dark' ? 'gray.700' : 'red.50' }}
-          >
-            Delete Event
-          </MenuItem>
-        </MenuList>
-      </Menu>
-      <CardHeader pb={2}>
-        <Heading size="md" color={c.textColor} noOfLines={2} pr={8} mb={2}>
-          {event.eventName}
-        </Heading>
-      </CardHeader>
-      <CardBody pt={0} display="flex" flexDirection="column" flex="1">
-        <VStack align="stretch" spacing={2} flex="1">
-          {[
-            ['Start', formatDisplayDate(event.startDate)],
-            ['End', formatDisplayDate(event.endDate)],
-          ].map(([label, val]) => (
-            <HStack key={label}>
-              <Text
-                fontSize="sm"
-                color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                minW="45px"
-              >
-                {label}:
-              </Text>
-              <Text fontSize="sm" color={c.textColor} fontWeight="medium">
-                {val}
-              </Text>
-            </HStack>
-          ))}
-          <Box flex="1" />
-          <HStack justify="space-between" align="center">
-            <HStack>
-              <Text
-                fontSize="sm"
-                color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                minW="45px"
-              >
-                Teams:
-              </Text>
-              <Text fontSize="sm" fontWeight="semibold" color={c.purple.base}>
-                {event.teams.length}
-              </Text>
-            </HStack>
-            <Badge
-              bg={getStatusColor(event.status)}
-              color="white"
-              px={2}
-              py={1}
-              borderRadius="md"
-              fontWeight="semibold"
-              textTransform="uppercase"
-              fontSize="xs"
-            >
-              {event.status}
-            </Badge>
-          </HStack>
-        </VStack>
-      </CardBody>
-    </Card>
-  );
-
   // ── Empty / onboarding state ──
   if (events.length === 0)
     return (
-      <Flex
-        flex="1"
-        flexDirection="column"
-        alignItems="center"
-        px={['16px', '24px', '64px']}
-        pt="64px"
-        pb="48px"
-      >
-        <VStack spacing={6} maxW="640px" w="100%" textAlign="center">
-          <GemTitle gemColor="purple">Gielinor Rush</GemTitle>
-          <Text color="gray.300" fontSize="md">
-            Create competitive clan events where teams race through OSRS challenges to claim the
-            prize.
-          </Text>
-
-          {isGielinorRushEnabled(user) && (
-            <Box
-              as="button"
-              onClick={() => navigate('/gielinor-rush/active')}
-              px={4}
-              py={2}
-              borderRadius="md"
-              borderWidth="1px"
-              borderColor={c.green.base}
-              color={c.green.base}
-              fontSize="sm"
-              fontWeight="semibold"
-              _hover={{ bg: 'whiteAlpha.100' }}
-              transition="all 0.2s"
-              display="flex"
-              alignItems="center"
-              gap={2}
-            >
-              <Box
-                w="7px"
-                h="7px"
-                borderRadius="full"
-                bg={c.green.base}
-                boxShadow={`0 0 6px ${c.green.base}`}
-                flexShrink={0}
-                sx={{
-                  animation: 'pulse 2s infinite',
-                  '@keyframes pulse': {
-                    '0%, 100%': { opacity: 1 },
-                    '50%': { opacity: 0.4 },
-                  },
-                }}
-              />
-              Spectate live events
-            </Box>
-          )}
-
-          <Box
-            w="100%"
-            borderRadius="10px"
-            overflow="hidden"
-            boxShadow="0 20px 60px rgba(0,0,0,0.5)"
-            borderWidth="1px"
-            borderColor="whiteAlpha.200"
-          >
-            {/* Browser chrome bar */}
-            <HStack px={3} py={2} bg="gray.800" spacing={2} flexShrink={0}>
-              <Box w="10px" h="10px" borderRadius="full" bg="red.400" />
-              <Box w="10px" h="10px" borderRadius="full" bg="yellow.400" />
-              <Box w="10px" h="10px" borderRadius="full" bg="green.400" />
-              <Box flex={1} bg="gray.700" borderRadius="4px" h="18px" mx={2} />
-            </HStack>
-            {/* Screenshot — scrollable so the full tall image is accessible */}
-            <Box
-              maxH="320px"
-              overflowY="auto"
-              css={{
-                '&::-webkit-scrollbar': { width: '4px' },
-                '&::-webkit-scrollbar-thumb': {
-                  background: 'rgba(255,255,255,0.2)',
-                  borderRadius: '4px',
-                },
-              }}
-            >
-              <Image
-                src={ExampleGR}
-                alt="Example Gielinor Rush event page"
-                w="100%"
-                display="block"
-                loading="lazy"
-              />
-            </Box>
-          </Box>
-
-          {/* How it works — compact steps inline */}
-          <SimpleGrid columns={3} spacing={3} w="100%">
-            {HOW_IT_WORKS.map(({ label, desc }, i) => (
-              <Box key={label} bg={c.cardBg} borderRadius="8px" p={3} textAlign="center">
-                <Box
-                  bg={c.purple.base}
-                  color="white"
-                  borderRadius="full"
-                  w="26px"
-                  h="26px"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  mx="auto"
-                  mb={2}
-                >
-                  {i + 1}
-                </Box>
-                <Text fontSize="xs" fontWeight="semibold" color={c.textColor} mb={1}>
-                  {label}
-                </Text>
-                <Text
-                  fontSize="xs"
-                  color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                  lineHeight="1.5"
-                >
-                  {desc}
-                </Text>
-              </Box>
-            ))}
-          </SimpleGrid>
-
-          <Button
-            size="lg"
-            leftIcon={<AddIcon />}
-            bg={c.purple.base}
-            color="white"
-            w="100%"
-            _hover={{ bg: c.purple.light, transform: 'translateY(-2px)', shadow: 'lg' }}
-            _active={{ bg: c.purple.dark }}
-            onClick={handleCreateEventClick}
-            transition="all 0.2s"
-          >
-            Create Your First Event
-          </Button>
-
-          {/* Collapsible guide */}
-          <Box
-            w="100%"
-            borderWidth="1px"
-            borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-            borderRadius="8px"
-            overflow="hidden"
-          >
-            <HStack
-              px={4}
-              py={3}
-              cursor="pointer"
-              justify="space-between"
-              bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
-              onClick={() => setGuideOpen((o) => !o)}
-              _hover={{ bg: colorMode === 'dark' ? 'gray.600' : 'gray.100' }}
-            >
-              <Text fontSize="sm" fontWeight="semibold" color={c.textColor}>
-                📋 Detailed Setup Guide
-              </Text>
-              {guideOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
-            </HStack>
-            <Collapse in={guideOpen} animateOpacity>
-              <Box p={4}>
-                <EventCreationGuide colorMode={colorMode} currentColors={c} />
-              </Box>
-            </Collapse>
-          </Box>
-        </VStack>
-
-        <CreateEventModal isOpen={isOpen} onClose={onClose} onSuccess={handleCreateSuccess} />
-        <AuthRequiredModal
-          isOpen={isAuthModalOpen}
-          onClose={onAuthModalClose}
-          feature="create Gielinor Rush events"
-        />
-      </Flex>
+      <DashboardEmptyState
+        c={c}
+        colorMode={colorMode}
+        user={user}
+        navigate={navigate}
+        guideOpen={guideOpen}
+        onGuideToggle={() => setGuideOpen((o) => !o)}
+        onCreateEventClick={handleCreateEventClick}
+        isOpen={isOpen}
+        onClose={onClose}
+        onSuccess={handleCreateSuccess}
+        isAuthModalOpen={isAuthModalOpen}
+        onAuthModalClose={onAuthModalClose}
+      />
     );
 
   // ── Has events state ──
@@ -708,7 +380,18 @@ const TreasureHuntDashboard = () => {
           </Box>
         ) : (
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-            {filteredAndSortedEvents.map(renderEventCard)}
+            {filteredAndSortedEvents.map((event) => (
+              <EventCard
+                key={event.eventId}
+                event={event}
+                clickedEventId={clickedEventId}
+                colorMode={colorMode}
+                c={c}
+                isMobile={isMobile}
+                onDeleteClick={handleDeleteClick}
+                onEventClick={handleEventClick}
+              />
+            ))}
           </SimpleGrid>
         )}
       </Flex>

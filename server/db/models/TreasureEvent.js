@@ -43,6 +43,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         defaultValue: null,
       },
+      startMessageSent: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
       creatorId: {
         type: DataTypes.INTEGER,
         references: {
@@ -63,6 +68,11 @@ module.exports = (sequelize) => {
         type: DataTypes.ARRAY(DataTypes.INTEGER),
         defaultValue: [],
         comment: 'Array of user IDs who have ref access to this event',
+      },
+      lastMapGeneratedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
       },
     },
     {

@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import { Box, HStack, VStack, Text, Badge, Icon, Flex, useColorMode } from '@chakra-ui/react';
+import { Box, HStack, Text, Badge, Icon, Flex, useColorMode } from '@chakra-ui/react';
 import { FaCoins } from 'react-icons/fa';
 import GemTitle from '../../atoms/GemTitle';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
@@ -399,7 +399,6 @@ function AvailableTasksStrip({
 
 // ── Story scenarios ───────────────────────────────────────────────────────────
 
-const ALL_NODE_IDS = Object.values(NODES).map((n) => n.nodeId);
 const LUMB_IDS = ['lumb_1', 'lumb_2', 'lumb_3'];
 const VARR_IDS = ['varr_1', 'varr_2', 'varr_3'];
 const FALA_IDS = ['fala_1', 'fala_2', 'fala_3'];
