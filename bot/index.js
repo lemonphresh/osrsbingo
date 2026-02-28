@@ -77,8 +77,11 @@ client.on('ready', () => {
     try {
       await checkEventStarts();
     } catch (err) {
-      console.error('[eventStartScheduler] unhandled error:', err.message);
+      console.error('❌ Failed to load models for scheduler:', err.message, err.stack);
     }
+    // } catch (err) {
+    //   console.error('[eventStartScheduler] unhandled error:', err.message);
+    // }
   });
 
   console.log('⏰ Event start scheduler running');
