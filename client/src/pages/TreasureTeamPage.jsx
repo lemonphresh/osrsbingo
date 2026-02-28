@@ -6,28 +6,14 @@ import {
   VStack,
   HStack,
   Text,
-  Card,
-  CardBody,
-  Badge,
   Spinner,
   Container,
   useDisclosure,
   Switch,
   useToast,
-  Button,
   Icon,
-  Tooltip,
-  Stat,
-  StatLabel,
-  StatNumber,
   SimpleGrid,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionIcon,
-  AccordionPanel,
 } from '@chakra-ui/react';
-import { CheckCircleIcon, CopyIcon, LockIcon, QuestionIcon } from '@chakra-ui/icons';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import { GET_TREASURE_EVENT, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
@@ -48,11 +34,8 @@ import Section from '../atoms/Section';
 import TreasureMapVisualization from '../organisms/TreasureHunt/TreasureMapVisualization';
 import GemTitle from '../atoms/GemTitle';
 import BuffInventory from '../organisms/TreasureHunt/TreasureBuffInventory';
-import theme from '../theme';
-import { RedactedText } from '../molecules/TreasureHunt/RedactedTreasureInfo';
 import { useAuth } from '../providers/AuthProvider';
-import { MdHome, MdOutlineArrowBack } from 'react-icons/md';
-import { OBJECTIVE_TYPES } from '../utils/treasureHuntHelpers';
+import { MdOutlineArrowBack } from 'react-icons/md';
 import { useCallback } from 'react';
 import TreasureHuntTutorial from '../organisms/TreasureHunt/TreasureHuntTutorial';
 import AvailableInnsModal from '../organisms/TreasureHunt/AvailableInnsModal';
@@ -66,10 +49,10 @@ import { unlockAudio } from '../utils/celebrationUtils';
 import usePageTitle from '../hooks/usePageTitle';
 import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
 import EventStatusBanner from '../organisms/TreasureHunt/EventStatusBanner';
-import { FaCog, FaCoins } from 'react-icons/fa';
-
-const GROUP_COLORS = ['red', 'blue', 'yellow', 'green', 'orange', 'teal', 'purple', 'cyan', 'pink'];
-const GROUP_SHAPES = ['◆', '▲', '●', '■', '★', '⬟', '⬢', '✦', '❖'];
+import { FaCog } from 'react-icons/fa';
+import AvailableTasksStrip from '../organisms/TreasureHunt/AvailableTasksStrip';
+import AllNodesAccordion from '../organisms/TreasureHunt/AllNodesAccordion';
+import TeamHeroStrip from '../organisms/TreasureHunt/TeamHeroStrip';
 
 const TreasureTeamView = () => {
   const { colors: currentColors, colorMode } = useThemeColors();
@@ -299,7 +282,7 @@ const TreasureTeamView = () => {
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     setFlashNodeId(nodeId);
-    setTimeout(() => setFlashNodeId(null), 2000); // flash for 2s
+    setTimeout(() => setFlashNodeId(null), 2000);
   };
 
   const handleAdminCompleteNode = async (nodeId) => {
@@ -401,7 +384,7 @@ const TreasureTeamView = () => {
 
   useSubmissionCelebrations(eventId, teamId, nodes, true, () => refetchTeam());
 
-  // Refetch team data when tab regains focus, in case WebSocket missed an event
+  // Refetch team data when tab regains focus
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible') refetchTeam();
@@ -566,145 +549,15 @@ const TreasureTeamView = () => {
       <Section maxWidth="1200px" width="100%" py={6}>
         <VStack spacing={6} w="100%" maxW="100%" align="stretch">
           {/* ── TEAM HEADER ── */}
-
-          <Flex
-            align={['flex-start', 'center']}
-            justify="space-between"
-            flexDir={['column', 'row']}
-            gap={3}
-          >
-            {/* Left: title + chips */}
-            <VStack align="start" spacing={2} flexShrink={0}>
-              <HStack>
-                <GemTitle size="lg" mb={0}>
-                  {team.teamName}
-                </GemTitle>
-                {adminMode && (
-                  <Badge bg={currentColors.red.base} color="white" fontSize="sm">
-                    ⚙️ ADMIN
-                  </Badge>
-                )}
-              </HStack>
-              <Tooltip label={`Click to copy — ${event.eventId}`} hasArrow>
-                <HStack
-                  spacing={2}
-                  px={2}
-                  py={0.5}
-                  bg="whiteAlpha.100"
-                  borderRadius="md"
-                  cursor="pointer"
-                  _hover={{ bg: 'whiteAlpha.300' }}
-                  onClick={() => {
-                    navigator.clipboard.writeText(event.eventId);
-                    toast({ title: 'Event ID Copied!', status: 'success', duration: 2000 });
-                  }}
-                >
-                  <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
-                    Event ID: {event.eventId}
-                  </Text>
-                  <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
-                </HStack>
-              </Tooltip>
-              {event.eventPassword && (
-                <Tooltip label="Click to copy Event Password" hasArrow>
-                  <HStack
-                    spacing={2}
-                    px={2}
-                    py={0.5}
-                    bg="whiteAlpha.100"
-                    borderRadius="md"
-                    cursor="pointer"
-                    _hover={{ bg: 'whiteAlpha.300' }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(event.eventPassword);
-                      toast({ title: 'Event Password Copied!', status: 'success', duration: 2000 });
-                    }}
-                  >
-                    <Text fontSize="xs" color={currentColors.orange} fontFamily="mono">
-                      Event Password: {event.eventPassword}
-                    </Text>
-                    <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
-                  </HStack>
-                </Tooltip>
-              )}
-            </VStack>
-
-            {/* Center: team members — fills the blank space */}
-            {team.members?.length > 0 && (
-              <Flex
-                flex={1}
-                mx={6}
-                flexWrap="wrap"
-                gap={2}
-                align="center"
-                justify={['flex-start', 'center']}
-              >
-                <Text fontSize="sm" color={currentColors.white} fontWeight="medium">
-                  Team Members:
-                </Text>
-                {team.members.map((member, idx) => (
-                  <HStack
-                    key={idx}
-                    spacing={1.5}
-                    px={3}
-                    py={1}
-                    bg="whiteAlpha.100"
-                    borderRadius="full"
-                    border="1px solid"
-                    borderColor="whiteAlpha.200"
-                  >
-                    <Box
-                      w={2}
-                      h={2}
-                      borderRadius="full"
-                      bg={currentColors.green.base}
-                      flexShrink={0}
-                    />
-                    <Text fontSize="sm" color={currentColors.white} fontWeight="medium">
-                      {member.rsn || member.discordUsername || member.discordUserId}
-                    </Text>
-                  </HStack>
-                ))}
-              </Flex>
-            )}
-
-            {/* Right: Prize Pot + Inn button (Completed stat removed) */}
-            <HStack spacing={3} flexWrap="wrap" alignSelf="flex-start" flexShrink={0}>
-              <Stat
-                bg={currentColors.cardBg}
-                px={4}
-                py={2}
-                borderRadius="md"
-                minW="100px"
-                textAlign="center"
-              >
-                <StatLabel fontSize="xs" color={currentColors.textColor}>
-                  Prize Pot
-                </StatLabel>
-                <StatNumber fontSize="lg" color={currentColors.green.base}>
-                  {formatGP(team.currentPot || 0)} GP
-                </StatNumber>
-              </Stat>
-              {availableInns > 0 && (
-                <Button
-                  bg="yellow.400"
-                  color="gray.900"
-                  fontWeight="semibold"
-                  leftIcon={<Icon as={MdHome} />}
-                  onClick={onAvailableInnsOpen}
-                  animation="pulseInn 2s ease-in-out infinite"
-                  sx={{
-                    '@keyframes pulseInn': {
-                      '0%,100%': { boxShadow: '0 0 0 0 rgba(236,201,75,0.6)' },
-                      '50%': { boxShadow: '0 0 12px 4px rgba(236,201,75,0.8)' },
-                    },
-                  }}
-                >
-                  {availableInns} Inn{availableInns > 1 ? 's' : ''} Available!
-                </Button>
-              )}
-            </HStack>
-          </Flex>
+          <TeamHeroStrip
+            team={team}
+            event={event}
+            adminMode={adminMode}
+            currentColors={currentColors}
+            availableInns={availableInns}
+            onAvailableInnsOpen={onAvailableInnsOpen}
+            toast={toast}
+          />
 
           {adminMode && (
             <Box bg={currentColors.red.base} color="white" p={3} borderRadius="md" fontSize="sm">
@@ -754,263 +607,20 @@ const TreasureTeamView = () => {
           </Box>
 
           {/* ── Available Tasks STRIP ── */}
-          {(() => {
-            const availableNodes = nodes
-              .filter((n) => {
-                const status = getNodeStatus(n);
-                return (
-                  status === 'available' ||
-                  (n.nodeType === 'INN' &&
-                    status === 'completed' &&
-                    !team.innTransactions?.some((t) => t.nodeId === n.nodeId))
-                );
-              })
-              .sort((a, b) => {
-                const aIsInnNoTx = a.nodeType === 'INN' && getNodeStatus(a) === 'completed';
-                const bIsInnNoTx = b.nodeType === 'INN' && getNodeStatus(b) === 'completed';
-                const aBuffed = !!a.objective?.appliedBuff;
-                const bBuffed = !!b.objective?.appliedBuff;
-                if (aIsInnNoTx !== bIsInnNoTx) return aIsInnNoTx ? -1 : 1;
-                if (aBuffed !== bBuffed) return aBuffed ? -1 : 1;
-                return 0;
-              });
-
-            if (availableNodes.length === 0) return null;
-
-            // Assign alternating color indices by location group order
-            const groupColorMap = {};
-            let groupIndex = 0;
-            availableNodes.forEach((node) => {
-              const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
-              if (!(groupKey in groupColorMap)) groupColorMap[groupKey] = groupIndex++;
-            });
-
-            return (
-              <Box>
-                <HStack justify="space-between" mb={3}>
-                  <GemTitle gemColor="green" size="sm" mb={0}>
-                    Available Tasks
-                  </GemTitle>
-                  <Badge
-                    bg={currentColors.green.base}
-                    color="white"
-                    fontSize="sm"
-                    px={2}
-                    py={1}
-                    borderRadius="md"
-                  >
-                    {availableNodes.length} available
-                  </Badge>
-                </HStack>
-
-                <Box position="relative">
-                  <Box
-                    position="absolute"
-                    left="-4px"
-                    top={0}
-                    bottom={3}
-                    w="48px"
-                    bgGradient={`linear(to-r, ${sectionBg}, transparent)`}
-                    zIndex={1}
-                    pointerEvents="none"
-                    borderLeftRadius="lg"
-                    opacity={showLeftFade ? 1 : 0}
-                    transition="opacity 0.2s"
-                  />
-                  <Box
-                    position="absolute"
-                    right="-4px"
-                    top={0}
-                    bottom={3}
-                    w="48px"
-                    bgGradient={`linear(to-l, ${sectionBg}, transparent)`}
-                    zIndex={1}
-                    pointerEvents="none"
-                    borderRightRadius="lg"
-                    opacity={showRightFade ? 1 : 0}
-                    transition="opacity 0.2s"
-                  />
-                  <Box
-                    ref={scrollRef}
-                    overflowX="auto"
-                    pb={3}
-                    onScroll={handleQuestScroll}
-                    css={{
-                      '&::-webkit-scrollbar': { height: '6px' },
-                      '&::-webkit-scrollbar-track': {
-                        background: 'transparent',
-                        borderRadius: '10px',
-                      },
-                      '&::-webkit-scrollbar-thumb': {
-                        background: '#abb8ceff',
-                        borderRadius: '10px',
-                        '&:hover': { background: '#718096' },
-                      },
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: '#abb8ceff transparent',
-                    }}
-                  >
-                    <HStack spacing={3} align="stretch" width="max-content" px={1} py={1}>
-                      {availableNodes.map((node) => {
-                        const isInn = node.nodeType === 'INN';
-                        const hasBuffApplied = !!node.objective?.appliedBuff;
-                        const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
-                        const diffColor = { 1: 'green', 3: 'orange', 5: 'red' };
-                        const accentColor = isInn
-                          ? 'yellow.400'
-                          : hasBuffApplied
-                          ? 'blue.400'
-                          : node.difficultyTier === 5
-                          ? 'red.400'
-                          : node.difficultyTier === 3
-                          ? 'orange.400'
-                          : 'green.400';
-
-                        const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
-                        const groupIdx = groupColorMap[groupKey] ?? 0;
-                        const groupColor = GROUP_COLORS[groupIdx % GROUP_COLORS.length];
-                        const groupShape = GROUP_SHAPES[groupIdx % GROUP_SHAPES.length];
-
-                        return (
-                          <Box
-                            id={`node-card-${node.nodeId}`}
-                            key={node.nodeId}
-                            w="220px"
-                            flexShrink={0}
-                            style={
-                              flashNodeId !== node.nodeId
-                                ? {
-                                    backgroundColor: `color-mix(in srgb, var(--chakra-colors-${groupColor}-100) 45%, white)`,
-                                  }
-                                : undefined
-                            }
-                            borderRadius="lg"
-                            overflow="hidden"
-                            border="1px solid"
-                            borderColor={colorMode === 'dark' ? 'whiteAlpha.200' : 'gray.200'}
-                            cursor="pointer"
-                            _hover={{
-                              transform: 'translateY(-4px)',
-                              shadow: 'xl',
-                              borderColor: accentColor,
-                            }}
-                            onClick={() => handleNodeClick(node)}
-                            position="relative"
-                            transition="background 0.3s ease"
-                            sx={
-                              flashNodeId === node.nodeId
-                                ? {
-                                    animation: 'cardFlash 0.5s ease-in-out 4',
-                                    '@keyframes cardFlash': {
-                                      '0%, 100%': {
-                                        background: 'rgba(166, 255, 230, 0.85)',
-                                      },
-                                      '50%': {
-                                        background: 'rgba(166, 255, 219, 0.5)',
-                                      },
-                                    },
-                                  }
-                                : {}
-                            }
-                          >
-                            <Box h="4px" bg={accentColor} w="100%" />
-                            <Flex flexDirection="column" h="100%" p={3}>
-                              <HStack justify="space-between" mb={2}>
-                                <HStack spacing={1}>
-                                  <Text
-                                    fontSize="sm"
-                                    color="gray.600"
-                                    opacity="0.7"
-                                    userSelect="none"
-                                    lineHeight={1}
-                                  >
-                                    {groupShape}
-                                  </Text>
-                                  <Badge
-                                    colorScheme={
-                                      isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'
-                                    }
-                                    fontSize="xs"
-                                  >
-                                    {isInn
-                                      ? '🏠 Inn'
-                                      : diffMap[node.difficultyTier] || node.nodeType}
-                                  </Badge>
-                                </HStack>
-                                {hasBuffApplied && (
-                                  <Badge colorScheme="blue" fontSize="xs">
-                                    ✨ Buffed
-                                  </Badge>
-                                )}
-                                {!hasBuffApplied && node.rewards?.buffs?.length > 0 && (
-                                  <Badge colorScheme="purple" fontSize="xs">
-                                    🎁 Buff
-                                  </Badge>
-                                )}
-                              </HStack>
-                              <Text
-                                fontWeight="semibold"
-                                color={colorMode === 'dark' ? 'white' : 'gray.800'}
-                                fontSize="sm"
-                                mb={1}
-                                noOfLines={2}
-                              >
-                                {node.title}
-                              </Text>
-                              {node.objective && !isInn && (
-                                <Text
-                                  fontSize="xs"
-                                  color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                                  noOfLines={2}
-                                  mb={2}
-                                >
-                                  {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
-                                  {node.objective.target}
-                                  {hasBuffApplied && (
-                                    <Text as="span" color="blue.300">
-                                      {' '}
-                                      (-{(node.objective.appliedBuff.reduction * 100).toFixed(0)}%)
-                                    </Text>
-                                  )}
-                                </Text>
-                              )}
-                              {isInn && (
-                                <Text fontSize="xs" color="yellow.500" mb={2} fontWeight="semibold">
-                                  Trade keys for GP →
-                                </Text>
-                              )}
-                              <Flex
-                                w="100%"
-                                justifyContent="space-between"
-                                alignSelf="flex-end"
-                                mt="auto"
-                              >
-                                {node.rewards?.gp && !isInn && (
-                                  <HStack spacing={1}>
-                                    <Icon as={FaCoins} color="yellow.500" boxSize={3} />
-                                    <Text fontSize="xs" color="yellow.500" fontWeight="semibold">
-                                      {formatGP(node.rewards.gp)} GP
-                                    </Text>
-                                  </HStack>
-                                )}
-                                <Text
-                                  fontSize="xs"
-                                  color={colorMode === 'dark' ? 'purple.300' : 'purple.600'}
-                                  ml="auto"
-                                >
-                                  Click to view →
-                                </Text>
-                              </Flex>
-                            </Flex>
-                          </Box>
-                        );
-                      })}
-                    </HStack>
-                  </Box>
-                </Box>
-              </Box>
-            );
-          })()}
+          <AvailableTasksStrip
+            nodes={nodes}
+            team={team}
+            getNodeStatus={getNodeStatus}
+            flashNodeId={flashNodeId}
+            scrollRef={scrollRef}
+            handleQuestScroll={handleQuestScroll}
+            showLeftFade={showLeftFade}
+            showRightFade={showRightFade}
+            sectionBg={sectionBg}
+            colorMode={colorMode}
+            currentColors={currentColors}
+            handleNodeClick={handleNodeClick}
+          />
 
           {/* ── STATS + BUFFS GRID ── */}
           <SimpleGrid columns={[1, 1, 2]} spacing={4}>
@@ -1062,394 +672,22 @@ const TreasureTeamView = () => {
           </SimpleGrid>
 
           {/* ── FULL NODE LIST ── */}
-
-          <Accordion allowToggle>
-            <AccordionItem border="none">
-              <AccordionButton
-                alignItems="center"
-                p={3}
-                borderRadius="10px"
-                bg="whiteAlpha.100"
-                _hover={{ bg: 'transparent' }}
-                justifyContent="space-between"
-              >
-                <Text fontWeight="semibold" mb={0}>
-                  All Nodes
-                </Text>
-                <HStack spacing={2}>
-                  <Text fontSize="xs" color="gray.400">
-                    Expand to see all {nodes.length} nodes
-                  </Text>
-                  <AccordionIcon color="gray.400" />
-                </HStack>
-              </AccordionButton>
-              <AccordionPanel px={0} pb={4}>
-                <VStack spacing={3} align="stretch">
-                  {nodes
-                    .slice()
-                    .sort((a, b) => {
-                      const statusA = getNodeStatus(a);
-                      const statusB = getNodeStatus(b);
-                      const isInnA = a.nodeType === 'INN';
-                      const isInnB = b.nodeType === 'INN';
-                      const hasTxA = team.innTransactions?.some((t) => t.nodeId === a.nodeId);
-                      const hasTxB = team.innTransactions?.some((t) => t.nodeId === b.nodeId);
-                      const isAvailableInnA = isInnA && statusA === 'available';
-                      const isCompletedInnNoTxA = isInnA && statusA === 'completed' && !hasTxA;
-                      const isCompletedInnNoTxB = isInnB && statusB === 'completed' && !hasTxB;
-                      const hasBuffAppliedA = statusA === 'available' && !!a.objective?.appliedBuff;
-                      const hasBuffAppliedB = statusB === 'available' && !!b.objective?.appliedBuff;
-                      const order = (
-                        status,
-                        isAvailableInn,
-                        isCompletedInnNoTx,
-                        hasBuffApplied
-                      ) => {
-                        if (isAvailableInn) return 0;
-                        if (isCompletedInnNoTx) return 1;
-                        if (hasBuffApplied) return 2;
-                        if (status === 'available') return 3;
-                        if (status === 'completed') return 4;
-                        return 5;
-                      };
-                      const orderA = order(
-                        statusA,
-                        isAvailableInnA,
-                        isCompletedInnNoTxA,
-                        hasBuffAppliedA
-                      );
-                      const orderB = order(
-                        statusB,
-                        isCompletedInnNoTxB,
-                        isCompletedInnNoTxB,
-                        hasBuffAppliedB
-                      );
-                      return orderA - orderB;
-                    })
-                    .map((node) => {
-                      const status = getNodeStatus(node);
-                      const isLocked = status === 'locked' && !adminMode;
-                      const isInn = node.nodeType === 'INN';
-                      const isCompletedInn = isInn && status === 'completed';
-                      const hasTransaction = team.innTransactions?.some(
-                        (t) => t.nodeId === node.nodeId
-                      );
-                      const groupCompleted = isLocationGroupCompleted(node, team, event);
-                      const completedNodeInGroup = groupCompleted
-                        ? getCompletedNodeInGroup(node, team, event)
-                        : null;
-                      const isOtherDifficultyCompleted =
-                        groupCompleted && !team.completedNodes?.includes(node.nodeId);
-                      const isLocationLocked = isOtherDifficultyCompleted && status !== 'completed';
-                      const hasAffordableRewards =
-                        isCompletedInn &&
-                        !hasTransaction &&
-                        node.availableRewards?.some((reward) =>
-                          reward.key_cost.every((cost) => {
-                            if (cost.color === 'any') {
-                              const totalKeys =
-                                team.keysHeld?.reduce((sum, k) => sum + k.quantity, 0) || 0;
-                              return totalKeys >= cost.quantity;
-                            }
-                            const teamKey = team.keysHeld?.find((k) => k.color === cost.color);
-                            return teamKey && teamKey.quantity >= cost.quantity;
-                          })
-                        );
-                      const isAvailableWithBuffs =
-                        status === 'available' &&
-                        team.activeBuffs?.length > 0 &&
-                        node.objective &&
-                        team.activeBuffs.some(
-                          (buff) =>
-                            buff.objectiveTypes.includes(node.objective.type) &&
-                            !(
-                              node.objective.type === 'item_collection' &&
-                              node.objective.quantity <= 3
-                            )
-                        );
-                      const hasBuffApplied = !!node.objective?.appliedBuff;
-
-                      return (
-                        <Card
-                          key={node.nodeId}
-                          bg={
-                            (status === 'completed' && isInn && hasTransaction) ||
-                            (status === 'completed' && !isInn)
-                              ? 'whiteAlpha.800'
-                              : currentColors.cardBg
-                          }
-                          borderWidth={3}
-                          borderColor={
-                            isLocationLocked ? 'orange.500' : getNodeBorderColor(status, node)
-                          }
-                          cursor={isLocked || isLocationLocked ? 'not-allowed' : 'pointer'}
-                          opacity={isLocked || isLocationLocked ? 0.7 : 1}
-                          onClick={() => !isLocationLocked && handleNodeClick(node)}
-                          _hover={
-                            !isLocked && !isLocationLocked && (status !== 'locked' || adminMode)
-                              ? { shadow: 'lg', transform: 'translateY(-2px)' }
-                              : {}
-                          }
-                          transition="all 0.2s"
-                          position="relative"
-                        >
-                          <CardBody>
-                            <HStack justify="space-between" align="start">
-                              <HStack spacing={4} flex={1}>
-                                {status === 'completed' && !isLocationLocked && (
-                                  <CheckCircleIcon color={currentColors.green.base} boxSize={6} />
-                                )}
-                                {(isLocked || isLocationLocked) && (
-                                  <LockIcon color="gray.400" boxSize={6} />
-                                )}
-                                {status === 'available' && (
-                                  <QuestionIcon color={currentColors.orange} boxSize={6} />
-                                )}
-
-                                <VStack align="start" spacing={2} flex={1}>
-                                  <HStack flexWrap="wrap">
-                                    {isLocked || isLocationLocked ? (
-                                      <>
-                                        {isLocationLocked ? (
-                                          <>
-                                            <Text
-                                              fontWeight="semibold"
-                                              fontSize="lg"
-                                              color={currentColors.textColor}
-                                            >
-                                              {node.title}
-                                            </Text>
-                                            <Badge
-                                              bg="orange.500"
-                                              color="white"
-                                              px={2}
-                                              borderRadius="md"
-                                            >
-                                              LOCATION COMPLETED
-                                            </Badge>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <RedactedText length="long" />
-                                            <Badge
-                                              bg={getNodeBorderColor(status, node)}
-                                              color="white"
-                                              px={2}
-                                              borderRadius="md"
-                                            >
-                                              LOCKED
-                                            </Badge>
-                                          </>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Text
-                                          fontWeight="semibold"
-                                          fontSize="lg"
-                                          color={currentColors.textColor}
-                                        >
-                                          {isInn ? '🏠 ' : ''}
-                                          {node.title}
-                                        </Text>
-                                        <Badge
-                                          bg={getNodeBorderColor(status, node)}
-                                          color="white"
-                                          px={2}
-                                          borderRadius="md"
-                                        >
-                                          {node.nodeType === 'STANDARD'
-                                            ? getNodeBadge(node).toUpperCase()
-                                            : node.nodeType}
-                                        </Badge>
-                                        {status !== 'completed' &&
-                                          node.rewards?.buffs?.length > 0 && (
-                                            <Badge colorScheme="purple" fontSize="xs">
-                                              🎁 Earn a Buff
-                                            </Badge>
-                                          )}
-                                        {hasAffordableRewards && !adminMode && (
-                                          <Badge colorScheme="yellow" fontSize="xs">
-                                            💰 Rewards available - Click to trade
-                                          </Badge>
-                                        )}
-                                        {isCompletedInn && hasTransaction && !adminMode && (
-                                          <Badge colorScheme="green" fontSize="xs">
-                                            ✅ Already purchased from this Inn
-                                          </Badge>
-                                        )}
-                                        {hasBuffApplied && (
-                                          <Badge colorScheme="green" fontSize="xs">
-                                            💪 Buff Applied
-                                          </Badge>
-                                        )}
-                                        {isCompletedInn &&
-                                          !hasTransaction &&
-                                          !hasAffordableRewards &&
-                                          !adminMode && (
-                                            <Badge colorScheme="gray" fontSize="xs">
-                                              🙈 Not enough keys for trades
-                                            </Badge>
-                                          )}
-                                        {isAvailableWithBuffs && (
-                                          <Badge colorScheme="blue" fontSize="xs">
-                                            ✨ Can Apply A Buff
-                                          </Badge>
-                                        )}
-                                        {adminMode && (
-                                          <Badge
-                                            colorScheme={status === 'completed' ? 'red' : 'green'}
-                                            fontSize="xs"
-                                          >
-                                            Click to view
-                                          </Badge>
-                                        )}
-                                      </>
-                                    )}
-                                  </HStack>
-
-                                  {isLocationLocked ? (
-                                    <VStack align="start" spacing={1} w="full">
-                                      <Text fontSize="sm" color="orange.500">
-                                        Your team completed:{' '}
-                                        <strong>{completedNodeInGroup?.title}</strong>
-                                      </Text>
-                                      <Text fontSize="xs" color={theme.colors.gray[500]}>
-                                        Only one difficulty per location can be completed
-                                      </Text>
-                                    </VStack>
-                                  ) : isLocked ? (
-                                    <VStack align="start" spacing={1} w="full">
-                                      <RedactedText length="full" />
-                                      <RedactedText length="long" />
-                                    </VStack>
-                                  ) : (
-                                    <VStack align="start" spacing={2} w="full">
-                                      <Text fontSize="sm" color={theme.colors.gray[600]}>
-                                        {node.description}
-                                      </Text>
-                                      {node.objective && status === 'available' && (
-                                        <Box
-                                          w="full"
-                                          p={2}
-                                          bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
-                                          borderRadius="md"
-                                        >
-                                          <Text
-                                            fontSize="xs"
-                                            fontWeight="semibold"
-                                            color={currentColors.textColor}
-                                          >
-                                            Objective:
-                                          </Text>
-                                          <Text fontSize="sm" color={currentColors.textColor}>
-                                            {OBJECTIVE_TYPES[node.objective.type]}:{' '}
-                                            {node.objective.quantity} {node.objective.target}
-                                          </Text>
-                                          {node.objective?.appliedBuff && (
-                                            <Badge colorScheme="blue" fontSize="xs" mt={1}>
-                                              ✨ {node.objective.appliedBuff.buffName} applied (-
-                                              {(node.objective.appliedBuff.reduction * 100).toFixed(
-                                                0
-                                              )}
-                                              %)
-                                            </Badge>
-                                          )}
-                                        </Box>
-                                      )}
-                                      {isAvailableWithBuffs &&
-                                        adminMode &&
-                                        !node.objective?.appliedBuff && (
-                                          <Button
-                                            size="sm"
-                                            colorScheme="blue"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleOpenBuffModal(node);
-                                            }}
-                                            leftIcon={<Text>✨</Text>}
-                                            w="full"
-                                          >
-                                            Apply Buff to Reduce Requirement
-                                          </Button>
-                                        )}
-                                    </VStack>
-                                  )}
-                                </VStack>
-                              </HStack>
-
-                              {(isLocked || isLocationLocked) && (
-                                <Box
-                                  position="absolute"
-                                  top={0}
-                                  left={0}
-                                  right={0}
-                                  bottom={0}
-                                  bg={
-                                    isLocationLocked
-                                      ? 'rgba(255, 140, 0, 0.1)'
-                                      : colorMode === 'dark'
-                                      ? 'rgba(0,0,0,0.3)'
-                                      : 'rgba(255,255,255,0.3)'
-                                  }
-                                  backdropFilter={isLocationLocked ? undefined : 'blur(2px)'}
-                                  borderRadius="md"
-                                  pointerEvents="none"
-                                />
-                              )}
-
-                              {isLocked ? (
-                                <VStack align="end" spacing={1}>
-                                  <RedactedText length="short" />
-                                  <HStack spacing={1}>
-                                    <RedactedText length="short" />
-                                  </HStack>
-                                </VStack>
-                              ) : (
-                                node.rewards &&
-                                !isInn &&
-                                (adminMode || status === 'completed') && (
-                                  <VStack align="end" spacing={1}>
-                                    <Text fontWeight="semibold" color={currentColors.green.base}>
-                                      {formatGP(node.rewards.gp)}
-                                    </Text>
-                                    {node.rewards.keys?.length > 0 && (
-                                      <HStack spacing={1} flexWrap="wrap" justify="flex-end">
-                                        {node.rewards.keys.map((key, idx) => (
-                                          <Badge key={idx} colorScheme={key.color} size="sm">
-                                            {key.quantity} {key.color}
-                                          </Badge>
-                                        ))}
-                                      </HStack>
-                                    )}
-                                  </VStack>
-                                )
-                              )}
-                            </HStack>
-
-                            {isLocked && (
-                              <Box
-                                position="absolute"
-                                top={0}
-                                left={0}
-                                right={0}
-                                bottom={0}
-                                bg={
-                                  colorMode === 'dark' ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'
-                                }
-                                backdropFilter={isLocationLocked ? undefined : 'blur(2px)'}
-                                borderRadius="md"
-                                pointerEvents="none"
-                              />
-                            )}
-                          </CardBody>
-                        </Card>
-                      );
-                    })}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+          <AllNodesAccordion
+            nodes={nodes}
+            team={team}
+            event={event}
+            adminMode={adminMode}
+            getNodeStatus={getNodeStatus}
+            isLocationGroupCompleted={isLocationGroupCompleted}
+            getCompletedNodeInGroup={getCompletedNodeInGroup}
+            getNodeBorderColor={getNodeBorderColor}
+            getNodeBadge={getNodeBadge}
+            handleNodeClick={handleNodeClick}
+            handleOpenBuffModal={handleOpenBuffModal}
+            formatGP={formatGP}
+            currentColors={currentColors}
+            colorMode={colorMode}
+          />
         </VStack>
       </Section>
 

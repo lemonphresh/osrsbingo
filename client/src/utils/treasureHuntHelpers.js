@@ -581,6 +581,30 @@ const getAllBossContent = () => {
   };
 };
 
+const formatGP = (gp) => {
+  if (!gp) return '0';
+  return (gp / 1000000).toFixed(1) + 'M';
+};
+
+const formatObjectiveAmount = (node) => {
+  if (!node?.objective) return '—';
+  const q = node.objective.quantity ?? 0;
+  switch (node.objective.type) {
+    case 'xp_gain':
+      return `${q.toLocaleString()} XP`;
+    case 'boss_kc':
+      return `${q} KC`;
+    case 'minigame':
+      return `${q} runs`;
+    case 'item_collection':
+      return `${q} collected`;
+    case 'clue_scrolls':
+      return `${q} clues`;
+    default:
+      return `${q}`;
+  }
+};
+
 function userHasNeverSubmitted(team, currentUser) {
   if (!currentUser?.discordUserId || !team?.submissions?.length) return true;
   return !team.submissions.some(
@@ -602,4 +626,6 @@ module.exports = {
   getContentByTags,
   getAllBossContent,
   userHasNeverSubmitted,
+  formatGP,
+  formatObjectiveAmount,
 };

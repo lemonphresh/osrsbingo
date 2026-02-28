@@ -51,7 +51,8 @@ const CONFIRM_DISCORD_SETUP = gql`
   }
 `;
 
-const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
+const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus }) => {
+  const isLive = eventStatus === 'PUBLIC' || eventStatus === 'COMPLETED';
   const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
   const [guildId, setGuildId] = useState('');
   const [verifyState, setVerifyState] = useState('idle'); // idle | loading | success | error
@@ -111,163 +112,167 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
         <ModalHeader textAlign="center" color="white">
           <HStack justify="center">
             <Icon as={InfoIcon} color={theme.colors.purple[300]} />
-            <Text>Discord Bot Setup Guide</Text>
+            <Text>{isLive ? 'Discord Reference' : 'Discord Bot Setup Guide'}</Text>
           </HStack>
         </ModalHeader>
         <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
         <ModalBody pb={6} css={scrollbarStyles}>
           <VStack spacing={4} align="stretch">
-            {/* Overview */}
-            <Box>
-              <Text fontWeight="semibold" color="white" mb={2}>
-                📱 Overview
-              </Text>
-              <Text fontSize="sm" color="gray.300">
-                The Discord bot lets your teams interact with Gielinor Rush directly from Discord.
-                Teams can view progress, check nodes, submit completions, and view the leaderboard —
-                all without leaving your server!
-              </Text>
-            </Box>
-
-            <Divider borderColor="gray.600" />
-
-            {/* Step 0: Install Bot */}
-            <Box>
-              <HStack mb={2}>
-                <Badge colorScheme="purple" fontSize="sm">
-                  Step 0
-                </Badge>
-                <Text fontWeight="semibold" color="white">
-                  Install the Bot
-                </Text>
-              </HStack>
-              <VStack align="stretch" spacing={3}>
-                <Text fontSize="sm" color="gray.300">
-                  Add the Gielinor Rush bot to your Discord server.
-                </Text>
-                <Box p={3} bg="gray.800" borderRadius="md">
-                  <Button
-                    as={Link}
-                    href={botInstallUrl}
-                    isExternal
-                    colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
-                    size="sm"
-                    rightIcon={<ExternalLinkIcon />}
-                    _hover={{ textDecoration: 'none' }}
-                    w="100%"
-                  >
-                    Add Bot to Discord Server
-                  </Button>
-                </Box>
-                <Text fontSize="xs" color="gray.400">
-                  You'll need "Manage Server" permissions to add the bot.
-                </Text>
-              </VStack>
-            </Box>
-
-            <Divider borderColor="gray.600" />
-
-            {/* Step 0.5: Verify Guild — THE HANDSHAKE */}
-            <Box>
-              <HStack mb={2}>
-                <Badge colorScheme="purple" fontSize="sm">
-                  Step 1
-                </Badge>
-                <Text fontWeight="semibold" color="white">
-                  Verify Bot Connection
-                </Text>
-              </HStack>
-              <VStack align="stretch" spacing={3}>
-                <Text fontSize="sm" color="gray.300">
-                  Paste your Discord Server ID below to confirm the bot was added successfully.
-                </Text>
-                <Box
-                  p={2}
-                  bg="yellow.900"
-                  borderRadius="md"
-                  borderWidth="1px"
-                  borderColor="yellow.700"
-                >
-                  <Text fontSize="xs" color="yellow.200">
-                    ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode), then
-                    right-click your server icon → Copy Server ID
+            {!isLive && (
+              <>
+                {/* Overview */}
+                <Box>
+                  <Text fontWeight="semibold" color="white" mb={2}>
+                    📱 Overview
+                  </Text>
+                  <Text fontSize="sm" color="gray.300">
+                    The Discord bot lets your teams interact with Gielinor Rush directly from Discord.
+                    Teams can view progress, check nodes, submit completions, and view the leaderboard
+                    all without leaving your server!
                   </Text>
                 </Box>
 
-                <InputGroup size="md">
-                  <Input
-                    placeholder="i.e. 123456789012345678"
-                    value={guildId}
-                    onChange={(e) => {
-                      setGuildId(e.target.value);
-                      setVerifyState('idle');
-                    }}
-                    bg="gray.800"
-                    border="1px solid"
-                    borderColor={
-                      verifyState === 'success'
-                        ? 'green.400'
-                        : verifyState === 'error'
-                        ? 'red.400'
-                        : 'gray.600'
-                    }
-                    color="white"
-                    _placeholder={{ color: 'gray.500' }}
-                    isDisabled={verifyState === 'success'}
-                  />
-                  <InputRightElement width="5.5rem">
-                    {verifyState === 'success' ? (
-                      <Icon as={CheckCircleIcon} color="green.400" />
-                    ) : (
-                      <Button
-                        h="1.75rem"
-                        size="sm"
-                        mr={1}
-                        colorScheme="purple"
-                        isDisabled={!guildId.trim() || verifyState === 'loading'}
-                        onClick={handleVerify}
-                      >
-                        {verifyState === 'loading' ? <Spinner size="xs" /> : 'Verify'}
-                      </Button>
-                    )}
-                  </InputRightElement>
-                </InputGroup>
-                <Box minH="72px" mt={2}>
-                  {verifyState === 'success' && (
-                    <Alert
-                      status="success"
-                      borderRadius="md"
-                      display="inline-flex"
-                      bg="green.800"
-                      fontSize="sm"
-                      flexDirection="column"
-                      alignItems="start"
-                    >
-                      <HStack mb={1}>
-                        <AlertIcon color="green.400" />
-                        <Text>
-                          Bot detected in{' '}
-                          <span style={{ fontWeight: 'bold', color: theme.colors.green[400] }}>
-                            {verifiedGuildName}
-                          </span>
-                          !
-                        </Text>
-                      </HStack>
-                      Yeehaw! Don't forget to add the bot to your event channels and set the correct
-                      topic. See steps below.
-                    </Alert>
-                  )}
-                  {verifyState === 'error' && (
-                    <Alert status="error" borderRadius="md" bg="red.900" fontSize="sm">
-                      <AlertIcon color="red.400" />
-                      {errorMsg} — double check the ID and that the bot was added.
-                    </Alert>
-                  )}
-                </Box>
-              </VStack>
-            </Box>
+                <Divider borderColor="gray.600" />
 
-            <Divider borderColor="gray.600" />
+                {/* Step 0: Install Bot */}
+                <Box>
+                  <HStack mb={2}>
+                    <Badge colorScheme="purple" fontSize="sm">
+                      Step 0
+                    </Badge>
+                    <Text fontWeight="semibold" color="white">
+                      Install the Bot
+                    </Text>
+                  </HStack>
+                  <VStack align="stretch" spacing={3}>
+                    <Text fontSize="sm" color="gray.300">
+                      Add the Gielinor Rush bot to your Discord server.
+                    </Text>
+                    <Box p={3} bg="gray.800" borderRadius="md">
+                      <Button
+                        as={Link}
+                        href={botInstallUrl}
+                        isExternal
+                        colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
+                        size="sm"
+                        rightIcon={<ExternalLinkIcon />}
+                        _hover={{ textDecoration: 'none' }}
+                        w="100%"
+                      >
+                        Add Bot to Discord Server
+                      </Button>
+                    </Box>
+                    <Text fontSize="xs" color="gray.400">
+                      You'll need "Manage Server" permissions to add the bot.
+                    </Text>
+                  </VStack>
+                </Box>
+
+                <Divider borderColor="gray.600" />
+
+                {/* Step 1: Verify Guild */}
+                <Box>
+                  <HStack mb={2}>
+                    <Badge colorScheme="purple" fontSize="sm">
+                      Step 1
+                    </Badge>
+                    <Text fontWeight="semibold" color="white">
+                      Verify Bot Connection
+                    </Text>
+                  </HStack>
+                  <VStack align="stretch" spacing={3}>
+                    <Text fontSize="sm" color="gray.300">
+                      Paste your Discord Server ID below to confirm the bot was added successfully.
+                    </Text>
+                    <Box
+                      p={2}
+                      bg="yellow.900"
+                      borderRadius="md"
+                      borderWidth="1px"
+                      borderColor="yellow.700"
+                    >
+                      <Text fontSize="xs" color="yellow.200">
+                        ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode), then
+                        right-click your server icon → Copy Server ID
+                      </Text>
+                    </Box>
+
+                    <InputGroup size="md">
+                      <Input
+                        placeholder="i.e. 123456789012345678"
+                        value={guildId}
+                        onChange={(e) => {
+                          setGuildId(e.target.value);
+                          setVerifyState('idle');
+                        }}
+                        bg="gray.800"
+                        border="1px solid"
+                        borderColor={
+                          verifyState === 'success'
+                            ? 'green.400'
+                            : verifyState === 'error'
+                            ? 'red.400'
+                            : 'gray.600'
+                        }
+                        color="white"
+                        _placeholder={{ color: 'gray.500' }}
+                        isDisabled={verifyState === 'success'}
+                      />
+                      <InputRightElement width="5.5rem">
+                        {verifyState === 'success' ? (
+                          <Icon as={CheckCircleIcon} color="green.400" />
+                        ) : (
+                          <Button
+                            h="1.75rem"
+                            size="sm"
+                            mr={1}
+                            colorScheme="purple"
+                            isDisabled={!guildId.trim() || verifyState === 'loading'}
+                            onClick={handleVerify}
+                          >
+                            {verifyState === 'loading' ? <Spinner size="xs" /> : 'Verify'}
+                          </Button>
+                        )}
+                      </InputRightElement>
+                    </InputGroup>
+                    <Box minH="72px" mt={2}>
+                      {verifyState === 'success' && (
+                        <Alert
+                          status="success"
+                          borderRadius="md"
+                          display="inline-flex"
+                          bg="green.800"
+                          fontSize="sm"
+                          flexDirection="column"
+                          alignItems="start"
+                        >
+                          <HStack mb={1}>
+                            <AlertIcon color="green.400" />
+                            <Text>
+                              Bot detected in{' '}
+                              <span style={{ fontWeight: 'bold', color: theme.colors.green[400] }}>
+                                {verifiedGuildName}
+                              </span>
+                              !
+                            </Text>
+                          </HStack>
+                          Yeehaw! Don't forget to add the bot to your event channels and set the correct
+                          topic. See steps below.
+                        </Alert>
+                      )}
+                      {verifyState === 'error' && (
+                        <Alert status="error" borderRadius="md" bg="red.900" fontSize="sm">
+                          <AlertIcon color="red.400" />
+                          {errorMsg} — double check the ID and that the bot was added.
+                        </Alert>
+                      )}
+                    </Box>
+                  </VStack>
+                </Box>
+
+                <Divider borderColor="gray.600" />
+              </>
+            )}
 
             {/* Step 2: Create Channels */}
             <Box id="channel-setup">
@@ -339,17 +344,19 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
                   which team is which based on team membership.
                 </Text>
               </Box>
-              <Checkbox
-                mt={4}
-                colorScheme="purple"
-                isChecked={channelsAcknowledged}
-                onChange={(e) => setChannelsAcknowledged(e.target.checked)}
-              >
-                <Text fontSize="sm" color="yellow.200" fontWeight="semibold">
-                  I understand that channels must be set up before launching. The bot will NOT work
-                  without them.
-                </Text>
-              </Checkbox>
+              {!isLive && (
+                <Checkbox
+                  mt={4}
+                  colorScheme="purple"
+                  isChecked={channelsAcknowledged}
+                  onChange={(e) => setChannelsAcknowledged(e.target.checked)}
+                >
+                  <Text fontSize="sm" color="yellow.200" fontWeight="semibold">
+                    I understand that channels must be set up before launching. The bot will NOT work
+                    without them.
+                  </Text>
+                </Checkbox>
+              )}
             </Box>
 
             <Divider borderColor="gray.600" />
@@ -415,18 +422,23 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed }) => {
 
             <Divider borderColor="gray.600" />
 
-            {/* Confirm Button */}
-            <Button
-              colorScheme="green"
-              size="lg"
-              width="100%"
-              isDisabled={verifyState !== 'success' || !channelsAcknowledged}
-              isLoading={confirming}
-              onClick={handleConfirm}
-              leftIcon={<CheckCircleIcon />}
-            >
-              {verifyState === 'success' ? 'Confirm Setup' : 'Verify connection above to continue'}
-            </Button>
+            {isLive ? (
+              <Button colorScheme="purple" size="lg" width="100%" onClick={onClose}>
+                Got it
+              </Button>
+            ) : (
+              <Button
+                colorScheme="green"
+                size="lg"
+                width="100%"
+                isDisabled={verifyState !== 'success' || !channelsAcknowledged}
+                isLoading={confirming}
+                onClick={handleConfirm}
+                leftIcon={<CheckCircleIcon />}
+              >
+                {verifyState === 'success' ? 'Confirm Setup' : 'Verify connection above to continue'}
+              </Button>
+            )}
           </VStack>
         </ModalBody>
       </ModalContent>

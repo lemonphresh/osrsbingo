@@ -372,7 +372,7 @@ const TreasureHuntResolvers = {
 
       const { guildId } = event.discordConfig || {};
       if (guildId) {
-        sendLaunchMessage(guildId, eventId, event.eventName, event.teams).catch((err) =>
+        sendLaunchMessage(guildId, eventId, event.eventName, event.teams, event.startDate).catch((err) =>
           console.error('[launchEvent] launch message failed:', err.message)
         );
       }
