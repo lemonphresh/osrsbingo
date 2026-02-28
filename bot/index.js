@@ -2,7 +2,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 const { registerClient } = require('./verify');
 const cron = require('node-cron');
 const { sendStartMessage } = require('./verify');
-const { Op } = require('../server/db/models').sequelize;
+const { Op } = require('../server/db/models').sequelize.Sequelize;
 require('dotenv').config();
 
 const client = new Client({
