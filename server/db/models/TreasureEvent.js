@@ -43,6 +43,11 @@ module.exports = (sequelize) => {
         allowNull: true,
         defaultValue: null,
       },
+      startMessageSent: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        allowNull: false,
+      },
       creatorId: {
         type: DataTypes.INTEGER,
         references: {
