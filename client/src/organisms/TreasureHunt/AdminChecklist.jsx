@@ -37,6 +37,7 @@ const AdminLaunchChecklist = ({
   onLaunchEvent,
   onEditTeam,
   isGeneratingMap = false,
+  mapGenCooldownLeft = 0,
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [showTeamDetails, setShowTeamDetails] = useState(false);
@@ -178,8 +179,10 @@ const AdminLaunchChecklist = ({
               colorScheme={check.icon === FaDiscord ? 'purple' : 'blue'}
               onClick={check.action}
               isLoading={check.icon === FaMap && isGeneratingMap}
+              isDisabled={check.icon === FaMap && mapGenCooldownLeft > 0}
             >
               {check.actionLabel}
+              {check.icon === FaMap && mapGenCooldownLeft > 0 && ` (${mapGenCooldownLeft}s)`}
             </Button>
           )}
           {check.done && <Icon as={CheckCircleIcon} color="green.400" boxSize={5} />}

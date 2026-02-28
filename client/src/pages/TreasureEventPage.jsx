@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Accordion,
   AccordionItem,
@@ -6,6 +6,13 @@ import {
   AccordionPanel,
   AccordionIcon,
   AlertDialog,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
   AlertDialogBody,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -318,6 +325,11 @@ const TreasureEventView = () => {
     onOpen: onOpenCompleteDialog,
     onClose: onCloseCompleteDialog,
   } = useDisclosure();
+  const {
+    isOpen: isNotifPromptOpen,
+    onOpen: onNotifPromptOpen,
+    onClose: onNotifPromptClose,
+  } = useDisclosure();
 
   const [nodeToComplete, setNodeToComplete] = useState(null);
   const [completeLoading, setCompleteLoading] = useState(false);
@@ -325,6 +337,7 @@ const TreasureEventView = () => {
   const [showAllNodesToggle, setShowAllNodesToggle] = useState(true);
   const [highlightedTeamId, setHighlightedTeamId] = useState(null);
   const [nodeSort, setNodeSort] = useState({ col: 'type', dir: 'asc' });
+  const [mapGenCooldownLeft, setMapGenCooldownLeft] = useState(0);
 
   const cancelRef = useRef();
 
@@ -382,6 +395,22 @@ const TreasureEventView = () => {
 
   // ── Derived state ──────────────────────────────────────────────────────────
   const event = eventData?.getTreasureEvent;
+
+  useEffect(() => {
+    if (!event?.lastMapGeneratedAt) {
+      setMapGenCooldownLeft(0);
+      return;
+    }
+    const COOLDOWN_MS = 60 * 1000;
+    const update = () => {
+      const elapsed = Date.now() - new Date(event.lastMapGeneratedAt).getTime();
+      setMapGenCooldownLeft(Math.max(0, Math.ceil((COOLDOWN_MS - elapsed) / 1000)));
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [event?.lastMapGeneratedAt]);
+
   const teams = event?.teams || [];
   const allSubmissions = submissionsData?.getAllSubmissions || [];
   const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
@@ -548,6 +577,18 @@ const TreasureEventView = () => {
       : event.eventName
     : null;
   usePageTitle(pageTitle);
+
+  useEffect(() => {
+    if (
+      isEventAdminOrRef &&
+      notificationsSupported &&
+      !notificationsEnabled &&
+      !localStorage.getItem('treasureHunt_notif_prompt_seen')
+    ) {
+      const timer = setTimeout(onNotifPromptOpen, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isEventAdminOrRef, notificationsSupported, notificationsEnabled, onNotifPromptOpen]);
 
   // ── Loading / not found ────────────────────────────────────────────────────
   if (eventLoading) {
@@ -1682,6 +1723,7 @@ const TreasureEventView = () => {
                                 colorScheme="green"
                                 onClick={handleGenerateMap}
                                 isLoading={generateLoading}
+                                isDisabled={mapGenCooldownLeft > 0}
                                 animation={
                                   !event.nodes || event.nodes.length === 0
                                     ? 'flashButton 1.5s ease-in-out infinite'
@@ -1701,6 +1743,7 @@ const TreasureEventView = () => {
                                 }}
                               >
                                 {event.nodes?.length > 0 ? 'Regenerate Map' : 'Generate Map'}
+                                {mapGenCooldownLeft > 0 && ` (${mapGenCooldownLeft}s)`}
                               </Button>
                               <Button
                                 leftIcon={<AddIcon />}
@@ -2005,6 +2048,7 @@ const TreasureEventView = () => {
           onOpenDiscordSetup={onDiscordSetupOpen}
           onLaunchEvent={onLaunchConfirmOpen}
           isGeneratingMap={generateLoading}
+          mapGenCooldownLeft={mapGenCooldownLeft}
         />
       )}
       {isEventAdmin && event.status === 'PUBLIC' && (
@@ -2115,6 +2159,52 @@ const TreasureEventView = () => {
           await refetchEvent();
         }}
       />
+
+      {/* One-time notification prompt for admins/refs */}
+      <Modal isOpen={isNotifPromptOpen} onClose={onNotifPromptClose} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent bg={currentColors.cardBg}>
+          <ModalCloseButton
+            onClick={() => {
+              localStorage.setItem('treasureHunt_notif_prompt_seen', 'true');
+              onNotifPromptClose();
+            }}
+          />
+          <ModalHeader color={currentColors.textColor}>🔔 Submission Notifications</ModalHeader>
+          <ModalBody>
+            <VStack align="start" spacing={3}>
+              <Text color={currentColors.textColor}>
+                As an admin or ref, you can get browser notifications whenever a new submission
+                comes in, so you don't have to keep the tab open and watching.
+              </Text>
+              <Text fontSize="sm" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
+                You can also enable sound alerts and manage this in the Event Settings tab.
+              </Text>
+            </VStack>
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                localStorage.setItem('treasureHunt_notif_prompt_seen', 'true');
+                onNotifPromptClose();
+              }}
+            >
+              Maybe later
+            </Button>
+            <Button
+              colorScheme="blue"
+              onClick={async () => {
+                localStorage.setItem('treasureHunt_notif_prompt_seen', 'true');
+                onNotifPromptClose();
+                await requestNotificationPermission();
+              }}
+            >
+              Enable Notifications
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 };

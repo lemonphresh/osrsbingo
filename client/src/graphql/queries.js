@@ -475,6 +475,7 @@ export const GET_TREASURE_EVENT = gql`
       contentSelections
       mapStructure
       discordConfig
+      lastMapGeneratedAt
 
       # Ownership
       creatorId

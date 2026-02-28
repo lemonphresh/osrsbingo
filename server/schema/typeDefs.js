@@ -271,6 +271,7 @@ const typeDefs = gql`
     admins: [User!]
     refIds: [ID!]
     refs: [User!]
+    lastMapGeneratedAt: DateTime
   }
 
   input CreateTreasureEventInput {

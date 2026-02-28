@@ -64,6 +64,11 @@ module.exports = (sequelize) => {
         defaultValue: [],
         comment: 'Array of user IDs who have ref access to this event',
       },
+      lastMapGeneratedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+        defaultValue: null,
+      },
     },
     {
       sequelize,

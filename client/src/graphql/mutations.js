@@ -513,6 +513,7 @@ export const GENERATE_TREASURE_MAP = gql`
     generateTreasureMap(eventId: $eventId) {
       eventId
       mapStructure
+      lastMapGeneratedAt
       nodes {
         nodeId
         nodeType
