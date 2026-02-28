@@ -561,8 +561,9 @@ const TreasureHuntResolvers = {
 
     addEventAdmin: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
+      const userIdInt = Number(userId);
       console.log(
-        `[addEventAdmin] eventId=${eventId} newAdminUserId=${userId} requestedBy=${context.user.id}`
+        `[addEventAdmin] eventId=${eventId} newAdminUserId=${userIdInt} requestedBy=${context.user.id}`
       );
 
       const event = await TreasureEvent.findByPk(eventId);
@@ -572,8 +573,8 @@ const TreasureHuntResolvers = {
         event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
       if (!isAdmin) throw new Error('Not authorized to add admins');
 
-      if (!event.adminIds?.includes(userId)) {
-        await event.update({ adminIds: [...(event.adminIds || []), userId] });
+      if (!event.adminIds?.includes(userIdInt)) {
+        await event.update({ adminIds: [...(event.adminIds || []), userIdInt] });
       }
 
       return TreasureEvent.findByPk(eventId);
@@ -581,8 +582,9 @@ const TreasureHuntResolvers = {
 
     removeEventAdmin: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
+      const userIdInt = Number(userId);
       console.log(
-        `[removeEventAdmin] eventId=${eventId} removingUserId=${userId} requestedBy=${context.user.id}`
+        `[removeEventAdmin] eventId=${eventId} removingUserId=${userIdInt} requestedBy=${context.user.id}`
       );
 
       const event = await TreasureEvent.findByPk(eventId);
@@ -591,11 +593,11 @@ const TreasureHuntResolvers = {
       if (event.creatorId !== context.user.id) {
         throw new Error('Only the event creator can remove admins');
       }
-      if (userId === event.creatorId) {
+      if (userIdInt === event.creatorId) {
         throw new Error('Cannot remove the event creator as admin');
       }
 
-      await event.update({ adminIds: event.adminIds?.filter((id) => id !== userId) || [] });
+      await event.update({ adminIds: event.adminIds?.filter((id) => id !== userIdInt) || [] });
       return TreasureEvent.findByPk(eventId);
     },
 
