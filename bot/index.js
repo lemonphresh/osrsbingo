@@ -1,7 +1,8 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits } = require('discord.js');
 const { registerClient } = require('./verify');
 const cron = require('node-cron');
 const { sendStartMessage } = require('./verify');
+const { Op } = require('../server/db/models').sequelize;
 require('dotenv').config();
 
 const client = new Client({
@@ -20,19 +21,19 @@ const leaderboard = require('./commands/leaderboard');
 
 const commands = [treasurehunt, nodes, submit, leaderboard];
 
-let TreasureEvent, TreasureTeam, Op;
+let TreasureEvent, TreasureTeam;
 
 try {
   const models = require('../server/db/models');
   TreasureEvent = models.TreasureEvent;
   TreasureTeam = models.TreasureTeam;
-  Op = TreasureEvent.sequelize.Op;
+  console.log('✅ Scheduler models loaded');
 } catch (err) {
-  console.error('❌ Failed to load models for scheduler:', err.message);
+  console.error('❌ Failed to load models for scheduler:', err.message, err.stack);
 }
 
 async function checkEventStarts() {
-  if (!TreasureEvent || !TreasureTeam || !Op) {
+  if (!TreasureEvent || !TreasureTeam) {
     console.warn('[eventStartScheduler] models not loaded, skipping');
     return;
   }
@@ -77,11 +78,8 @@ client.on('ready', () => {
     try {
       await checkEventStarts();
     } catch (err) {
-      console.error('❌ Failed to load models for scheduler:', err.message, err.stack);
+      console.error('[eventStartScheduler] unhandled error:', err.message, err.stack);
     }
-    // } catch (err) {
-    //   console.error('[eventStartScheduler] unhandled error:', err.message);
-    // }
   });
 
   console.log('⏰ Event start scheduler running');
