@@ -2,6 +2,7 @@ const { ApolloError } = require('apollo-server-express');
 const { EditorInvitation, User, BingoBoard } = require('../../db/models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const logger = require('../../utils/logger');
 
 module.exports = {
   Mutation: {
@@ -64,7 +65,7 @@ module.exports = {
 
           // if an invitation already exists, skip this user
           if (existingInvitation) {
-            console.log(`Skipping user ${userId}: Invitation already exists.`);
+            logger.info(`Skipping user ${userId}: Invitation already exists.`);
             continue;
           }
 
@@ -84,7 +85,7 @@ module.exports = {
           message: `${createdInvitations.length} invitations sent successfully.`,
         };
       } catch (error) {
-        console.error('Error sending invitations:', error);
+        logger.error('Error sending invitations:', error);
         return {
           success: false,
           message: `Failed to send invitations to ${invitedUserIds.length} users.`,
@@ -94,6 +95,7 @@ module.exports = {
   },
   Query: {
     pendingInvitations: async (_, __, context) => {
+      if (!context.user) return [];
       const userId = context.user.id;
       const invitations = await EditorInvitation.findAll({
         where: {

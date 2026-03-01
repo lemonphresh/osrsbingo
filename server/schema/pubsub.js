@@ -1,5 +1,6 @@
 const { PubSub } = require('graphql-subscriptions');
 const { EventEmitter } = require('events');
+const logger = require('../../utils/logger');
 
 // raise the default listener cap (default is 10, way too low for concurrent events)
 EventEmitter.defaultMaxListeners = 100;
@@ -11,7 +12,7 @@ const _publish = pubsub.publish.bind(pubsub);
 pubsub.publish = (topic, payload) => {
   const listenerCount = pubsub.ee?.listenerCount?.(topic) ?? 0;
   if (listenerCount > 50) {
-    console.warn(`⚠️ PubSub topic "${topic}" has ${listenerCount} listeners — possible leak`);
+    logger.warn(`⚠️ PubSub topic "${topic}" has ${listenerCount} listeners — possible leak`);
   }
   return _publish(topic, payload);
 };

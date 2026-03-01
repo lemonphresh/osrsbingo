@@ -2,6 +2,7 @@
 const { ApolloError } = require('apollo-server-express');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
 const { Op } = require('sequelize');
+const logger = require('../../utils/logger');
 
 module.exports = {
   Mutation: {
@@ -68,7 +69,7 @@ module.exports = {
         // ✅ Return just the board - field resolvers handle tiles/editors
         return BingoBoard.findByPk(newBingoBoard.id);
       } catch (error) {
-        console.error('Error creating BingoBoard:', error);
+        logger.error('Error creating BingoBoard:', error);
         throw new ApolloError('Failed to create BingoBoard');
       }
     },
@@ -115,7 +116,7 @@ module.exports = {
         await bingoBoard.save();
         return bingoBoard;
       } catch (error) {
-        console.error('Error updating BingoBoard:', error);
+        logger.error('Error updating BingoBoard:', error);
         throw new ApolloError('Failed to update BingoBoard');
       }
     },
@@ -160,7 +161,7 @@ module.exports = {
         // ✅ Return just the board - field resolvers handle tiles/editors
         return board;
       } catch (error) {
-        console.error('Error replacing BingoBoard layout:', error);
+        logger.error('Error replacing BingoBoard layout:', error);
         throw new ApolloError('Failed to replace BingoBoard layout');
       }
     },
@@ -220,7 +221,7 @@ module.exports = {
         // ✅ Return just the board - field resolvers handle tiles/editors
         return duplicatedBoard;
       } catch (error) {
-        console.error('Error duplicating BingoBoard:', error);
+        logger.error('Error duplicating BingoBoard:', error);
         throw new ApolloError('Failed to duplicate BingoBoard');
       }
     },
@@ -251,7 +252,7 @@ module.exports = {
 
         return { success: true, message: 'Bingo board deleted successfully' };
       } catch (error) {
-        console.error('Error deleting BingoBoard:', error);
+        logger.error('Error deleting BingoBoard:', error);
         throw new ApolloError('Failed to delete BingoBoard');
       }
     },

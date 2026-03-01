@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const logger = require('./logger');
 
 const C = {
   TextDisplay: 10,
@@ -21,7 +22,7 @@ const DIFF_EMOJI = (tier) => (tier === 1 ? '🟢' : tier === 3 ? '🟡' : tier =
 async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
   try {
     if (!webhookUrl) {
-      console.warn('No Discord webhook URL provided, skipping notification');
+      logger.warn('No Discord webhook URL provided, skipping notification');
       return { success: false, reason: 'no_webhook' };
     }
 
@@ -43,7 +44,7 @@ async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
 
     const botToken = process.env.DISCORD_BOT_TOKEN;
     if (!botToken) {
-      console.warn('No Discord bot token found, cannot send to channel');
+      logger.warn('No Discord bot token found, cannot send to channel');
       return { success: false, reason: 'no_bot_token' };
     }
 
@@ -55,7 +56,7 @@ async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error sending Discord message:', error.response?.data || error.message);
+    logger.error('Error sending Discord message:', error.response?.data || error.message);
     return { success: false, error: error.message };
   }
 }
@@ -263,7 +264,7 @@ async function sendNodeCompletionNotification({
       );
       results.push({ channelId, success: result.success });
     } catch (error) {
-      console.error(`Failed to send completion notification to channel ${channelId}:`, error);
+      logger.error(`Failed to send completion notification to channel ${channelId}:`, error);
       results.push({ channelId, success: false, error: error.message });
     }
   }
@@ -287,13 +288,14 @@ async function sendAllNodesCompletedNotification({
 
   const statsLines = [];
   if (nodesCompleted != null)
-    statsLines.push(`🗺️ **${nodesCompleted}** location${nodesCompleted !== 1 ? 's' : ''} conquered`);
+    statsLines.push(
+      `🗺️ **${nodesCompleted}** location${nodesCompleted !== 1 ? 's' : ''} conquered`
+    );
   if (gpFromNodes > 0)
     statsLines.push(`💰 **${(gpFromNodes / 1_000_000).toFixed(1)}M GP** earned from locations`);
   if (finalPot)
     statsLines.push(`🏦 **${(Number(BigInt(finalPot)) / 1_000_000).toFixed(1)}M GP** final pot`);
-  if (buffsUsed > 0)
-    statsLines.push(`✨ **${buffsUsed}** buff${buffsUsed !== 1 ? 's' : ''} used`);
+  if (buffsUsed > 0) statsLines.push(`✨ **${buffsUsed}** buff${buffsUsed !== 1 ? 's' : ''} used`);
 
   const results = [];
 
@@ -329,7 +331,10 @@ async function sendAllNodesCompletedNotification({
       });
       results.push({ channelId, success: result.success });
     } catch (error) {
-      console.error(`Failed to send all-nodes-completed notification to channel ${channelId}:`, error);
+      logger.error(
+        `Failed to send all-nodes-completed notification to channel ${channelId}:`,
+        error
+      );
       results.push({ channelId, success: false, error: error.message });
     }
   }

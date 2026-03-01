@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../../utils/logger');
 const { Op } = require('sequelize');
 const {
   TreasureEvent,
@@ -59,7 +60,7 @@ const logTreasureHuntActivity = async (eventId, teamId, type, data = {}) => {
   try {
     await TreasureActivity.create(activity);
   } catch (err) {
-    console.error('❌ Failed to save activity:', err.message);
+    logger.error('❌ Failed to save activity:', err.message);
   }
 
   const topic = `TREASURE_ACTIVITY_${eventId}`;
@@ -173,24 +174,24 @@ async function canPerformTeamAction(context, teamId, eventId) {
 const TreasureHuntResolvers = {
   Query: {
     getTreasureEvent: async (_, { eventId }) => {
-      console.log(`[getTreasureEvent] eventId=${eventId}`);
+      logger.info(`[getTreasureEvent] eventId=${eventId}`);
       return TreasureEvent.findByPk(eventId);
     },
 
     getTreasureTeam: async (_, { eventId, teamId }) => {
-      console.log(`[getTreasureTeam] eventId=${eventId} teamId=${teamId}`);
+      logger.info(`[getTreasureTeam] eventId=${eventId} teamId=${teamId}`);
       return TreasureTeam.findOne({ where: { teamId, eventId } });
     },
 
     getAllTreasureEvents: async (_, { userId }) => {
-      console.log(`[getAllTreasureEvents] userId=${userId || 'all'}`);
+      logger.info(`[getAllTreasureEvents] userId=${userId || 'all'}`);
       const where = userId ? { creatorId: userId } : {};
       return TreasureEvent.findAll({ where, order: [['createdAt', 'DESC']] });
     },
 
     getMyTreasureEvents: async (_, __, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(`[getMyTreasureEvents] userId=${context.user.id}`);
+      logger.info(`[getMyTreasureEvents] userId=${context.user.id}`);
       return TreasureEvent.findAll({
         where: { creatorId: context.user.id },
         order: [['createdAt', 'DESC']],
@@ -198,7 +199,7 @@ const TreasureHuntResolvers = {
     },
 
     getPendingSubmissions: async (_, { eventId }) => {
-      console.log(`[getPendingSubmissions] eventId=${eventId}`);
+      logger.info(`[getPendingSubmissions] eventId=${eventId}`);
       return TreasureSubmission.findAll({
         where: { status: 'PENDING_REVIEW' },
         include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
@@ -207,7 +208,7 @@ const TreasureHuntResolvers = {
     },
 
     getTreasureEventLeaderboard: async (_, { eventId }) => {
-      console.log(`[getTreasureEventLeaderboard] eventId=${eventId}`);
+      logger.info(`[getTreasureEventLeaderboard] eventId=${eventId}`);
       return TreasureTeam.findAll({ where: { eventId }, order: [['currentPot', 'DESC']] });
     },
 
@@ -258,7 +259,7 @@ const TreasureHuntResolvers = {
     },
 
     getTreasureActivities: async (_, { eventId, limit = 50 }) => {
-      console.log(`[getTreasureActivities] eventId=${eventId} limit=${limit}`);
+      logger.info(`[getTreasureActivities] eventId=${eventId} limit=${limit}`);
       return TreasureActivity.findAll({
         where: { eventId },
         order: [['timestamp', 'DESC']],
@@ -275,7 +276,7 @@ const TreasureHuntResolvers = {
   Mutation: {
     createTreasureEvent: async (_, { input }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(`[createTreasureEvent] userId=${context.user.id} eventName="${input.eventName}"`);
+      logger.info(`[createTreasureEvent] userId=${context.user.id} eventName="${input.eventName}"`);
 
       function generateEventPassword() {
         const adjectives = [
@@ -331,7 +332,7 @@ const TreasureHuntResolvers = {
       };
 
       const event = await TreasureEvent.create(eventData);
-      console.log(`[createTreasureEvent] ✅ created eventId=${eventId}`);
+      logger.info(`[createTreasureEvent] ✅ created eventId=${eventId}`);
       return event;
     },
 
@@ -373,11 +374,11 @@ const TreasureHuntResolvers = {
       const { guildId } = event.discordConfig || {};
       if (guildId) {
         sendLaunchMessage(guildId, eventId, event.eventName, event.teams, event.startDate).catch((err) =>
-          console.error('[launchEvent] launch message failed:', err.message)
+          logger.error('[launchEvent] launch message failed:', err.message)
         );
       }
 
-      console.log(`[launchEvent] ✅ eventId=${eventId} launched`);
+      logger.info(`[launchEvent] ✅ eventId=${eventId} launched`);
       return event;
     },
 
@@ -398,16 +399,16 @@ const TreasureHuntResolvers = {
       const { guildId } = event.discordConfig || {};
       if (guildId) {
         sendCompleteMessage(guildId, eventId, event.eventName, event.teams).catch((err) =>
-          console.error('[completeEvent] complete message failed:', err.message)
+          logger.error('[completeEvent] complete message failed:', err.message)
         );
       }
 
-      console.log(`[completeEvent] ✅ eventId=${eventId} completed`);
+      logger.info(`[completeEvent] ✅ eventId=${eventId} completed`);
       return event;
     },
 
     generateTreasureMap: async (_, { eventId }) => {
-      console.log(`[generateTreasureMap] eventId=${eventId}`);
+      logger.info(`[generateTreasureMap] eventId=${eventId}`);
       const sequelize = TreasureEvent.sequelize;
       const transaction = await sequelize.transaction();
 
@@ -440,7 +441,7 @@ const TreasureHuntResolvers = {
         const generated = generateMap(event.eventConfig, event.derivedValues, contentSelections);
         const { mapStructure, nodes } = generated;
 
-        console.log(
+        logger.info(
           `[generateTreasureMap] generating ${nodes.length} nodes for eventId=${eventId}`
         );
 
@@ -480,19 +481,19 @@ const TreasureHuntResolvers = {
 
         await transaction.commit();
         invalidateEventNodes(eventId);
-        console.log(
+        logger.info(
           `[generateTreasureMap] ✅ map generated for eventId=${eventId} nodes=${validatedNodes.length}`
         );
         return TreasureEvent.findByPk(eventId);
       } catch (error) {
         if (transaction && !transaction.finished) await transaction.rollback();
-        console.error(`[generateTreasureMap] ❌ failed for eventId=${eventId}:`, error.message);
+        logger.error(`[generateTreasureMap] ❌ failed for eventId=${eventId}:`, error.message);
         throw new Error(`Failed to generate map: ${error.message}`);
       }
     },
 
     updateTreasureEvent: async (_, { eventId, input }) => {
-      console.log(
+      logger.info(
         `[updateTreasureEvent] eventId=${eventId} fields=${Object.keys(input).join(',')}`
       );
       const event = await TreasureEvent.findByPk(eventId);
@@ -516,26 +517,26 @@ const TreasureHuntResolvers = {
     },
 
     deleteTreasureEvent: async (_, { eventId }) => {
-      console.log(`[deleteTreasureEvent] eventId=${eventId}`);
+      logger.info(`[deleteTreasureEvent] eventId=${eventId}`);
       const event = await TreasureEvent.findByPk(eventId);
       if (!event) throw new Error('Event not found');
       invalidateEventNodes(eventId);
       await event.destroy();
-      console.log(`[deleteTreasureEvent] ✅ deleted eventId=${eventId}`);
+      logger.info(`[deleteTreasureEvent] ✅ deleted eventId=${eventId}`);
       return { success: true, message: 'Event deleted successfully' };
     },
 
     deleteTreasureTeam: async (_, { eventId, teamId }) => {
-      console.log(`[deleteTreasureTeam] eventId=${eventId} teamId=${teamId}`);
+      logger.info(`[deleteTreasureTeam] eventId=${eventId} teamId=${teamId}`);
       const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
       if (!team) throw new Error('Team not found');
       await team.destroy();
-      console.log(`[deleteTreasureTeam] ✅ deleted teamId=${teamId}`);
+      logger.info(`[deleteTreasureTeam] ✅ deleted teamId=${teamId}`);
       return { success: true, message: 'Team deleted successfully' };
     },
 
     createTreasureTeam: async (_, { eventId, input }, context) => {
-      console.log(`[createTreasureTeam] eventId=${eventId} teamName="${input.teamName}"`);
+      logger.info(`[createTreasureTeam] eventId=${eventId} teamName="${input.teamName}"`);
       const nodes = context.loaders
         ? await context.loaders.nodesByEventId.load(eventId)
         : (
@@ -560,12 +561,12 @@ const TreasureHuntResolvers = {
         availableNodes: startNodeId ? [startNodeId] : [],
         innTransactions: [],
       });
-      console.log(`[createTreasureTeam] ✅ created teamId=${teamId} startNode=${startNodeId}`);
+      logger.info(`[createTreasureTeam] ✅ created teamId=${teamId} startNode=${startNodeId}`);
       return team;
     },
 
     updateTreasureTeam: async (_, { eventId, teamId, input }) => {
-      console.log(
+      logger.info(
         `[updateTreasureTeam] eventId=${eventId} teamId=${teamId} fields=${Object.keys(input).join(
           ','
         )}`
@@ -579,7 +580,7 @@ const TreasureHuntResolvers = {
     addEventAdmin: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
       const userIdInt = Number(userId);
-      console.log(
+      logger.info(
         `[addEventAdmin] eventId=${eventId} newAdminUserId=${userIdInt} requestedBy=${context.user.id}`
       );
 
@@ -600,7 +601,7 @@ const TreasureHuntResolvers = {
     removeEventAdmin: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
       const userIdInt = Number(userId);
-      console.log(
+      logger.info(
         `[removeEventAdmin] eventId=${eventId} removingUserId=${userIdInt} requestedBy=${context.user.id}`
       );
 
@@ -620,7 +621,7 @@ const TreasureHuntResolvers = {
 
     updateEventAdmins: async (_, { eventId, adminIds }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[updateEventAdmins] eventId=${eventId} adminCount=${adminIds.length} requestedBy=${context.user.id}`
       );
 
@@ -638,7 +639,7 @@ const TreasureHuntResolvers = {
 
     addEventRef: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[addEventRef] eventId=${eventId} newRefUserId=${userId} requestedBy=${context.user.id}`
       );
 
@@ -659,7 +660,7 @@ const TreasureHuntResolvers = {
 
     removeEventRef: async (_, { eventId, userId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[removeEventRef] eventId=${eventId} removingUserId=${userId} requestedBy=${context.user.id}`
       );
 
@@ -681,7 +682,7 @@ const TreasureHuntResolvers = {
       { eventId, teamId, nodeId, proofUrl, submittedBy, submittedByUsername, channelId },
       context
     ) => {
-      console.log(
+      logger.info(
         `[submitNodeCompletion] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} submittedBy=${submittedByUsername}`
       );
 
@@ -702,7 +703,7 @@ const TreasureHuntResolvers = {
           )?.nodes || [];
 
       if (!team.availableNodes.includes(nodeId)) {
-        console.warn(`[submitNodeCompletion] ⚠️ node ${nodeId} not available for teamId=${teamId}`);
+        logger.warn(`[submitNodeCompletion] ⚠️ node ${nodeId} not available for teamId=${teamId}`);
         throw new Error('This node is not available to your team.');
       }
 
@@ -714,7 +715,7 @@ const TreasureHuntResolvers = {
         });
         if (completedNodeInGroup) {
           const completedNode = nodes.find((n) => n.nodeId === completedNodeInGroup);
-          console.warn(
+          logger.warn(
             `[submitNodeCompletion] ⚠️ location group already completed for teamId=${teamId} nodeId=${nodeId}`
           );
           throw new Error(
@@ -735,13 +736,13 @@ const TreasureHuntResolvers = {
         submittedByUsername,
       });
 
-      console.log(`[submitNodeCompletion] ✅ submission created submissionId=${submissionId}`);
+      logger.info(`[submitNodeCompletion] ✅ submission created submissionId=${submissionId}`);
       await pubsub.publish(`SUBMISSION_ADDED_${eventId}`, { submissionAdded: submission });
       return submission;
     },
 
     reviewSubmission: async (_, { submissionId, approved, reviewerId, denialReason }, context) => {
-      console.log(
+      logger.info(
         `[reviewSubmission] submissionId=${submissionId} approved=${approved} reviewerId=${reviewerId}`
       );
 
@@ -771,7 +772,7 @@ const TreasureHuntResolvers = {
       await submission.update({ status, reviewedBy: reviewerId, reviewedAt: new Date() });
       await submission.reload();
 
-      console.log(`[reviewSubmission] ✅ submission ${submissionId} marked ${status}`);
+      logger.info(`[reviewSubmission] ✅ submission ${submissionId} marked ${status}`);
 
       await pubsub.publish(`SUBMISSION_REVIEWED_${submission.team.eventId}`, {
         submissionReviewed: submission,
@@ -803,7 +804,7 @@ const TreasureHuntResolvers = {
             });
           }
         } catch (notifError) {
-          console.error(`[reviewSubmission] ❌ Discord notification failed:`, notifError.message);
+          logger.error(`[reviewSubmission] ❌ Discord notification failed:`, notifError.message);
         }
       }
 
@@ -811,11 +812,11 @@ const TreasureHuntResolvers = {
     },
 
     visitInn: async (_, { eventId, teamId, nodeId }, context) => {
-      console.log(`[visitInn] eventId=${eventId} teamId=${teamId} nodeId=${nodeId}`);
+      logger.info(`[visitInn] eventId=${eventId} teamId=${teamId} nodeId=${nodeId}`);
 
       const authCheck = await canPerformTeamAction(context, teamId, eventId);
       if (!authCheck.authorized) {
-        console.warn(`[visitInn] ⚠️ unauthorized userId=${context.user?.id}`);
+        logger.warn(`[visitInn] ⚠️ unauthorized userId=${context.user?.id}`);
         throw new Error('Not authorized. You must be a member of this team.');
       }
 
@@ -855,14 +856,14 @@ const TreasureHuntResolvers = {
         visitedBy: context.user?.id || 'unknown',
       });
 
-      console.log(`[visitInn] ✅ inn visited teamId=${teamId} nodeId=${nodeId}`);
+      logger.info(`[visitInn] ✅ inn visited teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
     },
 
     adminCompleteNode: async (_, { eventId, teamId, nodeId, congratsMessage }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[adminCompleteNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
       );
 
@@ -938,7 +939,7 @@ const TreasureHuntResolvers = {
           try {
             activeBuffs.push(createBuff(buffReward.buffType));
           } catch (error) {
-            console.warn(
+            logger.warn(
               `[adminCompleteNode] failed to create buff ${buffReward.buffType}:`,
               error.message
             );
@@ -1051,7 +1052,7 @@ const TreasureHuntResolvers = {
               gpFromNodes,
               buffsUsed: team.buffHistory?.length || 0,
             }).catch((err) =>
-              console.error(
+              logger.error(
                 '[adminCompleteNode] all-nodes-completed notification failed:',
                 err.message
               )
@@ -1060,7 +1061,7 @@ const TreasureHuntResolvers = {
         }
       }
 
-      console.log(
+      logger.info(
         `[adminCompleteNode] ✅ node completed teamId=${teamId} nodeId=${nodeId} gp=${
           node.rewards?.gp || 0
         }`
@@ -1070,7 +1071,7 @@ const TreasureHuntResolvers = {
 
     adminUncompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[adminUncompleteNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
       );
 
@@ -1139,7 +1140,7 @@ const TreasureHuntResolvers = {
             activeBuffs.splice(buffIndex, 1);
           } else {
             consumedBuffs.push(buffReward.buffType);
-            console.log(
+            logger.info(
               `[adminUncompleteNode] buff ${buffReward.buffType} was already used, cannot be returned`
             );
           }
@@ -1154,19 +1155,19 @@ const TreasureHuntResolvers = {
         activeBuffs,
       });
 
-      console.log(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
+      logger.info(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
     },
 
     applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
-      console.log(
+      logger.info(
         `[applyBuffToNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} buffId=${buffId}`
       );
 
       const authCheck = await canPerformTeamAction(context, teamId, eventId);
       if (!authCheck.authorized) {
-        console.warn(`[applyBuffToNode] ⚠️ unauthorized userId=${context.user?.id}`);
+        logger.warn(`[applyBuffToNode] ⚠️ unauthorized userId=${context.user?.id}`);
         throw new Error('Not authorized. You must be an event admin or a member of this team.');
       }
 
@@ -1256,11 +1257,11 @@ const TreasureHuntResolvers = {
           },
         });
       } catch (pubsubError) {
-        console.error(`[applyBuffToNode] ❌ pubsub failed:`, pubsubError.message);
+        logger.error(`[applyBuffToNode] ❌ pubsub failed:`, pubsubError.message);
       }
 
       invalidateEventNodes(eventId);
-      console.log(
+      logger.info(
         `[applyBuffToNode] ✅ buff ${buff.buffName} applied to nodeId=${nodeId} saved=${saved}`
       );
       await team.reload();
@@ -1269,7 +1270,7 @@ const TreasureHuntResolvers = {
 
     adminGiveBuff: async (_, { eventId, teamId, buffType }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[adminGiveBuff] eventId=${eventId} teamId=${teamId} buffType=${buffType} adminId=${context.user.id}`
       );
 
@@ -1287,13 +1288,13 @@ const TreasureHuntResolvers = {
       const activeBuffs = [...(team.activeBuffs || []), newBuff];
 
       await team.update({ activeBuffs });
-      console.log(`[adminGiveBuff] ✅ gave ${buffType} buff to teamId=${teamId}`);
+      logger.info(`[adminGiveBuff] ✅ gave ${buffType} buff to teamId=${teamId}`);
       return team;
     },
 
     adminRemoveBuff: async (_, { eventId, teamId, buffId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[adminRemoveBuff] eventId=${eventId} teamId=${teamId} buffId=${buffId} adminId=${context.user.id}`
       );
 
@@ -1313,13 +1314,13 @@ const TreasureHuntResolvers = {
       }
 
       await team.update({ activeBuffs });
-      console.log(`[adminRemoveBuff] ✅ removed buffId=${buffId} from teamId=${teamId}`);
+      logger.info(`[adminRemoveBuff] ✅ removed buffId=${buffId} from teamId=${teamId}`);
       return team;
     },
 
     adminRemoveBuffFromNode: async (_, { eventId, teamId, nodeId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      console.log(
+      logger.info(
         `[adminRemoveBuffFromNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
       );
 
@@ -1343,7 +1344,7 @@ const TreasureHuntResolvers = {
       });
 
       invalidateEventNodes(eventId);
-      console.log(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId}`);
+      logger.info(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId}`);
       return node;
     },
 
@@ -1371,7 +1372,7 @@ const TreasureHuntResolvers = {
       await team.update({ nodeNotes: updatedNotes });
       await team.reload();
 
-      console.log(`[addNodeComment] ✅ teamId=${teamId} nodeId=${nodeId} by=${comment.authorName}`);
+      logger.info(`[addNodeComment] ✅ teamId=${teamId} nodeId=${nodeId} by=${comment.authorName}`);
       return team;
     },
 
@@ -1397,12 +1398,12 @@ const TreasureHuntResolvers = {
       await team.update({ nodeNotes: updatedNotes });
       await team.reload();
 
-      console.log(`[deleteNodeComment] ✅ commentId=${commentId} teamId=${teamId}`);
+      logger.info(`[deleteNodeComment] ✅ commentId=${commentId} teamId=${teamId}`);
       return team;
     },
 
     purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {
-      console.log(`[purchaseInnReward] eventId=${eventId} teamId=${teamId} rewardId=${rewardId}`);
+      logger.info(`[purchaseInnReward] eventId=${eventId} teamId=${teamId} rewardId=${rewardId}`);
 
       const [event, team] = await Promise.all([
         TreasureEvent.findByPk(eventId),
@@ -1480,7 +1481,7 @@ const TreasureHuntResolvers = {
           try {
             activeBuffs.push(createBuff(buffReward.buffType));
           } catch (err) {
-            console.warn(
+            logger.warn(
               `[purchaseInnReward] failed to create buff ${buffReward.buffType}:`,
               err.message
             );
@@ -1514,7 +1515,7 @@ const TreasureHuntResolvers = {
         buffsEarned: reward.buffs || [],
       });
 
-      console.log(
+      logger.info(
         `[purchaseInnReward] ✅ teamId=${teamId} purchased rewardId=${rewardId} payout=${reward.payout}`
       );
       return team;

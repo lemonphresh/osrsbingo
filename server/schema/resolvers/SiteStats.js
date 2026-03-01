@@ -7,6 +7,7 @@ const {
   TreasureTeam,
 } = require('../../db/models');
 const { Op } = require('sequelize');
+const logger = require('../../utils/logger');
 
 // Simple in-memory cache
 let statsCache = null;
@@ -21,7 +22,7 @@ const resolvers = {
         const count = parseInt(stats?.visitCount) || 0;
         return count;
       } catch (error) {
-        console.error('[getVisitCount] Error:', error);
+        logger.error('[getVisitCount] Error:', error);
         return 0;
       }
     },
@@ -73,7 +74,7 @@ const resolvers = {
 
         return stats;
       } catch (error) {
-        console.error('[getSiteStats] Error:', error);
+        logger.error('[getSiteStats] Error:', error);
         throw error;
       }
     },
@@ -98,8 +99,8 @@ const resolvers = {
 
         return parseInt(stats.visitCount);
       } catch (error) {
-        console.error('[incrementVisit] Error:', error);
-        console.error('[incrementVisit] Stack:', error.stack);
+        logger.error('[incrementVisit] Error:', error);
+        logger.error('[incrementVisit] Stack:', error.stack);
         return 1;
       }
     },

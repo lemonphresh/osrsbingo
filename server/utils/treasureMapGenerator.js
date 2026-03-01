@@ -1,5 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { buildFormattedObjectives, getDefaultContentSelections } = require('./objectiveBuilder');
+const logger = require('./logger');
 
 // OSRS locations for placing nodes on the map
 const OSRS_LOCATIONS = [
@@ -172,7 +173,7 @@ function injectBuffsIntoInnRewards(innNodes) {
     buffedCount++;
   });
 
-  console.log(
+  logger.info(
     `Inn buff injection: ${buffedCount}/${innNodes.length} inns received a buff (min was ${minInnsWithBuff})`
   );
 }
@@ -181,13 +182,13 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
   const standardNodes = nodes.filter((n) => n.nodeType === 'STANDARD');
   const numBuffNodes = Math.floor(standardNodes.length * 0.3);
 
-  console.log(`Assigning buffs to ${numBuffNodes} of ${standardNodes.length} standard nodes`);
+  logger.info(`Assigning buffs to ${numBuffNodes} of ${standardNodes.length} standard nodes`);
 
   const tier1_2_nodes = standardNodes.filter((n) => n.difficultyTier >= 1 && n.difficultyTier <= 2);
   const tier3_4_nodes = standardNodes.filter((n) => n.difficultyTier >= 3 && n.difficultyTier <= 4);
   const tier5_6_nodes = standardNodes.filter((n) => n.difficultyTier >= 5);
 
-  console.log(
+  logger.info(
     `Tier distribution: T1-2: ${tier1_2_nodes.length}, T3-4: ${tier3_4_nodes.length}, T5-6: ${tier5_6_nodes.length}`
   );
 
@@ -209,7 +210,7 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
     })),
   ];
 
-  console.log(`Created ${buffAssignments.length} buff assignments`);
+  logger.info(`Created ${buffAssignments.length} buff assignments`);
 
   buffAssignments.forEach(({ node, buffs }) => {
     if (!node.rewards) node.rewards = { gp: 0, keys: [] };
@@ -264,7 +265,7 @@ function generateObjective(
     availableObjectives = allPossibleObjectives.filter((obj) => !recentlyUsed.has(obj._key));
 
     if (availableObjectives.length === 0) {
-      console.warn(
+      logger.warn(
         `All ${difficulty} objectives on cooldown (${allPossibleObjectives.length} total, cooldown ${dynamicCooldown}) - allowing all`
       );
       availableObjectives = allPossibleObjectives;
@@ -293,9 +294,9 @@ function calculateGPReward(difficultyTier, avgGpPerNode) {
 
 function generateInnRewards(innTier, avgGpPerInn) {
   const baseRewardPool = avgGpPerInn || 0;
-  console.log('zzzzz', avgGpPerInn);
+  logger.info('zzzzz', avgGpPerInn);
   if (baseRewardPool <= 0) {
-    console.warn(`Warning: avgGpPerInn is ${avgGpPerInn} for inn tier ${innTier}`);
+    logger.warn(`Warning: avgGpPerInn is ${avgGpPerInn} for inn tier ${innTier}`);
   }
 
   // Buffs are intentionally absent here — injectBuffsIntoInnRewards() adds them after
@@ -368,7 +369,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     const available = OSRS_LOCATIONS.filter((loc) => !cooldownLocations.has(loc.name));
 
     if (available.length === 0) {
-      console.warn('All locations on cooldown - using oldest location');
+      logger.warn('All locations on cooldown - using oldest location');
       const oldestLocation = locationUsageQueue.shift();
       const location = OSRS_LOCATIONS.find((loc) => loc.name === oldestLocation);
       locationUsageQueue.push(location.name);
@@ -384,7 +385,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const generateNodeId = (counter) => {
     const id = `${eventPrefix}node_${String(counter).padStart(3, '0')}`;
     if (generatedNodeIds.has(id)) {
-      console.error(`DUPLICATE NODE ID DETECTED: ${id}`);
+      logger.error(`DUPLICATE NODE ID DETECTED: ${id}`);
       throw new Error(`Duplicate node ID: ${id}`);
     }
     generatedNodeIds.add(id);
@@ -421,7 +422,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       } while (usedTargetsInGroup.has(objective.target) && attempts < maxAttempts);
 
       if (attempts >= maxAttempts) {
-        console.warn(
+        logger.warn(
           `Could not find unique objective for ${name} at ${location.name} after ${maxAttempts} attempts`
         );
       }
@@ -506,7 +507,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     });
   });
 
-  console.log(
+  logger.info(
     `Created start node and ${paths.length} initial location groups (counter at ${nodeCounter.value})`
   );
 
@@ -517,7 +518,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       const location = getRandomLocation();
       const prerequisites = Object.values(pathHeads).flat();
 
-      console.log(`Creating inn ${innCounter} at node ${nodeId} (counter: ${nodeCounter.value})`);
+      logger.info(`Creating inn ${innCounter} at node ${nodeId} (counter: ${nodeCounter.value})`);
 
       nodes.push({
         nodeId,
@@ -584,23 +585,23 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     pathIndex++;
   }
 
-  console.log(`Generated ${nodes.length} total nodes in ${locationGroups.length} location groups`);
-  console.log(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
-  console.log(
+  logger.info(`Generated ${nodes.length} total nodes in ${locationGroups.length} location groups`);
+  logger.info(`Node IDs generated: ${generatedNodeIds.size} unique IDs`);
+  logger.info(
     `Location cooldown: ${LOCATION_COOLDOWN} (${locationUsageQueue.length} total location uses)`
   );
-  console.log(
+  logger.info(
     `Objectives generated - Easy: ${objectiveUsageByDifficulty.easy.length}, Medium: ${objectiveUsageByDifficulty.medium.length}, Hard: ${objectiveUsageByDifficulty.hard.length}`
   );
 
   // Assign buffs to standard nodes
-  console.log('Assigning buff rewards to standard nodes...');
+  logger.info('Assigning buff rewards to standard nodes...');
   assignBuffRewards(nodes, { eventConfig, derivedValues });
   const nodesWithBuffs = nodes.filter((n) => n.rewards?.buffs && n.rewards.buffs.length > 0);
-  console.log(`Assigned buffs to ${nodesWithBuffs.length} standard nodes`);
+  logger.info(`Assigned buffs to ${nodesWithBuffs.length} standard nodes`);
 
   // Inject buffs into inn purchase options (at least 40% of inns guaranteed)
-  console.log('Injecting buffs into inn rewards...');
+  logger.info('Injecting buffs into inn rewards...');
   const innNodes = nodes.filter((n) => n.nodeType === 'INN');
   injectBuffsIntoInnRewards(innNodes);
 
@@ -626,12 +627,12 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
       if (node) node.unlocks = [...unlocksArray];
     });
 
-    console.log(
+    logger.info(
       `Synced unlocks for location group ${group.groupId}: ${unlocksArray.length} unlocks`
     );
   });
 
-  console.log('=== MAP GENERATION COMPLETE ===');
+  logger.info('=== MAP GENERATION COMPLETE ===');
 
   return {
     mapStructure: {

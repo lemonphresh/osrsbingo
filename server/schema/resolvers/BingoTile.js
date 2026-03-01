@@ -3,6 +3,7 @@ const { BingoTile } = require('../../db/models');
 const sequelize = require('../../db/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const logger = require('../../utils/logger');
 
 let popularTilesCache = { data: null, fetchedAt: null };
 const POPULAR_TILES_TTL = 10 * 60 * 1000;
@@ -35,7 +36,7 @@ module.exports = {
         popularTilesCache = { data: results, fetchedAt: now };
         return results.sort(() => Math.random() - 0.5).slice(0, 100);
       } catch (e) {
-        console.error('[getPopularTiles] error:', e.message);
+        logger.error('[getPopularTiles] error:', e.message);
         return [];
       }
     },
@@ -51,7 +52,8 @@ module.exports = {
         const updatedTile = tile.reload();
         return updatedTile;
       } catch (error) {
-        throw new Error('Failed to update tile');
+        logger.error('Error editing BingoTile:', error);
+        throw new ApolloError('Failed to update tile');
       }
     },
   },

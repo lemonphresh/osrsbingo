@@ -3,6 +3,7 @@ const express = require('express');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
 const { User } = require('../db/models');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -103,7 +104,7 @@ router.get('/callback', async (req, res) => {
       )}`
     );
   } catch (error) {
-    console.error('Discord OAuth error:', error.response?.data || error.message);
+    logger.error('Discord OAuth error:', error.response?.data || error.message);
     res.redirect(`${FRONTEND_URL}/user/${userId}?discord_error=auth_failed`);
   }
 });
