@@ -1,6 +1,6 @@
 const { PubSub } = require('graphql-subscriptions');
 const { EventEmitter } = require('events');
-const logger = require('../../utils/logger');
+const logger = require('../utils/logger');
 
 // raise the default listener cap (default is 10, way too low for concurrent events)
 EventEmitter.defaultMaxListeners = 100;

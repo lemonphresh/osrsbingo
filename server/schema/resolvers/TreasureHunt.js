@@ -1,5 +1,4 @@
 const { v4: uuidv4 } = require('uuid');
-const logger = require('../../utils/logger');
 const { Op } = require('sequelize');
 const {
   TreasureEvent,
@@ -23,6 +22,7 @@ const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
 const { OBJECTIVE_TYPES } = require('../../../client/src/utils/treasureHuntHelpers');
+const logger = require('../../utils/logger');
 
 // ============================================================
 // HELPER FUNCTIONS
@@ -373,8 +373,8 @@ const TreasureHuntResolvers = {
 
       const { guildId } = event.discordConfig || {};
       if (guildId) {
-        sendLaunchMessage(guildId, eventId, event.eventName, event.teams, event.startDate).catch((err) =>
-          logger.error('[launchEvent] launch message failed:', err.message)
+        sendLaunchMessage(guildId, eventId, event.eventName, event.teams, event.startDate).catch(
+          (err) => logger.error('[launchEvent] launch message failed:', err.message)
         );
       }
 
@@ -428,7 +428,11 @@ const TreasureHuntResolvers = {
           const elapsed = Date.now() - new Date(event.lastMapGeneratedAt).getTime();
           if (elapsed < MAP_COOLDOWN_MS) {
             const secondsLeft = Math.ceil((MAP_COOLDOWN_MS - elapsed) / 1000);
-            throw new Error(`Map was recently generated. Please wait ${secondsLeft} more second${secondsLeft === 1 ? '' : 's'} before regenerating.`);
+            throw new Error(
+              `Map was recently generated. Please wait ${secondsLeft} more second${
+                secondsLeft === 1 ? '' : 's'
+              } before regenerating.`
+            );
           }
         }
 
@@ -1038,10 +1042,7 @@ const TreasureHuntResolvers = {
             const completeableNodes = nodes.filter(
               (n) => n.nodeType !== 'INN' && n.nodeType !== 'START'
             );
-            const gpFromNodes = completeableNodes.reduce(
-              (sum, n) => sum + (n.rewards?.gp || 0),
-              0
-            );
+            const gpFromNodes = completeableNodes.reduce((sum, n) => sum + (n.rewards?.gp || 0), 0);
 
             sendAllNodesCompletedNotification({
               channelIds: teamChannelIds,
