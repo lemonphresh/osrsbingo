@@ -10,6 +10,8 @@ const originalConsoleError = console.error;
 console.error = (...args) => {
   if (typeof args[0] === 'string' && args[0].includes('React does not recognize the')) return;
   if (typeof args[0] === 'string' && args[0].includes('ReactDOMTestUtils.act')) return;
+  if (typeof args[0] === 'string' && args[0].includes('Function components cannot be given refs')) return;
+  if (typeof args[0] === 'string' && args[0].includes('go.apollo.dev')) return;
   originalConsoleError(...args);
 };
 
