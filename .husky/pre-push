@@ -1,2 +1,2 @@
 cd server && npm test
-cd client && npm test -- --watchAll=false
+cd ../client && npm test -- --watchAll=false
