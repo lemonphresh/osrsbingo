@@ -4,6 +4,14 @@
 // learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
 
+// Suppress React warnings about Chakra-specific props leaking onto native DOM elements
+// (caused by the { ...props } spread in the Chakra mock's `make` factory)
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  if (typeof args[0] === 'string' && args[0].includes('React does not recognize the')) return;
+  originalConsoleError(...args);
+};
+
 // jsdom doesn't implement matchMedia; Chakra UI requires it
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
