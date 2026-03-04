@@ -473,6 +473,7 @@ const typeDefs = gql`
     teams: [DraftTeamSlot!]!
     players: [DraftPlayerCard!]!
     pickTimeSeconds: Int!
+    picksPerTurn: Int!
     currentPickIndex: Int!
     currentPickStartedAt: DateTime
     auctionState: JSON
@@ -499,6 +500,7 @@ const typeDefs = gql`
     teamNames: [String!]!
     draftFormat: DraftFormat!
     pickTimeSeconds: Int
+    picksPerTurn: Int
     tierFormula: JSON
     roomPin: String
   }

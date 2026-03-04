@@ -15,6 +15,8 @@ import { AddIcon } from '@chakra-ui/icons';
 import { useAuth } from '../providers/AuthProvider';
 import { GET_MY_DRAFT_ROOMS } from '../graphql/draftOperations';
 import usePageTitle from '../hooks/usePageTitle';
+import { isBlindDraftEnabled } from '../config/featureFlags';
+import { useEffect } from 'react';
 
 const STATUS_COLORS = {
   LOBBY: 'gray',
@@ -27,6 +29,10 @@ export default function DraftDashboard() {
   usePageTitle('Blind Draft');
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isBlindDraftEnabled(user)) navigate('/');
+  }, [user, navigate]);
 
   const { data, loading } = useQuery(GET_MY_DRAFT_ROOMS, { skip: !user });
 

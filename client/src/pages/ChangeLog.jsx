@@ -16,7 +16,7 @@ import {
 } from 'react-icons/fa';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled, isBlindDraftEnabled } from '../config/featureFlags';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
@@ -38,7 +38,7 @@ const CHANGELOG_ENTRIES = [
     version: '2.1.0',
     date: 'March 2026',
     title: 'Blind Draft 🃏',
-    type: 'feature',
+    type: isBlindDraftEnabled() ? 'feature' : 'upcoming',
     icon: FaUserFriends,
     details:
       'A brand new tool for clan team selection. Paste in a list of RSNs, and the draft room anonymizes everyone, captains pick players by WOM stats alone, with no names visible until the draft ends. Fair, dramatic, and so fun.',

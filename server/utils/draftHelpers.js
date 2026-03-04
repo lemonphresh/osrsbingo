@@ -20,7 +20,16 @@ function generateCaptainToken() {
 // Alias generation
 // ---------------------------------------------------------------------------
 
-const ALIAS_PREFIXES = ['Raider', 'Knight', 'Ranger', 'Mage', 'Berserker', 'Paladin', 'Assassin', 'Champion'];
+const ALIAS_PREFIXES = [
+  'Raider',
+  'Knight',
+  'Ranger',
+  'Mage',
+  'Berserker',
+  'Paladin',
+  'Assassin',
+  'Champion',
+];
 const ALIAS_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 /**
@@ -59,20 +68,38 @@ function generateAliases(count) {
 
 /**
  * Calculate tier badges (S/A/B/C/D) for a list of players based on a formula.
- * formula: { ehpWeight: number, ehbWeight: number, totalLevelWeight: number }
+ * formula weights (all default 0 except ehp/ehb/totalLevel which default 1):
+ *   ehpWeight, ehbWeight, totalLevelWeight  — lifetime stats
+ *   ehbyWeight                              — EHB gained in the last year (recent activity)
+ *   ehpyWeight                              — EHP gained in the last year (skilling activity)
+ *   coxWeight, tobWeight, toaWeight         — raid KC totals (CoX, ToB, ToA)
  * Players are ranked by composite score; tiers assigned by percentile.
  */
 function calculateTierBadges(players, formula) {
   if (!formula || !players.length) return players.map(() => null);
 
-  const { ehpWeight = 1, ehbWeight = 1, totalLevelWeight = 1 } = formula;
+  const {
+    ehpWeight = 1,
+    ehbWeight = 1,
+    totalLevelWeight = 1,
+    ehbyWeight = 0,
+    ehpyWeight = 0,
+    coxWeight = 0,
+    tobWeight = 0,
+    toaWeight = 0,
+  } = formula;
 
   const scored = players.map((p) => {
     const w = p.womData ?? {};
     const score =
       (w.ehp ?? 0) * ehpWeight +
       (w.ehb ?? 0) * ehbWeight +
-      ((w.totalLevel ?? 0) / 2277) * 100 * totalLevelWeight;
+      ((w.totalLevel ?? 0) / 2277) * 100 * totalLevelWeight +
+      (w.ehby ?? 0) * ehbyWeight +
+      (w.ehpy ?? 0) * ehpyWeight +
+      (w.cox ?? 0) * coxWeight +
+      (w.tob ?? 0) * tobWeight +
+      (w.toa ?? 0) * toaWeight;
     return score;
   });
 
@@ -90,21 +117,59 @@ function calculateTierBadges(players, formula) {
   });
 }
 
+/**
+ * Returns the effective picksPerTurn for the current slot, accounting for
+ * end-of-pool fairness. When the remaining players can't fill a full round of
+ * multi-picks, each team is limited to at most ceil(remaining/numberOfTeams),
+ * so no team ends up with significantly more players than another.
+ *
+ * @param {number} currentPickIndex - global 0-based pick counter
+ * @param {number} totalPlayers     - total players in the pool
+ * @param {number} numberOfTeams
+ * @param {number} picksPerTurn     - configured picks per turn
+ * @returns {number} effective picks this team gets this turn (≥1)
+ */
+function getEffectivePicksPerTurn(currentPickIndex, totalPlayers, numberOfTeams, picksPerTurn) {
+  const remaining = totalPlayers - currentPickIndex;
+  // How many picks would a "fair" max-per-team be?
+  const fairMax = Math.ceil(remaining / numberOfTeams);
+  return Math.max(1, Math.min(picksPerTurn, fairMax));
+}
+
 // ---------------------------------------------------------------------------
 // Draft order logic
 // ---------------------------------------------------------------------------
 
 /**
  * Given the global pick index, return the team index whose turn it is.
+ * picksPerTurn: how many consecutive picks each team gets before rotating (default 1).
  * Returns null for AUCTION format (handled separately).
  */
-function getCurrentTeamIndex(format, numberOfTeams, currentPickIndex) {
+function getCurrentTeamIndex(
+  format,
+  numberOfTeams,
+  currentPickIndex,
+  picksPerTurn = 1,
+  totalPlayers = Infinity
+) {
   if (format === 'AUCTION') return null;
-  if (format === 'LINEAR') return currentPickIndex % numberOfTeams;
+
+  // Recompute slot boundaries using variable effective picks per turn
+  // Walk through slots until we find which slot currentPickIndex falls in
+  let pickCount = 0;
+  let slot = 0;
+  while (pickCount <= currentPickIndex) {
+    const eff = getEffectivePicksPerTurn(pickCount, totalPlayers, numberOfTeams, picksPerTurn);
+    if (pickCount + eff > currentPickIndex) break;
+    pickCount += eff;
+    slot++;
+  }
+
+  if (format === 'LINEAR') return slot % numberOfTeams;
 
   // SNAKE
-  const round = Math.floor(currentPickIndex / numberOfTeams);
-  const posInRound = currentPickIndex % numberOfTeams;
+  const round = Math.floor(slot / numberOfTeams);
+  const posInRound = slot % numberOfTeams;
   return round % 2 === 0 ? posInRound : numberOfTeams - 1 - posInRound;
 }
 

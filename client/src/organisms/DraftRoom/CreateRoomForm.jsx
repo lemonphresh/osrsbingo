@@ -24,6 +24,12 @@ import {
   AccordionButton,
   AccordionPanel,
   AccordionIcon,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
 } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
 import { useState } from 'react';
@@ -32,6 +38,49 @@ import { CREATE_DRAFT_ROOM } from '../../graphql/draftOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 
 const STEPS = ['Room Setup', 'Player Pool'];
+
+const TIER_PRESETS = {
+  'All-Rounder': {
+    ehpWeight: 1,
+    ehbWeight: 1,
+    totalLevelWeight: 0.5,
+    ehbyWeight: 1.5,
+    ehpyWeight: 0,
+    coxWeight: 0.1,
+    tobWeight: 0.15,
+    toaWeight: 0.1,
+  },
+  'PvM Focused': {
+    ehpWeight: 0.5,
+    ehbWeight: 2.0,
+    totalLevelWeight: 0.25,
+    ehbyWeight: 1.0,
+    ehpyWeight: 0,
+    coxWeight: 0.1,
+    tobWeight: 0.15,
+    toaWeight: 0.1,
+  },
+  'Skilling Focused': {
+    ehpWeight: 2.0,
+    ehbWeight: 0,
+    totalLevelWeight: 1.0,
+    ehbyWeight: 0,
+    ehpyWeight: 2.0,
+    coxWeight: 0,
+    tobWeight: 0,
+    toaWeight: 0,
+  },
+  'Raid Specialist': {
+    ehpWeight: 0.25,
+    ehbWeight: 1.5,
+    totalLevelWeight: 0,
+    ehbyWeight: 0.5,
+    ehpyWeight: 0,
+    coxWeight: 0.25,
+    tobWeight: 0.3,
+    toaWeight: 0.25,
+  },
+};
 
 const FORMAT_INFO = {
   SNAKE: {
@@ -59,6 +108,8 @@ export default function CreateRoomForm() {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(0);
+  const [selectedPreset, setSelectedPreset] = useState(null);
+  const [isTierInfoOpen, setIsTierInfoOpen] = useState(false);
 
   // Step 1
   const [roomName, setRoomName] = useState('');
@@ -67,12 +118,18 @@ export default function CreateRoomForm() {
   const [teamNames, setTeamNames] = useState(['Team 1', 'Team 2']);
   const [pin, setPin] = useState('');
   const [pickTime, setPickTime] = useState('60');
+  const [picksPerTurn, setPicksPerTurn] = useState(1);
 
   // Tier badges (advanced, in Step 1 accordion)
   const [useTiers, setUseTiers] = useState(false);
   const [ehpWeight, setEhpWeight] = useState(1);
   const [ehbWeight, setEhbWeight] = useState(1);
   const [totalLevelWeight, setTotalLevelWeight] = useState(0.5);
+  const [ehbyWeight, setEhbyWeight] = useState(1.5);
+  const [ehpyWeight, setEhpyWeight] = useState(0);
+  const [coxWeight, setCoxWeight] = useState(0.1);
+  const [tobWeight, setTobWeight] = useState(0.15);
+  const [toaWeight, setToaWeight] = useState(0.1);
 
   // Step 2
   const [rsnText, setRsnText] = useState('');
@@ -107,6 +164,14 @@ export default function CreateRoomForm() {
         'warning'
       );
     }
+    if (format !== 'AUCTION' && picksPerTurn * numTeams > rsns.length) {
+      return showToast(
+        `${picksPerTurn} picks/turn × ${numTeams} teams needs at least ${
+          picksPerTurn * numTeams
+        } players (got ${rsns.length})`,
+        'warning'
+      );
+    }
 
     const result = await createRoom({
       variables: {
@@ -117,7 +182,19 @@ export default function CreateRoomForm() {
           teamNames,
           draftFormat: format,
           pickTimeSeconds: Math.max(15, Math.min(300, parseInt(pickTime, 10) || 60)),
-          tierFormula: useTiers ? { ehpWeight, ehbWeight, totalLevelWeight } : null,
+          picksPerTurn: format !== 'AUCTION' ? Math.max(1, Math.min(5, picksPerTurn)) : 1,
+          tierFormula: useTiers
+            ? {
+                ehpWeight,
+                ehbWeight,
+                totalLevelWeight,
+                ehbyWeight,
+                ehpyWeight,
+                coxWeight,
+                tobWeight,
+                toaWeight,
+              }
+            : null,
           roomPin: pin || null,
         },
       },
@@ -126,6 +203,19 @@ export default function CreateRoomForm() {
     if (result?.data?.createDraftRoom?.roomId) {
       navigate(`/blind-draft/${result.data.createDraftRoom.roomId}`);
     }
+  }
+
+  function applyPreset(name) {
+    const p = TIER_PRESETS[name];
+    setSelectedPreset(name);
+    setEhpWeight(p.ehpWeight);
+    setEhbWeight(p.ehbWeight);
+    setTotalLevelWeight(p.totalLevelWeight);
+    setEhbyWeight(p.ehbyWeight);
+    setEhpyWeight(p.ehpyWeight);
+    setCoxWeight(p.coxWeight);
+    setTobWeight(p.tobWeight);
+    setToaWeight(p.toaWeight);
   }
 
   return (
@@ -273,6 +363,31 @@ export default function CreateRoomForm() {
                 </NumberInput>
               </Box>
 
+              {format !== 'AUCTION' && (
+                <Box>
+                  <Text fontSize="sm" mb={1}>
+                    Picks Per Turn
+                  </Text>
+                  <NumberInput
+                    min={1}
+                    max={5}
+                    value={picksPerTurn}
+                    onChange={(valStr) => setPicksPerTurn(valStr)}
+                    onBlur={() => {
+                      const n = parseInt(picksPerTurn, 10);
+                      setPicksPerTurn(String(Math.max(1, Math.min(5, isNaN(n) ? 1 : n))));
+                    }}
+                    maxW="120px"
+                  >
+                    <NumberInputField />
+                    <NumberInputStepper>
+                      <NumberIncrementStepper />
+                      <NumberDecrementStepper />
+                    </NumberInputStepper>
+                  </NumberInput>
+                </Box>
+              )}
+
               <Box>
                 <Text fontSize="sm" mb={1}>
                   Room PIN (optional)
@@ -303,12 +418,50 @@ export default function CreateRoomForm() {
                     <Checkbox isChecked={useTiers} onChange={(e) => setUseTiers(e.target.checked)}>
                       <Text fontSize="sm">Enable Tier Badges (S/A/B/C/D) on player cards</Text>
                     </Checkbox>
-
                     {useTiers && (
-                      <VStack spacing={3} align="stretch" pl={4}>
+                      <VStack spacing={3} w="100%" align="stretch" pl={4}>
+                        {/* preset buttons — ADD THIS BLOCK */}
+                        <Box w="100%">
+                          <Text fontSize="xs" color="gray.500" mb={2}>
+                            Start with a preset:
+                          </Text>
+                          <HStack justifyContent="center" spacing={2} flexWrap="wrap">
+                            {Object.keys(TIER_PRESETS).map((name) => (
+                              <Button
+                                key={name}
+                                size="xs"
+                                variant={selectedPreset === name ? 'solid' : 'outline'}
+                                colorScheme="yellow"
+                                onClick={() => applyPreset(name)}
+                              >
+                                {name}
+                              </Button>
+                            ))}
+                          </HStack>
+                        </Box>
+                        <Button
+                          variant="link"
+                          size="xs"
+                          color="gray.500"
+                          fontWeight="normal"
+                          onClick={() => setIsTierInfoOpen(true)}
+                          textDecoration="underline"
+                          _hover={{ color: 'gray.300' }}
+                        >
+                          What do these mean?
+                        </Button>
                         <Text fontSize="xs" color="gray.400">
-                          Tier scores are calculated from a weighted formula. Adjust weights below.
+                          Tier scores are a weighted sum of each stat. Tier scores are a weighted
+                          sum of each stat. EHP, EHB, yearly EHB, and yearly EHP are in the same
+                          range (~0–500) so their weights are directly comparable. Total Level is
+                          normalized to 0–100. Raid KCs are raw kill counts (i.e. 500 CoX), so use
+                          small weights like 0.1–0.2 to keep them balanced.
                         </Text>
+                      </VStack>
+                    )}
+
+                    {useTiers && selectedPreset && (
+                      <VStack spacing={3} align="stretch" pl={4}>
                         {[
                           { label: 'EHP Weight', value: ehpWeight, set: setEhpWeight },
                           { label: 'EHB Weight', value: ehbWeight, set: setEhbWeight },
@@ -317,18 +470,23 @@ export default function CreateRoomForm() {
                             value: totalLevelWeight,
                             set: setTotalLevelWeight,
                           },
+                          { label: 'Yearly EHB Weight', value: ehbyWeight, set: setEhbyWeight },
+                          { label: 'Yearly EHP Weight', value: ehpyWeight, set: setEhpyWeight },
+                          { label: 'CoX KC Weight', value: coxWeight, set: setCoxWeight },
+                          { label: 'ToB KC Weight', value: tobWeight, set: setTobWeight },
+                          { label: 'ToA KC Weight', value: toaWeight, set: setToaWeight },
                         ].map(({ label, value, set }) => (
                           <Box key={label}>
                             <HStack justify="space-between">
                               <Text fontSize="sm">{label}</Text>
                               <Text fontSize="sm" fontWeight="bold">
-                                {value.toFixed(1)}
+                                {value.toFixed(2)}
                               </Text>
                             </HStack>
                             <Slider
                               min={0}
                               max={3}
-                              step={0.1}
+                              step={0.05}
                               value={value}
                               onChange={(v) => set(v)}
                             >
@@ -386,7 +544,11 @@ export default function CreateRoomForm() {
           </Button>
 
           {step < STEPS.length - 1 ? (
-            <Button colorScheme="purple" onClick={() => setStep((s) => s + 1)}>
+            <Button
+              colorScheme="purple"
+              onClick={() => setStep((s) => s + 1)}
+              isDisabled={step === 0 && !roomName.trim()}
+            >
               Next
             </Button>
           ) : (
@@ -402,6 +564,66 @@ export default function CreateRoomForm() {
           )}
         </HStack>
       </Box>
+      <Modal isOpen={isTierInfoOpen} onClose={() => setIsTierInfoOpen(false)} size="md" isCentered>
+        <ModalOverlay />
+        <ModalContent bg="gray.800" borderColor="gray.600" border="1px solid">
+          <ModalHeader color="white" fontSize="md" pb={2}>
+            Tier Badge Weights — What Do They Mean?
+          </ModalHeader>
+          <ModalCloseButton color="white" />
+          <ModalBody pb={6}>
+            <VStack align="stretch" spacing={4}>
+              <Text fontSize="xs" color="gray.400">
+                Each player gets a tier score (S/A/B/C/D) based on a weighted sum of their stats.
+                Higher weight = that stat matters more when ranking players. Set a weight to 0 to
+                ignore it entirely.
+              </Text>
+
+              {[
+                {
+                  label: 'EHP — Efficient Hours Played',
+                  color: 'green.300',
+                  desc: 'Lifetime skilling hours, calculated by WOM based on XP rates. A reliable proxy for how long and seriously someone has played. Maxed skillers sit around 800–1200 EHP.',
+                },
+                {
+                  label: 'EHB — Efficient Hours Bossing',
+                  color: 'red.300',
+                  desc: 'Lifetime bossing hours based on kill counts. High EHB means someone spends serious time at bosses. Most active PvMers sit in the 100–500 range.',
+                },
+                {
+                  label: 'Total Level',
+                  color: 'yellow.300',
+                  desc: 'Sum of all skill levels, max 2376. Normalized to 0–100 in the formula so it stays comparable to EHP/EHB. Good signal for overall account progression.',
+                },
+                {
+                  label: 'Yearly EHB',
+                  color: 'orange.300',
+                  desc: 'EHB gained in the last 12 months. Measures recent bossing activity rather than lifetime totals, useful for events where you care how active someone currently is.',
+                },
+                {
+                  label: 'Yearly EHP',
+                  color: 'teal.300',
+                  desc: 'EHP gained in the last 12 months. Measures recent skilling activity. Most useful for skilling-focused events where current grind effort matters.',
+                },
+                {
+                  label: 'CoX / ToB / ToA KC Weights',
+                  color: 'purple.300',
+                  desc: 'Raw kill counts for Chambers of Xeric, Theatre of Blood, and Tombs of Amascut. These are large numbers (hundreds to thousands) so keep weights small: 0.1 to 0.3 is usually enough to give raids meaningful influence without dominating the score.',
+                },
+              ].map(({ label, color, desc }) => (
+                <Box key={label}>
+                  <Text fontSize="xs" fontWeight="bold" color={color} mb={0.5}>
+                    {label}
+                  </Text>
+                  <Text fontSize="xs" color="gray.300">
+                    {desc}
+                  </Text>
+                </Box>
+              ))}
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

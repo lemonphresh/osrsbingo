@@ -57,12 +57,17 @@ async function loadRoom(roomId) {
 /** Advance the pick (or end the draft) after a player is drafted (snake/linear). */
 async function advancePick(room, players) {
   const undraftedCount = players.filter((p) => p.teamIndex === null).length;
-  const nextIdx = undraftedCount > 0 ? getNextPickIndex(room.currentPickIndex, players.length) : null;
+  const nextIdx =
+    undraftedCount > 0 ? getNextPickIndex(room.currentPickIndex, players.length) : null;
 
   if (nextIdx === null) {
     // Draft complete
     clearPickTimer(room.roomId);
-    await room.update({ currentPickIndex: room.currentPickIndex, currentPickStartedAt: null, status: 'COMPLETED' });
+    await room.update({
+      currentPickIndex: room.currentPickIndex,
+      currentPickStartedAt: null,
+      status: 'COMPLETED',
+    });
   } else {
     const now = new Date();
     await room.update({ currentPickIndex: nextIdx, currentPickStartedAt: now });
@@ -87,7 +92,13 @@ async function handleTimerTimeout(roomId) {
     if (!undrafted.length) return;
 
     const picked = undrafted[Math.floor(Math.random() * undrafted.length)];
-    const teamIdx = getCurrentTeamIndex(room.draftFormat, room.numberOfTeams, room.currentPickIndex);
+    const teamIdx = getCurrentTeamIndex(
+      room.draftFormat,
+      room.numberOfTeams,
+      room.currentPickIndex,
+      room.picksPerTurn ?? 1,
+      players.length
+    );
 
     await picked.update({ teamIndex: teamIdx, pickOrder: room.currentPickIndex });
     await advancePick(room, players);
@@ -149,17 +160,25 @@ async function resolveAuctionRound(room, players, timedOut = false) {
   });
 
   // Start next auction round or complete
-  const nowDrafted = (await models.DraftPlayer.findAll({ where: { roomId: room.roomId } }))
-    .filter((p) => p.teamIndex !== null).length;
+  const nowDrafted = (await models.DraftPlayer.findAll({ where: { roomId: room.roomId } })).filter(
+    (p) => p.teamIndex !== null
+  ).length;
 
   const totalPlayers = players.length;
 
   if (nowDrafted >= totalPlayers) {
     clearPickTimer(room.roomId);
-    await room.update({ teams: updatedTeams, auctionState: null, status: 'COMPLETED', currentPickStartedAt: null });
+    await room.update({
+      teams: updatedTeams,
+      auctionState: null,
+      status: 'COMPLETED',
+      currentPickStartedAt: null,
+    });
   } else {
     // Pick next random undrafted player for the next auction round
-    const stillUndrafted = players.filter((p) => p.teamIndex === null && p.id !== state.currentPlayerId);
+    const stillUndrafted = players.filter(
+      (p) => p.teamIndex === null && p.id !== state.currentPlayerId
+    );
     const next = stillUndrafted[Math.floor(Math.random() * stillUndrafted.length)];
     const newState = { currentPlayerId: next?.id ?? null, bids: {}, phase: 'BIDDING' };
     const now = new Date();
@@ -213,12 +232,22 @@ const Mutation = {
       draftFormat,
       statCategories,
       pickTimeSeconds = 60,
+      picksPerTurn = 1,
       tierFormula = null,
       roomPin = null,
     } = input;
 
+    const clampedPicksPerTurn = Math.max(1, Math.min(5, picksPerTurn));
+
     if (rsns.length < numberOfTeams) {
       throw new Error('Must have at least as many players as teams');
+    }
+    if (clampedPicksPerTurn * numberOfTeams > rsns.length) {
+      throw new Error(
+        `With ${clampedPicksPerTurn} picks per turn and ${numberOfTeams} teams, you need at least ${
+          clampedPicksPerTurn * numberOfTeams
+        } players (got ${rsns.length})`
+      );
     }
 
     // Fetch WOM stats for all RSNs concurrently
@@ -269,6 +298,7 @@ const Mutation = {
           statCategories,
           tierFormula,
           pickTimeSeconds,
+          picksPerTurn: clampedPicksPerTurn,
           roomPin: hashedPin,
         },
         { transaction: t }
@@ -329,7 +359,8 @@ const Mutation = {
     requireAuth(context);
     const { room, players } = await loadRoom(roomId);
 
-    if (room.organizerUserId !== context.user.id) throw new Error('Only the organizer can start the draft');
+    if (room.organizerUserId !== context.user.id)
+      throw new Error('Only the organizer can start the draft');
     if (room.status !== 'LOBBY') throw new Error('Draft is not in LOBBY status');
 
     const now = new Date();
@@ -364,7 +395,13 @@ const Mutation = {
     if (room.status !== 'DRAFTING') throw new Error('Draft is not in progress');
     if (room.draftFormat === 'AUCTION') throw new Error('Use placeBid for auction format');
 
-    const currentTeamIdx = getCurrentTeamIndex(room.draftFormat, room.numberOfTeams, room.currentPickIndex);
+    const currentTeamIdx = getCurrentTeamIndex(
+      room.draftFormat,
+      room.numberOfTeams,
+      room.currentPickIndex,
+      room.picksPerTurn ?? 1,
+      players.length
+    );
     const currentTeam = room.teams.find((t) => t.index === currentTeamIdx);
 
     // Allow pick if: logged-in organizer, logged-in captain, or token matches current team
@@ -456,7 +493,8 @@ const Mutation = {
     requireAuth(context);
     const { room, players } = await loadRoom(roomId);
 
-    if (room.organizerUserId !== context.user.id) throw new Error('Only the organizer can reveal names');
+    if (room.organizerUserId !== context.user.id)
+      throw new Error('Only the organizer can reveal names');
     if (!['DRAFTING', 'COMPLETED'].includes(room.status)) {
       throw new Error('Draft must be in DRAFTING or COMPLETED status to reveal names');
     }

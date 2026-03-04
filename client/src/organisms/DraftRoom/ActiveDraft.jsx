@@ -20,7 +20,9 @@ export default function ActiveDraft({ room, userRole, userId, captainToken }) {
   const currentTeamIdx = getCurrentTeamIndex(
     room.draftFormat,
     room.numberOfTeams,
-    room.currentPickIndex
+    room.currentPickIndex,
+    room.picksPerTurn ?? 1,
+    room.players.length
   );
   const currentTeam = room.teams.find((t) => t.index === currentTeamIdx);
 
@@ -56,7 +58,13 @@ export default function ActiveDraft({ room, userRole, userId, captainToken }) {
     let idx = room.currentPickIndex;
     const total = room.players.length;
     for (let i = 0; i < 5 && idx < total; i++) {
-      const tIdx = getCurrentTeamIndex(room.draftFormat, room.numberOfTeams, idx);
+      const tIdx = getCurrentTeamIndex(
+        room.draftFormat,
+        room.numberOfTeams,
+        idx,
+        room.picksPerTurn ?? 1,
+        total
+      );
       picks.push({ pickNumber: idx + 1, team: room.teams.find((t) => t.index === tIdx) });
       idx++;
     }

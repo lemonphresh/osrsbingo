@@ -14,7 +14,7 @@ import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled, isBlindDraftEnabled } from '../config/featureFlags';
 
 const Landing = () => {
   const { user } = useAuth();
@@ -116,6 +116,7 @@ const Landing = () => {
         {/* Main Features */}
         <Flex flexDirection={['column', 'column', 'column', 'row']} gap="24px" marginBottom="48px">
           {/* Blind Draft */}
+          {isBlindDraftEnabled(user) && (
           <Box
             flex="1"
             display="flex"
@@ -160,6 +161,7 @@ const Landing = () => {
               </Button>
             </Link>
           </Box>
+          )}
           {/* Bingo Boards */}
           <Box
             flex="1"

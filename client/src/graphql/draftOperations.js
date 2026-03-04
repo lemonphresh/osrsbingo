@@ -34,6 +34,7 @@ export const DRAFT_ROOM_FIELDS = gql`
       ...DraftPlayerFields
     }
     pickTimeSeconds
+    picksPerTurn
     currentPickIndex
     currentPickStartedAt
     auctionState

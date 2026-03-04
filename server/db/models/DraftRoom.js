@@ -62,6 +62,10 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         defaultValue: 60,
       },
+      picksPerTurn: {
+        type: DataTypes.INTEGER,
+        defaultValue: 1,
+      },
       currentPickIndex: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

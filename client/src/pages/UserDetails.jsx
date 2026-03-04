@@ -31,6 +31,7 @@ import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
+import { isBlindDraftEnabled } from '../config/featureFlags';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -343,6 +344,7 @@ const UserDetails = () => {
                   Host team treasure hunt events with GP prize pools
                 </Text>
               </Box>
+              {isBlindDraftEnabled(user) && (
               <Box
                 as={Link}
                 to="/blind-draft"
@@ -361,6 +363,7 @@ const UserDetails = () => {
                   Anonymous player draft rooms for fair team selection
                 </Text>
               </Box>
+              )}
             </SimpleGrid>
           </Section>
         )}

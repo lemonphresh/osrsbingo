@@ -4,7 +4,6 @@ import {
   Button,
   Flex,
   Heading,
-  HStack,
   Image,
   ListItem,
   SimpleGrid,
