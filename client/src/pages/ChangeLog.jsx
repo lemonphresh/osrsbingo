@@ -21,6 +21,39 @@ import { isGielinorRushEnabled } from '../config/featureFlags';
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
   {
+    version: '2.1.1',
+    date: 'March 2026',
+    title: 'Profile & Navigation Polish',
+    type: 'improvement',
+    icon: FaPalette,
+    highlights: [
+      'Bingo boards moved to their own dedicated page (/bingo) for a cleaner profile',
+      'User profile now shows a tools hub with quick links to Bingo, Gielinor Rush, and Blind Draft',
+      'Added a Discover section on the profile for browsing public boards and active events',
+      'Pending invitations now only appear when there are actually invitations to show',
+      'Landing page updated to feature all three tools',
+    ],
+  },
+  {
+    version: '2.1.0',
+    date: 'March 2026',
+    title: 'Blind Draft 🃏',
+    type: 'feature',
+    icon: FaUserFriends,
+    details:
+      'A brand new tool for clan team selection. Paste in a list of RSNs, and the draft room anonymizes everyone, captains pick players by WOM stats alone, with no names visible until the draft ends. Fair, dramatic, and so fun.',
+    highlights: [
+      'Snake, linear, and auction draft formats',
+      'Real-time pick timer with server-enforced auto-pick on expiry',
+      'Player cards showing combat level, total level, EHP, EHB, slayer, and all boss KCs',
+      'Optional S/A/B/C/D tier badges calculated from a weighted EHP/EHB formula',
+      'Spectator mode! Anyone with the link can watch live',
+      'Organizer reveal! Names stay hidden until you click Reveal',
+      'Results page with full stat cards after reveal',
+      'Shareable captain join links with optional PIN protection',
+    ],
+  },
+  {
     version: '2.0.0',
     date: 'October 2025 - March 2026',
     title: 'Gielinor Rush 🎉',
@@ -377,10 +410,11 @@ export default function ChangelogPage() {
             </Text>
             <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
               The new competitive game mode is finally live. Create maps, form teams, and race your
-              clanmates through OSRS challenges. Months of work went into this one.
+              clanmates through OSRS challenges to claim the biggest GP pot. Months of work went
+              into this one, and I really hope you enjoy.
             </Text>
             <ChakraLink
-              href="/treasure-hunt"
+              href="/gielinor-rush"
               display="inline-flex"
               alignItems="center"
               gap={2}
@@ -411,7 +445,7 @@ export default function ChangelogPage() {
         >
           <VStack spacing={0}>
             <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
-              14+
+              16+
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">
               months

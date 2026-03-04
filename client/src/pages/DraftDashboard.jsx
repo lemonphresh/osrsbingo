@@ -77,6 +77,7 @@ export default function DraftDashboard() {
             borderRadius="4px"
             bg="whiteAlpha.100"
             p="4px"
+            pl="8px"
             spacing={0}
           >
             <Text fontSize="xs" fontWeight="bold" color="purple.300">
@@ -92,6 +93,7 @@ export default function DraftDashboard() {
             borderRadius="4px"
             bg="whiteAlpha.100"
             p="4px"
+            pl="8px"
             spacing={0}
           >
             <Text fontSize="xs" fontWeight="bold" color="purple.300">
@@ -107,6 +109,7 @@ export default function DraftDashboard() {
             borderRadius="4px"
             bg="whiteAlpha.100"
             p="4px"
+            pl="8px"
             spacing={0}
           >
             <Text fontSize="xs" fontWeight="bold" color="purple.300">
@@ -122,6 +125,7 @@ export default function DraftDashboard() {
             borderRadius="4px"
             bg="whiteAlpha.100"
             p="4px"
+            pl="8px"
             spacing={0}
           >
             <Text fontSize="xs" fontWeight="bold" color="purple.300">

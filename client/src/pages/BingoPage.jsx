@@ -1,12 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
+  Box,
   Button,
   Flex,
   Heading,
+  HStack,
   Image,
   ListItem,
+  SimpleGrid,
   Text,
   UnorderedList,
+  VStack,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate } from 'react-router-dom';
@@ -64,10 +68,92 @@ export default function BingoPage() {
       paddingY={['48px', '88px']}
       width="100%"
     >
-      <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
+      <Section flexDirection="column" gridGap="16px" pt={8} maxWidth="860px" width="100%">
         <GemTitle gemColor="purple" textAlign="center">
           Your Bingo Boards
         </GemTitle>
+
+        <Box
+          bg="whiteAlpha.200"
+          borderRadius="lg"
+          p={5}
+          border="1px solid"
+          borderColor="whiteAlpha.200"
+          borderLeft="3px solid"
+          borderLeftColor="purple.500"
+        >
+          <Text fontSize="sm" color="gray.300" mb={3}>
+            Build custom bingo boards for any OSRS goal: boss kills, collection log slots, skill
+            milestones, diary completions, you name it! Share them with your clan or keep them
+            private for personal tracking.
+          </Text>
+          <SimpleGrid columns={[1, 2]} spacing={3}>
+            <VStack
+              align="flex-start"
+              borderLeft="2px pink solid"
+              borderRadius="4px"
+              bg="whiteAlpha.100"
+              p="4px"
+              pl="8px"
+              spacing={0}
+            >
+              <Text fontSize="xs" fontWeight="bold" color="purple.300">
+                Pick a tile for me
+              </Text>
+              <Text fontSize="xs" color="gray.300">
+                Randomly selects an incomplete tile to work on next
+              </Text>
+            </VStack>
+            <VStack
+              align="flex-start"
+              borderLeft="2px pink solid"
+              borderRadius="4px"
+              bg="whiteAlpha.100"
+              p="4px"
+              pl="8px"
+              spacing={0}
+            >
+              <Text fontSize="xs" fontWeight="bold" color="purple.300">
+                Tile suggestions
+              </Text>
+              <Text fontSize="xs" color="gray.300">
+                Browse popular tiles sourced from existing community boards
+              </Text>
+            </VStack>
+            <VStack
+              align="flex-start"
+              borderLeft="2px pink solid"
+              borderRadius="4px"
+              bg="whiteAlpha.100"
+              p="4px"
+              pl="8px"
+              spacing={0}
+            >
+              <Text fontSize="xs" fontWeight="bold" color="purple.300">
+                Duplicate boards
+              </Text>
+              <Text fontSize="xs" color="gray.300">
+                Clone any board as a starting point for a new one
+              </Text>
+            </VStack>
+            <VStack
+              align="flex-start"
+              borderLeft="2px pink solid"
+              borderRadius="4px"
+              bg="whiteAlpha.100"
+              p="4px"
+              pl="8px"
+              spacing={0}
+            >
+              <Text fontSize="xs" fontWeight="bold" color="purple.300">
+                Editor invites & sharing
+              </Text>
+              <Text fontSize="xs" color="gray.300">
+                Invite clanmates to co-edit, or make a board public for the community
+              </Text>
+            </VStack>
+          </SimpleGrid>
+        </Box>
 
         <Flex flexDirection={['column', 'column', 'row', 'row']} gridGap="16px">
           {/* Board list */}

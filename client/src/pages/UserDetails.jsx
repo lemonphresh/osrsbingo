@@ -11,7 +11,6 @@ import {
   Icon,
   Text,
   useDisclosure,
-  HStack,
   SimpleGrid,
   Box,
 } from '@chakra-ui/react';
@@ -26,7 +25,7 @@ import { GET_USER } from '../graphql/queries';
 import EditField from '../molecules/EditField';
 import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
 import { DeleteIcon, StarIcon } from '@chakra-ui/icons';
-import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
+import { MdDoorBack } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
@@ -305,7 +304,7 @@ const UserDetails = () => {
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
             <GemTitle size="sm" textAlign="center" mb={4}>
-              Tools
+              Site Tools
             </GemTitle>
             <SimpleGrid columns={[1, 3]} spacing={4}>
               <Box
