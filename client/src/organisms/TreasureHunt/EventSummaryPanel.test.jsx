@@ -30,8 +30,19 @@ jest.mock('@chakra-ui/react', () => {
     StatGroup: make('dl'),
     Divider: () => React.createElement('hr'),
     Image: ({ src, alt }) => React.createElement('img', { src, alt }),
+    Link: make('a'),
   };
 });
+
+jest.mock('react-icons/fa', () => ({
+  FaCoffee: () => null,
+  FaHeart: () => null,
+}));
+
+jest.mock('../../atoms/PleaseEffect', () => ({
+  __esModule: true,
+  default: ({ children }) => children,
+}));
 
 jest.mock('../../hooks/useThemeColors', () => ({
   useThemeColors: () => ({
