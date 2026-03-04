@@ -430,6 +430,75 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # BLIND DRAFT ROOM
+  # ============================================================
+
+  enum DraftFormat {
+    SNAKE
+    LINEAR
+    AUCTION
+  }
+
+  enum DraftStatus {
+    LOBBY
+    DRAFTING
+    REVEALED
+    COMPLETED
+  }
+
+  type DraftTeamSlot {
+    index: Int!
+    name: String!
+    captainJoined: Boolean!
+    captainUserId: ID
+    budget: Int
+  }
+
+  type DraftPlayerCard {
+    id: ID!
+    alias: String!
+    rsn: String
+    womData: JSON
+    tierBadge: String
+    teamIndex: Int
+    pickOrder: Int
+  }
+
+  type DraftRoom {
+    roomId: ID!
+    roomName: String!
+    status: DraftStatus!
+    draftFormat: DraftFormat!
+    numberOfTeams: Int!
+    teams: [DraftTeamSlot!]!
+    players: [DraftPlayerCard!]!
+    statCategories: [String!]!
+    pickTimeSeconds: Int!
+    currentPickIndex: Int!
+    currentPickStartedAt: DateTime
+    auctionState: JSON
+    organizerUserId: ID!
+    createdAt: DateTime!
+  }
+
+  type DraftRoomUpdate {
+    type: String!
+    room: DraftRoom!
+  }
+
+  input CreateDraftRoomInput {
+    roomName: String!
+    rsns: [String!]!
+    numberOfTeams: Int!
+    teamNames: [String!]!
+    draftFormat: DraftFormat!
+    statCategories: [String!]!
+    pickTimeSeconds: Int
+    tierFormula: JSON
+    roomPin: String
+  }
+
+  # ============================================================
   # COMMON TYPES
   # ============================================================
 
@@ -503,6 +572,10 @@ const typeDefs = gql`
     # --- Analytics ---
     getVisitCount: Int!
     getSiteStats: SiteStats!
+
+    # --- Blind Draft Room ---
+    getDraftRoom(roomId: ID!): DraftRoom
+    getMyDraftRooms: [DraftRoom!]!
   }
 
   # ============================================================
@@ -619,6 +692,14 @@ const typeDefs = gql`
 
     # --- Gielinor Rush: Inns ---
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+
+    # --- Blind Draft Room ---
+    createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!
+    joinDraftRoomAsCaptain(roomId: ID!, teamIndex: Int!, pin: String): DraftRoom!
+    startDraft(roomId: ID!): DraftRoom!
+    makeDraftPick(roomId: ID!, playerId: ID!): DraftRoom!
+    placeBid(roomId: ID!, teamIndex: Int!, amount: Int!): DraftRoom!
+    revealNames(roomId: ID!): DraftRoom!
   }
 
   # ============================================================
@@ -630,6 +711,9 @@ const typeDefs = gql`
     submissionReviewed(eventId: ID!): TreasureSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
     treasureHuntActivity(eventId: ID!): TreasureHuntActivity
+
+    # --- Blind Draft Room ---
+    draftRoomUpdated(roomId: ID!): DraftRoomUpdate!
   }
 `;
 

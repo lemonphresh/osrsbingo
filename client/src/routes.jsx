@@ -25,6 +25,9 @@ const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
 const TreasureHuntActiveEventsPage = lazy(() => import('./pages/TreasureHuntActiveEvents'));
+const DraftDashboard = lazy(() => import('./pages/DraftDashboard'));
+const DraftRoomPage = lazy(() => import('./pages/DraftRoomPage'));
+const DraftResultsPage = lazy(() => import('./pages/DraftResultsPage'));
 const DebugComponentsPage = lazy(() => import('./debug/index'));
 
 // loading fallback component
@@ -115,6 +118,26 @@ const routes = [
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
         element: withSuspense(TreasureTeamPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/blind-draft',
+        element: withSuspense(DraftDashboard),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/blind-draft/create',
+        element: withSuspense(DraftRoomPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/blind-draft/:roomId',
+        element: withSuspense(DraftRoomPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/blind-draft/:roomId/results',
+        element: withSuspense(DraftResultsPage),
         errorElement: <ErrorPage />,
       },
       {
