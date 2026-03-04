@@ -49,12 +49,11 @@ function normalizeWomData(rsn, raw) {
   const bosses = raw.latestSnapshot?.data?.bosses ?? {};
   const computed = raw.latestSnapshot?.data?.computed ?? {};
 
-  // Build top 3 boss KCs by kill count
+  // Build all boss KCs sorted by kill count descending
   const bossEntries = Object.entries(bosses)
     .map(([name, data]) => ({ boss: name, kc: data?.kills ?? -1 }))
     .filter((b) => b.kc > 0)
-    .sort((a, b) => b.kc - a.kc)
-    .slice(0, 3);
+    .sort((a, b) => b.kc - a.kc);
 
   return {
     rsn,
@@ -66,7 +65,7 @@ function normalizeWomData(rsn, raw) {
     slayerLevel: skills.slayer?.level ?? 1,
     slayerXp: skills.slayer?.experience ?? 0,
     overallXp: skills.overall?.experience ?? 0,
-    topBossKcs: bossEntries,
+    bossKcs: bossEntries,
     // Raw skill levels for expanded card view
     skills: Object.fromEntries(
       Object.entries(skills).map(([skill, data]) => [skill, data?.level ?? 1])

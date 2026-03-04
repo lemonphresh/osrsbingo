@@ -472,7 +472,6 @@ const typeDefs = gql`
     numberOfTeams: Int!
     teams: [DraftTeamSlot!]!
     players: [DraftPlayerCard!]!
-    statCategories: [String!]!
     pickTimeSeconds: Int!
     currentPickIndex: Int!
     currentPickStartedAt: DateTime
@@ -486,13 +485,19 @@ const typeDefs = gql`
     room: DraftRoom!
   }
 
+  # Returned only on joinDraftRoomAsCaptain — captainToken is NOT exposed elsewhere
+  type CaptainJoinResult {
+    room: DraftRoom!
+    captainToken: String!
+    teamIndex: Int!
+  }
+
   input CreateDraftRoomInput {
     roomName: String!
     rsns: [String!]!
     numberOfTeams: Int!
     teamNames: [String!]!
     draftFormat: DraftFormat!
-    statCategories: [String!]!
     pickTimeSeconds: Int
     tierFormula: JSON
     roomPin: String
@@ -695,10 +700,10 @@ const typeDefs = gql`
 
     # --- Blind Draft Room ---
     createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!
-    joinDraftRoomAsCaptain(roomId: ID!, teamIndex: Int!, pin: String): DraftRoom!
+    joinDraftRoomAsCaptain(roomId: ID!, teamIndex: Int!, pin: String): CaptainJoinResult!
     startDraft(roomId: ID!): DraftRoom!
-    makeDraftPick(roomId: ID!, playerId: ID!): DraftRoom!
-    placeBid(roomId: ID!, teamIndex: Int!, amount: Int!): DraftRoom!
+    makeDraftPick(roomId: ID!, playerId: ID!, captainToken: String): DraftRoom!
+    placeBid(roomId: ID!, teamIndex: Int!, amount: Int!, captainToken: String): DraftRoom!
     revealNames(roomId: ID!): DraftRoom!
   }
 

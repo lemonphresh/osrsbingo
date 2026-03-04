@@ -7,7 +7,7 @@ import {
   Badge,
   SimpleGrid,
   Skeleton,
-  useColorMode,
+  Flex,
 } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
 import { useNavigate } from 'react-router-dom';
@@ -25,8 +25,6 @@ const STATUS_COLORS = {
 
 export default function DraftDashboard() {
   usePageTitle('Blind Draft');
-  const { colorMode } = useColorMode();
-  const isDark = colorMode === 'dark';
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -35,10 +33,12 @@ export default function DraftDashboard() {
   const rooms = data?.getMyDraftRooms ?? [];
 
   return (
-    <Box maxW="900px" mx="auto" px={4} py={8}>
+    <Box flex="1" my="36px" maxW="900px" mx="auto" w="100%" px={4} py={8}>
       <HStack justify="space-between" mb={6} flexWrap="wrap" gap={3}>
         <VStack align="flex-start" spacing={0}>
-          <Text fontSize="2xl" fontWeight="black">Blind Draft</Text>
+          <Text fontSize="2xl" fontWeight="black">
+            Blind Draft
+          </Text>
           <Text color="gray.400" fontSize="sm">
             Anonymized player draft rooms for fair team selection
           </Text>
@@ -53,14 +53,95 @@ export default function DraftDashboard() {
         </Button>
       </HStack>
 
+      <Box
+        bg="gray.800"
+        borderRadius="lg"
+        p={5}
+        mb={6}
+        border="1px solid"
+        borderColor="gray.700"
+        borderLeft="3px solid"
+        borderLeftColor="purple.500"
+      >
+        <Text fontSize="sm" color="gray.300" mb={2}>
+          <Text as="span" fontWeight="bold" color="white">
+            How it works:
+          </Text>{' '}
+          As an organizer, you paste in a list of RSNs and the tool anonymizes them. Captains draft
+          player cards by stats alone, with no names visible until the draft ends.
+        </Text>
+        <Flex flexDirection={['column', 'row']} mx="16px" gap={6}>
+          <VStack
+            align="flex-start"
+            borderLeft="2px pink solid"
+            borderRadius="4px"
+            bg="whiteAlpha.100"
+            p="4px"
+            spacing={0}
+          >
+            <Text fontSize="xs" fontWeight="bold" color="purple.300">
+              1. Create a room
+            </Text>
+            <Text fontSize="xs" color="gray.400">
+              Set format, teams, and paste RSNs
+            </Text>
+          </VStack>
+          <VStack
+            align="flex-start"
+            borderLeft="2px pink solid"
+            borderRadius="4px"
+            bg="whiteAlpha.100"
+            p="4px"
+            spacing={0}
+          >
+            <Text fontSize="xs" fontWeight="bold" color="purple.300">
+              2. Captains join
+            </Text>
+            <Text fontSize="xs" color="gray.400">
+              Share the link, each captain claims a seat
+            </Text>
+          </VStack>
+          <VStack
+            align="flex-start"
+            borderLeft="2px pink solid"
+            borderRadius="4px"
+            bg="whiteAlpha.100"
+            p="4px"
+            spacing={0}
+          >
+            <Text fontSize="xs" fontWeight="bold" color="purple.300">
+              3. Draft by stats
+            </Text>
+            <Text fontSize="xs" color="gray.400">
+              Pick players blind using EHP, EHB, boss KCs
+            </Text>
+          </VStack>
+          <VStack
+            align="flex-start"
+            borderLeft="2px pink solid"
+            borderRadius="4px"
+            bg="whiteAlpha.100"
+            p="4px"
+            spacing={0}
+          >
+            <Text fontSize="xs" fontWeight="bold" color="purple.300">
+              4. Reveal names
+            </Text>
+            <Text fontSize="xs" color="gray.400">
+              Organizer reveals all RSNs at once when done
+            </Text>
+          </VStack>
+        </Flex>
+      </Box>
+
       {!user && (
         <Box
-          bg={isDark ? '#2D3748' : 'gray.50'}
+          bg="gray.700"
           borderRadius="lg"
           p={6}
           textAlign="center"
           border="1px solid"
-          borderColor={isDark ? 'gray.600' : 'gray.200'}
+          borderColor="gray.600"
         >
           <Text color="gray.400">Log in to create and manage draft rooms.</Text>
         </Box>
@@ -76,14 +157,16 @@ export default function DraftDashboard() {
 
       {user && !loading && rooms.length === 0 && (
         <Box
-          bg={isDark ? '#2D3748' : 'gray.50'}
+          bg="gray.700"
           borderRadius="lg"
           p={8}
           textAlign="center"
           border="1px solid"
-          borderColor={isDark ? 'gray.600' : 'gray.200'}
+          borderColor="gray.600"
         >
-          <Text fontWeight="semibold" mb={1}>No draft rooms yet</Text>
+          <Text fontWeight="semibold" mb={1}>
+            No draft rooms yet
+          </Text>
           <Text color="gray.400" fontSize="sm" mb={4}>
             Create a room to get started with anonymous player drafts.
           </Text>
@@ -98,9 +181,9 @@ export default function DraftDashboard() {
           {rooms.map((room) => (
             <Box
               key={room.roomId}
-              bg={isDark ? '#2D3748' : 'white'}
+              bg="gray.700"
               border="1px solid"
-              borderColor={isDark ? 'gray.600' : 'gray.200'}
+              borderColor="gray.600"
               borderRadius="lg"
               p={4}
               cursor="pointer"
@@ -109,14 +192,24 @@ export default function DraftDashboard() {
               transition="all 0.2s"
             >
               <HStack justify="space-between" mb={2}>
-                <Text fontWeight="bold" noOfLines={1} flex={1}>{room.roomName}</Text>
-                <Badge colorScheme={STATUS_COLORS[room.status] ?? 'gray'} fontSize="10px" flexShrink={0}>
+                <Text fontWeight="bold" noOfLines={1} flex={1}>
+                  {room.roomName}
+                </Text>
+                <Badge
+                  colorScheme={STATUS_COLORS[room.status] ?? 'gray'}
+                  fontSize="10px"
+                  flexShrink={0}
+                >
                   {room.status}
                 </Badge>
               </HStack>
               <HStack spacing={2} flexWrap="wrap">
-                <Badge variant="outline" fontSize="9px">{room.draftFormat}</Badge>
-                <Badge variant="outline" fontSize="9px">{room.numberOfTeams} teams</Badge>
+                <Badge variant="outline" fontSize="9px">
+                  {room.draftFormat}
+                </Badge>
+                <Badge variant="outline" fontSize="9px">
+                  {room.numberOfTeams} teams
+                </Badge>
               </HStack>
               <Text fontSize="xs" color="gray.500" mt={2}>
                 {new Date(room.createdAt).toLocaleDateString()}

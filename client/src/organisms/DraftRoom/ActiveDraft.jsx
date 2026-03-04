@@ -1,13 +1,4 @@
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Badge,
-  SimpleGrid,
-  useColorMode,
-  Button,
-} from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Badge, SimpleGrid } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
 import { MAKE_DRAFT_PICK } from '../../graphql/draftOperations';
 import PlayerCard from './PlayerCard';
@@ -23,9 +14,7 @@ function getCurrentTeamIndex(format, numberOfTeams, currentPickIndex) {
   return round % 2 === 0 ? pos : numberOfTeams - 1 - pos;
 }
 
-export default function ActiveDraft({ room, userRole, userId }) {
-  const { colorMode } = useColorMode();
-  const isDark = colorMode === 'dark';
+export default function ActiveDraft({ room, userRole, userId, captainToken }) {
   const { showToast } = useToastContext();
 
   const currentTeamIdx = getCurrentTeamIndex(
@@ -42,19 +31,26 @@ export default function ActiveDraft({ room, userRole, userId }) {
     parseInt(userRole.split(':')[1], 10) === currentTeamIdx;
   const canPick = isOrganizer || isMyCaptainTurn;
 
-  const undraftedPlayers = room.players.filter((p) => p.teamIndex === null || p.teamIndex === undefined);
-  const draftedPlayers = room.players.filter((p) => p.teamIndex !== null && p.teamIndex !== undefined);
+  const undraftedPlayers = room.players.filter(
+    (p) => p.teamIndex === null || p.teamIndex === undefined
+  );
 
   const [makePick, { loading }] = useMutation(MAKE_DRAFT_PICK, {
-    onError: (e) => showToast({ title: 'Pick failed', description: e.message, status: 'error' }),
+    onError: (e) => showToast(`Pick failed: ${e.message}`, 'error'),
   });
 
   async function handlePick(playerId) {
     if (!canPick || loading) return;
-    await makePick({ variables: { roomId: room.roomId, playerId: String(playerId) } });
+    await makePick({
+      variables: {
+        roomId: room.roomId,
+        playerId: String(playerId),
+        captainToken: captainToken ?? undefined,
+      },
+    });
   }
 
-  // Build draft order preview (next 5 picks)
+  // build draft order preview (next 5 picks)
   function getUpcomingOrder() {
     const picks = [];
     let idx = room.currentPickIndex;
@@ -69,14 +65,8 @@ export default function ActiveDraft({ room, userRole, userId }) {
 
   return (
     <VStack spacing={5} align="stretch">
-      {/* Header: whose turn */}
-      <Box
-        bg={isDark ? '#2D3748' : 'gray.50'}
-        border="2px solid"
-        borderColor="purple.400"
-        borderRadius="lg"
-        p={4}
-      >
+      {/* header: whose turn */}
+      <Box bg="gray.700" border="2px solid" borderColor="purple.400" borderRadius="lg" p={4}>
         <HStack justify="space-between" mb={2} flexWrap="wrap" gap={2}>
           <VStack align="flex-start" spacing={0}>
             <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
@@ -91,36 +81,31 @@ export default function ActiveDraft({ room, userRole, userId }) {
             <Badge colorScheme="gray">{undraftedPlayers.length} remaining</Badge>
           </HStack>
         </HStack>
-        <TimerBar
-          startedAt={room.currentPickStartedAt}
-          totalSeconds={room.pickTimeSeconds}
-        />
+        <TimerBar startedAt={room.currentPickStartedAt} totalSeconds={room.pickTimeSeconds} />
         {canPick && (
           <Text fontSize="xs" color="purple.300" mt={2} fontWeight="semibold">
-            {isOrganizer ? "It's your turn (organizer override)" : "It's your turn — click a player to pick!"}
+            {isOrganizer
+              ? "It's your turn (organizer override)"
+              : "It's your turn — click a player to pick!"}
           </Text>
         )}
       </Box>
 
-      {/* Upcoming picks */}
+      {/* upcoming picks */}
       <Box>
         <Text fontSize="xs" color="gray.400" mb={1} textTransform="uppercase" letterSpacing="wider">
           Coming up
         </Text>
         <HStack spacing={2} flexWrap="wrap">
           {getUpcomingOrder().map((item, i) => (
-            <Badge
-              key={item.pickNumber}
-              colorScheme={i === 0 ? 'purple' : 'gray'}
-              fontSize="10px"
-            >
+            <Badge key={item.pickNumber} colorScheme={i === 0 ? 'purple' : 'gray'} fontSize="10px">
               #{item.pickNumber} {item.team?.name}
             </Badge>
           ))}
         </HStack>
       </Box>
 
-      {/* Player pool */}
+      {/* player pool */}
       <Box>
         <Text fontWeight="semibold" mb={3}>
           Available Players ({undraftedPlayers.length})
@@ -130,7 +115,6 @@ export default function ActiveDraft({ room, userRole, userId }) {
             <PlayerCard
               key={player.id}
               player={player}
-              statCategories={room.statCategories}
               isPickable={canPick}
               onClick={() => handlePick(player.id)}
             />
@@ -138,9 +122,11 @@ export default function ActiveDraft({ room, userRole, userId }) {
         </SimpleGrid>
       </Box>
 
-      {/* Draft board */}
+      {/* draft board */}
       <Box>
-        <Text fontWeight="semibold" mb={3}>Team Rosters</Text>
+        <Text fontWeight="semibold" mb={3}>
+          Team Rosters
+        </Text>
         <DraftBoard room={room} currentTeamIndex={currentTeamIdx} />
       </Box>
     </VStack>

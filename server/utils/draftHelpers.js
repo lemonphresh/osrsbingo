@@ -1,4 +1,4 @@
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 const logger = require('./logger');
 
 // ---------------------------------------------------------------------------
@@ -13,7 +13,7 @@ function generateRoomId() {
 }
 
 function generateCaptainToken() {
-  return uuidv4();
+  return randomUUID();
 }
 
 // ---------------------------------------------------------------------------

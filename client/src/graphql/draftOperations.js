@@ -33,7 +33,6 @@ export const DRAFT_ROOM_FIELDS = gql`
     players {
       ...DraftPlayerFields
     }
-    statCategories
     pickTimeSeconds
     currentPickIndex
     currentPickStartedAt
@@ -86,7 +85,11 @@ export const CREATE_DRAFT_ROOM = gql`
 export const JOIN_DRAFT_ROOM_AS_CAPTAIN = gql`
   mutation JoinDraftRoomAsCaptain($roomId: ID!, $teamIndex: Int!, $pin: String) {
     joinDraftRoomAsCaptain(roomId: $roomId, teamIndex: $teamIndex, pin: $pin) {
-      ...DraftRoomFields
+      room {
+        ...DraftRoomFields
+      }
+      captainToken
+      teamIndex
     }
   }
   ${DRAFT_ROOM_FIELDS}
@@ -102,8 +105,8 @@ export const START_DRAFT = gql`
 `;
 
 export const MAKE_DRAFT_PICK = gql`
-  mutation MakeDraftPick($roomId: ID!, $playerId: ID!) {
-    makeDraftPick(roomId: $roomId, playerId: $playerId) {
+  mutation MakeDraftPick($roomId: ID!, $playerId: ID!, $captainToken: String) {
+    makeDraftPick(roomId: $roomId, playerId: $playerId, captainToken: $captainToken) {
       ...DraftRoomFields
     }
   }
@@ -111,8 +114,8 @@ export const MAKE_DRAFT_PICK = gql`
 `;
 
 export const PLACE_BID = gql`
-  mutation PlaceBid($roomId: ID!, $teamIndex: Int!, $amount: Int!) {
-    placeBid(roomId: $roomId, teamIndex: $teamIndex, amount: $amount) {
+  mutation PlaceBid($roomId: ID!, $teamIndex: Int!, $amount: Int!, $captainToken: String) {
+    placeBid(roomId: $roomId, teamIndex: $teamIndex, amount: $amount, captainToken: $captainToken) {
       ...DraftRoomFields
     }
   }

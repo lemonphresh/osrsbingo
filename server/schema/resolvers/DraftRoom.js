@@ -289,7 +289,7 @@ const Mutation = {
   },
 
   async joinDraftRoomAsCaptain(_, { roomId, teamIndex, pin }, context) {
-    requireAuth(context);
+    // No auth required — captainToken is used for subsequent pick authorization
     const { room, players } = await loadRoom(roomId);
 
     if (room.status !== 'LOBBY') throw new Error('Draft has already started');
@@ -308,7 +308,7 @@ const Mutation = {
 
     const updatedTeams = teams.map((t) => {
       if (t.index === teamIndex) {
-        return { ...t, captainJoined: true, captainUserId: context.user.id };
+        return { ...t, captainJoined: true, captainUserId: context.user?.id ?? null };
       }
       return t;
     });
@@ -316,7 +316,13 @@ const Mutation = {
     await room.update({ teams: updatedTeams });
     const updated = await models.DraftRoom.findByPk(roomId);
     await publishUpdate('CAPTAIN_JOINED', updated, players);
-    return formatRoom(updated, players);
+
+    // Return the captainToken so the client can store it for pick authorization
+    return {
+      room: formatRoom(updated, players),
+      captainToken: slot.captainToken,
+      teamIndex,
+    };
   },
 
   async startDraft(_, { roomId }, context) {
@@ -352,8 +358,7 @@ const Mutation = {
     return formatRoom(updated, players);
   },
 
-  async makeDraftPick(_, { roomId, playerId }, context) {
-    requireAuth(context);
+  async makeDraftPick(_, { roomId, playerId, captainToken }, context) {
     const { room, players } = await loadRoom(roomId);
 
     if (room.status !== 'DRAFTING') throw new Error('Draft is not in progress');
@@ -362,10 +367,12 @@ const Mutation = {
     const currentTeamIdx = getCurrentTeamIndex(room.draftFormat, room.numberOfTeams, room.currentPickIndex);
     const currentTeam = room.teams.find((t) => t.index === currentTeamIdx);
 
-    // Allow pick if: user is organizer, or user is the current team's captain
-    const isOrganizer = room.organizerUserId === context.user.id;
-    const isCaptain = currentTeam?.captainUserId === context.user.id;
-    if (!isOrganizer && !isCaptain) {
+    // Allow pick if: logged-in organizer, logged-in captain, or token matches current team
+    const userId = context.user?.id;
+    const isOrganizer = userId && room.organizerUserId === userId;
+    const isLoggedInCaptain = userId && currentTeam?.captainUserId === userId;
+    const isTokenCaptain = captainToken && currentTeam?.captainToken === captainToken;
+    if (!isOrganizer && !isLoggedInCaptain && !isTokenCaptain) {
       throw new Error("It's not your turn");
     }
 
@@ -391,8 +398,7 @@ const Mutation = {
     return formatRoom(updatedRoom, finalPlayers);
   },
 
-  async placeBid(_, { roomId, teamIndex, amount }, context) {
-    requireAuth(context);
+  async placeBid(_, { roomId, teamIndex, amount, captainToken }, context) {
     const { room, players } = await loadRoom(roomId);
 
     if (room.status !== 'DRAFTING') throw new Error('Draft is not in progress');
@@ -401,10 +407,12 @@ const Mutation = {
     const team = room.teams.find((t) => t.index === teamIndex);
     if (!team) throw new Error(`Team ${teamIndex} not found`);
 
-    // Allow bid if: user is organizer, or user is this team's captain
-    const isOrganizer = room.organizerUserId === context.user.id;
-    const isCaptain = team.captainUserId === context.user.id;
-    if (!isOrganizer && !isCaptain) {
+    // Allow bid if: logged-in organizer, logged-in captain, or token matches this team
+    const userId = context.user?.id;
+    const isOrganizer = userId && room.organizerUserId === userId;
+    const isLoggedInCaptain = userId && team.captainUserId === userId;
+    const isTokenCaptain = captainToken && team.captainToken === captainToken;
+    if (!isOrganizer && !isLoggedInCaptain && !isTokenCaptain) {
       throw new Error('You are not the captain of this team');
     }
 

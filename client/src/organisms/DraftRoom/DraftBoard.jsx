@@ -1,9 +1,7 @@
-import { Box, Text, VStack, HStack, Badge, SimpleGrid, useColorMode } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, Badge, SimpleGrid } from '@chakra-ui/react';
 
-/** Side panel showing each team's drafted players. */
+/** side panel showing each team's drafted players. */
 export default function DraftBoard({ room, currentTeamIndex }) {
-  const { colorMode } = useColorMode();
-  const isDark = colorMode === 'dark';
   const revealed = room.status === 'REVEALED';
 
   return (
@@ -18,26 +16,34 @@ export default function DraftBoard({ room, currentTeamIndex }) {
         return (
           <Box
             key={team.index}
-            bg={isDark ? '#2D3748' : 'white'}
+            bg="gray.700"
             border="2px solid"
-            borderColor={isActive ? 'purple.400' : isDark ? 'gray.600' : 'gray.200'}
+            borderColor={isActive ? 'purple.400' : 'gray.600'}
             borderRadius="lg"
             p={3}
           >
             <HStack justify="space-between" mb={2}>
-              <Text fontWeight="bold" fontSize="sm" noOfLines={1}>{team.name}</Text>
+              <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
+                {team.name}
+              </Text>
               {isActive && (
-                <Badge colorScheme="purple" fontSize="9px">Picking</Badge>
+                <Badge colorScheme="purple" fontSize="9px">
+                  Picking
+                </Badge>
               )}
             </HStack>
 
             <VStack align="stretch" spacing={1}>
               {drafted.length === 0 ? (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">No picks yet</Text>
+                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                  No picks yet
+                </Text>
               ) : (
                 drafted.map((p) => (
                   <HStack key={p.id} spacing={1}>
-                    <Text fontSize="xs" color="gray.400" minW="18px">#{(p.pickOrder ?? 0) + 1}</Text>
+                    <Text fontSize="xs" color="gray.400" minW="18px">
+                      #{(p.pickOrder ?? 0) + 1}
+                    </Text>
                     <Text fontSize="xs" fontWeight="medium" noOfLines={1}>
                       {revealed ? p.rsn : p.alias}
                     </Text>
