@@ -157,6 +157,10 @@ const TreasureTeamView = () => {
   });
 
   const accessCheck = checkTeamAccess();
+  const isPreEvent =
+    event?.status === 'PUBLIC' &&
+    event?.startDate &&
+    new Date() < new Date(event.startDate);
   const formatGP = (gp) => (gp / 1000000).toFixed(1) + 'M';
 
   const getNodeStatus = (node) => {
@@ -500,6 +504,32 @@ const TreasureTeamView = () => {
       <EventStatusBanner event={event} isAdmin={isAdmin} />
       <DiscordLinkBanner user={user} />
 
+      {isPreEvent && (
+        <Box
+          w="full"
+          maxW="1200px"
+          bg="blue.900"
+          border="1px solid"
+          borderColor="blue.500"
+          borderRadius="lg"
+          px={4}
+          py={3}
+          mb={4}
+        >
+          <Text color="blue.100" fontWeight="semibold" fontSize="sm">
+            ⏳ <strong>Event hasn't started yet.</strong> You can explore your team page, but
+            submitting objectives, applying buffs, and visiting inns will be unlocked at{' '}
+            <strong>
+              {new Date(event.startDate).toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </strong>
+            .
+          </Text>
+        </Box>
+      )}
+
       {/* ── BACK NAV ── */}
       <Flex
         alignItems="center"
@@ -718,6 +748,7 @@ const TreasureTeamView = () => {
         currentUser={user}
         appliedBuff={selectedNode?.objective?.appliedBuff}
         lastCompletedNodeId={lastCompletedNodeId}
+        isPreEvent={!!isPreEvent}
       />
       <InnModal
         isOpen={isInnOpen}
@@ -727,6 +758,7 @@ const TreasureTeamView = () => {
         eventId={eventId}
         currentUser={user}
         onPurchaseComplete={refetchTeam}
+        isPreEvent={!!isPreEvent}
       />
       <BuffApplicationModal
         isOpen={isBuffModalOpen}
@@ -738,6 +770,7 @@ const TreasureTeamView = () => {
         onApplyBuff={handleApplyBuff}
         availableBuffs={team?.activeBuffs || []}
         onApplyComplete={onNodeOpen}
+        isPreEvent={!!isPreEvent}
       />
       <AvailableInnsModal
         isOpen={isAvailableInnsOpen}
@@ -752,7 +785,13 @@ const TreasureTeamView = () => {
         availableNodes={selectedBuff ? getNodesForBuff(selectedBuff) : []}
         onSelectNode={handleSelectNodeFromBuffList}
       />
-      <TeamAccessOverlay accessCheck={accessCheck} team={team} event={event} />
+      <TeamAccessOverlay
+        show={!accessCheck.hasAccess}
+        reason={accessCheck.reason}
+        eventId={eventId}
+        teamName={team.teamName}
+        userDiscordId={user?.discordUserId}
+      />
     </Flex>
   );
 };

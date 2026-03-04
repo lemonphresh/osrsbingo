@@ -22,7 +22,7 @@ import {
 } from '@chakra-ui/react';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 
-const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onApplyBuff, onApplyComplete }) => {
+const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onApplyBuff, onApplyComplete, isPreEvent = false }) => {
   const { colorMode } = useColorMode();
   const [selectedBuffId, setSelectedBuffId] = useState(null);
   const [applying, setApplying] = useState(false);
@@ -198,7 +198,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
           <Button
             colorScheme="blue"
             onClick={handleApply}
-            isDisabled={!selectedBuffId || applicableBuffs.length === 0}
+            isDisabled={!selectedBuffId || applicableBuffs.length === 0 || isPreEvent}
             isLoading={applying}
           >
             Apply Buff

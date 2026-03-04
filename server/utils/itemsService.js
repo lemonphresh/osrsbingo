@@ -24,7 +24,7 @@ const CONFIG = {
   ICON_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7 days for icons
   MAX_ICON_CACHE_SIZE: 5000, // Limit icon cache entries
   MAX_CONCURRENT_SCRAPES: 5, // Limit parallel wiki requests
-  MAX_RESULTS: 30,
+  MAX_RESULTS: 20,
   FUSE_OPTIONS: {
     includeScore: true,
     threshold: 0.3,

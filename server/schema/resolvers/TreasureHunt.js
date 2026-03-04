@@ -698,6 +698,9 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
       if (!team) throw new Error('Team not found');
 
+      if (event.startDate && new Date() < new Date(event.startDate))
+        throw new Error("Event hasn't started yet. Submissions open at the start time.");
+
       const nodes = context.loaders
         ? await context.loaders.nodesByEventId.load(eventId)
         : (
@@ -833,6 +836,10 @@ const TreasureHuntResolvers = {
       if (!event) throw new Error('Event not found');
       if (!team) throw new Error('Team not found');
       if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+      if (event.startDate && new Date() < new Date(event.startDate))
+        throw new Error("Event hasn't started yet.");
+
       if (node.nodeType !== 'INN') throw new Error('This node is not an Inn');
       if (!team.availableNodes?.includes(nodeId))
         throw new Error('This inn is not available to your team');
@@ -1172,15 +1179,22 @@ const TreasureHuntResolvers = {
         throw new Error('Not authorized. You must be an event admin or a member of this team.');
       }
 
-      const [team, node] = await Promise.all([
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId, { attributes: ['eventId', 'startDate'] }),
         TreasureTeam.findOne({ where: { teamId, eventId } }),
         TreasureNode.findByPk(nodeId),
       ]);
 
       if (!team) throw new Error('Team not found');
       if (!node) throw new Error('Node not found');
+
+      if (event?.startDate && new Date() < new Date(event.startDate))
+        throw new Error("Event hasn't started yet.");
+
       if (!team.availableNodes?.includes(nodeId)) {
-        throw new Error('This node is not currently available to your team');
+        throw new Error(
+          'This node is not currently available to your team. It has either been completed already or you have not unlocked it yet.'
+        );
       }
 
       const buffIndex = team.activeBuffs.findIndex((b) => b.buffId === buffId);
@@ -1413,6 +1427,9 @@ const TreasureHuntResolvers = {
 
       if (!event) throw new Error('Event not found');
       if (!team) throw new Error('Team not found');
+
+      if (event.startDate && new Date() < new Date(event.startDate))
+        throw new Error("Event hasn't started yet.");
 
       const nodes = context.loaders ? await context.loaders.nodesByEventId.load(eventId) : [];
 
