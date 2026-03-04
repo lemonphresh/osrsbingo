@@ -73,7 +73,7 @@ export default function DraftRoomPage() {
 
   if (isCreating) {
     return (
-      <Box my="48px" maxW="900px" mx="auto" px={4} py={8}>
+      <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8}>
         <HStack mb={6} spacing={3}>
           <Button
             color="white"
@@ -94,7 +94,7 @@ export default function DraftRoomPage() {
 
   if (loading) {
     return (
-      <Box my="48px" maxW="900px" mx="auto" px={4} py={8}>
+      <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8}>
         <Skeleton h="40px" mb={4} borderRadius="md" />
         <Skeleton h="200px" borderRadius="lg" />
       </Box>
@@ -103,7 +103,7 @@ export default function DraftRoomPage() {
 
   if (error || !data?.getDraftRoom) {
     return (
-      <Box my="48px" maxW="900px" mx="auto" px={4} py={8} textAlign="center">
+      <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8} textAlign="center">
         <Text fontSize="xl" fontWeight="bold" mb={2}>
           Room not found
         </Text>
@@ -123,8 +123,8 @@ export default function DraftRoomPage() {
   const captainToken = session?.captainToken ?? null;
 
   return (
-    <Box my="48px" maxW="1100px" mx="auto" px={4} py={6}>
-      {/* Header */}
+    <Box flex="1" my="48px" maxW="1100px" mx="auto" px={4} py={6}>
+      {/* header */}
       <HStack justify="space-between" mb={5} flexWrap="wrap" gap={3}>
         <VStack align="flex-start" spacing={0}>
           <HStack>

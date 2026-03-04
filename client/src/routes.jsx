@@ -25,6 +25,7 @@ const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
 const TreasureHuntActiveEventsPage = lazy(() => import('./pages/TreasureHuntActiveEvents'));
+const BingoPage = lazy(() => import('./pages/BingoPage'));
 const DraftDashboard = lazy(() => import('./pages/DraftDashboard'));
 const DraftRoomPage = lazy(() => import('./pages/DraftRoomPage'));
 const DraftResultsPage = lazy(() => import('./pages/DraftResultsPage'));
@@ -118,6 +119,11 @@ const routes = [
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
         element: withSuspense(TreasureTeamPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/bingo',
+        element: withSuspense(BingoPage),
         errorElement: <ErrorPage />,
       },
       {

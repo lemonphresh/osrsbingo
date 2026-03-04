@@ -8,16 +8,12 @@ import {
   AlertDialogOverlay,
   Button,
   Flex,
-  Heading,
   Icon,
-  Image,
-  ListItem,
   Text,
-  UnorderedList,
   useDisclosure,
-  VStack,
-  Badge,
   HStack,
+  SimpleGrid,
+  Box,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -26,18 +22,14 @@ import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER } from '../graphql/queries';
-import GnomeChild from '../assets/gnomechild.png';
+
 import EditField from '../molecules/EditField';
 import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
-import { AddIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
-import MiniBingoBoard from '../atoms/MiniBingoBoard';
-import getMiniBoardGrid from '../utils/getMiniBoardGrid';
-import { MdDoorBack, MdOutlineMap, MdOutlineStorage } from 'react-icons/md';
+import { DeleteIcon, StarIcon } from '@chakra-ui/icons';
+import { MdDoorBack, MdOutlineStorage } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
-import { FaMap } from 'react-icons/fa';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 
@@ -61,11 +53,6 @@ const UserDetails = () => {
     username: false,
   });
   const [shownUser, setShownUser] = useState(null);
-  const [shownBoard, setShownBoard] = useState({
-    board: null,
-    grid: null,
-  });
-
   usePageTitle(shownUser ? `User Details - ${shownUser.username}` : 'User Details');
 
   const [updateUser] = useMutation(UPDATE_USER);
@@ -86,14 +73,6 @@ const UserDetails = () => {
       }
     }
   }, [deleteUser, navigate, onCloseDeleteAlert, showToast, shownUser?.id, user?.id]);
-
-  const navigateToBoard = ({ asEditor, boardId }) => {
-    if (asEditor) {
-      navigate(`/boards/${boardId}`, { state: { isEditMode: true } });
-    } else {
-      navigate(`/boards/${boardId}`);
-    }
-  };
 
   const { loading } = useQuery(GET_USER, {
     variables: { id: parseInt(params.userId, 10) },
@@ -126,15 +105,6 @@ const UserDetails = () => {
     setShownUser(user);
   }, [user]);
 
-  useEffect(() => {
-    const grid = getMiniBoardGrid(shownBoard.board);
-    setShownBoard((prev) => ({
-      ...prev,
-      grid,
-    }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shownBoard.board]);
-
   return (
     <Flex
       alignItems="center"
@@ -146,36 +116,7 @@ const UserDetails = () => {
       width="100%"
     >
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
-        {/* Top nav */}
-        <HStack
-          justifyContent="space-between"
-          borderBottom="1px solid"
-          borderColor="whiteAlpha.200"
-          paddingBottom="12px"
-        >
-          <Text
-            alignItems="center"
-            display="inline-flex"
-            _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="semibold"
-            marginBottom="1px"
-          >
-            <Icon as={MdOutlineStorage} marginRight="8px" />
-            <Link to="/boards">View Public Boards</Link>
-          </Text>
-          <Text
-            alignItems="center"
-            display="inline-flex"
-            _hover={{ borderBottom: '1px solid white', marginBottom: '0px' }}
-            fontWeight="semibold"
-            marginBottom="1px"
-          >
-            <Link to="/gielinor-rush">Gielinor Rush</Link>
-            <Icon as={FaMap} marginLeft="8px" />
-          </Text>
-        </HStack>
-
-        <Flex flexDirection="column" gridGap="24px">
+        <Flex flexDirection="column" pt="16px" gridGap="24px">
           <GemTitle textAlign="center">
             {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
           </GemTitle>
@@ -361,244 +302,113 @@ const UserDetails = () => {
           {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
         </Flex>
 
-        <Flex flexDirection={['column', 'column', 'row', 'row']} gridGap="16px">
-          <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="purple" size="sm" textAlign="center">
-              {isCurrentUser ? 'Your' : 'Their Public'} Bingo Boards
-            </GemTitle>
-            <Flex flexDirection="column">
-              {!shownUser?.editorBoards || shownUser.editorBoards.length === 0 ? (
-                <>
-                  <Text textAlign="center">
-                    Looks like {isCurrentUser ? 'you' : 'they'} haven't made or been added as an
-                    editor to any boards yet.
-                  </Text>
-
-                  {isCurrentUser && (
-                    <Text
-                      _hover={{
-                        borderBottom: `1px solid ${theme.colors.pink[200]}`,
-                        marginBottom: '0px',
-                      }}
-                      color={theme.colors.pink[200]}
-                      fontWeight="semibold"
-                      margin="0 auto"
-                      marginBottom="1px"
-                      marginTop="16px"
-                    >
-                      <Link
-                        style={{ display: 'inline-flex', alignItems: 'center' }}
-                        to="/boards/create"
-                      >
-                        <AddIcon marginRight="8px" /> Create a Board
-                      </Link>
-                    </Text>
-                  )}
-                </>
-              ) : (
-                <Flex
-                  backgroundColor="rgba(0, 0, 0, 0.1)"
-                  borderRadius="16px"
-                  flexDirection="column"
-                  padding="8px"
-                >
-                  <UnorderedList
-                    css={`
-                      scrollbar-width: thin;
-                      scrollbar-color: ${theme.colors.purple[400]} rgba(255, 255, 255, 0.1);
-
-                      ::-webkit-scrollbar {
-                        width: 8px;
-                        height: 8px;
-                      }
-
-                      ::-webkit-scrollbar-thumb {
-                        background: ${theme.colors.purple[400]};
-                        border-radius: 4px;
-                      }
-
-                      t::-webkit-scrollbar-track {
-                        background: rgba(255, 255, 255, 0.1);
-                      }
-                    `}
-                    key={shownUser}
-                    maxHeight={['132px', '212px']}
-                    margin="0 auto"
-                    overflowY="auto"
-                    paddingX="16px"
-                  >
-                    {shownUser.editorBoards
-                      .filter((item) => {
-                        if (isCurrentUser) {
-                          return true;
-                        } else {
-                          return item.isPublic !== false;
-                        }
-                      })
-                      .map((item) => (
-                        <ListItem
-                          _hover={{
-                            borderBottom: `1px solid white`,
-                            marginBottom: 0,
-                          }}
-                          color={theme.colors.white}
-                          cursor="pointer"
-                          key={item.id}
-                          marginBottom="1px"
-                          paddingTop="3px"
-                          onClick={() =>
-                            setShownBoard((prev) => ({
-                              ...prev,
-                              board: item,
-                            }))
-                          }
-                          width="fit-content"
-                        >
-                          {item.name}
-                        </ListItem>
-                      ))}
-                  </UnorderedList>
-                  {isCurrentUser && (
-                    <Link
-                      style={{
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                      to="/boards/create"
-                    >
-                      <Text
-                        _hover={{
-                          backgroundColor: theme.colors.purple[300],
-                        }}
-                        backgroundColor={theme.colors.purple[400]}
-                        borderRadius="8px"
-                        color={theme.colors.pink[900]}
-                        cursor="pointer"
-                        fontWeight="semibold"
-                        margin="0 auto"
-                        marginTop="8px"
-                        opacity="0.85"
-                        paddingY="8px"
-                        textAlign="center"
-                        width="100%"
-                      >
-                        <AddIcon marginRight="8px" /> Create a Board
-                      </Text>
-                    </Link>
-                  )}
-                </Flex>
-              )}
-            </Flex>
-          </Section>
-
-          <Section flexDirection="column" width="100%">
-            <Flex flexDirection="column" justifyContent="space-between" height="100%">
-              <Heading fontWeight="semibold" marginBottom="24px" size="sm" textAlign="center">
-                {shownBoard.board?.name
-                  ? `Preview: ${shownBoard.board.name}`
-                  : `Click a board from the "${
-                      isCurrentUser ? 'Your' : 'Their Public'
-                    } Bingo Boards" list to preview it.`}
-              </Heading>
-              <Flex flexDirection="column" height="100%">
-                <Flex
-                  alignItems="center"
-                  backgroundColor={
-                    shownBoard.board?.name ? theme.colors.gray[700] : theme.colors.teal[800]
-                  }
-                  borderRadius="10px"
-                  flexDirection="column"
-                  justifyContent="center"
-                  margin="0 auto"
-                  padding="8px"
-                >
-                  {shownBoard.board !== null ? (
-                    <MiniBingoBoard grid={shownBoard.grid} themeName={shownBoard.board.theme} />
-                  ) : (
-                    <Image height="100px" src={GnomeChild} width="100px" loading="lazy" />
-                  )}
-                </Flex>
-                {shownBoard.board !== null ? (
-                  <Flex
-                    alignItems="center"
-                    gridGap={['16px', '24px']}
-                    justifyContent="center"
-                    marginY="16px"
-                  >
-                    <Button
-                      colorScheme="green"
-                      onClick={() =>
-                        navigateToBoard({ boardId: shownBoard.board.id, asEditor: false })
-                      }
-                    >
-                      View
-                    </Button>
-                    {isCurrentUser && (
-                      <Button
-                        colorScheme="pink"
-                        onClick={() =>
-                          navigateToBoard({ boardId: shownBoard.board.id, asEditor: true })
-                        }
-                      >
-                        Edit
-                      </Button>
-                    )}
-                  </Flex>
-                ) : null}
-              </Flex>
-            </Flex>
-          </Section>
-        </Flex>
-
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
-            <GemTitle gemColor="yellow" size="sm">
-              Gielinor Rush
+            <GemTitle size="sm" textAlign="center" mb={4}>
+              Tools
             </GemTitle>
-            <Flex
-              flexDirection={['column', 'row']}
-              gridGap="16px"
-              alignItems="center"
-              justifyContent="space-around"
-            >
-              {isGielinorRushEnabled(user) ? (
-                <VStack spacing={3} align={['center']}>
-                  <Text fontSize="16px" lineHeight="1.5">
-                    Create and manage your own Gielinor Rush events!
-                  </Text>
-                  <Button
-                    as={Link}
-                    to="/gielinor-rush"
-                    colorScheme="yellow"
-                    leftIcon={<Icon as={MdOutlineMap} />}
-                  >
-                    Go to Gielinor Rush Dashboard
-                  </Button>
-                </VStack>
-              ) : (
-                <VStack spacing={3} align={['center', 'flex-start']}>
-                  <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
-                    Coming Soon
-                  </Badge>
-                  <Text fontSize="16px" lineHeight="1.5">
-                    Something big is brewing in Gielinor... 👀
-                  </Text>
-                  <Text
-                    as={Link}
-                    to="/gielinor-rush"
-                    fontSize="sm"
-                    color={theme.colors.yellow[200]}
-                    _hover={{ textDecoration: 'underline' }}
-                  >
-                    Learn more →
-                  </Text>
-                </VStack>
-              )}
-            </Flex>
+            <SimpleGrid columns={[1, 3]} spacing={4}>
+              <Box
+                as={Link}
+                to="/bingo"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.purple[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.purple[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.purple[300]} mb={1}>
+                  Bingo Boards
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Create and manage your custom bingo boards
+                </Text>
+              </Box>
+              <Box
+                as={Link}
+                to="/gielinor-rush"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.orange[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.orange[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.orange[300]} mb={1}>
+                  Gielinor Rush
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Host team treasure hunt events with GP prize pools
+                </Text>
+              </Box>
+              <Box
+                as={Link}
+                to="/blind-draft"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.pink[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
+                  Blind Draft
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Anonymous player draft rooms for fair team selection
+                </Text>
+              </Box>
+            </SimpleGrid>
           </Section>
         )}
+
+        <Section flexDirection="column" width="100%">
+          <GemTitle size="sm" gemColor="purple" textAlign="center" mb={4}>
+            Discover
+          </GemTitle>
+          <SimpleGrid columns={[1, 2]} spacing={4}>
+            <Box
+              as={Link}
+              to="/boards"
+              bg={theme.colors.teal[800]}
+              borderRadius="lg"
+              border="1px solid"
+              borderColor={theme.colors.teal[600]}
+              p={5}
+              _hover={{ borderColor: theme.colors.purple[400], transform: 'translateY(-2px)' }}
+              transition="all 0.15s"
+            >
+              <Text fontWeight="bold" color={theme.colors.purple[200]} mb={1}>
+                Browse Public Bingo Boards
+              </Text>
+              <Text fontSize="sm" color="gray.400">
+                Explore boards shared by the community
+              </Text>
+            </Box>
+            <Box
+              as={Link}
+              to="/gielinor-rush/active"
+              bg={theme.colors.teal[800]}
+              borderRadius="lg"
+              border="1px solid"
+              borderColor={theme.colors.teal[600]}
+              p={5}
+              _hover={{ borderColor: theme.colors.orange[400], transform: 'translateY(-2px)' }}
+              transition="all 0.15s"
+            >
+              <Text fontWeight="bold" color={theme.colors.orange[200]} mb={1}>
+                Active Gielinor Rush Events
+              </Text>
+              <Text fontSize="sm" color="gray.400">
+                See all live and recent treasure hunt competitions
+              </Text>
+            </Box>
+          </SimpleGrid>
+        </Section>
 
         <MiniStats />
       </Section>
