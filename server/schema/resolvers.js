@@ -5,6 +5,8 @@ const EditorInvitationResolvers = require('./resolvers/EditorInvitation');
 const CalendarResolvers = require('./resolvers/Calendar');
 const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
 const TreasureHuntSubscriptions = require('./resolvers/TreasureHuntSubscriptions');
+const DraftRoomResolvers = require('./resolvers/DraftRoom');
+const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 
@@ -21,6 +23,7 @@ const resolvers = {
     ...UserResolvers.Query,
     ...TreasureHuntResolvers.Query,
     ...SiteStats.Query,
+    ...DraftRoomResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -30,9 +33,11 @@ const resolvers = {
     ...UserResolvers.Mutation,
     ...TreasureHuntResolvers.Mutation,
     ...SiteStats.Mutation,
+    ...DraftRoomResolvers.Mutation,
   },
   Subscription: {
     ...TreasureHuntSubscriptions.Subscription,
+    ...DraftRoomSubscriptions.DraftSubscription,
   },
 
   // type resolvers (field-level resolvers for nested data)
