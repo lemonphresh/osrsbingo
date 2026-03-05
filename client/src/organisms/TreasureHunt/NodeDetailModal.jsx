@@ -297,7 +297,7 @@ export default function NodeDetailModal({
             {shouldShowTutorial && (
               <>
                 <ProgressiveStartTutorial
-                  eventPassword={event.eventPassword}
+                  eventPassword={new Date() >= new Date(event.startDate) ? event.eventPassword : null}
                   isStartNode={isStartNode}
                   nodeId={node.nodeId}
                   colorMode={colorMode}
