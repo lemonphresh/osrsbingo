@@ -50,7 +50,7 @@ function formatCountdown(endDate, now) {
   return `${mins}m left`;
 }
 
-const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) => {
+const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading, myRole }) => {
   const sorted = [...(event.teams || [])].sort(
     (a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0)
   );
@@ -186,6 +186,18 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) 
             <Text fontSize="xs" color="gray.500">
               Starts {formatDisplayDate(event.startDate)}
             </Text>
+          )}
+          {myRole && (
+            <Badge
+              colorScheme={myRole === 'Admin' ? 'orange' : myRole === 'Ref' ? 'blue' : 'gray'}
+              fontSize="xs"
+              px={2}
+              py={0.5}
+              borderRadius="full"
+              ml="auto"
+            >
+              {myRole}
+            </Badge>
           )}
         </HStack>
 
@@ -394,34 +406,16 @@ const TreasureHuntActiveEvents = () => {
             </HStack>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {myEvents.map((event) => (
-                <Box key={event.eventId} position="relative">
-                  <Badge
-                    position="absolute"
-                    top={3}
-                    right={3}
-                    zIndex={1}
-                    colorScheme={
-                      event._myRole === 'Admin'
-                        ? 'orange'
-                        : event._myRole === 'Ref'
-                        ? 'blue'
-                        : 'gray'
-                    }
-                    fontSize="xs"
-                    borderRadius="full"
-                    px={2}
-                  >
-                    {event._myRole}
-                  </Badge>
-                  <EventCard
-                    event={event}
-                    isCompleted={event.status === 'COMPLETED'}
-                    isUpcoming={event.status === 'PUBLIC' && new Date(event.startDate) > now}
-                    now={now}
-                    onClick={() => handleEventClick(event.eventId)}
-                    isLoading={clickedEventId === event.eventId}
-                  />
-                </Box>
+                <EventCard
+                  key={event.eventId}
+                  event={event}
+                  isCompleted={event.status === 'COMPLETED'}
+                  isUpcoming={event.status === 'PUBLIC' && new Date(event.startDate) > now}
+                  now={now}
+                  onClick={() => handleEventClick(event.eventId)}
+                  isLoading={clickedEventId === event.eventId}
+                  myRole={event._myRole}
+                />
               ))}
             </SimpleGrid>
           </Box>
