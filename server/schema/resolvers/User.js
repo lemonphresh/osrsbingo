@@ -231,9 +231,12 @@ module.exports = {
     },
 
     // ✅ SIMPLIFIED: Just fetch users, field resolvers handle editorBoards
-    getUsers: async () => {
+    getUsers: async (_, __, context) => {
+      if (!context.user?.admin) {
+        throw new AuthenticationError('Admin access required');
+      }
       try {
-        return await User.findAll();
+        return await User.findAll({ order: [['createdAt', 'DESC']] });
       } catch (error) {
         logger.error('Error fetching users:', error);
         throw new ApolloError('Failed to fetch users');
