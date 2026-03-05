@@ -611,6 +611,7 @@ export const GET_TREASURE_TEAM = gql`
         discordUsername
         discordAvatar
         username
+        rsn
       }
       currentPot
       keysHeld

@@ -259,7 +259,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
               <AlertIcon />
               <Box flex="1">
                 <AlertTitle fontSize="sm">Why link Discord?</AlertTitle>
-                <AlertDescription fontSize="xs">
+                <AlertDescription fontSize="xs" lineHeight="unset">
                   Link your Discord to use bot commands, participate in Gielinor Rush events, and
                   verify your identity for team actions.
                 </AlertDescription>
@@ -283,7 +283,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
         )}
 
         <Text fontSize="xs" color="gray.300" textAlign="center">
-          We only access your Discord username and ID. We never post on your behalf.
+          We only access your Discord username, avatar and ID. We never post on your behalf.
         </Text>
       </VStack>
     </>
