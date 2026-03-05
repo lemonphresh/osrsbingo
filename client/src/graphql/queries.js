@@ -142,7 +142,10 @@ export const GET_USERS = gql`
       displayName
       username
       rsn
-      permissions
+      discordUserId
+      discordUsername
+      discordAvatar
+      createdAt
     }
   }
 `;
@@ -592,6 +595,33 @@ export const GET_MY_TREASURE_EVENTS = gql`
         teamName
         currentPot
         completedNodes
+      }
+    }
+  }
+`;
+
+export const GET_ASSOCIATED_TREASURE_EVENTS = gql`
+  query GetAssociatedTreasureEvents {
+    getAssociatedTreasureEvents {
+      eventId
+      eventName
+      status
+      startDate
+      endDate
+      creatorId
+      adminIds
+      refIds
+      eventConfig
+      nodes {
+        nodeId
+        nodeType
+      }
+      teams {
+        teamId
+        teamName
+        currentPot
+        completedNodes
+        updatedAt
       }
     }
   }

@@ -20,6 +20,7 @@ const typeDefs = gql`
     permissions: [String]
     token: String
     teams: [String]
+    createdAt: DateTime
     editorBoards: [BingoBoard!]!
   }
 
@@ -586,6 +587,7 @@ const typeDefs = gql`
     getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
     getAllTreasureEvents(userId: ID): [TreasureEvent!]
     getMyTreasureEvents: [TreasureEvent!]
+    getAssociatedTreasureEvents: [TreasureEvent!]!
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]

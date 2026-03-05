@@ -15,11 +15,12 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useMemo, useState, useEffect } from 'react';
-import { GET_ALL_TREASURE_EVENTS } from '../graphql/queries';
+import { GET_ALL_TREASURE_EVENTS, GET_ASSOCIATED_TREASURE_EVENTS } from '../graphql/queries';
 import GemTitle from '../atoms/GemTitle';
 import EternalGem from '../assets/gemoji.png';
 import { formatDisplayDate } from '../utils/dateUtils';
 import usePageTitle from '../hooks/usePageTitle';
+import { useAuth } from '../providers/AuthProvider';
 
 const c = {
   purple: { base: '#7D5FFF' },
@@ -49,7 +50,7 @@ function formatCountdown(endDate, now) {
   return `${mins}m left`;
 }
 
-const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) => {
+const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading, myRole }) => {
   const sorted = [...(event.teams || [])].sort(
     (a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0)
   );
@@ -186,6 +187,18 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) 
               Starts {formatDisplayDate(event.startDate)}
             </Text>
           )}
+          {myRole && (
+            <Badge
+              colorScheme={myRole === 'Admin' ? 'orange' : myRole === 'Ref' ? 'blue' : 'gray'}
+              fontSize="xs"
+              px={2}
+              py={0.5}
+              borderRadius="full"
+              ml="auto"
+            >
+              {myRole}
+            </Badge>
+          )}
         </HStack>
 
         {/* Event name */}
@@ -264,6 +277,7 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) 
 
 const TreasureHuntActiveEvents = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [clickedEventId, setClickedEventId] = useState(null);
   const [now, setNow] = useState(new Date());
 
@@ -276,6 +290,25 @@ const TreasureHuntActiveEvents = () => {
 
   const { data, loading, error } = useQuery(GET_ALL_TREASURE_EVENTS);
   if (error) console.error('[TreasureHuntActiveEvents] query error:', error);
+
+  const { data: assocData } = useQuery(GET_ASSOCIATED_TREASURE_EVENTS, {
+    skip: !user,
+    fetchPolicy: 'cache-and-network',
+  });
+
+  const myEvents = useMemo(() => {
+    if (!user || !assocData?.getAssociatedTreasureEvents) return [];
+    const uid = String(user.id);
+    return assocData.getAssociatedTreasureEvents.map((event) => {
+      let role = 'Participant';
+      if (String(event.creatorId) === uid || event.adminIds?.map(String).includes(uid)) {
+        role = 'Admin';
+      } else if (event.refIds?.map(String).includes(uid)) {
+        role = 'Ref';
+      }
+      return { ...event, _myRole: role };
+    });
+  }, [assocData, user]);
 
   const activeEvents = useMemo(
     () =>
@@ -359,6 +392,34 @@ const TreasureHuntActiveEvents = () => {
             rush ends!
           </Text>
         </VStack>
+
+        {/* My events */}
+        {user && myEvents.length > 0 && (
+          <Box>
+            <HStack mb={4} spacing={3}>
+              <Heading size="sm" color={c.textColor}>
+                Your Events
+              </Heading>
+              <Badge colorScheme="purple" fontSize="xs" borderRadius="full" px={2}>
+                {myEvents.length}
+              </Badge>
+            </HStack>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+              {myEvents.map((event) => (
+                <EventCard
+                  key={event.eventId}
+                  event={event}
+                  isCompleted={event.status === 'COMPLETED'}
+                  isUpcoming={event.status === 'PUBLIC' && new Date(event.startDate) > now}
+                  now={now}
+                  onClick={() => handleEventClick(event.eventId)}
+                  isLoading={clickedEventId === event.eventId}
+                  myRole={event._myRole}
+                />
+              ))}
+            </SimpleGrid>
+          </Box>
+        )}
 
         {/* Active events */}
         <Box>

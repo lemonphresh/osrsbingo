@@ -198,6 +198,52 @@ const TreasureHuntResolvers = {
       });
     },
 
+    getAssociatedTreasureEvents: async (_, __, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const userId = context.user.id;
+      // JWT only carries id+admin — look up discordUserId from DB
+      const dbUser = await User.findByPk(userId, { attributes: ['discordUserId'] });
+      const discordUserId = dbUser?.discordUserId ?? null;
+      logger.info(`[getAssociatedTreasureEvents] userId=${userId} discordUserId=${discordUserId}`);
+
+      // Events where user is creator, admin, or ref (any status — caller filters)
+      const staffEvents = await TreasureEvent.findAll({
+        where: {
+          status: { [Op.in]: ['PUBLIC', 'COMPLETED'] },
+          [Op.or]: [
+            { creatorId: userId },
+            { adminIds: { [Op.contains]: [userId] } },
+            { refIds: { [Op.contains]: [userId] } },
+          ],
+        },
+        order: [['createdAt', 'DESC']],
+      });
+
+      // Events where user is a team member by discordUserId
+      let memberEvents = [];
+      if (discordUserId) {
+        const staffEventIds = new Set(staffEvents.map((e) => e.eventId));
+        const teams = await TreasureTeam.findAll({
+          where: { members: { [Op.contains]: [discordUserId] } },
+          attributes: ['eventId'],
+        });
+        const memberEventIds = [...new Set(teams.map((t) => t.eventId))].filter(
+          (id) => !staffEventIds.has(id)
+        );
+        if (memberEventIds.length > 0) {
+          memberEvents = await TreasureEvent.findAll({
+            where: {
+              eventId: { [Op.in]: memberEventIds },
+              status: { [Op.in]: ['PUBLIC', 'COMPLETED'] },
+            },
+            order: [['createdAt', 'DESC']],
+          });
+        }
+      }
+
+      return [...staffEvents, ...memberEvents];
+    },
+
     getPendingSubmissions: async (_, { eventId }) => {
       logger.info(`[getPendingSubmissions] eventId=${eventId}`);
       return TreasureSubmission.findAll({

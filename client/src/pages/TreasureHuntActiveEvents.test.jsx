@@ -45,6 +45,13 @@ jest.mock('@chakra-ui/react', () => {
   };
 });
 
+// ─── Mock AuthProvider ────────────────────────────────────────────────────────
+// Prevents the AuthProvider → ToastProvider → @chakra-ui/icons import chain.
+// Tests here cover public event display; "Your Events" section is skipped (user=null).
+jest.mock('../providers/AuthProvider', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
 // ─── Mock GemTitle atom ───────────────────────────────────────────────────────
 jest.mock('../atoms/GemTitle', () => ({ children }) => <span>{children}</span>);
 

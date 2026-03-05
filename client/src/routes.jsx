@@ -11,6 +11,7 @@ const Faq = lazy(() => import('./pages/Faq'));
 const UserDetails = lazy(() => import('./pages/UserDetails'));
 const BoardViewAll = lazy(() => import('./pages/BoardViewAll'));
 const BoardViewAllAdmin = lazy(() => import('./pages/BoardViewAllAdmin'));
+const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const BoardDetails = lazy(() => import('./pages/BoardDetails'));
 const BoardCreation = lazy(() => import('./pages/BoardCreation'));
 const Calendar = lazy(() => import('./pages/Calendar'));
@@ -84,6 +85,11 @@ const routes = [
       {
         path: '/boards/admin',
         element: withSuspense(BoardViewAllAdmin),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/admin/users',
+        element: withSuspense(AdminUsersPage),
         errorElement: <ErrorPage />,
       },
       {
