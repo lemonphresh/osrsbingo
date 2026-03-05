@@ -430,16 +430,7 @@ const AdminQuickActionsPanel = ({
                 aria-label="More actions"
               />
               <MenuList bg="gray.700" borderColor="gray.600">
-                <MenuItem
-                  icon={<FaUsers />}
-                  onClick={onNavigateToTeams}
-                  color="white"
-                  bg="gray.700"
-                  _hover={{ bg: 'gray.600' }}
-                >
-                  Manage Teams
-                </MenuItem>
-                <MenuItem
+<MenuItem
                   icon={<FaDiscord />}
                   color="white"
                   bg="gray.700"
