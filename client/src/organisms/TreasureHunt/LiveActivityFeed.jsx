@@ -432,6 +432,7 @@ const LiveActivityFeed = ({
         onTeamActivity(latestActivity);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activities, triggerConfetti, onTeamActivity, getActivityDescription, event?.eventName]);
 
   // Log connection errors

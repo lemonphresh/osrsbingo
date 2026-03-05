@@ -8,12 +8,13 @@ import OsrsMap from '../assets/osrsmap12112025cropped.webp';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
+import BlindDraft from '../assets/blinddraft.png';
 import IronmanIcon from '../assets/ironman.png';
 import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled, isBlindDraftEnabled } from '../config/featureFlags';
 
 const Landing = () => {
   const { user } = useAuth();
@@ -112,8 +113,55 @@ const Landing = () => {
         paddingBottom={['32px', '64px']}
         paddingTop="40px"
       >
-        {/* Two Main Features */}
-        <Flex flexDirection={['column', 'column', 'row']} gap="24px" marginBottom="48px">
+        {/* Main Features */}
+        <Flex flexDirection={['column', 'column', 'column', 'row']} gap="24px" marginBottom="48px">
+          {/* Blind Draft */}
+          {isBlindDraftEnabled(user) && (
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            backgroundColor={theme.colors.teal[900]}
+            borderRadius="12px"
+            padding={['20px', '28px']}
+            borderWidth="2px"
+            borderColor={theme.colors.pink[600]}
+            order={[3, 3, 3, 1]}
+          >
+            <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.pink[300]}>
+                Blind Draft
+              </Text>
+              <Text fontSize="xs" bg={theme.colors.pink[700]} px={2} py={1} borderRadius="full">
+                NEW
+              </Text>
+            </HStack>
+            <Flex justifyContent="center" marginBottom="20px">
+              <Image
+                alt="Blind draft room showing anonymized player cards"
+                backgroundColor={theme.colors.gray[900]}
+                borderRadius="8px"
+                maxHeight="180px"
+                padding="8px"
+                src={BlindDraft}
+                loading="lazy"
+              />
+            </Flex>
+            <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+              Host fair team drafts where captains pick players by stats alone, no names visible
+              until it's over. Supports snake, linear, and auction formats with a real-time timer.
+            </Text>
+            <Link to="/blind-draft" style={{ marginTop: 'auto' }}>
+              <Button
+                width="100%"
+                backgroundColor={theme.colors.pink[600]}
+                _hover={{ backgroundColor: theme.colors.pink[700] }}
+              >
+                Try Blind Draft
+              </Button>
+            </Link>
+          </Box>
+          )}
           {/* Bingo Boards */}
           <Box
             flex="1"
@@ -124,6 +172,7 @@ const Landing = () => {
             padding={['20px', '28px']}
             borderWidth="2px"
             borderColor={theme.colors.purple[400]}
+            order={[1, 1, 1, 2]}
           >
             <Text
               fontSize="xl"
@@ -167,6 +216,7 @@ const Landing = () => {
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
             padding={['20px', '28px']}
+            order={[2, 2, 2, 3]}
             borderWidth="2px"
             borderColor={theme.colors.orange[400]}
           >

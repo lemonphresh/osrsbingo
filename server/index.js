@@ -2,6 +2,8 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const express = require('express');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const { Pool } = require('pg');
 const router = express.Router();
@@ -22,6 +24,7 @@ const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
+const logger = require('./utils/logger');
 
 const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -42,6 +45,7 @@ app.use(
     credentials: true, // allows cookies
   })
 );
+app.use(compression());
 app.use(express.json());
 app.set('trust proxy', 1);
 app.use(
@@ -95,6 +99,31 @@ const pool = new Pool({
   },
 });
 
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+const graphqlLimiter = rateLimit({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 120,                  // 120 requests/min per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+const discordLimiter = rateLimit({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 30,                   // 30 Discord lookups/min per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
+const itemsLimiter = rateLimit({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 60,                   // 60 searches/min per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+
 // Example root endpoint
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -104,7 +133,7 @@ app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/discord', discordRoutes);
 
-app.get('/discuser/:userId', async (req, res) => {
+app.get('/discuser/:userId', discordLimiter, async (req, res) => {
   const { userId } = req.params;
 
   // Validate Discord ID format (17-19 digits)
@@ -152,7 +181,7 @@ app.get('/discuser/:userId', async (req, res) => {
 
     res.json(safeData);
   } catch (error) {
-    console.error('Discord API error:', error);
+    logger.error({ err: error }, 'Discord API error');
     res.status(500).json({ error: 'Failed to fetch user info' });
   }
 });
@@ -161,7 +190,7 @@ app.get('/discuser/:userId', async (req, res) => {
  * POST /api/discord/users/batch
  * Fetches multiple Discord users at once
  */
-app.post('/users/batch', async (req, res) => {
+app.post('/users/batch', discordLimiter, async (req, res) => {
   const { userIds } = req.body;
 
   if (!Array.isArray(userIds) || userIds.length === 0) {
@@ -220,7 +249,7 @@ app.post('/users/batch', async (req, res) => {
   res.json(results);
 });
 
-app.get('/api/items', async (req, res) => {
+app.get('/api/items', itemsLimiter, async (req, res) => {
   const query = req.query.alpha?.trim();
 
   if (!query || query.length < 3) {
@@ -233,23 +262,19 @@ app.get('/api/items', async (req, res) => {
   const key = alpha.trim().toLowerCase();
   const cached = searchCache.get(key);
   if (cached && Date.now() - cached.cachedAt < SEARCH_CACHE_TTL) {
-    console.log(`[/api/items] cache hit query="${key}"`);
+    logger.info({ query: key }, 'items cache hit');
     return res.json(cached.results);
   }
 
-  console.log(`[/api/items] cache miss query="${key}" - fetching...`);
+  logger.info({ query: key }, 'items cache miss');
   const start = Date.now();
   const results = await itemsService.searchItems(alpha);
   const duration = Date.now() - start;
 
   if (duration > 500) {
-    console.warn(
-      `[/api/items] 🐢 slow search (${duration}ms) query="${key}" results=${results.length}`
-    );
+    logger.warn({ query: key, duration, results: results.length }, 'items slow search');
   } else {
-    console.log(
-      `[/api/items] ✅ completed (${duration}ms) query="${key}" results=${results.length}`
-    );
+    logger.info({ query: key, duration, results: results.length }, 'items search completed');
   }
 
   if (results.length > 0) {
@@ -288,9 +313,9 @@ const serverCleanup = useServer(
         try {
           const decoded = jwt.verify(token, SECRET);
           user = { id: decoded.userId, admin: decoded.admin };
-          console.log('🔐 WebSocket authenticated:', user);
+          logger.info({ userId: user.id }, 'WebSocket authenticated');
         } catch (err) {
-          console.error('❌ Invalid WebSocket token');
+          logger.warn('Invalid WebSocket token');
         }
       }
 
@@ -317,17 +342,13 @@ const server = new ApolloServer({
         const decoded = jwt.verify(token, SECRET);
         user = { id: decoded.userId, admin: decoded.admin };
       } catch (err) {
-        console.error('❌ Invalid or expired token');
+        logger.warn('Invalid or expired token');
       }
     }
     return { req, res, user, jwtSecret: SECRET, discordUserId, loaders: createLoaders(models) };
   },
   formatError: (err) => {
-    console.error('❌ GraphQL Error:', {
-      message: err.message,
-      path: err.path,
-      code: err.extensions?.code,
-    });
+    logger.error({ message: err.message, path: err.path, code: err.extensions?.code }, 'GraphQL error');
     return err;
   },
   plugins: [
@@ -349,12 +370,12 @@ const server = new ApolloServer({
           willSendResponse({ operationName }) {
             const duration = Date.now() - start;
             if (duration > 500) {
-              console.warn(`🐢 Slow query: ${operationName || 'anonymous'} took ${duration}ms`);
+              logger.warn({ operation: operationName || 'anonymous', duration }, 'slow GraphQL query');
             }
           },
           didEncounterErrors({ errors }) {
             errors.forEach((err) => {
-              console.error('❌ GraphQL Error:', err.message);
+              logger.error({ err }, 'GraphQL error');
             });
           },
         };
@@ -372,6 +393,10 @@ if (process.env.NODE_ENV !== 'production') {
 app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to the app!' });
 });
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 /*  END setup  */
 
 /*  START auth  */
@@ -386,7 +411,7 @@ router.post('/auth/signup', async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.rows[0].password);
     if (!isMatch) {
-      console.warn(`⚠️ Failed login attempt - wrong password: ${username}`);
+      logger.warn({ username }, 'Failed signup attempt - wrong password');
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
@@ -398,11 +423,11 @@ router.post('/auth/signup', async (req, res) => {
       [username, hashedPassword, rsn]
     );
 
-    console.log(`[/auth/signup] ✅ signup success username=${username}`); // ❌ too early
+    logger.info({ username }, 'signup success');
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'signup error');
     res.status(500).send('Server error');
   }
 });
@@ -418,8 +443,7 @@ router.post('/auth/login', async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, user.rows[0].password);
     if (!isMatch) {
-      console.log(`[/auth/login] ❌ login fail username=${username}`);
-
+      logger.warn({ username }, 'login failed - wrong password');
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
@@ -430,11 +454,11 @@ router.post('/auth/login', async (req, res) => {
       httpOnly: true,
       maxAge: 3 * 24 * 60 * 60 * 1000,
     });
-    console.log(`[/auth/login] ✅ login success username=${username}`);
+    logger.info({ username }, 'login success');
 
     res.json({ msg: 'Login successful', token });
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, 'login error');
     res.status(500).send('Server error');
   }
 });
@@ -445,7 +469,7 @@ if (process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'staging')
   });
 }
 app.use((err, req, res, next) => {
-  console.error('💥 Unhandled error:', err.message);
+  logger.error({ err }, 'Unhandled error');
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -453,13 +477,14 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 // Starting the Apollo server and Express server
 server.start().then(async () => {
+  app.use('/graphql', graphqlLimiter);
   server.applyMiddleware({ app, path: '/graphql', cors: false });
 
   await itemsService.warmCache();
 
   httpServer.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    console.log(`📊 GraphQL UI at http://localhost:${PORT}/graphql`);
-    console.log(`🔗 WebSocket subscriptions at ws://localhost:${PORT}/graphql`);
+    logger.info({ port: PORT }, 'Server running');
+    logger.info({ url: `http://localhost:${PORT}/graphql` }, 'GraphQL UI');
+    logger.info({ url: `ws://localhost:${PORT}/graphql` }, 'WebSocket subscriptions');
   });
 });

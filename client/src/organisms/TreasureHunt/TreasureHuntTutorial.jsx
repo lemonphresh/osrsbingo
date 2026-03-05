@@ -217,12 +217,12 @@ export const TreasureHuntTutorial = ({
 
             <Box>
               <Heading size="sm" mb={3} color={currentColors.textColor}>
-                📋 How to Complete the START Node:
+                📋 How to Complete a Node:
               </Heading>
               <OrderedList spacing={2} fontSize="sm" color={currentColors.textColor} pl={2}>
                 <ListItem>
                   <Text as="span" fontWeight="semibold">
-                    Find the START node
+                    Find the node you'd like to complete
                   </Text>{' '}
                   in your map or available nodes list below
                 </ListItem>
@@ -365,7 +365,7 @@ export const TreasureHuntTutorial = ({
                     p={2}
                     borderRadius="md"
                     justify="space-between"
-                    maxWidth="212px"
+                    maxWidth="234px"
                   >
                     <Code fontSize="md" fontWeight="semibold" letterSpacing="wider">
                       {eventPassword}

@@ -14,6 +14,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const Fuse = require('fuse.js');
+const logger = require('./logger');
 
 // Configuration
 const CONFIG = {
@@ -23,7 +24,7 @@ const CONFIG = {
   ICON_CACHE_TTL_MS: 7 * 24 * 60 * 60 * 1000, // 7 days for icons
   MAX_ICON_CACHE_SIZE: 5000, // Limit icon cache entries
   MAX_CONCURRENT_SCRAPES: 5, // Limit parallel wiki requests
-  MAX_RESULTS: 30,
+  MAX_RESULTS: 20,
   FUSE_OPTIONS: {
     includeScore: true,
     threshold: 0.3,
@@ -85,7 +86,7 @@ async function loadItemsData() {
     return { items: itemsCache.items, fuse: itemsCache.fuseIndex };
   }
 
-  console.log('📦 Fetching OSRS items data (this happens once per 24h)...');
+  logger.info('📦 Fetching OSRS items data (this happens once per 24h)...');
 
   try {
     const response = await axios.get(CONFIG.ITEMS_JSON_URL, {
@@ -111,15 +112,15 @@ async function loadItemsData() {
       lastFetched: now,
     };
 
-    console.log(`✅ Cached ${items.length} OSRS items`);
+    logger.info(`✅ Cached ${items.length} OSRS items`);
 
     return { items, fuse };
   } catch (error) {
-    console.error('❌ Failed to fetch items data:', error.message);
+    logger.error('❌ Failed to fetch items data:', error.message);
 
     // If we have stale data, use it rather than failing
     if (itemsCache.items) {
-      console.log('⚠️ Using stale items cache');
+      logger.warn('⚠️ Using stale items cache');
       return { items: itemsCache.items, fuse: itemsCache.fuseIndex };
     }
 
@@ -245,7 +246,7 @@ async function fetchWikiFallback(searchTerm) {
 
     return fallbackItems.filter(Boolean);
   } catch (error) {
-    console.error('Wiki fallback search failed:', error.message);
+    logger.error('Wiki fallback search failed:', error.message);
     return [];
   }
 }
@@ -265,7 +266,7 @@ async function searchItems(searchQuery) {
 
   const fuseStart = Date.now();
   const fuseResults = fuse.search(query).slice(0, CONFIG.MAX_RESULTS);
-  console.log(
+  logger.info(
     `[searchItems] fuse search (${Date.now() - fuseStart}ms) query="${query}" hits=${
       fuseResults.length
     }`
@@ -306,13 +307,13 @@ async function searchItems(searchQuery) {
     const fuseNames = new Set(validResults.map((r) => r.name.toLowerCase()));
     const newFromWiki = wikiResults.filter((r) => !fuseNames.has(r.name.toLowerCase()));
     validResults = [...validResults, ...newFromWiki].slice(0, CONFIG.MAX_RESULTS);
-    console.log(`[searchItems] supplemented with wiki: ${newFromWiki.length} new results`);
+    logger.info(`[searchItems] supplemented with wiki: ${newFromWiki.length} new results`);
   }
 
-  console.log(
+  logger.info(
     `[searchItems] icon fetches (${Date.now() - fetchStart}ms) static=${validResults.length} wiki=0`
   );
-  console.log(
+  logger.info(
     `[searchItems] ✅ completed (${Date.now() - fuseStart}ms) query="${query}" results=${
       validResults.length
     }`
@@ -327,11 +328,11 @@ async function searchItems(searchQuery) {
  */
 async function warmCache() {
   try {
-    console.log('🔥 Warming items cache...');
+    logger.info('🔥 Warming items cache...');
     await loadItemsData();
-    console.log('✅ Items cache warmed successfully');
+    logger.info('✅ Items cache warmed successfully');
   } catch (error) {
-    console.error('⚠️ Failed to warm cache (will retry on first request):', error.message);
+    logger.error('⚠️ Failed to warm cache (will retry on first request):', error.message);
   }
 }
 
@@ -355,7 +356,7 @@ function getCacheStats() {
 function clearCaches() {
   itemsCache = { items: null, fuseIndex: null, lastFetched: null };
   iconCache.clear();
-  console.log('🗑️ Caches cleared');
+  logger.info('🗑️ Caches cleared');
 }
 
 module.exports = {

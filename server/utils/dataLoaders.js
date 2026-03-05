@@ -2,9 +2,10 @@
 const DataLoader = require('dataloader');
 const { Op } = require('sequelize');
 const { nodeCache } = require('./nodeCache');
+const logger = require('./logger');
 
 const DEBUG = process.env.NODE_ENV !== 'production';
-const log = (msg) => DEBUG && console.log(msg);
+const log = (msg) => DEBUG && logger.info(msg);
 
 const createLoaders = (models) => {
   const {

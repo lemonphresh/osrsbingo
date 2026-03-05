@@ -49,7 +49,7 @@ function formatCountdown(endDate, now) {
   return `${mins}m left`;
 }
 
-const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
+const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) => {
   const sorted = [...(event.teams || [])].sort(
     (a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0)
   );
@@ -58,9 +58,10 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
     Math.round((event.nodes || []).filter((n) => n.nodeType === 'STANDARD').length / 3) +
     (event.nodes || []).filter((n) => n.nodeType === 'INN').length +
     (event.nodes || []).filter((n) => n.nodeType === 'START').length;
-  const countdown = isCompleted ? null : formatCountdown(event.endDate, now);
+  const countdown = isCompleted || isUpcoming ? null : formatCountdown(event.endDate, now);
   const isEndingSoon =
     !isCompleted &&
+    !isUpcoming &&
     new Date(event.endDate) - now > 0 &&
     new Date(event.endDate) - now < 3 * 3600000;
 
@@ -95,6 +96,8 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
         bgGradient={
           isCompleted
             ? 'linear(to-r, teal.600, cyan.500)'
+            : isUpcoming
+            ? 'linear(to-r, purple.700, purple.400)'
             : isEndingSoon
             ? 'linear(to-r, orange.500, yellow.400)'
             : 'linear(to-r, purple.500, cyan.400)'
@@ -137,6 +140,10 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
             <Badge colorScheme="teal" fontSize="xs" px={2} py={0.5} borderRadius="full">
               COMPLETED
             </Badge>
+          ) : isUpcoming ? (
+            <Badge colorScheme="purple" fontSize="xs" px={2} py={0.5} borderRadius="full">
+              UPCOMING
+            </Badge>
           ) : (
             <HStack spacing={1.5}>
               <Box
@@ -172,6 +179,11 @@ const EventCard = ({ event, isCompleted, now, onClick, isLoading }) => {
           {isCompleted && (
             <Text fontSize="xs" color="gray.500">
               Ended {formatDisplayDate(event.endDate)}
+            </Text>
+          )}
+          {isUpcoming && (
+            <Text fontSize="xs" color="gray.500">
+              Starts {formatDisplayDate(event.startDate)}
             </Text>
           )}
         </HStack>
@@ -268,13 +280,21 @@ const TreasureHuntActiveEvents = () => {
   const activeEvents = useMemo(
     () =>
       [...(data?.getAllTreasureEvents || [])]
-        .filter((e) => e.status === 'PUBLIC')
+        .filter((e) => e.status === 'PUBLIC' && new Date(e.startDate) <= now)
         .sort((a, b) => {
           const lastActivity = (e) =>
             Math.max(...(e.teams || []).map((t) => new Date(t.updatedAt || 0).getTime()), 0);
           return lastActivity(b) - lastActivity(a);
         }),
-    [data]
+    [data, now]
+  );
+
+  const upcomingEvents = useMemo(
+    () =>
+      [...(data?.getAllTreasureEvents || [])]
+        .filter((e) => e.status === 'PUBLIC' && new Date(e.startDate) > now)
+        .sort((a, b) => new Date(a.startDate) - new Date(b.startDate)),
+    [data, now]
   );
 
   const completedEvents = useMemo(
@@ -330,7 +350,7 @@ const TreasureHuntActiveEvents = () => {
 
   return (
     <Flex flex="1" flexDirection="column" px={['16px', '24px', '64px']} pt="64px" pb="48px">
-      <Flex maxW="960px" w="100%" mx="auto" flexDirection="column" gap={10}>
+      <Flex maxW="960px" w="100%" mx="auto" flexDirection="column" mb={10} gap={10}>
         {/* Page header */}
         <VStack align="flex-start" spacing={2}>
           <GemTitle gemColor="green">Gielinor Rush</GemTitle>
@@ -386,6 +406,32 @@ const TreasureHuntActiveEvents = () => {
             </SimpleGrid>
           )}
         </Box>
+
+        {/* Upcoming events */}
+        {upcomingEvents.length > 0 && (
+          <Box>
+            <HStack mb={4} spacing={3}>
+              <Heading size="sm" color={c.textColor}>
+                Upcoming Events
+              </Heading>
+              <Badge colorScheme="purple" fontSize="xs" borderRadius="full" px={2}>
+                {upcomingEvents.length}
+              </Badge>
+            </HStack>
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+              {upcomingEvents.map((event) => (
+                <EventCard
+                  key={event.eventId}
+                  event={event}
+                  isUpcoming
+                  now={now}
+                  onClick={() => handleEventClick(event.eventId)}
+                  isLoading={clickedEventId === event.eventId}
+                />
+              ))}
+            </SimpleGrid>
+          </Box>
+        )}
 
         {/* Completed events */}
         {completedEvents.length > 0 && (

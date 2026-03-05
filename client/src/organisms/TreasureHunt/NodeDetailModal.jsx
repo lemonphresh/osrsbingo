@@ -126,7 +126,8 @@ export default function NodeDetailModal({
   currentUser,
   onVisitInn,
   lastCompletedNodeId,
-  event, // Add event prop to access contentSelections
+  event,
+  isPreEvent = false,
 }) {
   const { colors: currentColors, colorMode } = useThemeColors();
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
@@ -188,7 +189,11 @@ export default function NodeDetailModal({
     );
 
   const shouldShowTutorial =
-    !adminMode && !isInnNode && isTeamMember && showTutorial && userHasNeverSubmitted(team, currentUser);
+    !adminMode &&
+    !isInnNode &&
+    isTeamMember &&
+    showTutorial &&
+    userHasNeverSubmitted(team, currentUser);
 
   const formatGP = (gp) => {
     return (gp / 1000000).toFixed(1) + 'M';
@@ -475,7 +480,7 @@ export default function NodeDetailModal({
               </Box>
             )}
 
-            {canApplyBuffs && (
+            {canApplyBuffs && !isPreEvent && (
               <Button
                 colorScheme="purple"
                 size="md"
@@ -490,7 +495,7 @@ export default function NodeDetailModal({
             )}
 
             {node.nodeType === 'INN' &&
-              (canVisitInn ? (
+              (canVisitInn && !isPreEvent ? (
                 <VStack align="center" spacing={1}>
                   <Button
                     colorScheme="green"

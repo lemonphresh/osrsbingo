@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
 const { Op } = require('sequelize');
+const logger = require('../../utils/logger');
 
 module.exports = {
   Mutation: {
@@ -33,7 +34,7 @@ module.exports = {
           token,
         };
       } catch (error) {
-        console.error('Error creating user.');
+        logger.error('Error creating user:', error);
         throw new ApolloError('Failed to create user');
       }
     },
@@ -69,7 +70,7 @@ module.exports = {
 
         return user;
       } catch (error) {
-        console.error('Error linking Discord account:', error);
+        logger.error('Error linking Discord account:', error);
         throw error;
       }
     },
@@ -97,7 +98,7 @@ module.exports = {
 
         return user;
       } catch (error) {
-        console.error('Error unlinking Discord account:', error);
+        logger.error('Error unlinking Discord account:', error);
         throw error;
       }
     },
@@ -122,7 +123,7 @@ module.exports = {
 
         return { user, token };
       } catch (error) {
-        console.error('Error during login:', error);
+        logger.error('Error during login:', error);
         throw new ApolloError('Failed to log in user');
       }
     },
@@ -150,7 +151,7 @@ module.exports = {
 
         return user.toJSON();
       } catch (error) {
-        console.error('Error updating user:', error);
+        logger.error('Error updating user:', error);
         throw new ApolloError('Failed to update user');
       }
     },
@@ -186,7 +187,7 @@ module.exports = {
           message: `User with ID ${id} and their associated bingo boards were deleted successfully.`,
         };
       } catch (error) {
-        console.error('Error deleting user:', error);
+        logger.error('Error deleting user:', error);
         throw new ApolloError('Failed to delete user');
       }
     },
@@ -204,7 +205,7 @@ module.exports = {
 
         return user;
       } catch (error) {
-        console.error('Error fetching user:', error);
+        logger.error('Error fetching user:', error);
         throw new ApolloError('Failed to fetch user');
       }
     },
@@ -224,7 +225,7 @@ module.exports = {
         });
         return user;
       } catch (error) {
-        console.error('Error fetching user by Discord ID:', error);
+        logger.error('Error fetching user by Discord ID:', error);
         throw new ApolloError('Failed to fetch user by Discord ID');
       }
     },
@@ -234,7 +235,7 @@ module.exports = {
       try {
         return await User.findAll();
       } catch (error) {
-        console.error('Error fetching users:', error);
+        logger.error('Error fetching users:', error);
         throw new ApolloError('Failed to fetch users');
       }
     },
@@ -262,7 +263,7 @@ module.exports = {
 
         return users;
       } catch (error) {
-        console.error('Error searching users:', error);
+        logger.error('Error searching users:', error);
         throw new ApolloError('An error occurred while searching for users.');
       }
     },
@@ -295,7 +296,7 @@ module.exports = {
           where: { id: { [Op.in]: ids } },
         });
       } catch (error) {
-        console.error('Error fetching users by IDs:', error);
+        logger.error('Error fetching users by IDs:', error);
         throw new ApolloError('Failed to fetch users by IDs');
       }
     },

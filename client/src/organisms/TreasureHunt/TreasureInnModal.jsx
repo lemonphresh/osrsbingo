@@ -52,6 +52,7 @@ export default function InnModal({
   eventId,
   onPurchaseComplete,
   currentUser,
+  isPreEvent = false,
 }) {
   const { colorMode } = useColorMode();
   const toast = useToast();
@@ -370,7 +371,7 @@ export default function InnModal({
                           <Button
                             colorScheme={hasBuff ? 'purple' : 'green'}
                             size="sm"
-                            isDisabled={isDisabled}
+                            isDisabled={isDisabled || isPreEvent}
                             isLoading={purchasing && selectedReward === reward.reward_id}
                             onClick={() => {
                               setSelectedReward(reward.reward_id);

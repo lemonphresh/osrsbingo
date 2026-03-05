@@ -16,12 +16,15 @@ import {
   StatLabel,
   StatNumber,
   StatGroup,
+  Link as ChakraLink,
   Divider,
   Image,
 } from '@chakra-ui/react';
 import { useThemeColors } from '../../hooks/useThemeColors';
 import { formatDisplayDateTime } from '../../utils/dateUtils';
 import SuccessImg from '../../assets/success.webp';
+import { FaCoffee, FaHeart } from 'react-icons/fa';
+import PleaseEffect from '../../atoms/PleaseEffect';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 const DIFF_LABEL = { 1: 'E', 3: 'M', 5: 'H' };
@@ -117,7 +120,7 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
                 <Th color="gray.300" isNumeric>
                   Nodes
                 </Th>
-                <Th color="gray.300">Breakdown</Th>
+                <Th color="gray.300">Keys</Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -157,53 +160,73 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
         </Box>
       </VStack>
 
-      <VStack>
-        <Text fontSize="sm" color="gray.300">
-          Thanks for participating in the Gielinor Rush! If you had fun, please consider donating to
-          help cover hosting costs and keep the site running.
-        </Text>
+      <Box
+        mt={8}
+        p={5}
+        borderRadius="lg"
+        bg="whiteAlpha.50"
+        borderWidth="1px"
+        borderColor="yellow.600"
+        w="full"
+      >
+        <VStack spacing={4} align="center" textAlign="center">
+          <VStack spacing={1}>
+            <Text fontSize="lg" fontWeight="bold" color="yellow.300">
+              Keep the Rush Alive
+            </Text>
+            <Text fontSize="sm" color="gray.300" maxW="600px">
+              Enjoyed the event? I love building these tools for you gamers to keep the OSRS event
+              dreams alive. Donations help cover server costs so I can pay more attention to
+              building cool stuff, and as a solo dev, every bit counts :3 thank you, love you! -
+              Lemon 💛
+            </Text>
+          </VStack>
 
-        <Box display="flex" gap={4} mt={4} flexWrap="wrap">
-          <Text
-            as="a"
-            href="https://cash.app/$lemonlikesgirls"
-            target="_blank"
-            rel="noopener noreferrer"
-            display="inline-flex"
-            alignItems="center"
-            gap={2}
-            bg="#F4D35E"
-            color="#111"
-            px={5}
-            py={3}
-            borderRadius="8px"
-            fontWeight="600"
-            textDecoration="none"
-          >
-            ❤️ Donate (Cash App)
-          </Text>
-
-          <Text
-            as="a"
-            href="https://ko-fi.com/A667UUO"
-            target="_blank"
-            rel="noopener noreferrer"
-            display="inline-flex"
-            alignItems="center"
-            gap={2}
-            bg="transparent"
-            color={currentColors.white}
-            px={5}
-            py={3}
-            borderRadius="8px"
-            fontWeight="600"
-            textDecoration="none"
-            border="1px solid rgba(255,255,255,0.25)"
-          >
-            ☕ Ko-fi
-          </Text>
-        </Box>
-      </VStack>
+          <Box display="flex" gap={3} flexWrap="wrap" justifyContent="center">
+            <PleaseEffect>
+              <ChakraLink
+                href="https://cash.app/$lemonlikesgirls"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: '#F4D35E',
+                  color: '#1a1a1a',
+                  padding: '14px 28px',
+                  borderRadius: 8,
+                  fontWeight: 600,
+                  textDecoration: 'none',
+                  fontSize: 15,
+                }}
+                target="_blank"
+              >
+                <FaHeart size={18} /> Donate (CashApp)
+              </ChakraLink>
+            </PleaseEffect>
+            <PleaseEffect>
+              <ChakraLink
+                href="https://ko-fi.com/A667UUO"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: 'transparent',
+                  color: 'white',
+                  padding: '14px 28px',
+                  borderRadius: 8,
+                  fontWeight: 500,
+                  textDecoration: 'none',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  fontSize: 15,
+                }}
+                target="_blank"
+              >
+                <FaCoffee size={18} /> Ko-fi
+              </ChakraLink>
+            </PleaseEffect>
+          </Box>
+        </VStack>
+      </Box>
     </Box>
   );
 }

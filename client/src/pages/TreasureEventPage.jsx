@@ -74,6 +74,7 @@ import SubmissionsTab from '../organisms/TreasureHunt/SubmissionsTab';
 import EventSettingsTab from '../organisms/TreasureHunt/EventSettingsTab';
 import AllNodesTab from '../organisms/TreasureHunt/AllNodesTab';
 import AdminLaunchFAQModal from '../organisms/TreasureHunt/AdminLaunchFAQModal';
+import ParticipantSetupModal from '../molecules/TreasureHunt/ParticipantSetupModal';
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const TreasureEventView = () => {
@@ -136,6 +137,11 @@ const TreasureEventView = () => {
     isOpen: isLaunchFAQOpen,
     onOpen: onLaunchFAQOpen,
     onClose: onLaunchFAQClose,
+  } = useDisclosure();
+  const {
+    isOpen: isParticipantSetupOpen,
+    onOpen: onParticipantSetupOpen,
+    onClose: onParticipantSetupClose,
   } = useDisclosure();
 
   const [nodeToComplete, setNodeToComplete] = useState(null);
@@ -377,6 +383,17 @@ const TreasureEventView = () => {
     }
   }, [isEventAdminOrRef, notificationsSupported, notificationsEnabled, onNotifPromptOpen]);
 
+  // participant modal prompt
+  useEffect(() => {
+    if (!event) return;
+    if (event.status !== 'PUBLIC') return;
+    if (isEventAdminOrRef) return;
+    if (user?.discordUserId) return;
+    if (localStorage.getItem(`participantSetup_${eventId}_seen`)) return;
+    const timer = setTimeout(onParticipantSetupOpen, 1200);
+    return () => clearTimeout(timer);
+  }, [event, isEventAdminOrRef, user, eventId, onParticipantSetupOpen]);
+
   // ── Loading / not found ────────────────────────────────────────────────────
   if (eventLoading) {
     return (
@@ -590,26 +607,28 @@ const TreasureEventView = () => {
               >
                 {isEventAdminOrRef && (
                   <Tab ref={submissionsTabRef} whiteSpace="nowrap" color={theme.colors.gray[400]}>
-                    Submissions ({allPendingIncompleteSubmissionsCount} Pending)
-                    {allPendingIncompleteSubmissionsCount > 0 && (
-                      <Box
-                        position="absolute"
-                        top="4px"
-                        right="8px"
-                        w="8px"
-                        h="8px"
-                        bg="tomato"
-                        borderRadius="full"
-                        boxShadow="0 0 0 2px white"
-                        animation="pulse 2s infinite"
-                        sx={{
-                          '@keyframes pulse': {
-                            '0%,100%': { opacity: 1 },
-                            '50%': { opacity: 0.5 },
-                          },
-                        }}
-                      />
-                    )}
+                    <Box position="relative" textAlign="center">
+                      Submissions ({allPendingIncompleteSubmissionsCount} Pending)
+                      {allPendingIncompleteSubmissionsCount > 0 && (
+                        <Box
+                          position="absolute"
+                          top="-2px"
+                          right="-12px"
+                          w="8px"
+                          h="8px"
+                          bg="tomato"
+                          borderRadius="full"
+                          boxShadow="0 0 0 2px white"
+                          animation="pulse 2s infinite"
+                          sx={{
+                            '@keyframes pulse': {
+                              '0%,100%': { opacity: 1 },
+                              '50%': { opacity: 0.5 },
+                            },
+                          }}
+                        />
+                      )}
+                    </Box>
                   </Tab>
                 )}
                 {isEventAdmin && (
@@ -821,6 +840,12 @@ const TreasureEventView = () => {
         onClose={onLaunchFAQClose}
         currentColors={currentColors}
         colorMode={colorMode}
+      />
+      <ParticipantSetupModal
+        isOpen={isParticipantSetupOpen}
+        onClose={onParticipantSetupClose}
+        user={user}
+        eventId={eventId}
       />
 
       {/* One-time notification prompt for admins/refs */}
