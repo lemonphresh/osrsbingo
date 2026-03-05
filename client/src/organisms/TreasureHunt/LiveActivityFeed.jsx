@@ -15,7 +15,6 @@ import {
 import { CheckCircleIcon, TimeIcon, StarIcon } from '@chakra-ui/icons';
 import { FaCrown, FaFire, FaTrophy, FaCoins } from 'react-icons/fa';
 import { useActivityFeed } from '../../hooks/useActivityFeed';
-import DevTestPanel from './DevTestPanel';
 import { useToastContext } from '../../providers/ToastProvider';
 
 const playNotificationSound = () => {
@@ -455,7 +454,6 @@ const LiveActivityFeed = ({
   return (
     <>
       <Card bg={currentColors.cardBg} className={className}>
-        <DevTestPanel />
         <CardBody>
           <VStack align="stretch" h="100%" spacing={4}>
             {/* Header */}

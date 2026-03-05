@@ -44,7 +44,8 @@ const EventHeroStrip = ({ event, currentColors, isEventAdmin, onEditEventOpen, s
           value: event.eventId,
           toastTitle: 'Event ID Copied!',
         },
-        ...(event.eventPassword
+        ...(event.eventPassword &&
+        (isEventAdmin || new Date() >= new Date(event.startDate))
           ? [
               {
                 label: `Password: ${event.eventPassword}`,

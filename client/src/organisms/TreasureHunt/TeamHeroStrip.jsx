@@ -65,7 +65,7 @@ const TeamHeroStrip = ({
           <Icon as={CopyIcon} boxSize={3} color={currentColors.orange} />
         </HStack>
       </Tooltip>
-      {event.eventPassword && (
+      {event.eventPassword && new Date() >= new Date(event.startDate) && (
         <Tooltip label="Click to copy Event Password" hasArrow>
           <HStack
             spacing={2}

@@ -52,7 +52,6 @@ import TeamAccessOverlay from '../organisms/TreasureHunt/TeamAccessOverlay';
 import EnhancedTeamStats from '../organisms/TreasureHunt/EnhancedTeamStats';
 import { useThemeColors } from '../hooks/useThemeColors';
 import useSubmissionCelebrations from '../hooks/useSubmissionCelebrations';
-import DevTestPanel from '../organisms/TreasureHunt/DevTestPanel';
 import { unlockAudio } from '../utils/celebrationUtils';
 import usePageTitle from '../hooks/usePageTitle';
 import DiscordLinkBanner from '../molecules/TreasureHunt/DiscordLinkBanner';
@@ -411,6 +410,7 @@ const TreasureTeamView = () => {
   // Show event password reminder once per event for eligible team members
   useEffect(() => {
     if (!user || !user.discordUserId || !team || !event?.eventPassword || isAdmin) return;
+    if (new Date() < new Date(event.startDate)) return;
     const isTeamMember = team.members?.some(
       (m) => m.discordUserId?.toString() === user.discordUserId?.toString()
     );
@@ -625,7 +625,7 @@ const TreasureTeamView = () => {
           {/* ── TUTORIAL (first-timers only) ── */}
           {!adminMode && (
             <TreasureHuntTutorial
-              eventPassword={event.eventPassword}
+              eventPassword={new Date() >= new Date(event.startDate) ? event.eventPassword : null}
               colorMode={colorMode}
               compact={team.completedNodes?.length === 0}
               eventId={eventId}
@@ -743,11 +743,6 @@ const TreasureTeamView = () => {
           />
         </VStack>
       </Section>
-
-      {/* Dev panel */}
-      {isAdmin && process.env.NODE_ENV === 'development' && (
-        <DevTestPanel eventId={eventId} teamId={teamId} onSuccess={refetchTeam} />
-      )}
 
       {/* ── MODALS ── */}
       <NodeDetailModal
