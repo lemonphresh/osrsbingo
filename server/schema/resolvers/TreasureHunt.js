@@ -19,7 +19,7 @@ const {
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
-const { verifyGuild } = require('../../../bot/utils/verify');
+const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
 const { OBJECTIVE_TYPES } = require('../../../client/src/utils/treasureHuntHelpers');
 const logger = require('../../utils/logger');
@@ -270,6 +270,11 @@ const TreasureHuntResolvers = {
     verifyDiscordGuild: async (_, { guildId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
       return await verifyGuild(guildId);
+    },
+
+    checkDiscordChannels: async (_, { guildId, eventId, teamIds }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      return await checkEventChannels(guildId, eventId, teamIds);
     },
   },
 

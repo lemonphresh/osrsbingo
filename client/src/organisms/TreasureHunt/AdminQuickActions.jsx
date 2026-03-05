@@ -1,4 +1,6 @@
 import React, { useState, useMemo } from 'react';
+import { useLazyQuery } from '@apollo/client';
+import { CHECK_DISCORD_CHANNELS } from '../../graphql/queries';
 import {
   Box,
   VStack,
@@ -6,6 +8,7 @@ import {
   Text,
   Icon,
   IconButton,
+  Button,
   Badge,
   Collapse,
   Tooltip,
@@ -15,6 +18,15 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  useClipboard,
+  Avatar,
 } from '@chakra-ui/react';
 import {
   ChevronUpIcon,
@@ -23,6 +35,7 @@ import {
   ViewIcon,
   CheckIcon,
   CloseIcon,
+  CopyIcon,
 } from '@chakra-ui/icons';
 import {
   FaCog,
@@ -34,7 +47,27 @@ import {
   FaDiscord,
   FaEyeSlash,
   FaQuestionCircle,
+  FaUserCheck,
+  FaUserTimes,
 } from 'react-icons/fa';
+
+// Copy button as its own component so useClipboard can be called per-item
+const CopyIdButton = ({ id }) => {
+  const { onCopy, hasCopied } = useClipboard(id);
+  return (
+    <Tooltip label={hasCopied ? 'Copied!' : 'Copy Discord ID'} hasArrow placement="top">
+      <IconButton
+        size="xs"
+        icon={hasCopied ? <CheckIcon /> : <CopyIcon />}
+        onClick={onCopy}
+        variant="ghost"
+        color={hasCopied ? 'green.400' : 'gray.500'}
+        _hover={{ color: 'white' }}
+        aria-label="Copy Discord ID"
+      />
+    </Tooltip>
+  );
+};
 
 const AdminQuickActionsPanel = ({
   event,
@@ -49,6 +82,22 @@ const AdminQuickActionsPanel = ({
 }) => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const { isOpen: isUnverifiedOpen, onOpen: onUnverifiedOpen, onClose: onUnverifiedClose } = useDisclosure();
+  const { isOpen: isChannelCheckOpen, onOpen: onChannelCheckOpen, onClose: onChannelCheckClose } = useDisclosure();
+
+  const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
+    CHECK_DISCORD_CHANNELS,
+    { fetchPolicy: 'network-only' },
+  );
+
+  const handleOpenChannelCheck = () => {
+    const guildId = event?.discordConfig?.guildId;
+    const teamIds = teams.map((t) => t.teamId);
+    if (guildId && teamIds.length > 0) {
+      checkChannels({ variables: { guildId, eventId: event.eventId, teamIds } });
+    }
+    onChannelCheckOpen();
+  };
 
   const stats = useMemo(() => {
     if (!isEventAdmin || !event || event.status === 'DRAFT') {
@@ -71,6 +120,18 @@ const AdminQuickActionsPanel = ({
     const leadingTeam = [...teams].sort((a, b) => (b.currentPot || 0) - (a.currentPot || 0))[0];
     const teamsWithoutMembers = teams.filter((t) => !t.members || t.members.length === 0);
 
+    const allMembers = teams.flatMap((t) => t.members || []);
+    const verifiedMembers = allMembers.filter((m) => m.username);
+    const unverifiedMembers = allMembers.filter((m) => !m.username);
+
+    const unverifiedByTeam = teams
+      .map((t) => ({
+        teamId: t.teamId,
+        teamName: t.teamName,
+        members: (t.members || []).filter((m) => !m.username),
+      }))
+      .filter((t) => t.members.length > 0);
+
     return {
       pending: pendingSubmissions.length,
       approved: approvedSubmissions.length,
@@ -81,8 +142,18 @@ const AdminQuickActionsPanel = ({
       totalTeams: teams.length,
       leadingTeam,
       teamsWithoutMembers: teamsWithoutMembers.length,
+      verified: verifiedMembers.length,
+      unverified: unverifiedMembers.length,
+      totalMembers: allMembers.length,
+      unverifiedByTeam,
     };
   }, [event, isEventAdmin, submissions, teams]);
+
+  const allMentions = (stats.unverifiedByTeam || [])
+    .flatMap((t) => t.members)
+    .map((m) => `<@${m.discordUserId}>`)
+    .join(' ');
+  const { onCopy: onCopyAll, hasCopied: hasCopiedAll } = useClipboard(allMentions);
 
   if (!isEventAdmin || !event || event.status === 'DRAFT') {
     return null;
@@ -119,6 +190,7 @@ const AdminQuickActionsPanel = ({
   );
 
   return (
+    <>
     <Box
       position="fixed"
       bottom={4}
@@ -246,6 +318,33 @@ const AdminQuickActionsPanel = ({
                 </HStack>
               </Box>
 
+              {/* Member verification */}
+              {stats.totalMembers > 0 && (
+                <Box p={2} bg="gray.700" borderRadius="md">
+                  <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={2}>
+                    MEMBER VERIFICATION
+                  </Text>
+                  <HStack justify="space-between" fontSize="xs">
+                    <HStack>
+                      <Icon as={FaUserCheck} color="green.400" boxSize={3} />
+                      <Text color="white">Verified (site account)</Text>
+                    </HStack>
+                    <Text color="green.400" fontWeight="semibold">
+                      {stats.verified}
+                    </Text>
+                  </HStack>
+                  <HStack justify="space-between" fontSize="xs" mt={1}>
+                    <HStack>
+                      <Icon as={FaUserTimes} color="yellow.400" boxSize={3} />
+                      <Text color="white">Unverified (Discord only)</Text>
+                    </HStack>
+                    <Text color="yellow.400" fontWeight="semibold">
+                      {stats.unverified}
+                    </Text>
+                  </HStack>
+                </Box>
+              )}
+
               {/* Leading team */}
               {stats.leadingTeam && (
                 <Box p={2} bg="gray.700" borderRadius="md">
@@ -331,16 +430,7 @@ const AdminQuickActionsPanel = ({
                 aria-label="More actions"
               />
               <MenuList bg="gray.700" borderColor="gray.600">
-                <MenuItem
-                  icon={<FaUsers />}
-                  onClick={onNavigateToTeams}
-                  color="white"
-                  bg="gray.700"
-                  _hover={{ bg: 'gray.600' }}
-                >
-                  Manage Teams
-                </MenuItem>
-                <MenuItem
+<MenuItem
                   icon={<FaDiscord />}
                   color="white"
                   bg="gray.700"
@@ -358,6 +448,28 @@ const AdminQuickActionsPanel = ({
                 >
                   Event Settings
                 </MenuItem>
+                {stats.unverified > 0 && (
+                  <MenuItem
+                    icon={<FaUserTimes />}
+                    color="yellow.300"
+                    bg="gray.700"
+                    onClick={onUnverifiedOpen}
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    Unverified Members ({stats.unverified})
+                  </MenuItem>
+                )}
+                {event?.discordConfig?.guildId && (
+                  <MenuItem
+                    icon={<FaDiscord />}
+                    color="white"
+                    bg="gray.700"
+                    onClick={handleOpenChannelCheck}
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    Check Discord Channels
+                  </MenuItem>
+                )}
                 {onOpenLaunchFAQ && (
                   <MenuItem
                     icon={<FaQuestionCircle />}
@@ -393,6 +505,229 @@ const AdminQuickActionsPanel = ({
         </HStack>
       )}
     </Box>
+
+      {/* Unverified Members Modal */}
+      <Modal isOpen={isUnverifiedOpen} onClose={onUnverifiedClose} scrollBehavior="inside" size="md">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaUserTimes} color="yellow.400" />
+              <Text>Unverified Members</Text>
+              <Badge colorScheme="yellow" variant="solid">{stats.unverified}</Badge>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              These players haven't linked a site account. They won't see team progress on the site.
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack align="stretch" spacing={4}>
+              <Box p={3} bg="gray.700" borderRadius="md">
+                <Text fontSize="xs" color="gray.400" mb={2}>
+                  Paste into Discord to ping everyone at once:
+                </Text>
+                <HStack>
+                  <Text
+                    fontSize="xs"
+                    fontFamily="mono"
+                    color="gray.200"
+                    flex={1}
+                    noOfLines={2}
+                    wordBreak="break-all"
+                  >
+                    {allMentions}
+                  </Text>
+                  <Button
+                    size="xs"
+                    leftIcon={hasCopiedAll ? <CheckIcon /> : <CopyIcon />}
+                    colorScheme={hasCopiedAll ? 'green' : 'yellow'}
+                    variant="solid"
+                    onClick={onCopyAll}
+                    flexShrink={0}
+                  >
+                    {hasCopiedAll ? 'Copied!' : 'Copy All'}
+                  </Button>
+                </HStack>
+              </Box>
+              {(stats.unverifiedByTeam || []).map((team) => (
+                <Box key={team.teamId}>
+                  <HStack mb={2}>
+                    <Icon as={FaUsers} color="gray.400" boxSize={3} />
+                    <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide">
+                      {team.teamName}
+                    </Text>
+                    <Badge colorScheme="yellow" fontSize="xs" variant="subtle">{team.members.length}</Badge>
+                  </HStack>
+                  <VStack align="stretch" spacing={1}>
+                    {team.members.map((m) => (
+                      <HStack
+                        key={m.discordUserId}
+                        p={2}
+                        bg="gray.700"
+                        borderRadius="md"
+                        justify="space-between"
+                      >
+                        <HStack spacing={2}>
+                          <Avatar
+                            size="xs"
+                            name={m.discordUsername || m.discordUserId}
+                            src={m.discordAvatar
+                              ? `https://cdn.discordapp.com/avatars/${m.discordUserId}/${m.discordAvatar}.png`
+                              : undefined}
+                            bg="gray.600"
+                          />
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="sm" fontWeight="medium">
+                              {m.discordUsername || 'Unknown'}
+                            </Text>
+                            <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                              {m.discordUserId}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                        <CopyIdButton id={m.discordUserId} />
+                      </HStack>
+                    ))}
+                  </VStack>
+                </Box>
+              ))}
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Discord Channel Check Modal */}
+      <Modal isOpen={isChannelCheckOpen} onClose={onChannelCheckClose} scrollBehavior="inside" size="lg">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaDiscord} color="blue.400" />
+              <Text>Discord Channel Check</Text>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              Channels in this guild whose topic contains the event ID, and which team IDs they cover.
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {channelCheckLoading ? (
+              <VStack py={6} spacing={2}>
+                <Icon as={FaDiscord} boxSize={8} color="blue.400" />
+                <Text color="gray.400" fontSize="sm">Querying Discord…</Text>
+              </VStack>
+            ) : !channelCheckData ? (
+              <Text color="gray.500" fontSize="sm">No data yet.</Text>
+            ) : !channelCheckData.checkDiscordChannels.success ? (
+              <Box p={3} bg="red.900" borderRadius="md" borderLeft="3px solid" borderLeftColor="red.400">
+                <Text fontSize="sm" color="red.200">
+                  {channelCheckData.checkDiscordChannels.error || 'Unknown error'}
+                </Text>
+              </Box>
+            ) : (
+              <VStack align="stretch" spacing={4}>
+                {/* Summary */}
+                <HStack spacing={3}>
+                  <Badge colorScheme="blue" fontSize="sm" px={2} py={1}>
+                    {channelCheckData.checkDiscordChannels.eventChannels?.length ?? 0} channels found
+                  </Badge>
+                  {channelCheckData.checkDiscordChannels.coveredTeamIds?.length > 0 && (
+                    <Badge colorScheme="green" fontSize="sm" px={2} py={1}>
+                      {channelCheckData.checkDiscordChannels.coveredTeamIds.length} teams covered
+                    </Badge>
+                  )}
+                  {channelCheckData.checkDiscordChannels.missingTeamIds?.length > 0 && (
+                    <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
+                      {channelCheckData.checkDiscordChannels.missingTeamIds.length} teams missing
+                    </Badge>
+                  )}
+                </HStack>
+
+                {/* Missing teams warning */}
+                {channelCheckData.checkDiscordChannels.missingTeamIds?.length > 0 && (
+                  <Box p={3} bg="orange.900" borderRadius="md" borderLeft="3px solid" borderLeftColor="orange.400">
+                    <Text fontSize="xs" fontWeight="semibold" color="orange.300" mb={1}>
+                      No channel found for these team IDs:
+                    </Text>
+                    <VStack align="start" spacing={1}>
+                      {channelCheckData.checkDiscordChannels.missingTeamIds.map((teamId) => {
+                        const team = teams.find((t) => t.teamId === teamId);
+                        return (
+                          <HStack key={teamId} spacing={2}>
+                            <Icon as={FaExclamationTriangle} color="orange.400" boxSize={3} />
+                            <Text fontSize="xs" color="white" fontWeight="medium">
+                              {team?.teamName ?? teamId}
+                            </Text>
+                            <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                              {teamId}
+                            </Text>
+                          </HStack>
+                        );
+                      })}
+                    </VStack>
+                  </Box>
+                )}
+
+                {/* Channel list */}
+                {channelCheckData.checkDiscordChannels.eventChannels?.length === 0 ? (
+                  <Box p={3} bg="gray.700" borderRadius="md">
+                    <Text fontSize="sm" color="gray.400">
+                      No channels found with the event ID in their topic.
+                    </Text>
+                  </Box>
+                ) : (
+                  <VStack align="stretch" spacing={2}>
+                    <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide">
+                      Channels
+                    </Text>
+                    {channelCheckData.checkDiscordChannels.eventChannels.map((ch) => {
+                      const covered = ch.matchedTeamIds?.length > 0;
+                      return (
+                        <Box
+                          key={ch.channelId}
+                          p={3}
+                          bg="gray.700"
+                          borderRadius="md"
+                          borderLeft="3px solid"
+                          borderLeftColor={covered ? 'green.400' : 'gray.500'}
+                        >
+                          <HStack justify="space-between" mb={1}>
+                            <HStack spacing={2}>
+                              <Icon as={FaDiscord} color="blue.400" boxSize={3} />
+                              <Text fontSize="sm" fontWeight="semibold">#{ch.channelName}</Text>
+                            </HStack>
+                            {covered ? (
+                              <Badge colorScheme="green" fontSize="xs">
+                                {ch.matchedTeamIds.length} team{ch.matchedTeamIds.length !== 1 ? 's' : ''}
+                              </Badge>
+                            ) : (
+                              <Badge colorScheme="gray" fontSize="xs">no teams</Badge>
+                            )}
+                          </HStack>
+                          {ch.matchedTeamIds?.length > 0 && (
+                            <HStack spacing={1} flexWrap="wrap" mt={1}>
+                              {ch.matchedTeamIds.map((teamId) => {
+                                const team = teams.find((t) => t.teamId === teamId);
+                                return (
+                                  <Badge key={teamId} colorScheme="blue" fontSize="xs" variant="subtle">
+                                    {team?.teamName ?? teamId}
+                                  </Badge>
+                                );
+                              })}
+                            </HStack>
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </VStack>
+                )}
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
   );
 };
 

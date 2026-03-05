@@ -92,13 +92,6 @@ const DiscordMemberInput = ({
   };
   const c = colors[colorMode];
 
-  // When value changes and it's a valid Discord ID, fetch info
-  useEffect(() => {
-    if (value && isValidDiscordId(value)) {
-      fetchDiscordUser(value);
-    }
-  }, [value]);
-
   useEffect(() => {
     if (resolvedUser?.discordUserId) {
       setDiscordUserInfo({

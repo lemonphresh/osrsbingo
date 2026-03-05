@@ -311,6 +311,21 @@ const typeDefs = gql`
     guildId: String
   }
 
+  type DiscordChannelInfo {
+    channelId: String!
+    channelName: String!
+    topic: String
+    matchedTeamIds: [String!]!
+  }
+
+  type DiscordChannelCheckResult {
+    success: Boolean!
+    error: String
+    eventChannels: [DiscordChannelInfo!]
+    missingTeamIds: [String!]
+    coveredTeamIds: [String!]
+  }
+
   # ============================================================
   # GIELINOR RUSH: TEAMS
   # ============================================================
@@ -576,6 +591,7 @@ const typeDefs = gql`
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
+    checkDiscordChannels(guildId: String!, eventId: ID!, teamIds: [String!]!): DiscordChannelCheckResult!
 
     # --- Analytics ---
     getVisitCount: Int!
