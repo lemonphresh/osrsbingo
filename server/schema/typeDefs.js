@@ -320,6 +320,7 @@ const typeDefs = gql`
     discordUsername: String
     discordAvatar: String
     username: String
+    rsn: String
   }
 
   type TreasureTeam {

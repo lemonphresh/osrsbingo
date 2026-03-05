@@ -111,7 +111,7 @@ const fieldResolvers = {
 
       const users = await User.findAll({
         where: { discordUserId: team.members },
-        attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username'],
+        attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username', 'rsn'],
       });
 
       const userMap = new Map(users.map((u) => [u.discordUserId, u]));
@@ -125,6 +125,7 @@ const fieldResolvers = {
               discordUsername: user.discordUsername,
               discordAvatar: user.discordAvatar,
               username: user.username,
+              rsn: user.rsn ?? null,
             };
           }
 
