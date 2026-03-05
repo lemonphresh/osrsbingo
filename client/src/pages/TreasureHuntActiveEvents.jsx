@@ -53,7 +53,7 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading }) 
   const sorted = [...(event.teams || [])].sort(
     (a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0)
   );
-  const totalGP = Number(event.derivedValues?.max_reward_per_team || 0);
+  const totalGP = Number(event.eventConfig?.prize_pool_total || 0);
   const totalNodes =
     Math.round((event.nodes || []).filter((n) => n.nodeType === 'STANDARD').length / 3) +
     (event.nodes || []).filter((n) => n.nodeType === 'INN').length +
