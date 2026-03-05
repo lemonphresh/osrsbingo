@@ -560,6 +560,7 @@ export const GET_ALL_TREASURE_EVENTS = gql`
       updatedAt
       adminIds
       derivedValues
+      eventConfig
       nodes {
         nodeId
         nodeType
