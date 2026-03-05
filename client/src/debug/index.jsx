@@ -13,6 +13,7 @@ import PlayerSubmissionsPanelStories from './stories/PlayerSubmissionsPanel.stor
 import AvailableTasksStripStories from './stories/AvailableTasksStrip.stories';
 import EventSummaryPanelStories from './stories/EventSummaryPanel.stories';
 import ParticipantSetupModalStories from './stories/ParticipantSetupModal.stories';
+import EventPasswordReminderStories from './stories/EventPasswordReminder.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -96,6 +97,13 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 2,
     component: ParticipantSetupModalStories,
+  },
+  {
+    id: 'event-password-reminder',
+    label: 'EventPasswordReminder',
+    category: 'Treasure Hunt',
+    scenarioCount: 2,
+    component: EventPasswordReminderStories,
   },
 ];
 

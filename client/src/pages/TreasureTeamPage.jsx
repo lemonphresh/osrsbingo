@@ -13,6 +13,14 @@ import {
   useToast,
   Icon,
   SimpleGrid,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Code,
 } from '@chakra-ui/react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
@@ -80,6 +88,11 @@ const TreasureTeamView = () => {
     isOpen: isBuffListOpen,
     onOpen: onBuffListOpen,
     onClose: onBuffListClose,
+  } = useDisclosure();
+  const {
+    isOpen: isPasswordReminderOpen,
+    onOpen: onPasswordReminderOpen,
+    onClose: onPasswordReminderClose,
   } = useDisclosure();
 
   const {
@@ -158,9 +171,7 @@ const TreasureTeamView = () => {
 
   const accessCheck = checkTeamAccess();
   const isPreEvent =
-    event?.status === 'PUBLIC' &&
-    event?.startDate &&
-    new Date() < new Date(event.startDate);
+    event?.status === 'PUBLIC' && event?.startDate && new Date() < new Date(event.startDate);
   const formatGP = (gp) => (gp / 1000000).toFixed(1) + 'M';
 
   const getNodeStatus = (node) => {
@@ -396,6 +407,18 @@ const TreasureTeamView = () => {
     document.addEventListener('visibilitychange', onVisible);
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [refetchTeam]);
+
+  // Show event password reminder once per event for eligible team members
+  useEffect(() => {
+    if (!user || !user.discordUserId || !team || !event?.eventPassword || isAdmin) return;
+    const isTeamMember = team.members?.some(
+      (m) => m.discordUserId?.toString() === user.discordUserId?.toString()
+    );
+    if (!isTeamMember) return;
+    const key = `gr_pw_reminder_dismissed_${eventId}`;
+    if (localStorage.getItem(key)) return;
+    onPasswordReminderOpen();
+  }, [user, team, event, isAdmin, eventId, onPasswordReminderOpen]);
 
   useEffect(() => {
     const unlock = () => {
@@ -792,6 +815,57 @@ const TreasureTeamView = () => {
         teamName={team.teamName}
         userDiscordId={user?.discordUserId}
       />
+
+      <Modal isOpen={isPasswordReminderOpen} onClose={onPasswordReminderClose} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" borderColor="orange.500" borderWidth="1px">
+          <ModalHeader color="orange.300">📸 Set Your Event Password</ModalHeader>
+          <ModalBody>
+            <VStack spacing={3} align="stretch">
+              <Text fontSize="sm" color="gray.300">
+                Your submission screenshots must show this event password. Configure it in the{' '}
+                <strong>Wise Old Man</strong> RuneLite plugin (or similar overlay) so it appears in
+                every screenshot you submit.
+              </Text>
+              <Box
+                bg="gray.900"
+                borderRadius="md"
+                p={3}
+                borderLeft="3px solid"
+                borderLeftColor="orange.400"
+              >
+                <Text fontSize="xs" color="gray.500" mb={1}>
+                  Event password
+                </Text>
+                <Code
+                  fontSize="lg"
+                  fontWeight="semibold"
+                  letterSpacing="wider"
+                  bg="transparent"
+                  color="orange.200"
+                >
+                  {event?.eventPassword}
+                </Code>
+              </Box>
+              <Text fontSize="xs" color="gray.500">
+                Screenshots without the password visible will be rejected. This reminder won't show
+                again after you dismiss it.
+              </Text>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="orange"
+              onClick={() => {
+                localStorage.setItem(`gr_pw_reminder_dismissed_${eventId}`, '1');
+                onPasswordReminderClose();
+              }}
+            >
+              Got it!
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Flex>
   );
 };
