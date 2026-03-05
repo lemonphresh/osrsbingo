@@ -726,3 +726,25 @@ export const GET_SITE_STATS = gql`
     }
   }
 `;
+
+
+// ============================================================
+// GIELINOR RUSH: DISCORD
+// ============================================================
+
+export const CHECK_DISCORD_CHANNELS = gql`
+  query CheckDiscordChannels($guildId: String!, $eventId: ID!, $teamIds: [String!]!) {
+    checkDiscordChannels(guildId: $guildId, eventId: $eventId, teamIds: $teamIds) {
+      success
+      error
+      eventChannels {
+        channelId
+        channelName
+        topic
+        matchedTeamIds
+      }
+      missingTeamIds
+      coveredTeamIds
+    }
+  }
+`;
