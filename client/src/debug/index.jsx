@@ -14,6 +14,7 @@ import AvailableTasksStripStories from './stories/AvailableTasksStrip.stories';
 import EventSummaryPanelStories from './stories/EventSummaryPanel.stories';
 import ParticipantSetupModalStories from './stories/ParticipantSetupModal.stories';
 import EventPasswordReminderStories from './stories/EventPasswordReminder.stories';
+import AdminQuickActionsStories from './stories/AdminQuickActions.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -104,6 +105,13 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 2,
     component: EventPasswordReminderStories,
+  },
+  {
+    id: 'admin-quick-actions',
+    label: 'AdminQuickActionsPanel',
+    category: 'Treasure Hunt',
+    scenarioCount: 5,
+    component: AdminQuickActionsStories,
   },
 ];
 
