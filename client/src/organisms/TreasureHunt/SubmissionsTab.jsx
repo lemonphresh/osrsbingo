@@ -17,6 +17,7 @@ import {
 import { CheckIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import NodeNoteEditor from './NodeNoteEditor';
+import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import theme from '../../theme';
 
 const SubmissionsTab = ({
@@ -222,6 +223,17 @@ const SubmissionsTab = ({
                         )}
                       </Box>
                     )}
+
+                    {node?.objective?.type === 'item_collection' && (() => {
+                      const drops = getAcceptableDropsForNode(node.objective);
+                      return drops?.length > 0 ? (
+                        <AcceptableDropsList
+                          drops={drops}
+                          colorMode={colorMode}
+                          currentColors={currentColors}
+                        />
+                      ) : null;
+                    })()}
 
                     {isCompleted && (
                       <Box

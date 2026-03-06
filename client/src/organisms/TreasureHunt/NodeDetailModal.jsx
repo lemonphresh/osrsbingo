@@ -18,8 +18,6 @@ import {
   IconButton,
   Code,
   Icon,
-  Wrap,
-  WrapItem,
   Alert,
   AlertIcon,
   AlertTitle,
@@ -31,87 +29,11 @@ import { CheckIcon, CloseIcon, CopyIcon } from '@chakra-ui/icons';
 import ProgressiveStartTutorial from './ProgressiveStartTutorial';
 import { FaDiscord } from 'react-icons/fa';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 import { useMemo } from 'react';
 import { userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 import { useToastContext } from '../../providers/ToastProvider';
+import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 
-// Helper to get all acceptable drops for a boss/raid
-function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
-  const sourceKey = `${sourceType}:${sourceId}`;
-
-  return Object.values(COLLECTIBLE_ITEMS).filter((item) => {
-    if (!item.sources || item.sources.length === 0) return false;
-    return item.sources.includes(sourceKey);
-  });
-}
-
-// Component to display acceptable drops
-function AcceptableDropsList({ drops, colorMode, currentColors }) {
-  if (!drops || drops.length === 0) return null;
-
-  // Group drops by tag type for better organization
-  const pets = drops.filter((d) => d.tags?.includes('pet'));
-  const uniques = drops.filter((d) => d.tags?.includes('unique'));
-  const jars = drops.filter((d) => d.tags?.includes('jar'));
-  const consumables = drops.filter((d) => d.tags?.includes('consumable'));
-  const other = drops.filter(
-    (d) =>
-      !d.tags?.includes('pet') &&
-      !d.tags?.includes('unique') &&
-      !d.tags?.includes('jar') &&
-      !d.tags?.includes('consumable')
-  );
-
-  const renderDropGroup = (items, label, colorScheme) => {
-    if (items.length === 0) return null;
-    return (
-      <Box>
-        <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1}>
-          {label}
-        </Text>
-        <Wrap spacing={1}>
-          {items.map((item) => (
-            <WrapItem key={item.id}>
-              <Badge colorScheme={colorScheme} variant="subtle" fontSize="xs" px={2} py={0.5}>
-                {item.name}
-              </Badge>
-            </WrapItem>
-          ))}
-        </Wrap>
-      </Box>
-    );
-  };
-
-  return (
-    <Box
-      p={3}
-      bg={colorMode === 'dark' ? 'green.900' : 'green.50'}
-      borderRadius="md"
-      borderWidth={1}
-      borderColor={colorMode === 'dark' ? 'green.700' : 'green.200'}
-    >
-      <HStack mb={2}>
-        <Text fontSize="sm" fontWeight="semibold" color={currentColors.textColor}>
-          ✅ Acceptable Drops
-        </Text>
-        <Badge colorScheme="green" fontSize="xs">
-          {drops.length} items
-        </Badge>
-      </HStack>
-      <Text fontSize="xs" color="gray.500" mb={3}>
-        Submit any of these items to complete this objective:
-      </Text>
-      <VStack align="stretch" spacing={2}>
-        {renderDropGroup(uniques, 'Unique Items', 'purple')}
-        {renderDropGroup(pets, 'Pets', 'pink')}
-        {renderDropGroup(jars, 'Jars', 'orange')}
-        {renderDropGroup(consumables, 'Consumables', 'green')}
-        {renderDropGroup(other, 'Other', 'gray')}
-      </VStack>
-    </Box>
-  );
-}
 
 export default function NodeDetailModal({
   isOpen,
@@ -133,44 +55,7 @@ export default function NodeDetailModal({
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
   const { showToast } = useToastContext();
-  // Calculate acceptable drops for item_collection objectives
-  const acceptableDrops = useMemo(() => {
-    if (!node?.objective) return null;
-
-    const { type, contentId } = node.objective;
-
-    // Only show drops for item_collection objectives that target a boss/raid/minigame
-    if (type === 'item_collection' && contentId) {
-      // Check if it's a boss
-      if (SOLO_BOSSES[contentId]) {
-        return getAcceptableDropsForSource(contentId, 'bosses');
-      }
-      // Check if it's a raid
-      if (RAIDS[contentId]) {
-        return getAcceptableDropsForSource(contentId, 'raids');
-      }
-      // Check if it's a minigame
-      if (MINIGAMES[contentId]) {
-        return getAcceptableDropsForSource(contentId, 'minigames');
-      }
-    }
-
-    // For boss_kc objectives, we could optionally show what drops they COULD get
-    // but per your request, we only show the boss name for KC tasks
-    // Uncomment below if you want to show potential drops for KC tasks too:
-    /*
-    if (type === 'boss_kc' && contentId) {
-      if (SOLO_BOSSES[contentId]) {
-        return getAcceptableDropsForSource(contentId, 'bosses');
-      }
-      if (RAIDS[contentId]) {
-        return getAcceptableDropsForSource(contentId, 'raids');
-      }
-    }
-    */
-
-    return null;
-  }, [node?.objective]);
+  const acceptableDrops = useMemo(() => getAcceptableDropsForNode(node?.objective), [node?.objective]);
 
   if (!node) return null;
 
