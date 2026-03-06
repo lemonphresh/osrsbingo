@@ -298,7 +298,7 @@ const AllNodesAccordion = ({
                                   </Text>
                                   <Text fontSize="sm" color={currentColors.textColor}>
                                     {OBJECTIVE_TYPES[node.objective.type]}:{' '}
-                                    {node.objective.quantity.toLocaleString()} {node.objective.target}
+                                    {node.objective.quantity?.toLocaleString()} {node.objective.target}
                                   </Text>
                                   {node.objective?.appliedBuff && (
                                     <Badge colorScheme="blue" fontSize="xs" mt={1}>

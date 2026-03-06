@@ -211,7 +211,7 @@ const SubmissionsTab = ({
                           fontSize="xs"
                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                         >
-                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity.toLocaleString()}{' '}
+                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
                           {node.objective.target}
                         </Text>
                         {node.objective.appliedBuff && (

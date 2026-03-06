@@ -204,17 +204,17 @@ export default function NodeDetailModal({
 
     switch (objective.type) {
       case 'xp_gain':
-        return `Gain ${objective.quantity.toLocaleString()} XP in ${objective.target}`;
+        return `Gain ${objective.quantity?.toLocaleString()} XP in ${objective.target}`;
       case 'item_collection':
-        return `Collect ${objective.quantity.toLocaleString()} ${objective.target.trim()}${
+        return `Collect ${objective.quantity?.toLocaleString()} ${objective.target.trim()}${
           objective.quantity > 1 ? 's' : ''
         }`;
       case 'boss_kc':
-        return `Defeat ${objective.target} ${objective.quantity.toLocaleString()} times`;
+        return `Defeat ${objective.target} ${objective.quantity?.toLocaleString()} times`;
       case 'minigame':
-        return `Complete ${objective.quantity.toLocaleString()} ${objective.target} runs`;
+        return `Complete ${objective.quantity?.toLocaleString()} ${objective.target} runs`;
       case 'clue_scrolls':
-        return `Complete ${objective.quantity.toLocaleString()} ${objective.target} clue scrolls`;
+        return `Complete ${objective.quantity?.toLocaleString()} ${objective.target} clue scrolls`;
       default:
         return 'Complete the objective';
     }

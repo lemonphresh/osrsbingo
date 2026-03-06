@@ -226,7 +226,7 @@ const AvailableTasksStrip = ({
                         noOfLines={2}
                         mb={2}
                       >
-                        {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity.toLocaleString()}{' '}
+                        {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
                         {node.objective.target}
                         {hasBuffApplied && (
                           <Text as="span" color="blue.300">

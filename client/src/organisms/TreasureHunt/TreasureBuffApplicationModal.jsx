@@ -94,7 +94,7 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
                 Current Objective:
               </Text>
               <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
-                {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity.toLocaleString()}{' '}
+                {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
                 {node.objective.target}
               </Text>
             </Box>
