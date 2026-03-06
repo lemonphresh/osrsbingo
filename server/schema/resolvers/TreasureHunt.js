@@ -1254,7 +1254,7 @@ const TreasureHuntResolvers = {
       const buff = team.activeBuffs[buffIndex];
 
       if (!node.objective) throw new Error('This node does not have an objective');
-      if (node.objective.appliedBuff) {
+      if (team.nodeBuffs?.[nodeId] || node.objective.appliedBuff) {
         throw new Error('A buff has already been applied to this node');
       }
       if (!canApplyBuff(buff, node.objective)) {
@@ -1264,22 +1264,6 @@ const TreasureHuntResolvers = {
       const originalQuantity = node.objective.quantity;
       const reducedQuantity = Math.ceil(originalQuantity * (1 - buff.reduction));
       const saved = originalQuantity - reducedQuantity;
-
-      await node.update({
-        objective: {
-          ...node.objective,
-          type: node.objective.type,
-          target: node.objective.target,
-          quantity: reducedQuantity,
-          originalQuantity,
-          appliedBuff: {
-            buffId: buff.buffId,
-            buffName: buff.buffName,
-            reduction: buff.reduction,
-            savedAmount: saved,
-          },
-        },
-      });
 
       const updatedBuffs = team.activeBuffs.map((b) => ({ ...b }));
       updatedBuffs[buffIndex].usesRemaining -= 1;
@@ -1300,8 +1284,23 @@ const TreasureHuntResolvers = {
 
       team.activeBuffs = finalBuffs;
       team.buffHistory = buffHistory;
+      team.nodeBuffs = {
+        ...(team.nodeBuffs || {}),
+        [nodeId]: {
+          quantity: reducedQuantity,
+          originalQuantity,
+          appliedBuff: {
+            buffId: buff.buffId,
+            buffType: buff.buffType,
+            buffName: buff.buffName,
+            reduction: buff.reduction,
+            savedAmount: saved,
+          },
+        },
+      };
       team.changed('activeBuffs', true);
       team.changed('buffHistory', true);
+      team.changed('nodeBuffs', true);
       await team.save();
 
       try {
@@ -1326,7 +1325,6 @@ const TreasureHuntResolvers = {
         logger.error(`[applyBuffToNode] ❌ pubsub failed:`, pubsubError.message);
       }
 
-      invalidateEventNodes(eventId);
       logger.info(
         `[applyBuffToNode] ✅ buff ${buff.buffName} applied to nodeId=${nodeId} saved=${saved}`
       );
@@ -1397,21 +1395,19 @@ const TreasureHuntResolvers = {
         event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
       if (!isAdmin) throw new Error('Not authorized. Admin access required.');
 
-      const node = await TreasureNode.findByPk(nodeId);
-      if (!node || node.eventId !== eventId) throw new Error('Node not found');
-      if (!node.objective?.appliedBuff) throw new Error('No buff applied to this node');
+      const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+      if (!team) throw new Error('Team not found');
+      if (!team.nodeBuffs?.[nodeId]) throw new Error('No buff applied to this node for this team');
 
-      await node.update({
-        objective: {
-          type: node.objective.type,
-          target: node.objective.target,
-          quantity: node.objective.originalQuantity || node.objective.quantity,
-        },
-      });
+      const nodeBuffs = { ...(team.nodeBuffs || {}) };
+      delete nodeBuffs[nodeId];
+      team.nodeBuffs = nodeBuffs;
+      team.changed('nodeBuffs', true);
+      await team.save();
 
-      invalidateEventNodes(eventId);
-      logger.info(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId}`);
-      return node;
+      logger.info(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId} teamId=${teamId}`);
+      await team.reload();
+      return team;
     },
 
     addNodeComment: async (_, { eventId, teamId, nodeId, text }, context) => {

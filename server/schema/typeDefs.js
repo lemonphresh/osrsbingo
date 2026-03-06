@@ -353,6 +353,7 @@ const typeDefs = gql`
     buffHistory: JSON
     innTransactions: JSON
     nodeNotes: JSON
+    nodeBuffs: JSON
     submissions: [TreasureSubmission!]
     event: TreasureEvent
     updatedAt: String
@@ -710,7 +711,7 @@ const typeDefs = gql`
     applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
     adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
     adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
-    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureNode!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Gielinor Rush: Admin Notes ---
     addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): TreasureTeam!

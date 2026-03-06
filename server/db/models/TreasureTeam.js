@@ -54,6 +54,11 @@ module.exports = (sequelize) => {
         type: DataTypes.JSONB,
         defaultValue: {},
       },
+      nodeBuffs: {
+        type: DataTypes.JSONB,
+        defaultValue: {},
+        comment: 'Per-node buff applications for this team, keyed by nodeId',
+      },
     },
     {
       sequelize,

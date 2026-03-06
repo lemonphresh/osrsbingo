@@ -815,8 +815,8 @@ export const ADMIN_REMOVE_BUFF = gql`
 export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
   mutation AdminRemoveBuffFromNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
     adminRemoveBuffFromNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
-      nodeId
-      objective
+      teamId
+      nodeBuffs
     }
   }
 `;

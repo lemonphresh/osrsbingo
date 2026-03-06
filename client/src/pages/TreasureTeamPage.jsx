@@ -43,6 +43,7 @@ import Section from '../atoms/Section';
 import TreasureMapVisualization from '../organisms/TreasureHunt/TreasureMapVisualization';
 import GemTitle from '../atoms/GemTitle';
 import BuffInventory from '../organisms/TreasureHunt/TreasureBuffInventory';
+import { applyTeamBuffToNode } from '../utils/treasureHuntHelpers';
 import { useAuth } from '../providers/AuthProvider';
 import { MdOutlineArrowBack } from 'react-icons/md';
 import { useCallback } from 'react';
@@ -130,6 +131,11 @@ const TreasureTeamView = () => {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const nodes = event?.nodes || [];
+  // Compute nodes with this team's per-node buffs applied to objectives
+  const effectiveNodes = useMemo(
+    () => nodes.map((n) => applyTeamBuffToNode(n, team?.nodeBuffs)),
+    [nodes, team?.nodeBuffs]
+  );
   const { user } = useAuth();
   const isAdmin =
     user &&
@@ -214,7 +220,7 @@ const TreasureTeamView = () => {
     if (!group) return null;
     const completedNodeId = group.nodeIds.find((nodeId) => team.completedNodes?.includes(nodeId));
     if (!completedNodeId) return null;
-    return nodes.find((n) => n.nodeId === completedNodeId);
+    return effectiveNodes.find((n) => n.nodeId === completedNodeId);
   };
 
   const getNodeBorderColor = (status, node) => {
@@ -231,13 +237,13 @@ const TreasureTeamView = () => {
   };
 
   const getNumberOfAvailableInns = () =>
-    nodes.filter((node) => {
+    effectiveNodes.filter((node) => {
       const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
       return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
     }).length;
 
   const getAvailableInnsList = () =>
-    nodes.filter((node) => {
+    effectiveNodes.filter((node) => {
       const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
       return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
     });
@@ -253,8 +259,8 @@ const TreasureTeamView = () => {
   };
 
   const getNodesForBuff = (buff) => {
-    if (!buff || !team || !nodes) return [];
-    return nodes.filter((node) => {
+    if (!buff || !team || !effectiveNodes) return [];
+    return effectiveNodes.filter((node) => {
       const status = getNodeStatus(node);
       if (status !== 'available') return false;
       if (node.nodeType !== 'STANDARD') return false;
@@ -288,14 +294,15 @@ const TreasureTeamView = () => {
         else if (team.availableNodes?.includes(node.nodeId)) status = 'available';
       }
       if (status === 'locked' && !adminMode) return;
-      setSelectedNode({ ...node, status });
+      const effectiveNode = effectiveNodes.find((n) => n.nodeId === node.nodeId) || node;
+      setSelectedNode({ ...effectiveNode, status });
       if (node.nodeType === 'INN' && status === 'completed' && !adminMode) {
         onInnOpen();
       } else {
         onNodeOpen();
       }
     },
-    [team, adminMode, onInnOpen, onNodeOpen]
+    [team, adminMode, effectiveNodes, onInnOpen, onNodeOpen]
   );
 
   const handleSelectNodeFromBuffList = (node) => {
@@ -361,12 +368,14 @@ const TreasureTeamView = () => {
       await applyBuffToNode({
         variables: { eventId, teamId, nodeId: selectedNode.nodeId, buffId },
       });
-      await refetchTeam();
-      const { data: freshEventData } = await refetchEvent();
-      const updatedNode = freshEventData?.getTreasureEvent?.nodes?.find(
-        (n) => n.nodeId === selectedNode.nodeId
-      );
-      if (updatedNode) setSelectedNode(updatedNode);
+      const { data: freshTeamData } = await refetchTeam();
+      const freshNodeBuffs = freshTeamData?.getTreasureTeam?.nodeBuffs;
+      const baseNode = event?.nodes?.find((n) => n.nodeId === selectedNode.nodeId);
+      if (baseNode) {
+        setSelectedNode(
+          applyTeamBuffToNode({ ...baseNode, status: selectedNode.status }, freshNodeBuffs)
+        );
+      }
       toast({
         title: 'Buff applied!',
         description: 'The buff has been successfully applied to this objective',
@@ -408,7 +417,7 @@ const TreasureTeamView = () => {
       .slice(0, 10);
   }, [submissionsData?.getAllSubmissions, teamId]);
 
-  useSubmissionCelebrations(eventId, teamId, nodes, true, () => refetchTeam());
+  useSubmissionCelebrations(eventId, teamId, effectiveNodes, true, () => refetchTeam());
 
   // Refetch team data when tab regains focus
   useEffect(() => {
@@ -658,7 +667,7 @@ const TreasureTeamView = () => {
               </Text>
             </HStack>
             <TreasureMapVisualization
-              nodes={nodes}
+              nodes={effectiveNodes}
               team={team}
               event={event}
               onNodeClick={handleNodeClick}
@@ -673,7 +682,7 @@ const TreasureTeamView = () => {
 
           {/* ── Available Tasks STRIP ── */}
           <AvailableTasksStrip
-            nodes={nodes}
+            nodes={effectiveNodes}
             team={team}
             getNodeStatus={getNodeStatus}
             flashNodeId={flashNodeId}
@@ -729,16 +738,16 @@ const TreasureTeamView = () => {
           <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
             <PlayerSubmissionsPanel
               submissions={teamSubmissions}
-              nodes={nodes}
+              nodes={effectiveNodes}
               teamId={teamId}
               loading={submissionsLoading}
             />
-            <BuffHistoryPanel buffHistory={team.buffHistory || []} nodes={nodes} />
+            <BuffHistoryPanel buffHistory={team.buffHistory || []} nodes={effectiveNodes} />
           </SimpleGrid>
 
           {/* ── FULL NODE LIST ── */}
           <AllNodesAccordion
-            nodes={nodes}
+            nodes={effectiveNodes}
             team={team}
             event={event}
             adminMode={adminMode}
