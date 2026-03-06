@@ -17,6 +17,7 @@ import {
 import { CheckIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
 import NodeNoteEditor from './NodeNoteEditor';
+import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import theme from '../../theme';
 
 const SubmissionsTab = ({
@@ -211,7 +212,7 @@ const SubmissionsTab = ({
                           fontSize="xs"
                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                         >
-                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
                           {node.objective.target}
                         </Text>
                         {node.objective.appliedBuff && (
@@ -222,6 +223,17 @@ const SubmissionsTab = ({
                         )}
                       </Box>
                     )}
+
+                    {node?.objective?.type === 'item_collection' && (() => {
+                      const drops = getAcceptableDropsForNode(node.objective);
+                      return drops?.length > 0 ? (
+                        <AcceptableDropsList
+                          drops={drops}
+                          colorMode={colorMode}
+                          currentColors={currentColors}
+                        />
+                      ) : null;
+                    })()}
 
                     {isCompleted && (
                       <Box
@@ -303,7 +315,9 @@ const SubmissionsTab = ({
                                     fontSize="xs"
                                     color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
                                   >
-                                    Reviewed: {new Date(submission.reviewedAt).toLocaleString()}
+                                    {submission.status === 'APPROVED' ? 'Approved' : 'Reviewed'} by{' '}
+                                    {submission.reviewedBy} •{' '}
+                                    {new Date(submission.reviewedAt).toLocaleString()}
                                   </Text>
                                 )}
                               </VStack>

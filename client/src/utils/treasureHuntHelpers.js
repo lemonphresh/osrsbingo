@@ -593,15 +593,15 @@ const formatObjectiveAmount = (node) => {
     case 'xp_gain':
       return `${q.toLocaleString()} XP`;
     case 'boss_kc':
-      return `${q} KC`;
+      return `${q.toLocaleString()} KC`;
     case 'minigame':
-      return `${q} runs`;
+      return `${q.toLocaleString()} runs`;
     case 'item_collection':
-      return `${q} collected`;
+      return `${q.toLocaleString()} collected`;
     case 'clue_scrolls':
-      return `${q} clues`;
+      return `${q.toLocaleString()} clues`;
     default:
-      return `${q}`;
+      return `${q.toLocaleString()}`;
   }
 };
 
