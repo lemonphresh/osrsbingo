@@ -73,7 +73,7 @@ const EventStatusBanner = ({ event, isAdmin = false }) => {
             showProgress: false,
             countdown: formatCountdown(msUntilStart),
             countdownLabel: 'until start',
-            badge: isStartingSoon ? '🔥 Starting soon!' : null,
+            badge: null,
             pulse: isStartingSoon,
           };
         } else if (!hasEnded) {

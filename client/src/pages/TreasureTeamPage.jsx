@@ -34,6 +34,7 @@ import {
   VISIT_INN,
   SUBMISSION_ADDED_SUB,
   SUBMISSION_REVIEWED_SUB,
+  TREASURE_ACTIVITY_SUB,
 } from '../graphql/mutations';
 import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
 import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
@@ -109,7 +110,7 @@ const TreasureTeamView = () => {
   const [adminCompleteNode] = useMutation(ADMIN_COMPLETE_NODE);
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
   const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
-    onCompleted: () => refetchEvent(),
+    onCompleted: () => { refetchEvent(); refetchTeam(); },
   });
   const [visitInn] = useMutation(VISIT_INN);
 
@@ -166,6 +167,17 @@ const TreasureTeamView = () => {
     variables: { eventId },
     skip: !eventId,
     onData: () => refetchSubmissions(),
+  });
+
+  useSubscription(TREASURE_ACTIVITY_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: ({ data }) => {
+      const type = data?.data?.treasureHuntActivity?.type;
+      if (type === 'inn_visited' || type === 'buff_applied') {
+        refetchTeam();
+      }
+    },
   });
 
   const accessCheck = checkTeamAccess();
