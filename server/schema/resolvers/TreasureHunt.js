@@ -10,7 +10,7 @@ const {
 } = require('../../db/models');
 const { generateMap } = require('../../utils/treasureMapGenerator');
 const { getDefaultContentSelections } = require('../../utils/objectiveBuilder');
-const { createBuff } = require('../../utils/buffHelpers');
+const { createBuff, canApplyBuff } = require('../../utils/buffHelpers');
 const {
   sendSubmissionApprovalNotification,
   sendSubmissionDenialNotification,
@@ -1257,8 +1257,8 @@ const TreasureHuntResolvers = {
       if (node.objective.appliedBuff) {
         throw new Error('A buff has already been applied to this node');
       }
-      if (!buff.objectiveTypes.includes(node.objective.type)) {
-        throw new Error(`This buff cannot be applied to ${node.objective.type} objectives.`);
+      if (!canApplyBuff(buff, node.objective)) {
+        throw new Error(`This buff cannot be applied to this objective.`);
       }
 
       const originalQuantity = node.objective.quantity;
