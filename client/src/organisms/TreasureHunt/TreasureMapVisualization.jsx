@@ -629,7 +629,7 @@ const TreasureMapVisualization = ({
                               Objective:
                             </Text>
                             <Text fontSize="xs" m="0!important" color="#4a5568">
-                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity.toLocaleString()}{' '}
                               {node.objective.target}
                             </Text>
 

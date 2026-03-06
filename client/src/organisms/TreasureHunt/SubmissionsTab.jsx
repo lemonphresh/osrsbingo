@@ -211,7 +211,7 @@ const SubmissionsTab = ({
                           fontSize="xs"
                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                         >
-                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity}{' '}
+                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity.toLocaleString()}{' '}
                           {node.objective.target}
                         </Text>
                         {node.objective.appliedBuff && (
@@ -303,7 +303,9 @@ const SubmissionsTab = ({
                                     fontSize="xs"
                                     color={colorMode === 'dark' ? 'gray.500' : 'gray.600'}
                                   >
-                                    Reviewed: {new Date(submission.reviewedAt).toLocaleString()}
+                                    {submission.status === 'APPROVED' ? 'Approved' : 'Reviewed'} by{' '}
+                                    {submission.reviewedBy} •{' '}
+                                    {new Date(submission.reviewedAt).toLocaleString()}
                                   </Text>
                                 )}
                               </VStack>
