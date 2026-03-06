@@ -513,6 +513,7 @@ export const GET_TREASURE_EVENT = gql`
         activeBuffs
         buffHistory
         nodeNotes
+        nodeBuffs
         submissions {
           submissionId
           submittedByUsername
@@ -650,6 +651,7 @@ export const GET_TREASURE_TEAM = gql`
       innTransactions
       activeBuffs
       buffHistory
+      nodeBuffs
     }
   }
 `;

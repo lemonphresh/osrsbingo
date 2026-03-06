@@ -605,6 +605,24 @@ const formatObjectiveAmount = (node) => {
   }
 };
 
+/**
+ * Returns a node with the team's per-node buff applied to its objective.
+ * If the team has no buff entry for this node, returns the node unchanged.
+ */
+function applyTeamBuffToNode(node, nodeBuffs) {
+  if (!node || !nodeBuffs) return node;
+  const buffEntry = nodeBuffs[node.nodeId];
+  if (!buffEntry?.appliedBuff) return node;
+  return {
+    ...node,
+    objective: {
+      ...node.objective,
+      quantity: buffEntry.quantity,
+      appliedBuff: buffEntry.appliedBuff,
+    },
+  };
+}
+
 function userHasNeverSubmitted(team, currentUser) {
   if (!currentUser?.discordUserId || !team?.submissions?.length) return true;
   return !team.submissions.some(
@@ -625,6 +643,7 @@ module.exports = {
   getEnabledMinigames,
   getContentByTags,
   getAllBossContent,
+  applyTeamBuffToNode,
   userHasNeverSubmitted,
   formatGP,
   formatObjectiveAmount,

@@ -15,7 +15,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons';
-import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+import { OBJECTIVE_TYPES, applyTeamBuffToNode } from '../../utils/treasureHuntHelpers';
 import NodeNoteEditor from './NodeNoteEditor';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import theme from '../../theme';
@@ -89,6 +89,7 @@ const SubmissionsTab = ({
             const nodeType = node ? node.nodeType : 'STANDARD';
             const teamId = submissions[0].team?.teamId;
             const team = event.teams?.find((t) => t.teamId === teamId);
+            const effectiveNode = applyTeamBuffToNode(node, team?.nodeBuffs);
             const isCompleted = team?.completedNodes?.includes(nodeId);
             const pendingSubmissions = submissions.filter((s) => s.status === 'PENDING_REVIEW');
             const approvedSubmissions = submissions.filter((s) => s.status === 'APPROVED');
@@ -195,7 +196,7 @@ const SubmissionsTab = ({
 
                 <AccordionPanel pb={4}>
                   <VStack align="stretch" spacing={3}>
-                    {node?.objective && (
+                    {effectiveNode?.objective && (
                       <Box
                         p={2}
                         bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
@@ -212,20 +213,20 @@ const SubmissionsTab = ({
                           fontSize="xs"
                           color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
                         >
-                          {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
-                          {node.objective.target}
+                          {OBJECTIVE_TYPES[effectiveNode.objective.type]}: {effectiveNode.objective.quantity?.toLocaleString()}{' '}
+                          {effectiveNode.objective.target}
                         </Text>
-                        {node.objective.appliedBuff && (
+                        {effectiveNode.objective.appliedBuff && (
                           <Badge colorScheme="blue" fontSize="xs" mt={1}>
                             ✨ Buff Applied: -
-                            {(node.objective.appliedBuff.reduction * 100).toFixed(0)}%
+                            {(effectiveNode.objective.appliedBuff.reduction * 100).toFixed(0)}%
                           </Badge>
                         )}
                       </Box>
                     )}
 
-                    {node?.objective?.type === 'item_collection' && (() => {
-                      const drops = getAcceptableDropsForNode(node.objective);
+                    {effectiveNode?.objective?.type === 'item_collection' && (() => {
+                      const drops = getAcceptableDropsForNode(effectiveNode.objective);
                       return drops?.length > 0 ? (
                         <AcceptableDropsList
                           drops={drops}
