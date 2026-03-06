@@ -949,8 +949,8 @@ describe('TreasureHunt Mutations', () => {
     const result = validateOperation(`
       mutation AdminRemoveBuffFromNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
         adminRemoveBuffFromNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
-          nodeId
-          objective
+          teamId
+          nodeBuffs
         }
       }
     `);
