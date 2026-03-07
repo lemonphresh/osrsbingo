@@ -691,6 +691,8 @@ const typeDefs = gql`
     ): TreasureTeam!
     visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminRepairLocationGroupAvailability(eventId: ID!): [TreasureTeam!]!
 
     # --- Gielinor Rush: Submissions ---
     submitNodeCompletion(

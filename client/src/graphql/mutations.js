@@ -699,6 +699,25 @@ export const ADMIN_UNCOMPLETE_NODE = gql`
   }
 `;
 
+export const ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS = gql`
+  mutation AdminRestoreLocationGroupSiblings($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRestoreLocationGroupSiblings(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      availableNodes
+    }
+  }
+`;
+
+export const ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY = gql`
+  mutation AdminRepairLocationGroupAvailability($eventId: ID!) {
+    adminRepairLocationGroupAvailability(eventId: $eventId) {
+      teamId
+      teamName
+      availableNodes
+    }
+  }
+`;
+
 // ============================================================
 // GIELINOR RUSH: SUBMISSIONS
 // ============================================================

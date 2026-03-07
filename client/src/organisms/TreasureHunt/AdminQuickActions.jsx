@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { useLazyQuery } from '@apollo/client';
-import { CHECK_DISCORD_CHANNELS } from '../../graphql/queries';
+import { useLazyQuery, useMutation } from '@apollo/client';
+import { CHECK_DISCORD_CHANNELS, GET_TREASURE_ACTIVITIES } from '../../graphql/queries';
+import { ADMIN_UNCOMPLETE_NODE, ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS, ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY } from '../../graphql/mutations';
 import {
   Box,
   VStack,
@@ -49,6 +50,7 @@ import {
   FaQuestionCircle,
   FaUserCheck,
   FaUserTimes,
+  FaHistory,
 } from 'react-icons/fa';
 
 // Copy button as its own component so useClipboard can be called per-item
@@ -84,11 +86,57 @@ const AdminQuickActionsPanel = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const { isOpen: isUnverifiedOpen, onOpen: onUnverifiedOpen, onClose: onUnverifiedClose } = useDisclosure();
   const { isOpen: isChannelCheckOpen, onOpen: onChannelCheckOpen, onClose: onChannelCheckClose } = useDisclosure();
+  const { isOpen: isMoveHistoryOpen, onOpen: onMoveHistoryOpen, onClose: onMoveHistoryClose } = useDisclosure();
 
   const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
     CHECK_DISCORD_CHANNELS,
     { fetchPolicy: 'network-only' },
   );
+  const [fetchActivities, { data: activitiesData, loading: activitiesLoading }] = useLazyQuery(
+    GET_TREASURE_ACTIVITIES,
+    { fetchPolicy: 'network-only' },
+  );
+  const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
+  const [adminRestoreSiblings] = useMutation(ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS);
+  const [adminRepairAll] = useMutation(ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY);
+  const [uncomletingId, setUncompletingId] = useState(null);
+  const [restoringId, setRestoringId] = useState(null);
+  const [repairing, setRepairing] = useState(false);
+
+  const handleOpenMoveHistory = () => {
+    fetchActivities({ variables: { eventId: event.eventId, limit: 50 } });
+    onMoveHistoryOpen();
+  };
+
+  const handleUncomplete = async (teamId, nodeId) => {
+    const key = `${teamId}:${nodeId}`;
+    setUncompletingId(key);
+    try {
+      await adminUncompleteNode({ variables: { eventId: event.eventId, teamId, nodeId } });
+      fetchActivities({ variables: { eventId: event.eventId, limit: 50 } });
+    } finally {
+      setUncompletingId(null);
+    }
+  };
+
+  const handleRestoreSiblings = async (teamId, nodeId) => {
+    const key = `${teamId}:${nodeId}`;
+    setRestoringId(key);
+    try {
+      await adminRestoreSiblings({ variables: { eventId: event.eventId, teamId, nodeId } });
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
+  const handleRepairAll = async () => {
+    setRepairing(true);
+    try {
+      await adminRepairAll({ variables: { eventId: event.eventId } });
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   const handleOpenChannelCheck = () => {
     const guildId = event?.discordConfig?.guildId;
@@ -481,6 +529,25 @@ const AdminQuickActionsPanel = ({
                     Participant FAQ
                   </MenuItem>
                 )}
+                <MenuItem
+                  icon={<FaHistory />}
+                  color="white"
+                  bg="gray.700"
+                  onClick={handleOpenMoveHistory}
+                  _hover={{ bg: 'gray.600' }}
+                >
+                  Move History
+                </MenuItem>
+                <MenuItem
+                  icon={<FaExclamationTriangle />}
+                  color={repairing ? 'gray.400' : 'yellow.300'}
+                  bg="gray.700"
+                  onClick={handleRepairAll}
+                  isDisabled={repairing}
+                  _hover={{ bg: 'gray.600' }}
+                >
+                  {repairing ? 'Repairing…' : 'Repair Location Group Availability'}
+                </MenuItem>
               </MenuList>
             </Menu>
           </HStack>
@@ -721,6 +788,87 @@ const AdminQuickActionsPanel = ({
                       );
                     })}
                   </VStack>
+                )}
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+      {/* Move History Modal */}
+      <Modal isOpen={isMoveHistoryOpen} onClose={onMoveHistoryClose} scrollBehavior="inside" size="lg">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaHistory} color="orange.400" />
+              <Text>Move History</Text>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              Last 50 node completions across all teams
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {activitiesLoading ? (
+              <VStack py={6}><Text color="gray.400" fontSize="sm">Loading…</Text></VStack>
+            ) : (
+              <VStack align="stretch" spacing={1}>
+                {(activitiesData?.getTreasureActivities ?? [])
+                  .filter((a) => a.type === 'node_completed')
+                  .map((a) => {
+                    const team = teams.find((t) => t.teamId === a.teamId);
+                    const ts = new Date(a.timestamp);
+                    const timeStr = ts.toLocaleString(undefined, {
+                      month: 'short', day: 'numeric',
+                      hour: '2-digit', minute: '2-digit',
+                    });
+                    const key = `${a.teamId}:${a.data?.nodeId}`;
+                    const isUncompleting = uncomletingId === key;
+                    return (
+                      <Box key={a.id} p={2} bg="gray.700" borderRadius="md">
+                        <HStack justify="space-between" spacing={2}>
+                          <VStack align="start" spacing={0} flex={1} minW={0}>
+                            <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
+                              {a.data?.nodeTitle ?? a.data?.nodeId}
+                            </Text>
+                            <HStack spacing={1}>
+                              <Icon as={FaUsers} boxSize={3} color="gray.400" />
+                              <Text fontSize="xs" color="gray.400">
+                                {team?.teamName ?? a.teamId}
+                              </Text>
+                            </HStack>
+                          </VStack>
+                          <HStack spacing={2} flexShrink={0}>
+                            <Text fontSize="xs" color="gray.500">{timeStr}</Text>
+                            <Tooltip label="Restore location group siblings to available tasks" hasArrow placement="top">
+                              <Button
+                                size="xs"
+                                colorScheme="blue"
+                                variant="ghost"
+                                isLoading={restoringId === key}
+                                isDisabled={!!uncomletingId || !!restoringId}
+                                onClick={() => handleRestoreSiblings(a.teamId, a.data?.nodeId)}
+                              >
+                                Siblings
+                              </Button>
+                            </Tooltip>
+                            <Button
+                              size="xs"
+                              colorScheme="red"
+                              variant="ghost"
+                              isLoading={isUncompleting}
+                              isDisabled={!!uncomletingId || !!restoringId}
+                              onClick={() => handleUncomplete(a.teamId, a.data?.nodeId)}
+                            >
+                              Undo
+                            </Button>
+                          </HStack>
+                        </HStack>
+                      </Box>
+                    );
+                  })}
+                {!activitiesLoading && (activitiesData?.getTreasureActivities ?? []).filter((a) => a.type === 'node_completed').length === 0 && (
+                  <Text color="gray.500" fontSize="sm" textAlign="center" py={4}>No completions yet</Text>
                 )}
               </VStack>
             )}

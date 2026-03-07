@@ -1173,6 +1173,21 @@ const TreasureHuntResolvers = {
         availableNodes.push(nodeId);
       }
 
+      // Restore location group siblings that were removed when this node was completed
+      if (node.locationGroupId) {
+        const group = event.mapStructure?.locationGroups?.find(
+          (g) => g.groupId === node.locationGroupId
+        );
+        if (group) {
+          const siblings = group.nodeIds.filter((id) => id !== nodeId);
+          siblings.forEach((siblingId) => {
+            if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+              availableNodes.push(siblingId);
+            }
+          });
+        }
+      }
+
       if (node.unlocks && Array.isArray(node.unlocks)) {
         availableNodes = availableNodes.filter((n) => {
           if (completedNodes.includes(n)) return true;
@@ -1230,6 +1245,85 @@ const TreasureHuntResolvers = {
       logger.info(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
+    },
+
+    adminRestoreLocationGroupSiblings: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
+
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findByPk(nodeId),
+      ]);
+
+      if (!event || !team || !node) throw new Error('Event, team, or node not found');
+      if (!node.locationGroupId) throw new Error('Node has no location group');
+
+      const group = event.mapStructure?.locationGroups?.find(
+        (g) => g.groupId === node.locationGroupId
+      );
+      if (!group) throw new Error('Location group not found in map structure');
+
+      const availableNodes = [...(team.availableNodes || [])];
+      const completedNodes = team.completedNodes || [];
+
+      group.nodeIds
+        .filter((id) => id !== nodeId)
+        .forEach((siblingId) => {
+          if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+            availableNodes.push(siblingId);
+          }
+        });
+
+      await team.update({ availableNodes });
+      logger.info(`[adminRestoreLocationGroupSiblings] ✅ restored siblings for nodeId=${nodeId} teamId=${teamId}`);
+      await team.reload();
+      return team;
+    },
+
+    adminRepairLocationGroupAvailability: async (_, { eventId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
+
+      const [event, teams] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findAll({ where: { eventId } }),
+      ]);
+      if (!event) throw new Error('Event not found');
+
+      const locationGroups = event.mapStructure?.locationGroups || [];
+      const updated = [];
+
+      for (const team of teams) {
+        const completedNodes = team.completedNodes || [];
+        const availableNodes = [...(team.availableNodes || [])];
+        let changed = false;
+
+        for (const group of locationGroups) {
+          const hasAvailable = group.nodeIds.some((id) => availableNodes.includes(id));
+          if (!hasAvailable) continue;
+
+          for (const siblingId of group.nodeIds) {
+            if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+              availableNodes.push(siblingId);
+              changed = true;
+            }
+          }
+        }
+
+        if (changed) {
+          await team.update({ availableNodes });
+          await team.reload();
+          updated.push(team);
+          logger.info(`[adminRepairLocationGroupAvailability] ✅ repaired teamId=${team.teamId}`);
+        }
+      }
+
+      logger.info(`[adminRepairLocationGroupAvailability] done — ${updated.length} teams patched`);
+      return updated;
     },
 
     applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
