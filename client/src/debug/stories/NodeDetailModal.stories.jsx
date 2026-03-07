@@ -124,7 +124,7 @@ export default function NodeDetailModalStories() {
       {/* ── Admin mode ── */}
       <NodeScenario
         title="Admin — available node"
-        description="Admin controls shown — can mark as completed"
+        description="Admin controls shown — 'Mark as Completed' requires a second click to confirm before firing"
         tags={['admin']}
         node={MOCK_NODES.standard_available}
         team={MOCK_TEAMS.no_keys}

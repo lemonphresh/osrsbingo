@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Accordion,
   AccordionItem,
@@ -10,6 +10,7 @@ import {
   Button,
   HStack,
   IconButton,
+  Progress,
   Text,
   Tooltip,
   VStack,
@@ -33,6 +34,8 @@ const SubmissionsTab = ({
   onOpenCompleteDialog,
   handleReviewSubmission,
 }) => {
+  const [confirmingKey, setConfirmingKey] = useState(null);
+
   const groupedSubmissions = {};
   allSubmissions.forEach((s) => {
     const key = `${s.nodeId}_${s.team?.teamId}`;
@@ -112,8 +115,10 @@ const SubmissionsTab = ({
                       bg: colorMode === 'dark' ? 'whiteAlpha.50' : 'blackAlpha.50',
                     }}
                     py={4}
+                    flexDirection="column"
+                    alignItems="stretch"
                   >
-                    <HStack justify="space-between" align="start" flex={1}>
+                    <HStack justify="space-between" align="start" w="100%">
                       <VStack align="start" spacing={1} flex={1}>
                         <HStack>
                           <AccordionIcon color={currentColors.textColor} />
@@ -155,43 +160,86 @@ const SubmissionsTab = ({
                       </VStack>
 
                       {!isCompleted && approvedSubmissions.length > 0 && (
-                        <VStack
-                          spacing={1}
-                          align="end"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Text
-                            fontSize="14px"
-                            lineHeight="16px"
-                            textAlign="right"
-                            color="gray.700"
-                            mb="4px"
-                          >
-                            Once the objective is completed <br />
-                            and submissions approved:
-                          </Text>
-                          <Button
-                            size="sm"
-                            colorScheme="green"
-                            leftIcon={<CheckIcon />}
-                            onClick={() => {
-                              setNodeToComplete({
-                                nodeId,
-                                teamId,
-                                nodeTitle,
-                                teamName: submissions[0].team?.teamName || team?.teamName,
-                              });
-                              onOpenCompleteDialog();
-                            }}
-                          >
-                            Complete This Node
-                          </Button>
-                          <Text fontSize="xs" color="gray.500">
-                            Grant rewards
-                          </Text>
+                        <VStack spacing={1} align="end" onClick={(e) => e.stopPropagation()}>
+                          {confirmingKey === key ? (
+                            <>
+                              <Text fontSize="xs" color="orange.400" fontWeight="semibold">
+                                Are you sure?
+                              </Text>
+                              <HStack>
+                                <Button
+                                  size="sm"
+                                  colorScheme="green"
+                                  leftIcon={<CheckIcon />}
+                                  onClick={() => {
+                                    setConfirmingKey(null);
+                                    setNodeToComplete({
+                                      nodeId,
+                                      teamId,
+                                      nodeTitle,
+                                      teamName: submissions[0].team?.teamName || team?.teamName,
+                                    });
+                                    onOpenCompleteDialog();
+                                  }}
+                                >
+                                  Confirm
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setConfirmingKey(null)}
+                                >
+                                  Cancel
+                                </Button>
+                              </HStack>
+                            </>
+                          ) : (
+                            <>
+                              <Text
+                                fontSize="14px"
+                                lineHeight="16px"
+                                textAlign="right"
+                                color="gray.700"
+                                mb="4px"
+                              >
+                                Once the objective is completed <br />
+                                and submissions approved:
+                              </Text>
+                              <Button
+                                size="sm"
+                                colorScheme="green"
+                                leftIcon={<CheckIcon />}
+                                onClick={() => setConfirmingKey(key)}
+                              >
+                                Complete This Node
+                              </Button>
+                              <Text fontSize="xs" color="gray.500">
+                                Grant rewards
+                              </Text>
+                            </>
+                          )}
                         </VStack>
                       )}
                     </HStack>
+                    {!isCompleted &&
+                      effectiveNode?.objective?.quantity &&
+                      (team?.nodeProgress?.[nodeId] ?? 0) > 0 && (
+                        <Progress
+                          value={Math.min(
+                            100,
+                            Math.round(
+                              (team.nodeProgress[nodeId] / effectiveNode.objective.quantity) * 100
+                            )
+                          )}
+                          size="xs"
+                          colorScheme="green"
+                          borderRadius="none"
+                          mt={2}
+                          mx={-4}
+                          mb={-4}
+                          bg={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
+                        />
+                      )}
                   </AccordionButton>
                 </h2>
 
@@ -203,18 +251,12 @@ const SubmissionsTab = ({
                         bg={colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50'}
                         borderRadius="md"
                       >
-                        <Text
-                          fontSize="xs"
-                          fontWeight="semibold"
-                          color={currentColors.textColor}
-                        >
+                        <Text fontSize="xs" fontWeight="semibold" color={currentColors.textColor}>
                           Objective:
                         </Text>
-                        <Text
-                          fontSize="xs"
-                          color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-                        >
-                          {OBJECTIVE_TYPES[effectiveNode.objective.type]}: {effectiveNode.objective.quantity?.toLocaleString()}{' '}
+                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}>
+                          {OBJECTIVE_TYPES[effectiveNode.objective.type]}:{' '}
+                          {effectiveNode.objective.quantity?.toLocaleString()}{' '}
                           {effectiveNode.objective.target}
                         </Text>
                         {effectiveNode.objective.appliedBuff && (
@@ -226,24 +268,20 @@ const SubmissionsTab = ({
                       </Box>
                     )}
 
-                    {effectiveNode?.objective?.type === 'item_collection' && (() => {
-                      const drops = getAcceptableDropsForNode(effectiveNode.objective);
-                      return drops?.length > 0 ? (
-                        <AcceptableDropsList
-                          drops={drops}
-                          colorMode={colorMode}
-                          currentColors={currentColors}
-                        />
-                      ) : null;
-                    })()}
+                    {effectiveNode?.objective?.type === 'item_collection' &&
+                      (() => {
+                        const drops = getAcceptableDropsForNode(effectiveNode.objective);
+                        return drops?.length > 0 ? (
+                          <AcceptableDropsList
+                            drops={drops}
+                            colorMode={colorMode}
+                            currentColors={currentColors}
+                          />
+                        ) : null;
+                      })()}
 
                     {isCompleted && (
-                      <Box
-                        p={2}
-                        bg={currentColors.green.base}
-                        color="white"
-                        borderRadius="md"
-                      >
+                      <Box p={2} bg={currentColors.green.base} color="white" borderRadius="md">
                         <Text fontSize="xs" fontWeight="semibold">
                           ℹ️ This node is already completed. Submissions can still be reviewed for
                           record-keeping.
@@ -366,7 +404,7 @@ const SubmissionsTab = ({
                         ))}
                     </VStack>
 
-                    {/* Progress Tracker */}
+                    {/* Progress Tracker — read-only bar also on accordion header; editable slider for admins */}
                     {effectiveNode?.objective?.quantity && (
                       <NodeProgressEditor
                         eventId={event.eventId}

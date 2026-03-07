@@ -48,6 +48,7 @@ const NodeProgressEditor = ({
     setSaving(true);
     try {
       await updateNodeProgress({ variables: { eventId, teamId, nodeId, value } });
+      showToast('Progress saved', 'success');
     } catch (err) {
       showToast(`Failed to update progress: ${err.message}`, 'error');
     } finally {
