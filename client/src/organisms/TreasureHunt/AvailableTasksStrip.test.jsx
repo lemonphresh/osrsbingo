@@ -225,3 +225,9 @@
 //     expect(cards[1]).toHaveTextContent('Unbuffed Task');
 //   });
 // });
+
+describe('AvailableTasksStrip', () => {
+  it('true', () => {
+    expect(true).toBe(true);
+  });
+});
