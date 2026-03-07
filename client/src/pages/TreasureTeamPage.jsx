@@ -35,6 +35,7 @@ import {
   SUBMISSION_ADDED_SUB,
   SUBMISSION_REVIEWED_SUB,
   TREASURE_ACTIVITY_SUB,
+  TEAM_UPDATED_SUB,
 } from '../graphql/mutations';
 import NodeDetailModal from '../organisms/TreasureHunt/NodeDetailModal';
 import InnModal from '../organisms/TreasureHunt/TreasureInnModal';
@@ -184,6 +185,12 @@ const TreasureTeamView = () => {
         refetchTeam();
       }
     },
+  });
+
+  useSubscription(TEAM_UPDATED_SUB, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchTeam(),
   });
 
   const accessCheck = checkTeamAccess();
@@ -684,6 +691,7 @@ const TreasureTeamView = () => {
           <AvailableTasksStrip
             nodes={effectiveNodes}
             team={team}
+            eventId={event?.eventId}
             getNodeStatus={getNodeStatus}
             flashNodeId={flashNodeId}
             scrollRef={scrollRef}

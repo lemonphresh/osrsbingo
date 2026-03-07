@@ -33,6 +33,7 @@ import { useMemo } from 'react';
 import { userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 import { useToastContext } from '../../providers/ToastProvider';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
+import NodeProgressEditor from './NodeProgressEditor';
 
 
 export default function NodeDetailModal({
@@ -247,6 +248,19 @@ export default function NodeDetailModal({
                 drops={acceptableDrops}
                 colorMode={colorMode}
                 currentColors={currentColors}
+              />
+            )}
+
+            {/* Progress bar (read-only for team view) */}
+            {node.objective?.quantity && team?.nodeProgress?.[node.nodeId] != null && (
+              <NodeProgressEditor
+                eventId={event?.eventId}
+                teamId={team?.teamId}
+                nodeId={node.nodeId}
+                objectiveQuantity={node.objective.quantity}
+                objectiveType={node.objective.type}
+                currentProgress={team.nodeProgress[node.nodeId]}
+                isAdmin={false}
               />
             )}
 

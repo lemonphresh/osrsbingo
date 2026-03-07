@@ -1009,12 +1009,25 @@ const TreasureHuntResolvers = {
         });
       }
 
+      // Remove the completed node and its location group siblings from inProgressNodes
+      const groupNodeIds = (() => {
+        if (!node.locationGroupId) return [nodeId];
+        const group = event.mapStructure?.locationGroups?.find(
+          (g) => g.groupId === node.locationGroupId
+        );
+        return group ? group.nodeIds : [nodeId];
+      })();
+      const inProgressNodes = (team.inProgressNodes || []).filter(
+        (id) => !groupNodeIds.includes(id)
+      );
+
       await team.update({
         completedNodes,
         availableNodes,
         currentPot: currentPot.toString(),
         keysHeld,
         activeBuffs,
+        inProgressNodes,
       });
 
       await logTreasureHuntActivity(eventId, teamId, 'node_completed', {
@@ -1160,6 +1173,21 @@ const TreasureHuntResolvers = {
         availableNodes.push(nodeId);
       }
 
+      // Restore location group siblings that were removed when this node was completed
+      if (node.locationGroupId) {
+        const group = event.mapStructure?.locationGroups?.find(
+          (g) => g.groupId === node.locationGroupId
+        );
+        if (group) {
+          const siblings = group.nodeIds.filter((id) => id !== nodeId);
+          siblings.forEach((siblingId) => {
+            if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+              availableNodes.push(siblingId);
+            }
+          });
+        }
+      }
+
       if (node.unlocks && Array.isArray(node.unlocks)) {
         availableNodes = availableNodes.filter((n) => {
           if (completedNodes.includes(n)) return true;
@@ -1217,6 +1245,85 @@ const TreasureHuntResolvers = {
       logger.info(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
+    },
+
+    adminRestoreLocationGroupSiblings: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
+
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findByPk(nodeId),
+      ]);
+
+      if (!event || !team || !node) throw new Error('Event, team, or node not found');
+      if (!node.locationGroupId) throw new Error('Node has no location group');
+
+      const group = event.mapStructure?.locationGroups?.find(
+        (g) => g.groupId === node.locationGroupId
+      );
+      if (!group) throw new Error('Location group not found in map structure');
+
+      const availableNodes = [...(team.availableNodes || [])];
+      const completedNodes = team.completedNodes || [];
+
+      group.nodeIds
+        .filter((id) => id !== nodeId)
+        .forEach((siblingId) => {
+          if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+            availableNodes.push(siblingId);
+          }
+        });
+
+      await team.update({ availableNodes });
+      logger.info(`[adminRestoreLocationGroupSiblings] ✅ restored siblings for nodeId=${nodeId} teamId=${teamId}`);
+      await team.reload();
+      return team;
+    },
+
+    adminRepairLocationGroupAvailability: async (_, { eventId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
+
+      const [event, teams] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findAll({ where: { eventId } }),
+      ]);
+      if (!event) throw new Error('Event not found');
+
+      const locationGroups = event.mapStructure?.locationGroups || [];
+      const updated = [];
+
+      for (const team of teams) {
+        const completedNodes = team.completedNodes || [];
+        const availableNodes = [...(team.availableNodes || [])];
+        let changed = false;
+
+        for (const group of locationGroups) {
+          const hasAvailable = group.nodeIds.some((id) => availableNodes.includes(id));
+          if (!hasAvailable) continue;
+
+          for (const siblingId of group.nodeIds) {
+            if (!availableNodes.includes(siblingId) && !completedNodes.includes(siblingId)) {
+              availableNodes.push(siblingId);
+              changed = true;
+            }
+          }
+        }
+
+        if (changed) {
+          await team.update({ availableNodes });
+          await team.reload();
+          updated.push(team);
+          logger.info(`[adminRepairLocationGroupAvailability] ✅ repaired teamId=${team.teamId}`);
+        }
+      }
+
+      logger.info(`[adminRepairLocationGroupAvailability] done — ${updated.length} teams patched`);
+      return updated;
     },
 
     applyBuffToNode: async (_, { eventId, teamId, nodeId, buffId }, context) => {
@@ -1395,15 +1502,35 @@ const TreasureHuntResolvers = {
         event.creatorId === context.user.id || event.adminIds?.includes(context.user.id);
       if (!isAdmin) throw new Error('Not authorized. Admin access required.');
 
-      const team = await TreasureTeam.findOne({ where: { teamId, eventId } });
+      const [team, node] = await Promise.all([
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findOne({ where: { nodeId, eventId } }),
+      ]);
       if (!team) throw new Error('Team not found');
-      if (!team.nodeBuffs?.[nodeId]) throw new Error('No buff applied to this node for this team');
 
-      const nodeBuffs = { ...(team.nodeBuffs || {}) };
-      delete nodeBuffs[nodeId];
-      team.nodeBuffs = nodeBuffs;
-      team.changed('nodeBuffs', true);
-      await team.save();
+      const hasTeamBuff = !!team.nodeBuffs?.[nodeId];
+      const hasLegacyBuff = !!node?.objective?.appliedBuff;
+      if (!hasTeamBuff && !hasLegacyBuff) {
+        throw new Error('No buff applied to this node for this team');
+      }
+
+      // Clear per-team buff (new system)
+      if (hasTeamBuff) {
+        const nodeBuffs = { ...(team.nodeBuffs || {}) };
+        delete nodeBuffs[nodeId];
+        team.nodeBuffs = nodeBuffs;
+        team.changed('nodeBuffs', true);
+        await team.save();
+      }
+
+      // Clear legacy buff from shared node record (old system), restoring original quantity
+      if (hasLegacyBuff && node) {
+        const { originalQuantity, appliedBuff: _removed, ...restObjective } = node.objective;
+        node.objective = { ...restObjective, quantity: originalQuantity ?? restObjective.quantity };
+        node.changed('objective', true);
+        await node.save();
+        logger.info(`[adminRemoveBuffFromNode] ✅ cleared legacy buff from nodeId=${nodeId}`);
+      }
 
       logger.info(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId} teamId=${teamId}`);
       await team.reload();
@@ -1461,6 +1588,75 @@ const TreasureHuntResolvers = {
       await team.reload();
 
       logger.info(`[deleteNodeComment] ✅ commentId=${commentId} teamId=${teamId}`);
+      return team;
+    },
+
+    updateNodeProgress: async (_, { eventId, teamId, nodeId, value }, context) => {
+      if (!(await isEventAdminOrRef(context.user?.id, eventId))) {
+        throw new Error('Not authorized. Admin or ref access required.');
+      }
+
+      const [team, node] = await Promise.all([
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findOne({ where: { nodeId, eventId } }),
+      ]);
+      if (!team) throw new Error('Team not found');
+      if (!node) throw new Error('Node not found');
+
+      const max = node.objective?.quantity ?? Infinity;
+      const clamped = Math.max(0, Math.min(value, max));
+
+      const updatedProgress = { ...(team.nodeProgress || {}), [nodeId]: clamped };
+      team.nodeProgress = updatedProgress;
+      team.changed('nodeProgress', true);
+      await team.save();
+      await team.reload();
+
+      logger.info(`[updateNodeProgress] ✅ teamId=${teamId} nodeId=${nodeId} value=${clamped}`);
+      return team;
+    },
+
+    toggleNodeInProgress: async (_, { eventId, teamId, nodeId }, context) => {
+      const { authorized } = await canPerformTeamAction(context, teamId, eventId);
+      if (!authorized) {
+        throw new Error('Not authorized. Must be a team member or event admin.');
+      }
+
+      const [team, node, event] = await Promise.all([
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findOne({ where: { nodeId, eventId } }),
+        TreasureEvent.findByPk(eventId),
+      ]);
+      if (!team) throw new Error('Team not found');
+
+      const current = team.inProgressNodes || [];
+      const isMarked = current.includes(nodeId);
+
+      let updated;
+      if (isMarked) {
+        updated = current.filter((id) => id !== nodeId);
+      } else {
+        // One node per location group — remove any sibling in the same group before adding
+        let base = [...current];
+        if (node?.locationGroupId && event?.mapStructure?.locationGroups) {
+          const group = event.mapStructure.locationGroups.find(
+            (g) => g.groupId === node.locationGroupId
+          );
+          if (group) {
+            const siblings = group.nodeIds.filter((id) => id !== nodeId);
+            base = base.filter((id) => !siblings.includes(id));
+          }
+        }
+        updated = [...base, nodeId];
+      }
+
+      team.inProgressNodes = updated;
+      await team.save();
+      await team.reload();
+
+      await pubsub.publish(`TEAM_UPDATED_${eventId}`, { teamUpdated: team });
+
+      logger.info(`[toggleNodeInProgress] ✅ teamId=${teamId} nodeId=${nodeId} marked=${!isMarked}`);
       return team;
     },
 

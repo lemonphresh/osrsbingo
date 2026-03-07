@@ -354,6 +354,8 @@ const typeDefs = gql`
     innTransactions: JSON
     nodeNotes: JSON
     nodeBuffs: JSON
+    nodeProgress: JSON
+    inProgressNodes: [String]
     submissions: [TreasureSubmission!]
     event: TreasureEvent
     updatedAt: String
@@ -689,6 +691,8 @@ const typeDefs = gql`
     ): TreasureTeam!
     visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminRepairLocationGroupAvailability(eventId: ID!): [TreasureTeam!]!
 
     # --- Gielinor Rush: Submissions ---
     submitNodeCompletion(
@@ -716,6 +720,8 @@ const typeDefs = gql`
     # --- Gielinor Rush: Admin Notes ---
     addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): TreasureTeam!
     deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): TreasureTeam!
+    updateNodeProgress(eventId: ID!, teamId: ID!, nodeId: ID!, value: Int!): TreasureTeam!
+    toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Gielinor Rush: Inns ---
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
@@ -738,6 +744,7 @@ const typeDefs = gql`
     submissionReviewed(eventId: ID!): TreasureSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
     treasureHuntActivity(eventId: ID!): TreasureHuntActivity
+    teamUpdated(eventId: ID!): TreasureTeam!
 
     # --- Blind Draft Room ---
     draftRoomUpdated(roomId: ID!): DraftRoomUpdate!

@@ -166,7 +166,7 @@ function getDropsForNode(node) {
   return null;
 }
 
-const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuff) => {
+const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuff, progressPct = null) => {
   const isAvailable = status === 'available';
   const iconHtml = `
     <div style="
@@ -221,7 +221,13 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                          ? '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.5); color: white; font-size: 12px;">✨</div>'
                          : ''
                      }
-                   
+                     ${
+                       progressPct !== null
+                         ? `<div style="position:absolute;bottom:0;left:0;width:100%;height:3px;background:rgba(0,0,0,0.35);border-radius:0 0 ${nodeType === 'INN' ? '2px 2px' : '50% 50%'};overflow:hidden;">` +
+                           `<div style="height:100%;width:${progressPct}%;background:#48BB78;"></div></div>`
+                         : ''
+                     }
+
             </div>
     </div>
     <style>
@@ -497,7 +503,13 @@ const TreasureMapVisualization = ({
                 node.nodeType,
                 status,
                 adminMode,
-                !!node.objective?.appliedBuff
+                !!node.objective?.appliedBuff,
+                (() => {
+                  const prog = team?.nodeProgress?.[node.nodeId];
+                  const qty = node.objective?.quantity;
+                  if (prog == null || !qty) return null;
+                  return Math.min(100, Math.round((prog / qty) * 100));
+                })()
               )}
               eventHandlers={{
                 click: () => {

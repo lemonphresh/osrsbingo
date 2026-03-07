@@ -699,6 +699,25 @@ export const ADMIN_UNCOMPLETE_NODE = gql`
   }
 `;
 
+export const ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS = gql`
+  mutation AdminRestoreLocationGroupSiblings($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRestoreLocationGroupSiblings(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      availableNodes
+    }
+  }
+`;
+
+export const ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY = gql`
+  mutation AdminRepairLocationGroupAvailability($eventId: ID!) {
+    adminRepairLocationGroupAvailability(eventId: $eventId) {
+      teamId
+      teamName
+      availableNodes
+    }
+  }
+`;
+
 // ============================================================
 // GIELINOR RUSH: SUBMISSIONS
 // ============================================================
@@ -788,6 +807,24 @@ export const DELETE_NODE_COMMENT = gql`
     ) {
       teamId
       nodeNotes
+    }
+  }
+`;
+
+export const UPDATE_NODE_PROGRESS = gql`
+  mutation UpdateNodeProgress($eventId: ID!, $teamId: ID!, $nodeId: ID!, $value: Int!) {
+    updateNodeProgress(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, value: $value) {
+      teamId
+      nodeProgress
+    }
+  }
+`;
+
+export const TOGGLE_NODE_IN_PROGRESS = gql`
+  mutation ToggleNodeInProgress($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    toggleNodeInProgress(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      inProgressNodes
     }
   }
 `;
@@ -912,6 +949,15 @@ export const TREASURE_ACTIVITY_SUB = gql`
       type
       data
       timestamp
+    }
+  }
+`;
+
+export const TEAM_UPDATED_SUB = gql`
+  subscription OnTeamUpdated($eventId: ID!) {
+    teamUpdated(eventId: $eventId) {
+      teamId
+      inProgressNodes
     }
   }
 `;

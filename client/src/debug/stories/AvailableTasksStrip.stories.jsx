@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import { Box, HStack, Text, Badge, Icon, Flex, useColorMode } from '@chakra-ui/react';
+import { Box, HStack, Text, Badge, Icon, Flex, Progress, useColorMode } from '@chakra-ui/react';
 import { FaCoins } from 'react-icons/fa';
 import GemTitle from '../../atoms/GemTitle';
 import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
@@ -139,16 +139,21 @@ function AvailableTasksStrip({
   availableNodeIds = [],
   completedNodeIds = [],
   innTransactions = [],
+  nodeProgress = {},
+  inProgressNodeIds = [],
 }) {
   const { colorMode } = useColorMode();
   const scrollRef = useRef(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(true);
+  const [bookmarked, setBookmarked] = useState(new Set(inProgressNodeIds));
 
   const team = {
     completedNodes: completedNodeIds,
     availableNodes: availableNodeIds,
     innTransactions,
+    nodeProgress,
+    inProgressNodes: [...bookmarked],
   };
 
   const getNodeStatus = (node) => {
@@ -268,22 +273,36 @@ function AvailableTasksStrip({
               const groupColor = GROUP_COLORS[groupIdx % GROUP_COLORS.length];
               const groupShape = GROUP_SHAPES[groupIdx % GROUP_SHAPES.length];
 
+              const nodeProgress = team.nodeProgress?.[node.nodeId];
+              const progressPct =
+                nodeProgress != null && node.objective?.quantity
+                  ? Math.min(100, Math.round((nodeProgress / node.objective.quantity) * 100))
+                  : null;
+
               return (
                 <Box
                   key={node.nodeId}
                   w="220px"
                   flexShrink={0}
-                  style={{
-                    backgroundColor: `color-mix(in srgb, var(--chakra-colors-${groupColor}-100) 45%, white)`,
-                  }}
-                  borderRadius="lg"
-                  overflow="hidden"
-                  border="1px solid"
-                  borderColor="gray.200"
+                  position="relative"
                   cursor="pointer"
-                  _hover={{ transform: 'translateY(-4px)', shadow: 'xl', borderColor: accentColor }}
-                  transition="background 0.3s ease"
+                  borderRadius="lg"
+                  _hover={{ transform: 'translateY(-4px)', shadow: 'xl' }}
+                  transition="transform 0.2s ease, box-shadow 0.2s ease"
                 >
+                  {/* Inner card — overflow:hidden for rounded corners */}
+                  <Box
+                    style={{
+                      backgroundColor: `color-mix(in srgb, var(--chakra-colors-${groupColor}-100) 45%, white)`,
+                    }}
+                    h="100%"
+                    borderRadius="lg"
+                    overflow="hidden"
+                    border="1px solid"
+                    borderColor="gray.200"
+                    _hover={{ borderColor: accentColor }}
+                    transition="background 0.3s ease, border-color 0.2s ease"
+                  >
                   <Box h="4px" bg={accentColor} w="100%" />
                   <Flex flexDirection="column" h="100%" p={3}>
                     <HStack justify="space-between" mb={2}>
@@ -341,6 +360,21 @@ function AvailableTasksStrip({
                         )}
                       </Text>
                     )}
+                    {progressPct !== null && (
+                      <Box mb={2}>
+                        <Progress
+                          value={progressPct}
+                          size="xs"
+                          colorScheme="green"
+                          borderRadius="full"
+                          bg={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
+                          mb={1}
+                        />
+                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
+                          {nodeProgress.toLocaleString()} / {node.objective.quantity.toLocaleString()} ({progressPct}%)
+                        </Text>
+                      </Box>
+                    )}
                     {isInn && (
                       <Text fontSize="xs" color="yellow.500" mb={2} fontWeight="semibold">
                         Trade keys for GP →
@@ -364,6 +398,48 @@ function AvailableTasksStrip({
                       </Text>
                     </Flex>
                   </Flex>
+                  </Box>
+                  {/* Bookmark ribbon — outside overflow:hidden so it isn't clipped */}
+                  <Box
+                    position="absolute"
+                    top={0}
+                    right="10px"
+                    zIndex={2}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setBookmarked((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(node.nodeId)) {
+                          next.delete(node.nodeId);
+                        } else {
+                          // Remove any sibling in the same location group
+                          if (node.locationGroupId) {
+                            availableNodes.forEach((n) => {
+                              if (n.locationGroupId === node.locationGroupId) next.delete(n.nodeId);
+                            });
+                          }
+                          next.add(node.nodeId);
+                        }
+                        return next;
+                      });
+                    }}
+                    cursor="pointer"
+                    sx={{
+                      width: '20px',
+                      height: '28px',
+                      background: bookmarked.has(node.nodeId) ? '#F5C518' : 'rgba(160,160,160,0.55)',
+                      clipPath: 'polygon(0 0, 100% 0, 100% 85%, 50% 100%, 0 85%)',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      justifyContent: 'center',
+                      paddingTop: '4px',
+                      transition: 'background 0.15s ease',
+                      _hover: {
+                        background: bookmarked.has(node.nodeId) ? '#E0B015' : 'rgba(214,158,46,0.75)',
+                      },
+                    }}
+                    title={bookmarked.has(node.nodeId) ? 'Remove bookmark' : 'Mark as in progress'}
+                  />
                 </Box>
               );
             })}
@@ -548,6 +624,79 @@ export default function AvailableTasksStripStories() {
           availableNodeIds={ALL_STANDARD_IDS.concat(['buffed_1'])}
           completedNodeIds={['inn_001']}
           innTransactions={[]}
+        />
+      </StoryLayout>
+
+      {/* 12 */}
+      <StoryLayout
+        title="Progress bars — partial progress on multiple nodes"
+        description="Several nodes have nodeProgress set. Progress bar + count label appear below the objective text."
+        tags={['progress']}
+      >
+        <AvailableTasksStrip
+          nodes={[NODES.lumb_easy, NODES.lumb_med, NODES.varr_easy, NODES.fala_hard]}
+          availableNodeIds={['lumb_1', 'lumb_2', 'varr_1', 'fala_3']}
+          nodeProgress={{
+            lumb_1: 18,   // 18/30 boss kc
+            lumb_2: 32000, // 32k/50k xp
+            varr_1: 0,    // 0% — bar shows but empty
+          }}
+        />
+      </StoryLayout>
+
+      {/* 13 */}
+      <StoryLayout
+        title="Progress bars — near complete and fully complete"
+        description="One node at 90%, one at 100%. The 100% bar fills green edge-to-edge."
+        tags={['progress']}
+      >
+        <AvailableTasksStrip
+          nodes={[NODES.lumb_hard, NODES.varr_hard]}
+          availableNodeIds={['lumb_3', 'varr_3']}
+          nodeProgress={{
+            lumb_3: 90,   // 90/100 — near complete
+            varr_3: 150,  // 150/150 — fully complete
+          }}
+        />
+      </StoryLayout>
+
+      {/* 14 */}
+      <StoryLayout
+        title="Progress bars — buffed node with progress"
+        description="A buffed node (reduced quantity) also shows progress bar correctly against the reduced target."
+        tags={['progress', 'buff']}
+      >
+        <AvailableTasksStrip
+          nodes={[NODES.buffed_node]}
+          availableNodeIds={['buffed_1']}
+          nodeProgress={{ buffed_1: 75 }}
+        />
+      </StoryLayout>
+
+      {/* 15 */}
+      <StoryLayout
+        title="Bookmarks — some nodes marked in progress"
+        description="Gold ribbon appears on bookmarked nodes. Click any ribbon to toggle it on/off."
+        tags={['bookmark']}
+      >
+        <AvailableTasksStrip
+          nodes={[NODES.lumb_easy, NODES.lumb_med, NODES.varr_easy, NODES.varr_hard]}
+          availableNodeIds={['lumb_1', 'lumb_2', 'varr_1', 'varr_3']}
+          inProgressNodeIds={['lumb_1', 'varr_3']}
+        />
+      </StoryLayout>
+
+      {/* 16 */}
+      <StoryLayout
+        title="Bookmarks + progress bars combined"
+        description="A node can be both bookmarked and have a progress bar. Click ribbons to toggle."
+        tags={['bookmark', 'progress']}
+      >
+        <AvailableTasksStrip
+          nodes={[NODES.lumb_easy, NODES.lumb_hard, NODES.fala_hard]}
+          availableNodeIds={['lumb_1', 'lumb_3', 'fala_3']}
+          inProgressNodeIds={['lumb_1', 'fala_3']}
+          nodeProgress={{ lumb_1: 18, fala_3: 60000 }}
         />
       </StoryLayout>
     </StoryPage>
