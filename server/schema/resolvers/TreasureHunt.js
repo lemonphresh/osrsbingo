@@ -1253,8 +1253,8 @@ const TreasureHuntResolvers = {
     },
 
     // Re-completes a node silently: fixes game state (completedNodes, availableNodes, unlocks,
-    // location groups) without granting rewards, logging activity, or sending notifications.
-    // Use for correcting state after erroneous uncompletes.
+    // location groups) and restores rewards (GP, keys, buffs) without logging activity or
+    // sending notifications. Use for correcting state after erroneous uncompletes.
     adminSilentReCompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
       logger.info(
@@ -1301,6 +1301,39 @@ const TreasureHuntResolvers = {
         });
       }
 
+      // Restore GP
+      const rewardGP = BigInt(node.rewards?.gp || 0);
+      const currentPot = (BigInt(team.currentPot || 0) + rewardGP).toString();
+
+      // Restore keys
+      const keysHeld = JSON.parse(JSON.stringify(team.keysHeld || []));
+      if (node.rewards?.keys?.length > 0) {
+        node.rewards.keys.forEach((key) => {
+          if (!key?.color || typeof key.quantity !== 'number') return;
+          const existingKeyIndex = keysHeld.findIndex((k) => k.color === key.color);
+          if (existingKeyIndex >= 0) {
+            keysHeld[existingKeyIndex].quantity += key.quantity;
+          } else {
+            keysHeld.push({ color: key.color, quantity: key.quantity });
+          }
+        });
+      }
+
+      // Restore buffs
+      const activeBuffs = [...(team.activeBuffs || [])];
+      if (node.rewards?.buffs?.length > 0) {
+        node.rewards.buffs.forEach((buffReward) => {
+          try {
+            activeBuffs.push(createBuff(buffReward.buffType));
+          } catch (error) {
+            logger.warn(
+              `[adminSilentReCompleteNode] failed to restore buff ${buffReward.buffType}:`,
+              error.message
+            );
+          }
+        });
+      }
+
       // Clean up inProgressNodes
       const groupNodeIds = (() => {
         if (!node.locationGroupId) return [nodeId];
@@ -1313,7 +1346,7 @@ const TreasureHuntResolvers = {
         (id) => !groupNodeIds.includes(id)
       );
 
-      await team.update({ completedNodes, availableNodes, inProgressNodes });
+      await team.update({ completedNodes, availableNodes, inProgressNodes, currentPot, keysHeld, activeBuffs });
 
       logger.info(
         `[adminSilentReCompleteNode] ✅ silent re-complete teamId=${teamId} nodeId=${nodeId}`
