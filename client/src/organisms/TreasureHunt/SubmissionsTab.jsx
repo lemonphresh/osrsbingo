@@ -28,6 +28,7 @@ const SubmissionsTab = ({
   currentColors,
   colorMode,
   isEventAdmin,
+  isEventRef,
   setSubmissionToDeny,
   onDenialModalOpen,
   setNodeToComplete,
@@ -50,16 +51,12 @@ const SubmissionsTab = ({
   const sortedGroups = [...relevantGroups].sort((a, b) => {
     const [, subsA] = a;
     const [, subsB] = b;
-    const nodeIdA = subsA[0].nodeId;
     const teamA = event.teams?.find((t) => t.teamId === subsA[0].team?.teamId);
-    const isCompletedA = teamA?.completedNodes?.includes(nodeIdA);
-    const nodeIdB = subsB[0].nodeId;
+    const isCompletedA = teamA?.completedNodes?.includes(subsA[0].nodeId);
     const teamB = event.teams?.find((t) => t.teamId === subsB[0].team?.teamId);
-    const isCompletedB = teamB?.completedNodes?.includes(nodeIdB);
+    const isCompletedB = teamB?.completedNodes?.includes(subsB[0].nodeId);
     if (isCompletedA !== isCompletedB) return isCompletedA ? 1 : -1;
-    const pendA = subsA.filter((s) => s.status === 'PENDING_REVIEW').length;
-    const pendB = subsB.filter((s) => s.status === 'PENDING_REVIEW').length;
-    if (pendA !== pendB) return pendB - pendA;
+    // Sort by latest submission time only — stable, doesn't change as submissions are approved
     const latestA = Math.max(...subsA.map((s) => new Date(s.submittedAt || 0).getTime()));
     const latestB = Math.max(...subsB.map((s) => new Date(s.submittedAt || 0).getTime()));
     return latestB - latestA;
@@ -413,7 +410,7 @@ const SubmissionsTab = ({
                         objectiveQuantity={effectiveNode.objective.quantity}
                         objectiveType={effectiveNode.objective.type}
                         currentProgress={team?.nodeProgress?.[nodeId] ?? 0}
-                        isAdmin={isEventAdmin}
+                        isAdmin={isEventAdmin || isEventRef}
                       />
                     )}
 
