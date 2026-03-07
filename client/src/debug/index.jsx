@@ -15,6 +15,8 @@ import EventSummaryPanelStories from './stories/EventSummaryPanel.stories';
 import ParticipantSetupModalStories from './stories/ParticipantSetupModal.stories';
 import EventPasswordReminderStories from './stories/EventPasswordReminder.stories';
 import AdminQuickActionsStories from './stories/AdminQuickActions.stories';
+import NodeProgressEditorStories from './stories/NodeProgressEditor.stories';
+import SubmissionsTabStories from './stories/SubmissionsTab.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -112,6 +114,20 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 5,
     component: AdminQuickActionsStories,
+  },
+  {
+    id: 'node-progress-editor',
+    label: 'NodeProgressEditor',
+    category: 'Treasure Hunt',
+    scenarioCount: 6,
+    component: NodeProgressEditorStories,
+  },
+  {
+    id: 'submissions-tab',
+    label: 'SubmissionsTab',
+    category: 'Treasure Hunt',
+    scenarioCount: 5,
+    component: SubmissionsTabStories,
   },
 ];
 

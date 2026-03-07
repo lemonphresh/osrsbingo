@@ -35,7 +35,6 @@ import { useToastContext } from '../../providers/ToastProvider';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import NodeProgressEditor from './NodeProgressEditor';
 
-
 export default function NodeDetailModal({
   isOpen,
   onClose,
@@ -56,7 +55,10 @@ export default function NodeDetailModal({
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
   const { showToast } = useToastContext();
-  const acceptableDrops = useMemo(() => getAcceptableDropsForNode(node?.objective), [node?.objective]);
+  const acceptableDrops = useMemo(
+    () => getAcceptableDropsForNode(node?.objective),
+    [node?.objective]
+  );
 
   if (!node) return null;
 
@@ -183,7 +185,9 @@ export default function NodeDetailModal({
             {shouldShowTutorial && (
               <>
                 <ProgressiveStartTutorial
-                  eventPassword={new Date() >= new Date(event.startDate) ? event.eventPassword : null}
+                  eventPassword={
+                    new Date() >= new Date(event.startDate) ? event.eventPassword : null
+                  }
                   isStartNode={isStartNode}
                   nodeId={node.nodeId}
                   colorMode={colorMode}
