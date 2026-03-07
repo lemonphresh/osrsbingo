@@ -27,5 +27,6 @@ module.exports = {
     submissionReviewed: createSubscription((args) => `SUBMISSION_REVIEWED_${args.eventId}`),
     nodeCompleted: createSubscription((args) => `NODE_COMPLETED_${args.eventId}`),
     treasureHuntActivity: createSubscription((args) => `TREASURE_ACTIVITY_${args.eventId}`),
+    teamUpdated: createSubscription((args) => `TEAM_UPDATED_${args.eventId}`),
   },
 };

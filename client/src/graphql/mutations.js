@@ -792,6 +792,24 @@ export const DELETE_NODE_COMMENT = gql`
   }
 `;
 
+export const UPDATE_NODE_PROGRESS = gql`
+  mutation UpdateNodeProgress($eventId: ID!, $teamId: ID!, $nodeId: ID!, $value: Int!) {
+    updateNodeProgress(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, value: $value) {
+      teamId
+      nodeProgress
+    }
+  }
+`;
+
+export const TOGGLE_NODE_IN_PROGRESS = gql`
+  mutation ToggleNodeInProgress($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    toggleNodeInProgress(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      inProgressNodes
+    }
+  }
+`;
+
 export const ADMIN_GIVE_BUFF = gql`
   mutation AdminGiveBuff($eventId: ID!, $teamId: ID!, $buffType: String!) {
     adminGiveBuff(eventId: $eventId, teamId: $teamId, buffType: $buffType) {
@@ -912,6 +930,15 @@ export const TREASURE_ACTIVITY_SUB = gql`
       type
       data
       timestamp
+    }
+  }
+`;
+
+export const TEAM_UPDATED_SUB = gql`
+  subscription OnTeamUpdated($eventId: ID!) {
+    teamUpdated(eventId: $eventId) {
+      teamId
+      inProgressNodes
     }
   }
 `;

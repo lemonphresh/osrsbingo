@@ -17,6 +17,7 @@ import {
 import { CheckIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { OBJECTIVE_TYPES, applyTeamBuffToNode } from '../../utils/treasureHuntHelpers';
 import NodeNoteEditor from './NodeNoteEditor';
+import NodeProgressEditor from './NodeProgressEditor';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import theme from '../../theme';
 
@@ -364,6 +365,19 @@ const SubmissionsTab = ({
                           </Box>
                         ))}
                     </VStack>
+
+                    {/* Progress Tracker */}
+                    {effectiveNode?.objective?.quantity && (
+                      <NodeProgressEditor
+                        eventId={event.eventId}
+                        teamId={teamId}
+                        nodeId={nodeId}
+                        objectiveQuantity={effectiveNode.objective.quantity}
+                        objectiveType={effectiveNode.objective.type}
+                        currentProgress={team?.nodeProgress?.[nodeId] ?? 0}
+                        isAdmin={isEventAdmin}
+                      />
+                    )}
 
                     {/* Admin / Ref Notes */}
                     <NodeNoteEditor

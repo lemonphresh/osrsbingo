@@ -514,6 +514,8 @@ export const GET_TREASURE_EVENT = gql`
         buffHistory
         nodeNotes
         nodeBuffs
+        nodeProgress
+        inProgressNodes
         submissions {
           submissionId
           submittedByUsername
@@ -652,6 +654,8 @@ export const GET_TREASURE_TEAM = gql`
       activeBuffs
       buffHistory
       nodeBuffs
+      nodeProgress
+      inProgressNodes
     }
   }
 `;

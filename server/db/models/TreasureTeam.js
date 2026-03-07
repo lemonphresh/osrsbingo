@@ -59,6 +59,16 @@ module.exports = (sequelize) => {
         defaultValue: {},
         comment: 'Per-node buff applications for this team, keyed by nodeId',
       },
+      nodeProgress: {
+        type: DataTypes.JSONB,
+        defaultValue: {},
+        comment: 'Current progress toward each node objective, keyed by nodeId',
+      },
+      inProgressNodes: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        defaultValue: [],
+        comment: 'Node IDs the team has bookmarked as actively in progress',
+      },
     },
     {
       sequelize,
