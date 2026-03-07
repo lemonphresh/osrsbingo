@@ -249,6 +249,13 @@ const typeDefs = gql`
     ARCHIVED
   }
 
+  type NodeProgressUpdate {
+    eventId: ID!
+    teamId: ID!
+    nodeId: ID!
+    value: Int!
+  }
+
   type TreasureEvent {
     eventId: ID!
     eventName: String!
@@ -596,7 +603,11 @@ const typeDefs = gql`
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
-    checkDiscordChannels(guildId: String!, eventId: ID!, teamIds: [String!]!): DiscordChannelCheckResult!
+    checkDiscordChannels(
+      guildId: String!
+      eventId: ID!
+      teamIds: [String!]!
+    ): DiscordChannelCheckResult!
 
     # --- Analytics ---
     getVisitCount: Int!
@@ -746,6 +757,7 @@ const typeDefs = gql`
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
     treasureHuntActivity(eventId: ID!): TreasureHuntActivity
     teamUpdated(eventId: ID!): TreasureTeam!
+    nodeProgressUpdated(eventId: ID!): NodeProgressUpdate
 
     # --- Blind Draft Room ---
     draftRoomUpdated(roomId: ID!): DraftRoomUpdate!
