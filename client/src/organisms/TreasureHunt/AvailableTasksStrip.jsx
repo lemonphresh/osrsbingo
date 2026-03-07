@@ -6,6 +6,7 @@ import {
   Flex,
   HStack,
   Icon,
+  ListIcon,
   Modal,
   ModalBody,
   ModalContent,
@@ -20,6 +21,7 @@ import { FaCoins } from 'react-icons/fa';
 import GemTitle from '../../atoms/GemTitle';
 import { OBJECTIVE_TYPES, formatGP } from '../../utils/treasureHuntHelpers';
 import NodeBookmarkButton from './NodeBookmarkButton';
+import { HamburgerIcon } from '@chakra-ui/icons';
 
 const GROUP_COLORS = ['red', 'blue', 'yellow', 'green', 'orange', 'teal', 'purple', 'cyan', 'pink'];
 const GROUP_SHAPES = ['◆', '▲', '●', '■', '★', '⬟', '⬢', '✦', '❖'];
@@ -40,6 +42,7 @@ const AvailableTasksStrip = ({
   handleNodeClick,
 }) => {
   const { isOpen: isTipOpen, onOpen: openTip, onClose: closeTip } = useDisclosure();
+  const { isOpen: isListOpen, onOpen: openList, onClose: closeList } = useDisclosure();
   const [tipFired, setTipFired] = useState(false);
 
   const handleBookmarkFirstHover = () => {
@@ -49,25 +52,34 @@ const AvailableTasksStrip = ({
     openTip();
   };
 
-  const availableNodes = nodes
-    .filter((n) => {
-      const status = getNodeStatus(n);
-      return (
-        status === 'available' ||
-        (n.nodeType === 'INN' &&
-          status === 'completed' &&
-          !team.innTransactions?.some((t) => t.nodeId === n.nodeId))
-      );
-    })
-    .sort((a, b) => {
-      const aIsInnNoTx = a.nodeType === 'INN' && getNodeStatus(a) === 'completed';
-      const bIsInnNoTx = b.nodeType === 'INN' && getNodeStatus(b) === 'completed';
-      const aBuffed = !!a.objective?.appliedBuff;
-      const bBuffed = !!b.objective?.appliedBuff;
-      if (aIsInnNoTx !== bIsInnNoTx) return aIsInnNoTx ? -1 : 1;
-      if (aBuffed !== bBuffed) return aBuffed ? -1 : 1;
-      return 0;
-    });
+  const filteredNodes = nodes.filter((n) => {
+    const status = getNodeStatus(n);
+    return (
+      status === 'available' ||
+      (n.nodeType === 'INN' &&
+        status === 'completed' &&
+        !team.innTransactions?.some((t) => t.nodeId === n.nodeId))
+    );
+  });
+
+  // Compute group-level priority so all members of a group sort together
+  const groupPriority = {};
+  filteredNodes.forEach((n) => {
+    const key = n.locationGroupId || `solo-${n.nodeId}`;
+    if (!groupPriority[key]) groupPriority[key] = { isInn: false };
+    if (n.nodeType === 'INN' && getNodeStatus(n) === 'completed') groupPriority[key].isInn = true;
+  });
+
+  const availableNodes = filteredNodes.sort((a, b) => {
+    const aKey = a.locationGroupId || `solo-${a.nodeId}`;
+    const bKey = b.locationGroupId || `solo-${b.nodeId}`;
+    const aPriority = groupPriority[aKey];
+    const bPriority = groupPriority[bKey];
+    if (aPriority.isInn !== bPriority.isInn) return aPriority.isInn ? -1 : 1;
+    // Keep same-group nodes adjacent, then easy → medium → hard
+    if (aKey !== bKey) return aKey < bKey ? -1 : 1;
+    return (a.difficultyTier || 0) - (b.difficultyTier || 0);
+  });
 
   if (availableNodes.length === 0) return null;
 
@@ -93,7 +105,11 @@ const AvailableTasksStrip = ({
             px={2}
             py={1}
             borderRadius="md"
+            cursor="pointer"
+            onClick={openList}
+            _hover={{ opacity: 0.85 }}
           >
+            <HamburgerIcon boxSize={3} mr={1} />
             {availableNodes.length} available
           </Badge>
         </HStack>
@@ -337,6 +353,123 @@ const AvailableTasksStrip = ({
           </Box>
         </Box>
       </Box>
+
+      <Modal isOpen={isListOpen} onClose={closeList} isCentered size="lg" scrollBehavior="inside">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white" maxH="80vh">
+          <ModalHeader fontSize="md">All Available Tasks</ModalHeader>
+          <ModalBody
+            css={{
+              '&::-webkit-scrollbar': {
+                width: '8px',
+              },
+              '&::-webkit-scrollbar-track': {
+                background: 'transparent',
+                borderRadius: '10px',
+              },
+              '&::-webkit-scrollbar-thumb': {
+                background: '#abb8ceff',
+                borderRadius: '10px',
+                '&:hover': {
+                  background: '#718096',
+                },
+              },
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#abb8ceff transparent',
+            }}
+            pb={4}
+          >
+            {(() => {
+              const seen = new Set();
+              return availableNodes.map((node) => {
+                const isInn = node.nodeType === 'INN';
+                const groupKey = node.locationGroupId || `solo-${node.nodeId}`;
+                const groupIdx = groupColorMap[groupKey] ?? 0;
+                const groupColor = GROUP_COLORS[groupIdx % GROUP_COLORS.length];
+                const groupShape = GROUP_SHAPES[groupIdx % GROUP_SHAPES.length];
+                const isFirstInGroup = !seen.has(groupKey);
+                if (isFirstInGroup) seen.add(groupKey);
+                const locationName = node.title.includes(' - ') ? node.title.split(' - ')[0] : null;
+                const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+                const diffColor = { 1: 'green', 3: 'orange', 5: 'red' };
+                const hasBuffApplied = !!node.objective?.appliedBuff;
+                return (
+                  <Box key={node.nodeId}>
+                    {isFirstInGroup && locationName && (
+                      <HStack mt={3} mb={1} spacing={1}>
+                        <Text fontSize="xs" color={`${groupColor}.300`} userSelect="none">
+                          {groupShape}
+                        </Text>
+                        <Text
+                          fontSize="xs"
+                          fontWeight="semibold"
+                          color="gray.400"
+                          textTransform="uppercase"
+                          letterSpacing="wide"
+                        >
+                          {locationName}
+                        </Text>
+                      </HStack>
+                    )}
+                    <Flex
+                      align="center"
+                      justify="space-between"
+                      px={3}
+                      py={2}
+                      bg="whiteAlpha.100"
+                      borderRadius="md"
+                      cursor="pointer"
+                      _hover={{ bg: 'whiteAlpha.200' }}
+                      onClick={() => handleNodeClick(node)}
+                      borderLeft="3px solid"
+                      borderLeftColor={`${groupColor}.400`}
+                      mb={1}
+                    >
+                      <HStack spacing={2} flex={1} minW={0}>
+                        <Badge
+                          colorScheme={isInn ? 'yellow' : diffColor[node.difficultyTier] || 'gray'}
+                          fontSize="xs"
+                          flexShrink={0}
+                        >
+                          {isInn ? '🏠 Inn' : diffMap[node.difficultyTier] || node.nodeType}
+                        </Badge>
+                        <Text fontSize="sm" noOfLines={1} color="white">
+                          {node.title.includes(' - ')
+                            ? node.title.split(' - ').slice(1).join(' - ')
+                            : node.title}
+                        </Text>
+                        {team?.inProgressNodes?.includes(node.nodeId) && (
+                          <Badge colorScheme="purple" fontSize="xs" flexShrink={0}>
+                            🔖 In Progress
+                          </Badge>
+                        )}
+                        {hasBuffApplied && (
+                          <Badge colorScheme="blue" fontSize="xs" flexShrink={0}>
+                            ✨ Buffed
+                          </Badge>
+                        )}
+                      </HStack>
+                      {node.rewards?.gp && !isInn && (
+                        <HStack spacing={1} flexShrink={0} ml={2}>
+                          <Icon as={FaCoins} color="yellow.500" boxSize={3} />
+                          <Text fontSize="xs" color="yellow.500" fontWeight="semibold">
+                            {formatGP(node.rewards.gp)}
+                          </Text>
+                        </HStack>
+                      )}
+                    </Flex>
+                  </Box>
+                );
+              });
+            })()}
+          </ModalBody>
+          <ModalFooter>
+            <Button size="sm" variant="ghost" colorScheme="whiteAlpha" onClick={closeList}>
+              Close
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Modal isOpen={isTipOpen} onClose={closeTip} isCentered size="sm">
         <ModalOverlay />

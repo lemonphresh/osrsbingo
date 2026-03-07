@@ -28,6 +28,7 @@ const NodeProgressEditor = ({
   objectiveType,
   currentProgress,
   isAdmin,
+  onProgressChange,
 }) => {
   const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
@@ -41,13 +42,15 @@ const NodeProgressEditor = ({
   const [updateNodeProgress] = useMutation(UPDATE_NODE_PROGRESS);
 
   const step = objectiveType === 'xp_gain' ? XP_STEP : 1;
-  const pct = objectiveQuantity > 0 ? Math.min(100, Math.round((value / objectiveQuantity) * 100)) : 0;
+  const pct =
+    objectiveQuantity > 0 ? Math.min(100, Math.round((value / objectiveQuantity) * 100)) : 0;
   const isDirty = value !== (currentProgress ?? 0);
 
   const handleSave = async () => {
     setSaving(true);
     try {
       await updateNodeProgress({ variables: { eventId, teamId, nodeId, value } });
+      onProgressChange?.(value);
       showToast('Progress saved', 'success');
     } catch (err) {
       showToast(`Failed to update progress: ${err.message}`, 'error');

@@ -810,12 +810,7 @@ export const ADD_NODE_COMMENT = gql`
 
 export const DELETE_NODE_COMMENT = gql`
   mutation DeleteNodeComment($eventId: ID!, $teamId: ID!, $nodeId: ID!, $commentId: ID!) {
-    deleteNodeComment(
-      eventId: $eventId
-      teamId: $teamId
-      nodeId: $nodeId
-      commentId: $commentId
-    ) {
+    deleteNodeComment(eventId: $eventId, teamId: $teamId, nodeId: $nodeId, commentId: $commentId) {
       teamId
       nodeNotes
     }
@@ -920,6 +915,17 @@ export const SUBMISSION_ADDED_SUB = gql`
         teamId
         teamName
       }
+    }
+  }
+`;
+
+export const NODE_PROGRESS_UPDATED_SUB = gql`
+  subscription OnNodeProgressUpdated($eventId: ID!) {
+    nodeProgressUpdated(eventId: $eventId) {
+      eventId
+      teamId
+      nodeId
+      value
     }
   }
 `;

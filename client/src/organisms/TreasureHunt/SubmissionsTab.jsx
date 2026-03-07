@@ -21,6 +21,8 @@ import NodeNoteEditor from './NodeNoteEditor';
 import NodeProgressEditor from './NodeProgressEditor';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
 import theme from '../../theme';
+import { useSubscription } from '@apollo/client';
+import { NODE_PROGRESS_UPDATED_SUB } from '../../graphql/mutations';
 
 const SubmissionsTab = ({
   allSubmissions,
@@ -36,7 +38,19 @@ const SubmissionsTab = ({
   handleReviewSubmission,
 }) => {
   const [confirmingKey, setConfirmingKey] = useState(null);
+  const [progressOverrides, setProgressOverrides] = useState({});
 
+  useSubscription(NODE_PROGRESS_UPDATED_SUB, {
+    variables: { eventId: event.eventId },
+    onData: ({ data }) => {
+      const update = data.data?.nodeProgressUpdated;
+      if (!update) return;
+      const key = `${update.nodeId}_${update.teamId}`;
+      setProgressOverrides((prev) => ({ ...prev, [key]: update.value }));
+    },
+  });
+
+  const getProgress = (key, fallback) => progressOverrides[key] ?? fallback;
   const groupedSubmissions = {};
   allSubmissions.forEach((s) => {
     const key = `${s.nodeId}_${s.team?.teamId}`;
@@ -218,14 +232,29 @@ const SubmissionsTab = ({
                         </VStack>
                       )}
                     </HStack>
+
+                    {(() => {
+                      const progress = getProgress(key, team?.nodeProgress?.[nodeId] ?? 0);
+                      const qty =
+                        effectiveNode?.objective?.quantity ?? node?.objective?.quantity ?? 0;
+                      const pct = qty > 0 ? Math.min(100, Math.round((progress / qty) * 100)) : 0;
+                      return (
+                        <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
+                          {progress.toLocaleString()} / {qty.toLocaleString()} ({pct}%)
+                        </Text>
+                      );
+                    })()}
+
                     {!isCompleted &&
                       effectiveNode?.objective?.quantity &&
-                      (team?.nodeProgress?.[nodeId] ?? 0) > 0 && (
+                      getProgress(key, team?.nodeProgress?.[nodeId] ?? 0) > 0 && (
                         <Progress
                           value={Math.min(
                             100,
                             Math.round(
-                              (team.nodeProgress[nodeId] / effectiveNode.objective.quantity) * 100
+                              (getProgress(key, team?.nodeProgress?.[nodeId] ?? 0) /
+                                effectiveNode.objective.quantity) *
+                                100
                             )
                           )}
                           size="xs"
@@ -411,6 +440,9 @@ const SubmissionsTab = ({
                         objectiveType={effectiveNode.objective.type}
                         currentProgress={team?.nodeProgress?.[nodeId] ?? 0}
                         isAdmin={isEventAdmin || isEventRef}
+                        onProgressChange={(val) =>
+                          setProgressOverrides((prev) => ({ ...prev, [key]: val }))
+                        }
                       />
                     )}
 

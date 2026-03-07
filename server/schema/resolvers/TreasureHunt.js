@@ -17,7 +17,7 @@ const {
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
-const { pubsub } = require('../pubsub');
+const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
@@ -1346,7 +1346,14 @@ const TreasureHuntResolvers = {
         (id) => !groupNodeIds.includes(id)
       );
 
-      await team.update({ completedNodes, availableNodes, inProgressNodes, currentPot, keysHeld, activeBuffs });
+      await team.update({
+        completedNodes,
+        availableNodes,
+        inProgressNodes,
+        currentPot,
+        keysHeld,
+        activeBuffs,
+      });
 
       logger.info(
         `[adminSilentReCompleteNode] ✅ silent re-complete teamId=${teamId} nodeId=${nodeId}`
@@ -1386,7 +1393,9 @@ const TreasureHuntResolvers = {
         });
 
       await team.update({ availableNodes });
-      logger.info(`[adminRestoreLocationGroupSiblings] ✅ restored siblings for nodeId=${nodeId} teamId=${teamId}`);
+      logger.info(
+        `[adminRestoreLocationGroupSiblings] ✅ restored siblings for nodeId=${nodeId} teamId=${teamId}`
+      );
       await team.reload();
       return team;
     },
@@ -1640,7 +1649,9 @@ const TreasureHuntResolvers = {
         logger.info(`[adminRemoveBuffFromNode] ✅ cleared legacy buff from nodeId=${nodeId}`);
       }
 
-      logger.info(`[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId} teamId=${teamId}`);
+      logger.info(
+        `[adminRemoveBuffFromNode] ✅ buff removed from nodeId=${nodeId} teamId=${teamId}`
+      );
       await team.reload();
       return team;
     },
@@ -1719,6 +1730,9 @@ const TreasureHuntResolvers = {
       team.changed('nodeProgress', true);
       await team.save();
       await team.reload();
+      await pubsub.publish(SUBMISSION_TOPICS.NODE_PROGRESS_UPDATED, {
+        nodeProgressUpdated: { eventId, teamId, nodeId, value: clamped },
+      });
 
       logger.info(`[updateNodeProgress] ✅ teamId=${teamId} nodeId=${nodeId} value=${clamped}`);
       return team;
@@ -1764,7 +1778,9 @@ const TreasureHuntResolvers = {
 
       await pubsub.publish(`TEAM_UPDATED_${eventId}`, { teamUpdated: team });
 
-      logger.info(`[toggleNodeInProgress] ✅ teamId=${teamId} nodeId=${nodeId} marked=${!isMarked}`);
+      logger.info(
+        `[toggleNodeInProgress] ✅ teamId=${teamId} nodeId=${nodeId} marked=${!isMarked}`
+      );
       return team;
     },
 
