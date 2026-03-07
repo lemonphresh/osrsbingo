@@ -6,6 +6,7 @@ import {
   Flex,
   HStack,
   Icon,
+  Image,
   ListIcon,
   Modal,
   ModalBody,
@@ -17,11 +18,12 @@ import {
   Text,
   useDisclosure,
 } from '@chakra-ui/react';
-import { FaCoins } from 'react-icons/fa';
+import { FaBookmark, FaCoins } from 'react-icons/fa';
 import GemTitle from '../../atoms/GemTitle';
 import { OBJECTIVE_TYPES, formatGP } from '../../utils/treasureHuntHelpers';
 import NodeBookmarkButton from './NodeBookmarkButton';
 import { HamburgerIcon } from '@chakra-ui/icons';
+import Key from '../../assets/Key.png';
 
 const GROUP_COLORS = ['red', 'blue', 'yellow', 'green', 'orange', 'teal', 'purple', 'cyan', 'pink'];
 const GROUP_SHAPES = ['◆', '▲', '●', '■', '★', '⬟', '⬢', '✦', '❖'];
@@ -431,7 +433,7 @@ const AvailableTasksStrip = ({
                           fontSize="xs"
                           flexShrink={0}
                         >
-                          {isInn ? '🏠 Inn' : diffMap[node.difficultyTier] || node.nodeType}
+                          {isInn ? 'Inn' : diffMap[node.difficultyTier] || node.nodeType}
                         </Badge>
                         <Text fontSize="sm" noOfLines={1} color="white">
                           {node.title.includes(' - ')
@@ -439,22 +441,37 @@ const AvailableTasksStrip = ({
                             : node.title}
                         </Text>
                         {team?.inProgressNodes?.includes(node.nodeId) && (
-                          <Badge colorScheme="purple" fontSize="xs" flexShrink={0}>
-                            🔖 In Progress
-                          </Badge>
+                          <Icon as={FaBookmark} color="#F5C518" boxSize="10px" flexShrink={0} />
                         )}
                         {hasBuffApplied && (
                           <Badge colorScheme="blue" fontSize="xs" flexShrink={0}>
-                            ✨ Buffed
+                            Buffed
                           </Badge>
                         )}
                       </HStack>
-                      {node.rewards?.gp && !isInn && (
+                      {!isInn && (node.rewards?.gp || node.rewards?.keys?.length > 0) && (
                         <HStack spacing={1} flexShrink={0} ml={2}>
-                          <Icon as={FaCoins} color="yellow.500" boxSize={3} />
-                          <Text fontSize="xs" color="yellow.500" fontWeight="semibold">
-                            {formatGP(node.rewards.gp)}
-                          </Text>
+                          {node.rewards?.keys?.map((key, idx) => (
+                            <Badge
+                              display="inline-flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              key={idx}
+                              mr="4px"
+                              colorScheme={key.color}
+                              fontSize="xs"
+                            >
+                              <Image src={Key} alt="Key" mr="4px" height="12px" /> {key.quantity}
+                            </Badge>
+                          ))}
+                          {node.rewards?.gp && (
+                            <>
+                              <Icon as={FaCoins} color="yellow.500" boxSize={3} />
+                              <Text fontSize="xs" color="yellow.500" fontWeight="semibold">
+                                {formatGP(node.rewards.gp)}
+                              </Text>
+                            </>
+                          )}
                         </HStack>
                       )}
                     </Flex>
