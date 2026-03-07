@@ -304,13 +304,18 @@ const TreasureHuntResolvers = {
       });
     },
 
-    getTreasureActivities: async (_, { eventId, limit = 50 }) => {
-      logger.info(`[getTreasureActivities] eventId=${eventId} limit=${limit}`);
-      return TreasureActivity.findAll({
+    getTreasureActivities: async (_, { eventId, limit = 50, offset = 0 }) => {
+      logger.info(`[getTreasureActivities] eventId=${eventId} limit=${limit} offset=${offset}`);
+      const rows = await TreasureActivity.findAll({
         where: { eventId },
         order: [['timestamp', 'DESC']],
         limit,
+        offset,
       });
+      return rows.map((r) => ({
+        ...r.dataValues,
+        timestamp: r.timestamp instanceof Date ? r.timestamp.toISOString() : String(r.timestamp),
+      }));
     },
 
     verifyDiscordGuild: async (_, { guildId }, context) => {
@@ -1204,7 +1209,7 @@ const TreasureHuntResolvers = {
       const newPotBigInt = currentPotBigInt - rewardGpBigInt;
       const currentPot = newPotBigInt < 0n ? '0' : newPotBigInt.toString();
 
-      const keysHeld = [...(team.keysHeld || [])];
+      const keysHeld = JSON.parse(JSON.stringify(team.keysHeld || []));
       if (node.rewards?.keys?.length > 0) {
         node.rewards.keys.forEach((key) => {
           const existingKey = keysHeld.find((k) => k.color === key.color);
@@ -1215,7 +1220,7 @@ const TreasureHuntResolvers = {
       }
       const filteredKeys = keysHeld.filter((k) => k.quantity > 0);
 
-      let activeBuffs = [...(team.activeBuffs || [])];
+      let activeBuffs = JSON.parse(JSON.stringify(team.activeBuffs || []));
       const consumedBuffs = [];
 
       if (node.rewards?.buffs?.length > 0) {
@@ -1243,6 +1248,76 @@ const TreasureHuntResolvers = {
       });
 
       logger.info(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
+      await team.reload();
+      return team;
+    },
+
+    // Re-completes a node silently: fixes game state (completedNodes, availableNodes, unlocks,
+    // location groups) without granting rewards, logging activity, or sending notifications.
+    // Use for correcting state after erroneous uncompletes.
+    adminSilentReCompleteNode: async (_, { eventId, teamId, nodeId }, context) => {
+      if (!context.user) throw new Error('Not authenticated');
+      logger.info(
+        `[adminSilentReCompleteNode] eventId=${eventId} teamId=${teamId} nodeId=${nodeId} adminId=${context.user.id}`
+      );
+
+      const isAdmin = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdmin) throw new Error('Not authorized. Admin or ref access required.');
+
+      const [event, team, node] = await Promise.all([
+        TreasureEvent.findByPk(eventId),
+        TreasureTeam.findOne({ where: { teamId, eventId } }),
+        TreasureNode.findByPk(nodeId),
+      ]);
+
+      if (!event) throw new Error('Event not found');
+      if (!team) throw new Error('Team not found');
+      if (!node || node.eventId !== eventId) throw new Error('Node not found');
+
+      if (team.completedNodes?.includes(nodeId)) {
+        throw new Error('Node is already completed');
+      }
+
+      const completedNodes = [...(team.completedNodes || []), nodeId];
+      let availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+
+      // Remove location group siblings (same logic as adminCompleteNode)
+      if (node.locationGroupId) {
+        const group = event.mapStructure?.locationGroups?.find(
+          (g) => g.groupId === node.locationGroupId
+        );
+        if (group) {
+          const otherNodesInGroup = group.nodeIds.filter((id) => id !== nodeId);
+          availableNodes = availableNodes.filter((n) => !otherNodesInGroup.includes(n));
+        }
+      }
+
+      // Unlock downstream nodes
+      if (node.unlocks && Array.isArray(node.unlocks)) {
+        node.unlocks.forEach((unlockedNode) => {
+          if (!availableNodes.includes(unlockedNode) && !completedNodes.includes(unlockedNode)) {
+            availableNodes.push(unlockedNode);
+          }
+        });
+      }
+
+      // Clean up inProgressNodes
+      const groupNodeIds = (() => {
+        if (!node.locationGroupId) return [nodeId];
+        const group = event.mapStructure?.locationGroups?.find(
+          (g) => g.groupId === node.locationGroupId
+        );
+        return group ? group.nodeIds : [nodeId];
+      })();
+      const inProgressNodes = (team.inProgressNodes || []).filter(
+        (id) => !groupNodeIds.includes(id)
+      );
+
+      await team.update({ completedNodes, availableNodes, inProgressNodes });
+
+      logger.info(
+        `[adminSilentReCompleteNode] ✅ silent re-complete teamId=${teamId} nodeId=${nodeId}`
+      );
       await team.reload();
       return team;
     },

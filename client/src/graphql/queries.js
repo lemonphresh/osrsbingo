@@ -725,8 +725,8 @@ export const GET_ALL_SUBMISSIONS = gql`
 // ============================================================
 
 export const GET_TREASURE_ACTIVITIES = gql`
-  query GetTreasureActivities($eventId: ID!, $limit: Int) {
-    getTreasureActivities(eventId: $eventId, limit: $limit) {
+  query GetTreasureActivities($eventId: ID!, $limit: Int, $offset: Int) {
+    getTreasureActivities(eventId: $eventId, limit: $limit, offset: $offset) {
       id
       eventId
       teamId

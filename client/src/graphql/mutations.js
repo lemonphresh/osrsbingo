@@ -686,6 +686,17 @@ export const VISIT_INN = gql`
   }
 `;
 
+export const ADMIN_SILENT_RE_COMPLETE_NODE = gql`
+  mutation AdminSilentReCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminSilentReCompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      completedNodes
+      availableNodes
+      inProgressNodes
+    }
+  }
+`;
+
 export const ADMIN_UNCOMPLETE_NODE = gql`
   mutation AdminUncompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
     adminUncompleteNode(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {

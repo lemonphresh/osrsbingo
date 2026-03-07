@@ -594,7 +594,7 @@ const typeDefs = gql`
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
-    getTreasureActivities(eventId: ID!, limit: Int): [TreasureHuntActivity!]
+    getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
     checkDiscordChannels(guildId: String!, eventId: ID!, teamIds: [String!]!): DiscordChannelCheckResult!
 
@@ -691,6 +691,7 @@ const typeDefs = gql`
     ): TreasureTeam!
     visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
     adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
     adminRepairLocationGroupAvailability(eventId: ID!): [TreasureTeam!]!
 

@@ -656,6 +656,7 @@ const TreasureEventView = () => {
                       currentColors={currentColors}
                       colorMode={colorMode}
                       isEventAdmin={isEventAdmin}
+                      isEventRef={isEventRef}
                       setSubmissionToDeny={setSubmissionToDeny}
                       onDenialModalOpen={onDenialModalOpen}
                       setNodeToComplete={setNodeToComplete}
@@ -734,6 +735,7 @@ const TreasureEventView = () => {
           onOpenDiscordSetup={onDiscordSetupOpen}
           onOpenLaunchFAQ={onLaunchFAQOpen}
           isEventAdmin={isEventAdmin}
+          onRefreshEvent={refetchEvent}
         />
       )}
 
