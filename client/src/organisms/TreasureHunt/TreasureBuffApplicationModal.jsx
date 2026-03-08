@@ -35,12 +35,17 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
 
   if (!node || !node.objective) return null;
 
+  const isIneligibleItemCollection =
+    node.objective.type === 'item_collection' && node.objective.quantity <= 3;
+
   // Filter buffs that can be applied to this objective and would result in a meaningful reduction
-  const applicableBuffs = availableBuffs.filter((buff) => {
-    if (!buff.objectiveTypes.includes(node.objective.type)) return false;
-    const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
-    return Number(reduced.toFixed(0)) !== 0;
-  });
+  const applicableBuffs = isIneligibleItemCollection
+    ? []
+    : availableBuffs.filter((buff) => {
+        if (!buff.objectiveTypes.includes(node.objective.type)) return false;
+        const reduced = Math.ceil(node.objective.quantity * (1 - buff.reduction));
+        return Number(reduced.toFixed(0)) !== 0;
+      });
 
   const selectedBuff = applicableBuffs.find((b) => b.buffId === selectedBuffId);
 
@@ -102,7 +107,12 @@ const BuffApplicationModal = ({ isOpen, onClose, node, availableBuffs = [], onAp
             <Divider />
 
             {/* Buff Selection */}
-            {applicableBuffs.length === 0 ? (
+            {isIneligibleItemCollection ? (
+              <Alert status="warning">
+                <AlertIcon />
+                Buffs cannot be applied to item collection objectives with 3 or fewer items required.
+              </Alert>
+            ) : applicableBuffs.length === 0 ? (
               <Alert status="info">
                 <AlertIcon />
                 No buffs available for this objective type {OBJECTIVE_TYPES[node.objective.type]}
