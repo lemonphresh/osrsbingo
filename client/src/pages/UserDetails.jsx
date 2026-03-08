@@ -344,6 +344,24 @@ const UserDetails = () => {
                   Host team treasure hunt events with GP prize pools
                 </Text>
               </Box>
+              <Box
+                as={Link}
+                to="/champion-forge"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.red[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.red[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
+                  Champion Forge
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Build a champion and battle rival clans
+                </Text>
+              </Box>
               {isBlindDraftEnabled(user) && (
               <Box
                 as={Link}

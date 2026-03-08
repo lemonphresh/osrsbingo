@@ -616,6 +616,17 @@ const typeDefs = gql`
     # --- Blind Draft Room ---
     getDraftRoom(roomId: ID!): DraftRoom
     getMyDraftRooms: [DraftRoom!]!
+
+    # --- Champion Forge ---
+    getClanWarsEvent(eventId: ID!): ClanWarsEvent
+    getAllClanWarsEvents: [ClanWarsEvent!]!
+    getMyClanWarsEvents: [ClanWarsEvent!]!
+    getClanWarsTeam(eventId: ID!, teamId: ID!): ClanWarsTeam
+    getClanWarsWarChest(teamId: ID!): [ClanWarsItem!]!
+    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus): [ClanWarsSubmission!]!
+    getClanWarsBattle(battleId: ID!): ClanWarsBattle
+    getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
+    getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
   }
 
   # ============================================================
@@ -745,6 +756,257 @@ const typeDefs = gql`
     makeDraftPick(roomId: ID!, playerId: ID!, captainToken: String): DraftRoom!
     placeBid(roomId: ID!, teamIndex: Int!, amount: Int!, captainToken: String): DraftRoom!
     revealNames(roomId: ID!): DraftRoom!
+
+    # --- Champion Forge: Events ---
+    createClanWarsEvent(input: CreateClanWarsEventInput!): ClanWarsEvent!
+    updateClanWarsEventStatus(eventId: ID!, status: ClanWarsEventStatus!): ClanWarsEvent!
+    deleteClanWarsEvent(eventId: ID!): MutationResponse!
+    generateClanWarsBracket(eventId: ID!): ClanWarsEvent!
+
+    # --- Champion Forge: Teams ---
+    createClanWarsTeam(eventId: ID!, input: CreateClanWarsTeamInput!): ClanWarsTeam!
+    updateClanWarsTeamMembers(teamId: ID!, members: [ClanWarsMemberInput!]!): ClanWarsTeam!
+    deleteClanWarsTeam(eventId: ID!, teamId: ID!): MutationResponse!
+    setClanWarsCaptain(teamId: ID!, discordId: String!): ClanWarsTeam!
+
+    # --- Champion Forge: Tasks ---
+    addClanWarsTask(eventId: ID!, input: ClanWarsTaskInput!): ClanWarsTask!
+    deleteClanWarsTask(taskId: ID!): MutationResponse!
+
+    # --- Champion Forge: Submissions ---
+    createClanWarsSubmission(input: ClanWarsSubmissionInput!): ClanWarsSubmission!
+    reviewClanWarsSubmission(
+      submissionId: ID!
+      approved: Boolean!
+      reviewerId: String!
+      rewardSlot: String
+      denialReason: String
+    ): ClanWarsSubmission!
+
+    # --- Champion Forge: Outfitting ---
+    saveOfficialLoadout(teamId: ID!, loadout: JSON!): ClanWarsTeam!
+    lockClanWarsLoadout(teamId: ID!): ClanWarsTeam!
+
+    # --- Champion Forge: Admin shortcuts (dev / fast-forward) ---
+    adminForceEventStatus(eventId: ID!, status: String!): ClanWarsEvent!
+    adminLockAllLoadouts(eventId: ID!): [ClanWarsTeam!]!
+
+    # --- Champion Forge: Battle ---
+    startClanWarsBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): ClanWarsBattle!
+    submitBattleAction(
+      battleId: ID!
+      teamId: ID!
+      action: ClanWarsBattleAction!
+      itemId: ID
+    ): ClanWarsBattle!
+  }
+
+  # ============================================================
+  # CHAMPION FORGE: CORE TYPES
+  # ============================================================
+
+  enum ClanWarsEventStatus {
+    DRAFT
+    GATHERING
+    OUTFITTING
+    BATTLE
+    COMPLETED
+    ARCHIVED
+  }
+
+  enum ClanWarsSubmissionStatus {
+    PENDING
+    APPROVED
+    DENIED
+  }
+
+  enum ClanWarsBattleStatus {
+    WAITING
+    IN_PROGRESS
+    COMPLETED
+  }
+
+  enum ClanWarsBattleAction {
+    ATTACK
+    DEFEND
+    USE_ITEM
+    SPECIAL
+  }
+
+  type ClanWarsEvent {
+    eventId: ID!
+    clanId: String
+    eventName: String!
+    status: ClanWarsEventStatus!
+    gatheringStart: DateTime
+    gatheringEnd: DateTime
+    outfittingEnd: DateTime
+    eventConfig: JSON
+    bracket: JSON
+    creatorId: String
+    adminIds: [String!]
+    teams: [ClanWarsTeam!]
+    submissions: [ClanWarsSubmission!]
+    tasks: [ClanWarsTask!]
+    battles: [ClanWarsBattle!]
+    createdAt: DateTime
+    updatedAt: DateTime
+  }
+
+  type ClanWarsMember {
+    discordId: String!
+    username: String
+    avatar: String
+    role: String
+  }
+
+  type ClanWarsTeam {
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
+    discordRoleId: String
+    members: [ClanWarsMember!]
+    officialLoadout: JSON
+    loadoutLocked: Boolean!
+    captainDiscordId: String
+    items: [ClanWarsItem!]
+    submissions: [ClanWarsSubmission!]
+  }
+
+  type ClanWarsItem {
+    itemId: ID!
+    teamId: ID!
+    eventId: ID!
+    name: String!
+    slot: String!
+    rarity: String!
+    itemSnapshot: JSON!
+    sourceSubmissionId: String
+    earnedAt: DateTime
+    isEquipped: Boolean!
+    isUsed: Boolean!
+  }
+
+  type ClanWarsSubmission {
+    submissionId: ID!
+    eventId: ID!
+    teamId: ID!
+    submittedBy: String!
+    submittedUsername: String
+    channelId: String
+    taskId: String!
+    taskLabel: String
+    difficulty: String!
+    role: String!
+    proofUrl: String
+    status: ClanWarsSubmissionStatus!
+    rewardSlot: String
+    rewardItemId: String
+    rewardItem: ClanWarsItem
+    reviewedBy: String
+    reviewNote: String
+    reviewedAt: DateTime
+    submittedAt: DateTime
+    createdAt: DateTime
+  }
+
+  type ClanWarsBattle {
+    battleId: ID!
+    eventId: ID!
+    team1Id: ID!
+    team2Id: ID!
+    status: ClanWarsBattleStatus!
+    championSnapshots: JSON
+    battleState: JSON
+    rngSeed: String
+    winnerId: String
+    startedAt: DateTime
+    endedAt: DateTime
+    battleLog: [ClanWarsBattleEvent!]
+  }
+
+  type ClanWarsBattleEvent {
+    eventLogId: ID!
+    battleId: ID!
+    turnNumber: Int!
+    actorTeamId: String
+    action: String!
+    rollInputs: JSON
+    damageDealt: Int
+    isCrit: Boolean
+    itemUsedId: String
+    effectApplied: String
+    hpAfter: JSON
+    narrative: String
+    createdAt: DateTime
+  }
+
+  type ClanWarsTask {
+    taskId: ID!
+    eventId: ID!
+    label: String!
+    description: String
+    difficulty: String!
+    role: String!
+    isActive: Boolean!
+  }
+
+  type ClanWarsSubmitResult {
+    success: Boolean!
+    message: String!
+    item: ClanWarsItem
+  }
+
+  type ClanWarsBattleUpdate {
+    battleId: ID!
+    battle: ClanWarsBattle!
+    latestEvent: ClanWarsBattleEvent
+  }
+
+  # ============================================================
+  # CHAMPION FORGE: INPUTS
+  # ============================================================
+
+  input CreateClanWarsEventInput {
+    eventName: String!
+    clanId: String
+    gatheringHours: Int
+    outfittingHours: Int
+    turnTimerSeconds: Int
+    maxConsumableSlots: Int
+    flexRolesAllowed: Boolean
+  }
+
+  input CreateClanWarsTeamInput {
+    teamName: String!
+    discordRoleId: String
+    members: [ClanWarsMemberInput!]
+  }
+
+  input ClanWarsMemberInput {
+    discordId: String!
+    username: String
+    avatar: String
+    role: String
+  }
+
+  input ClanWarsTaskInput {
+    label: String!
+    description: String
+    difficulty: String!
+    role: String!
+  }
+
+  input ClanWarsSubmissionInput {
+    eventId: ID!
+    teamId: ID!
+    submittedBy: String!
+    submittedUsername: String
+    channelId: String
+    taskId: String!
+    difficulty: String!
+    role: String!
+    proofUrl: String
   }
 
   # ============================================================
@@ -761,6 +1023,11 @@ const typeDefs = gql`
 
     # --- Blind Draft Room ---
     draftRoomUpdated(roomId: ID!): DraftRoomUpdate!
+
+    # --- Champion Forge ---
+    clanWarsBattleUpdated(battleId: ID!): ClanWarsBattleUpdate!
+    clanWarsSubmissionAdded(eventId: ID!): ClanWarsSubmission!
+    clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
   }
 `;
 

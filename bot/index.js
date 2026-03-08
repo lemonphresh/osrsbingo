@@ -18,8 +18,10 @@ const treasurehunt = require('./commands/treasurehunt');
 const nodes = require('./commands/nodes');
 const submit = require('./commands/submit');
 const leaderboard = require('./commands/leaderboard');
+const clanwars = require('./commands/clanwars');
+const clanwarsHelp = clanwars.help;
 
-const commands = [treasurehunt, nodes, submit, leaderboard];
+const commands = [treasurehunt, nodes, submit, leaderboard, clanwars, clanwarsHelp];
 
 let TreasureEvent, TreasureTeam;
 
@@ -70,6 +72,13 @@ async function checkEventStarts() {
 
 client.on('ready', () => {
   registerClient(client);
+  // Register bot client for ClanWars Discord notifications
+  try {
+    const { registerBotClient } = require('../server/utils/clanWarsNotifications');
+    registerBotClient(client);
+  } catch (err) {
+    console.warn('[bot] Could not register ClanWars notifications client:', err.message);
+  }
   console.log(`✅ Discord bot logged in as ${client.user.tag}`);
   console.log(`📡 Connected to GraphQL at ${process.env.GRAPHQL_ENDPOINT}`);
   console.log(`🎮 Loaded ${commands.length} commands`);
