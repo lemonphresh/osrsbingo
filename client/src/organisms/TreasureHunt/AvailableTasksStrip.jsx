@@ -7,7 +7,6 @@ import {
   HStack,
   Icon,
   Image,
-  ListIcon,
   Modal,
   ModalBody,
   ModalContent,
@@ -117,11 +116,11 @@ const AvailableTasksStrip = ({
   return (
     <>
       <Box>
-        <HStack justify="space-between" mb={3}>
+        <HStack justify="space-between" align="flex-start" mb={3}>
           <GemTitle gemColor="green" size="sm" mb={0}>
             Available Tasks
           </GemTitle>
-          <HStack spacing={2}>
+          <Flex direction={{ base: 'column', sm: 'row' }} gap={2} align="stretch">
             {availableNodes.some((n) => !seenNodeIds.has(n.nodeId)) && (
               <Badge
                 fontSize="xs"
@@ -131,6 +130,10 @@ const AvailableTasksStrip = ({
                 cursor="pointer"
                 colorScheme="green"
                 variant="outline"
+                textAlign="center"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
                 onClick={() => {
                   const allIds = availableNodes.map((n) => n.nodeId);
                   setSeenNodeIds((prev) => {
@@ -156,12 +159,16 @@ const AvailableTasksStrip = ({
               borderRadius="md"
               cursor="pointer"
               onClick={openList}
+              textAlign="center"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
               _hover={{ opacity: 0.85 }}
             >
               <HamburgerIcon boxSize={3} mr={1} />
               {availableNodes.length} available
             </Badge>
-          </HStack>
+          </Flex>
         </HStack>
 
         <Box position="relative">
@@ -248,7 +255,10 @@ const AvailableTasksStrip = ({
                     cursor="pointer"
                     borderRadius="lg"
                     _hover={{ transform: 'translateY(-4px)', shadow: 'xl' }}
-                    onClick={() => { markSeen(node.nodeId); handleNodeClick(node); }}
+                    onClick={() => {
+                      markSeen(node.nodeId);
+                      handleNodeClick(node);
+                    }}
                     transition="transform 0.2s ease, box-shadow 0.2s ease"
                   >
                     {/* Inner card — overflow:hidden for rounded corners, separate from bookmark */}
@@ -422,11 +432,12 @@ const AvailableTasksStrip = ({
         </Box>
       </Box>
 
-      <Modal isOpen={isListOpen} onClose={closeList} isCentered size="lg" scrollBehavior="inside">
+      <Modal isOpen={isListOpen} onClose={closeList} size="lg">
         <ModalOverlay />
         <ModalContent bg="gray.800" color="white" maxH="80vh">
           <ModalHeader fontSize="md">All Available Tasks</ModalHeader>
           <ModalBody
+            overflowY="auto"
             css={{
               '&::-webkit-scrollbar': {
                 width: '8px',
@@ -488,7 +499,10 @@ const AvailableTasksStrip = ({
                       borderRadius="md"
                       cursor="pointer"
                       _hover={{ bg: 'whiteAlpha.200' }}
-                      onClick={() => { markSeen(node.nodeId); handleNodeClick(node); }}
+                      onClick={() => {
+                        markSeen(node.nodeId);
+                        handleNodeClick(node);
+                      }}
                       borderLeft="3px solid"
                       borderLeftColor={`${groupColor}.400`}
                       mb={1}

@@ -166,7 +166,14 @@ function getDropsForNode(node) {
   return null;
 }
 
-const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuff, progressPct = null) => {
+const createCustomIcon = (
+  color,
+  nodeType,
+  status,
+  adminMode = false,
+  appliedBuff,
+  progressPct = null
+) => {
   const isAvailable = status === 'available';
   const iconHtml = `
     <div style="
@@ -223,7 +230,9 @@ const createCustomIcon = (color, nodeType, status, adminMode = false, appliedBuf
                      }
                      ${
                        progressPct !== null
-                         ? `<div style="position:absolute;bottom:0;left:0;width:100%;height:3px;background:rgba(0,0,0,0.35);border-radius:0 0 ${nodeType === 'INN' ? '2px 2px' : '50% 50%'};overflow:hidden;">` +
+                         ? `<div style="position:absolute;bottom:0;left:0;width:100%;height:3px;background:rgba(0,0,0,0.35);border-radius:0 0 ${
+                             nodeType === 'INN' ? '2px 2px' : '50% 50%'
+                           };overflow:hidden;">` +
                            `<div style="height:100%;width:${progressPct}%;background:#48BB78;"></div></div>`
                          : ''
                      }
@@ -260,8 +269,8 @@ const TreasureMapVisualization = ({
   onScrollToNode,
 }) => {
   const toast = useToast();
-  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const [isNodeOpen, setIsNodeOpen] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
@@ -641,8 +650,8 @@ const TreasureMapVisualization = ({
                               Objective:
                             </Text>
                             <Text fontSize="xs" m="0!important" color="#4a5568">
-                              {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
-                              {node.objective.target}
+                              {OBJECTIVE_TYPES[node.objective.type]}:{' '}
+                              {node.objective.quantity?.toLocaleString()} {node.objective.target}
                             </Text>
 
                             {/* Show acceptable drops for item_collection tasks */}
@@ -935,7 +944,7 @@ const TreasureMapVisualization = ({
         <HStack
           justify="space-between"
           p={3}
-          pb={isOpen ? 2 : 3}
+          pb={isLegendOpen ? 2 : 3}
           cursor={isMobile ? 'pointer' : 'default'}
           onClick={isMobile ? onToggle : undefined}
         >
@@ -944,7 +953,7 @@ const TreasureMapVisualization = ({
           </Text>
           {isMobile && (
             <IconButton
-              icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              icon={isLegendOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
               size="xs"
               variant="ghost"
               aria-label="Toggle legend"
@@ -952,7 +961,7 @@ const TreasureMapVisualization = ({
           )}
         </HStack>
 
-        <Collapse in={!isMobile || isOpen} animateOpacity>
+        <Collapse in={isLegendOpen} animateOpacity>
           <Box px={3} pb={3}>
             {adminMode && (
               <Badge colorScheme="purple" fontSize="xs" mb={2} w="full" textAlign="center">

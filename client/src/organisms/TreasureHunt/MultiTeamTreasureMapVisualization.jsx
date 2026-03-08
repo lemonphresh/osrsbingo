@@ -265,8 +265,8 @@ const MultiTeamTreasureMap = ({
   const [selectedTeams, setSelectedTeams] = useState(teams.map((t) => t.teamId));
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
   const [focusNodeId, setFocusNodeId] = useState(null);
-  const { isOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
 
   // Determine if we should show all nodes based on event status
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
@@ -713,8 +713,8 @@ const MultiTeamTreasureMap = ({
                                 Objective:
                               </Text>
                               <Text fontSize="xs" m="0!important" color="#4a5568">
-                                {OBJECTIVE_TYPES[node.objective.type]}: {node.objective.quantity?.toLocaleString()}{' '}
-                                {node.objective.target}
+                                {OBJECTIVE_TYPES[node.objective.type]}:{' '}
+                                {node.objective.quantity?.toLocaleString()} {node.objective.target}
                               </Text>
                             </Box>
                           )}
@@ -926,7 +926,7 @@ const MultiTeamTreasureMap = ({
           <HStack
             justify="space-between"
             p={3}
-            pb={isOpen ? 2 : 3}
+            pb={isLegendOpen ? 2 : 3}
             cursor={isMobile ? 'pointer' : 'default'}
             onClick={isMobile ? onToggle : undefined}
           >
@@ -935,7 +935,7 @@ const MultiTeamTreasureMap = ({
             </Text>
             {isMobile && (
               <IconButton
-                icon={isOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                icon={isLegendOpen ? <ChevronUpIcon /> : <ChevronDownIcon />}
                 size="xs"
                 variant="ghost"
                 aria-label="Toggle legend"
@@ -943,7 +943,7 @@ const MultiTeamTreasureMap = ({
             )}
           </HStack>
 
-          <Collapse in={!isMobile || isOpen} animateOpacity>
+          <Collapse in={isLegendOpen} animateOpacity>
             <Box
               px={3}
               pb={3}

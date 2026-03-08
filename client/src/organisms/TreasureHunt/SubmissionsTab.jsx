@@ -8,6 +8,7 @@ import {
   Badge,
   Box,
   Button,
+  Flex,
   HStack,
   IconButton,
   Progress,
@@ -129,11 +130,24 @@ const SubmissionsTab = ({
                     flexDirection="column"
                     alignItems="stretch"
                   >
-                    <HStack justify="space-between" align="start" w="100%">
-                      <VStack align="start" spacing={1} flex={1}>
-                        <HStack>
-                          <AccordionIcon color={currentColors.textColor} />
-                          <Text fontWeight="semibold" fontSize="lg" color={currentColors.textColor}>
+                    <Flex
+                      direction={{ base: 'column', md: 'row' }}
+                      justify="space-between"
+                      align={{ base: 'stretch', md: 'start' }}
+                      w="100%"
+                      gap={3}
+                    >
+                      <VStack align="start" spacing={1} flex={1} minW={0}>
+                        <HStack flexWrap="nowrap" minW={0}>
+                          <AccordionIcon flexShrink={0} color={currentColors.textColor} />
+                          <Text
+                            fontWeight="semibold"
+                            fontSize={{ base: 'md', sm: 'lg' }}
+                            color={currentColors.textColor}
+                            noOfLines={1}
+                            minW={0}
+                            flex={1}
+                          >
                             {nodeType === 'INN' ? '🏠 ' : ''}
                             {nodeTitle}
                           </Text>
@@ -151,7 +165,7 @@ const SubmissionsTab = ({
                           </Badge>
                           {isCompleted && <Badge colorScheme="green">✅ COMPLETED</Badge>}
                         </HStack>
-                        <HStack ml={6}>
+                        <HStack ml={6} flexWrap="wrap">
                           <Badge bg={currentColors.purple.base} color="white">
                             {submissions[0].team?.teamName || 'Unknown Team'}
                           </Badge>
@@ -171,10 +185,19 @@ const SubmissionsTab = ({
                       </VStack>
 
                       {!isCompleted && approvedSubmissions.length > 0 && (
-                        <VStack spacing={1} align="end" onClick={(e) => e.stopPropagation()}>
+                        <VStack
+                          spacing={1}
+                          align={{ base: 'stretch', md: 'end' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           {confirmingKey === key ? (
                             <>
-                              <Text fontSize="xs" color="orange.400" fontWeight="semibold">
+                              <Text
+                                fontSize="xs"
+                                color="orange.400"
+                                fontWeight="semibold"
+                                textAlign={{ base: 'left', md: 'right' }}
+                              >
                                 Are you sure?
                               </Text>
                               <HStack>
@@ -207,19 +230,18 @@ const SubmissionsTab = ({
                           ) : (
                             <>
                               <Text
-                                fontSize="14px"
-                                lineHeight="16px"
-                                textAlign="right"
-                                color="gray.700"
-                                mb="4px"
+                                fontSize="xs"
+                                textAlign={{ base: 'center', md: 'right' }}
+                                color="gray.500"
                               >
-                                Once the objective is completed <br />
-                                and submissions approved:
+                                Once objective met &amp; submissions approved:
                               </Text>
                               <Button
-                                size="sm"
+                                size={{ base: 'xs', md: 'sm' }}
                                 colorScheme="green"
                                 leftIcon={<CheckIcon />}
+                                w="fit-content"
+                                m={{ base: '0 auto', md: 0 }}
                                 onClick={() => setConfirmingKey(key)}
                               >
                                 Complete This Node
@@ -231,7 +253,7 @@ const SubmissionsTab = ({
                           )}
                         </VStack>
                       )}
-                    </HStack>
+                    </Flex>
 
                     {(() => {
                       const progress = getProgress(key, team?.nodeProgress?.[nodeId] ?? 0);
@@ -348,16 +370,27 @@ const SubmissionsTab = ({
                                 : 'transparent'
                             }
                           >
-                            <HStack justify="space-between" mb={2}>
-                              <VStack align="start" spacing={0}>
-                                <HStack>
+                            <Flex
+                              direction={{ base: 'column', sm: 'row' }}
+                              justify="space-between"
+                              align={{ base: 'stretch', sm: 'start' }}
+                              mb={2}
+                              gap={2}
+                            >
+                              <VStack align="start" spacing={0} flex={1} minW={0}>
+                                <HStack flexWrap="wrap">
                                   <Text
                                     fontSize="sm"
                                     fontWeight="semibold"
                                     color={currentColors.textColor}
                                   >
-                                    Submitted by {submission.submittedByUsername} (ID:{' '}
-                                    {submission.submittedBy})
+                                    {submission.submittedByUsername}
+                                  </Text>
+                                  <Text
+                                    fontSize="xs"
+                                    color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}
+                                  >
+                                    ID: {submission.submittedBy}
                                   </Text>
                                   {submission.status !== 'PENDING_REVIEW' && (
                                     <Badge
@@ -387,7 +420,7 @@ const SubmissionsTab = ({
                                   </Text>
                                 )}
                               </VStack>
-                            </HStack>
+                            </Flex>
                             <HStack justify="space-between">
                               <Button
                                 leftIcon={<ExternalLinkIcon />}
