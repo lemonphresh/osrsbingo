@@ -24,7 +24,7 @@ async function verifyGuild(guildId) {
   return { success: false, error: 'Bot not found in that server' };
 }
 
-async function checkEventChannels(guildId, eventId, teamIds) {
+async function checkEventChannels(guildId, eventId) {
   let res;
   try {
     res = await discordFetch(`/guilds/${guildId}/channels`);
@@ -41,27 +41,13 @@ async function checkEventChannels(guildId, eventId, teamIds) {
     (ch) => ch.type === 0 && ch.topic?.includes(eventId),
   );
 
-  const coveredTeamIds = [];
-  const missingTeamIds = [];
-
-  for (const teamId of teamIds) {
-    if (eventChannels.some((ch) => ch.topic?.includes(teamId))) {
-      coveredTeamIds.push(teamId);
-    } else {
-      missingTeamIds.push(teamId);
-    }
-  }
-
   return {
     success: true,
     eventChannels: eventChannels.map((ch) => ({
       channelId: ch.id,
       channelName: ch.name,
       topic: ch.topic || null,
-      matchedTeamIds: teamIds.filter((id) => ch.topic?.includes(id)),
     })),
-    missingTeamIds,
-    coveredTeamIds,
   };
 }
 

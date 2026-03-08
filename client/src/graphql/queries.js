@@ -516,6 +516,7 @@ export const GET_TREASURE_EVENT = gql`
         nodeBuffs
         nodeProgress
         inProgressNodes
+        nodeUnlockTimes
         submissions {
           submissionId
           submittedByUsername
@@ -656,6 +657,7 @@ export const GET_TREASURE_TEAM = gql`
       nodeBuffs
       nodeProgress
       inProgressNodes
+      nodeUnlockTimes
     }
   }
 `;
@@ -769,18 +771,15 @@ export const GET_SITE_STATS = gql`
 // ============================================================
 
 export const CHECK_DISCORD_CHANNELS = gql`
-  query CheckDiscordChannels($guildId: String!, $eventId: ID!, $teamIds: [String!]!) {
-    checkDiscordChannels(guildId: $guildId, eventId: $eventId, teamIds: $teamIds) {
+  query CheckDiscordChannels($guildId: String!, $eventId: ID!) {
+    checkDiscordChannels(guildId: $guildId, eventId: $eventId) {
       success
       error
       eventChannels {
         channelId
         channelName
         topic
-        matchedTeamIds
       }
-      missingTeamIds
-      coveredTeamIds
     }
   }
 `;

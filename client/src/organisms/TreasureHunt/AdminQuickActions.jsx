@@ -24,6 +24,8 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  MenuDivider,
+  MenuGroup,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -56,6 +58,11 @@ import {
   FaUserCheck,
   FaUserTimes,
   FaHistory,
+  FaUnlock,
+  FaBook,
+  FaUndo,
+  FaRedoAlt,
+  FaKey,
 } from 'react-icons/fa';
 
 // Copy button as its own component so useClipboard can be called per-item
@@ -105,6 +112,16 @@ const AdminQuickActionsPanel = ({
     onOpen: onMoveHistoryOpen,
     onClose: onMoveHistoryClose,
   } = useDisclosure();
+  const {
+    isOpen: isFullHistoryOpen,
+    onOpen: onFullHistoryOpen,
+    onClose: onFullHistoryClose,
+  } = useDisclosure();
+  const {
+    isOpen: isUnlockHistoryOpen,
+    onOpen: onUnlockHistoryOpen,
+    onClose: onUnlockHistoryClose,
+  } = useDisclosure();
 
   const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
     CHECK_DISCORD_CHANNELS,
@@ -124,12 +141,30 @@ const AdminQuickActionsPanel = ({
   const [allActivities, setAllActivities] = useState([]);
   const [activitiesOffset, setActivitiesOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [historyView, setHistoryView] = useState('timeline');
+  const [unlockTimeUtc, setUnlockTimeUtc] = useState(false);
+  const [fullHistoryUtc, setFullHistoryUtc] = useState(false);
+  const [rewriteHistoryUtc, setRewriteHistoryUtc] = useState(false);
+  const [fullHistoryTeamFilter, setFullHistoryTeamFilter] = useState(null); // null = all teams
   // Local override: track nodes uncompleted this session so the UI updates instantly
   // even if the parent's Apollo cache hasn't re-rendered yet
   const [locallyUncompleted, setLocallyUncompleted] = useState(new Set());
   const [locallyReCompleted, setLocallyReCompleted] = useState(new Set());
   const PAGE_SIZE = 50;
+
+  const handleOpenFullHistory = () => {
+    setAllActivities([]);
+    setActivitiesOffset(0);
+    setHasMore(true);
+    setFullHistoryTeamFilter(null);
+    fetchActivities({ variables: { eventId: event.eventId, limit: PAGE_SIZE, offset: 0 } }).then(
+      ({ data }) => {
+        const results = data?.getTreasureActivities ?? [];
+        setAllActivities(results);
+        setHasMore(results.length === PAGE_SIZE);
+      }
+    );
+    onFullHistoryOpen();
+  };
 
   const handleOpenMoveHistory = () => {
     setAllActivities([]);
@@ -222,9 +257,8 @@ const AdminQuickActionsPanel = ({
 
   const handleOpenChannelCheck = () => {
     const guildId = event?.discordConfig?.guildId;
-    const teamIds = teams.map((t) => t.teamId);
-    if (guildId && teamIds.length > 0) {
-      checkChannels({ variables: { guildId, eventId: event.eventId, teamIds } });
+    if (guildId) {
+      checkChannels({ variables: { guildId, eventId: event.eventId } });
     }
     onChannelCheckOpen();
   };
@@ -554,56 +588,23 @@ const AdminQuickActionsPanel = ({
             <HStack spacing={2} justify="center">
               <Menu>
                 <MenuButton
-                  as={IconButton}
-                  icon={<SettingsIcon />}
                   size="sm"
                   variant="outline"
+                  alignItems="center"
+                  justifyContent="center"
+                  display="flex"
                   color="gray.300"
                   borderColor="gray.500"
+                  px={2}
+                  py={1}
+                  borderRadius="8px"
                   _hover={{ bg: 'gray.600' }}
                   aria-label="More actions"
-                />
+                >
+                  <SettingsIcon mr={2} />
+                  Ref Tools
+                </MenuButton>
                 <MenuList bg="gray.700" borderColor="gray.600">
-                  <MenuItem
-                    icon={<FaDiscord />}
-                    color="white"
-                    bg="gray.700"
-                    onClick={onOpenDiscordSetup}
-                    _hover={{ bg: 'gray.600' }}
-                  >
-                    Discord Setup
-                  </MenuItem>
-                  <MenuItem
-                    icon={<SettingsIcon />}
-                    color="white"
-                    bg="gray.700"
-                    onClick={onOpenSettings}
-                    _hover={{ bg: 'gray.600' }}
-                  >
-                    Event Settings
-                  </MenuItem>
-                  {stats.unverified > 0 && (
-                    <MenuItem
-                      icon={<FaUserTimes />}
-                      color="yellow.300"
-                      bg="gray.700"
-                      onClick={onUnverifiedOpen}
-                      _hover={{ bg: 'gray.600' }}
-                    >
-                      Unverified Members ({stats.unverified})
-                    </MenuItem>
-                  )}
-                  {event?.discordConfig?.guildId && (
-                    <MenuItem
-                      icon={<FaDiscord />}
-                      color="white"
-                      bg="gray.700"
-                      onClick={handleOpenChannelCheck}
-                      _hover={{ bg: 'gray.600' }}
-                    >
-                      Check Discord Channels
-                    </MenuItem>
-                  )}
                   {onOpenLaunchFAQ && (
                     <MenuItem
                       icon={<FaQuestionCircle />}
@@ -616,15 +617,91 @@ const AdminQuickActionsPanel = ({
                     </MenuItem>
                   )}
                   <MenuItem
-                    icon={<FaHistory />}
+                    icon={<FaDiscord />}
                     color="white"
                     bg="gray.700"
-                    onClick={handleOpenMoveHistory}
+                    onClick={onOpenDiscordSetup}
                     _hover={{ bg: 'gray.600' }}
                   >
-                    Move History
+                    Discord Setup
                   </MenuItem>
+                  {event?.discordConfig?.guildId && (
+                    <MenuItem
+                      icon={<FaDiscord />}
+                      color="white"
+                      bg="gray.700"
+                      onClick={handleOpenChannelCheck}
+                      _hover={{ bg: 'gray.600' }}
+                    >
+                      Check Discord Channels
+                    </MenuItem>
+                  )}
+
+                  {stats.unverified > 0 && (
+                    <MenuItem
+                      icon={<FaUserTimes />}
+                      color="yellow.300"
+                      bg="gray.700"
+                      onClick={onUnverifiedOpen}
+                      _hover={{ bg: 'gray.600' }}
+                    >
+                      Unverified Members ({stats.unverified})
+                    </MenuItem>
+                  )}
+
                   <MenuItem
+                    icon={<FaBook />}
+                    color="white"
+                    bg="gray.700"
+                    onClick={handleOpenFullHistory}
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    Comprehensive Move History
+                  </MenuItem>
+                  {isEventAdmin && (
+                    <>
+                      <MenuDivider borderColor="gray.600" />
+                      <MenuGroup
+                        title="Admin Only"
+                        color="red.400"
+                        fontSize="xs"
+                        fontWeight="semibold"
+                        textTransform="uppercase"
+                        letterSpacing="wide"
+                        mx={3}
+                        mt={1}
+                        mb={0}
+                      />
+                      <MenuItem
+                        icon={<SettingsIcon />}
+                        color="white"
+                        bg="gray.700"
+                        onClick={onOpenSettings}
+                        _hover={{ bg: 'gray.600' }}
+                      >
+                        Event Settings
+                      </MenuItem>
+                      <MenuItem
+                        icon={<FaUnlock />}
+                        color="white"
+                        bg="gray.700"
+                        onClick={onUnlockHistoryOpen}
+                        _hover={{ bg: 'gray.600' }}
+                      >
+                        Node Unlock History
+                      </MenuItem>
+                      <MenuItem
+                        icon={<FaHistory />}
+                        color="white"
+                        bg="gray.700"
+                        onClick={handleOpenMoveHistory}
+                        _hover={{ bg: 'gray.600' }}
+                      >
+                        Rewrite History Tool
+                      </MenuItem>
+                    </>
+                  )}
+                  {/* <MenuItem
                     icon={<FaExclamationTriangle />}
                     color={repairing ? 'gray.400' : 'yellow.300'}
                     bg="gray.700"
@@ -633,7 +710,7 @@ const AdminQuickActionsPanel = ({
                     _hover={{ bg: 'gray.600' }}
                   >
                     {repairing ? 'Repairing…' : 'Repair Location Group Availability'}
-                  </MenuItem>
+                  </MenuItem> */}
                 </MenuList>
               </Menu>
             </HStack>
@@ -782,8 +859,7 @@ const AdminQuickActionsPanel = ({
               <Text>Discord Channel Check</Text>
             </HStack>
             <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
-              Channels in this guild whose topic contains the event ID, and which team IDs they
-              cover.
+              Channels in this guild whose topic contains the event ID.
             </Text>
           </ModalHeader>
           <ModalCloseButton />
@@ -814,53 +890,9 @@ const AdminQuickActionsPanel = ({
             ) : (
               <VStack align="stretch" spacing={4}>
                 {/* Summary */}
-                <HStack spacing={3}>
-                  <Badge colorScheme="blue" fontSize="sm" px={2} py={1}>
-                    {channelCheckData.checkDiscordChannels.eventChannels?.length ?? 0} channels
-                    found
-                  </Badge>
-                  {channelCheckData.checkDiscordChannels.coveredTeamIds?.length > 0 && (
-                    <Badge colorScheme="green" fontSize="sm" px={2} py={1}>
-                      {channelCheckData.checkDiscordChannels.coveredTeamIds.length} teams covered
-                    </Badge>
-                  )}
-                  {channelCheckData.checkDiscordChannels.missingTeamIds?.length > 0 && (
-                    <Badge colorScheme="orange" fontSize="sm" px={2} py={1}>
-                      {channelCheckData.checkDiscordChannels.missingTeamIds.length} teams missing
-                    </Badge>
-                  )}
-                </HStack>
-
-                {/* Missing teams warning */}
-                {channelCheckData.checkDiscordChannels.missingTeamIds?.length > 0 && (
-                  <Box
-                    p={3}
-                    bg="orange.900"
-                    borderRadius="md"
-                    borderLeft="3px solid"
-                    borderLeftColor="orange.400"
-                  >
-                    <Text fontSize="xs" fontWeight="semibold" color="orange.300" mb={1}>
-                      No channel found for these team IDs:
-                    </Text>
-                    <VStack align="start" spacing={1}>
-                      {channelCheckData.checkDiscordChannels.missingTeamIds.map((teamId) => {
-                        const team = teams.find((t) => t.teamId === teamId);
-                        return (
-                          <HStack key={teamId} spacing={2}>
-                            <Icon as={FaExclamationTriangle} color="orange.400" boxSize={3} />
-                            <Text fontSize="xs" color="white" fontWeight="medium">
-                              {team?.teamName ?? teamId}
-                            </Text>
-                            <Text fontSize="xs" color="gray.400" fontFamily="mono">
-                              {teamId}
-                            </Text>
-                          </HStack>
-                        );
-                      })}
-                    </VStack>
-                  </Box>
-                )}
+                <Badge colorScheme="blue" fontSize="sm" px={2} py={1} alignSelf="start">
+                  {channelCheckData.checkDiscordChannels.eventChannels?.length ?? 0} channels found
+                </Badge>
 
                 {/* Channel list */}
                 {channelCheckData.checkDiscordChannels.eventChannels?.length === 0 ? (
@@ -880,55 +912,28 @@ const AdminQuickActionsPanel = ({
                     >
                       Channels
                     </Text>
-                    {channelCheckData.checkDiscordChannels.eventChannels.map((ch) => {
-                      const covered = ch.matchedTeamIds?.length > 0;
-                      return (
-                        <Box
-                          key={ch.channelId}
-                          p={3}
-                          bg="gray.700"
-                          borderRadius="md"
-                          borderLeft="3px solid"
-                          borderLeftColor={covered ? 'green.400' : 'gray.500'}
-                        >
-                          <HStack justify="space-between" mb={1}>
-                            <HStack spacing={2}>
-                              <Icon as={FaDiscord} color="blue.400" boxSize={3} />
-                              <Text fontSize="sm" fontWeight="semibold">
-                                #{ch.channelName}
-                              </Text>
-                            </HStack>
-                            {covered ? (
-                              <Badge colorScheme="green" fontSize="xs">
-                                {ch.matchedTeamIds.length} team
-                                {ch.matchedTeamIds.length !== 1 ? 's' : ''}
-                              </Badge>
-                            ) : (
-                              <Badge colorScheme="gray" fontSize="xs">
-                                no teams
-                              </Badge>
-                            )}
-                          </HStack>
-                          {ch.matchedTeamIds?.length > 0 && (
-                            <HStack spacing={1} flexWrap="wrap" mt={1}>
-                              {ch.matchedTeamIds.map((teamId) => {
-                                const team = teams.find((t) => t.teamId === teamId);
-                                return (
-                                  <Badge
-                                    key={teamId}
-                                    colorScheme="blue"
-                                    fontSize="xs"
-                                    variant="subtle"
-                                  >
-                                    {team?.teamName ?? teamId}
-                                  </Badge>
-                                );
-                              })}
-                            </HStack>
-                          )}
-                        </Box>
-                      );
-                    })}
+                    {channelCheckData.checkDiscordChannels.eventChannels.map((ch) => (
+                      <Box
+                        key={ch.channelId}
+                        p={3}
+                        bg="gray.700"
+                        borderRadius="md"
+                        borderLeft="3px solid"
+                        borderLeftColor="blue.400"
+                      >
+                        <HStack spacing={2}>
+                          <Icon as={FaDiscord} color="blue.400" boxSize={3} />
+                          <Text fontSize="sm" fontWeight="semibold">
+                            #{ch.channelName}
+                          </Text>
+                        </HStack>
+                        {ch.topic && (
+                          <Text fontSize="xs" color="gray.400" mt={1} fontFamily="mono">
+                            {ch.topic}
+                          </Text>
+                        )}
+                      </Box>
+                    ))}
                   </VStack>
                 )}
               </VStack>
@@ -946,36 +951,37 @@ const AdminQuickActionsPanel = ({
         <ModalOverlay />
         <ModalContent bg="gray.800" color="white">
           <ModalHeader pb={2}>
-            <HStack justify="space-between" align="start">
+            <HStack justify="space-between" align="center" mr={8}>
               <HStack spacing={2}>
                 <Icon as={FaHistory} color="orange.400" />
-                <Text>Move History</Text>
+                <Text>Rewrite History Tool</Text>
               </HStack>
-              <HStack spacing={1} mr={8}>
+              <HStack spacing={1}>
                 <Button
                   size="xs"
-                  color="gray.300"
-                  variant={historyView === 'timeline' ? 'solid' : 'outline'}
-                  colorScheme={historyView === 'timeline' ? 'orange' : 'gray'}
-                  onClick={() => setHistoryView('timeline')}
+                  variant={!rewriteHistoryUtc ? 'solid' : 'outline'}
+                  colorScheme={!rewriteHistoryUtc ? 'orange' : 'gray'}
+                  color={!rewriteHistoryUtc ? 'white' : 'gray.300'}
+                  onClick={() => setRewriteHistoryUtc(false)}
                 >
-                  Timeline
+                  Local
                 </Button>
                 <Button
                   size="xs"
-                  color="gray.300"
-                  variant={historyView === 'by_team' ? 'solid' : 'outline'}
-                  colorScheme={historyView === 'by_team' ? 'orange' : 'gray'}
-                  onClick={() => setHistoryView('by_team')}
+                  variant={rewriteHistoryUtc ? 'solid' : 'outline'}
+                  colorScheme={rewriteHistoryUtc ? 'orange' : 'gray'}
+                  color={rewriteHistoryUtc ? 'white' : 'gray.300'}
+                  onClick={() => setRewriteHistoryUtc(true)}
                 >
-                  By Team
+                  UTC
                 </Button>
               </HStack>
             </HStack>
             <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
-              {historyView === 'by_team'
-                ? 'Completions grouped by team — most recent first, safe to Undo top-down'
-                : 'All completions newest first'}
+              Completions grouped by team — most recent first, safe to Undo top-down. Click the
+              "load more" button at the bottom to also see the "recomplete" section, which shows
+              recently uncompleted nodes that can be quickly re-completed if undone by mistake.{' '}
+              <strong>TREAD LIGHTLY</strong>.
             </Text>
           </ModalHeader>
           <ModalCloseButton />
@@ -1016,18 +1022,22 @@ const AdminQuickActionsPanel = ({
                 const ActivityRow = ({ a, showTeam = true }) => {
                   const team = teams.find((t) => t.teamId === a.teamId);
                   const ts = new Date(a.timestamp);
-                  const timeStr = ts.toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
+                  const timeStr = rewriteHistoryUtc
+                    ? ts.toISOString().slice(0, 16).replace('T', ' ') + ' UTC'
+                    : ts.toLocaleString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      });
                   const key = `${a.teamId}:${a.data?.nodeId}`;
                   const isSafeToUndo = mostRecentIdByTeam[a.teamId] === a.id;
                   const localKey = `${a.teamId}:${a.data?.nodeId}`;
                   const isCurrentlyCompleted =
                     !locallyUncompleted.has(localKey) &&
-                    teams.find((t) => t.teamId === a.teamId)?.completedNodes?.includes(a.data?.nodeId);
+                    teams
+                      .find((t) => t.teamId === a.teamId)
+                      ?.completedNodes?.includes(a.data?.nodeId);
                   return (
                     <Box
                       key={a.id}
@@ -1062,22 +1072,7 @@ const AdminQuickActionsPanel = ({
                           <Text fontSize="xs" color="gray.500">
                             {timeStr}
                           </Text>
-                          <Tooltip
-                            label="Restore location group siblings to available tasks"
-                            hasArrow
-                            placement="top"
-                          >
-                            <Button
-                              size="xs"
-                              colorScheme="blue"
-                              variant="ghost"
-                              isLoading={restoringId === key}
-                              isDisabled={!!uncomletingId || !!restoringId || !isCurrentlyCompleted}
-                              onClick={() => handleRestoreSiblings(a.teamId, a.data?.nodeId)}
-                            >
-                              Siblings
-                            </Button>
-                          </Tooltip>
+
                           <Tooltip
                             label={
                               !isCurrentlyCompleted
@@ -1108,77 +1103,49 @@ const AdminQuickActionsPanel = ({
                   );
                 };
 
-                if (historyView === 'by_team') {
-                  const byTeam = {};
-                  completions.forEach((a) => {
-                    if (!byTeam[a.teamId]) byTeam[a.teamId] = [];
-                    byTeam[a.teamId].push(a);
-                  });
-                  // Sort each team's completions newest→oldest so Undo from top is safe (undo leaf nodes first)
-                  Object.values(byTeam).forEach((arr) =>
-                    arr.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-                  );
-                  // Sort teams by their most recent completion (most active first)
-                  const sortedTeamIds = Object.keys(byTeam).sort(
-                    (a, b) => new Date(byTeam[b][0].timestamp) - new Date(byTeam[a][0].timestamp)
-                  );
-
-                  return (
-                    <VStack align="stretch" spacing={4}>
-                      {sortedTeamIds.map((teamId) => {
-                        const team = teams.find((t) => t.teamId === teamId);
-                        return (
-                          <Box key={teamId}>
-                            <HStack mb={2} spacing={2}>
-                              <Icon as={FaUsers} color="orange.400" boxSize={3} />
-                              <Text
-                                fontSize="xs"
-                                fontWeight="semibold"
-                                color="orange.300"
-                                textTransform="uppercase"
-                                letterSpacing="wide"
-                              >
-                                {team?.teamName ?? teamId}
-                              </Text>
-                              <Badge colorScheme="orange" fontSize="xs" variant="subtle">
-                                {byTeam[teamId].length} nodes
-                              </Badge>
-                            </HStack>
-                            <VStack align="stretch" spacing={1}>
-                              {byTeam[teamId].map((a) => (
-                                <ActivityRow key={a.id} a={a} showTeam={false} />
-                              ))}
-                            </VStack>
-                          </Box>
-                        );
-                      })}
-                      {completions.length === 0 && (
-                        <Text color="gray.500" fontSize="sm" textAlign="center" py={4}>
-                          No completions yet
-                        </Text>
-                      )}
-                      {hasMore && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          colorScheme="gray"
-                          color="grey.300"
-                          isLoading={activitiesLoading}
-                          onClick={handleLoadMore}
-                          mt={2}
-                        >
-                          Load older entries
-                        </Button>
-                      )}
-                    </VStack>
-                  );
-                }
+                const byTeam = {};
+                completions.forEach((a) => {
+                  if (!byTeam[a.teamId]) byTeam[a.teamId] = [];
+                  byTeam[a.teamId].push(a);
+                });
+                // Sort each team's completions newest→oldest so Undo from top is safe (undo leaf nodes first)
+                Object.values(byTeam).forEach((arr) =>
+                  arr.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+                );
+                // Sort teams by their most recent completion (most active first)
+                const sortedTeamIds = Object.keys(byTeam).sort(
+                  (a, b) => new Date(byTeam[b][0].timestamp) - new Date(byTeam[a][0].timestamp)
+                );
 
                 return (
-                  <VStack align="stretch" spacing={1}>
-                    {completions.map((a) => (
-                      <ActivityRow key={a.id} a={a} />
-                    ))}
+                  <VStack align="stretch" spacing={4}>
+                    {sortedTeamIds.map((teamId) => {
+                      const team = teams.find((t) => t.teamId === teamId);
+                      return (
+                        <Box key={teamId}>
+                          <HStack mb={2} spacing={2}>
+                            <Icon as={FaUsers} color="orange.400" boxSize={3} />
+                            <Text
+                              fontSize="xs"
+                              fontWeight="semibold"
+                              color="orange.300"
+                              textTransform="uppercase"
+                              letterSpacing="wide"
+                            >
+                              {team?.teamName ?? teamId}
+                            </Text>
+                            <Badge colorScheme="orange" fontSize="xs" variant="subtle">
+                              {byTeam[teamId].length} nodes
+                            </Badge>
+                          </HStack>
+                          <VStack align="stretch" spacing={1}>
+                            {byTeam[teamId].map((a) => (
+                              <ActivityRow key={a.id} a={a} showTeam={false} />
+                            ))}
+                          </VStack>
+                        </Box>
+                      );
+                    })}
                     {completions.length === 0 && (
                       <Text color="gray.500" fontSize="sm" textAlign="center" py={4}>
                         No completions yet
@@ -1189,6 +1156,7 @@ const AdminQuickActionsPanel = ({
                         size="sm"
                         variant="outline"
                         colorScheme="gray"
+                        color="grey.300"
                         isLoading={activitiesLoading}
                         onClick={handleLoadMore}
                         mt={2}
@@ -1289,6 +1257,517 @@ const AdminQuickActionsPanel = ({
                     })}
                   </VStack>
                 </>
+              );
+            })()}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Complete Move History Modal */}
+      <Modal
+        isOpen={isFullHistoryOpen}
+        onClose={onFullHistoryClose}
+        scrollBehavior="inside"
+        size="xl"
+      >
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white" maxH={{ base: '90dvh', md: '85vh' }}>
+          <ModalHeader pb={2}>
+            <HStack justify="space-between" align="start" mr={8}>
+              <VStack align="start" spacing={1}>
+                <HStack spacing={2}>
+                  <Icon as={FaBook} color="teal.400" />
+                  <Text>Complete Move History</Text>
+                </HStack>
+                <HStack spacing={1}>
+                  <Button
+                    size="xs"
+                    variant={!fullHistoryUtc ? 'solid' : 'outline'}
+                    colorScheme={!fullHistoryUtc ? 'teal' : 'gray'}
+                    color={!fullHistoryUtc ? 'white' : 'gray.300'}
+                    onClick={() => setFullHistoryUtc(false)}
+                  >
+                    Local
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant={fullHistoryUtc ? 'solid' : 'outline'}
+                    colorScheme={fullHistoryUtc ? 'teal' : 'gray'}
+                    color={fullHistoryUtc ? 'white' : 'gray.300'}
+                    onClick={() => setFullHistoryUtc(true)}
+                  >
+                    UTC
+                  </Button>
+                </HStack>
+              </VStack>
+              {/* Team filter */}
+              <HStack spacing={1} flexWrap="wrap" justify="flex-end" flex={1} ml={3}>
+                <Button
+                  size="xs"
+                  variant={fullHistoryTeamFilter === null ? 'solid' : 'outline'}
+                  colorScheme={fullHistoryTeamFilter === null ? 'teal' : 'gray'}
+                  color={fullHistoryTeamFilter === null ? 'white' : 'gray.300'}
+                  onClick={() => setFullHistoryTeamFilter(null)}
+                >
+                  All
+                </Button>
+                {teams.map((t) => (
+                  <Button
+                    key={t.teamId}
+                    size="xs"
+                    variant={fullHistoryTeamFilter === t.teamId ? 'solid' : 'outline'}
+                    colorScheme={fullHistoryTeamFilter === t.teamId ? 'teal' : 'gray'}
+                    color={fullHistoryTeamFilter === t.teamId ? 'white' : 'gray.300'}
+                    onClick={() =>
+                      setFullHistoryTeamFilter((prev) => (prev === t.teamId ? null : t.teamId))
+                    }
+                  >
+                    {t.teamName}
+                  </Button>
+                ))}
+              </HStack>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody
+            overflowY="auto"
+            css={{
+              '&::-webkit-scrollbar': { height: '6px' },
+              '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
+              '&::-webkit-scrollbar-thumb': { background: '#abb8ceff', borderRadius: '10px' },
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#abb8ceff transparent',
+            }}
+            pb={4}
+          >
+            {(() => {
+              const fmtGp = (gp) => {
+                const n = Number(gp);
+                if (!n) return null;
+                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M gp`;
+                if (n >= 1_000) return `${Math.round(n / 1_000)}K gp`;
+                return `${n} gp`;
+              };
+
+              const keyColorScheme = {
+                bronze: 'orange',
+                silver: 'gray',
+                gold: 'yellow',
+                green: 'green',
+                blue: 'blue',
+                red: 'red',
+                purple: 'purple',
+              };
+
+              const activityConfig = {
+                node_completed: {
+                  label: 'Completed',
+                  color: 'green.500',
+                  scheme: 'green',
+                  icon: FaHistory,
+                },
+                node_uncompleted: {
+                  label: 'Uncompleted',
+                  color: 'red.400',
+                  scheme: 'red',
+                  icon: FaUndo,
+                },
+                node_recompleted: {
+                  label: 'Re-completed',
+                  color: 'yellow.400',
+                  scheme: 'yellow',
+                  icon: FaRedoAlt,
+                },
+                inn_visited: {
+                  label: 'Inn',
+                  color: 'purple.400',
+                  scheme: 'purple',
+                  icon: FaKey,
+                },
+                gp_gained: {
+                  label: 'GP Gained',
+                  color: 'yellow.300',
+                  scheme: 'yellow',
+                  icon: FaHistory,
+                },
+              };
+
+              const SKIP_TYPES = new Set(['gp_gained']);
+
+              const filtered = allActivities
+                .filter((a) => !SKIP_TYPES.has(a.type))
+                .filter((a) => (fullHistoryTeamFilter ? a.teamId === fullHistoryTeamFilter : true));
+
+              if (activitiesLoading && filtered.length === 0) {
+                return (
+                  <VStack py={6}>
+                    <Text color="gray.400" fontSize="sm">
+                      Loading…
+                    </Text>
+                  </VStack>
+                );
+              }
+
+              if (filtered.length === 0) {
+                return (
+                  <Text color="gray.500" fontSize="sm" textAlign="center" py={8}>
+                    No activity recorded yet.
+                  </Text>
+                );
+              }
+
+              // Group by date
+              const byDate = {};
+              filtered.forEach((a) => {
+                const d = new Date(a.timestamp);
+                const dateKey = fullHistoryUtc
+                  ? d.toISOString().slice(0, 10)
+                  : d.toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                if (!byDate[dateKey]) byDate[dateKey] = [];
+                byDate[dateKey].push(a);
+              });
+
+              return (
+                <VStack align="stretch" spacing={4}>
+                  {Object.entries(byDate).map(([date, entries]) => (
+                    <Box key={date}>
+                      <Text
+                        fontSize="xs"
+                        fontWeight="semibold"
+                        color="gray.400"
+                        textTransform="uppercase"
+                        letterSpacing="wide"
+                        mb={2}
+                      >
+                        {date}
+                      </Text>
+                      <VStack align="stretch" spacing={1}>
+                        {entries.map((a) => {
+                          const team = teams.find((t) => t.teamId === a.teamId);
+                          const cfg = activityConfig[a.type] ?? {
+                            label: a.type,
+                            color: 'gray.500',
+                            scheme: 'gray',
+                            icon: FaHistory,
+                          };
+                          const timeStr = fullHistoryUtc
+                            ? new Date(a.timestamp).toISOString().slice(11, 16) + ' UTC'
+                            : new Date(a.timestamp).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              });
+
+                          // Build reward pills
+                          const pills = [];
+
+                          // GP
+                          const gp =
+                            a.data?.reward ||
+                            a.data?.gpRemoved ||
+                            a.data?.gpRestored ||
+                            a.data?.gpEarned ||
+                            a.data?.amount;
+                          const gpStr = fmtGp(gp);
+                          if (gpStr) {
+                            const isNegative = a.type === 'node_uncompleted';
+                            pills.push(
+                              <Badge key="gp" colorScheme="yellow" variant="subtle" fontSize="xs">
+                                {isNegative ? '−' : '+'}
+                                {gpStr}
+                              </Badge>
+                            );
+                          }
+
+                          // Keys gained
+                          const keyRewards = a.data?.keyRewards || a.data?.keysRestored || [];
+                          keyRewards.forEach((k, i) => {
+                            if (!k?.color || !k?.quantity) return;
+                            pills.push(
+                              <Badge
+                                key={`key-gain-${i}`}
+                                colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'}
+                                variant="subtle"
+                                fontSize="xs"
+                              >
+                                +{k.quantity}
+                              </Badge>
+                            );
+                          });
+
+                          // Keys removed
+                          const keysRemoved = a.data?.keysRemoved || [];
+                          keysRemoved.forEach((k, i) => {
+                            if (!k?.color || !k?.quantity) return;
+                            pills.push(
+                              <Badge
+                                key={`key-rm-${i}`}
+                                colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'}
+                                variant="outline"
+                                fontSize="xs"
+                              >
+                                −{k.quantity}
+                              </Badge>
+                            );
+                          });
+
+                          // Keys spent at inn
+                          const keysSpent = a.data?.keysSpent || [];
+                          keysSpent.forEach((k, i) => {
+                            if (!k?.color || !k?.quantity) return;
+                            pills.push(
+                              <Badge
+                                key={`key-spent-${i}`}
+                                colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'}
+                                variant="outline"
+                                fontSize="xs"
+                              >
+                                −{k.quantity}
+                              </Badge>
+                            );
+                          });
+
+                          // Buffs gained
+                          const buffsGained =
+                            a.data?.buffRewards ||
+                            a.data?.buffsRestored ||
+                            a.data?.buffsEarned ||
+                            [];
+                          buffsGained.forEach((b, i) => {
+                            const name = b?.buffType || b?.name || b;
+                            if (!name) return;
+                            pills.push(
+                              <Badge
+                                key={`buff-gain-${i}`}
+                                colorScheme="purple"
+                                variant="subtle"
+                                fontSize="xs"
+                              >
+                                +{name}
+                              </Badge>
+                            );
+                          });
+
+                          // Consumed buffs (couldn't be removed on uncomplete)
+                          const consumed = a.data?.consumedBuffs || [];
+                          consumed.forEach((b, i) => {
+                            pills.push(
+                              <Badge
+                                key={`consumed-${i}`}
+                                colorScheme="red"
+                                variant="outline"
+                                fontSize="xs"
+                              >
+                                {b} already used
+                              </Badge>
+                            );
+                          });
+
+                          const nodeName =
+                            a.data?.nodeTitle ||
+                            a.data?.innName ||
+                            a.data?.nodeId ||
+                            a.data?.innId ||
+                            '—';
+
+                          return (
+                            <Box
+                              key={a.id}
+                              p={2}
+                              bg="gray.700"
+                              borderRadius="md"
+                              borderLeft="3px solid"
+                              borderLeftColor={cfg.color}
+                            >
+                              <HStack spacing={2} align="flex-start">
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.500"
+                                  flexShrink={0}
+                                  w="50px"
+                                  pt="2px"
+                                >
+                                  {timeStr}
+                                </Text>
+                                <VStack align="start" spacing={1} minW="110px">
+                                  <Badge
+                                    bg="gray.600"
+                                    color="gray.300"
+                                    fontSize="xs"
+                                    flexShrink={0}
+                                  >
+                                    {team?.teamName ?? a.teamId}
+                                  </Badge>
+                                  <Badge
+                                    colorScheme={cfg.scheme}
+                                    fontSize="xs"
+                                    flexShrink={0}
+                                    alignSelf="flex-start"
+                                  >
+                                    {cfg.label}
+                                  </Badge>
+                                </VStack>
+                                <VStack align="start" spacing={1} flex={1} minW={0}>
+                                  <HStack spacing={1} flexWrap="nowrap" minW={0}>
+                                    <Text
+                                      fontSize="sm"
+                                      fontWeight="medium"
+                                      noOfLines={1}
+                                      flex={1}
+                                      minW={0}
+                                    >
+                                      {nodeName}
+                                    </Text>
+                                  </HStack>
+                                  {pills.length > 0 && (
+                                    <HStack spacing={1} flexWrap="wrap">
+                                      {pills}
+                                    </HStack>
+                                  )}
+                                </VStack>
+                              </HStack>
+                            </Box>
+                          );
+                        })}
+                      </VStack>
+                    </Box>
+                  ))}
+                  {hasMore && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      colorScheme="gray"
+                      color="gray.300"
+                      isLoading={activitiesLoading}
+                      onClick={handleLoadMore}
+                      mt={2}
+                    >
+                      Load older entries
+                    </Button>
+                  )}
+                </VStack>
+              );
+            })()}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Unlock History Modal */}
+      <Modal
+        isOpen={isUnlockHistoryOpen}
+        onClose={onUnlockHistoryClose}
+        scrollBehavior="inside"
+        size="lg"
+      >
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white" maxH={{ base: '90dvh', md: '80vh' }}>
+          <ModalHeader pb={2}>
+            <HStack justify="space-between" align="center" mr={8}>
+              <HStack spacing={2}>
+                <Icon as={FaUnlock} color="teal.400" />
+                <Text>Unlock History</Text>
+              </HStack>
+              <HStack spacing={1}>
+                <Button
+                  size="xs"
+                  variant={!unlockTimeUtc ? 'solid' : 'outline'}
+                  colorScheme={!unlockTimeUtc ? 'teal' : 'gray'}
+                  color={!unlockTimeUtc ? 'white' : 'gray.300'}
+                  onClick={() => setUnlockTimeUtc(false)}
+                >
+                  Local
+                </Button>
+                <Button
+                  size="xs"
+                  variant={unlockTimeUtc ? 'solid' : 'outline'}
+                  colorScheme={unlockTimeUtc ? 'teal' : 'gray'}
+                  color={unlockTimeUtc ? 'white' : 'gray.300'}
+                  onClick={() => setUnlockTimeUtc(true)}
+                >
+                  UTC
+                </Button>
+              </HStack>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody overflowY="auto" pb={4}>
+            {(() => {
+              const nodes = event?.nodes || [];
+              // Flatten all teams' nodeUnlockTimes into a single sorted list
+              const entries = [];
+              teams.forEach((team) => {
+                const unlockTimes = team.nodeUnlockTimes || {};
+                Object.entries(unlockTimes).forEach(([nodeId, timestamp]) => {
+                  const node = nodes.find((n) => n.nodeId === nodeId);
+                  entries.push({ team, nodeId, timestamp, node });
+                });
+              });
+              entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+              if (entries.length === 0) {
+                return (
+                  <Text color="gray.500" fontSize="sm" textAlign="center" py={8}>
+                    No unlock data yet. Timestamps are recorded as nodes are unlocked going forward.
+                  </Text>
+                );
+              }
+
+              // Group by date
+              const byDate = {};
+              entries.forEach((e) => {
+                const d = new Date(e.timestamp);
+                const date = unlockTimeUtc ? d.toISOString().slice(0, 10) : d.toLocaleDateString();
+                if (!byDate[date]) byDate[date] = [];
+                byDate[date].push(e);
+              });
+
+              return (
+                <VStack align="stretch" spacing={4}>
+                  {Object.entries(byDate).map(([date, dateEntries]) => (
+                    <Box key={date}>
+                      <Text
+                        fontSize="xs"
+                        fontWeight="semibold"
+                        color="gray.400"
+                        textTransform="uppercase"
+                        letterSpacing="wide"
+                        mb={2}
+                      >
+                        {date}
+                      </Text>
+                      <VStack align="stretch" spacing={1}>
+                        {dateEntries.map(({ team, nodeId, timestamp, node }, idx) => (
+                          <HStack
+                            key={`${team.teamId}-${nodeId}-${idx}`}
+                            spacing={3}
+                            px={2}
+                            py={1}
+                            borderRadius="md"
+                            _hover={{ bg: 'whiteAlpha.100' }}
+                          >
+                            <Text fontSize="xs" color="gray.500" flexShrink={0} w="72px">
+                              {unlockTimeUtc
+                                ? new Date(timestamp).toISOString().slice(11, 16) + ' UTC'
+                                : new Date(timestamp).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                            </Text>
+                            <Badge bg="teal.700" color="teal.200" fontSize="xs" flexShrink={0}>
+                              {team.teamName}
+                            </Badge>
+                            <Text fontSize="sm" color="white" noOfLines={1} flex={1} minW={0}>
+                              {node?.title ?? nodeId}
+                            </Text>
+                          </HStack>
+                        ))}
+                      </VStack>
+                    </Box>
+                  ))}
+                </VStack>
               );
             })()}
           </ModalBody>
