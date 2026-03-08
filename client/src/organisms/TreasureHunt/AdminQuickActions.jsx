@@ -132,12 +132,12 @@ const AdminQuickActionsPanel = ({
   });
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
   const [adminSilentReComplete] = useMutation(ADMIN_SILENT_RE_COMPLETE_NODE);
-  const [adminRestoreSiblings] = useMutation(ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS);
-  const [adminRepairAll] = useMutation(ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY);
+  // const [adminRestoreSiblings] = useMutation(ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS);
+  // const [adminRepairAll] = useMutation(ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY);
   const [uncomletingId, setUncompletingId] = useState(null);
   const [reCompletingId, setReCompletingId] = useState(null);
   const [restoringId, setRestoringId] = useState(null);
-  const [repairing, setRepairing] = useState(false);
+  // const [repairing, setRepairing] = useState(false);
   const [allActivities, setAllActivities] = useState([]);
   const [activitiesOffset, setActivitiesOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -236,24 +236,24 @@ const AdminQuickActionsPanel = ({
     }
   };
 
-  const handleRestoreSiblings = async (teamId, nodeId) => {
-    const key = `${teamId}:${nodeId}`;
-    setRestoringId(key);
-    try {
-      await adminRestoreSiblings({ variables: { eventId: event.eventId, teamId, nodeId } });
-    } finally {
-      setRestoringId(null);
-    }
-  };
+  // const handleRestoreSiblings = async (teamId, nodeId) => {
+  //   const key = `${teamId}:${nodeId}`;
+  //   setRestoringId(key);
+  //   try {
+  //     await adminRestoreSiblings({ variables: { eventId: event.eventId, teamId, nodeId } });
+  //   } finally {
+  //     setRestoringId(null);
+  //   }
+  // };
 
-  const handleRepairAll = async () => {
-    setRepairing(true);
-    try {
-      await adminRepairAll({ variables: { eventId: event.eventId } });
-    } finally {
-      setRepairing(false);
-    }
-  };
+  // const handleRepairAll = async () => {
+  //   setRepairing(true);
+  //   try {
+  //     await adminRepairAll({ variables: { eventId: event.eventId } });
+  //   } finally {
+  //     setRepairing(false);
+  //   }
+  // };
 
   const handleOpenChannelCheck = () => {
     const guildId = event?.discordConfig?.guildId;
@@ -1263,7 +1263,7 @@ const AdminQuickActionsPanel = ({
         </ModalContent>
       </Modal>
 
-      {/* Complete Move History Modal */}
+      {/* Comprehensive Move History Modal */}
       <Modal
         isOpen={isFullHistoryOpen}
         onClose={onFullHistoryClose}
@@ -1271,13 +1271,18 @@ const AdminQuickActionsPanel = ({
         size="xl"
       >
         <ModalOverlay />
-        <ModalContent bg="gray.800" color="white" maxH={{ base: '90dvh', md: '85vh' }}>
+        <ModalContent
+          bg="gray.800"
+          color="white"
+          maxH={{ base: '90dvh', md: '85vh' }}
+          overflowY="auto"
+        >
           <ModalHeader pb={2}>
             <HStack justify="space-between" align="start" mr={8}>
               <VStack align="start" spacing={1}>
                 <HStack spacing={2}>
                   <Icon as={FaBook} color="teal.400" />
-                  <Text>Complete Move History</Text>
+                  <Text>Comprehensive Move History</Text>
                 </HStack>
                 <HStack spacing={1}>
                   <Button
