@@ -47,6 +47,27 @@ const AvailableTasksStrip = ({
   const { isOpen: isListOpen, onOpen: openList, onClose: closeList } = useDisclosure();
   const [tipFired, setTipFired] = useState(false);
 
+  const seenStorageKey = `osrsbingo_seen_nodes_${eventId}_${team?.teamId}`;
+  const [seenNodeIds, setSeenNodeIds] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem(seenStorageKey) || '[]'));
+    } catch {
+      return new Set();
+    }
+  });
+
+  const markSeen = (nodeId) => {
+    setSeenNodeIds((prev) => {
+      if (prev.has(nodeId)) return prev;
+      const next = new Set(prev);
+      next.add(nodeId);
+      try {
+        localStorage.setItem(seenStorageKey, JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  };
+
   const handleBookmarkFirstHover = () => {
     if (tipFired || localStorage.getItem('osrsbingo_bookmark_tip_seen')) return;
     setTipFired(true);
@@ -100,20 +121,47 @@ const AvailableTasksStrip = ({
           <GemTitle gemColor="green" size="sm" mb={0}>
             Available Tasks
           </GemTitle>
-          <Badge
-            bg={currentColors.green.base}
-            color="white"
-            fontSize="sm"
-            px={2}
-            py={1}
-            borderRadius="md"
-            cursor="pointer"
-            onClick={openList}
-            _hover={{ opacity: 0.85 }}
-          >
-            <HamburgerIcon boxSize={3} mr={1} />
-            {availableNodes.length} available
-          </Badge>
+          <HStack spacing={2}>
+            {availableNodes.some((n) => !seenNodeIds.has(n.nodeId)) && (
+              <Badge
+                fontSize="xs"
+                px={2}
+                py={1}
+                borderRadius="md"
+                cursor="pointer"
+                colorScheme="green"
+                variant="outline"
+                onClick={() => {
+                  const allIds = availableNodes.map((n) => n.nodeId);
+                  setSeenNodeIds((prev) => {
+                    const next = new Set(prev);
+                    allIds.forEach((id) => next.add(id));
+                    try {
+                      localStorage.setItem(seenStorageKey, JSON.stringify([...next]));
+                    } catch {}
+                    return next;
+                  });
+                }}
+                _hover={{ opacity: 0.85 }}
+              >
+                Mark all seen
+              </Badge>
+            )}
+            <Badge
+              bg={currentColors.green.base}
+              color="white"
+              fontSize="sm"
+              px={2}
+              py={1}
+              borderRadius="md"
+              cursor="pointer"
+              onClick={openList}
+              _hover={{ opacity: 0.85 }}
+            >
+              <HamburgerIcon boxSize={3} mr={1} />
+              {availableNodes.length} available
+            </Badge>
+          </HStack>
         </HStack>
 
         <Box position="relative">
@@ -200,7 +248,7 @@ const AvailableTasksStrip = ({
                     cursor="pointer"
                     borderRadius="lg"
                     _hover={{ transform: 'translateY(-4px)', shadow: 'xl' }}
-                    onClick={() => handleNodeClick(node)}
+                    onClick={() => { markSeen(node.nodeId); handleNodeClick(node); }}
                     transition="transform 0.2s ease, box-shadow 0.2s ease"
                   >
                     {/* Inner card — overflow:hidden for rounded corners, separate from bookmark */}
@@ -252,17 +300,35 @@ const AvailableTasksStrip = ({
                             >
                               {isInn ? '🏠 Inn' : diffMap[node.difficultyTier] || node.nodeType}
                             </Badge>
+                            {!seenNodeIds.has(node.nodeId) && (
+                              <Badge
+                                colorScheme="green"
+                                fontSize="9px"
+                                px={1}
+                                sx={{
+                                  animation: 'newPulse 1.8s ease-in-out infinite',
+                                  '@keyframes newPulse': {
+                                    '0%, 100%': { opacity: 1 },
+                                    '50%': { opacity: 0.45 },
+                                  },
+                                }}
+                              >
+                                NEW
+                              </Badge>
+                            )}
                           </HStack>
-                          {hasBuffApplied && (
-                            <Badge colorScheme="blue" fontSize="xs">
-                              ✨ Buffed
-                            </Badge>
-                          )}
-                          {!hasBuffApplied && node.rewards?.buffs?.length > 0 && (
-                            <Badge colorScheme="purple" fontSize="xs">
-                              🎁 Buff
-                            </Badge>
-                          )}
+                          <HStack spacing={1}>
+                            {hasBuffApplied && (
+                              <Badge colorScheme="blue" fontSize="xs">
+                                ✨ Buffed
+                              </Badge>
+                            )}
+                            {!hasBuffApplied && node.rewards?.buffs?.length > 0 && (
+                              <Badge colorScheme="purple" fontSize="xs">
+                                🎁 Buff
+                              </Badge>
+                            )}
+                          </HStack>
                         </HStack>
                         <Text
                           fontWeight="semibold"
@@ -422,7 +488,7 @@ const AvailableTasksStrip = ({
                       borderRadius="md"
                       cursor="pointer"
                       _hover={{ bg: 'whiteAlpha.200' }}
-                      onClick={() => handleNodeClick(node)}
+                      onClick={() => { markSeen(node.nodeId); handleNodeClick(node); }}
                       borderLeft="3px solid"
                       borderLeftColor={`${groupColor}.400`}
                       mb={1}
@@ -440,6 +506,11 @@ const AvailableTasksStrip = ({
                             ? node.title.split(' - ').slice(1).join(' - ')
                             : node.title}
                         </Text>
+                        {!seenNodeIds.has(node.nodeId) && (
+                          <Badge colorScheme="green" fontSize="9px" px={1} flexShrink={0}>
+                            NEW
+                          </Badge>
+                        )}
                         {team?.inProgressNodes?.includes(node.nodeId) && (
                           <Icon as={FaBookmark} color="#F5C518" boxSize="10px" flexShrink={0} />
                         )}

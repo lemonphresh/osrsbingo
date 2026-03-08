@@ -132,11 +132,16 @@ export default function NodeDetailModal({
   const showBuffRewards =
     (!isLocked && node.rewards?.buffs && node.rewards.buffs?.length > 0) || adminMode;
 
-  const canApplyBuffs =
+  const isIneligibleItemCollection =
+    node.objective?.type === 'item_collection' && node.objective?.quantity <= 3;
+
+  const hasApplicableBuffInInventory =
     isAvailable &&
     isTeamMember &&
     !appliedBuff &&
     team?.activeBuffs?.some((buff) => buff.objectiveTypes?.includes(node.objective?.type));
+
+  const canApplyBuffs = hasApplicableBuffInInventory && !isIneligibleItemCollection;
 
   const canVisitInn = isInnNode && isAvailable && isTeamMember && !adminMode;
 
@@ -395,6 +400,13 @@ export default function NodeDetailModal({
               >
                 Apply Buff to Reduce Requirement
               </Button>
+            )}
+
+            {hasApplicableBuffInInventory && isIneligibleItemCollection && (
+              <Text fontSize="xs" color="gray.500" textAlign="center">
+                ✨ You have a buff for this type, but buffs can't be applied to objectives requiring
+                3 or fewer items.
+              </Text>
             )}
 
             {node.nodeType === 'INN' &&
