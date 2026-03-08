@@ -126,9 +126,9 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                     📱 Overview
                   </Text>
                   <Text fontSize="sm" color="gray.300">
-                    The Discord bot lets your teams interact with Gielinor Rush directly from Discord.
-                    Teams can view progress, check nodes, submit completions, and view the leaderboard
-                    all without leaving your server!
+                    The Discord bot lets your teams interact with Gielinor Rush directly from
+                    Discord. Teams can view progress, check nodes, submit completions, and view the
+                    leaderboard all without leaving your server!
                   </Text>
                 </Box>
 
@@ -192,8 +192,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                       borderColor="yellow.700"
                     >
                       <Text fontSize="xs" color="yellow.200">
-                        ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode), then
-                        right-click your server icon → Copy Server ID
+                        ⚠️ Enable Developer Mode in Discord (Settings → Advanced → Developer Mode),
+                        then right-click your server icon → Copy Server ID
                       </Text>
                     </Box>
 
@@ -256,8 +256,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                               !
                             </Text>
                           </HStack>
-                          Yeehaw! Don't forget to add the bot to your event channels and set the correct
-                          topic. See steps below.
+                          Yeehaw! Don't forget to add the bot to your event channels and set the
+                          correct topic. See steps below.
                         </Alert>
                       )}
                       {verifyState === 'error' && (
@@ -276,14 +276,16 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
 
             {/* Step 2: Create Channels */}
             <Box id="channel-setup">
-              <HStack mb={2}>
-                <Badge colorScheme="purple" fontSize="sm">
-                  Step 2
-                </Badge>
-                <Text fontWeight="semibold" color="white">
-                  Create Event Channels
-                </Text>
-              </HStack>
+              {!isLive && (
+                <HStack mb={2}>
+                  <Badge colorScheme="purple" fontSize="sm">
+                    Step 2
+                  </Badge>
+                  <Text fontWeight="semibold" color="white">
+                    Create Event Channels
+                  </Text>
+                </HStack>
+              )}
               <OrderedList spacing={2} fontSize="sm" color="gray.300">
                 <ListItem>
                   Create a text channel for each team (i.e.,{' '}
@@ -352,8 +354,8 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                   onChange={(e) => setChannelsAcknowledged(e.target.checked)}
                 >
                   <Text fontSize="sm" color="yellow.200" fontWeight="semibold">
-                    I understand that channels must be set up before launching. The bot will NOT work
-                    without them.
+                    I understand that channels must be set up before launching. The bot will NOT
+                    work without them.
                   </Text>
                 </Checkbox>
               )}
@@ -436,7 +438,9 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                 onClick={handleConfirm}
                 leftIcon={<CheckCircleIcon />}
               >
-                {verifyState === 'success' ? 'Confirm Setup' : 'Verify connection above to continue'}
+                {verifyState === 'success'
+                  ? 'Confirm Setup'
+                  : 'Verify connection above to continue'}
               </Button>
             )}
           </VStack>

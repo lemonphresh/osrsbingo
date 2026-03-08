@@ -323,9 +323,9 @@ const TreasureHuntResolvers = {
       return await verifyGuild(guildId);
     },
 
-    checkDiscordChannels: async (_, { guildId, eventId, teamIds }, context) => {
+    checkDiscordChannels: async (_, { guildId, eventId }, context) => {
       if (!context.user) throw new Error('Not authenticated');
-      return await checkEventChannels(guildId, eventId, teamIds);
+      return await checkEventChannels(guildId, eventId);
     },
   },
 
@@ -533,8 +533,15 @@ const TreasureHuntResolvers = {
         const startNodeId = startNode ? startNode.nodeId : validatedNodes[0]?.nodeId;
 
         if (startNodeId) {
+          const mapGenTime = new Date().toISOString();
           await TreasureTeam.update(
-            { completedNodes: [], availableNodes: [startNodeId], keysHeld: [], currentPot: '0' },
+            {
+              completedNodes: [],
+              availableNodes: [startNodeId],
+              keysHeld: [],
+              currentPot: '0',
+              nodeUnlockTimes: { [startNodeId]: mapGenTime },
+            },
             { where: { eventId }, transaction }
           );
         }
@@ -903,6 +910,8 @@ const TreasureHuntResolvers = {
 
       const completedNodes = [...(team.completedNodes || []), nodeId];
       const availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+      const now = new Date().toISOString();
 
       if (node.unlocks?.length > 0) {
         node.unlocks.forEach((unlockedNodeId) => {
@@ -911,11 +920,12 @@ const TreasureHuntResolvers = {
             !completedNodes.includes(unlockedNodeId)
           ) {
             availableNodes.push(unlockedNodeId);
+            nodeUnlockTimes[unlockedNodeId] = now;
           }
         });
       }
 
-      await team.update({ completedNodes, availableNodes });
+      await team.update({ completedNodes, availableNodes, nodeUnlockTimes });
 
       await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
         innId: nodeId,
@@ -965,6 +975,8 @@ const TreasureHuntResolvers = {
 
       const completedNodes = [...(team.completedNodes || []), nodeId];
       let availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+      const now = new Date().toISOString();
 
       if (node.locationGroupId) {
         const group = event.mapStructure?.locationGroups?.find(
@@ -980,6 +992,7 @@ const TreasureHuntResolvers = {
         node.unlocks.forEach((unlockedNode) => {
           if (!availableNodes.includes(unlockedNode) && !completedNodes.includes(unlockedNode)) {
             availableNodes.push(unlockedNode);
+            nodeUnlockTimes[unlockedNode] = now;
           }
         });
       }
@@ -1033,6 +1046,7 @@ const TreasureHuntResolvers = {
         keysHeld,
         activeBuffs,
         inProgressNodes,
+        nodeUnlockTimes,
       });
 
       await logTreasureHuntActivity(eventId, teamId, 'node_completed', {
@@ -1040,6 +1054,8 @@ const TreasureHuntResolvers = {
         nodeTitle: node.title,
         difficulty: node.difficultyTier,
         reward: node.rewards?.gp || 0,
+        keyRewards: node.rewards?.keys || [],
+        buffRewards: node.rewards?.buffs || [],
         completedBy: 'admin',
       });
 
@@ -1193,6 +1209,8 @@ const TreasureHuntResolvers = {
         }
       }
 
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+
       if (node.unlocks && Array.isArray(node.unlocks)) {
         availableNodes = availableNodes.filter((n) => {
           if (completedNodes.includes(n)) return true;
@@ -1200,7 +1218,9 @@ const TreasureHuntResolvers = {
             const completedNode = nodes.find((nd) => nd.nodeId === completedNodeId);
             return completedNode?.unlocks?.includes(n);
           });
-          return otherUnlockers || !node.unlocks.includes(n);
+          const stillAvailable = otherUnlockers || !node.unlocks.includes(n);
+          if (!stillAvailable) delete nodeUnlockTimes[n];
+          return stillAvailable;
         });
       }
 
@@ -1212,6 +1232,7 @@ const TreasureHuntResolvers = {
       const keysHeld = JSON.parse(JSON.stringify(team.keysHeld || []));
       if (node.rewards?.keys?.length > 0) {
         node.rewards.keys.forEach((key) => {
+          if (!key?.color || typeof key.quantity !== 'number') return;
           const existingKey = keysHeld.find((k) => k.color === key.color);
           if (existingKey) {
             existingKey.quantity = Math.max(0, existingKey.quantity - key.quantity);
@@ -1245,6 +1266,16 @@ const TreasureHuntResolvers = {
         currentPot,
         keysHeld: filteredKeys,
         activeBuffs,
+        nodeUnlockTimes,
+      });
+
+      await logTreasureHuntActivity(eventId, teamId, 'node_uncompleted', {
+        nodeId,
+        nodeTitle: node.title,
+        gpRemoved: node.rewards?.gp || 0,
+        keysRemoved: node.rewards?.keys || [],
+        consumedBuffs,
+        uncompletedBy: context.user.id,
       });
 
       logger.info(`[adminUncompleteNode] ✅ node uncompleted teamId=${teamId} nodeId=${nodeId}`);
@@ -1293,10 +1324,14 @@ const TreasureHuntResolvers = {
       }
 
       // Unlock downstream nodes
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+      const now = new Date().toISOString();
+
       if (node.unlocks && Array.isArray(node.unlocks)) {
         node.unlocks.forEach((unlockedNode) => {
           if (!availableNodes.includes(unlockedNode) && !completedNodes.includes(unlockedNode)) {
             availableNodes.push(unlockedNode);
+            nodeUnlockTimes[unlockedNode] = now;
           }
         });
       }
@@ -1353,6 +1388,16 @@ const TreasureHuntResolvers = {
         currentPot,
         keysHeld,
         activeBuffs,
+        nodeUnlockTimes,
+      });
+
+      await logTreasureHuntActivity(eventId, teamId, 'node_recompleted', {
+        nodeId,
+        nodeTitle: node.title,
+        gpRestored: node.rewards?.gp || 0,
+        keysRestored: node.rewards?.keys || [],
+        buffsRestored: node.rewards?.buffs || [],
+        recompletedBy: context.user.id,
       });
 
       logger.info(

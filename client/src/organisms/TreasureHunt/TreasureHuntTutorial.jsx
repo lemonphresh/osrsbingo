@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box,
+  Flex,
   VStack,
   HStack,
   Text,
@@ -164,20 +165,27 @@ export const TreasureHuntTutorial = ({
         _hover={{ bg: colorMode === 'dark' ? 'whiteAlpha.100' : 'blackAlpha.50' }}
         borderRadius="lg"
       >
-        <HStack flex={1}>
-          <Icon as={InfoIcon} color={currentColors.purple} boxSize={6} />
-          <Heading size="md" color={currentColors.textColor}>
-            🗺️ Welcome to the Gielinor Rush!
-          </Heading>
+        <Flex
+          flex={1}
+          direction={{ base: 'column', sm: 'row' }}
+          gap={2}
+          align={{ base: 'flex-start', sm: 'center' }}
+        >
+          <HStack>
+            <Icon as={InfoIcon} color={currentColors.purple} boxSize={6} />
+            <Heading size="md" color={currentColors.textColor}>
+              🗺️ Welcome to the Gielinor Rush!
+            </Heading>
+          </HStack>
           {isCollapsed && (
             <Text color="gray.600">Read this Tutorial to get started with submissions!</Text>
           )}
           {isCollapsed && (
-            <Badge justifySelf="flex-end" colorScheme="purple" fontSize="xs">
+            <Badge colorScheme="purple" fontSize="xs">
               Click to expand
             </Badge>
           )}
-        </HStack>
+        </Flex>
         <HStack spacing={1}>
           <IconButton
             icon={isCollapsed ? <ChevronDownIcon /> : <ChevronUpIcon />}
