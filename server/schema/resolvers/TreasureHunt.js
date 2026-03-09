@@ -1906,10 +1906,13 @@ const TreasureHuntResolvers = {
       team.currentPot = (currentPotBigInt + payoutBigInt).toString();
 
       const activeBuffs = [...(team.activeBuffs || [])];
+      const grantedBuffIds = [];
       if (reward.buffs?.length > 0) {
         reward.buffs.forEach((buffReward) => {
           try {
-            activeBuffs.push(createBuff(buffReward.buffType));
+            const newBuff = createBuff(buffReward.buffType);
+            activeBuffs.push(newBuff);
+            grantedBuffIds.push(newBuff.buffId);
           } catch (err) {
             logger.warn(
               `[purchaseInnReward] failed to create buff ${buffReward.buffType}:`,
@@ -1929,6 +1932,7 @@ const TreasureHuntResolvers = {
           keysSpent,
           payout: reward.payout,
           buffsGranted: reward.buffs || [],
+          buffIds: grantedBuffIds,
           purchasedAt: new Date().toISOString(),
         },
       ];
@@ -1948,6 +1952,73 @@ const TreasureHuntResolvers = {
       logger.info(
         `[purchaseInnReward] ✅ teamId=${teamId} purchased rewardId=${rewardId} payout=${reward.payout}`
       );
+      return team;
+    },
+
+    adminRefundInnPurchase: async (_, { eventId, teamId, nodeId }, context) => {
+      logger.info(`[adminRefundInnPurchase] eventId=${eventId} teamId=${teamId} nodeId=${nodeId}`);
+
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdminOrRef = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdminOrRef) throw new Error('Not authorized');
+
+      const team = await TreasureTeam.findOne({ where: { eventId, teamId } });
+      if (!team) throw new Error('Team not found');
+
+      await team.reload();
+
+      const transaction = team.innTransactions?.find((t) => t.nodeId === nodeId);
+      if (!transaction) throw new Error('No inn purchase found for this node');
+
+      // Restore keys
+      const keysHeld = [...(team.keysHeld || [])];
+      for (const spent of transaction.keysSpent || []) {
+        const existing = keysHeld.find((k) => k.color === spent.color);
+        if (existing) {
+          existing.quantity += spent.quantity;
+        } else {
+          keysHeld.push({ color: spent.color, quantity: spent.quantity });
+        }
+      }
+      team.keysHeld = keysHeld;
+      team.changed('keysHeld', true);
+
+      // Refund GP
+      const currentPotBigInt = BigInt(team.currentPot || 0);
+      const payoutBigInt = BigInt(transaction.payout || 0);
+      team.currentPot = (currentPotBigInt - payoutBigInt).toString();
+
+      // Remove buffs granted by this purchase
+      if (transaction.buffIds?.length > 0) {
+        team.activeBuffs = (team.activeBuffs || []).filter(
+          (b) => !transaction.buffIds.includes(b.buffId)
+        );
+      } else if (transaction.buffsGranted?.length > 0) {
+        // Fallback for older transactions: match by buffType, remove first match per type
+        const activeBuffs = [...(team.activeBuffs || [])];
+        for (const granted of transaction.buffsGranted) {
+          const idx = activeBuffs.findIndex((b) => b.buffType === granted.buffType);
+          if (idx !== -1) activeBuffs.splice(idx, 1);
+        }
+        team.activeBuffs = activeBuffs;
+      }
+      team.changed('activeBuffs', true);
+
+      // Remove the transaction
+      team.innTransactions = (team.innTransactions || []).filter((t) => t.nodeId !== nodeId);
+      team.changed('innTransactions', true);
+
+      await team.save();
+
+      await logTreasureHuntActivity(eventId, teamId, 'inn_refunded', {
+        innId: nodeId,
+        keysRefunded: transaction.keysSpent || [],
+        gpRefunded: transaction.payout,
+        buffsRemoved: transaction.buffsGranted || [],
+        refundedBy: context.user.id,
+      });
+
+      logger.info(`[adminRefundInnPurchase] ✅ teamId=${teamId} nodeId=${nodeId} refunded`);
       return team;
     },
   },

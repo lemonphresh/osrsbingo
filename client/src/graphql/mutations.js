@@ -880,6 +880,18 @@ export const PURCHASE_INN_REWARD = gql`
   }
 `;
 
+export const ADMIN_REFUND_INN_PURCHASE = gql`
+  mutation AdminRefundInnPurchase($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRefundInnPurchase(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
+      teamId
+      currentPot
+      keysHeld
+      innTransactions
+      activeBuffs
+    }
+  }
+`;
+
 // ============================================================
 // GIELINOR RUSH: ACTIVITY FEED (Query)
 // ============================================================

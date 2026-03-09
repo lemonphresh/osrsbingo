@@ -734,6 +734,7 @@ const typeDefs = gql`
 
     # --- Gielinor Rush: Inns ---
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Blind Draft Room ---
     createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!
