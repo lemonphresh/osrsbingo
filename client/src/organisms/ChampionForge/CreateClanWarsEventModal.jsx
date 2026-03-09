@@ -24,6 +24,7 @@ import {
   Select,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
+import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -39,7 +40,7 @@ const DEFAULT_CONFIG = {
 };
 
 const DEFAULT_TEAM = { teamName: '', members: [] };
-const DEFAULT_MEMBER = { discordId: '', username: '', role: 'ANY' };
+const DEFAULT_MEMBER = { discordId: '', role: 'ANY' };
 
 const STEPS = ['Event Setup', 'Teams & Rosters', 'Review & Create'];
 
@@ -153,63 +154,6 @@ function StepEventConfig({ config, onChange }) {
 // ---------------------------------------------------------------------------
 // Step 2 — Teams & Rosters
 // ---------------------------------------------------------------------------
-function MemberRow({ member, onChange, onRemove }) {
-  return (
-    <HStack spacing={2} align="flex-end">
-      <FormControl flex={2}>
-        <FormLabel fontSize="xs" color="gray.400" mb={1}>Discord ID</FormLabel>
-        <Input
-          size="sm"
-          value={member.discordId}
-          onChange={(e) => onChange({ ...member, discordId: e.target.value })}
-          placeholder="123456789012345678"
-          bg="gray.700"
-          borderColor="gray.600"
-          _placeholder={{ color: 'gray.600' }}
-          color="white"
-          fontFamily="mono"
-        />
-      </FormControl>
-      <FormControl flex={2}>
-        <FormLabel fontSize="xs" color="gray.400" mb={1}>Username (optional)</FormLabel>
-        <Input
-          size="sm"
-          value={member.username}
-          onChange={(e) => onChange({ ...member, username: e.target.value })}
-          placeholder="RSN or Discord name"
-          bg="gray.700"
-          borderColor="gray.600"
-          _placeholder={{ color: 'gray.600' }}
-          color="white"
-        />
-      </FormControl>
-      <FormControl w="110px">
-        <FormLabel fontSize="xs" color="gray.400" mb={1}>Role</FormLabel>
-        <Select
-          size="sm"
-          value={member.role}
-          onChange={(e) => onChange({ ...member, role: e.target.value })}
-          bg="gray.700"
-          borderColor="gray.600"
-          color="white"
-        >
-          <option value="ANY">Any</option>
-          <option value="PVMER">PvMer</option>
-          <option value="SKILLER">Skiller</option>
-        </Select>
-      </FormControl>
-      <IconButton
-        size="sm"
-        icon={<DeleteIcon />}
-        variant="ghost"
-        colorScheme="red"
-        aria-label="Remove member"
-        onClick={onRemove}
-        mb="1px"
-      />
-    </HStack>
-  );
-}
 
 function TeamCard({ team, index, onChange, onRemove }) {
   const updateMember = (mi, updated) => {
@@ -260,15 +204,39 @@ function TeamCard({ team, index, onChange, onRemove }) {
         Members
       </Text>
 
-      <VStack spacing={2} align="stretch" mb={2}>
-        {team.members.map((m, mi) => (
-          <MemberRow
-            key={mi}
-            member={m}
-            onChange={(updated) => updateMember(mi, updated)}
-            onRemove={() => removeMember(mi)}
-          />
-        ))}
+      <VStack spacing={3} align="stretch" mb={2}>
+        {team.members.map((m, mi) => {
+          const isDuplicate = team.members.some(
+            (other, oi) => oi !== mi && other.discordId && other.discordId === m.discordId
+          );
+          return (
+            <VStack key={mi} spacing={1} align="stretch" bg="gray.800" p={2} borderRadius="md">
+              <DiscordMemberInput
+                value={m.discordId}
+                onChange={(id) => updateMember(mi, { ...m, discordId: id })}
+                onRemove={() => removeMember(mi)}
+                colorMode="dark"
+                isDuplicateInForm={isDuplicate}
+              />
+              <HStack>
+                <FormLabel fontSize="xs" color="gray.400" mb={0} whiteSpace="nowrap">Role</FormLabel>
+                <Select
+                  size="sm"
+                  value={m.role}
+                  onChange={(e) => updateMember(mi, { ...m, role: e.target.value })}
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  color="white"
+                  maxW="140px"
+                >
+                  <option value="ANY">Any</option>
+                  <option value="PVMER">PvMer</option>
+                  <option value="SKILLER">Skiller</option>
+                </Select>
+              </HStack>
+            </VStack>
+          );
+        })}
       </VStack>
 
       {team.members.length < 10 && (
@@ -396,7 +364,6 @@ export default function CreateClanWarsEventModal({ isOpen, onClose, onSubmit }) 
             .filter((m) => m.discordId.trim())
             .map((m) => ({
               discordId: m.discordId.trim(),
-              username: m.username.trim() || null,
               avatar: null,
               role: m.role,
             })),

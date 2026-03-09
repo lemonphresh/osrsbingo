@@ -14,6 +14,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import AdminEventPanel from './AdminEventPanel';
 import WarChestPanel from './WarChestPanel';
+import ConfirmModal from './ConfirmModal';
 
 const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots'];
 
@@ -48,7 +49,7 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
               {submission.status}
             </Badge>
             <Badge colorScheme={submission.role === 'PVMER' ? 'orange' : 'teal'} fontSize="xs">{submission.role}</Badge>
-            <Badge colorScheme={submission.difficulty === 'hard' ? 'red' : submission.difficulty === 'medium' ? 'yellow' : 'green'} fontSize="xs">
+            <Badge colorScheme={submission.difficulty === 'master' ? 'red' : submission.difficulty === 'adept' ? 'yellow' : 'green'} fontSize="xs">
               {submission.difficulty}
             </Badge>
           </HStack>
@@ -122,6 +123,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const [statusFilter, setStatusFilter] = useState('PENDING');
+  const [outfittingConfirmOpen, setOutfittingConfirmOpen] = useState(false);
 
   const { data: subsData, refetch: refetchSubs } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
     variables: { eventId: event.eventId, status: statusFilter || undefined },
@@ -173,7 +175,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
               ⚔️ Gathering Phase — {event.eventName}
             </Text>
             <Text fontSize="sm" color="green.300">
-              Players submit tasks via <code>!cwsubmit &lt;task_id&gt; &lt;proof_url&gt;</code> in Discord
+              Players mark tasks in-progress on the site, then submit via Discord: <code>!cwsubmit &lt;task_id&gt;</code> with a screenshot attached
             </Text>
             {hoursLeft !== null && (
               <Text fontSize="xs" color="green.400">
@@ -184,11 +186,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
           <VStack align="flex-end" spacing={1}>
             <Badge colorScheme="yellow" fontSize="sm" px={3} py={1}>{pendingCount} pending</Badge>
             {isAdmin && (
-              <Button size="sm" colorScheme="blue" onClick={() => {
-                if (window.confirm('Move to Outfitting Phase?')) {
-                  advancePhase({ variables: { eventId: event.eventId, status: 'OUTFITTING' } });
-                }
-              }}>
+              <Button size="sm" colorScheme="blue" onClick={() => setOutfittingConfirmOpen(true)}>
                 → Start Outfitting
               </Button>
             )}
@@ -253,6 +251,19 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
           )}
         </TabPanels>
       </Tabs>
+
+      <ConfirmModal
+        isOpen={outfittingConfirmOpen}
+        onClose={() => setOutfittingConfirmOpen(false)}
+        onConfirm={() => {
+          advancePhase({ variables: { eventId: event.eventId, status: 'OUTFITTING' } });
+          setOutfittingConfirmOpen(false);
+        }}
+        title="Start Outfitting Phase?"
+        body="This will end the gathering phase. This action cannot be undone."
+        confirmLabel="Start Outfitting"
+        colorScheme="blue"
+      />
     </VStack>
   );
 }

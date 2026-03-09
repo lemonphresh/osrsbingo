@@ -7,9 +7,9 @@ const { ITEMS } = require('./clanWarsItems');
 // ============================================================
 
 const RARITY_WEIGHTS = {
-  easy:   { common: 70, uncommon: 25, rare: 4,  epic: 1  },
-  medium: { common: 30, uncommon: 45, rare: 20, epic: 5  },
-  hard:   { common: 5,  uncommon: 20, rare: 50, epic: 25 },
+  initiate: { common: 70, uncommon: 25, rare: 4,  epic: 1  },
+  adept:    { common: 30, uncommon: 45, rare: 20, epic: 5  },
+  master:   { common: 5,  uncommon: 20, rare: 50, epic: 25 },
 };
 
 const SKILLER_SLOT_WEIGHTS = {

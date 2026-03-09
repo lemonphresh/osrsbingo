@@ -757,6 +757,9 @@ const typeDefs = gql`
     # --- Champion Forge: Events ---
     createClanWarsEvent(input: CreateClanWarsEventInput!): ClanWarsEvent!
     updateClanWarsEventStatus(eventId: ID!, status: ClanWarsEventStatus!): ClanWarsEvent!
+    updateClanWarsEventSettings(eventId: ID!, input: UpdateClanWarsEventSettingsInput!): ClanWarsEvent!
+    joinTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
+    leaveTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
     deleteClanWarsEvent(eventId: ID!): MutationResponse!
     generateClanWarsBracket(eventId: ID!): ClanWarsEvent!
 
@@ -843,6 +846,7 @@ const typeDefs = gql`
     creatorId: String
     adminIds: [String!]
     seed: String
+    guildId: String
     teams: [ClanWarsTeam!]
     submissions: [ClanWarsSubmission!]
     tasks: [ClanWarsTask!]
@@ -868,6 +872,7 @@ const typeDefs = gql`
     loadoutLocked: Boolean!
     captainDiscordId: String
     completedTaskIds: [String!]
+    taskProgress: JSON
     items: [ClanWarsItem!]
     submissions: [ClanWarsSubmission!]
   }
@@ -897,7 +902,7 @@ const typeDefs = gql`
     taskLabel: String
     difficulty: String!
     role: String!
-    proofUrl: String
+    screenshot: String
     status: ClanWarsSubmissionStatus!
     rewardSlot: String
     rewardItemId: String
@@ -966,6 +971,10 @@ const typeDefs = gql`
   # CHAMPION FORGE: INPUTS
   # ============================================================
 
+  input UpdateClanWarsEventSettingsInput {
+    guildId: String
+  }
+
   input CreateClanWarsEventInput {
     eventName: String!
     clanId: String
@@ -1006,7 +1015,7 @@ const typeDefs = gql`
     taskId: String!
     difficulty: String!
     role: String!
-    proofUrl: String
+    screenshot: String
   }
 
   # ============================================================

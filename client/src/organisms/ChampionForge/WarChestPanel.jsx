@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import {
-  Box, VStack, HStack, Text, Badge, Spinner, Center, Tooltip,
+  Box, VStack, HStack, Text, Badge, Spinner, Center, Tooltip, Button, Divider,
 } from '@chakra-ui/react';
 import { GET_CLAN_WARS_WAR_CHEST } from '../../graphql/clanWarsOperations';
 
@@ -12,10 +12,26 @@ const RARITY_BORDER = {
   epic:     '#9b59b6',
 };
 
+const RARITY_COLOR = {
+  common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple',
+};
+
 const SLOT_EMOJI = {
   weapon: '⚔️', helm: '🪖', chest: '🛡️', legs: '🩲', gloves: '🧤', boots: '👢',
   shield: '🛡', ring: '💍', amulet: '📿', cape: '🧣', consumable: '🧪',
 };
+
+// Named sections for "view all" grouping
+const SECTIONS = [
+  { id: 'weapons',     label: 'Weapons',     slots: ['weapon'] },
+  { id: 'armour',      label: 'Armour',      slots: ['helm', 'chest', 'legs', 'gloves', 'boots', 'shield'] },
+  { id: 'accessories', label: 'Accessories', slots: ['ring', 'amulet', 'cape'] },
+  { id: 'consumables', label: 'Consumables', slots: ['consumable'] },
+];
+
+const RARITIES = ['common', 'uncommon', 'rare', 'epic'];
+
+// ---------------------------------------------------------------------------
 
 function ItemTile({ item }) {
   const border = RARITY_BORDER[item.rarity] ?? '#888';
@@ -75,11 +91,14 @@ function ItemTile({ item }) {
   );
 }
 
-function SlotGroup({ slot, items }) {
+function SectionGroup({ label, items }) {
+  if (items.length === 0) return null;
   return (
     <Box>
-      <HStack mb={1} spacing={1}>
-        <Text fontSize="xs" color="gray.500" textTransform="capitalize">{slot}</Text>
+      <HStack mb={2} spacing={2}>
+        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wider">
+          {label}
+        </Text>
         <Text fontSize="xs" color="gray.600">({items.length})</Text>
       </HStack>
       <HStack flexWrap="wrap" spacing={1}>
@@ -89,27 +108,44 @@ function SlotGroup({ slot, items }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+
 export default function WarChestPanel({ team, hidden = false }) {
+  const [slotFilter, setSlotFilter] = useState('all');
+  const [rarityFilter, setRarityFilter] = useState('all');
+
   const { data, loading } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: team.teamId },
     fetchPolicy: 'cache-and-network',
   });
 
-  const items = data?.getClanWarsWarChest ?? [];
+  const allItems = data?.getClanWarsWarChest ?? [];
 
-  const bySlot = items.reduce((acc, item) => {
-    if (!acc[item.slot]) acc[item.slot] = [];
-    acc[item.slot].push(item);
-    return acc;
-  }, {});
+  // Apply filters
+  const filtered = allItems.filter((item) => {
+    if (rarityFilter !== 'all' && item.rarity !== rarityFilter) return false;
+    if (slotFilter === 'all') return true;
+    const section = SECTIONS.find((s) => s.id === slotFilter);
+    return section ? section.slots.includes(item.slot) : true;
+  });
 
-  const slots = Object.keys(bySlot).sort();
+  const filterBtn = (active, label, onClick, scheme = 'gray') => (
+    <Button
+      key={label}
+      size="xs"
+      variant={active ? 'solid' : 'outline'}
+      colorScheme={active ? (scheme === 'gray' ? 'purple' : scheme) : 'gray'}
+      onClick={onClick}
+    >
+      {label}
+    </Button>
+  );
 
   return (
     <Box bg="gray.700" border="1px solid" borderColor="gray.600" borderRadius="lg" p={4}>
       <HStack justify="space-between" mb={3}>
         <Text fontWeight="bold" fontSize="sm" color="white">{team.teamName}</Text>
-        <Badge colorScheme="purple" fontSize="xs">{items.length} items</Badge>
+        <Badge colorScheme="purple" fontSize="xs">{allItems.length} items</Badge>
       </HStack>
 
       {loading && (
@@ -118,24 +154,59 @@ export default function WarChestPanel({ team, hidden = false }) {
         </Center>
       )}
 
-      {!loading && items.length === 0 && (
+      {!loading && allItems.length === 0 && (
         <Text fontSize="xs" color="gray.500">
           {hidden ? 'War chest hidden during gathering phase.' : 'No items yet.'}
         </Text>
       )}
 
-      {!loading && !hidden && items.length > 0 && (
-        <VStack align="stretch" spacing={3}>
-          {slots.map((slot) => (
-            <SlotGroup key={slot} slot={slot} items={bySlot[slot]} />
-          ))}
-        </VStack>
-      )}
-
-      {!loading && hidden && items.length > 0 && (
+      {!loading && hidden && allItems.length > 0 && (
         <Text fontSize="xs" color="gray.500" fontStyle="italic">
           🔒 War chest contents hidden until post-battle reveal.
         </Text>
+      )}
+
+      {!loading && !hidden && allItems.length > 0 && (
+        <VStack align="stretch" spacing={4}>
+          {/* Slot category filter */}
+          <HStack flexWrap="wrap" gap={1}>
+            {filterBtn(slotFilter === 'all', 'All', () => setSlotFilter('all'))}
+            {SECTIONS.map((s) => filterBtn(slotFilter === s.id, s.label, () => setSlotFilter(s.id)))}
+          </HStack>
+
+          {/* Rarity filter */}
+          <HStack flexWrap="wrap" gap={1}>
+            {filterBtn(rarityFilter === 'all', 'All Rarities', () => setRarityFilter('all'))}
+            {RARITIES.map((r) => filterBtn(rarityFilter === r, r, () => setRarityFilter(r), RARITY_COLOR[r]))}
+          </HStack>
+
+          <Divider borderColor="gray.600" />
+
+          {/* Items — grouped by named section in "all" mode, flat otherwise */}
+          {slotFilter === 'all' ? (
+            <VStack align="stretch" spacing={4}>
+              {SECTIONS.map((section) => {
+                const sectionItems = filtered.filter((i) => section.slots.includes(i.slot));
+                return (
+                  <SectionGroup key={section.id} label={section.label} items={sectionItems} />
+                );
+              })}
+              {filtered.length === 0 && (
+                <Text fontSize="xs" color="gray.500">No items match this filter.</Text>
+              )}
+            </VStack>
+          ) : (
+            <VStack align="stretch" spacing={2}>
+              {filtered.length === 0 ? (
+                <Text fontSize="xs" color="gray.500">No items match this filter.</Text>
+              ) : (
+                <HStack flexWrap="wrap" spacing={1}>
+                  {filtered.map((item) => <ItemTile key={item.itemId} item={item} />)}
+                </HStack>
+              )}
+            </VStack>
+          )}
+        </VStack>
       )}
     </Box>
   );

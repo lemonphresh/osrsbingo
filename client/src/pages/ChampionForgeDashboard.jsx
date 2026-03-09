@@ -10,6 +10,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import CreateClanWarsEventModal from '../organisms/ChampionForge/CreateClanWarsEventModal';
+import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
 
 const STATUS_COLORS = {
   DRAFT:      'gray',
@@ -35,15 +36,16 @@ function EventCard({ event, isAdmin }) {
   const [deleteEvent] = useMutation(DELETE_CLAN_WARS_EVENT, {
     refetchQueries: ['GetAllClanWarsEvents'],
   });
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    if (!window.confirm(`Delete "${event.eventName}"? This cannot be undone.`)) return;
+  const handleDelete = async () => {
     try {
       await deleteEvent({ variables: { eventId: event.eventId } });
       showToast('Event deleted', 'success');
     } catch (err) {
       showToast('Failed to delete event', 'error');
+    } finally {
+      setDeleteOpen(false);
     }
   };
 
@@ -79,11 +81,21 @@ function EventCard({ event, isAdmin }) {
 
       {isAdmin && event.status === 'DRAFT' && (
         <HStack mt={3} justify="flex-end">
-          <Button size="xs" colorScheme="red" variant="ghost" onClick={handleDelete}>
+          <Button size="xs" colorScheme="red" variant="ghost" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}>
             Delete
           </Button>
         </HStack>
       )}
+
+      <ConfirmModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDelete}
+        title={`Delete "${event.eventName}"?`}
+        body="This cannot be undone."
+        confirmLabel="Delete"
+        colorScheme="red"
+      />
     </Box>
   );
 }

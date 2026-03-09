@@ -39,18 +39,18 @@ function seededSample(arr, n, rng) {
 }
 
 // Build task rows from the pool, seeded from the event seed.
-// Per bucket: 6 easy, 5 medium, 4 hard per role.
+// Per bucket: 6 initiate, 5 adept, 4 master per role.
 function sampleTasksFromPool(eventId, seed) {
   const rng = seedrandom(seed);
   const tasks = [];
 
   for (const role of ['PVMER', 'SKILLER']) {
     const pool = CW_OBJECTIVE_COLLECTIONS[role];
-    const easyPick   = seededSample(pool.easy,   6, rng);
-    const mediumPick = seededSample(pool.medium,  5, rng);
-    const hardPick   = seededSample(pool.hard,    4, rng);
+    const initiatePick = seededSample(pool.initiate, 6, rng);
+    const adeptPick    = seededSample(pool.adept,    5, rng);
+    const masterPick   = seededSample(pool.master,   4, rng);
 
-    for (const task of [...easyPick, ...mediumPick, ...hardPick]) {
+    for (const task of [...initiatePick, ...adeptPick, ...masterPick]) {
       tasks.push({
         taskId: generateId('cwtask'),
         eventId,
@@ -286,6 +286,10 @@ const Mutation = {
       throw new UserInputError(`Cannot transition from ${event.status} to ${status}`);
     }
 
+    if (status === 'GATHERING' && !event.guildId) {
+      throw new UserInputError('A Discord Guild ID must be set before starting the Gathering phase.');
+    }
+
     const updates = { status };
     const now = new Date();
 
@@ -300,6 +304,81 @@ const Mutation = {
 
     await event.update(updates);
     return event;
+  },
+
+  updateClanWarsEventSettings: async (_, { eventId, input }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    const updates = {};
+    if (input.guildId !== undefined) updates.guildId = input.guildId ?? null;
+
+    await event.update(updates);
+    logger.info(`[updateClanWarsEventSettings] event=${eventId} updated by user=${user.id}`);
+    return event;
+  },
+
+  joinTaskInProgress: async (_, { eventId, teamId, taskId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (event.status !== 'GATHERING') throw new UserInputError('Event is not in the Gathering phase');
+
+    const discordId = user.discordUserId ?? null;
+    if (!discordId) throw new AuthenticationError('Link your Discord account to track task progress');
+
+    const { ClanWarsTeam, ClanWarsTask } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
+
+    const isEventAdmin = isAdmin(event, user.id, discordId);
+    if (!isEventAdmin) {
+      const isMember = (team.members ?? []).some((m) =>
+        typeof m === 'string' ? m === discordId : m.discordId === discordId
+      );
+      if (!isMember) throw new AuthenticationError('You are not a member of this team');
+
+      const task = await ClanWarsTask.findByPk(taskId);
+      if (!task || task.eventId !== eventId) throw new UserInputError('Task not found');
+
+      const memberRecord = (team.members ?? []).find((m) =>
+        typeof m !== 'string' && m.discordId === discordId
+      );
+      const memberRole = memberRecord?.role ?? 'ANY';
+      if (task.role !== 'ANY' && memberRole !== 'ANY' && memberRole !== task.role) {
+        throw new UserInputError(`This task is for ${task.role}s only`);
+      }
+    }
+
+    if ((team.completedTaskIds ?? []).includes(taskId)) {
+      throw new UserInputError('This task is already completed');
+    }
+
+    const progress = { ...(team.taskProgress ?? {}) };
+    const current = progress[taskId] ?? [];
+    if (!current.includes(discordId)) {
+      progress[taskId] = [...current, discordId];
+      await team.update({ taskProgress: progress });
+    }
+
+    return team;
+  },
+
+  leaveTaskInProgress: async (_, { eventId, teamId, taskId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const discordId = user.discordUserId ?? null;
+    if (!discordId) throw new AuthenticationError('Discord account required');
+
+    const { ClanWarsTeam } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
+
+    const progress = { ...(team.taskProgress ?? {}) };
+    const current = progress[taskId] ?? [];
+    progress[taskId] = current.filter((id) => id !== discordId);
+    await team.update({ taskProgress: progress });
+
+    return team;
   },
 
   deleteClanWarsEvent: async (_, { eventId }, { user }) => {
@@ -466,7 +545,7 @@ const Mutation = {
       taskLabel,
       difficulty,
       role,
-      proofUrl: input.proofUrl ?? null,
+      screenshot: input.screenshot ?? null,
       status: 'PENDING',
       submittedAt: new Date(),
     });

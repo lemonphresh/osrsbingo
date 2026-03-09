@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
+import ConfirmModal from './ConfirmModal';
 import {
   Box,
   VStack,
@@ -34,7 +35,7 @@ import {
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
-const DIFFICULTY_COLORS = { easy: 'green', medium: 'yellow', hard: 'red' };
+const DIFFICULTY_COLORS = { initiate: 'green', adept: 'yellow', master: 'red' };
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 
 // ---------------------------------------------------------------------------
@@ -45,14 +46,16 @@ function TeamCard({ team, eventId, refetch }) {
   const [deleteTeam] = useMutation(DELETE_CLAN_WARS_TEAM, { onCompleted: refetch });
   const [setCaptain] = useMutation(SET_CLAN_WARS_CAPTAIN, { onCompleted: refetch });
   const [captainInput, setCaptainInput] = useState('');
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleDelete = async () => {
-    if (!window.confirm(`Delete team "${team.teamName}"?`)) return;
     try {
       await deleteTeam({ variables: { eventId, teamId: team.teamId } });
       showToast('Team deleted', 'success');
     } catch {
       showToast('Failed to delete team', 'error');
+    } finally {
+      setDeleteOpen(false);
     }
   };
 
@@ -71,7 +74,7 @@ function TeamCard({ team, eventId, refetch }) {
     <Box bg="gray.700" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
       <HStack justify="space-between" mb={2}>
         <Text fontWeight="bold" color="white">{team.teamName}</Text>
-        <Button size="xs" colorScheme="red" variant="ghost" onClick={handleDelete}>
+        <Button size="xs" colorScheme="red" variant="ghost" onClick={() => setDeleteOpen(true)}>
           Remove
         </Button>
       </HStack>
@@ -117,6 +120,16 @@ function TeamCard({ team, eventId, refetch }) {
           Set
         </Button>
       </HStack>
+
+      <ConfirmModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={handleDelete}
+        title={`Delete "${team.teamName}"?`}
+        body="This will remove the team and cannot be undone."
+        confirmLabel="Delete"
+        colorScheme="red"
+      />
     </Box>
   );
 }
@@ -185,7 +198,7 @@ function TaskPool({ event, refetch }) {
   const { showToast } = useToastContext();
   const [label, setLabel] = useState('');
   const [description, setDescription] = useState('');
-  const [difficulty, setDifficulty] = useState('medium');
+  const [difficulty, setDifficulty] = useState('adept');
   const [role, setRole] = useState('PVMER');
   const [addTask] = useMutation(ADD_CLAN_WARS_TASK, { onCompleted: refetch });
   const [deleteTask] = useMutation(DELETE_CLAN_WARS_TASK, { onCompleted: refetch });
@@ -279,9 +292,9 @@ function TaskPool({ event, refetch }) {
           />
           <Select size="sm" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}
             bg="gray.800" borderColor="gray.600" color="white" w="110px" flexShrink={0}>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="initiate">Initiate</option>
+            <option value="adept">Adept</option>
+            <option value="master">Master</option>
           </Select>
           <Select size="sm" value={role} onChange={(e) => setRole(e.target.value)}
             bg="gray.800" borderColor="gray.600" color="white" w="110px" flexShrink={0}>
@@ -320,6 +333,8 @@ export default function AdminEventPanel({ event, refetch }) {
   const [lockAllLoadouts, { loading: lockingAll }] = useMutation(ADMIN_LOCK_ALL_LOADOUTS, {
     onCompleted: refetch,
   });
+  const [advanceOpen, setAdvanceOpen] = useState(false);
+  const [pendingNext, setPendingNext] = useState(null);
 
   const NEXT_STATUS = {
     DRAFT: 'GATHERING',
@@ -335,13 +350,15 @@ export default function AdminEventPanel({ event, refetch }) {
     COMPLETED: 'Mark Completed',
   };
 
-  const handleAdvance = async (nextStatus) => {
-    if (!window.confirm(`${PHASE_LABELS[nextStatus]}? This cannot be undone.`)) return;
+  const handleAdvance = async () => {
     try {
-      await updateStatus({ variables: { eventId: event.eventId, status: nextStatus } });
-      showToast(`Moved to ${nextStatus}`, 'success');
+      await updateStatus({ variables: { eventId: event.eventId, status: pendingNext } });
+      showToast(`Moved to ${pendingNext}`, 'success');
     } catch (err) {
       showToast(err.message ?? 'Failed to update status', 'error');
+    } finally {
+      setAdvanceOpen(false);
+      setPendingNext(null);
     }
   };
 
@@ -379,7 +396,7 @@ export default function AdminEventPanel({ event, refetch }) {
             </Button>
           )}
           {nextStatus && (
-            <Button size="sm" colorScheme="purple" onClick={() => handleAdvance(nextStatus)}>
+            <Button size="sm" colorScheme="purple" onClick={() => { setPendingNext(nextStatus); setAdvanceOpen(true); }}>
               → {PHASE_LABELS[nextStatus]}
             </Button>
           )}
@@ -433,7 +450,8 @@ export default function AdminEventPanel({ event, refetch }) {
         <Box px={5} py={4} bg="blue.900" borderLeft="3px solid" borderLeftColor="blue.400" mx={5} my={4} borderRadius="md">
           <Text fontWeight="semibold" color="blue.200" mb={1} fontSize="sm">Discord Bot Setup</Text>
           <Text color="blue.300" fontSize="sm">
-            Players submit with: <code>!cwsubmit &lt;task_id&gt; &lt;proof_url&gt;</code>
+            Players mark tasks in-progress on the site, then submit via Discord:{' '}
+            <code>!cwsubmit &lt;task_id&gt;</code> with a screenshot attached.
           </Text>
           <Text color="blue.400" fontSize="xs" mt={1}>
             The bot matches the player's Discord role to their team via the Role ID on each team.
@@ -535,6 +553,16 @@ export default function AdminEventPanel({ event, refetch }) {
           </Accordion>
         )}
       </VStack>
+
+      <ConfirmModal
+        isOpen={advanceOpen}
+        onClose={() => { setAdvanceOpen(false); setPendingNext(null); }}
+        onConfirm={handleAdvance}
+        title={pendingNext ? `${PHASE_LABELS[pendingNext]}?` : ''}
+        body="This action cannot be undone."
+        confirmLabel={pendingNext ? PHASE_LABELS[pendingNext] : 'Confirm'}
+        colorScheme="purple"
+      />
     </Box>
   );
 }

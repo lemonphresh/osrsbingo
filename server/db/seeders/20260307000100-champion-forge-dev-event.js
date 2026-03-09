@@ -180,6 +180,13 @@ module.exports = {
       ClanWarsBattle, ClanWarsBattleEvent, ClanWarsTask, ClanWarsSubmission,
     } = models;
 
+    // Idempotency guard — skip if already seeded
+    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    if (existing) {
+      console.log('⚠️  Dev seeder already applied — skipping. Run undo first to re-seed.');
+      return;
+    }
+
     const now = new Date();
 
     // ── Event ──────────────────────────────────────────────────────────────────
@@ -283,14 +290,14 @@ module.exports = {
 
     // ── Tasks (reference — gathering is over) ──────────────────────────────────
     const taskDefs = [
-      { taskId: 'cwtask_dev00001', label: 'Kill a Barrows brother',         difficulty: 'easy',   role: 'PVMER'   },
-      { taskId: 'cwtask_dev00002', label: 'Complete a Chambers of Xeric',   difficulty: 'hard',   role: 'PVMER'   },
-      { taskId: 'cwtask_dev00003', label: 'Catch 50 Karambwans',            difficulty: 'easy',   role: 'SKILLER' },
-      { taskId: 'cwtask_dev00004', label: 'Craft 30 Nature runes via Abyss',difficulty: 'medium', role: 'SKILLER' },
-      { taskId: 'cwtask_dev00005', label: 'Defeat 3 Dagannoth Kings',       difficulty: 'medium', role: 'PVMER'   },
-      { taskId: 'cwtask_dev00006', label: 'Smith 20 Rune bars',             difficulty: 'medium', role: 'SKILLER' },
-      { taskId: 'cwtask_dev00007', label: 'Complete Theatre of Blood',      difficulty: 'hard',   role: 'PVMER'   },
-      { taskId: 'cwtask_dev00008', label: 'Harvest 100 Snapdragons',        difficulty: 'hard',   role: 'SKILLER' },
+      { taskId: 'cwtask_dev00001', label: 'Barrows Armour',    difficulty: 'initiate', role: 'PVMER'   },
+      { taskId: 'cwtask_dev00002', label: 'Twisted Bow',       difficulty: 'master',   role: 'PVMER'   },
+      { taskId: 'cwtask_dev00003', label: 'Hooked In',         difficulty: 'initiate', role: 'SKILLER' },
+      { taskId: 'cwtask_dev00004', label: 'Rune Factory',      difficulty: 'adept',    role: 'SKILLER' },
+      { taskId: 'cwtask_dev00005', label: 'Berserker Ring',    difficulty: 'adept',    role: 'PVMER'   },
+      { taskId: 'cwtask_dev00006', label: 'Anvil Pounder',     difficulty: 'adept',    role: 'SKILLER' },
+      { taskId: 'cwtask_dev00007', label: 'Scythe of Vitur',   difficulty: 'master',   role: 'PVMER'   },
+      { taskId: 'cwtask_dev00008', label: 'Green Fingers',     difficulty: 'adept',    role: 'SKILLER' },
     ];
 
     for (const t of taskDefs) {
@@ -306,11 +313,11 @@ module.exports = {
 
     // ── Approved submissions (history) ─────────────────────────────────────────
     const submissions = [
-      { id: 'cws_dev00001', teamId: TEAM1_ID, taskId: 'cwtask_dev00001', by: '100000000000000002', username: 'CrimsonAce',   difficulty: 'easy',   role: 'PVMER'   },
-      { id: 'cws_dev00002', teamId: TEAM1_ID, taskId: 'cwtask_dev00002', by: '100000000000000002', username: 'CrimsonAce',   difficulty: 'hard',   role: 'PVMER'   },
-      { id: 'cws_dev00003', teamId: TEAM1_ID, taskId: 'cwtask_dev00003', by: '100000000000000003', username: 'OathSkiller',  difficulty: 'easy',   role: 'SKILLER' },
-      { id: 'cws_dev00004', teamId: TEAM2_ID, taskId: 'cwtask_dev00004', by: '200000000000000003', username: 'AzureSkiller', difficulty: 'medium', role: 'SKILLER' },
-      { id: 'cws_dev00005', teamId: TEAM2_ID, taskId: 'cwtask_dev00005', by: '200000000000000001', username: 'AzureLord',    difficulty: 'medium', role: 'PVMER'   },
+      { id: 'cws_dev00001', teamId: TEAM1_ID, taskId: 'cwtask_dev00001', by: '100000000000000002', username: 'CrimsonAce',   difficulty: 'initiate', role: 'PVMER'   },
+      { id: 'cws_dev00002', teamId: TEAM1_ID, taskId: 'cwtask_dev00002', by: '100000000000000002', username: 'CrimsonAce',   difficulty: 'master',   role: 'PVMER'   },
+      { id: 'cws_dev00003', teamId: TEAM1_ID, taskId: 'cwtask_dev00003', by: '100000000000000003', username: 'OathSkiller',  difficulty: 'initiate', role: 'SKILLER' },
+      { id: 'cws_dev00004', teamId: TEAM2_ID, taskId: 'cwtask_dev00004', by: '200000000000000003', username: 'AzureSkiller', difficulty: 'adept',    role: 'SKILLER' },
+      { id: 'cws_dev00005', teamId: TEAM2_ID, taskId: 'cwtask_dev00005', by: '200000000000000001', username: 'AzureLord',    difficulty: 'adept',    role: 'PVMER'   },
     ];
 
     for (const s of submissions) {
@@ -377,16 +384,21 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    const { Op } = require('sequelize');
+    // Use models so Sequelize handles column name casing correctly
+    const models = require('../models');
+    const {
+      ClanWarsEvent, ClanWarsTeam, ClanWarsItem,
+      ClanWarsBattle, ClanWarsBattleEvent, ClanWarsTask, ClanWarsSubmission,
+    } = models;
 
-    // Delete in dependency order
-    await queryInterface.bulkDelete('ClanWarsBattleEvents', { battleId: BATTLE_ID }, {});
-    await queryInterface.bulkDelete('ClanWarsBattles',      { battleId: BATTLE_ID }, {});
-    await queryInterface.bulkDelete('ClanWarsSubmissions',  { eventId: EVENT_ID },   {});
-    await queryInterface.bulkDelete('ClanWarsItems',        { eventId: EVENT_ID },   {});
-    await queryInterface.bulkDelete('ClanWarsTasks',        { eventId: EVENT_ID },   {});
-    await queryInterface.bulkDelete('ClanWarsTeams',        { eventId: EVENT_ID },   {});
-    await queryInterface.bulkDelete('ClanWarsEvents',       { eventId: EVENT_ID },   {});
+    // Delete in FK dependency order: events → battles → submissions/items/tasks/teams → event
+    await ClanWarsBattleEvent.destroy({ where: { battleId: BATTLE_ID } });
+    await ClanWarsBattle.destroy(     { where: { eventId:  EVENT_ID  } });
+    await ClanWarsSubmission.destroy( { where: { eventId:  EVENT_ID  } });
+    await ClanWarsItem.destroy(       { where: { eventId:  EVENT_ID  } });
+    await ClanWarsTask.destroy(       { where: { eventId:  EVENT_ID  } });
+    await ClanWarsTeam.destroy(       { where: { eventId:  EVENT_ID  } });
+    await ClanWarsEvent.destroy(      { where: { eventId:  EVENT_ID  } });
 
     console.log('✅ Champion Forge dev seeder rolled back.');
   },

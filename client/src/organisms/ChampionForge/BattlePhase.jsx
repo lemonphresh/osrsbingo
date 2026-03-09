@@ -4,6 +4,7 @@ import {
   Box, VStack, HStack, Text, Button, Badge, SimpleGrid, Spinner, Center,
   Tabs, TabList, Tab, TabPanels, TabPanel, Select,
 } from '@chakra-ui/react';
+import ConfirmModal from './ConfirmModal';
 import {
   GET_CLAN_WARS_BATTLE, GET_CLAN_WARS_WAR_CHEST,
   START_CLAN_WARS_BATTLE, UPDATE_CLAN_WARS_EVENT_STATUS,
@@ -18,6 +19,7 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
   const { showToast } = useToastContext();
 
   const [activeBattleId, setActiveBattleId] = useState(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [team1Id, setTeam1Id] = useState('');
   const [team2Id, setTeam2Id] = useState('');
   const [starting, setStarting] = useState(false);
@@ -77,11 +79,7 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
             </Text>
           </VStack>
           {isAdmin && (
-            <Button size="sm" colorScheme="purple" onClick={() => {
-              if (window.confirm('Mark event as Completed?')) {
-                advancePhase({ variables: { eventId: event.eventId, status: 'COMPLETED' } });
-              }
-            }}>
+            <Button size="sm" colorScheme="purple" onClick={() => setCompleteOpen(true)}>
               ✅ Complete Event
             </Button>
           )}
@@ -160,6 +158,19 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
           )}
         </TabPanels>
       </Tabs>
+
+      <ConfirmModal
+        isOpen={completeOpen}
+        onClose={() => setCompleteOpen(false)}
+        onConfirm={() => {
+          advancePhase({ variables: { eventId: event.eventId, status: 'COMPLETED' } });
+          setCompleteOpen(false);
+        }}
+        title="Mark Event as Completed?"
+        body="This will end the battle phase and finalize the event."
+        confirmLabel="Complete Event"
+        colorScheme="purple"
+      />
     </VStack>
   );
 }

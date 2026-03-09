@@ -4,15 +4,15 @@
  * Champion Forge — Task Pool
  *
  * Tasks are split by role:
- *   PVMER   — kill-count, boss, combat objectives
- *   SKILLER — skilling XP, item gathering, non-combat objectives
+ *   PVMER   — item collection drops from bosses / raids
+ *   SKILLER — XP milestones (xp_gain) and skilling minigame completions
  *
  * Each task has:
  *   id         — stable unique string
  *   label      — display name shown to players
  *   description — optional hint / tooltip
  *   role       — 'PVMER' | 'SKILLER'
- *   difficulty — 'easy' | 'medium' | 'hard'
+ *   difficulty — 'initiate' | 'adept' | 'master'
  *
  * At event creation the resolver samples from each bucket using seedrandom,
  * then bulk-inserts ClanWarsTask rows.
@@ -21,392 +21,392 @@
  */
 
 // ---------------------------------------------------------------------------
-// PVMER TASKS — combat / kill count
+// PVMER TASKS — item collection drops (no boss kill-count tasks)
 // ---------------------------------------------------------------------------
 
-const PVM_EASY = [
+const PVM_INITIATE = [
   {
-    id: 'pvm_easy_mole',
-    label: 'Giant Mole Slayer',
-    description: 'Kill 50 Giant Moles.',
+    id: 'pvm_init_abyssal_whip',
+    label: 'Abyssal Whip',
+    description: 'Obtain an Abyssal Whip from the Abyssal Sire.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_sarachnis',
-    label: 'Spider Season',
-    description: 'Kill 30 Sarachnis.',
+    id: 'pvm_init_trident_seas',
+    label: 'Trident of the Seas',
+    description: 'Obtain a Trident of the Seas from the Kraken.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_bryophyta',
-    label: 'Moss Mauler',
-    description: 'Kill 20 Bryophyta.',
+    id: 'pvm_init_berserker_ring',
+    label: 'Berserker Ring',
+    description: 'Obtain a Berserker Ring from Dagannoth Rex.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_obor',
-    label: 'Hill Giant Havoc',
-    description: 'Kill 30 Obor.',
+    id: 'pvm_init_barrows_piece',
+    label: 'Barrows Armour',
+    description: 'Obtain any Barrows equipment piece from the Barrows.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_dagannoth_rex',
-    label: 'Rex in the Den',
-    description: 'Kill 40 Dagannoth Rex.',
+    id: 'pvm_init_kbd_dragon_pickaxe',
+    label: 'Dragon Pickaxe',
+    description: 'Obtain a Dragon Pickaxe from the King Black Dragon.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_barrows',
-    label: 'Barrows Run Blitz',
-    description: 'Complete 20 Barrows chests.',
+    id: 'pvm_init_saradomin_sword',
+    label: 'Saradomin Sword',
+    description: 'Obtain a Saradomin Sword from Commander Zilyana.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_slayer',
-    label: 'Slayer Streak',
-    description: 'Complete 10 Slayer tasks.',
+    id: 'pvm_init_dragon_warhammer',
+    label: 'Dragon Warhammer',
+    description: 'Obtain a Dragon Warhammer from Lizardman Shamans.',
     role: 'PVMER',
-    difficulty: 'easy',
+    difficulty: 'initiate',
   },
   {
-    id: 'pvm_easy_wintertodt',
-    label: 'Cold Snap Warmup',
+    id: 'pvm_init_ancient_shards',
+    label: 'Ancient Shards',
+    description: 'Collect 5 Ancient Shards from Catacombs of Kourend Slayer monsters.',
+    role: 'PVMER',
+    difficulty: 'initiate',
+  },
+];
+
+const PVM_ADEPT = [
+  {
+    id: 'pvm_adept_bandos_tassets',
+    label: 'Bandos Tassets',
+    description: 'Obtain Bandos Tassets from General Graardor.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_bandos_chestplate',
+    label: 'Bandos Chestplate',
+    description: 'Obtain a Bandos Chestplate from General Graardor.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_armadyl_chestplate',
+    label: 'Armadyl Chestplate',
+    description: "Obtain an Armadyl Chestplate from Kree'arra.",
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_armadyl_chainskirt',
+    label: 'Armadyl Chainskirt',
+    description: "Obtain an Armadyl Chainskirt from Kree'arra.",
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_tanzanite_fang',
+    label: 'Tanzanite Fang',
+    description: 'Obtain a Tanzanite Fang from Zulrah.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_vorkath_head',
+    label: "Vorkath's Head",
+    description: "Obtain Vorkath's Head from Vorkath.",
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_zenyte_shard',
+    label: 'Zenyte Shard',
+    description: 'Obtain a Zenyte Shard from Demonic Gorillas.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_spectral_sigil',
+    label: 'Spectral Spirit Shield',
+    description: 'Obtain a Spectral Spirit Shield from the Corporeal Beast.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_nightmare_orb',
+    label: 'Nightmare Staff Orb',
+    description: 'Obtain any Nightmare staff orb from The Nightmare.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+  {
+    id: 'pvm_adept_crystal_armour_seed',
+    label: 'Crystal Armour Seed',
+    description: 'Obtain a Crystal Armour Seed from the Gauntlet.',
+    role: 'PVMER',
+    difficulty: 'adept',
+  },
+];
+
+const PVM_MASTER = [
+  {
+    id: 'pvm_master_twisted_bow',
+    label: 'Twisted Bow',
+    description: 'Obtain a Twisted Bow from Chambers of Xeric.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_scythe_vitur',
+    label: 'Scythe of Vitur',
+    description: 'Obtain a Scythe of Vitur from Theatre of Blood.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_tumekens_shadow',
+    label: "Tumeken's Shadow",
+    description: "Obtain Tumeken's Shadow from Tombs of Amascut.",
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_elysian_sigil',
+    label: 'Elysian Spirit Shield',
+    description: 'Obtain an Elysian Spirit Shield from the Corporeal Beast.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_infernal_cape',
+    label: 'Infernal Cape',
+    description: 'Earn the Infernal Cape by completing the Inferno.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_avernic_hilt',
+    label: 'Avernic Defender Hilt',
+    description: 'Obtain an Avernic Defender Hilt from Theatre of Blood.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_zaryte_vambraces',
+    label: 'Zaryte Vambraces',
+    description: 'Obtain Zaryte Vambraces from Nex.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+  {
+    id: 'pvm_master_torva_platebody',
+    label: 'Torva Platebody',
+    description: 'Obtain a Torva Platebody from Nex.',
+    role: 'PVMER',
+    difficulty: 'master',
+  },
+];
+
+// ---------------------------------------------------------------------------
+// SKILLER TASKS — XP milestones (xp_gain) and skilling minigame completions
+// ---------------------------------------------------------------------------
+
+const SKL_INITIATE = [
+  {
+    id: 'skl_init_fishing_xp',
+    label: 'Hooked In',
+    description: 'Earn 300,000 Fishing XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_woodcutting_xp',
+    label: 'Timber!',
+    description: 'Earn 300,000 Woodcutting XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_mining_xp',
+    label: 'Rock Solid',
+    description: 'Earn 300,000 Mining XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_cooking_xp',
+    label: 'Ready to Serve',
+    description: 'Earn 300,000 Cooking XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_wintertodt',
+    label: 'Cold Snap',
     description: 'Complete 15 Wintertodt rounds.',
-    role: 'PVMER',
-    difficulty: 'easy',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_tempoross',
+    label: 'Fish Fight',
+    description: 'Complete 10 Tempoross encounters.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_thieving_xp',
+    label: 'Five-Finger Discount',
+    description: 'Earn 300,000 Thieving XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
+  },
+  {
+    id: 'skl_init_firemaking_xp',
+    label: 'Light It Up',
+    description: 'Earn 300,000 Firemaking XP.',
+    role: 'SKILLER',
+    difficulty: 'initiate',
   },
 ];
 
-const PVM_MEDIUM = [
+const SKL_ADEPT = [
   {
-    id: 'pvm_med_kalphite_queen',
-    label: 'Queen\'s Bane',
-    description: 'Kill 30 Kalphite Queen.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_agility_xp',
+    label: 'In Stride',
+    description: 'Earn 500,000 Agility XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_kbd',
-    label: 'Dragon Slayer',
-    description: 'Kill 25 King Black Dragon.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_herblore_xp',
+    label: 'Brew Master',
+    description: 'Earn 500,000 Herblore XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_bandos',
-    label: 'Big High War God',
-    description: 'Kill 50 General Graardor.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_runecrafting_xp',
+    label: 'Rune Factory',
+    description: 'Earn 500,000 Runecrafting XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_armadyl',
-    label: 'Wings Clipped',
-    description: 'Kill 50 Kree\'arra.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_guardians_rift',
+    label: 'Guardians of the Rift',
+    description: 'Complete 15 Guardians of the Rift rounds.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_zamorak',
-    label: 'Chaos Reigned',
-    description: 'Kill 50 K\'ril Tsutsaroth.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_farming_xp',
+    label: 'Green Fingers',
+    description: 'Earn 500,000 Farming XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_saradomin',
-    label: 'Light\'s End',
-    description: 'Kill 50 Commander Zilyana.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_hunter_xp',
+    label: "Nature's Trapper",
+    description: 'Earn 500,000 Hunter XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_zulrah',
-    label: 'Snake Charmer',
-    description: 'Kill 50 Zulrah.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_construction_xp',
+    label: 'Home Builder',
+    description: 'Earn 500,000 Construction XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_nightmare',
-    label: 'Sleepless Knight',
-    description: 'Kill 20 The Nightmare.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_crafting_xp',
+    label: 'Master Craftsman',
+    description: 'Earn 500,000 Crafting XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_cox',
-    label: 'Chambers Explorer',
-    description: 'Complete 15 Chambers of Xeric.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_smithing_xp',
+    label: 'Anvil Pounder',
+    description: 'Earn 500,000 Smithing XP.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
   {
-    id: 'pvm_med_tob',
-    label: 'Theatre Regular',
-    description: 'Complete 10 Theatre of Blood.',
-    role: 'PVMER',
-    difficulty: 'medium',
+    id: 'skl_adept_zalcano',
+    label: 'Zalcano Miner',
+    description: 'Complete 20 Zalcano encounters.',
+    role: 'SKILLER',
+    difficulty: 'adept',
   },
 ];
 
-const PVM_HARD = [
+const SKL_MASTER = [
   {
-    id: 'pvm_hard_inferno',
-    label: 'Touched by Fire',
-    description: 'Complete 1 Inferno cape run.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_cox_cm',
-    label: 'Chambers: Challenge Mode',
-    description: 'Complete 10 CoX Challenge Mode.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_tob_hm',
-    label: 'Hard Mode Theatre',
-    description: 'Complete 5 ToB Hard Mode.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_toa_expert',
-    label: 'Tombs: Expert Mode',
-    description: 'Complete 5 ToA at 300+ raid level.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_nex',
-    label: 'Nex Annihilated',
-    description: 'Kill 30 Nex.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_corp',
-    label: 'Corporate Monster',
-    description: 'Kill 20 Corporeal Beast solo.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_slayer_master',
-    label: 'Slayer Mastery',
-    description: 'Complete 30 Slayer tasks (Duradel or Nieve only).',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'pvm_hard_ba_attacker',
-    label: 'Barbarian Assault Ace',
-    description: 'Earn 150 Honour Points as Attacker in Barbarian Assault.',
-    role: 'PVMER',
-    difficulty: 'hard',
-  },
-];
-
-// ---------------------------------------------------------------------------
-// SKILLER TASKS — non-combat XP, gathering, crafting, clues
-// ---------------------------------------------------------------------------
-
-const SKL_EASY = [
-  {
-    id: 'skl_easy_fish',
-    label: 'Fisherman\'s Luck',
-    description: 'Catch 500 fish (any type).',
+    id: 'skl_master_agility_xp',
+    label: 'Parkour Pro',
+    description: 'Earn 1,000,000 Agility XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_woodcutting',
-    label: 'Lumberjack',
-    description: 'Chop 500 logs (any type).',
+    id: 'skl_master_runecrafting_xp',
+    label: 'Soul of the Altar',
+    description: 'Earn 1,000,000 Runecrafting XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_mining',
-    label: 'Rock Collector',
-    description: 'Mine 500 ores (any type).',
+    id: 'skl_master_fishing_xp',
+    label: 'Master Angler',
+    description: 'Earn 1,000,000 Fishing XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_cooking',
-    label: 'Short-Order Cook',
-    description: 'Cook 300 food items successfully.',
+    id: 'skl_master_slayer_xp',
+    label: 'Slayer Legend',
+    description: 'Earn 1,000,000 Slayer XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_firemaking',
-    label: 'Pyromaniac',
-    description: 'Light 200 fires (any log type).',
+    id: 'skl_master_mining_xp',
+    label: 'Deep Digger',
+    description: 'Earn 1,000,000 Mining XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_clue_beginner',
-    label: 'Clue Newbie',
-    description: 'Complete 10 Beginner clue scrolls.',
+    id: 'skl_master_sailing_xp',
+    label: 'High Seas',
+    description: 'Earn 1,000,000 Sailing XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_farming',
-    label: 'Green Thumb',
-    description: 'Harvest 10 farming patches of any crop.',
+    id: 'skl_master_guardians_rift',
+    label: 'Rift Veteran',
+    description: 'Complete 50 Guardians of the Rift rounds.',
     role: 'SKILLER',
-    difficulty: 'easy',
+    difficulty: 'master',
   },
   {
-    id: 'skl_easy_thieving',
-    label: 'Sticky Fingers',
-    description: 'Pickpocket 300 NPCs successfully.',
+    id: 'skl_master_herblore_xp',
+    label: 'Alchemist Supreme',
+    description: 'Earn 1,000,000 Herblore XP.',
     role: 'SKILLER',
-    difficulty: 'easy',
-  },
-];
-
-const SKL_MEDIUM = [
-  {
-    id: 'skl_med_crafting',
-    label: 'Jeweler\'s Guild',
-    description: 'Craft 100 gems into jewellery.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_smithing',
-    label: 'Master Blacksmith',
-    description: 'Smith 200 bars into armour or weapons.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_herblore',
-    label: 'Potions Expert',
-    description: 'Brew 100 potions (prayer or combat only).',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_runecraft',
-    label: 'Rune Crafter',
-    description: 'Craft 5,000 runes at any altar.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_agility',
-    label: 'Agility Grinder',
-    description: 'Complete 200 laps on any agility course.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_clue_easy',
-    label: 'Casual Treasure Hunter',
-    description: 'Complete 15 Easy clue scrolls.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_clue_medium',
-    label: 'Map Master',
-    description: 'Complete 10 Medium clue scrolls.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_hunter',
-    label: 'Nature\'s Trapper',
-    description: 'Catch 100 creatures via Hunter.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_gp_1m',
-    label: 'War Chest: 1M',
-    description: 'Earn 1,000,000 GP through skilling methods.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-  {
-    id: 'skl_med_construction',
-    label: 'Home Improvement',
-    description: 'Build 50 furniture items in your house.',
-    role: 'SKILLER',
-    difficulty: 'medium',
-  },
-];
-
-const SKL_HARD = [
-  {
-    id: 'skl_hard_clue_hard',
-    label: 'Hard Mode Treasure',
-    description: 'Complete 10 Hard clue scrolls.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_clue_elite',
-    label: 'Elite Treasure Hunter',
-    description: 'Complete 5 Elite clue scrolls.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_gp_5m',
-    label: 'War Chest: 5M',
-    description: 'Earn 5,000,000 GP through skilling methods.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_99',
-    label: '99 Grind',
-    description: 'Achieve a level 99 in any skill during the event.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_farming_tree',
-    label: 'Forest Keeper',
-    description: 'Complete 5 full tree + fruit tree farming runs.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_slayer_xp',
-    label: 'XP Machine',
-    description: 'Earn 500,000 Slayer XP during the event.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_soul_runes',
-    label: 'Soul Crafter',
-    description: 'Craft 1,000 Soul runes.',
-    role: 'SKILLER',
-    difficulty: 'hard',
-  },
-  {
-    id: 'skl_hard_zalcano',
-    label: 'Zalcano Dominator',
-    description: 'Earn MVP in 20 Zalcano encounters.',
-    role: 'SKILLER',
-    difficulty: 'hard',
+    difficulty: 'master',
   },
 ];
 
@@ -416,14 +416,14 @@ const SKL_HARD = [
 
 const CW_OBJECTIVE_COLLECTIONS = {
   PVMER: {
-    easy:   PVM_EASY,
-    medium: PVM_MEDIUM,
-    hard:   PVM_HARD,
+    initiate: PVM_INITIATE,
+    adept:    PVM_ADEPT,
+    master:   PVM_MASTER,
   },
   SKILLER: {
-    easy:   SKL_EASY,
-    medium: SKL_MEDIUM,
-    hard:   SKL_HARD,
+    initiate: SKL_INITIATE,
+    adept:    SKL_ADEPT,
+    master:   SKL_MASTER,
   },
 };
 

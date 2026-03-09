@@ -3,18 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box, Center, Spinner, Text, VStack, HStack, Heading, Button,
-  Badge, Alert, AlertIcon, Icon, SimpleGrid, Input, Modal,
-  ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
-  ModalCloseButton, Divider, Textarea, Tooltip,
+  Badge, Alert, AlertIcon, Icon, SimpleGrid, Divider, Tooltip, Code,
 } from '@chakra-ui/react';
-import { LockIcon, ArrowBackIcon, CheckCircleIcon } from '@chakra-ui/icons';
+import { LockIcon, ArrowBackIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
 import { FaDiscord } from 'react-icons/fa';
 import {
   GET_CLAN_WARS_EVENT,
-  CREATE_CLAN_WARS_SUBMISSION,
   SAVE_OFFICIAL_LOADOUT,
   LOCK_CLAN_WARS_LOADOUT,
   GET_CLAN_WARS_WAR_CHEST,
+  JOIN_TASK_IN_PROGRESS,
+  LEAVE_TASK_IN_PROGRESS,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -25,8 +24,8 @@ import WarChestPanel from '../organisms/ChampionForge/WarChestPanel';
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
-const DIFF_COLOR = { easy: 'green', medium: 'yellow', hard: 'red' };
-const DIFF_ORDER = ['easy', 'medium', 'hard'];
+const DIFF_COLOR = { initiate: 'green', adept: 'yellow', master: 'red' };
+const DIFF_ORDER = ['initiate', 'adept', 'master'];
 
 // ---------------------------------------------------------------------------
 // Access gate
@@ -121,138 +120,104 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
 }
 
 // ---------------------------------------------------------------------------
-// Submit Proof Modal
+// Task row — in-progress tracking + Discord submit command
 // ---------------------------------------------------------------------------
-function SubmitProofModal({ isOpen, task, team, event, onClose, user }) {
+function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDiscordId, userMemberRole, onJoin, onLeave }) {
   const { showToast } = useToastContext();
-  const [proofUrl, setProofUrl] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const [createSubmission] = useMutation(CREATE_CLAN_WARS_SUBMISSION, {
-    onError: (err) => showToast(err.message, 'error'),
-  });
+  const inProgressIds = taskProgress?.[task.taskId] ?? [];
+  const isMeInProgress = !!currentUserDiscordId && inProgressIds.includes(currentUserDiscordId);
+  const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      await createSubmission({
-        variables: {
-          input: {
-            eventId: event.eventId,
-            teamId: team.teamId,
-            submittedBy: user?.discordUserId ?? String(user?.id),
-            submittedUsername: user?.discordUsername ?? user?.username ?? null,
-            taskId: task.taskId,
-            difficulty: task.difficulty,
-            role: task.role,
-            proofUrl: proofUrl.trim() || null,
-          },
-        },
-      });
-      showToast('Proof submitted! Awaiting admin review.', 'success');
-      setProofUrl('');
-      onClose();
-    } finally {
-      setLoading(false);
-    }
+  const canJoin = !isCompleted && !isMeInProgress && (
+    task.role === 'ANY' || userMemberRole === 'ANY' || userMemberRole === task.role
+  );
+
+  const getMemberName = (discordId) => {
+    const m = (teamMembers ?? []).find((tm) => tm.discordId === discordId);
+    return m?.username ?? discordId;
+  };
+
+  const handleCopyCommand = () => {
+    navigator.clipboard.writeText(`!cwsubmit ${task.taskId}`);
+    showToast('Command copied! Attach your screenshot in Discord.', 'success');
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalOverlay />
-      <ModalContent bg="gray.800" color="white">
-        <ModalHeader pb={2} color="white">Submit Proof</ModalHeader>
-        <ModalCloseButton color="gray.400" />
-        <ModalBody>
-          {task && (
-            <VStack align="stretch" spacing={4}>
-              <Box bg="gray.700" p={3} borderRadius="md">
-                <HStack mb={1} spacing={2}>
-                  <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">{task.difficulty}</Badge>
-                  <Badge colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'} fontSize="xs">{task.role}</Badge>
-                </HStack>
-                <Text fontWeight="medium" color="white">{task.label}</Text>
-                {task.description && (
-                  <Text fontSize="sm" color="gray.400" mt={1}>{task.description}</Text>
-                )}
-              </Box>
-
-              <Box>
-                <Text fontSize="sm" color="gray.300" mb={2}>
-                  Proof URL <Text as="span" color="gray.500">(screenshot, video clip, etc.)</Text>
-                </Text>
-                <Input
-                  value={proofUrl}
-                  onChange={(e) => setProofUrl(e.target.value)}
-                  placeholder="https://imgur.com/... or Discord attachment URL"
-                  bg="gray.700"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  color="white"
-                  _placeholder={{ color: 'gray.500' }}
-                />
-              </Box>
-
-              <Text fontSize="xs" color="gray.500">
-                An admin will review your submission. If approved, your team will receive a reward item.
-              </Text>
-            </VStack>
-          )}
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="ghost" color="gray.400" mr={3} onClick={onClose}>Cancel</Button>
-          <Button colorScheme="purple" isLoading={loading} onClick={handleSubmit}>
-            Submit
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Task row in gathering phase
-// ---------------------------------------------------------------------------
-function TaskRow({ task, isCompleted, onSubmit }) {
-  return (
-    <HStack
-      justify="space-between"
+    <Box
       p={3}
-      bg={isCompleted ? 'green.900' : 'gray.700'}
+      bg={isCompleted ? 'green.900' : isMeInProgress ? 'purple.900' : 'gray.700'}
       borderRadius="md"
       border="1px solid"
-      borderColor={isCompleted ? 'green.700' : 'gray.600'}
-      opacity={isCompleted ? 0.8 : 1}
+      borderColor={isCompleted ? 'green.700' : isMeInProgress ? 'purple.600' : 'gray.600'}
+      opacity={isCompleted ? 0.75 : 1}
     >
-      <HStack spacing={3} flex={1} minW={0}>
-        {isCompleted && <Icon as={CheckCircleIcon} color="green.400" flexShrink={0} />}
-        <VStack align="flex-start" spacing={0} minW={0}>
-          <Text fontSize="sm" fontWeight="medium" color={isCompleted ? 'green.200' : 'white'} noOfLines={1}>
-            {task.label}
-          </Text>
-          {task.description && (
-            <Text fontSize="xs" color="gray.400" noOfLines={1}>{task.description}</Text>
+      <HStack justify="space-between" mb={isMeInProgress || inProgressIds.length > 0 ? 2 : 0}>
+        <HStack spacing={3} flex={1} minW={0}>
+          {isCompleted && <Icon as={CheckCircleIcon} color="green.400" flexShrink={0} />}
+          <VStack align="flex-start" spacing={0} minW={0}>
+            <Text fontSize="sm" fontWeight="medium" color={isCompleted ? 'green.200' : 'white'} noOfLines={2}>
+              {task.label}
+            </Text>
+            {task.description && (
+              <Text fontSize="xs" color="gray.400" noOfLines={1}>{task.description}</Text>
+            )}
+          </VStack>
+        </HStack>
+        <HStack spacing={2} flexShrink={0}>
+          <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">{task.difficulty}</Badge>
+          {isCompleted && <Badge colorScheme="green" fontSize="xs">done</Badge>}
+          {isMeInProgress && <Badge colorScheme="purple" fontSize="xs">in progress</Badge>}
+          {!isCompleted && !isMeInProgress && canJoin && (
+            <Button size="xs" colorScheme={othersInProgress.length > 0 ? 'blue' : 'purple'} onClick={onJoin}>
+              {othersInProgress.length > 0 ? 'Join them' : 'Work on this'}
+            </Button>
           )}
-        </VStack>
+        </HStack>
       </HStack>
-      <HStack spacing={2} flexShrink={0}>
-        <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">{task.difficulty}</Badge>
-        {isCompleted ? (
-          <Badge colorScheme="green" fontSize="xs">done</Badge>
-        ) : (
-          <Button size="xs" colorScheme="purple" onClick={() => onSubmit(task)}>
-            Submit
-          </Button>
-        )}
-      </HStack>
-    </HStack>
+
+      {/* Who's working on it */}
+      {inProgressIds.length > 0 && (
+        <HStack spacing={1} flexWrap="wrap" mt={1} mb={isMeInProgress ? 2 : 0}>
+          <Text fontSize="xs" color="gray.400">Working on it:</Text>
+          {inProgressIds.map((id) => (
+            <Badge key={id} colorScheme={id === currentUserDiscordId ? 'purple' : 'gray'} fontSize="xs">
+              {getMemberName(id)}
+            </Badge>
+          ))}
+        </HStack>
+      )}
+
+      {/* My in-progress controls: copy command + leave */}
+      {isMeInProgress && (
+        <Box mt={1} p={2} bg="purple.800" borderRadius="md">
+          <Text fontSize="xs" color="purple.300" mb={1}>
+            When done in-game, submit via Discord:
+          </Text>
+          <HStack spacing={2}>
+            <Code fontSize="xs" bg="purple.900" color="purple.200" px={2} py={1} borderRadius="md" flex={1}>
+              !cwsubmit {task.taskId}
+            </Code>
+            <Button size="xs" colorScheme="purple" leftIcon={<CopyIcon />} onClick={handleCopyCommand}>
+              Copy
+            </Button>
+            <Button size="xs" colorScheme="red" variant="ghost" onClick={onLeave}>
+              Leave
+            </Button>
+          </HStack>
+          <Text fontSize="xs" color="purple.400" mt={1}>
+            Attach your screenshot in Discord when you run the command.
+          </Text>
+        </Box>
+      )}
+    </Box>
   );
 }
 
 // ---------------------------------------------------------------------------
 // Task list grouped by role + difficulty
 // ---------------------------------------------------------------------------
-function TaskSection({ title, colorScheme, tasks, completedTaskIds, onSubmit }) {
+function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress, teamMembers, currentUserDiscordId, userMemberRole, onJoin, onLeave }) {
   const byDiff = DIFF_ORDER.reduce((acc, d) => {
     acc[d] = tasks.filter((t) => t.difficulty === d);
     return acc;
@@ -285,7 +250,12 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, onSubmit }) 
                     key={task.taskId}
                     task={task}
                     isCompleted={completedTaskIds.includes(task.taskId)}
-                    onSubmit={onSubmit}
+                    taskProgress={taskProgress}
+                    teamMembers={teamMembers}
+                    currentUserDiscordId={currentUserDiscordId}
+                    userMemberRole={userMemberRole}
+                    onJoin={() => onJoin(task.taskId)}
+                    onLeave={() => onLeave(task.taskId)}
                   />
                 ))}
               </VStack>
@@ -300,11 +270,28 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, onSubmit }) 
 // ---------------------------------------------------------------------------
 // GATHERING phase
 // ---------------------------------------------------------------------------
-function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
-  const [selectedTask, setSelectedTask] = useState(null);
+function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
+  const { showToast } = useToastContext();
+
+  const [joinTask] = useMutation(JOIN_TASK_IN_PROGRESS, {
+    onCompleted: refetch,
+    onError: (err) => showToast(err.message ?? 'Failed to join task', 'error'),
+  });
+  const [leaveTask] = useMutation(LEAVE_TASK_IN_PROGRESS, {
+    onCompleted: refetch,
+    onError: (err) => showToast(err.message ?? 'Failed to leave task', 'error'),
+  });
 
   const tasks = event.tasks ?? [];
   const completedTaskIds = team.completedTaskIds ?? [];
+  const taskProgress = team.taskProgress ?? {};
+  const currentUserDiscordId = user?.discordUserId ?? null;
+
+  // Find the current user's role within this team
+  const memberRecord = (team.members ?? []).find((m) =>
+    typeof m !== 'string' && m.discordId === currentUserDiscordId
+  );
+  const userMemberRole = memberRecord?.role ?? 'ANY';
 
   const pvmerTasks = tasks.filter((t) => t.role === 'PVMER');
   const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
@@ -312,6 +299,24 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
   const gatheringEnd = event.gatheringEnd ? new Date(event.gatheringEnd) : null;
   const now = new Date();
   const hoursLeft = gatheringEnd ? Math.max(0, (gatheringEnd - now) / 1000 / 3600) : null;
+
+  const handleJoin = (taskId) => {
+    joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
+  };
+
+  const handleLeave = (taskId) => {
+    leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
+  };
+
+  const sharedTaskProps = {
+    completedTaskIds,
+    taskProgress,
+    teamMembers: team.members,
+    currentUserDiscordId,
+    userMemberRole,
+    onJoin: handleJoin,
+    onLeave: handleLeave,
+  };
 
   return (
     <VStack align="stretch" spacing={6}>
@@ -321,7 +326,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
           <VStack align="flex-start" spacing={0}>
             <Text fontWeight="bold" color="green.200">⚒️ Gathering Phase</Text>
             <Text fontSize="sm" color="green.300">
-              Complete tasks to earn items for your war chest.
+              Complete tasks to earn items for your war chest. Mark tasks in progress to coordinate with your team,
+              then submit via Discord with your screenshot.
             </Text>
           </VStack>
           {hoursLeft !== null && (
@@ -342,8 +348,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
                 title="PvM Tasks"
                 colorScheme="orange"
                 tasks={pvmerTasks}
-                completedTaskIds={completedTaskIds}
-                onSubmit={setSelectedTask}
+                {...sharedTaskProps}
               />
             )}
             {pvmerTasks.length > 0 && skillerTasks.length > 0 && (
@@ -354,8 +359,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
                 title="Skilling Tasks"
                 colorScheme="teal"
                 tasks={skillerTasks}
-                completedTaskIds={completedTaskIds}
-                onSubmit={setSelectedTask}
+                {...sharedTaskProps}
               />
             )}
             {tasks.length === 0 && (
@@ -375,16 +379,6 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user }) {
           </Text>
         </VStack>
       </SimpleGrid>
-
-      {/* Submit proof modal */}
-      <SubmitProofModal
-        isOpen={!!selectedTask}
-        task={selectedTask}
-        team={team}
-        event={event}
-        onClose={() => setSelectedTask(null)}
-        user={user}
-      />
     </VStack>
   );
 }
@@ -447,7 +441,7 @@ function BattlePhaseBarracks({ event, team }) {
 // ---------------------------------------------------------------------------
 // Phase-aware content dispatcher
 // ---------------------------------------------------------------------------
-function PhaseContent({ event, team, isAdmin, user }) {
+function PhaseContent({ event, team, isAdmin, user, refetch }) {
   const phase = event.status;
 
   if (phase === 'DRAFT') {
@@ -460,7 +454,7 @@ function PhaseContent({ event, team, isAdmin, user }) {
   }
 
   if (phase === 'GATHERING') {
-    return <GatheringPhaseBarracks event={event} team={team} isAdmin={isAdmin} user={user} />;
+    return <GatheringPhaseBarracks event={event} team={team} isAdmin={isAdmin} user={user} refetch={refetch} />;
   }
 
   if (phase === 'OUTFITTING') {
@@ -490,7 +484,7 @@ export default function ChampionForgeBarracksPage() {
   const { eventId, teamId } = useParams();
   const { user } = useAuth();
 
-  const { data, loading, error } = useQuery(GET_CLAN_WARS_EVENT, {
+  const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },
     fetchPolicy: 'cache-and-network',
   });
@@ -583,7 +577,7 @@ export default function ChampionForgeBarracksPage() {
         </HStack>
       </HStack>
 
-      <PhaseContent event={event} team={team} isAdmin={isAdmin} user={user} />
+      <PhaseContent event={event} team={team} isAdmin={isAdmin} user={user} refetch={refetch} />
     </Box>
   );
 }

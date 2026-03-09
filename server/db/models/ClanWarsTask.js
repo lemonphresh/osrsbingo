@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
       label:       { type: DataTypes.STRING, allowNull: false },
       description: { type: DataTypes.STRING, allowNull: true },
       difficulty: {
-        type: DataTypes.ENUM('easy', 'medium', 'hard'),
+        type: DataTypes.ENUM('initiate', 'adept', 'master'),
         allowNull: false,
       },
       role: {

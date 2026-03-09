@@ -18,25 +18,27 @@ module.exports = {
   description: 'Submit a Champion Forge task completion',
 
   /**
-   * Usage: !cwsubmit <task_id> <proof_url>
+   * Usage: !cwsubmit <task_id>  (attach a screenshot to the message)
    */
   async execute(message, args) {
-    if (args.length < 2) {
+    if (args.length < 1) {
       return message.reply(
-        '❌ Usage: `!cwsubmit <task_id> <proof_url>`\n' +
-        'Example: `!cwsubmit cwtask_abc123 https://i.imgur.com/example.png`'
+        '❌ Usage: `!cwsubmit <task_id>` — attach a screenshot to this message\n' +
+        'Example: `!cwsubmit cwtask_abc123` (with screenshot attached)'
       );
     }
 
-    const [taskId, proofUrl] = args;
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission } = getModels();
+    const [taskId] = args;
+    const screenshot = message.attachments.first()?.url ?? null;
 
-    // Validate URL format
-    try {
-      new URL(proofUrl);
-    } catch {
-      return message.reply('❌ Invalid proof URL. Please provide a direct image or video link.');
+    if (!screenshot) {
+      return message.reply(
+        '❌ Please attach a screenshot to your message.\n' +
+        'Usage: `!cwsubmit <task_id>` with a screenshot attached.'
+      );
     }
+
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission } = getModels();
 
     const memberRoles = message.member?.roles?.cache;
     if (!memberRoles) {
@@ -91,7 +93,7 @@ module.exports = {
         taskLabel: task.label,
         difficulty: task.difficulty,
         role: task.role,
-        proofUrl,
+        screenshot,
         status: 'PENDING',
         submittedAt: new Date(),
       });
@@ -131,7 +133,7 @@ module.exports.help = {
       .addFields(
         {
           name: '📬 Submit a Task',
-          value: '`!cwsubmit <task_id> <proof_url>` — Submit proof of task completion\n`!cws <task_id> <proof_url>` — Shorthand',
+          value: '`!cwsubmit <task_id>` — Submit task completion (attach screenshot to message)\n`!cws <task_id>` — Shorthand',
           inline: false,
         },
         {

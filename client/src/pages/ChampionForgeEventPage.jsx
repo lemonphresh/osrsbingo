@@ -29,6 +29,7 @@ import { GET_CLAN_WARS_EVENT } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
+import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -42,7 +43,7 @@ const STATUS_META = {
   ARCHIVED:   { label: 'Archived',   color: 'gray',   description: 'Archived.' },
 };
 
-const DIFFICULTY_COLORS = { easy: 'green', medium: 'yellow', hard: 'red' };
+const DIFFICULTY_COLORS = { initiate: 'green', adept: 'yellow', master: 'red' };
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 
 function formatCountdown(target) {
@@ -389,61 +390,96 @@ export default function ChampionForgeEventPage() {
 
   const meta = STATUS_META[event.status] ?? STATUS_META.DRAFT;
 
+  const backNav = (
+    <Button
+      as={RouterLink}
+      to="/champion-forge"
+      size="sm"
+      variant="ghost"
+      color="gray.400"
+      leftIcon={<ArrowBackIcon />}
+      alignSelf="flex-start"
+      _hover={{ color: 'white' }}
+    >
+      All Events
+    </Button>
+  );
+
+  const eventHeader = (
+    <Box bg="gray.800" borderRadius="xl" p={6} border="1px solid" borderColor="gray.700">
+      <HStack justify="space-between" flexWrap="wrap" gap={4}>
+        <VStack align="flex-start" spacing={2}>
+          <HStack spacing={3} flexWrap="wrap">
+            <Heading size="lg" color="white">{event.eventName}</Heading>
+            <Badge colorScheme={meta.color} fontSize="sm" px={2} py={1}>
+              {meta.label}
+            </Badge>
+          </HStack>
+          <Text fontSize="sm" color="gray.400">{meta.description}</Text>
+          {event.clanId && (
+            <Text fontSize="xs" color="gray.500" fontFamily="mono">
+              Clan: {event.clanId}
+            </Text>
+          )}
+        </VStack>
+
+        {event.eventConfig && (
+          <SimpleGrid columns={3} spacing={4} fontSize="sm">
+            <Box textAlign="center">
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Gathering</Text>
+              <Text color="white" fontWeight="semibold">{event.eventConfig.gatheringHours}h</Text>
+            </Box>
+            <Box textAlign="center">
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Outfitting</Text>
+              <Text color="white" fontWeight="semibold">{event.eventConfig.outfittingHours}h</Text>
+            </Box>
+            <Box textAlign="center">
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Turn Timer</Text>
+              <Text color="white" fontWeight="semibold">{event.eventConfig.turnTimerSeconds}s</Text>
+            </Box>
+          </SimpleGrid>
+        )}
+      </HStack>
+    </Box>
+  );
+
+  // ── Draft phase layout ──
+  if (event.status === 'DRAFT') {
+    if (isAdmin) {
+      return (
+        <Box maxW="1200px" mx="auto" px={4} py={6}>
+          <VStack align="stretch" spacing={6}>
+            {backNav}
+            {eventHeader}
+            <ClanWarsDraftPanel event={event} refetch={refetch} />
+          </VStack>
+        </Box>
+      );
+    }
+
+    return (
+      <Box maxW="1200px" mx="auto" px={4} py={6}>
+        <VStack align="stretch" spacing={6}>
+          {backNav}
+          {eventHeader}
+          <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="xl" p={10} textAlign="center">
+            <Text fontSize="2xl" mb={3}>⚙️</Text>
+            <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>Event in Preparation</Text>
+            <Text fontSize="sm" color="gray.500">
+              The admins are setting up this event. Check back soon!
+            </Text>
+          </Box>
+        </VStack>
+      </Box>
+    );
+  }
+
   return (
     <Box maxW="1200px" mx="auto" px={4} py={6}>
       <VStack align="stretch" spacing={6}>
 
-        {/* ── Back nav ── */}
-        <Button
-          as={RouterLink}
-          to="/champion-forge"
-          size="sm"
-          variant="ghost"
-          color="gray.400"
-          leftIcon={<ArrowBackIcon />}
-          alignSelf="flex-start"
-          _hover={{ color: 'white' }}
-        >
-          All Events
-        </Button>
-
-        {/* ── Event header ── */}
-        <Box bg="gray.800" borderRadius="xl" p={6} border="1px solid" borderColor="gray.700">
-          <HStack justify="space-between" flexWrap="wrap" gap={4}>
-            <VStack align="flex-start" spacing={2}>
-              <HStack spacing={3} flexWrap="wrap">
-                <Heading size="lg" color="white">{event.eventName}</Heading>
-                <Badge colorScheme={meta.color} fontSize="sm" px={2} py={1}>
-                  {meta.label}
-                </Badge>
-              </HStack>
-              <Text fontSize="sm" color="gray.400">{meta.description}</Text>
-              {event.clanId && (
-                <Text fontSize="xs" color="gray.500" fontFamily="mono">
-                  Clan: {event.clanId}
-                </Text>
-              )}
-            </VStack>
-
-            {/* Config summary */}
-            {event.eventConfig && (
-              <SimpleGrid columns={3} spacing={4} fontSize="sm">
-                <Box textAlign="center">
-                  <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Gathering</Text>
-                  <Text color="white" fontWeight="semibold">{event.eventConfig.gatheringHours}h</Text>
-                </Box>
-                <Box textAlign="center">
-                  <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Outfitting</Text>
-                  <Text color="white" fontWeight="semibold">{event.eventConfig.outfittingHours}h</Text>
-                </Box>
-                <Box textAlign="center">
-                  <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Turn Timer</Text>
-                  <Text color="white" fontWeight="semibold">{event.eventConfig.turnTimerSeconds}s</Text>
-                </Box>
-              </SimpleGrid>
-            )}
-          </HStack>
-        </Box>
+        {backNav}
+        {eventHeader}
 
         {/* ── Phase banner ── */}
         <PhaseBanner event={event} eventId={eventId} />
@@ -458,7 +494,7 @@ export default function ChampionForgeEventPage() {
               </Text>
               <Badge colorScheme="gray" fontSize="sm">{event.teams?.length ?? 0}</Badge>
             </HStack>
-            {!currentUserDiscordId && event.status !== 'DRAFT' && (
+            {!currentUserDiscordId && (
               <Text fontSize="xs" color="gray.500">
                 Link your Discord account to enter your team's barracks.
               </Text>
@@ -481,11 +517,6 @@ export default function ChampionForgeEventPage() {
           ) : (
             <Box bg="gray.800" borderRadius="lg" p={8} textAlign="center" border="1px solid" borderColor="gray.700">
               <Text color="gray.500">No teams yet.</Text>
-              {isAdmin && (
-                <Text fontSize="sm" color="gray.600" mt={1}>
-                  Use the admin panel below to add teams.
-                </Text>
-              )}
             </Box>
           )}
         </Box>

@@ -20,14 +20,14 @@ module.exports = (sequelize) => {
       taskId:            { type: DataTypes.STRING, allowNull: false },
       taskLabel:         { type: DataTypes.STRING, allowNull: true },
       difficulty: {
-        type: DataTypes.ENUM('easy', 'medium', 'hard'),
+        type: DataTypes.ENUM('initiate', 'adept', 'master'),
         allowNull: true,
       },
       role: {
         type: DataTypes.ENUM('SKILLER', 'PVMER'),
         allowNull: true,
       },
-      proofUrl:     { type: DataTypes.STRING, allowNull: true },
+      screenshot:   { type: DataTypes.TEXT, allowNull: true },
       status: {
         type: DataTypes.ENUM('PENDING', 'APPROVED', 'DENIED'),
         allowNull: false,

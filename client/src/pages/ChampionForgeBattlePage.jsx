@@ -19,6 +19,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import BattleScreen from '../organisms/ChampionForge/BattleScreen';
 import BattleBracket from '../organisms/ChampionForge/BattleBracket';
 import PostBattleSummary from '../organisms/ChampionForge/PostBattleSummary';
+import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
 
 export default function ChampionForgeBattlePage() {
   const { eventId } = useParams();
@@ -27,6 +28,7 @@ export default function ChampionForgeBattlePage() {
   const { showToast } = useToastContext();
 
   const [activeBattleId, setActiveBattleId] = useState(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [team1Id, setTeam1Id] = useState('');
   const [team2Id, setTeam2Id] = useState('');
   const [starting, setStarting] = useState(false);
@@ -117,11 +119,7 @@ export default function ChampionForgeBattlePage() {
         </VStack>
         <HStack spacing={2}>
           {isAdmin && !isCompleted && (
-            <Button size="sm" colorScheme="purple" onClick={() => {
-              if (window.confirm('Mark event as Completed?')) {
-                advancePhase({ variables: { eventId, status: 'COMPLETED' } });
-              }
-            }}>
+            <Button size="sm" colorScheme="purple" onClick={() => setCompleteOpen(true)}>
               ✅ Complete Event
             </Button>
           )}
@@ -228,6 +226,18 @@ export default function ChampionForgeBattlePage() {
           </TabPanels>
         </Tabs>
       )}
+      <ConfirmModal
+        isOpen={completeOpen}
+        onClose={() => setCompleteOpen(false)}
+        onConfirm={() => {
+          advancePhase({ variables: { eventId, status: 'COMPLETED' } });
+          setCompleteOpen(false);
+        }}
+        title="Mark Event as Completed?"
+        body="This will end the battle phase and finalize the event."
+        confirmLabel="Complete Event"
+        colorScheme="purple"
+      />
     </Box>
   );
 }
