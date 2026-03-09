@@ -510,6 +510,7 @@ export const GET_TREASURE_EVENT = gql`
         keysHeld
         completedNodes
         availableNodes
+        innTransactions
         activeBuffs
         buffHistory
         nodeNotes

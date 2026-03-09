@@ -6,6 +6,7 @@ import {
   ADMIN_SILENT_RE_COMPLETE_NODE,
   ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS,
   ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY,
+  ADMIN_REFUND_INN_PURCHASE,
 } from '../../graphql/mutations';
 import {
   Box,
@@ -122,6 +123,11 @@ const AdminQuickActionsPanel = ({
     onOpen: onUnlockHistoryOpen,
     onClose: onUnlockHistoryClose,
   } = useDisclosure();
+  const {
+    isOpen: isInnRefundOpen,
+    onOpen: onInnRefundOpen,
+    onClose: onInnRefundClose,
+  } = useDisclosure();
 
   const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
     CHECK_DISCORD_CHANNELS,
@@ -132,6 +138,9 @@ const AdminQuickActionsPanel = ({
   });
   const [adminUncompleteNode] = useMutation(ADMIN_UNCOMPLETE_NODE);
   const [adminSilentReComplete] = useMutation(ADMIN_SILENT_RE_COMPLETE_NODE);
+  const [adminRefundInnPurchase] = useMutation(ADMIN_REFUND_INN_PURCHASE);
+  const [refundingInn, setRefundingInn] = useState(null); // `${teamId}:${nodeId}`
+  const [locallyRefunded, setLocallyRefunded] = useState(new Set());
   // const [adminRestoreSiblings] = useMutation(ADMIN_RESTORE_LOCATION_GROUP_SIBLINGS);
   // const [adminRepairAll] = useMutation(ADMIN_REPAIR_LOCATION_GROUP_AVAILABILITY);
   const [uncomletingId, setUncompletingId] = useState(null);
@@ -254,6 +263,18 @@ const AdminQuickActionsPanel = ({
   //     setRepairing(false);
   //   }
   // };
+
+  const handleRefundInn = async (teamId, nodeId) => {
+    const key = `${teamId}:${nodeId}`;
+    setRefundingInn(key);
+    try {
+      await adminRefundInnPurchase({ variables: { eventId: event.eventId, teamId, nodeId } });
+      setLocallyRefunded((prev) => new Set([...prev, key]));
+      await onRefreshEvent?.();
+    } finally {
+      setRefundingInn(null);
+    }
+  };
 
   const handleOpenChannelCheck = () => {
     const guildId = event?.discordConfig?.guildId;
@@ -698,6 +719,18 @@ const AdminQuickActionsPanel = ({
                         _hover={{ bg: 'gray.600' }}
                       >
                         Rewrite History Tool
+                      </MenuItem>
+                      <MenuItem
+                        icon={<FaKey />}
+                        color="white"
+                        bg="gray.700"
+                        onClick={() => {
+                          setLocallyRefunded(new Set());
+                          onInnRefundOpen();
+                        }}
+                        _hover={{ bg: 'gray.600' }}
+                      >
+                        Refund Inn Purchase
                       </MenuItem>
                     </>
                   )}
@@ -1389,6 +1422,12 @@ const AdminQuickActionsPanel = ({
                   scheme: 'purple',
                   icon: FaKey,
                 },
+                inn_refunded: {
+                  label: 'Inn Refunded',
+                  color: 'orange.400',
+                  scheme: 'orange',
+                  icon: FaUndo,
+                },
                 gp_gained: {
                   label: 'GP Gained',
                   color: 'yellow.300',
@@ -1769,6 +1808,151 @@ const AdminQuickActionsPanel = ({
                             </Text>
                           </HStack>
                         ))}
+                      </VStack>
+                    </Box>
+                  ))}
+                </VStack>
+              );
+            })()}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+      {/* Inn Refund Modal */}
+      <Modal
+        isOpen={isInnRefundOpen}
+        onClose={onInnRefundClose}
+        scrollBehavior="inside"
+        size="lg"
+      >
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaKey} color="orange.400" />
+              <Text>Refund Inn Purchase</Text>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              Restores keys and GP to the team and removes any buffs granted. Cannot be undone.
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {(() => {
+              const nodes = event?.nodes || [];
+              const fmtGp = (gp) => {
+                const n = Number(gp);
+                if (!n) return '0 gp';
+                if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M gp`;
+                if (n >= 1_000) return `${Math.round(n / 1_000)}K gp`;
+                return `${n} gp`;
+              };
+              const keyColorScheme = {
+                bronze: 'orange', silver: 'gray', gold: 'yellow',
+                green: 'green', blue: 'blue', red: 'red', purple: 'purple',
+              };
+
+              const allTransactions = teams.flatMap((team) =>
+                (team.innTransactions || []).map((tx) => ({ team, tx }))
+              );
+
+              if (allTransactions.length === 0) {
+                return (
+                  <Text color="gray.500" fontSize="sm" textAlign="center" py={8}>
+                    No inn purchases to refund.
+                  </Text>
+                );
+              }
+
+              // Group by team
+              const byTeam = {};
+              allTransactions.forEach(({ team, tx }) => {
+                if (!byTeam[team.teamId]) byTeam[team.teamId] = { team, txs: [] };
+                byTeam[team.teamId].txs.push(tx);
+              });
+
+              return (
+                <VStack align="stretch" spacing={4}>
+                  {Object.values(byTeam).map(({ team, txs }) => (
+                    <Box key={team.teamId}>
+                      <HStack mb={2} spacing={2}>
+                        <Icon as={FaUsers} color="orange.400" boxSize={3} />
+                        <Text
+                          fontSize="xs"
+                          fontWeight="semibold"
+                          color="orange.300"
+                          textTransform="uppercase"
+                          letterSpacing="wide"
+                        >
+                          {team.teamName}
+                        </Text>
+                        <Badge colorScheme="orange" fontSize="xs" variant="subtle">
+                          {txs.length} purchase{txs.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </HStack>
+                      <VStack align="stretch" spacing={2}>
+                        {txs.map((tx) => {
+                          const key = `${team.teamId}:${tx.nodeId}`;
+                          const isRefunded = locallyRefunded.has(key);
+                          const innNode = nodes.find((n) => n.nodeId === tx.nodeId);
+                          return (
+                            <Box
+                              key={tx.nodeId}
+                              p={3}
+                              bg="gray.700"
+                              borderRadius="md"
+                              borderLeft="3px solid"
+                              borderLeftColor={isRefunded ? 'gray.600' : 'orange.400'}
+                              opacity={isRefunded ? 0.5 : 1}
+                            >
+                              <HStack justify="space-between" align="start" spacing={2}>
+                                <VStack align="start" spacing={1} flex={1} minW={0}>
+                                  <Text fontSize="sm" fontWeight="medium" noOfLines={1}>
+                                    {innNode?.title ?? tx.nodeId}
+                                  </Text>
+                                  <HStack spacing={1} flexWrap="wrap">
+                                    <Badge colorScheme="yellow" variant="subtle" fontSize="xs">
+                                      +{fmtGp(tx.payout)}
+                                    </Badge>
+                                    {(tx.keysSpent || []).map((k, i) => (
+                                      <Badge
+                                        key={i}
+                                        colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'}
+                                        variant="outline"
+                                        fontSize="xs"
+                                      >
+                                        -{k.quantity} {k.color}
+                                      </Badge>
+                                    ))}
+                                    {(tx.buffsGranted || []).map((b, i) => (
+                                      <Badge key={i} colorScheme="purple" variant="subtle" fontSize="xs">
+                                        +{b.buffType}
+                                      </Badge>
+                                    ))}
+                                  </HStack>
+                                  {tx.purchasedAt && (
+                                    <Text fontSize="xs" color="gray.500">
+                                      {new Date(tx.purchasedAt).toLocaleString(undefined, {
+                                        month: 'short', day: 'numeric',
+                                        hour: '2-digit', minute: '2-digit',
+                                      })}
+                                    </Text>
+                                  )}
+                                </VStack>
+                                <Button
+                                  size="xs"
+                                  colorScheme="orange"
+                                  variant={isRefunded ? 'ghost' : 'solid'}
+                                  isDisabled={isRefunded || !!refundingInn}
+                                  isLoading={refundingInn === key}
+                                  onClick={() => handleRefundInn(team.teamId, tx.nodeId)}
+                                  flexShrink={0}
+                                >
+                                  {isRefunded ? 'Refunded' : 'Refund'}
+                                </Button>
+                              </HStack>
+                            </Box>
+                          );
+                        })}
                       </VStack>
                     </Box>
                   ))}
