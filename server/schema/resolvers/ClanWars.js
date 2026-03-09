@@ -1,10 +1,13 @@
 'use strict';
 
+const crypto = require('crypto');
+const seedrandom = require('seedrandom');
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
 const { pubsub } = require('../pubsub');
 const { rollPvmerDrop, rollSkillerDrop, buildChampionStats, rollDamage, processSpecial } = require('../../utils/clanWarsRandomisation');
+const { CW_OBJECTIVE_COLLECTIONS } = require('../../utils/cwObjectiveCollections');
 
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
@@ -18,6 +21,49 @@ function generateId(prefix) {
   let rand = '';
   for (let i = 0; i < 8; i++) rand += chars[Math.floor(Math.random() * chars.length)];
   return `${prefix}_${rand}`;
+}
+
+// Seeded Fisher-Yates shuffle — returns a new array
+function seededShuffle(arr, rng) {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+// Sample `n` items from an array using a seeded RNG
+function seededSample(arr, n, rng) {
+  return seededShuffle(arr, rng).slice(0, n);
+}
+
+// Build task rows from the pool, seeded from the event seed.
+// Per bucket: 6 easy, 5 medium, 4 hard per role.
+function sampleTasksFromPool(eventId, seed) {
+  const rng = seedrandom(seed);
+  const tasks = [];
+
+  for (const role of ['PVMER', 'SKILLER']) {
+    const pool = CW_OBJECTIVE_COLLECTIONS[role];
+    const easyPick   = seededSample(pool.easy,   6, rng);
+    const mediumPick = seededSample(pool.medium,  5, rng);
+    const hardPick   = seededSample(pool.hard,    4, rng);
+
+    for (const task of [...easyPick, ...mediumPick, ...hardPick]) {
+      tasks.push({
+        taskId: generateId('cwtask'),
+        eventId,
+        label: task.label,
+        description: task.description ?? null,
+        difficulty: task.difficulty,
+        role: task.role,
+        isActive: true,
+      });
+    }
+  }
+
+  return tasks;
 }
 
 function isAdmin(event, userId, discordId) {
@@ -169,11 +215,12 @@ const Mutation = {
 
   createClanWarsEvent: async (_, { input }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
-    const { ClanWarsEvent } = getModels();
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask } = getModels();
 
-    const now = new Date();
     const gatheringHours = input.gatheringHours ?? 48;
     const outfittingHours = input.outfittingHours ?? 24;
+    const eventId = generateId('cw');
+    const seed = crypto.randomUUID();
 
     const eventConfig = {
       gatheringHours,
@@ -183,16 +230,43 @@ const Mutation = {
       flexRolesAllowed: input.flexRolesAllowed ?? false,
     };
 
-    return ClanWarsEvent.create({
-      eventId: generateId('cw'),
+    const event = await ClanWarsEvent.create({
+      eventId,
       clanId: input.clanId ?? null,
       eventName: input.eventName,
       status: 'DRAFT',
       eventConfig,
       bracket: null,
+      seed,
       creatorId: String(user.id),
       adminIds: [String(user.id)],
     });
+
+    // Bulk-create teams if provided
+    if (input.teams?.length) {
+      await Promise.all(
+        input.teams.map((t) =>
+          ClanWarsTeam.create({
+            teamId: generateId('cwt'),
+            eventId,
+            teamName: t.teamName,
+            discordRoleId: t.discordRoleId ?? null,
+            members: t.members ?? [],
+            officialLoadout: null,
+            loadoutLocked: false,
+            captainDiscordId: t.captainDiscordId ?? null,
+            completedTaskIds: [],
+          })
+        )
+      );
+    }
+
+    // Auto-generate task pool using seed
+    const taskRows = sampleTasksFromPool(eventId, seed);
+    await ClanWarsTask.bulkCreate(taskRows);
+
+    logger.info(`[createClanWarsEvent] event=${eventId} created with seed, ${input.teams?.length ?? 0} team(s), ${taskRows.length} tasks`);
+    return event;
   },
 
   updateClanWarsEventStatus: async (_, { eventId, status }, { user }) => {
@@ -462,6 +536,18 @@ const Mutation = {
     }
 
     await submission.update(updates);
+
+    // Track completed task on the team
+    if (approved) {
+      const { ClanWarsTeam } = getModels();
+      const team = await ClanWarsTeam.findByPk(submission.teamId);
+      if (team && submission.taskId) {
+        const current = team.completedTaskIds ?? [];
+        if (!current.includes(submission.taskId)) {
+          await team.update({ completedTaskIds: [...current, submission.taskId] });
+        }
+      }
+    }
 
     await pubsub.publish(`CLAN_WARS_SUBMISSION_REVIEWED_${submission.eventId}`, {
       clanWarsSubmissionReviewed: submission,

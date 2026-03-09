@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box, VStack, HStack, Text, Button, Badge, SimpleGrid, Spinner, Center,
-  Tabs, TabList, Tab, TabPanels, TabPanel, useColorMode, Select,
+  Tabs, TabList, Tab, TabPanels, TabPanel, Select,
 } from '@chakra-ui/react';
 import {
   GET_CLAN_WARS_BATTLE, GET_CLAN_WARS_WAR_CHEST,
@@ -14,7 +14,6 @@ import BattleScreen from './BattleScreen';
 import BattleBracket from './BattleBracket';
 
 export default function BattlePhase({ event, isAdmin, refetch }) {
-  const { colorMode } = useColorMode();
   const { user } = useAuth();
   const { showToast } = useToastContext();
 
@@ -26,7 +25,7 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
   const [startBattle] = useMutation(START_CLAN_WARS_BATTLE);
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
 
-  const { data: battleData, loading: battleLoading, refetch: refetchBattle } = useQuery(GET_CLAN_WARS_BATTLE, {
+  const { data: battleData, loading: battleLoading } = useQuery(GET_CLAN_WARS_BATTLE, {
     variables: { battleId: activeBattleId },
     skip: !activeBattleId,
     fetchPolicy: 'cache-and-network',
@@ -34,13 +33,11 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
 
   const battle = battleData?.getClanWarsBattle;
 
-  // Find which team the user captains
   const myTeam = event.teams?.find((t) =>
     t.captainDiscordId === user?.discordUserId ||
     (isAdmin && t.captainDiscordId == null)
   );
 
-  // Get items for current user's team (for consumable display in BattleScreen)
   const { data: chestData } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam,
@@ -69,14 +66,13 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
 
   return (
     <VStack align="stretch" spacing={6}>
-      {/* Phase header */}
-      <Box p={5} bg={colorMode === 'dark' ? 'red.900' : 'red.50'} borderRadius="lg">
+      <Box p={5} bg="red.900" borderRadius="lg">
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={1}>
-            <Text fontSize="xl" fontWeight="bold" color={colorMode === 'dark' ? 'red.200' : 'red.700'}>
+            <Text fontSize="xl" fontWeight="bold" color="red.200">
               ⚔️ Battle Phase — {event.eventName}
             </Text>
-            <Text fontSize="sm" color={colorMode === 'dark' ? 'red.300' : 'red.600'}>
+            <Text fontSize="sm" color="red.300">
               Champions battle for glory. Captains command, teammates cheer.
             </Text>
           </VStack>
@@ -94,13 +90,12 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
 
       <Tabs colorScheme="red" variant="soft-rounded">
         <TabList>
-          <Tab fontSize="sm">Active Battle</Tab>
-          <Tab fontSize="sm">Bracket</Tab>
-          {isAdmin && <Tab fontSize="sm">Start Battle</Tab>}
+          <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>Active Battle</Tab>
+          <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>Bracket</Tab>
+          {isAdmin && <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>Start Battle</Tab>}
         </TabList>
 
         <TabPanels>
-          {/* Active battle */}
           <TabPanel px={0}>
             {!activeBattleId ? (
               <Center h="200px" flexDir="column" gap={3}>
@@ -122,29 +117,29 @@ export default function BattlePhase({ event, isAdmin, refetch }) {
             )}
           </TabPanel>
 
-          {/* Bracket */}
           <TabPanel px={0}>
             <BattleBracket event={event} onSelectBattle={setActiveBattleId} />
           </TabPanel>
 
-          {/* Start Battle (admin only) */}
           {isAdmin && (
             <TabPanel px={0}>
               <VStack align="flex-start" spacing={4} maxW="400px">
-                <Text fontWeight="semibold">Start a New Match</Text>
-                <Text fontSize="sm" color="gray.500">Both teams must have locked loadouts.</Text>
+                <Text fontWeight="semibold" color="white">Start a New Match</Text>
+                <Text fontSize="sm" color="gray.400">Both teams must have locked loadouts.</Text>
 
                 <HStack w="full">
                   <Box flex={1}>
-                    <Text fontSize="xs" color="gray.500" mb={1}>Team 1</Text>
-                    <Select size="sm" value={team1Id} onChange={(e) => setTeam1Id(e.target.value)} placeholder="Select team">
+                    <Text fontSize="xs" color="gray.400" mb={1}>Team 1</Text>
+                    <Select size="sm" value={team1Id} onChange={(e) => setTeam1Id(e.target.value)}
+                      placeholder="Select team" bg="gray.700" borderColor="gray.600" color="white">
                       {lockedTeams.map((t) => <option key={t.teamId} value={t.teamId}>{t.teamName}</option>)}
                     </Select>
                   </Box>
                   <Text fontSize="sm" color="gray.500" mt={4}>vs</Text>
                   <Box flex={1}>
-                    <Text fontSize="xs" color="gray.500" mb={1}>Team 2</Text>
-                    <Select size="sm" value={team2Id} onChange={(e) => setTeam2Id(e.target.value)} placeholder="Select team">
+                    <Text fontSize="xs" color="gray.400" mb={1}>Team 2</Text>
+                    <Select size="sm" value={team2Id} onChange={(e) => setTeam2Id(e.target.value)}
+                      placeholder="Select team" bg="gray.700" borderColor="gray.600" color="white">
                       {lockedTeams.map((t) => <option key={t.teamId} value={t.teamId}>{t.teamName}</option>)}
                     </Select>
                   </Box>

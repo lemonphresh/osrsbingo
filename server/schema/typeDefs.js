@@ -842,6 +842,7 @@ const typeDefs = gql`
     bracket: JSON
     creatorId: String
     adminIds: [String!]
+    seed: String
     teams: [ClanWarsTeam!]
     submissions: [ClanWarsSubmission!]
     tasks: [ClanWarsTask!]
@@ -866,6 +867,7 @@ const typeDefs = gql`
     officialLoadout: JSON
     loadoutLocked: Boolean!
     captainDiscordId: String
+    completedTaskIds: [String!]
     items: [ClanWarsItem!]
     submissions: [ClanWarsSubmission!]
   }
@@ -972,6 +974,7 @@ const typeDefs = gql`
     turnTimerSeconds: Int
     maxConsumableSlots: Int
     flexRolesAllowed: Boolean
+    teams: [CreateClanWarsTeamInput!]
   }
 
   input CreateClanWarsTeamInput {

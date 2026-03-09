@@ -1,12 +1,10 @@
 import React from 'react';
 import { useQuery } from '@apollo/client';
 import {
-  Box, VStack, HStack, Text, Badge, SimpleGrid, Spinner, Center, Tooltip,
-  useColorMode,
+  Box, VStack, HStack, Text, Badge, Spinner, Center, Tooltip,
 } from '@chakra-ui/react';
 import { GET_CLAN_WARS_WAR_CHEST } from '../../graphql/clanWarsOperations';
 
-const RARITY_COLORS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
 const RARITY_BORDER = {
   common:   '#888',
   uncommon: '#2ecc71',
@@ -20,7 +18,6 @@ const SLOT_EMOJI = {
 };
 
 function ItemTile({ item }) {
-  const { colorMode } = useColorMode();
   const border = RARITY_BORDER[item.rarity] ?? '#888';
   const snap = item.itemSnapshot ?? {};
   const stats = snap.stats ?? {};
@@ -49,7 +46,7 @@ function ItemTile({ item }) {
         borderRadius="md"
         border="2px solid"
         borderColor={border}
-        bg={colorMode === 'dark' ? 'gray.800' : 'gray.100'}
+        bg="gray.800"
         display="flex"
         flexDir="column"
         alignItems="center"
@@ -59,7 +56,6 @@ function ItemTile({ item }) {
         position="relative"
       >
         <Text fontSize="xl">{SLOT_EMOJI[item.slot] ?? '📦'}</Text>
-        {/* Rarity pip */}
         <Box
           position="absolute"
           bottom="2px"
@@ -80,7 +76,6 @@ function ItemTile({ item }) {
 }
 
 function SlotGroup({ slot, items }) {
-  const { colorMode } = useColorMode();
   return (
     <Box>
       <HStack mb={1} spacing={1}>
@@ -95,16 +90,13 @@ function SlotGroup({ slot, items }) {
 }
 
 export default function WarChestPanel({ team, hidden = false }) {
-  const { colorMode } = useColorMode();
   const { data, loading } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: team.teamId },
     fetchPolicy: 'cache-and-network',
   });
 
   const items = data?.getClanWarsWarChest ?? [];
-  const bg = colorMode === 'dark' ? 'gray.750' : 'gray.50';
 
-  // Group items by slot
   const bySlot = items.reduce((acc, item) => {
     if (!acc[item.slot]) acc[item.slot] = [];
     acc[item.slot].push(item);
@@ -114,9 +106,9 @@ export default function WarChestPanel({ team, hidden = false }) {
   const slots = Object.keys(bySlot).sort();
 
   return (
-    <Box bg={bg} border="1px solid" borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'} borderRadius="lg" p={4}>
+    <Box bg="gray.700" border="1px solid" borderColor="gray.600" borderRadius="lg" p={4}>
       <HStack justify="space-between" mb={3}>
-        <Text fontWeight="bold" fontSize="sm">{team.teamName}</Text>
+        <Text fontWeight="bold" fontSize="sm" color="white">{team.teamName}</Text>
         <Badge colorScheme="purple" fontSize="xs">{items.length} items</Badge>
       </HStack>
 

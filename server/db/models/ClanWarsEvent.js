@@ -33,6 +33,7 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: [],
       },
+      seed: { type: DataTypes.STRING, allowNull: true },
     },
     { sequelize, modelName: 'ClanWarsEvent' }
   );

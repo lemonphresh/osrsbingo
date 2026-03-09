@@ -33,6 +33,8 @@ const DraftResultsPage = lazy(() => import('./pages/DraftResultsPage'));
 const DebugComponentsPage = lazy(() => import('./debug/index'));
 const ChampionForgeDashboard = lazy(() => import('./pages/ChampionForgeDashboard'));
 const ChampionForgeEventPage = lazy(() => import('./pages/ChampionForgeEventPage'));
+const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarracksPage'));
+const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -162,6 +164,16 @@ const routes = [
       {
         path: '/champion-forge/:eventId',
         element: withSuspense(ChampionForgeEventPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/champion-forge/:eventId/barracks/:teamId',
+        element: withSuspense(ChampionForgeBarracksPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/champion-forge/:eventId/battle',
+        element: withSuspense(ChampionForgeBattlePage),
         errorElement: <ErrorPage />,
       },
       {

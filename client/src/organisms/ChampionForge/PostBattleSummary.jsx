@@ -1,80 +1,65 @@
 import React from 'react';
 import {
-  Box, VStack, HStack, Text, Badge, Divider,
-  SimpleGrid, useColorMode,
+  Box, VStack, HStack, Text, Badge, Divider, SimpleGrid,
 } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
 import { GET_CLAN_WARS_BATTLE } from '../../graphql/clanWarsOperations';
 
 function StatRow({ label, value }) {
-  const { colorMode } = useColorMode();
   return (
-    <HStack justify="space-between" py={1} borderBottom="1px solid"
-      borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}>
+    <HStack justify="space-between" py={1} borderBottom="1px solid" borderColor="gray.700">
       <Text fontSize="sm" color="gray.500">{label}</Text>
-      <Text fontSize="sm" fontWeight="medium">{value}</Text>
+      <Text fontSize="sm" fontWeight="medium" color="white">{value}</Text>
     </HStack>
   );
 }
 
 function ChampionRecap({ team, isWinner, battleLog }) {
-  const { colorMode } = useColorMode();
-  const bg = colorMode === 'dark' ? 'gray.800' : 'white';
-  const borderColor = isWinner ? 'yellow.400' : (colorMode === 'dark' ? 'gray.600' : 'gray.200');
-
   const myActions = (battleLog ?? []).filter((e) => e.actorSide === team?.teamId);
   const totalDmg = myActions.reduce((sum, e) => sum + (e.damageDealt ?? 0), 0);
   const crits = myActions.filter((e) => e.isCrit).length;
   const specials = myActions.filter((e) => e.action === 'SPECIAL').length;
-
   const snap = team?.championSnapshot;
 
   return (
-    <Box bg={bg} borderRadius="lg" p={5} border="2px solid" borderColor={borderColor}>
+    <Box bg="gray.800" borderRadius="lg" p={5} border="2px solid"
+      borderColor={isWinner ? 'yellow.400' : 'gray.600'}>
       <VStack spacing={3} align="stretch">
         <HStack justify="space-between">
-          <Text fontWeight="bold" fontSize="lg">
+          <Text fontWeight="bold" fontSize="lg" color="white">
             {isWinner && '🏆 '}{team?.teamName ?? 'Unknown Team'}
           </Text>
           {isWinner && <Badge colorScheme="yellow" fontSize="sm">Winner</Badge>}
         </HStack>
 
-        {/* Placeholder sprite */}
-        <Box
-          h="80px"
-          bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'}
-          borderRadius="md"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
+        <Box h="80px" bg="gray.700" borderRadius="md" display="flex" alignItems="center" justifyContent="center">
           <Text fontSize="3xl">⚔️</Text>
         </Box>
 
-        <Divider />
+        <Divider borderColor="gray.600" />
 
         {snap && (
           <VStack spacing={1} align="stretch">
             <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing={1} mb={1}>
               Champion Stats
             </Text>
-            <StatRow label="Attack" value={snap.stats?.attack ?? '—'} />
+            <StatRow label="Attack"  value={snap.stats?.attack  ?? '—'} />
             <StatRow label="Defense" value={snap.stats?.defense ?? '—'} />
-            <StatRow label="Speed" value={snap.stats?.speed ?? '—'} />
-            <StatRow label="Crit %" value={snap.stats?.crit != null ? `${snap.stats.crit}%` : '—'} />
+            <StatRow label="Speed"   value={snap.stats?.speed   ?? '—'} />
+            <StatRow label="Crit %"  value={snap.stats?.crit != null ? `${snap.stats.crit}%` : '—'} />
           </VStack>
         )}
 
-        <Divider />
+        <Divider borderColor="gray.600" />
 
         <VStack spacing={1} align="stretch">
           <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing={1} mb={1}>
             Battle Performance
           </Text>
-          <StatRow label="Total Damage" value={totalDmg} />
+          <StatRow label="Total Damage"  value={totalDmg} />
           <StatRow label="Critical Hits" value={crits} />
           <StatRow label="Specials Used" value={specials} />
-          <StatRow label="Turns Taken" value={myActions.length} />
+          <StatRow label="Turns Taken"   value={myActions.length} />
         </VStack>
       </VStack>
     </Box>
@@ -82,21 +67,15 @@ function ChampionRecap({ team, isWinner, battleLog }) {
 }
 
 function BattleTimeline({ battleLog }) {
-  const { colorMode } = useColorMode();
-  const bg = colorMode === 'dark' ? 'gray.800' : 'white';
-
   if (!battleLog?.length) return null;
-
   return (
-    <Box bg={bg} borderRadius="lg" p={5} border="1px solid"
-      borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.200'}>
-      <Text fontWeight="bold" mb={3}>Battle Log</Text>
+    <Box bg="gray.800" borderRadius="lg" p={5} border="1px solid" borderColor="gray.700">
+      <Text fontWeight="bold" mb={3} color="white">Battle Log</Text>
       <VStack spacing={1} align="stretch" maxH="240px" overflowY="auto">
         {battleLog.map((entry, idx) => (
-          <HStack key={idx} spacing={2} py={1} borderBottom="1px solid"
-            borderColor={colorMode === 'dark' ? 'gray.700' : 'gray.100'}>
+          <HStack key={idx} spacing={2} py={1} borderBottom="1px solid" borderColor="gray.700">
             <Text fontSize="xs" color="gray.500" minW="28px">T{entry.turnNumber}</Text>
-            <Text fontSize="xs" flex={1}>{entry.narrative ?? entry.action}</Text>
+            <Text fontSize="xs" flex={1} color="gray.300">{entry.narrative ?? entry.action}</Text>
             {entry.damageDealt > 0 && (
               <Badge colorScheme={entry.isCrit ? 'red' : 'gray'} fontSize="xs">
                 {entry.isCrit ? '💥 ' : ''}{entry.damageDealt}
@@ -110,10 +89,8 @@ function BattleTimeline({ battleLog }) {
 }
 
 export default function PostBattleSummary({ event }) {
-  const { colorMode } = useColorMode();
   const teams = event.teams ?? [];
 
-  // Find the most recent completed battle for summary
   const completedBattles = (event.battles ?? []).filter((b) => b.winnerId);
   const finalBattle = completedBattles[completedBattles.length - 1];
 
@@ -135,10 +112,9 @@ export default function PostBattleSummary({ event }) {
 
   return (
     <VStack spacing={6} align="stretch" p={4}>
-      {/* Header */}
       <Box textAlign="center" py={4}>
         <Text fontSize="3xl" mb={2}>🏆</Text>
-        <Text fontSize="2xl" fontWeight="bold">
+        <Text fontSize="2xl" fontWeight="bold" color="white">
           {event.status === 'COMPLETED' ? 'Champion Forge Complete!' : 'Event Archived'}
         </Text>
         {winnerTeam && (
@@ -146,15 +122,11 @@ export default function PostBattleSummary({ event }) {
             {winnerTeam.teamName} wins the forge!
           </Text>
         )}
-        <Badge
-          colorScheme={event.status === 'COMPLETED' ? 'green' : 'gray'}
-          mt={2}
-        >
+        <Badge colorScheme={event.status === 'COMPLETED' ? 'green' : 'gray'} mt={2}>
           {event.status}
         </Badge>
       </Box>
 
-      {/* Champion Recaps */}
       {finalBattle && (winnerTeam || loserTeam) && (
         <Box>
           <Text fontSize="sm" color="gray.500" textTransform="uppercase" letterSpacing={1} mb={3}>
@@ -179,22 +151,14 @@ export default function PostBattleSummary({ event }) {
         </Box>
       )}
 
-      {/* No battles case */}
       {!finalBattle && (
-        <Box
-          textAlign="center"
-          py={8}
-          bg={colorMode === 'dark' ? 'gray.800' : 'gray.50'}
-          borderRadius="lg"
-        >
+        <Box textAlign="center" py={8} bg="gray.800" borderRadius="lg">
           <Text color="gray.500">No battle data available.</Text>
         </Box>
       )}
 
-      {/* Battle Timeline */}
       {battleLog.length > 0 && <BattleTimeline battleLog={battleLog} />}
 
-      {/* All Teams War Chests */}
       {teams.length > 0 && (
         <Box>
           <Text fontSize="sm" color="gray.500" textTransform="uppercase" letterSpacing={1} mb={3}>
@@ -204,15 +168,13 @@ export default function PostBattleSummary({ event }) {
             {teams.map((team) => (
               <Box
                 key={team.teamId}
-                bg={colorMode === 'dark' ? 'gray.800' : 'white'}
+                bg="gray.800"
                 borderRadius="md"
                 p={4}
                 border="1px solid"
-                borderColor={team.teamId === finalBattle?.winnerId
-                  ? 'yellow.400'
-                  : (colorMode === 'dark' ? 'gray.700' : 'gray.200')}
+                borderColor={team.teamId === finalBattle?.winnerId ? 'yellow.400' : 'gray.700'}
               >
-                <Text fontWeight="bold" mb={2}>
+                <Text fontWeight="bold" mb={2} color="white">
                   {team.teamId === finalBattle?.winnerId && '🏆 '}{team.teamName}
                 </Text>
                 <Text fontSize="sm" color="gray.500">

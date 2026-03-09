@@ -20,6 +20,11 @@ module.exports = (sequelize) => {
       officialLoadout:  { type: DataTypes.JSONB, allowNull: true },
       loadoutLocked:    { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       captainDiscordId: { type: DataTypes.STRING, allowNull: true },
+      completedTaskIds: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+      },
     },
     { sequelize, modelName: 'ClanWarsTeam' }
   );

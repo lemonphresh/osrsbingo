@@ -35,6 +35,7 @@ const CLAN_WARS_TEAM_FIELDS = gql`
     officialLoadout
     loadoutLocked
     captainDiscordId
+    completedTaskIds
   }
 `;
 
@@ -168,6 +169,7 @@ export const GET_CLAN_WARS_TEAM = gql`
       officialLoadout
       loadoutLocked
       captainDiscordId
+      completedTaskIds
       items {
         ...ClanWarsItemFields
       }
@@ -322,6 +324,22 @@ export const DELETE_CLAN_WARS_TASK = gql`
     deleteClanWarsTask(taskId: $taskId) {
       success
       message
+    }
+  }
+`;
+
+export const CREATE_CLAN_WARS_SUBMISSION = gql`
+  mutation CreateClanWarsSubmission($input: ClanWarsSubmissionInput!) {
+    createClanWarsSubmission(input: $input) {
+      submissionId
+      eventId
+      teamId
+      taskId
+      taskLabel
+      difficulty
+      role
+      status
+      submittedAt
     }
   }
 `;

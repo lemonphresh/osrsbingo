@@ -12,15 +12,12 @@ import {
 } from '../../graphql/clanWarsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
-import { useThemeColors } from '../../hooks/useThemeColors';
 import AdminEventPanel from './AdminEventPanel';
 import WarChestPanel from './WarChestPanel';
 
-const RARITY_COLORS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
 const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots'];
 
 function SubmissionCard({ submission, isAdmin, onReview }) {
-  const { colors } = useThemeColors();
   const [rewardSlot, setRewardSlot] = useState('weapon');
   const [denialReason, setDenialReason] = useState('');
   const [expanded, setExpanded] = useState(false);
@@ -43,7 +40,7 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
   };
 
   return (
-    <Box bg={colors.cardBg} border="1px solid" borderColor="gray.600" borderRadius="md" p={4}>
+    <Box bg="gray.700" border="1px solid" borderColor="gray.600" borderRadius="md" p={4}>
       <HStack justify="space-between" mb={2}>
         <VStack align="flex-start" spacing={0}>
           <HStack>
@@ -55,8 +52,8 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
               {submission.difficulty}
             </Badge>
           </HStack>
-          <Text fontWeight="medium" fontSize="sm" mt={1}>{submission.taskLabel ?? submission.taskId}</Text>
-          <Text fontSize="xs" color="gray.500">
+          <Text fontWeight="medium" fontSize="sm" mt={1} color="white">{submission.taskLabel ?? submission.taskId}</Text>
+          <Text fontSize="xs" color="gray.400">
             {submission.submittedUsername ?? submission.submittedBy} ·{' '}
             {submission.submittedAt ? new Date(submission.submittedAt).toLocaleString() : ''}
           </Text>
@@ -70,10 +67,14 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
       </HStack>
 
       {submission.status === 'APPROVED' && submission.rewardItem && (
-        <HStack mt={2} p={2} bg={colors.background} borderRadius="md">
-          <Text fontSize="xs">Rewarded:</Text>
-          <Badge colorScheme={RARITY_COLORS[submission.rewardItem.rarity]}>{submission.rewardItem.rarity}</Badge>
-          <Text fontSize="xs" fontWeight="medium">{submission.rewardItem.name}</Text>
+        <HStack mt={2} p={2} bg="gray.800" borderRadius="md">
+          <Text fontSize="xs" color="gray.400">Rewarded:</Text>
+          <Badge colorScheme={
+            submission.rewardItem.rarity === 'epic' ? 'purple' :
+            submission.rewardItem.rarity === 'rare' ? 'blue' :
+            submission.rewardItem.rarity === 'uncommon' ? 'green' : 'gray'
+          }>{submission.rewardItem.rarity}</Badge>
+          <Text fontSize="xs" fontWeight="medium" color="white">{submission.rewardItem.name}</Text>
           <Text fontSize="xs" color="gray.500">({submission.rewardItem.slot})</Text>
         </HStack>
       )}
@@ -86,8 +87,9 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
         <VStack align="stretch" spacing={2} mt={3} pt={3} borderTop="1px solid" borderColor="gray.600">
           {submission.role === 'PVMER' && (
             <HStack>
-              <Text fontSize="xs" color="gray.500">Reward Slot:</Text>
-              <Select size="xs" value={rewardSlot} onChange={(e) => setRewardSlot(e.target.value)} w="auto">
+              <Text fontSize="xs" color="gray.400">Reward Slot:</Text>
+              <Select size="xs" value={rewardSlot} onChange={(e) => setRewardSlot(e.target.value)} w="auto"
+                bg="gray.800" borderColor="gray.600" color="white">
                 {PVMER_SLOTS.map((s) => <option key={s} value={s}>{s}</option>)}
               </Select>
             </HStack>
@@ -102,7 +104,9 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
           </HStack>
           {expanded && (
             <VStack align="stretch" spacing={2}>
-              <Input size="sm" placeholder="Denial reason (shown to player)" value={denialReason} onChange={(e) => setDenialReason(e.target.value)} />
+              <Input size="sm" placeholder="Denial reason (shown to player)" value={denialReason}
+                onChange={(e) => setDenialReason(e.target.value)}
+                bg="gray.800" borderColor="gray.600" color="white" _placeholder={{ color: 'gray.500' }} />
               <Button size="sm" colorScheme="red" isLoading={loading} onClick={() => handleReview(false)}>
                 Confirm Denial
               </Button>
@@ -162,7 +166,6 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
 
   return (
     <VStack align="stretch" spacing={6}>
-      {/* Phase Header */}
       <Box p={5} bg="green.900" borderRadius="lg">
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={1}>
@@ -201,10 +204,9 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
         </TabList>
 
         <TabPanels>
-          {/* Submissions */}
           <TabPanel px={0}>
             <HStack mb={4} spacing={2}>
-              <Text fontSize="sm" color="gray.500">Filter:</Text>
+              <Text fontSize="sm" color="gray.400">Filter:</Text>
               {['PENDING', 'APPROVED', 'DENIED', ''].map((s) => (
                 <Button
                   key={s}
@@ -236,7 +238,6 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
             )}
           </TabPanel>
 
-          {/* War Chests */}
           <TabPanel px={0}>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               {(event.teams ?? []).map((team) => (
@@ -245,7 +246,6 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
             </SimpleGrid>
           </TabPanel>
 
-          {/* Admin */}
           {isAdmin && (
             <TabPanel px={0}>
               <AdminEventPanel event={event} isAdmin={isAdmin} refetch={refetch} />

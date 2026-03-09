@@ -66,6 +66,7 @@ const resolvers = {
   },
   ClanWarsTeam: {
     ...ClanWarsResolvers.ClanWarsTeam,
+    ...fieldResolvers.ClanWarsTeam,
   },
   ClanWarsSubmission: {
     ...ClanWarsResolvers.ClanWarsSubmission,

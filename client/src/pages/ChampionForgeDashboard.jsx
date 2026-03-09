@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box, VStack, HStack, Text, Button, Spinner, Center,
-  SimpleGrid, Badge, Divider, useColorMode, Icon,
+  SimpleGrid, Badge, Divider,
 } from '@chakra-ui/react';
 import { GET_ALL_CLAN_WARS_EVENTS, CREATE_CLAN_WARS_EVENT, DELETE_CLAN_WARS_EVENT } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
@@ -31,14 +31,10 @@ const STATUS_LABELS = {
 
 function EventCard({ event, isAdmin }) {
   const navigate = useNavigate();
-  const { colorMode } = useColorMode();
   const { showToast } = useToastContext();
   const [deleteEvent] = useMutation(DELETE_CLAN_WARS_EVENT, {
     refetchQueries: ['GetAllClanWarsEvents'],
   });
-
-  const bg = colorMode === 'dark' ? 'gray.700' : 'white';
-  const borderColor = colorMode === 'dark' ? 'gray.600' : 'gray.200';
 
   const handleDelete = async (e) => {
     e.stopPropagation();
@@ -53,9 +49,9 @@ function EventCard({ event, isAdmin }) {
 
   return (
     <Box
-      bg={bg}
+      bg="gray.700"
       border="1px solid"
-      borderColor={borderColor}
+      borderColor="gray.600"
       borderRadius="lg"
       p={5}
       cursor="pointer"
@@ -64,14 +60,14 @@ function EventCard({ event, isAdmin }) {
       onClick={() => navigate(`/champion-forge/${event.eventId}`)}
     >
       <HStack justify="space-between" mb={2}>
-        <Text fontWeight="bold" fontSize="md" noOfLines={1}>{event.eventName}</Text>
+        <Text fontWeight="bold" fontSize="md" noOfLines={1} color="white">{event.eventName}</Text>
         <Badge colorScheme={STATUS_COLORS[event.status]} fontSize="xs">
           {STATUS_LABELS[event.status]}
         </Badge>
       </HStack>
 
       {event.clanId && (
-        <Text fontSize="xs" color="gray.500" mb={2}>Clan: {event.clanId}</Text>
+        <Text fontSize="xs" color="gray.400" mb={2}>Clan: {event.clanId}</Text>
       )}
 
       <HStack fontSize="xs" color="gray.500" spacing={3}>
@@ -94,7 +90,6 @@ function EventCard({ event, isAdmin }) {
 
 export default function ChampionForgeDashboard() {
   usePageTitle('Champion Forge');
-  const { colorMode } = useColorMode();
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -107,9 +102,6 @@ export default function ChampionForgeDashboard() {
   const events = data?.getAllClanWarsEvents ?? [];
   const activeEvents = events.filter((e) => !['ARCHIVED', 'COMPLETED'].includes(e.status));
   const pastEvents = events.filter((e) => ['ARCHIVED', 'COMPLETED'].includes(e.status));
-
-  const headingColor = colorMode === 'dark' ? 'purple.300' : 'purple.600';
-  const subColor = colorMode === 'dark' ? 'gray.400' : 'gray.500';
 
   const handleCreate = async (input) => {
     try {
@@ -142,10 +134,10 @@ export default function ChampionForgeDashboard() {
     <Box maxW="1100px" mx="auto" px={4} py={8}>
       <HStack justify="space-between" mb={2}>
         <VStack align="flex-start" spacing={0}>
-          <Text fontSize="2xl" fontWeight="bold" color={headingColor}>
+          <Text fontSize="2xl" fontWeight="bold" color="purple.300">
             Champion Forge
           </Text>
-          <Text fontSize="sm" color={subColor}>
+          <Text fontSize="sm" color="gray.400">
             Build your war chest, equip your champion, and battle for glory.
           </Text>
         </VStack>
@@ -156,12 +148,12 @@ export default function ChampionForgeDashboard() {
         )}
       </HStack>
 
-      <Divider my={5} />
+      <Divider my={5} borderColor="gray.600" />
 
       {activeEvents.length === 0 && pastEvents.length === 0 ? (
         <Center h="40vh" flexDir="column" gap={3}>
           <Text fontSize="4xl">⚔️</Text>
-          <Text color={subColor} textAlign="center">
+          <Text color="gray.400" textAlign="center">
             No Champion Forge events yet.
             {user?.admin && ' Create one to get started!'}
           </Text>
@@ -170,7 +162,8 @@ export default function ChampionForgeDashboard() {
         <VStack align="stretch" spacing={8}>
           {activeEvents.length > 0 && (
             <Box>
-              <Text fontWeight="semibold" fontSize="sm" color={subColor} mb={3} textTransform="uppercase" letterSpacing="wide">
+              <Text fontWeight="semibold" fontSize="sm" color="gray.400" mb={3}
+                textTransform="uppercase" letterSpacing="wide">
                 Active Events
               </Text>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
@@ -183,7 +176,8 @@ export default function ChampionForgeDashboard() {
 
           {pastEvents.length > 0 && (
             <Box>
-              <Text fontWeight="semibold" fontSize="sm" color={subColor} mb={3} textTransform="uppercase" letterSpacing="wide">
+              <Text fontWeight="semibold" fontSize="sm" color="gray.400" mb={3}
+                textTransform="uppercase" letterSpacing="wide">
                 Past Events
               </Text>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
