@@ -323,15 +323,12 @@ const typeDefs = gql`
     channelId: String!
     channelName: String!
     topic: String
-    matchedTeamIds: [String!]!
   }
 
   type DiscordChannelCheckResult {
     success: Boolean!
     error: String
     eventChannels: [DiscordChannelInfo!]
-    missingTeamIds: [String!]
-    coveredTeamIds: [String!]
   }
 
   # ============================================================
@@ -363,6 +360,7 @@ const typeDefs = gql`
     nodeBuffs: JSON
     nodeProgress: JSON
     inProgressNodes: [String]
+    nodeUnlockTimes: JSON
     submissions: [TreasureSubmission!]
     event: TreasureEvent
     updatedAt: String
@@ -606,7 +604,6 @@ const typeDefs = gql`
     checkDiscordChannels(
       guildId: String!
       eventId: ID!
-      teamIds: [String!]!
     ): DiscordChannelCheckResult!
 
     # --- Analytics ---

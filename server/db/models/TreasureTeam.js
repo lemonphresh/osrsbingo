@@ -69,6 +69,11 @@ module.exports = (sequelize) => {
         defaultValue: [],
         comment: 'Node IDs the team has bookmarked as actively in progress',
       },
+      nodeUnlockTimes: {
+        type: DataTypes.JSONB,
+        defaultValue: {},
+        comment: 'ISO timestamp of when each node was unlocked, keyed by nodeId',
+      },
     },
     {
       sequelize,
