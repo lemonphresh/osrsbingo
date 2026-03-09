@@ -78,7 +78,7 @@ const NodeProgressEditor = ({
           {value.toLocaleString()} / {objectiveQuantity.toLocaleString()} ({pct}%)
         </Text>
       </HStack>
-
+      {/* 
       <Progress
         value={pct}
         size="sm"
@@ -86,7 +86,7 @@ const NodeProgressEditor = ({
         borderRadius="full"
         mb={isAdmin ? 3 : 0}
         bg={colorMode === 'dark' ? 'gray.700' : 'gray.200'}
-      />
+      /> */}
 
       {isAdmin && (
         <VStack spacing={2} align="stretch">
