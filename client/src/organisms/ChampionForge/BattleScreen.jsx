@@ -168,10 +168,15 @@ export default function BattleScreen({
 
   const state = battle?.battleState ?? {};
   const snap = battle?.championSnapshots ?? {};
-  const isMyTurn = state.currentTurn === (myTeamId === battle?.team1Id ? 'team1' : 'team2');
   const isBattleOver = battle?.status === 'COMPLETED';
 
+  // Determine if this user is an active captain for one of the battle's teams
+  const isSpectator =
+    !myTeamId ||
+    (myTeamId !== battle?.team1Id && myTeamId !== battle?.team2Id);
+
   const mySide = myTeamId === battle?.team1Id ? 'team1' : 'team2';
+  const isMyTurn = !isSpectator && state.currentTurn === mySide;
   const mySnap = snap[mySide === 'team1' ? 'champion1' : 'champion2'];
 
   const [submitAction, { loading: acting }] = useMutation(SUBMIT_BATTLE_ACTION);
@@ -250,9 +255,14 @@ export default function BattleScreen({
 
   return (
     <Box bg="gray.900" borderRadius="xl" p={4} fontFamily="mono">
-      <Text textAlign="center" fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase" mb={3}>
-        Champion Forge · Battle · Turn {state.turnNumber ?? 1}
-      </Text>
+      <HStack justify="center" mb={3} spacing={3}>
+        <Text fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase">
+          Champion Forge · Battle · Turn {state.turnNumber ?? 1}
+        </Text>
+        {isSpectator && (
+          <Badge colorScheme="gray" fontSize="10px" variant="subtle">👁 Spectating</Badge>
+        )}
+      </HStack>
 
       {/* Arena */}
       <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="xl" p={5}
@@ -298,11 +308,18 @@ export default function BattleScreen({
           {/* VS / timer */}
           <VStack spacing={2} align="center" pb={4}>
             <Text fontSize="11px" color="gray.600">vs</Text>
-            {!isBattleOver && (
+            {!isBattleOver && !isSpectator && (
               <Box w="44px" h="44px" borderRadius="full" bg={`${timerColor}22`}
                 border={`2px solid ${timerColor}`} display="flex" alignItems="center"
                 justifyContent="center" fontSize="14px" fontWeight="bold" color={timerColor} transition="all 0.5s">
                 {timer}
+              </Box>
+            )}
+            {!isBattleOver && isSpectator && (
+              <Box w="44px" h="44px" borderRadius="full" bg="gray.700"
+                border="2px solid" borderColor="gray.600" display="flex" alignItems="center"
+                justifyContent="center" fontSize="18px">
+                ⏳
               </Box>
             )}
           </VStack>

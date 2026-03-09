@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useMutation } from '@apollo/client';
+import { useMutation, useLazyQuery } from '@apollo/client';
 import {
   Box,
   VStack,
@@ -18,17 +18,21 @@ import {
   ModalBody,
   ModalFooter,
 } from '@chakra-ui/react';
-import { CheckIcon, WarningIcon, SettingsIcon } from '@chakra-ui/icons';
+import { CheckIcon, WarningIcon, SettingsIcon, StarIcon, DeleteIcon } from '@chakra-ui/icons';
 import { FaDiscord, FaUsers, FaScroll } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
+  VERIFY_DISCORD_GUILD,
   UPDATE_CLAN_WARS_EVENT_SETTINGS,
   UPDATE_CLAN_WARS_EVENT_STATUS,
+  UPDATE_CLAN_WARS_TEAM_MEMBERS,
   CREATE_CLAN_WARS_TEAM,
   DELETE_CLAN_WARS_TEAM,
   SET_CLAN_WARS_CAPTAIN,
 } from '../../graphql/clanWarsOperations';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+
+const API_BASE = process.env.REACT_APP_SERVER_URL || '';
 
 // ---------------------------------------------------------------------------
 // Checklist item
@@ -57,10 +61,14 @@ function ChecklistItem({ done, label, description, icon, action, actionLabel, re
             {label}
           </Text>
           {required && !done && (
-            <Badge colorScheme="yellow" fontSize="xs">Required</Badge>
+            <Badge colorScheme="yellow" fontSize="xs">
+              Required
+            </Badge>
           )}
         </HStack>
-        <Text fontSize="xs" color={done ? 'green.500' : 'gray.400'}>{description}</Text>
+        <Text fontSize="xs" color={done ? 'green.500' : 'gray.400'}>
+          {description}
+        </Text>
       </VStack>
       {action && actionLabel && !done && (
         <Button size="xs" colorScheme="purple" variant="outline" onClick={action} flexShrink={0}>
@@ -77,17 +85,35 @@ function ChecklistItem({ done, label, description, icon, action, actionLabel, re
 function GuildIdForm({ eventId, currentGuildId, refetch }) {
   const { showToast } = useToastContext();
   const [value, setValue] = useState(currentGuildId ?? '');
-  const [updateSettings, { loading }] = useMutation(UPDATE_CLAN_WARS_EVENT_SETTINGS, {
+  const [verifiedName, setVerifiedName] = useState(null);
+
+  const [verifyGuild, { loading: verifying }] = useLazyQuery(VERIFY_DISCORD_GUILD, {
+    fetchPolicy: 'network-only',
+    onCompleted: (data) => {
+      const result = data?.verifyDiscordGuild;
+      if (result?.success) {
+        setVerifiedName(result.guildName);
+        updateSettings({ variables: { eventId, input: { guildId: value.trim() } } });
+      } else {
+        showToast(result?.error ?? 'Bot not found in that server', 'error');
+      }
+    },
+    onError: (err) => showToast(err.message ?? 'Verification failed', 'error'),
+  });
+
+  const [updateSettings, { loading: saving }] = useMutation(UPDATE_CLAN_WARS_EVENT_SETTINGS, {
     onCompleted: () => {
-      showToast('Guild ID saved', 'success');
+      showToast(`Guild verified: ${verifiedName}`, 'success');
       refetch();
     },
     onError: (err) => showToast(err.message ?? 'Failed to save', 'error'),
   });
 
-  const handleSave = () => {
-    if (!value.trim()) return;
-    updateSettings({ variables: { eventId, input: { guildId: value.trim() } } });
+  const handleVerifyAndSave = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    setVerifiedName(null);
+    verifyGuild({ variables: { guildId: trimmed } });
   };
 
   return (
@@ -96,15 +122,24 @@ function GuildIdForm({ eventId, currentGuildId, refetch }) {
         size="sm"
         placeholder="Discord Server (Guild) ID"
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value);
+          setVerifiedName(null);
+        }}
         bg="gray.700"
         borderColor="gray.600"
         color="white"
         _placeholder={{ color: 'gray.500' }}
         fontFamily="mono"
       />
-      <Button size="sm" colorScheme="purple" isLoading={loading} onClick={handleSave} flexShrink={0}>
-        Save
+      <Button
+        size="sm"
+        colorScheme="purple"
+        isLoading={verifying || saving}
+        onClick={handleVerifyAndSave}
+        flexShrink={0}
+      >
+        Verify & Save
       </Button>
     </HStack>
   );
@@ -115,9 +150,19 @@ function GuildIdForm({ eventId, currentGuildId, refetch }) {
 // ---------------------------------------------------------------------------
 function DraftTeamCard({ team, eventId, refetch }) {
   const { showToast } = useToastContext();
+  const [newMemberId, setNewMemberId] = useState('');
+  const [newMemberUsername, setNewMemberUsername] = useState('');
+  const [adding, setAdding] = useState(false);
+
   const [deleteTeam] = useMutation(DELETE_CLAN_WARS_TEAM, { onCompleted: refetch });
   const [setCaptain] = useMutation(SET_CLAN_WARS_CAPTAIN, { onCompleted: refetch });
-  const [captainInput, setCaptainInput] = useState('');
+  const [updateMembers] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
+    onCompleted: () => {
+      refetch();
+      setNewMemberId('');
+      setNewMemberUsername('');
+    },
+  });
 
   const handleDelete = async () => {
     try {
@@ -128,66 +173,146 @@ function DraftTeamCard({ team, eventId, refetch }) {
     }
   };
 
-  const handleSetCaptain = async () => {
-    if (!captainInput.trim()) return;
+  const handleMemberSelect = async (discordId) => {
+    setNewMemberId(discordId);
+    if (!discordId) { setNewMemberUsername(''); return; }
     try {
-      await setCaptain({ variables: { teamId: team.teamId, discordId: captainInput.trim() } });
+      const res = await fetch(`${API_BASE}/discuser/${discordId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNewMemberUsername(data.username || data.globalName || discordId);
+      }
+    } catch {
+      setNewMemberUsername(discordId);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!newMemberId) return;
+    if ((team.members ?? []).some((m) => m.discordId === newMemberId)) {
+      showToast('That member is already on this team', 'warning');
+      return;
+    }
+    setAdding(true);
+    const newMember = { discordId: newMemberId, username: newMemberUsername || newMemberId, avatar: null, role: 'UNSET' };
+    const updated = [...(team.members ?? []), newMember].map(({ discordId, username, avatar, role }) => ({ discordId, username, avatar, role }));
+    try {
+      await updateMembers({ variables: { teamId: team.teamId, members: updated } });
+      showToast('Member added', 'success');
+    } catch {
+      showToast('Failed to add member', 'error');
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const handleRemoveMember = async (discordId) => {
+    const updated = (team.members ?? [])
+      .filter((m) => m.discordId !== discordId)
+      .map(({ discordId: id, username, avatar, role }) => ({ discordId: id, username, avatar, role }));
+    try {
+      await updateMembers({ variables: { teamId: team.teamId, members: updated } });
+      showToast('Member removed', 'success');
+    } catch {
+      showToast('Failed to remove member', 'error');
+    }
+  };
+
+  const handleSetCaptain = async (discordId) => {
+    try {
+      await setCaptain({ variables: { teamId: team.teamId, discordId } });
       showToast('Captain set', 'success');
-      setCaptainInput('');
     } catch {
       showToast('Failed to set captain', 'error');
     }
   };
 
+  const roleColor = (role) => role === 'PVMER' ? 'orange' : role === 'SKILLER' ? 'teal' : role === 'FLEX' ? 'purple' : 'gray';
+
   return (
-    <Box bg="gray.700" borderRadius="md" p={3} border="1px solid" borderColor="gray.600">
-      <HStack justify="space-between" mb={2}>
+    <Box borderRadius="lg" border="1px solid" borderColor="gray.600" w="full">
+      {/* Card header */}
+      <HStack
+        px={3} py={2}
+        bg="gray.700"
+        borderTopRadius="lg"
+        justify="space-between"
+      >
         <Text fontWeight="semibold" color="white" fontSize="sm">{team.teamName}</Text>
         <Button size="xs" colorScheme="red" variant="ghost" onClick={handleDelete}>
-          Remove
+          Delete Team
         </Button>
       </HStack>
 
-      <VStack align="stretch" spacing={1} mb={2}>
-        {(team.members ?? []).map((m, i) => (
-          <HStack key={m.discordId ?? i} spacing={2}>
-            <Badge
-              colorScheme={m.role === 'PVMER' ? 'orange' : m.role === 'SKILLER' ? 'teal' : 'purple'}
-              fontSize="xs"
-              flexShrink={0}
-            >
-              {m.role ?? 'ANY'}
-            </Badge>
-            <Text fontSize="xs" color="gray.300" noOfLines={1}>{m.username ?? m.discordId}</Text>
-          </HStack>
-        ))}
-        {!team.members?.length && (
-          <Text fontSize="xs" color="gray.600">No members yet</Text>
+      <VStack align="stretch" spacing={0} px={3} pt={2} pb={1}>
+        {/* Member list */}
+        {(team.members ?? []).length === 0 ? (
+          <Text fontSize="xs" color="gray.500" py={1}>No members yet — add one below.</Text>
+        ) : (
+          (team.members ?? []).map((m) => {
+            const isCaptain = m.discordId === team.captainDiscordId;
+            return (
+              <HStack key={m.discordId} spacing={2} py={1} borderBottom="1px solid" borderColor="gray.700">
+                <Badge colorScheme={roleColor(m.role)} fontSize="xs" flexShrink={0}>
+                  {m.role ?? 'ANY'}
+                </Badge>
+                {isCaptain && (
+                  <Icon as={StarIcon} color="yellow.400" boxSize={3} flexShrink={0} />
+                )}
+                <Text fontSize="xs" color={isCaptain ? 'yellow.300' : 'gray.200'} flex={1} noOfLines={1}>
+                  {m.username ?? m.discordId}
+                </Text>
+                {!isCaptain && (
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="yellow"
+                    onClick={() => handleSetCaptain(m.discordId)}
+                    title="Set as captain"
+                    px={1}
+                  >
+                    <Icon as={StarIcon} boxSize={3} />
+                  </Button>
+                )}
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="red"
+                  onClick={() => handleRemoveMember(m.discordId)}
+                  px={1}
+                >
+                  <Icon as={DeleteIcon} boxSize={3} />
+                </Button>
+              </HStack>
+            );
+          })
         )}
       </VStack>
 
-      {team.captainDiscordId && (
-        <Text fontSize="xs" color="yellow.400" mb={2}>
-          Captain: {team.captainDiscordId}
+      {/* Add member form */}
+      <Box px={3} pb={3} pt={2}>
+        <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={1} textTransform="uppercase" letterSpacing="wider">
+          Add Member
         </Text>
-      )}
-
-      <HStack spacing={2}>
-        <Input
-          size="xs"
-          placeholder="Set captain (Discord ID)"
-          value={captainInput}
-          onChange={(e) => setCaptainInput(e.target.value)}
-          bg="gray.800"
-          borderColor="gray.600"
-          color="white"
-          _placeholder={{ color: 'gray.500' }}
-          fontFamily="mono"
+        <DiscordMemberInput
+          value={newMemberId}
+          onChange={handleMemberSelect}
+          onRemove={() => { setNewMemberId(''); setNewMemberUsername(''); }}
+          showRemove={!!newMemberId}
         />
-        <Button size="xs" colorScheme="purple" onClick={handleSetCaptain} flexShrink={0}>
-          Set
-        </Button>
-      </HStack>
+        <HStack mt={2} spacing={2}>
+          <Button
+            size="sm"
+            colorScheme="purple"
+            isDisabled={!newMemberId}
+            isLoading={adding}
+            onClick={handleAddMember}
+            w="full"
+          >
+            Add Member
+          </Button>
+        </HStack>
+      </Box>
     </Box>
   );
 }
@@ -228,7 +353,13 @@ function AddTeamForm({ eventId, refetch }) {
         color="white"
         _placeholder={{ color: 'gray.500' }}
       />
-      <Button size="sm" colorScheme="purple" isLoading={loading} onClick={handleSubmit} flexShrink={0}>
+      <Button
+        size="sm"
+        colorScheme="purple"
+        isLoading={loading}
+        onClick={handleSubmit}
+        flexShrink={0}
+      >
         Add Team
       </Button>
     </HStack>
@@ -243,15 +374,21 @@ function LaunchConfirmModal({ isOpen, onClose, onConfirm, loading }) {
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="sm">
       <ModalOverlay />
       <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" color="white">
-        <ModalHeader color="white" fontSize="md">Start Gathering Phase?</ModalHeader>
+        <ModalHeader color="white" fontSize="md">
+          Start Gathering Phase?
+        </ModalHeader>
         <ModalBody>
           <Text fontSize="sm" color="gray.300">
             This will open the gathering phase for all players. The event clock starts now and{' '}
-            <Text as="span" color="yellow.300" fontWeight="semibold">this cannot be undone.</Text>
+            <Text as="span" color="yellow.300" fontWeight="semibold">
+              this cannot be undone.
+            </Text>
           </Text>
         </ModalBody>
         <ModalFooter gap={2}>
-          <Button variant="ghost" color="gray.400" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" color="gray.400" onClick={onClose}>
+            Cancel
+          </Button>
           <Button colorScheme="green" isLoading={loading} onClick={onConfirm}>
             Start Gathering
           </Button>
@@ -335,10 +472,17 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
 
   return (
     <>
-      <Box bg="gray.800" border="2px solid" borderColor="purple.700" borderRadius="xl" overflow="hidden">
+      <Box
+        bg="gray.800"
+        border="2px solid"
+        borderColor="purple.700"
+        borderRadius="xl"
+        overflow="hidden"
+      >
         {/* Header */}
         <HStack
-          px={5} py={3}
+          px={5}
+          py={3}
           bg="purple.900"
           borderBottom="1px solid"
           borderColor="purple.700"
@@ -346,8 +490,12 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
         >
           <HStack spacing={2}>
             <Icon as={SettingsIcon} color="purple.300" />
-            <Text fontWeight="semibold" color="purple.200">Event Setup</Text>
-            <Badge colorScheme="gray" fontSize="xs">DRAFT</Badge>
+            <Text fontWeight="semibold" color="purple.200">
+              Event Setup
+            </Text>
+            <Badge colorScheme="gray" fontSize="xs">
+              DRAFT
+            </Badge>
           </HStack>
           <Button
             size="sm"
@@ -362,8 +510,14 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
         <VStack align="stretch" spacing={5} p={5}>
           {/* Checklist */}
           <Box>
-            <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase"
-              letterSpacing="wider" mb={3}>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={3}
+            >
               Pre-launch Checklist
             </Text>
             <VStack align="stretch" spacing={2}>
@@ -377,26 +531,48 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
           {/* Guild ID form (always visible in draft) */}
           {!checks.guildId.done && (
             <Box>
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase"
-                letterSpacing="wider" mb={2}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="gray.500"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
                 Discord Guild ID
               </Text>
               <Text fontSize="xs" color="gray.400" mb={2}>
                 Find this in Discord: Server Settings → Widget → Server ID.
               </Text>
-              <GuildIdForm eventId={event.eventId} currentGuildId={event.guildId} refetch={refetch} />
+              <GuildIdForm
+                eventId={event.eventId}
+                currentGuildId={event.guildId}
+                refetch={refetch}
+              />
             </Box>
           )}
 
           {checks.guildId.done && (
             <Box>
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase"
-                letterSpacing="wider" mb={2}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="gray.500"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
                 Discord Guild ID
               </Text>
               <HStack>
-                <Text fontSize="sm" color="green.400" fontFamily="mono">{event.guildId}</Text>
-                <GuildIdForm eventId={event.eventId} currentGuildId={event.guildId} refetch={refetch} />
+                <Text fontSize="sm" color="green.400" fontFamily="mono">
+                  {event.guildId}
+                </Text>
+                <GuildIdForm
+                  eventId={event.eventId}
+                  currentGuildId={event.guildId}
+                  refetch={refetch}
+                />
               </HStack>
             </Box>
           )}
@@ -406,8 +582,13 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
           {/* Team management */}
           <Box>
             <HStack mb={3} justify="space-between">
-              <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase"
-                letterSpacing="wider">
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="gray.500"
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
                 Teams ({teams.length})
               </Text>
             </HStack>
@@ -433,7 +614,14 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
           </Box>
 
           {!canLaunch && (
-            <Box bg="yellow.900" border="1px solid" borderColor="yellow.700" borderRadius="md" px={4} py={3}>
+            <Box
+              bg="yellow.900"
+              border="1px solid"
+              borderColor="yellow.700"
+              borderRadius="md"
+              px={4}
+              py={3}
+            >
               <Text fontSize="sm" color="yellow.300">
                 Complete the required checklist items above before launching the event.
               </Text>

@@ -25,7 +25,6 @@ const CLAN_WARS_TEAM_FIELDS = gql`
     teamId
     eventId
     teamName
-    discordRoleId
     members {
       discordId
       username
@@ -166,7 +165,6 @@ export const GET_CLAN_WARS_TEAM = gql`
       teamId
       eventId
       teamName
-      discordRoleId
       members { discordId username avatar role }
       officialLoadout
       loadoutLocked
@@ -251,6 +249,16 @@ export const CREATE_CLAN_WARS_EVENT = gql`
   }
 `;
 
+export const VERIFY_DISCORD_GUILD = gql`
+  query VerifyDiscordGuild($guildId: String!) {
+    verifyDiscordGuild(guildId: $guildId) {
+      success
+      guildName
+      error
+    }
+  }
+`;
+
 export const UPDATE_CLAN_WARS_EVENT_SETTINGS = gql`
   mutation UpdateClanWarsEventSettings($eventId: ID!, $input: UpdateClanWarsEventSettingsInput!) {
     updateClanWarsEventSettings(eventId: $eventId, input: $input) {
@@ -286,6 +294,15 @@ export const GENERATE_CLAN_WARS_BRACKET = gql`
     generateClanWarsBracket(eventId: $eventId) {
       eventId
       bracket
+    }
+  }
+`;
+
+export const UPDATE_CLAN_WARS_TEAM_MEMBERS = gql`
+  ${CLAN_WARS_TEAM_FIELDS}
+  mutation UpdateClanWarsTeamMembers($teamId: ID!, $members: [ClanWarsMemberInput!]!) {
+    updateClanWarsTeamMembers(teamId: $teamId, members: $members) {
+      ...ClanWarsTeamFields
     }
   }
 `;
@@ -431,6 +448,15 @@ export const ADMIN_LOCK_ALL_LOADOUTS = gql`
       teamId
       teamName
       loadoutLocked
+    }
+  }
+`;
+
+export const SET_CAPTAIN_READY = gql`
+  mutation SetCaptainReady($eventId: ID!, $teamId: ID!) {
+    setCaptainReady(eventId: $eventId, teamId: $teamId) {
+      eventId
+      bracket
     }
   }
 `;

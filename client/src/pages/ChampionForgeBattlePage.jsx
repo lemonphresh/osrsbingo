@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box, Center, Spinner, Text, VStack, HStack, Button, Badge,
-  Tabs, TabList, Tab, TabPanels, TabPanel, Select, Divider,
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import {
@@ -27,29 +26,21 @@ export default function ChampionForgeBattlePage() {
   const { user } = useAuth();
   const { showToast } = useToastContext();
 
-  const [activeBattleId, setActiveBattleId] = useState(null);
   const [completeOpen, setCompleteOpen] = useState(false);
-  const [team1Id, setTeam1Id] = useState('');
-  const [team2Id, setTeam2Id] = useState('');
   const [starting, setStarting] = useState(false);
 
   const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },
-    fetchPolicy: 'cache-and-network',
-  });
-
-  const { data: battleData, loading: battleLoading } = useQuery(GET_CLAN_WARS_BATTLE, {
-    variables: { battleId: activeBattleId },
-    skip: !activeBattleId,
+    pollInterval: 5000,
     fetchPolicy: 'cache-and-network',
   });
 
   const event = data?.getClanWarsEvent;
-  const battle = battleData?.getClanWarsBattle;
 
   usePageTitle(event ? `${event.eventName} — Battle` : 'Champion Forge Battle');
 
-  const isAdmin = user?.admin ||
+  const isAdmin =
+    user?.admin ||
     event?.adminIds?.includes(String(user?.id)) ||
     event?.creatorId === String(user?.id);
 
@@ -57,6 +48,25 @@ export default function ChampionForgeBattlePage() {
     t.captainDiscordId === user?.discordUserId ||
     (isAdmin && t.captainDiscordId == null)
   );
+
+  // Find the currently active battle from bracket
+  const activeBattleId = useMemo(() => {
+    const bracket = event?.bracket;
+    if (!bracket?.rounds) return null;
+    for (const round of bracket.rounds) {
+      for (const match of round.matches) {
+        if (match.battleId && !match.winnerId) return match.battleId;
+      }
+    }
+    return null;
+  }, [event]);
+
+  const { data: battleData, loading: battleLoading } = useQuery(GET_CLAN_WARS_BATTLE, {
+    variables: { battleId: activeBattleId },
+    skip: !activeBattleId,
+    fetchPolicy: 'cache-and-network',
+  });
+  const activeBattle = battleData?.getClanWarsBattle;
 
   const { data: chestData } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: myTeam?.teamId },
@@ -67,19 +77,18 @@ export default function ChampionForgeBattlePage() {
   const [startBattle] = useMutation(START_CLAN_WARS_BATTLE);
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
 
-  const teams = event?.teams ?? [];
-  const lockedTeams = teams.filter((t) => t.loadoutLocked);
-  const isCompleted = event?.status === 'COMPLETED' || event?.status === 'ARCHIVED';
+  const isEventDone = event?.status === 'COMPLETED' || event?.status === 'ARCHIVED';
 
-  const handleStartBattle = async () => {
-    if (!team1Id || !team2Id || team1Id === team2Id) {
-      showToast('Select two different teams', 'warning');
-      return;
-    }
+  const allMatchesDone = useMemo(() => {
+    const rounds = event?.bracket?.rounds;
+    if (!rounds?.length) return false;
+    return rounds.every((r) => r.matches.every((m) => m.isBye || !!m.winnerId));
+  }, [event]);
+
+  const handleStartBattle = async (t1, t2) => {
     setStarting(true);
     try {
-      const { data: res } = await startBattle({ variables: { eventId, team1Id, team2Id } });
-      setActiveBattleId(res.startClanWarsBattle.battleId);
+      await startBattle({ variables: { eventId, team1Id: t1, team2Id: t2 } });
       showToast('Battle started!', 'success');
     } catch (err) {
       showToast(err.message ?? 'Failed to start battle', 'error');
@@ -114,118 +123,86 @@ export default function ChampionForgeBattlePage() {
             <Badge colorScheme="red" fontSize="sm">Battle</Badge>
           </HStack>
           <Text fontSize="sm" color="gray.400">
-            {teams.length} teams · {lockedTeams.length} locked loadouts
+            {(event.teams ?? []).length} teams
           </Text>
         </VStack>
         <HStack spacing={2}>
-          {isAdmin && !isCompleted && (
+          {isAdmin && (allMatchesDone || isEventDone) && !isEventDone && (
             <Button size="sm" colorScheme="purple" onClick={() => setCompleteOpen(true)}>
               ✅ Complete Event
             </Button>
           )}
-          <Button size="sm" variant="outline" leftIcon={<ArrowBackIcon />} color="gray.300"
-            borderColor="gray.600" onClick={() => navigate(`/champion-forge/${eventId}`)}>
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<ArrowBackIcon />}
+            color="gray.300"
+            borderColor="gray.600"
+            onClick={() => navigate(`/champion-forge/${eventId}`)}
+          >
             Event Overview
           </Button>
         </HStack>
       </HStack>
 
-      {/* Completed summary */}
-      {isCompleted ? (
+      {/* Main view */}
+      {isEventDone ? (
         <PostBattleSummary event={event} />
+      ) : activeBattleId ? (
+        battleLoading && !activeBattle ? (
+          <Center h="300px"><Spinner color="red.400" size="xl" /></Center>
+        ) : activeBattle ? (
+          <BattleScreen
+            battle={activeBattle}
+            myTeamId={myTeam?.teamId}
+            allItems={myItems}
+            turnTimerSeconds={event.eventConfig?.turnTimerSeconds ?? 60}
+          />
+        ) : (
+          <Center h="200px">
+            <Text color="gray.500">Battle not found.</Text>
+          </Center>
+        )
       ) : (
-        <Tabs colorScheme="red" variant="soft-rounded">
-          <TabList>
-            <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>
-              {activeBattleId ? 'Active Battle' : 'Watch Battle'}
-            </Tab>
-            <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>Bracket</Tab>
-            {isAdmin && (
-              <Tab fontSize="sm" color="gray.300" _selected={{ color: 'white' }}>Start Match</Tab>
-            )}
-          </TabList>
+        /* Lobby */
+        <VStack align="stretch" spacing={5}>
+          <Box
+            textAlign="center"
+            p={8}
+            bg="gray.800"
+            borderRadius="xl"
+            border="1px solid"
+            borderColor="gray.600"
+          >
+            <Text fontSize="4xl" mb={2}>⚔️</Text>
+            <Text fontSize="xl" fontWeight="bold" color="red.300" mb={1}>
+              Battle Starting Soon
+            </Text>
+            <Text fontSize="sm" color="gray.400">
+              {isAdmin
+                ? 'Start a match from the bracket below.'
+                : 'Waiting for the admin to kick things off...'}
+            </Text>
+          </Box>
 
-          <TabPanels>
-            {/* Active battle viewer */}
-            <TabPanel px={0}>
-              {!activeBattleId ? (
-                <Center h="300px" flexDir="column" gap={4}>
-                  <Text fontSize="3xl">⚔️</Text>
-                  <Text color="gray.400" fontWeight="medium">No battle selected</Text>
-                  <Text fontSize="sm" color="gray.500">
-                    {isAdmin
-                      ? 'Use the "Start Match" tab to begin a battle, or select one from the Bracket.'
-                      : 'Select a match from the Bracket tab to watch.'}
-                  </Text>
-                </Center>
-              ) : battleLoading && !battle ? (
-                <Center h="300px"><Spinner color="red.400" size="xl" /></Center>
-              ) : battle ? (
-                <BattleScreen
-                  battle={battle}
-                  myTeamId={myTeam?.teamId}
-                  allItems={myItems}
-                  turnTimerSeconds={event.eventConfig?.turnTimerSeconds ?? 60}
-                />
-              ) : (
-                <Center h="200px">
-                  <Text color="gray.500">Battle not found.</Text>
-                </Center>
-              )}
-            </TabPanel>
+          <BattleBracket
+            event={event}
+            isAdmin={isAdmin}
+            myTeamId={myTeam?.teamId}
+            starting={starting}
+            onStartBattle={handleStartBattle}
+          />
 
-            {/* Bracket */}
-            <TabPanel px={0}>
-              <BattleBracket event={event} onSelectBattle={(id) => {
-                setActiveBattleId(id);
-              }} />
-            </TabPanel>
-
-            {/* Start match (admin only) */}
-            {isAdmin && (
-              <TabPanel px={0}>
-                <VStack align="flex-start" spacing={4} maxW="420px">
-                  <Text fontWeight="semibold" color="white">Start a New Match</Text>
-                  <Text fontSize="sm" color="gray.400">Both teams must have locked loadouts.</Text>
-
-                  <HStack w="full" spacing={3}>
-                    <Box flex={1}>
-                      <Text fontSize="xs" color="gray.400" mb={1}>Team 1</Text>
-                      <Select size="sm" value={team1Id} onChange={(e) => setTeam1Id(e.target.value)}
-                        placeholder="Select team" bg="gray.700" borderColor="gray.600" color="white">
-                        {lockedTeams.map((t) => (
-                          <option key={t.teamId} value={t.teamId}>{t.teamName}</option>
-                        ))}
-                      </Select>
-                    </Box>
-                    <Text fontSize="sm" color="gray.600" mt={4}>vs</Text>
-                    <Box flex={1}>
-                      <Text fontSize="xs" color="gray.400" mb={1}>Team 2</Text>
-                      <Select size="sm" value={team2Id} onChange={(e) => setTeam2Id(e.target.value)}
-                        placeholder="Select team" bg="gray.700" borderColor="gray.600" color="white">
-                        {lockedTeams.map((t) => (
-                          <option key={t.teamId} value={t.teamId}>{t.teamName}</option>
-                        ))}
-                      </Select>
-                    </Box>
-                  </HStack>
-
-                  <Button colorScheme="red" isLoading={starting} onClick={handleStartBattle}
-                    isDisabled={!team1Id || !team2Id || team1Id === team2Id}>
-                    ⚔️ Start Battle
-                  </Button>
-
-                  {lockedTeams.length < 2 && (
-                    <Text fontSize="xs" color="orange.400">
-                      Need at least 2 teams with locked loadouts to start a battle.
-                    </Text>
-                  )}
-                </VStack>
-              </TabPanel>
-            )}
-          </TabPanels>
-        </Tabs>
+          {isAdmin && allMatchesDone && (
+            <Box textAlign="right">
+              <Button colorScheme="purple" size="sm" onClick={() => setCompleteOpen(true)}>
+                ✅ Complete Event
+              </Button>
+            </Box>
+          )}
+        </VStack>
       )}
+
       <ConfirmModal
         isOpen={completeOpen}
         onClose={() => setCompleteOpen(false)}

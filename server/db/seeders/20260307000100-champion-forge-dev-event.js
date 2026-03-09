@@ -246,7 +246,7 @@ module.exports = {
         consumables: [C1.con1, C1.con2, C1.con3, C1.con4],
       },
       loadoutLocked: true,
-      captainDiscordId: '100000000000000001',
+      captainDiscordId: null, // null → any site admin can take team1's actions in battle
       createdAt: now,
       updatedAt: now,
     });
@@ -349,7 +349,7 @@ module.exports = {
       team1Id: TEAM1_ID,
       team2Id: TEAM2_ID,
       status: 'IN_PROGRESS',
-      championSnapshots: { team1: SNAP1, team2: SNAP2 },
+      championSnapshots: { champion1: SNAP1, champion2: SNAP2 },
       battleState: INITIAL_BATTLE_STATE,
       rngSeed: `dev_${Date.now()}`,
       winnerId: null,

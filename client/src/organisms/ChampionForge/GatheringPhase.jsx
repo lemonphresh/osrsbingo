@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box, VStack, HStack, Text, Button, Badge, Tabs, TabList, Tab, TabPanels, TabPanel,
-  Link, Select, SimpleGrid, Spinner, Center, Input,
+  Link, Select, SimpleGrid, Spinner, Center, Input, Code, Divider,
 } from '@chakra-ui/react';
+import { CopyIcon } from '@chakra-ui/icons';
 import {
   GET_CLAN_WARS_SUBMISSIONS,
   REVIEW_CLAN_WARS_SUBMISSION,
   CLAN_WARS_SUBMISSION_ADDED, CLAN_WARS_SUBMISSION_REVIEWED,
   UPDATE_CLAN_WARS_EVENT_STATUS,
+  JOIN_TASK_IN_PROGRESS,
+  LEAVE_TASK_IN_PROGRESS,
 } from '../../graphql/clanWarsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -17,7 +20,11 @@ import WarChestPanel from './WarChestPanel';
 import ConfirmModal from './ConfirmModal';
 
 const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots'];
+const DIFFICULTY_COLOR = { initiate: 'green', adept: 'yellow', master: 'red' };
 
+// ---------------------------------------------------------------------------
+// SubmissionCard
+// ---------------------------------------------------------------------------
 function SubmissionCard({ submission, isAdmin, onReview }) {
   const [rewardSlot, setRewardSlot] = useState('weapon');
   const [denialReason, setDenialReason] = useState('');
@@ -49,7 +56,7 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
               {submission.status}
             </Badge>
             <Badge colorScheme={submission.role === 'PVMER' ? 'orange' : 'teal'} fontSize="xs">{submission.role}</Badge>
-            <Badge colorScheme={submission.difficulty === 'master' ? 'red' : submission.difficulty === 'adept' ? 'yellow' : 'green'} fontSize="xs">
+            <Badge colorScheme={DIFFICULTY_COLOR[submission.difficulty] ?? 'gray'} fontSize="xs">
               {submission.difficulty}
             </Badge>
           </HStack>
@@ -60,9 +67,9 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
           </Text>
         </VStack>
 
-        {submission.proofUrl && (
-          <Link href={submission.proofUrl} isExternal>
-            <Button size="xs" colorScheme="blue" variant="outline">View Proof</Button>
+        {submission.screenshot && (
+          <Link href={submission.screenshot} isExternal>
+            <Button size="xs" colorScheme="blue" variant="outline">View Screenshot</Button>
           </Link>
         )}
       </HStack>
@@ -119,11 +126,141 @@ function SubmissionCard({ submission, isAdmin, onReview }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// TaskCard — shows a single task with in-progress tracking & copy command
+// ---------------------------------------------------------------------------
+function TaskCard({ task, myTeam, myDiscordId, eventId, refetch }) {
+  const { showToast } = useToastContext();
+  const inProgressIds = myTeam?.taskProgress?.[task.taskId] ?? [];
+  const isCompleted = myTeam?.completedTaskIds?.includes(task.taskId);
+  const iAmInProgress = myDiscordId && inProgressIds.includes(myDiscordId);
+  const hasOthers = inProgressIds.length > 0;
+
+  const [join, { loading: joining }] = useMutation(JOIN_TASK_IN_PROGRESS, { onCompleted: refetch });
+  const [leave, { loading: leaving }] = useMutation(LEAVE_TASK_IN_PROGRESS, { onCompleted: refetch });
+
+  const memberName = (discordId) =>
+    myTeam?.members?.find((m) => m.discordId === discordId)?.username ?? discordId;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`!cwsubmit ${task.taskId}`);
+    showToast('Submit command copied!', 'success');
+  };
+
+  const borderColor = isCompleted ? 'green.700' : hasOthers ? 'yellow.700' : 'gray.600';
+
+  return (
+    <Box
+      bg="gray.700"
+      border="1px solid"
+      borderColor={borderColor}
+      borderRadius="md"
+      p={3}
+      opacity={isCompleted ? 0.7 : 1}
+    >
+      <HStack justify="space-between" align="flex-start" mb={1}>
+        <VStack align="flex-start" spacing={0} flex={1} mr={2}>
+          <Text fontWeight="medium" fontSize="sm" color={isCompleted ? 'green.300' : 'white'}>
+            {task.label}
+          </Text>
+          {task.description && (
+            <Text fontSize="xs" color="gray.400">{task.description}</Text>
+          )}
+        </VStack>
+        <HStack spacing={1} flexShrink={0}>
+          <Badge colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'} fontSize="xs">{task.role}</Badge>
+          <Badge colorScheme={DIFFICULTY_COLOR[task.difficulty] ?? 'gray'} fontSize="xs">{task.difficulty}</Badge>
+          {isCompleted && <Badge colorScheme="green" fontSize="xs">✅ Done</Badge>}
+        </HStack>
+      </HStack>
+
+      {hasOthers && !isCompleted && (
+        <Text fontSize="xs" color="yellow.400" mb={2}>
+          In progress: {inProgressIds.map(memberName).join(', ')}
+        </Text>
+      )}
+
+      {!isCompleted && myTeam && (
+        <HStack spacing={2} mt={2}>
+          {iAmInProgress ? (
+            <Button
+              size="xs"
+              colorScheme="red"
+              variant="outline"
+              isLoading={leaving}
+              onClick={() => leave({ variables: { eventId, teamId: myTeam.teamId, taskId: task.taskId } })}
+            >
+              Leave
+            </Button>
+          ) : (
+            <Button
+              size="xs"
+              colorScheme={hasOthers ? 'blue' : 'green'}
+              variant="outline"
+              isLoading={joining}
+              onClick={() => join({ variables: { eventId, teamId: myTeam.teamId, taskId: task.taskId } })}
+            >
+              {hasOthers ? '+ Join' : 'Mark In Progress'}
+            </Button>
+          )}
+
+          <HStack
+            spacing={1}
+            px={2}
+            py={1}
+            bg="gray.800"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="gray.600"
+            cursor="pointer"
+            onClick={handleCopy}
+            _hover={{ borderColor: 'gray.400' }}
+            flexShrink={0}
+          >
+            <Code fontSize="xs" bg="transparent" color="gray.300">!cwsubmit {task.taskId}</Code>
+            <CopyIcon boxSize={3} color="gray.400" />
+          </HStack>
+        </HStack>
+      )}
+
+      {isCompleted && (
+        <HStack spacing={2} mt={2}>
+          <HStack
+            spacing={1}
+            px={2}
+            py={1}
+            bg="gray.800"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="gray.600"
+            cursor="pointer"
+            onClick={handleCopy}
+            _hover={{ borderColor: 'gray.400' }}
+          >
+            <Code fontSize="xs" bg="transparent" color="gray.500">!cwsubmit {task.taskId}</Code>
+            <CopyIcon boxSize={3} color="gray.500" />
+          </HStack>
+        </HStack>
+      )}
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// GatheringPhase
+// ---------------------------------------------------------------------------
 export default function GatheringPhase({ event, isAdmin, refetch }) {
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [outfittingConfirmOpen, setOutfittingConfirmOpen] = useState(false);
+
+  const myTeam = event.teams?.find(
+    (t) =>
+      t.captainDiscordId === user?.discordUserId ||
+      t.members?.some((m) => m.discordId === user?.discordUserId)
+  );
+  const myDiscordId = user?.discordUserId ?? null;
 
   const { data: subsData, refetch: refetchSubs } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
     variables: { eventId: event.eventId, status: statusFilter || undefined },
@@ -147,6 +284,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   });
 
   const submissions = subsData?.getClanWarsSubmissions ?? [];
+  const tasks = event.tasks ?? [];
 
   const handleReview = async ({ submissionId, approved, rewardSlot, denialReason }) => {
     await reviewSubmission({
@@ -166,6 +304,13 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   const now = new Date();
   const hoursLeft = gatheringEnd ? Math.max(0, (gatheringEnd - now) / 1000 / 3600) : null;
 
+  // Group tasks by difficulty for display
+  const tasksByDiff = {
+    initiate: tasks.filter((t) => t.difficulty === 'initiate'),
+    adept:    tasks.filter((t) => t.difficulty === 'adept'),
+    master:   tasks.filter((t) => t.difficulty === 'master'),
+  };
+
   return (
     <VStack align="stretch" spacing={6}>
       <Box p={5} bg="green.900" borderRadius="lg">
@@ -175,7 +320,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
               ⚔️ Gathering Phase — {event.eventName}
             </Text>
             <Text fontSize="sm" color="green.300">
-              Players mark tasks in-progress on the site, then submit via Discord: <code>!cwsubmit &lt;task_id&gt;</code> with a screenshot attached
+              Mark tasks in-progress, then submit via Discord with a screenshot attached.
             </Text>
             {hoursLeft !== null && (
               <Text fontSize="xs" color="green.400">
@@ -196,12 +341,55 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
 
       <Tabs colorScheme="purple" variant="soft-rounded">
         <TabList>
+          <Tab fontSize="sm">Tasks</Tab>
           <Tab fontSize="sm">Submissions</Tab>
           <Tab fontSize="sm">War Chests</Tab>
           {isAdmin && <Tab fontSize="sm">Admin</Tab>}
         </TabList>
 
         <TabPanels>
+          {/* ─── Tasks tab ─── */}
+          <TabPanel px={0}>
+            {tasks.length === 0 ? (
+              <Center h="200px">
+                <Text color="gray.500">No tasks in the pool yet.</Text>
+              </Center>
+            ) : (
+              <VStack align="stretch" spacing={5}>
+                {['initiate', 'adept', 'master'].map((diff) => {
+                  const group = tasksByDiff[diff];
+                  if (!group.length) return null;
+                  return (
+                    <Box key={diff}>
+                      <HStack mb={3} spacing={2}>
+                        <Badge colorScheme={DIFFICULTY_COLOR[diff]} fontSize="sm" px={2} py={1}>
+                          {diff.charAt(0).toUpperCase() + diff.slice(1)}
+                        </Badge>
+                        <Divider borderColor="gray.600" />
+                        <Text fontSize="xs" color="gray.500" whiteSpace="nowrap">
+                          {group.length} task{group.length !== 1 ? 's' : ''}
+                        </Text>
+                      </HStack>
+                      <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={3}>
+                        {group.map((task) => (
+                          <TaskCard
+                            key={task.taskId}
+                            task={task}
+                            myTeam={myTeam}
+                            myDiscordId={myDiscordId}
+                            eventId={event.eventId}
+                            refetch={refetch}
+                          />
+                        ))}
+                      </SimpleGrid>
+                    </Box>
+                  );
+                })}
+              </VStack>
+            )}
+          </TabPanel>
+
+          {/* ─── Submissions tab ─── */}
           <TabPanel px={0}>
             <HStack mb={4} spacing={2}>
               <Text fontSize="sm" color="gray.400">Filter:</Text>
@@ -236,6 +424,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
             )}
           </TabPanel>
 
+          {/* ─── War Chests tab ─── */}
           <TabPanel px={0}>
             <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
               {(event.teams ?? []).map((team) => (
@@ -244,6 +433,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
             </SimpleGrid>
           </TabPanel>
 
+          {/* ─── Admin tab ─── */}
           {isAdmin && (
             <TabPanel px={0}>
               <AdminEventPanel event={event} isAdmin={isAdmin} refetch={refetch} />

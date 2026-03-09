@@ -6,6 +6,8 @@
   "scripts": {
     "start": "npm i && node index.js",
     "migrate": "npx sequelize-cli db:migrate --config db/config/config.json --migrations-path db/migrations",
+    "cfseed": "bash scripts/seed-champion-forge-dev.sh",
+    "cfseed:undo": "bash scripts/seed-champion-forge-dev.sh undo",
     "test": "jest",
     "prepare": "husky"
   },

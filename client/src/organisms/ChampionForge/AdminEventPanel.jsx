@@ -21,6 +21,7 @@ import {
 } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useToastContext } from '../../providers/ToastProvider';
+import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
   CREATE_CLAN_WARS_TEAM,
@@ -59,10 +60,10 @@ function TeamCard({ team, eventId, refetch }) {
     }
   };
 
-  const handleSetCaptain = async () => {
-    if (!captainInput.trim()) return;
+  const handleSetCaptainById = async (discordId) => {
+    if (!discordId?.trim()) return;
     try {
-      await setCaptain({ variables: { teamId: team.teamId, discordId: captainInput.trim() } });
+      await setCaptain({ variables: { teamId: team.teamId, discordId: discordId.trim() } });
       showToast('Captain set', 'success');
       setCaptainInput('');
     } catch {
@@ -78,12 +79,6 @@ function TeamCard({ team, eventId, refetch }) {
           Remove
         </Button>
       </HStack>
-
-      {team.discordRoleId && (
-        <Text fontSize="xs" color="gray.400" mb={1} fontFamily="mono">
-          Role ID: {team.discordRoleId}
-        </Text>
-      )}
 
       <Text fontSize="xs" color="gray.400" mb={2}>
         {team.members?.length ?? 0} members
@@ -104,22 +99,18 @@ function TeamCard({ team, eventId, refetch }) {
         )}
       </VStack>
 
-      <HStack mt={2} spacing={2}>
-        <Input
-          size="xs"
-          placeholder="Set captain (Discord ID)"
+      <Box mt={2}>
+        <Text fontSize="xs" color="gray.500" mb={1}>Set Captain</Text>
+        <DiscordMemberInput
           value={captainInput}
-          onChange={(e) => setCaptainInput(e.target.value)}
-          bg="gray.800"
-          borderColor="gray.600"
-          color="white"
-          _placeholder={{ color: 'gray.500' }}
-          fontFamily="mono"
+          onChange={(id) => {
+            setCaptainInput(id);
+            handleSetCaptainById(id);
+          }}
+          onRemove={() => setCaptainInput('')}
+          showRemove={!!captainInput}
         />
-        <Button size="xs" colorScheme="purple" onClick={handleSetCaptain} flexShrink={0}>
-          Set
-        </Button>
-      </HStack>
+      </Box>
 
       <ConfirmModal
         isOpen={deleteOpen}
@@ -136,7 +127,6 @@ function TeamCard({ team, eventId, refetch }) {
 
 function AddTeamForm({ eventId, refetch }) {
   const [name, setName] = useState('');
-  const [roleId, setRoleId] = useState('');
   const [loading, setLoading] = useState(false);
   const { showToast } = useToastContext();
   const [createTeam] = useMutation(CREATE_CLAN_WARS_TEAM, { onCompleted: refetch });
@@ -146,14 +136,10 @@ function AddTeamForm({ eventId, refetch }) {
     setLoading(true);
     try {
       await createTeam({
-        variables: {
-          eventId,
-          input: { teamName: name.trim(), discordRoleId: roleId.trim() || null },
-        },
+        variables: { eventId, input: { teamName: name.trim() } },
       });
       showToast('Team created', 'success');
       setName('');
-      setRoleId('');
     } catch {
       showToast('Failed to create team', 'error');
     } finally {
@@ -172,17 +158,6 @@ function AddTeamForm({ eventId, refetch }) {
         borderColor="gray.600"
         color="white"
         _placeholder={{ color: 'gray.500' }}
-      />
-      <Input
-        size="sm"
-        placeholder="Discord Role ID (optional)"
-        value={roleId}
-        onChange={(e) => setRoleId(e.target.value)}
-        bg="gray.700"
-        borderColor="gray.600"
-        color="white"
-        _placeholder={{ color: 'gray.500' }}
-        fontFamily="mono"
       />
       <Button size="sm" colorScheme="purple" isLoading={loading} onClick={handleSubmit} flexShrink={0}>
         Add Team
@@ -452,9 +427,6 @@ export default function AdminEventPanel({ event, refetch }) {
           <Text color="blue.300" fontSize="sm">
             Players mark tasks in-progress on the site, then submit via Discord:{' '}
             <code>!cwsubmit &lt;task_id&gt;</code> with a screenshot attached.
-          </Text>
-          <Text color="blue.400" fontSize="xs" mt={1}>
-            The bot matches the player's Discord role to their team via the Role ID on each team.
           </Text>
         </Box>
 

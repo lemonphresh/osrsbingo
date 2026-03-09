@@ -711,6 +711,36 @@ const Mutation = {
 
   // ---- Battle ----
 
+  setCaptainReady: async (_, { eventId, teamId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+
+    const { ClanWarsTeam } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team) throw new UserInputError('Team not found');
+
+    const isCaptain = team.captainDiscordId === user.discordUserId;
+    if (!isCaptain && !isAdmin(event, user.id)) {
+      throw new AuthenticationError('Only the team captain or an admin can ready up');
+    }
+
+    const bracket = event.bracket ?? { rounds: [] };
+    let found = false;
+    const updatedRounds = bracket.rounds.map((round) => ({
+      ...round,
+      matches: round.matches.map((m) => {
+        if (found || m.battleId) return m; // already started, skip
+        if (m.team1Id === teamId) { found = true; return { ...m, team1Ready: true }; }
+        if (m.team2Id === teamId) { found = true; return { ...m, team2Ready: true }; }
+        return m;
+      }),
+    }));
+
+    if (!found) throw new UserInputError('No upcoming match found for this team');
+    await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
+    return event;
+  },
+
   startClanWarsBattle: async (_, { eventId, team1Id, team2Id }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
@@ -780,6 +810,28 @@ const Mutation = {
         latestEvent: null,
       },
     });
+
+    // Write battleId back to the bracket so clients can auto-detect via polling
+    const bracket = event.bracket ?? { rounds: [] };
+    let bracketUpdated = false;
+    const updatedRounds = bracket.rounds.map((round) => ({
+      ...round,
+      matches: round.matches.map((m) => {
+        if (
+          !bracketUpdated &&
+          !m.battleId &&
+          ((m.team1Id === team1Id && m.team2Id === team2Id) ||
+           (m.team1Id === team2Id && m.team2Id === team1Id))
+        ) {
+          bracketUpdated = true;
+          return { ...m, battleId: battle.battleId };
+        }
+        return m;
+      }),
+    }));
+    if (bracketUpdated) {
+      await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
+    }
 
     return battle;
   },
@@ -951,6 +1003,21 @@ const Mutation = {
     }
 
     await battle.update(battleUpdates);
+
+    // Write winnerId back to the bracket so clients can detect round completion via polling
+    if (battleOver) {
+      const eventRecord = await getEventOrThrow(battle.eventId);
+      const b = eventRecord.bracket;
+      if (b?.rounds) {
+        const winnerRounds = b.rounds.map((round) => ({
+          ...round,
+          matches: round.matches.map((m) =>
+            m.battleId === battleId ? { ...m, winnerId } : m
+          ),
+        }));
+        await eventRecord.update({ bracket: { ...b, rounds: winnerRounds } });
+      }
+    }
 
     // If bleed ticked, log it separately
     if (bleedResult.bleedDamage > 0) {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box, Center, Spinner, Text, VStack, HStack, Heading, Button,
-  Badge, Alert, AlertIcon, Icon, SimpleGrid, Divider, Tooltip, Code,
+  Badge, Alert, AlertIcon, Icon, SimpleGrid, Divider, Tooltip, Code, ButtonGroup,
 } from '@chakra-ui/react';
 import { LockIcon, ArrowBackIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
 import { FaDiscord } from 'react-icons/fa';
@@ -14,6 +14,7 @@ import {
   GET_CLAN_WARS_WAR_CHEST,
   JOIN_TASK_IN_PROGRESS,
   LEAVE_TASK_IN_PROGRESS,
+  UPDATE_CLAN_WARS_TEAM_MEMBERS,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -129,8 +130,9 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
   const isMeInProgress = !!currentUserDiscordId && inProgressIds.includes(currentUserDiscordId);
   const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
-  const canJoin = !isCompleted && !isMeInProgress && (
-    task.role === 'ANY' || userMemberRole === 'ANY' || userMemberRole === task.role
+  const roleUnset = !userMemberRole || userMemberRole === 'UNSET';
+  const canJoin = !isCompleted && !isMeInProgress && !roleUnset && (
+    task.role === 'ANY' || userMemberRole === 'ANY' || userMemberRole === 'FLEX' || userMemberRole === task.role
   );
 
   const getMemberName = (discordId) => {
@@ -268,6 +270,49 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress
 }
 
 // ---------------------------------------------------------------------------
+// Role selector — lets the current member update their own role
+// ---------------------------------------------------------------------------
+function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
+  const { showToast } = useToastContext();
+  const [updateMembers, { loading }] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
+    onCompleted: () => { showToast('Role updated', 'success'); refetch(); },
+    onError: (err) => showToast(err.message ?? 'Failed to update role', 'error'),
+  });
+
+  const setRole = (role) => {
+    if (role === currentRole) return;
+    const updated = (team.members ?? []).map((m) =>
+      m.discordId === myDiscordId
+        ? { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role }
+        : { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role: m.role }
+    );
+    updateMembers({ variables: { teamId: team.teamId, members: updated } });
+  };
+
+  const isUnset = !currentRole || currentRole === 'UNSET';
+
+  return (
+    <HStack spacing={2} flexWrap="wrap" align="center">
+      <Text fontSize="xs" color={isUnset ? 'yellow.300' : 'gray.400'} fontWeight="semibold">
+        {isUnset ? '⚠️ Set your role to join tasks:' : 'My role:'}
+      </Text>
+      <ButtonGroup size="xs" isAttached isDisabled={loading}>
+        {[['PVMER', 'orange'], ['SKILLER', 'teal'], ['FLEX', 'purple']].map(([role, scheme]) => (
+          <Button
+            key={role}
+            colorScheme={scheme}
+            variant={currentRole === role ? 'solid' : 'outline'}
+            onClick={() => setRole(role)}
+          >
+            {role === 'PVMER' ? 'PvMer' : role === 'SKILLER' ? 'Skiller' : 'Flex'}
+          </Button>
+        ))}
+      </ButtonGroup>
+    </HStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // GATHERING phase
 // ---------------------------------------------------------------------------
 function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
@@ -322,7 +367,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     <VStack align="stretch" spacing={6}>
       {/* Phase banner */}
       <Box p={4} bg="green.900" borderRadius="lg" border="1px solid" borderColor="green.700">
-        <HStack justify="space-between" flexWrap="wrap" gap={2}>
+        <HStack justify="space-between" flexWrap="wrap" gap={2} mb={memberRecord ? 3 : 0}>
           <VStack align="flex-start" spacing={0}>
             <Text fontWeight="bold" color="green.200">⚒️ Gathering Phase</Text>
             <Text fontSize="sm" color="green.300">
@@ -336,6 +381,14 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             </Badge>
           )}
         </HStack>
+        {memberRecord && (
+          <MyRoleSelector
+            team={team}
+            myDiscordId={currentUserDiscordId}
+            currentRole={userMemberRole}
+            refetch={refetch}
+          />
+        )}
       </Box>
 
       {/* Two-column layout: tasks + war chest */}

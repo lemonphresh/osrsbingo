@@ -792,6 +792,7 @@ const typeDefs = gql`
     adminLockAllLoadouts(eventId: ID!): [ClanWarsTeam!]!
 
     # --- Champion Forge: Battle ---
+    setCaptainReady(eventId: ID!, teamId: ID!): ClanWarsEvent!
     startClanWarsBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): ClanWarsBattle!
     submitBattleAction(
       battleId: ID!
