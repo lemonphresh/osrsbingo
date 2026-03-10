@@ -15,19 +15,10 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000002-cw-draft-seeder.js
  */
 
+const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
+
 const EVENT_ID = 'cwev_draft01';
 const TEAM1_ID = 'cwt_draft_t1';
-
-const TASKS = [
-  { taskId: 'cwtask_dr_001', label: 'Barrows Armour',   description: 'Obtain any Barrows piece.',           difficulty: 'initiate', role: 'PVMER'   },
-  { taskId: 'cwtask_dr_002', label: 'Berserker Ring',    description: 'Obtain a Berserker Ring from Rex.',   difficulty: 'initiate', role: 'PVMER'   },
-  { taskId: 'cwtask_dr_003', label: 'Dragon Warhammer',  description: 'Obtain a DWH from Lizardman Shaman.', difficulty: 'adept',    role: 'PVMER'   },
-  { taskId: 'cwtask_dr_004', label: 'Twisted Bow',       description: 'Obtain a Twisted Bow from CoX.',      difficulty: 'master',   role: 'PVMER'   },
-  { taskId: 'cwtask_dr_005', label: 'Fishing XP (300k)', description: 'Gain 300k Fishing XP.',               difficulty: 'initiate', role: 'SKILLER' },
-  { taskId: 'cwtask_dr_006', label: 'Wintertodt (5-15)', description: 'Complete 5-15 Wintertodt games.',     difficulty: 'initiate', role: 'SKILLER' },
-  { taskId: 'cwtask_dr_007', label: 'Mining XP (500k)',  description: 'Gain 500k Mining XP.',                difficulty: 'adept',    role: 'SKILLER' },
-  { taskId: 'cwtask_dr_008', label: 'Tempoross (10-20)', description: 'Complete 10-20 Tempoross games.',     difficulty: 'adept',    role: 'SKILLER' },
-];
 
 module.exports = {
   async up(queryInterface) {
@@ -46,6 +37,7 @@ module.exports = {
       eventId: EVENT_ID,
       eventName: 'Dev Draft Phase',
       status: 'DRAFT',
+      difficulty: 'standard',
       guildId: null, // intentionally missing — checklist should block launch
       gatheringStart: null,
       gatheringEnd: null,
@@ -71,7 +63,7 @@ module.exports = {
       eventId: EVENT_ID,
       teamName: 'The Bronze Pact',
       members: [
-        { discordId: '100000000000000001', username: 'devuser', avatar: null, role: 'PVMER' },
+        { discordId: '100000000000000001', username: 'devuser', avatar: null, role: 'UNSET' },
       ],
       officialLoadout: null,
       loadoutLocked: false,
@@ -82,8 +74,9 @@ module.exports = {
       updatedAt: now,
     });
 
+    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard');
     await ClanWarsTask.bulkCreate(
-      TASKS.map((t) => ({ ...t, eventId: EVENT_ID, isActive: true, createdAt: now, updatedAt: now }))
+      tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now }))
     );
 
     console.log('✅ Dev Draft seeder complete!');

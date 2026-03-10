@@ -35,6 +35,11 @@ module.exports = (sequelize) => {
       },
       seed:    { type: DataTypes.STRING, allowNull: true },
       guildId: { type: DataTypes.STRING, allowNull: true },
+      difficulty: {
+        type: DataTypes.ENUM('casual', 'standard', 'hardcore'),
+        allowNull: false,
+        defaultValue: 'standard',
+      },
     },
     { sequelize, modelName: 'ClanWarsEvent' }
   );

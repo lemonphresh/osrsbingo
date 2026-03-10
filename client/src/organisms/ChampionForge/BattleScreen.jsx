@@ -152,6 +152,8 @@ export default function BattleScreen({
   myTeamId,
   allItems,
   turnTimerSeconds = 60,
+  isAdmin = false,
+  onBattleEnd = null,
 }) {
   const { showToast } = useToastContext();
   const logRef = useRef(null);
@@ -164,7 +166,14 @@ export default function BattleScreen({
   const [log, setLog] = useState([]);
   const [timer, setTimer] = useState(turnTimerSeconds);
   const [activeTab, setActiveTab] = useState('attack');
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const [lobbyCountdown, setLobbyCountdown] = useState(null);
   const timerRef = useRef(null);
+  const lobbyTimerRef = useRef(null);
+  const autoRef = useRef(null);
+  const battleRef = useRef(battle);
+
+  battleRef.current = battle;
 
   const state = battle?.battleState ?? {};
   const snap = battle?.championSnapshots ?? {};
@@ -219,6 +228,46 @@ export default function BattleScreen({
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
+  // Dev auto-play: submit one ATTACK per second on behalf of whoever's turn it is
+  useEffect(() => {
+    if (!autoPlaying || !isAdmin || isBattleOver) {
+      clearInterval(autoRef.current);
+      if (isBattleOver) setAutoPlaying(false);
+      return;
+    }
+    autoRef.current = setInterval(() => {
+      const currentBattle = battleRef.current;
+      if (!currentBattle || currentBattle.status === 'COMPLETED') {
+        clearInterval(autoRef.current);
+        setAutoPlaying(false);
+        return;
+      }
+      const actorSide = currentBattle.battleState?.currentTurn;
+      const actorTeamId = actorSide === 'team1' ? currentBattle.team1Id : currentBattle.team2Id;
+      submitAction({
+        variables: { battleId: currentBattle.battleId, teamId: actorTeamId, action: 'ATTACK', itemId: null },
+      }).catch(() => {});
+    }, 2000);
+    return () => clearInterval(autoRef.current);
+  }, [autoPlaying, isAdmin, isBattleOver, battle?.battleId]);
+
+  // Lobby countdown: when battle ends, tick down 15s then call onBattleEnd
+  useEffect(() => {
+    if (!isBattleOver || !onBattleEnd) return;
+    setLobbyCountdown(15);
+    lobbyTimerRef.current = setInterval(() => {
+      setLobbyCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(lobbyTimerRef.current);
+          onBattleEnd();
+          return 0;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(lobbyTimerRef.current);
+  }, [isBattleOver]);
+
   const triggerShake = (side) => {
     setShaking(side);
     setTimeout(() => setShaking(null), 300);
@@ -262,6 +311,16 @@ export default function BattleScreen({
         {isSpectator && (
           <Badge colorScheme="gray" fontSize="10px" variant="subtle">👁 Spectating</Badge>
         )}
+        {isAdmin && !isBattleOver && (
+          <Button
+            size="xs"
+            colorScheme={autoPlaying ? 'red' : 'orange'}
+            variant="outline"
+            onClick={() => setAutoPlaying((p) => !p)}
+          >
+            {autoPlaying ? '⏹ Stop' : '⚡ Auto-Play'}
+          </Button>
+        )}
       </HStack>
 
       {/* Arena */}
@@ -281,10 +340,17 @@ export default function BattleScreen({
         )}
 
         {isBattleOver && winnerSnap && (
-          <Text textAlign="center" mb={3} fontSize="18px" fontWeight="bold"
-            color="#c9a84c" textShadow="0 0 20px #c9a84c88">
-            🏆 {winnerSnap.teamName} wins!
-          </Text>
+          <>
+            <Text textAlign="center" fontSize="18px" fontWeight="bold"
+              color="#c9a84c" textShadow="0 0 20px #c9a84c88">
+              🏆 {winnerSnap.teamName} wins!
+            </Text>
+            {lobbyCountdown !== null && (
+              <Text textAlign="center" mb={3} fontSize="12px" color="gray.500">
+                Returning to lobby in {lobbyCountdown}…
+              </Text>
+            )}
+          </>
         )}
 
         <SimpleGrid columns={3} alignItems="flex-end" gap={3} mb={4}>

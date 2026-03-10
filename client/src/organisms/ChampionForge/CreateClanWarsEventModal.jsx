@@ -31,13 +31,19 @@ import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 // ---------------------------------------------------------------------------
 const DEFAULT_CONFIG = {
   eventName: '',
-  clanId: '',
   gatheringHours: 48,
   outfittingHours: 24,
   turnTimerSeconds: 60,
   maxConsumableSlots: 4,
   flexRolesAllowed: false,
+  difficulty: 'standard',
 };
+
+const DIFFICULTY_OPTIONS = [
+  { value: 'casual',   label: 'Casual',   hint: 'Fewer drops required — great for shorter events' },
+  { value: 'standard', label: 'Standard', hint: 'Balanced challenge for most clans'               },
+  { value: 'hardcore', label: 'Hardcore', hint: 'More drops required — for experienced teams'     },
+];
 
 const DEFAULT_TEAM = { teamName: '', members: [] };
 const DEFAULT_MEMBER = { discordId: '', role: 'ANY' };
@@ -78,20 +84,6 @@ function StepEventConfig({ config, onChange }) {
           value={config.eventName}
           onChange={(e) => set('eventName', e.target.value)}
           placeholder="Summer Clan Wars 2026"
-          bg="gray.700"
-          border="1px solid"
-          borderColor="gray.600"
-          _placeholder={{ color: 'gray.500' }}
-          color="white"
-        />
-      </FormControl>
-
-      <FormControl>
-        <FormLabel fontSize="sm" color="gray.300">Clan ID (optional)</FormLabel>
-        <Input
-          value={config.clanId}
-          onChange={(e) => set('clanId', e.target.value)}
-          placeholder="Discord server ID or clan tag"
           bg="gray.700"
           border="1px solid"
           borderColor="gray.600"
@@ -147,6 +139,36 @@ function StepEventConfig({ config, onChange }) {
           onChange={(e) => set('flexRolesAllowed', e.target.checked)}
         />
       </FormControl>
+
+      <Divider borderColor="gray.600" />
+      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+        Event Difficulty
+      </Text>
+      <Text fontSize="xs" color="gray.500">
+        Controls how many drops PvMers must earn per task, and XP goals for Skillers.
+      </Text>
+
+      <HStack spacing={2}>
+        {DIFFICULTY_OPTIONS.map(({ value, label, hint }) => (
+          <Button
+            key={value}
+            flex={1}
+            size="sm"
+            variant={config.difficulty === value ? 'solid' : 'outline'}
+            colorScheme="teal"
+            onClick={() => set('difficulty', value)}
+            flexDirection="column"
+            h="auto"
+            py={2}
+            whiteSpace="normal"
+          >
+            <Text fontSize="sm" fontWeight="bold">{label}</Text>
+            <Text fontSize="9px" fontWeight="normal" color={config.difficulty === value ? 'teal.100' : 'gray.400'} mt={0.5}>
+              {hint}
+            </Text>
+          </Button>
+        ))}
+      </HStack>
     </VStack>
   );
 }
@@ -293,10 +315,8 @@ function StepReview({ config, teams }) {
         <Text fontSize="sm" fontWeight="bold" color="purple.300" mb={2}>Event Config</Text>
         <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Name</Text>
           <Text fontSize="sm" color="white">{config.eventName}</Text></HStack>
-        {config.clanId && (
-          <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Clan ID</Text>
-            <Text fontSize="sm" color="white">{config.clanId}</Text></HStack>
-        )}
+        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Difficulty</Text>
+          <Text fontSize="sm" color="white" textTransform="capitalize">{config.difficulty}</Text></HStack>
         <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Gathering</Text>
           <Text fontSize="sm" color="white">{config.gatheringHours}h</Text></HStack>
         <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Outfitting</Text>
@@ -371,12 +391,12 @@ export default function CreateClanWarsEventModal({ isOpen, onClose, onSubmit }) 
 
       await onSubmit({
         eventName: config.eventName.trim(),
-        clanId: config.clanId.trim() || null,
         gatheringHours: Number(config.gatheringHours),
         outfittingHours: Number(config.outfittingHours),
         turnTimerSeconds: Number(config.turnTimerSeconds),
         maxConsumableSlots: Number(config.maxConsumableSlots),
         flexRolesAllowed: config.flexRolesAllowed,
+        difficulty: config.difficulty,
         teams: validTeams,
       });
 

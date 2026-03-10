@@ -22,6 +22,7 @@ import {
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useToastContext } from '../../providers/ToastProvider';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+import WarChestPanel from './WarChestPanel';
 import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
   CREATE_CLAN_WARS_TEAM,
@@ -42,7 +43,7 @@ const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 // ---------------------------------------------------------------------------
 // Team card (admin management view)
 // ---------------------------------------------------------------------------
-function TeamCard({ team, eventId, refetch }) {
+function TeamCard({ team, eventId, eventStatus, refetch }) {
   const { showToast } = useToastContext();
   const [deleteTeam] = useMutation(DELETE_CLAN_WARS_TEAM, { onCompleted: refetch });
   const [setCaptain] = useMutation(SET_CLAN_WARS_CAPTAIN, { onCompleted: refetch });
@@ -74,10 +75,14 @@ function TeamCard({ team, eventId, refetch }) {
   return (
     <Box bg="gray.700" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
       <HStack justify="space-between" mb={2}>
-        <Text fontWeight="bold" color="white">{team.teamName}</Text>
-        <Button size="xs" colorScheme="red" variant="ghost" onClick={() => setDeleteOpen(true)}>
-          Remove
-        </Button>
+        <Text fontWeight="bold" color="white">
+          {team.teamName}
+        </Text>
+        {eventStatus === 'DRAFT' && (
+          <Button size="xs" colorScheme="red" variant="ghost" onClick={() => setDeleteOpen(true)}>
+            Remove
+          </Button>
+        )}
       </HStack>
 
       <Text fontSize="xs" color="gray.400" mb={2}>
@@ -91,16 +96,22 @@ function TeamCard({ team, eventId, refetch }) {
             <Badge colorScheme={ROLE_COLORS[m.role] ?? 'gray'} fontSize="xs" flexShrink={0}>
               {m.role ?? '—'}
             </Badge>
-            <Text fontSize="xs" color="gray.300" noOfLines={1}>{m.username ?? m.discordId}</Text>
+            <Text fontSize="xs" color="gray.300" noOfLines={1}>
+              {m.username ?? m.discordId}
+            </Text>
           </HStack>
         ))}
         {(team.members?.length ?? 0) > 4 && (
-          <Text fontSize="xs" color="gray.500">+{team.members.length - 4} more</Text>
+          <Text fontSize="xs" color="gray.500">
+            +{team.members.length - 4} more
+          </Text>
         )}
       </VStack>
 
       <Box mt={2}>
-        <Text fontSize="xs" color="gray.500" mb={1}>Set Captain</Text>
+        <Text fontSize="xs" color="gray.500" mb={1}>
+          Set Captain
+        </Text>
         <DiscordMemberInput
           value={captainInput}
           onChange={(id) => {
@@ -159,7 +170,13 @@ function AddTeamForm({ eventId, refetch }) {
         color="white"
         _placeholder={{ color: 'gray.500' }}
       />
-      <Button size="sm" colorScheme="purple" isLoading={loading} onClick={handleSubmit} flexShrink={0}>
+      <Button
+        size="sm"
+        colorScheme="purple"
+        isLoading={loading}
+        onClick={handleSubmit}
+        flexShrink={0}
+      >
         Add Team
       </Button>
     </HStack>
@@ -215,15 +232,30 @@ function TaskPool({ event, refetch }) {
           Task Pool ({tasks.length})
         </Text>
         <HStack spacing={2}>
-          <Badge colorScheme="orange" fontSize="xs">{pvmerTasks.length} PvM</Badge>
-          <Badge colorScheme="teal" fontSize="xs">{skillerTasks.length} Skill</Badge>
+          <Badge colorScheme="orange" fontSize="xs">
+            {pvmerTasks.length} PvM
+          </Badge>
+          <Badge colorScheme="teal" fontSize="xs">
+            {skillerTasks.length} Skill
+          </Badge>
         </HStack>
       </HStack>
 
-      <VStack align="stretch" spacing={1} mb={4} maxH="320px" overflowY="auto"
-        css={{ '&::-webkit-scrollbar': { width: '4px' }, '&::-webkit-scrollbar-thumb': { background: '#4A5568', borderRadius: '4px' } }}>
+      <VStack
+        align="stretch"
+        spacing={1}
+        mb={4}
+        maxH="320px"
+        overflowY="auto"
+        css={{
+          '&::-webkit-scrollbar': { width: '4px' },
+          '&::-webkit-scrollbar-thumb': { background: '#4A5568', borderRadius: '4px' },
+        }}
+      >
         {tasks.length === 0 && (
-          <Text fontSize="sm" color="gray.500">No tasks yet.</Text>
+          <Text fontSize="sm" color="gray.500">
+            No tasks yet.
+          </Text>
         )}
         {tasks.map((task) => (
           <HStack key={task.taskId} justify="space-between" p={2} bg="gray.700" borderRadius="md">
@@ -235,14 +267,22 @@ function TaskPool({ event, refetch }) {
                 <Badge colorScheme={ROLE_COLORS[task.role]} fontSize="xs">
                   {task.role}
                 </Badge>
-                <Text fontSize="sm" fontWeight="medium" color="white">{task.label}</Text>
+                <Text fontSize="sm" fontWeight="medium" color="white">
+                  {task.label}
+                </Text>
               </HStack>
               {task.description && (
-                <Text fontSize="xs" color="gray.400">{task.description}</Text>
+                <Text fontSize="xs" color="gray.400">
+                  {task.description}
+                </Text>
               )}
             </VStack>
-            <Button size="xs" colorScheme="red" variant="ghost"
-              onClick={() => handleDelete(task.taskId)}>
+            <Button
+              size="xs"
+              colorScheme="red"
+              variant="ghost"
+              onClick={() => handleDelete(task.taskId)}
+            >
               ×
             </Button>
           </HStack>
@@ -251,10 +291,16 @@ function TaskPool({ event, refetch }) {
 
       {/* Add task form */}
       <VStack align="stretch" spacing={2} p={3} bg="gray.700" borderRadius="md">
-        <Text fontSize="xs" color="gray.400" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider">
+        <Text
+          fontSize="xs"
+          color="gray.400"
+          fontWeight="semibold"
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
           Add custom task
         </Text>
-        <HStack spacing={2}>
+        <HStack spacing={2} flexWrap="wrap">
           <Input
             size="sm"
             placeholder="Task label"
@@ -264,15 +310,32 @@ function TaskPool({ event, refetch }) {
             borderColor="gray.600"
             color="white"
             _placeholder={{ color: 'gray.500' }}
+            minW="120px"
           />
-          <Select size="sm" value={difficulty} onChange={(e) => setDifficulty(e.target.value)}
-            bg="gray.800" borderColor="gray.600" color="white" w="110px" flexShrink={0}>
+          <Select
+            size="sm"
+            value={difficulty}
+            onChange={(e) => setDifficulty(e.target.value)}
+            bg="gray.800"
+            borderColor="gray.600"
+            color="white"
+            w="110px"
+            flexShrink={0}
+          >
             <option value="initiate">Initiate</option>
             <option value="adept">Adept</option>
             <option value="master">Master</option>
           </Select>
-          <Select size="sm" value={role} onChange={(e) => setRole(e.target.value)}
-            bg="gray.800" borderColor="gray.600" color="white" w="110px" flexShrink={0}>
+          <Select
+            size="sm"
+            value={role}
+            onChange={(e) => setRole(e.target.value)}
+            bg="gray.800"
+            borderColor="gray.600"
+            color="white"
+            w="110px"
+            flexShrink={0}
+          >
             <option value="PVMER">PvMer</option>
             <option value="SKILLER">Skiller</option>
           </Select>
@@ -349,18 +412,27 @@ export default function AdminEventPanel({ event, refetch }) {
   const nextStatus = NEXT_STATUS[event.status];
 
   return (
-    <Box bg="gray.800" border="1px solid" borderColor="purple.700" borderRadius="xl" overflow="hidden">
+    <Box
+      bg="gray.800"
+      border="1px solid"
+      borderColor="teal.700"
+      borderRadius="xl"
+      overflow="hidden"
+    >
       {/* Admin panel header */}
       <HStack
-        px={5} py={3}
-        bg="purple.900"
+        px={5}
+        py={3}
+        bg="teal.900"
         borderBottom="1px solid"
-        borderColor="purple.700"
+        borderColor="teal.700"
         justify="space-between"
       >
         <HStack spacing={2}>
-          <Icon as={SettingsIcon} color="purple.300" />
-          <Text fontWeight="semibold" color="purple.200" fontSize="sm">Admin Controls</Text>
+          <Icon as={SettingsIcon} color="teal.300" />
+          <Text fontWeight="semibold" color="teal.200" fontSize="sm">
+            Admin Controls
+          </Text>
         </HStack>
 
         {/* Phase advance */}
@@ -371,7 +443,14 @@ export default function AdminEventPanel({ event, refetch }) {
             </Button>
           )}
           {nextStatus && (
-            <Button size="sm" colorScheme="purple" onClick={() => { setPendingNext(nextStatus); setAdvanceOpen(true); }}>
+            <Button
+              size="sm"
+              colorScheme="purple"
+              onClick={() => {
+                setPendingNext(nextStatus);
+                setAdvanceOpen(true);
+              }}
+            >
               → {PHASE_LABELS[nextStatus]}
             </Button>
           )}
@@ -397,11 +476,14 @@ export default function AdminEventPanel({ event, refetch }) {
                     key={team.teamId}
                     team={team}
                     eventId={event.eventId}
+                    eventStatus={event.status}
                     refetch={refetch}
                   />
                 ))}
               </SimpleGrid>
-              <AddTeamForm eventId={event.eventId} refetch={refetch} />
+              {event.eventStatus === 'DRAFT' && (
+                <AddTeamForm eventId={event.eventId} refetch={refetch} />
+              )}
             </AccordionPanel>
           </AccordionItem>
 
@@ -419,14 +501,46 @@ export default function AdminEventPanel({ event, refetch }) {
               <TaskPool event={event} refetch={refetch} />
             </AccordionPanel>
           </AccordionItem>
+
+          {/* War chests section */}
+          {/* {(event.teams?.length ?? 0) > 0 && (
+            <AccordionItem border="none">
+              <AccordionButton px={5} py={3} _hover={{ bg: 'gray.750' }}>
+                <Box flex="1" textAlign="left">
+                  <Text fontWeight="semibold" color="gray.200" fontSize="sm">
+                    War Chests
+                  </Text>
+                </Box>
+                <AccordionIcon color="gray.400" />
+              </AccordionButton>
+              <AccordionPanel px={5} pb={4}>
+                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+                  {event.teams.map((team) => (
+                    <WarChestPanel key={team.teamId} team={team} hidden={false} />
+                  ))}
+                </SimpleGrid>
+              </AccordionPanel>
+            </AccordionItem>
+          )} */}
         </Accordion>
 
         {/* Bot instructions */}
-        <Box px={5} py={4} bg="blue.900" borderLeft="3px solid" borderLeftColor="blue.400" mx={5} my={4} borderRadius="md">
-          <Text fontWeight="semibold" color="blue.200" mb={1} fontSize="sm">Discord Bot Setup</Text>
+        <Box
+          px={5}
+          py={4}
+          bg="blue.900"
+          borderLeft="3px solid"
+          borderLeftColor="blue.400"
+          mx={5}
+          my={4}
+          borderRadius="md"
+        >
+          <Text fontWeight="semibold" color="blue.200" mb={1} fontSize="sm">
+            Discord Bot Setup
+          </Text>
           <Text color="blue.300" fontSize="sm">
             Players mark tasks in-progress on the site, then submit via Discord:{' '}
-            <code>!cwsubmit &lt;task_id&gt;</code> with a screenshot attached.
+            <code>!cfsubmit &lt;task_id&gt;</code> with a screenshot attached.
           </Text>
         </Box>
 
@@ -435,13 +549,16 @@ export default function AdminEventPanel({ event, refetch }) {
           <Accordion allowToggle reduceMotion>
             <AccordionItem border="none">
               <AccordionButton
-                px={5} py={3}
+                px={5}
+                py={3}
                 _hover={{ bg: 'orange.900' }}
                 borderTop="1px solid"
                 borderColor="orange.800"
               >
                 <Box flex="1" textAlign="left">
-                  <Text fontWeight="semibold" color="orange.400" fontSize="sm">🛠 Dev Tools</Text>
+                  <Text fontWeight="semibold" color="orange.400" fontSize="sm">
+                    🛠 Dev Tools
+                  </Text>
                 </Box>
                 <AccordionIcon color="orange.400" />
               </AccordionButton>
@@ -452,34 +569,48 @@ export default function AdminEventPanel({ event, refetch }) {
                 <VStack align="stretch" spacing={4}>
                   {/* Force phase jump */}
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color="gray.400" mb={2}
-                      textTransform="uppercase" letterSpacing={1}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color="gray.400"
+                      mb={2}
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                    >
                       Force Phase Jump
                     </Text>
                     <HStack flexWrap="wrap" gap={2}>
-                      {['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED', 'ARCHIVED'].map((s) => (
-                        <Button
-                          key={s}
-                          size="xs"
-                          color={event.status === s ? 'white' : 'gray.300'}
-                          variant={event.status === s ? 'solid' : 'outline'}
-                          colorScheme={event.status === s ? 'orange' : 'gray'}
-                          onClick={() =>
-                            forceStatus({ variables: { eventId: event.eventId, status: s } })
-                              .then(() => showToast(`Forced to ${s}`, 'success'))
-                              .catch((e) => showToast(e.message, 'error'))
-                          }
-                        >
-                          {s}
-                        </Button>
-                      ))}
+                      {['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED', 'ARCHIVED'].map(
+                        (s) => (
+                          <Button
+                            key={s}
+                            size="xs"
+                            color={event.status === s ? 'white' : 'gray.300'}
+                            variant={event.status === s ? 'solid' : 'outline'}
+                            colorScheme={event.status === s ? 'orange' : 'gray'}
+                            onClick={() =>
+                              forceStatus({ variables: { eventId: event.eventId, status: s } })
+                                .then(() => showToast(`Forced to ${s}`, 'success'))
+                                .catch((e) => showToast(e.message, 'error'))
+                            }
+                          >
+                            {s}
+                          </Button>
+                        )
+                      )}
                     </HStack>
                   </Box>
 
                   {/* Lock all loadouts */}
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color="gray.400" mb={2}
-                      textTransform="uppercase" letterSpacing={1}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color="gray.400"
+                      mb={2}
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                    >
                       Loadouts
                     </Text>
                     <Button
@@ -502,8 +633,14 @@ export default function AdminEventPanel({ event, refetch }) {
 
                   {/* Regenerate bracket */}
                   <Box>
-                    <Text fontSize="xs" fontWeight="bold" color="gray.400" mb={2}
-                      textTransform="uppercase" letterSpacing={1}>
+                    <Text
+                      fontSize="xs"
+                      fontWeight="bold"
+                      color="gray.400"
+                      mb={2}
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                    >
                       Bracket
                     </Text>
                     <Button
@@ -528,7 +665,10 @@ export default function AdminEventPanel({ event, refetch }) {
 
       <ConfirmModal
         isOpen={advanceOpen}
-        onClose={() => { setAdvanceOpen(false); setPendingNext(null); }}
+        onClose={() => {
+          setAdvanceOpen(false);
+          setPendingNext(null);
+        }}
         onConfirm={handleAdvance}
         title={pendingNext ? `${PHASE_LABELS[pendingNext]}?` : ''}
         body="This action cannot be undone."

@@ -26,7 +26,14 @@ async function sendDM(discordId, content) {
   }
 }
 
-async function sendClanWarsSubmissionResult({ discordId, channelId, taskLabel, approved, denialReason, item }) {
+async function sendClanWarsSubmissionResult({
+  discordId,
+  channelId,
+  taskLabel,
+  approved,
+  denialReason,
+  item,
+}) {
   if (!_botClient) return;
 
   try {
@@ -37,14 +44,24 @@ async function sendClanWarsSubmissionResult({ discordId, channelId, taskLabel, a
         .setTitle('✅ Submission Approved!')
         .setColor(rarityColor(item.rarity))
         .setDescription(`Your submission for **${taskLabel}** was approved.`)
-        .addFields({ name: 'Item Earned', value: `**${item.name}** *(${item.rarity})*\nSlot: ${item.slot}`, inline: false });
+        .addFields({
+          name: 'Item Earned',
+          value: `**${item.name}** *(${item.rarity})*\nSlot: ${item.slot}`,
+          inline: false,
+        });
 
       await sendDM(discordId, { embeds: [embed] });
     } else if (approved) {
-      await sendDM(discordId, `✅ Your submission for **${taskLabel}** was approved! (War chest may be full for that slot.)`);
+      await sendDM(
+        discordId,
+        `✅ Your submission for **${taskLabel}** was approved! (War chest may be full for that slot.)`
+      );
     } else {
       const reason = denialReason || 'No reason given.';
-      await sendDM(discordId, `❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nYou may resubmit.`);
+      await sendDM(
+        discordId,
+        `❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nYou may resubmit.`
+      );
     }
   } catch (err) {
     // best-effort
@@ -55,7 +72,7 @@ async function sendClanWarsPhaseAnnouncement({ guildId, channelId, eventName, ph
   if (!_botClient || !channelId) return;
 
   const messages = {
-    GATHERING: `⚔️ **Champion Forge** — **${eventName}** has entered the **Gathering Phase**! Submit tasks with \`!cwsubmit <task_id> <proof_url>\` to fill your war chest.`,
+    GATHERING: `⚔️ **Champion Forge** — **${eventName}** has entered the **Gathering Phase**! Submit tasks with \`!cfsubmit <task_id> <proof_url>\` to fill your war chest.`,
     OUTFITTING: `🛡️ **Champion Forge** — **${eventName}** has entered the **Outfitting Phase**! Head to the website to equip your champion.`,
     BATTLE: `🏆 **Champion Forge** — **${eventName}** — Battle Phase has begun! Watch the fight at osrsbingohub.com/champion-forge.`,
     COMPLETED: `🎉 **Champion Forge** — **${eventName}** is complete! Check the post-battle summary on the website.`,

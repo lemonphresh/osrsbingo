@@ -22,7 +22,9 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM('SKILLER', 'PVMER'),
         allowNull: false,
       },
-      isActive: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      isActive:        { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: true },
+      acceptableItems: { type: DataTypes.JSONB, allowNull: true, defaultValue: [] },
+      quantity:        { type: DataTypes.INTEGER, allowNull: true, defaultValue: null },
     },
     { sequelize, modelName: 'ClanWarsTask' }
   );

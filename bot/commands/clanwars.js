@@ -13,18 +13,18 @@ function generateId(prefix) {
 }
 
 module.exports = {
-  name: 'cwsubmit',
+  name: 'cfsubmit',
   aliases: ['cws'],
   description: 'Submit a Champion Forge task completion',
 
   /**
-   * Usage: !cwsubmit <task_id>  (attach a screenshot to the message)
+   * Usage: !cfsubmit <task_id>  (attach a screenshot to the message)
    */
   async execute(message, args) {
     if (args.length < 1) {
       return message.reply(
-        '❌ Usage: `!cwsubmit <task_id>` — attach a screenshot to this message\n' +
-        'Example: `!cwsubmit cwtask_abc123` (with screenshot attached)'
+        '❌ Usage: `!cfsubmit <task_id>` — attach a screenshot to this message\n' +
+          'Example: `!cfsubmit cwtask_abc123` (with screenshot attached)',
       );
     }
 
@@ -34,7 +34,7 @@ module.exports = {
     if (!screenshot) {
       return message.reply(
         '❌ Please attach a screenshot to your message.\n' +
-        'Usage: `!cwsubmit <task_id>` with a screenshot attached.'
+          'Usage: `!cfsubmit <task_id>` with a screenshot attached.',
       );
     }
 
@@ -63,20 +63,18 @@ module.exports = {
 
     if (!team) {
       return message.reply(
-        '❌ You are not assigned to a team in this event. Ask an admin to add your Discord role.'
+        '❌ You are not assigned to a team in this event. Ask an admin to add your Discord role.',
       );
     }
 
     // Check the member's role in the team (SKILLER/PVMER/FLEX)
-    const member = (team.members ?? []).find(
-      (m) => m.discordId === message.author.id
-    );
+    const member = (team.members ?? []).find((m) => m.discordId === message.author.id);
     const memberRole = member?.role ?? 'FLEX';
 
     // Validate role vs task
     if (memberRole !== 'FLEX' && task.role !== memberRole) {
       return message.reply(
-        `❌ This task is for **${task.role}s** only. You are assigned as a **${memberRole}**.`
+        `❌ This task is for **${task.role}s** only. You are assigned as a **${memberRole}**.`,
       );
     }
 
@@ -102,7 +100,7 @@ module.exports = {
         .setTitle('📬 Submission Received')
         .setColor(0x7d5fff)
         .setDescription(
-          `**${message.author.username}**, your submission for **${task.label}** is pending review.`
+          `**${message.author.username}**, your submission for **${task.label}** is pending review.`,
         )
         .addFields(
           { name: 'Team', value: team.teamName, inline: true },
@@ -113,7 +111,7 @@ module.exports = {
 
       return message.reply({ embeds: [embed] });
     } catch (err) {
-      console.error('[cwsubmit] Error creating submission:', err);
+      console.error('[cfsubmit] Error creating submission:', err);
       return message.reply('❌ Failed to record your submission. Please try again.');
     }
   },
@@ -133,16 +131,20 @@ module.exports.help = {
       .addFields(
         {
           name: '📬 Submit a Task',
-          value: '`!cwsubmit <task_id>` — Submit task completion (attach screenshot to message)\n`!cws <task_id>` — Shorthand',
+          value:
+            '`!cfsubmit <task_id>` — Submit task completion (attach screenshot to message)\n`!cws <task_id>` — Shorthand',
           inline: false,
         },
         {
           name: 'ℹ️ Info',
-          value: 'All other actions (outfitting, battle, war chest) happen on the website at **osrsbingohub.com/champion-forge**.',
+          value:
+            'All other actions (outfitting, battle, war chest) happen on the website at **osrsbingohub.com/champion-forge**.',
           inline: false,
         },
       )
-      .setFooter({ text: 'Your Discord role determines your team. Ask an admin if you\'re not assigned.' });
+      .setFooter({
+        text: "Your Discord role determines your team. Ask an admin if you're not assigned.",
+      });
 
     return message.reply({ embeds: [embed] });
   },

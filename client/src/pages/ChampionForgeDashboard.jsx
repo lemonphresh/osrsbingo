@@ -57,7 +57,7 @@ function EventCard({ event, isAdmin }) {
       borderRadius="lg"
       p={5}
       cursor="pointer"
-      _hover={{ borderColor: 'purple.400', transform: 'translateY(-2px)', transition: 'all 0.15s' }}
+      _hover={{ borderColor: 'teal.400', transform: 'translateY(-2px)', transition: 'all 0.15s' }}
       transition="all 0.15s"
       onClick={() => navigate(`/champion-forge/${event.eventId}`)}
     >
@@ -128,25 +128,25 @@ export default function ChampionForgeDashboard() {
 
   if (loading) {
     return (
-      <Center h="60vh">
-        <Spinner size="xl" color="purple.500" thickness="4px" />
+      <Center flex="1">
+        <Spinner size="xl" color="teal.500" thickness="4px" />
       </Center>
     );
   }
 
   if (error) {
     return (
-      <Center h="60vh">
+      <Center flex="1">
         <Text color="red.400">Failed to load events. Please refresh.</Text>
       </Center>
     );
   }
 
   return (
-    <Box maxW="1100px" mx="auto" px={4} py={8}>
+    <Box maxW="1200px" mx="auto" px={4} py={8} flex="1">
       <HStack justify="space-between" mb={2}>
         <VStack align="flex-start" spacing={0}>
-          <Text fontSize="2xl" fontWeight="bold" color="purple.300">
+          <Text fontSize="2xl" fontWeight="bold" color="teal.300">
             Champion Forge
           </Text>
           <Text fontSize="sm" color="gray.400">

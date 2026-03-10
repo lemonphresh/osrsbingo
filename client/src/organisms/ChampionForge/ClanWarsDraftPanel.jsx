@@ -475,7 +475,7 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
       <Box
         bg="gray.800"
         border="2px solid"
-        borderColor="purple.700"
+        borderColor="teal.700"
         borderRadius="xl"
         overflow="hidden"
       >
@@ -483,14 +483,14 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
         <HStack
           px={5}
           py={3}
-          bg="purple.900"
+          bg="teal.900"
           borderBottom="1px solid"
-          borderColor="purple.700"
+          borderColor="teal.700"
           justify="space-between"
         >
           <HStack spacing={2}>
-            <Icon as={SettingsIcon} color="purple.300" />
-            <Text fontWeight="semibold" color="purple.200">
+            <Icon as={SettingsIcon} color="teal.300" />
+            <Text fontWeight="semibold" color="teal.200">
               Event Setup
             </Text>
             <Badge colorScheme="gray" fontSize="xs">

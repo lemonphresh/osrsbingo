@@ -36,6 +36,7 @@ const CLAN_WARS_TEAM_FIELDS = gql`
     captainDiscordId
     completedTaskIds
     taskProgress
+    numericTaskProgress
   }
 `;
 
@@ -94,7 +95,6 @@ export const GET_ALL_CLAN_WARS_EVENTS = gql`
       eventId
       eventName
       status
-      clanId
       gatheringStart
       gatheringEnd
       outfittingEnd
@@ -102,7 +102,12 @@ export const GET_ALL_CLAN_WARS_EVENTS = gql`
       bracket
       creatorId
       adminIds
+      difficulty
       createdAt
+      teams {
+        teamId
+        teamName
+      }
     }
   }
 `;
@@ -113,7 +118,6 @@ export const GET_MY_CLAN_WARS_EVENTS = gql`
       eventId
       eventName
       status
-      clanId
       gatheringStart
       gatheringEnd
       outfittingEnd
@@ -121,7 +125,12 @@ export const GET_MY_CLAN_WARS_EVENTS = gql`
       bracket
       creatorId
       adminIds
+      difficulty
       createdAt
+      teams {
+        teamId
+        teamName
+      }
     }
   }
 `;
@@ -142,6 +151,7 @@ export const GET_CLAN_WARS_EVENT = gql`
       creatorId
       adminIds
       guildId
+      difficulty
       createdAt
       teams {
         ...ClanWarsTeamFields
@@ -153,6 +163,8 @@ export const GET_CLAN_WARS_EVENT = gql`
         difficulty
         role
         isActive
+        acceptableItems
+        quantity
       }
     }
   }
@@ -381,6 +393,24 @@ export const JOIN_TASK_IN_PROGRESS = gql`
   }
 `;
 
+export const SET_TASK_PROGRESS = gql`
+  ${CLAN_WARS_TEAM_FIELDS}
+  mutation SetTaskProgress($eventId: ID!, $teamId: ID!, $taskId: ID!, $value: Int!) {
+    setTaskProgress(eventId: $eventId, teamId: $teamId, taskId: $taskId, value: $value) {
+      ...ClanWarsTeamFields
+    }
+  }
+`;
+
+export const MARK_TASK_COMPLETE = gql`
+  ${CLAN_WARS_TEAM_FIELDS}
+  mutation MarkTaskComplete($eventId: ID!, $teamId: ID!, $taskId: ID!) {
+    markTaskComplete(eventId: $eventId, teamId: $teamId, taskId: $taskId) {
+      ...ClanWarsTeamFields
+    }
+  }
+`;
+
 export const LEAVE_TASK_IN_PROGRESS = gql`
   mutation LeaveTaskInProgress($eventId: ID!, $teamId: ID!, $taskId: ID!) {
     leaveTaskInProgress(eventId: $eventId, teamId: $teamId, taskId: $taskId) {
@@ -406,6 +436,15 @@ export const REVIEW_CLAN_WARS_SUBMISSION = gql`
       rewardSlot: $rewardSlot
       denialReason: $denialReason
     ) {
+      ...ClanWarsSubmissionFields
+    }
+  }
+`;
+
+export const CHANGE_SUBMISSION_REWARD_SLOT = gql`
+  ${CLAN_WARS_SUBMISSION_FIELDS}
+  mutation ChangeSubmissionRewardSlot($submissionId: ID!, $rewardSlot: String!) {
+    changeSubmissionRewardSlot(submissionId: $submissionId, rewardSlot: $rewardSlot) {
       ...ClanWarsSubmissionFields
     }
   }
@@ -484,6 +523,24 @@ export const SUBMIT_BATTLE_ACTION = gql`
       action: $action
       itemId: $itemId
     ) {
+      ...ClanWarsBattleStateFields
+    }
+  }
+`;
+
+export const DEV_AUTO_BATTLE = gql`
+  ${CLAN_WARS_BATTLE_STATE_FIELDS}
+  mutation DevAutoBattle($battleId: ID!) {
+    devAutoBattle(battleId: $battleId) {
+      ...ClanWarsBattleStateFields
+    }
+  }
+`;
+
+export const DEV_SIMULATE_NEXT_MATCH = gql`
+  ${CLAN_WARS_BATTLE_STATE_FIELDS}
+  mutation DevSimulateNextMatch($eventId: ID!) {
+    devSimulateNextMatch(eventId: $eventId) {
       ...ClanWarsBattleStateFields
     }
   }

@@ -25,7 +25,8 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: [],
       },
-      taskProgress: { type: DataTypes.JSONB, allowNull: true, defaultValue: {} },
+      taskProgress:        { type: DataTypes.JSONB, allowNull: true, defaultValue: {} },
+      numericTaskProgress: { type: DataTypes.JSONB, allowNull: true, defaultValue: {} },
     },
     { sequelize, modelName: 'ClanWarsTeam' }
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import ConfirmModal from './ConfirmModal';
 import { useQuery, useMutation } from '@apollo/client';
 import {
@@ -12,6 +12,8 @@ import {
   Center,
   Alert,
   AlertIcon,
+  Collapse,
+  Textarea,
   Tabs,
   TabList,
   Tab,
@@ -22,7 +24,6 @@ import {
 import {
   GET_CLAN_WARS_WAR_CHEST,
   SAVE_OFFICIAL_LOADOUT,
-  LOCK_CLAN_WARS_LOADOUT,
   UPDATE_CLAN_WARS_EVENT_STATUS,
 } from '../../graphql/clanWarsOperations';
 import { useAuth } from '../../providers/AuthProvider';
@@ -62,16 +63,16 @@ const SLOT_EMOJI = {
 // ---------------------------------------------------------------------------
 
 const PAPERDOLL_POSITIONS = [
-  { slot: 'helm',   row: 1, col: 2 },
-  { slot: 'cape',   row: 2, col: 1 },
+  { slot: 'helm', row: 1, col: 2 },
+  { slot: 'cape', row: 2, col: 1 },
   { slot: 'amulet', row: 2, col: 2 },
   { slot: 'weapon', row: 3, col: 1 },
   { slot: 'shield', row: 3, col: 3 },
-  { slot: 'chest',  row: 4, col: 2 },
-  { slot: 'legs',   row: 5, col: 2 },
+  { slot: 'chest', row: 4, col: 2 },
+  { slot: 'legs', row: 5, col: 2 },
   { slot: 'gloves', row: 6, col: 1 },
-  { slot: 'ring',   row: 6, col: 2 },
-  { slot: 'boots',  row: 6, col: 3 },
+  { slot: 'ring', row: 6, col: 2 },
+  { slot: 'boots', row: 6, col: 3 },
 ];
 
 const SLOT_W = 52;
@@ -80,13 +81,9 @@ const GRID_W = 3 * SLOT_W + 2 * SLOT_GAP;
 const GRID_H = 6 * SLOT_W + 5 * SLOT_GAP;
 
 function PaperdollSlot({ slot, equippedItem, isActive, onClick }) {
-  const border = equippedItem ? (RARITY_COLORS[equippedItem.rarity] ?? '#888') : undefined;
+  const border = equippedItem ? RARITY_COLORS[equippedItem.rarity] ?? '#888' : undefined;
   return (
-    <Tooltip
-      label={equippedItem ? `${slot}: ${equippedItem.name}` : slot}
-      placement="top"
-      hasArrow
-    >
+    <Tooltip label={equippedItem ? `${slot}: ${equippedItem.name}` : slot} placement="top" hasArrow>
       <Box
         w={`${SLOT_W}px`}
         h={`${SLOT_W}px`}
@@ -101,17 +98,15 @@ function PaperdollSlot({ slot, equippedItem, isActive, onClick }) {
         cursor="pointer"
         onClick={onClick}
         boxShadow={
-          isActive
-            ? '0 0 8px rgba(236,201,75,0.4)'
-            : equippedItem
-            ? `0 0 5px ${border}44`
-            : 'none'
+          isActive ? '0 0 8px rgba(236,201,75,0.4)' : equippedItem ? `0 0 5px ${border}44` : 'none'
         }
         transition="all 0.1s"
         _hover={{ borderColor: 'yellow.300' }}
         position="relative"
       >
-        <Text fontSize="xl" lineHeight={1}>{SLOT_EMOJI[slot]}</Text>
+        <Text fontSize="xl" lineHeight={1}>
+          {SLOT_EMOJI[slot]}
+        </Text>
         {equippedItem && (
           <Box
             position="absolute"
@@ -132,25 +127,6 @@ function Paperdoll({ draftLoadout, items, activeSlot, onSlotClick }) {
   const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
   return (
     <Box position="relative" w={`${GRID_W}px`} h={`${GRID_H}px`} flexShrink={0}>
-      {/* Character sprite placeholder — sits behind the center column slots */}
-      <Box
-        position="absolute"
-        top={`${SLOT_W + SLOT_GAP}px`}
-        left={`${SLOT_W + SLOT_GAP}px`}
-        w={`${SLOT_W}px`}
-        h={`${4 * SLOT_W + 3 * SLOT_GAP}px`}
-        bg="gray.900"
-        border="1px dashed"
-        borderColor="gray.700"
-        borderRadius="md"
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        zIndex={0}
-      >
-        <Text fontSize="3xl" userSelect="none" opacity={0.3}>🧍</Text>
-      </Box>
-
       {/* Gear slots */}
       <Box
         position="absolute"
@@ -293,9 +269,9 @@ function ChampionStat({ loadout, items }) {
             Specials
           </Text>
           {specials.map((sp) => (
-            <HStack key={sp.id} spacing={2}>
+            <HStack key={sp.id} spacing={2} mb={1}>
               <Badge colorScheme="purple" fontSize="xx-small">
-                ✨ {sp.label}
+                {sp.label}
               </Badge>
               <Text fontSize="xx-small" color="gray.400">
                 {sp.description}
@@ -308,13 +284,27 @@ function ChampionStat({ loadout, items }) {
   );
 }
 
+function lsKey(teamId, userId) {
+  return `cf_draft_${teamId}_${userId ?? 'anon'}`;
+}
+
 export function TeamOutfitter({ team, event, isAdmin }) {
   const { user } = useAuth();
   const { showToast } = useToastContext();
 
-  const [draftLoadout, setDraftLoadout] = useState(team.officialLoadout ?? {});
+  const storageKey = lsKey(team.teamId, user?.discordUserId ?? user?.id);
+
+  const [draftLoadout, setDraftLoadout] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return team.officialLoadout ?? {};
+  });
+  const [viewingOfficial, setViewingOfficial] = useState(false);
   const [activeSlot, setActiveSlot] = useState('weapon');
-  const [lockConfirmOpen, setLockConfirmOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importCode, setImportCode] = useState('');
 
   const { data } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: team.teamId },
@@ -322,25 +312,44 @@ export function TeamOutfitter({ team, event, isAdmin }) {
   });
 
   const [saveLoadout, { loading: saving }] = useMutation(SAVE_OFFICIAL_LOADOUT);
-  const [lockLoadout, { loading: locking }] = useMutation(LOCK_CLAN_WARS_LOADOUT);
 
   const items = data?.getClanWarsWarChest ?? [];
   const slotItems = items.filter((i) => i.slot === activeSlot);
   const consumableItems = items.filter((i) => i.slot === 'consumable');
+  const activeItems = activeSlot === 'consumable' ? consumableItems : slotItems;
+  const activeLabel =
+    activeSlot === 'consumable'
+      ? 'Consumables'
+      : activeSlot.charAt(0).toUpperCase() + activeSlot.slice(1);
+  const ALL_SLOTS = [...GEAR_SLOTS, 'consumable'];
 
   const isLocked = team.loadoutLocked;
-  const officialLoadout = team.officialLoadout ?? {};
+  const officialLoadout = useMemo(() => team.officialLoadout ?? {}, [team.officialLoadout]);
+  const displayLoadout = viewingOfficial ? officialLoadout : draftLoadout;
+  const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
 
-  const isCaptain =
-    user?.discordUserId === team.captainDiscordId || (isAdmin && team.captainDiscordId == null);
+  // Persist draft to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(draftLoadout));
+    } catch {}
+  }, [draftLoadout, storageKey]);
+
+  // Is the current draft different from the official saved loadout?
+  const differsFromOfficial = useMemo(
+    () => JSON.stringify(draftLoadout) !== JSON.stringify(officialLoadout),
+    [draftLoadout, officialLoadout]
+  );
+
+  const isCaptain = user?.discordUserId === team.captainDiscordId || isAdmin;
 
   const equip = (slot, itemId) => {
-    if (isLocked && !isAdmin) return;
+    if (viewingOfficial || (isLocked && !isAdmin)) return;
     setDraftLoadout((prev) => ({ ...prev, [slot]: itemId }));
   };
 
   const equipConsumable = (itemId) => {
-    if (isLocked && !isAdmin) return;
+    if (viewingOfficial || (isLocked && !isAdmin)) return;
     setDraftLoadout((prev) => {
       const current = prev.consumables ?? [];
       if (current.includes(itemId)) {
@@ -364,21 +373,35 @@ export function TeamOutfitter({ team, event, isAdmin }) {
     }
   };
 
-  const handleLock = async () => {
-    try {
-      await lockLoadout({ variables: { teamId: team.teamId } });
-      showToast('Loadout locked! Ready for battle.', 'success');
-    } catch (err) {
-      showToast(err.message ?? 'Failed to lock loadout', 'error');
-    } finally {
-      setLockConfirmOpen(false);
-    }
+  const handleExport = () => {
+    const code = btoa(JSON.stringify(draftLoadout));
+    navigator.clipboard
+      .writeText(code)
+      .then(() => showToast('Loadout code copied to clipboard!', 'success'))
+      .catch(() => showToast('Copy failed — try selecting and copying manually', 'error'));
   };
 
-  const activeLabel =
-    activeSlot === 'consumable'
-      ? 'Consumables'
-      : activeSlot.charAt(0).toUpperCase() + activeSlot.slice(1);
+  const handleImport = () => {
+    try {
+      const parsed = JSON.parse(atob(importCode.trim()));
+      const knownIds = new Set(items.map((i) => i.itemId));
+      // Strip out any item IDs that aren't in this team's war chest
+      const sanitized = {};
+      for (const [slot, val] of Object.entries(parsed)) {
+        if (slot === 'consumables') {
+          sanitized.consumables = Array.isArray(val) ? val.filter((id) => knownIds.has(id)) : [];
+        } else if (typeof val === 'string' && knownIds.has(val)) {
+          sanitized[slot] = val;
+        }
+      }
+      setDraftLoadout(sanitized);
+      setImportCode('');
+      setImportOpen(false);
+      showToast('Loadout imported!', 'success');
+    } catch {
+      showToast('Invalid loadout code', 'error');
+    }
+  };
 
   return (
     <Box>
@@ -396,141 +419,170 @@ export function TeamOutfitter({ team, event, isAdmin }) {
         </Alert>
       )}
 
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
-        {/* Column 1 — Paperdoll */}
-        <VStack align="flex-start" spacing={3}>
-          <Paperdoll
-            draftLoadout={draftLoadout}
-            items={items}
-            activeSlot={activeSlot}
-            onSlotClick={setActiveSlot}
-          />
-          <Button
-            size="xs"
-            color="white"
-            _hover={{ bg: 'purple.600' }}
-            colorScheme={
-              activeSlot === 'consumable'
-                ? 'purple'
-                : draftLoadout.consumables?.length > 0
-                ? 'green'
-                : 'gray'
-            }
-            variant={activeSlot === 'consumable' ? 'solid' : 'outline'}
-            onClick={() => setActiveSlot('consumable')}
-          >
-            🧪 consumables ({draftLoadout.consumables?.length ?? 0}/
-            {event.eventConfig?.maxConsumableSlots ?? 4})
-          </Button>
-        </VStack>
+      {/* Top row: gear slots | character sprite | stats */}
+      <Box display="grid" gridTemplateColumns="auto auto 1fr" gap={6} alignItems="start">
+        {/* Column 1 — Gear slots (paperdoll slot grid) */}
+        <Paperdoll
+          draftLoadout={displayLoadout}
+          items={items}
+          activeSlot={activeSlot}
+          onSlotClick={setActiveSlot}
+        />
 
-        {/* Column 2 — Item grid for selected slot */}
-        <Box>
-          <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
-            {SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
+        {/* Column 2 — Character sprite placeholder */}
+        <Center
+          w={`${GRID_W}px`}
+          h={`${GRID_H}px`}
+          bg="gray.900"
+          border="1px dashed"
+          borderColor="gray.700"
+          borderRadius="lg"
+          flexShrink={0}
+        >
+          <Text fontSize="6xl" userSelect="none" opacity={0.25}>
+            🧍
           </Text>
-          {activeSlot === 'consumable' ? (
-            consumableItems.length === 0 ? (
-              <Text fontSize="sm" color="gray.500">
-                No consumables in war chest.
-              </Text>
+        </Center>
+
+        {/* Column 3 — Stats + actions */}
+        <VStack align="stretch" spacing={3}>
+          <ChampionStat loadout={displayLoadout} items={items} />
+
+          {/* Draft status + toggle */}
+          <HStack justify="space-between" align="center">
+            <Badge
+              fontSize="xx-small"
+              colorScheme={viewingOfficial ? 'blue' : differsFromOfficial ? 'yellow' : 'green'}
+              variant="subtle"
+            >
+              {viewingOfficial
+                ? '📋 viewing official'
+                : differsFromOfficial
+                ? '✏️ local draft'
+                : '✅ matches official'}
+            </Badge>
+            {viewingOfficial ? (
+              <Button
+                size="xs"
+                variant="ghost"
+                color="gray.400"
+                onClick={() => setViewingOfficial(false)}
+              >
+                ← My Draft
+              </Button>
             ) : (
-              <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2}>
-                {consumableItems.map((item) => (
-                  <ItemCard
-                    key={item.itemId}
-                    item={item}
-                    isSelected={(draftLoadout.consumables ?? []).includes(item.itemId)}
-                    isEquipped={(officialLoadout.consumables ?? []).includes(item.itemId)}
-                    onClick={() => equipConsumable(item.itemId)}
+              differsFromOfficial && (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="gray.400"
+                  onClick={() => setViewingOfficial(true)}
+                >
+                  View Official
+                </Button>
+              )
+            )}
+          </HStack>
+
+          {/* Export / Import — captain only, not when viewing official */}
+          {isCaptain && !viewingOfficial && (
+            <VStack spacing={2}>
+              <HStack w="full" spacing={2}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  colorScheme="teal"
+                  flex={1}
+                  onClick={handleExport}
+                >
+                  📤 Export
+                </Button>
+                <Button
+                  size="xs"
+                  variant={importOpen ? 'solid' : 'outline'}
+                  colorScheme="teal"
+                  flex={1}
+                  onClick={() => {
+                    setImportOpen((o) => !o);
+                    setImportCode('');
+                  }}
+                >
+                  📥 Import
+                </Button>
+              </HStack>
+              <Collapse in={importOpen} animateOpacity style={{ width: '100%' }}>
+                <VStack spacing={2} align="stretch">
+                  <Textarea
+                    size="xs"
+                    placeholder="Paste loadout code here…"
+                    value={importCode}
+                    onChange={(e) => setImportCode(e.target.value)}
+                    rows={3}
+                    fontFamily="mono"
+                    fontSize="11px"
+                    bg="gray.900"
+                    borderColor="gray.600"
                   />
-                ))}
-              </SimpleGrid>
-            )
-          ) : slotItems.length === 0 ? (
-            <Text fontSize="sm" color="gray.500">
-              No {activeSlot} items in war chest.
+                  <Button
+                    size="xs"
+                    colorScheme="teal"
+                    isDisabled={!importCode.trim()}
+                    onClick={handleImport}
+                  >
+                    Apply
+                  </Button>
+                </VStack>
+              </Collapse>
+            </VStack>
+          )}
+
+          {/* Save — captain only, unlocked, not when viewing official */}
+          {!isLocked && isCaptain && !viewingOfficial && (
+            <Button colorScheme="blue" size="sm" w="full" isLoading={saving} onClick={handleSave}>
+              Save as Official Loadout
+            </Button>
+          )}
+        </VStack>
+      </Box>
+
+      {/* Inventory — full width, fixed min height to prevent layout shift */}
+      <Box mt={5} minH="240px">
+        <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
+          {SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
+          {activeItems.length > 0 && (
+            <Text as="span" fontSize="xs" color="gray.500" ml={2}>
+              {activeItems.length} item{activeItems.length !== 1 ? 's' : ''}
             </Text>
-          ) : (
-            <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2}>
-              {slotItems.map((item) => (
+          )}
+        </Text>
+        {activeItems.length === 0 ? (
+          <Text fontSize="sm" color="gray.500">
+            No {activeLabel.toLowerCase()} in war chest.
+          </Text>
+        ) : (
+          <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={2}>
+            {activeItems.map((item) =>
+              activeSlot === 'consumable' ? (
                 <ItemCard
                   key={item.itemId}
                   item={item}
-                  isSelected={draftLoadout[activeSlot] === item.itemId}
+                  isSelected={(displayLoadout.consumables ?? []).includes(item.itemId)}
+                  isEquipped={(officialLoadout.consumables ?? []).includes(item.itemId)}
+                  onClick={() => equipConsumable(item.itemId)}
+                />
+              ) : (
+                <ItemCard
+                  key={item.itemId}
+                  item={item}
+                  isSelected={displayLoadout[activeSlot] === item.itemId}
                   isEquipped={officialLoadout[activeSlot] === item.itemId}
                   onClick={() => equip(activeSlot, item.itemId)}
                 />
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
-
-        {/* Column 3 — Stats + draft summary + save/lock */}
-        <VStack align="stretch" spacing={3}>
-          <ChampionStat loadout={draftLoadout} items={items} />
-
-          <Box bg="gray.800" borderRadius="md" p={3}>
-            <Text fontSize="xs" fontWeight="semibold" color="gray.400" mb={2}>
-              Current Draft
-            </Text>
-            {GEAR_SLOTS.map((slot) => {
-              const itemId = draftLoadout[slot];
-              const item = items.find((i) => i.itemId === itemId);
-              return (
-                <HStack key={slot} fontSize="xs" justify="space-between" py={0.5}>
-                  <Text color="gray.500" textTransform="capitalize">
-                    {slot}
-                  </Text>
-                  {item ? (
-                    <Text
-                      fontWeight="medium"
-                      color={RARITY_COLORS[item.rarity]}
-                      noOfLines={1}
-                      maxW="120px"
-                    >
-                      {item.name}
-                    </Text>
-                  ) : (
-                    <Text color="gray.600">—</Text>
-                  )}
-                </HStack>
-              );
-            })}
-          </Box>
-
-          {!isLocked && isCaptain && (
-            <VStack spacing={2}>
-              <Button colorScheme="blue" size="sm" w="full" isLoading={saving} onClick={handleSave}>
-                Save as Official Loadout
-              </Button>
-              {isAdmin && (
-                <Button
-                  colorScheme="red"
-                  size="sm"
-                  variant="outline"
-                  w="full"
-                  isLoading={locking}
-                  onClick={() => setLockConfirmOpen(true)}
-                >
-                  🔒 Lock Loadout
-                </Button>
-              )}
-            </VStack>
-          )}
-        </VStack>
-      </SimpleGrid>
-
-      <ConfirmModal
-        isOpen={lockConfirmOpen}
-        onClose={() => setLockConfirmOpen(false)}
-        onConfirm={handleLock}
-        title="Lock Loadout?"
-        body="This cannot be undone. The loadout will be fixed for battle."
-        confirmLabel="Lock Loadout"
-        colorScheme="red"
-        isLoading={locking}
-      />
+              )
+            )}
+          </SimpleGrid>
+        )}
+      </Box>
     </Box>
   );
 }
@@ -541,7 +593,6 @@ export default function OutfittingScreen({ event, isAdmin, refetch }) {
   const [battleConfirmOpen, setBattleConfirmOpen] = useState(false);
 
   const teams = event.teams ?? [];
-  const allLocked = teams.length > 0 && teams.every((t) => t.loadoutLocked);
 
   return (
     <VStack align="stretch" spacing={6}>
@@ -560,7 +611,7 @@ export default function OutfittingScreen({ event, isAdmin, refetch }) {
               </Text>
             )}
           </VStack>
-          {isAdmin && allLocked && (
+          {isAdmin && (
             <Button colorScheme="red" size="sm" onClick={() => setBattleConfirmOpen(true)}>
               ⚔️ Start Battle Phase
             </Button>
@@ -605,7 +656,7 @@ export default function OutfittingScreen({ event, isAdmin, refetch }) {
           setBattleConfirmOpen(false);
         }}
         title="Start Battle Phase?"
-        body="All teams are locked in. This will end outfitting and begin the battle."
+        body="This will end outfitting and begin the battle. Any unsaved loadouts will be locked in as-is."
         confirmLabel="Start Battle"
         colorScheme="red"
       />

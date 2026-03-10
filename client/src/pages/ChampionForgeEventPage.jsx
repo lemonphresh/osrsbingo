@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import {
@@ -17,19 +17,16 @@ import {
   AvatarGroup,
   Tooltip,
   Icon,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
 } from '@chakra-ui/react';
 import { ArrowBackIcon, LockIcon, UnlockIcon } from '@chakra-ui/icons';
-import { FaShieldAlt, FaSwords, FaScroll, FaCrown } from 'react-icons/fa';
+import { FaShieldAlt, FaScroll, FaCrown } from 'react-icons/fa';
 import { GET_CLAN_WARS_EVENT } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
 import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
+import GatheringPhase from '../organisms/ChampionForge/GatheringPhase';
+import OutfittingScreen from '../organisms/ChampionForge/OutfittingScreen';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -43,17 +40,29 @@ const STATUS_META = {
   ARCHIVED:   { label: 'Archived',   color: 'gray',   description: 'Archived.' },
 };
 
-const DIFFICULTY_COLORS = { initiate: 'green', adept: 'yellow', master: 'red' };
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 
-function formatCountdown(target) {
+function calcCountdown(target) {
   if (!target) return null;
   const diff = new Date(target) - Date.now();
   if (diff <= 0) return 'Ended';
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1_000);
   if (h > 48) return `${Math.floor(h / 24)}d ${h % 24}h remaining`;
-  return `${h}h ${m}m remaining`;
+  if (h > 0) return `${h}h ${m}m ${s}s remaining`;
+  if (m > 0) return `${m}m ${s}s remaining`;
+  return `${s}s remaining`;
+}
+
+function useCountdown(target) {
+  const [label, setLabel] = useState(() => calcCountdown(target));
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setLabel(calcCountdown(target)), 1_000);
+    return () => clearInterval(id);
+  }, [target]);
+  return label;
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +71,8 @@ function formatCountdown(target) {
 function PhaseBanner({ event, eventId }) {
   const navigate = useNavigate();
   const { status, gatheringEnd, outfittingEnd } = event;
+  const gatheringCountdown  = useCountdown(gatheringEnd);
+  const outfittingCountdown = useCountdown(outfittingEnd);
 
   if (status === 'DRAFT') return null;
 
@@ -77,7 +88,7 @@ function PhaseBanner({ event, eventId }) {
           </VStack>
           {gatheringEnd && (
             <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-              {formatCountdown(gatheringEnd)}
+              {gatheringCountdown}
             </Badge>
           )}
         </HStack>
@@ -97,7 +108,7 @@ function PhaseBanner({ event, eventId }) {
           </VStack>
           {outfittingEnd && (
             <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-              {formatCountdown(outfittingEnd)}
+              {outfittingCountdown}
             </Badge>
           )}
         </HStack>
@@ -138,16 +149,16 @@ function PhaseBanner({ event, eventId }) {
     const winnerTeam = winner ? event.teams?.find((t) => t.teamId === winner) : null;
 
     return (
-      <Box bg="purple.900" border="1px solid" borderColor="purple.600" borderRadius="lg" p={4}>
+      <Box bg="teal.900" border="1px solid" borderColor="teal.600" borderRadius="lg" p={4}>
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={0}>
             <HStack>
               <Text fontSize="xl">🏆</Text>
-              <Text fontWeight="bold" color="purple.200">
+              <Text fontWeight="bold" color="teal.200">
                 {winnerTeam ? `${winnerTeam.teamName} won!` : 'Event complete'}
               </Text>
             </HStack>
-            <Text fontSize="sm" color="purple.400">The battle has concluded.</Text>
+            <Text fontSize="sm" color="teal.400">The battle has concluded.</Text>
           </VStack>
         </HStack>
       </Box>
@@ -155,6 +166,99 @@ function PhaseBanner({ event, eventId }) {
   }
 
   return null;
+}
+
+// ---------------------------------------------------------------------------
+// Bracket summary — shown on completed / archived events
+// ---------------------------------------------------------------------------
+function BracketSummary({ bracket, teams, eventId }) {
+  if (!bracket?.rounds?.length) return null;
+
+  const teamMap = Object.fromEntries((teams ?? []).map((t) => [t.teamId, t]));
+
+  const getRoundLabel = (i, total) => {
+    if (total === 1 || i === total - 1) return 'Final';
+    if (i === total - 2) return 'Semifinals';
+    return `Round ${i + 1}`;
+  };
+
+  return (
+    <Box>
+      <HStack mb={4} spacing={2}>
+        <Text fontSize="xl">🏆</Text>
+        <Text fontWeight="bold" color="white" fontSize="lg">Battle Results</Text>
+      </HStack>
+      <VStack align="stretch" spacing={5}>
+        {bracket.rounds.map((round, roundIdx) => (
+          <Box key={roundIdx}>
+            <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              {getRoundLabel(roundIdx, bracket.rounds.length)}
+            </Text>
+            <VStack align="stretch" spacing={2}>
+              {round.matches.map((match, matchIdx) => {
+                const team1 = teamMap[match.team1Id];
+                const team2 = match.team2Id ? teamMap[match.team2Id] : null;
+                const winner = match.winnerId ? teamMap[match.winnerId] : null;
+
+                return (
+                  <Box
+                    key={matchIdx}
+                    bg="gray.800"
+                    border="1px solid"
+                    borderColor={match.winnerId ? 'teal.700' : 'gray.700'}
+                    borderRadius="lg"
+                    p={3}
+                  >
+                    {match.isBye ? (
+                      <HStack spacing={3}>
+                        <Text color="teal.200" fontWeight="bold">{team1?.teamName ?? match.team1Id}</Text>
+                        <Badge colorScheme="gray" fontSize="xs">Bye</Badge>
+                      </HStack>
+                    ) : (
+                      <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                        <HStack spacing={3}>
+                          <Text
+                            color={match.winnerId === match.team1Id ? 'teal.200' : 'gray.400'}
+                            fontWeight={match.winnerId === match.team1Id ? 'bold' : 'normal'}
+                          >
+                            {team1?.teamName ?? match.team1Id}
+                          </Text>
+                          <Text color="gray.600" fontSize="xs">vs</Text>
+                          <Text
+                            color={match.winnerId === match.team2Id ? 'teal.200' : 'gray.400'}
+                            fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}
+                          >
+                            {team2?.teamName ?? match.team2Id}
+                          </Text>
+                        </HStack>
+                        <HStack spacing={2}>
+                          {winner && (
+                            <Badge colorScheme="teal" fontSize="xs">Winner: {winner.teamName}</Badge>
+                          )}
+                          {!match.winnerId && <Badge colorScheme="gray" fontSize="xs">Pending</Badge>}
+                          {match.battleId && (
+                            <Button
+                              as={RouterLink}
+                              to={`/champion-forge/${eventId}/battle`}
+                              size="xs"
+                              colorScheme="gray"
+                              variant="outline"
+                            >
+                              View Battle →
+                            </Button>
+                          )}
+                        </HStack>
+                      </HStack>
+                    )}
+                  </Box>
+                );
+              })}
+            </VStack>
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -192,26 +296,26 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
     <Box
       bg="gray.800"
       border="1px solid"
-      borderColor={isMember ? 'purple.600' : 'gray.700'}
+      borderColor={isMember ? 'teal.600' : 'gray.700'}
       borderRadius="xl"
       overflow="hidden"
       transition="border-color 0.2s"
-      _hover={{ borderColor: isMember ? 'purple.400' : 'gray.500' }}
+      _hover={{ borderColor: isMember ? 'teal.400' : 'gray.500' }}
     >
       {/* Card header */}
       <Box
-        bg={isMember ? 'purple.900' : 'gray.750'}
+        bg={isMember ? 'teal.900' : 'gray.750'}
         px={4}
         py={3}
         borderBottom="1px solid"
-        borderColor={isMember ? 'purple.700' : 'gray.700'}
+        borderColor={isMember ? 'teal.700' : 'gray.700'}
       >
         <HStack justify="space-between">
           <HStack spacing={2}>
-            <Icon as={FaShieldAlt} color={isMember ? 'purple.300' : 'gray.500'} />
+            <Icon as={FaShieldAlt} color={isMember ? 'teal.300' : 'gray.500'} />
             <Text fontWeight="bold" color="white" fontSize="md">{team.teamName}</Text>
             {isMember && (
-              <Badge colorScheme="purple" fontSize="xs">Your Team</Badge>
+              <Badge colorScheme="teal" fontSize="xs">Your Team</Badge>
             )}
             {team.captainDiscordId && (
               <Tooltip label={`Captain: ${team.captainDiscordId}`} hasArrow>
@@ -297,55 +401,6 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Task pool — read-only public view, grouped by role
-// ---------------------------------------------------------------------------
-function TaskPoolSummary({ tasks }) {
-  if (!tasks?.length) return null;
-
-  const pvmerTasks  = tasks.filter((t) => t.role === 'PVMER');
-  const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
-
-  const RoleGroup = ({ label, roleColor, items }) => (
-    <Box>
-      <HStack mb={2}>
-        <Badge colorScheme={roleColor} fontSize="xs">{label}</Badge>
-        <Text fontSize="xs" color="gray.500">({items.length} tasks)</Text>
-      </HStack>
-      <SimpleGrid columns={{ base: 1, md: 3 }} spacing={2}>
-        {['easy', 'medium', 'hard'].map((diff) => {
-          const bucket = items.filter((t) => t.difficulty === diff);
-          if (!bucket.length) return null;
-          return (
-            <Box key={diff}>
-              <Text fontSize="xs" color="gray.500" mb={1} textTransform="capitalize"
-                fontWeight="semibold" letterSpacing="wider">
-                {diff} ({bucket.length})
-              </Text>
-              <VStack align="stretch" spacing={1}>
-                {bucket.map((t) => (
-                  <HStack key={t.taskId} spacing={2} py={1} px={2} bg="gray.700" borderRadius="sm">
-                    <Badge colorScheme={DIFFICULTY_COLORS[diff]} fontSize="xs" flexShrink={0}>
-                      {diff[0].toUpperCase()}
-                    </Badge>
-                    <Text fontSize="xs" color="gray.300" noOfLines={1}>{t.label}</Text>
-                  </HStack>
-                ))}
-              </VStack>
-            </Box>
-          );
-        })}
-      </SimpleGrid>
-    </Box>
-  );
-
-  return (
-    <VStack align="stretch" spacing={5}>
-      {pvmerTasks.length > 0  && <RoleGroup label="PvMer"  roleColor="orange" items={pvmerTasks}  />}
-      {skillerTasks.length > 0 && <RoleGroup label="Skiller" roleColor="teal"   items={skillerTasks} />}
-    </VStack>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -369,20 +424,23 @@ export default function ChampionForgeEventPage() {
     event?.creatorId === String(user?.id)
   );
 
+  const [viewAsParticipant, setViewAsParticipant] = useState(false);
+  const effectiveIsAdmin = isAdmin && !viewAsParticipant;
+
   // Get the logged-in user's Discord ID for team membership checks
   const currentUserDiscordId = user?.discordUserId ?? null;
 
   if (loading && !event) {
     return (
-      <Center h="60vh">
-        <Spinner size="xl" color="purple.500" thickness="4px" />
+      <Center flex="1">
+        <Spinner size="xl" color="teal.500" thickness="4px" />
       </Center>
     );
   }
 
   if (error || !event) {
     return (
-      <Center h="60vh">
+      <Center flex="1">
         <Text color="red.400">Event not found or failed to load.</Text>
       </Center>
     );
@@ -447,7 +505,7 @@ export default function ChampionForgeEventPage() {
   if (event.status === 'DRAFT') {
     if (isAdmin) {
       return (
-        <Box maxW="1200px" mx="auto" px={4} py={6}>
+        <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
           <VStack align="stretch" spacing={6}>
             {backNav}
             {eventHeader}
@@ -458,7 +516,7 @@ export default function ChampionForgeEventPage() {
     }
 
     return (
-      <Box maxW="1200px" mx="auto" px={4} py={6}>
+      <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
         <VStack align="stretch" spacing={6}>
           {backNav}
           {eventHeader}
@@ -475,10 +533,24 @@ export default function ChampionForgeEventPage() {
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={4} py={6}>
+    <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
       <VStack align="stretch" spacing={6}>
 
-        {backNav}
+        <HStack justify="space-between" align="center">
+          {backNav}
+          {isAdmin && (
+            <Button
+              size="xs"
+              variant="outline"
+              colorScheme={viewAsParticipant ? 'teal' : 'gray'}
+              borderColor={viewAsParticipant ? 'teal.500' : 'gray.600'}
+              color={viewAsParticipant ? 'teal.300' : 'gray.400'}
+              onClick={() => setViewAsParticipant((v) => !v)}
+            >
+              {viewAsParticipant ? '👁 Participant view' : '⚙ Admin view'}
+            </Button>
+          )}
+        </HStack>
         {eventHeader}
 
         {/* ── Phase banner ── */}
@@ -488,7 +560,7 @@ export default function ChampionForgeEventPage() {
         <Box>
           <HStack mb={4} justify="space-between">
             <HStack spacing={2}>
-              <Icon as={FaShieldAlt} color="purple.400" />
+              <Icon as={FaShieldAlt} color="teal.400" />
               <Text fontWeight="bold" color="white" fontSize="lg">
                 Teams
               </Text>
@@ -509,7 +581,7 @@ export default function ChampionForgeEventPage() {
                   team={team}
                   eventId={eventId}
                   currentUserDiscordId={currentUserDiscordId}
-                  isAdmin={isAdmin}
+                  isAdmin={effectiveIsAdmin}
                   phase={event.status}
                 />
               ))}
@@ -521,44 +593,23 @@ export default function ChampionForgeEventPage() {
           )}
         </Box>
 
-        {/* ── Task pool (collapsible, public read-only) ── */}
-        {event.tasks?.length > 0 && (
-          <Accordion allowToggle reduceMotion>
-            <AccordionItem
-              bg="gray.800"
-              border="1px solid"
-              borderColor="gray.700"
-              borderRadius="xl"
-              overflow="hidden"
-            >
-              <AccordionButton px={5} py={4} _hover={{ bg: 'gray.750' }}>
-                <HStack flex="1" spacing={3}>
-                  <Icon as={FaScroll} color="gray.400" />
-                  <Text fontWeight="bold" color="white">
-                    Task Pool
-                  </Text>
-                  <Badge colorScheme="gray" fontSize="xs">{event.tasks.length} tasks</Badge>
-                  <HStack spacing={1}>
-                    <Badge colorScheme="orange" fontSize="xs">
-                      {event.tasks.filter((t) => t.role === 'PVMER').length} PvM
-                    </Badge>
-                    <Badge colorScheme="teal" fontSize="xs">
-                      {event.tasks.filter((t) => t.role === 'SKILLER').length} Skill
-                    </Badge>
-                  </HStack>
-                </HStack>
-                <AccordionIcon color="gray.400" />
-              </AccordionButton>
-              <AccordionPanel px={5} pb={5}>
-                <TaskPoolSummary tasks={event.tasks} />
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
+{/* ── Phase-specific content ── */}
+        {event.status === 'GATHERING' && effectiveIsAdmin && (
+          <GatheringPhase event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
         )}
 
-        {/* ── Admin panel ── */}
-        {isAdmin && (
-          <AdminEventPanel event={event} isAdmin={isAdmin} refetch={refetch} />
+        {event.status === 'OUTFITTING' && (
+          <OutfittingScreen event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
+        )}
+
+{/* ── Battle results (concluded events) ── */}
+        {(event.status === 'COMPLETED' || event.status === 'ARCHIVED') && event.bracket && (
+          <BracketSummary bracket={event.bracket} teams={event.teams} eventId={eventId} />
+        )}
+
+{/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
+        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'BATTLE' || event.status === 'COMPLETED' || event.status === 'ARCHIVED') && (
+          <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
         )}
 
       </VStack>

@@ -2,8 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
-  Box, Center, Spinner, Text, VStack, HStack, Heading, Button,
-  Badge, Alert, AlertIcon, Icon, SimpleGrid, Divider, Tooltip, Code, ButtonGroup,
+  Box,
+  Center,
+  Spinner,
+  Text,
+  VStack,
+  HStack,
+  Heading,
+  Button,
+  Badge,
+  Alert,
+  AlertIcon,
+  Icon,
+  SimpleGrid,
+  Divider,
+  Tooltip,
+  Code,
+  ButtonGroup,
+  Progress,
 } from '@chakra-ui/react';
 import { LockIcon, ArrowBackIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
 import { FaDiscord } from 'react-icons/fa';
@@ -36,13 +52,18 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   return (
     <Box
       position="fixed"
-      top={0} left={0} right={0} bottom={0}
+      top={0}
+      left={0}
+      right={0}
+      bottom={0}
       bg="rgba(26, 32, 44, 0.85)"
       backdropFilter="blur(20px)"
       zIndex={9999}
@@ -70,10 +91,19 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
         </Heading>
 
         {reason === 'no_discord' && (
-          <Alert status="warning" variant="subtle" flexDirection="column" alignItems="center"
-            textAlign="center" borderRadius="md" bg="yellow.900">
+          <Alert
+            status="warning"
+            variant="subtle"
+            flexDirection="column"
+            alignItems="center"
+            textAlign="center"
+            borderRadius="md"
+            bg="yellow.900"
+          >
             <AlertIcon boxSize="36px" mr={0} color="yellow.400" />
-            <Text fontWeight="bold" mt={3} mb={1} color="yellow.200">Discord Account Required</Text>
+            <Text fontWeight="bold" mt={3} mb={1} color="yellow.200">
+              Discord Account Required
+            </Text>
             <Text fontSize="sm" color="yellow.300">
               Link your Discord account in your profile to access your team's barracks.
             </Text>
@@ -81,13 +111,22 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
         )}
 
         {reason === 'not_member' && (
-          <Alert status="error" variant="subtle" flexDirection="column" alignItems="center"
-            textAlign="center" borderRadius="md" bg="red.900">
+          <Alert
+            status="error"
+            variant="subtle"
+            flexDirection="column"
+            alignItems="center"
+            textAlign="center"
+            borderRadius="md"
+            bg="red.900"
+          >
             <AlertIcon boxSize="36px" mr={0} color="red.400" />
-            <Text fontWeight="bold" mt={3} mb={1} color="red.200">Not a Team Member</Text>
+            <Text fontWeight="bold" mt={3} mb={1} color="red.200">
+              Not a Team Member
+            </Text>
             <Text fontSize="sm" color="red.300">
-              You are not on <strong>{teamName}</strong>. Only team members and event admins
-              can enter this barracks.
+              You are not on <strong>{teamName}</strong>. Only team members and event admins can
+              enter this barracks.
             </Text>
             {userDiscordId && (
               <Text fontSize="xs" mt={2} color="gray.400">
@@ -99,15 +138,25 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
 
         <VStack spacing={3} w="full">
           {reason === 'no_discord' && (
-            <Button colorScheme="purple" size="lg" w="full"
+            <Button
+              colorScheme="purple"
+              size="lg"
+              w="full"
               leftIcon={<Icon as={FaDiscord} />}
-              onClick={() => navigate('/user/me')}>
+              onClick={() => navigate('/user/me')}
+            >
               Link Discord Account
             </Button>
           )}
-          <Button variant="outline" size="lg" w="full" leftIcon={<ArrowBackIcon />}
-            color="white" borderColor="gray.500"
-            onClick={() => navigate(`/champion-forge/${eventId}`)}>
+          <Button
+            variant="outline"
+            size="lg"
+            w="full"
+            leftIcon={<ArrowBackIcon />}
+            color="white"
+            borderColor="gray.500"
+            onClick={() => navigate(`/champion-forge/${eventId}`)}
+          >
             Back to Event Overview
           </Button>
         </VStack>
@@ -123,7 +172,17 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
 // ---------------------------------------------------------------------------
 // Task row — in-progress tracking + Discord submit command
 // ---------------------------------------------------------------------------
-function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDiscordId, userMemberRole, onJoin, onLeave }) {
+function TaskRow({
+  task,
+  isCompleted,
+  taskProgress,
+  numericTaskProgress,
+  teamMembers,
+  currentUserDiscordId,
+  userMemberRole,
+  onJoin,
+  onLeave,
+}) {
   const { showToast } = useToastContext();
 
   const inProgressIds = taskProgress?.[task.taskId] ?? [];
@@ -131,9 +190,14 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
   const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
   const roleUnset = !userMemberRole || userMemberRole === 'UNSET';
-  const canJoin = !isCompleted && !isMeInProgress && !roleUnset && (
-    task.role === 'ANY' || userMemberRole === 'ANY' || userMemberRole === 'FLEX' || userMemberRole === task.role
-  );
+  const canJoin =
+    !isCompleted &&
+    !isMeInProgress &&
+    !roleUnset &&
+    (task.role === 'ANY' ||
+      userMemberRole === 'ANY' ||
+      userMemberRole === 'FLEX' ||
+      userMemberRole === task.role);
 
   const getMemberName = (discordId) => {
     const m = (teamMembers ?? []).find((tm) => tm.discordId === discordId);
@@ -141,37 +205,58 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
   };
 
   const handleCopyCommand = () => {
-    navigator.clipboard.writeText(`!cwsubmit ${task.taskId}`);
+    navigator.clipboard.writeText(`!cfsubmit ${task.taskId}`);
     showToast('Command copied! Attach your screenshot in Discord.', 'success');
   };
 
   return (
     <Box
       p={3}
-      bg={isCompleted ? 'green.900' : isMeInProgress ? 'purple.900' : 'gray.700'}
+      bg={isCompleted ? 'green.900' : isMeInProgress ? 'teal.900' : 'gray.700'}
       borderRadius="md"
       border="1px solid"
-      borderColor={isCompleted ? 'green.700' : isMeInProgress ? 'purple.600' : 'gray.600'}
+      borderColor={isCompleted ? 'green.700' : isMeInProgress ? 'teal.600' : 'gray.600'}
       opacity={isCompleted ? 0.75 : 1}
     >
       <HStack justify="space-between" mb={isMeInProgress || inProgressIds.length > 0 ? 2 : 0}>
         <HStack spacing={3} flex={1} minW={0}>
           {isCompleted && <Icon as={CheckCircleIcon} color="green.400" flexShrink={0} />}
           <VStack align="flex-start" spacing={0} minW={0}>
-            <Text fontSize="sm" fontWeight="medium" color={isCompleted ? 'green.200' : 'white'} noOfLines={2}>
+            <Text
+              fontSize="sm"
+              fontWeight="medium"
+              color={isCompleted ? 'green.200' : 'white'}
+              noOfLines={2}
+            >
               {task.label}
             </Text>
             {task.description && (
-              <Text fontSize="xs" color="gray.400" noOfLines={1}>{task.description}</Text>
+              <Text fontSize="xs" color="gray.400" noOfLines={1}>
+                {task.description}
+              </Text>
             )}
           </VStack>
         </HStack>
         <HStack spacing={2} flexShrink={0}>
-          <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">{task.difficulty}</Badge>
-          {isCompleted && <Badge colorScheme="green" fontSize="xs">done</Badge>}
-          {isMeInProgress && <Badge colorScheme="purple" fontSize="xs">in progress</Badge>}
+          <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">
+            {task.difficulty}
+          </Badge>
+          {isCompleted && (
+            <Badge colorScheme="green" fontSize="xs">
+              done
+            </Badge>
+          )}
+          {isMeInProgress && (
+            <Badge colorScheme="teal" fontSize="xs">
+              in progress
+            </Badge>
+          )}
           {!isCompleted && !isMeInProgress && canJoin && (
-            <Button size="xs" colorScheme={othersInProgress.length > 0 ? 'blue' : 'purple'} onClick={onJoin}>
+            <Button
+              size="xs"
+              colorScheme={othersInProgress.length > 0 ? 'blue' : 'teal'}
+              onClick={onJoin}
+            >
               {othersInProgress.length > 0 ? 'Join them' : 'Work on this'}
             </Button>
           )}
@@ -181,9 +266,15 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
       {/* Who's working on it */}
       {inProgressIds.length > 0 && (
         <HStack spacing={1} flexWrap="wrap" mt={1} mb={isMeInProgress ? 2 : 0}>
-          <Text fontSize="xs" color="gray.400">Working on it:</Text>
+          <Text fontSize="xs" color="gray.400">
+            Working on it:
+          </Text>
           {inProgressIds.map((id) => (
-            <Badge key={id} colorScheme={id === currentUserDiscordId ? 'purple' : 'gray'} fontSize="xs">
+            <Badge
+              key={id}
+              colorScheme={id === currentUserDiscordId ? 'teal' : 'gray'}
+              fontSize="xs"
+            >
               {getMemberName(id)}
             </Badge>
           ))}
@@ -192,26 +283,60 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
 
       {/* My in-progress controls: copy command + leave */}
       {isMeInProgress && (
-        <Box mt={1} p={2} bg="purple.800" borderRadius="md">
-          <Text fontSize="xs" color="purple.300" mb={1}>
+        <Box mt={1} p={2} bg="teal.900" borderRadius="md">
+          <Text fontSize="xs" color="teal.300" mb={1}>
             When done in-game, submit via Discord:
           </Text>
           <HStack spacing={2}>
-            <Code fontSize="xs" bg="purple.900" color="purple.200" px={2} py={1} borderRadius="md" flex={1}>
-              !cwsubmit {task.taskId}
+            <Code
+              fontSize="xs"
+              bg="gray.800"
+              color="teal.200"
+              px={2}
+              py={1}
+              borderRadius="md"
+              flex={1}
+            >
+              !cfsubmit {task.taskId}
             </Code>
-            <Button size="xs" colorScheme="purple" leftIcon={<CopyIcon />} onClick={handleCopyCommand}>
+            <Button
+              size="xs"
+              colorScheme="teal"
+              leftIcon={<CopyIcon />}
+              onClick={handleCopyCommand}
+            >
               Copy
             </Button>
             <Button size="xs" colorScheme="red" variant="ghost" onClick={onLeave}>
               Leave
             </Button>
           </HStack>
-          <Text fontSize="xs" color="purple.400" mt={1}>
+          <Text fontSize="xs" color="teal.400" mt={1}>
             Attach your screenshot in Discord when you run the command.
           </Text>
         </Box>
       )}
+
+      {/* Numeric progress bar — only shown when task has a quantity */}
+      {task.quantity > 0 && (() => {
+        const progress = numericTaskProgress?.[task.taskId] ?? 0;
+        const pct = isCompleted ? 100 : Math.min(100, Math.round((progress / task.quantity) * 100));
+        return (
+          <Box mt={2}>
+            <Text fontSize="xs" color="gray.400" mb={1}>
+              {isCompleted ? task.quantity.toLocaleString() : progress.toLocaleString()} /{' '}
+              {task.quantity.toLocaleString()} ({pct}%)
+            </Text>
+            <Progress
+              value={pct}
+              size="xs"
+              colorScheme={isCompleted ? 'green' : 'blue'}
+              borderRadius="full"
+              bg="gray.700"
+            />
+          </Box>
+        );
+      })()}
     </Box>
   );
 }
@@ -219,7 +344,19 @@ function TaskRow({ task, isCompleted, taskProgress, teamMembers, currentUserDisc
 // ---------------------------------------------------------------------------
 // Task list grouped by role + difficulty
 // ---------------------------------------------------------------------------
-function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress, teamMembers, currentUserDiscordId, userMemberRole, onJoin, onLeave }) {
+function TaskSection({
+  title,
+  colorScheme,
+  tasks,
+  completedTaskIds,
+  taskProgress,
+  numericTaskProgress,
+  teamMembers,
+  currentUserDiscordId,
+  userMemberRole,
+  onJoin,
+  onLeave,
+}) {
   const byDiff = DIFF_ORDER.reduce((acc, d) => {
     acc[d] = tasks.filter((t) => t.difficulty === d);
     return acc;
@@ -232,8 +369,12 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress
     <Box>
       <HStack mb={3} justify="space-between">
         <HStack spacing={2}>
-          <Badge colorScheme={colorScheme} fontSize="sm" px={2} py={1}>{title}</Badge>
-          <Text fontSize="xs" color="gray.400">{done}/{total} completed</Text>
+          <Badge colorScheme={colorScheme} fontSize="sm" px={2} py={1}>
+            {title}
+          </Badge>
+          <Text fontSize="xs" color="gray.400">
+            {done}/{total} completed
+          </Text>
         </HStack>
       </HStack>
 
@@ -243,7 +384,13 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress
           if (!diffTasks.length) return null;
           return (
             <Box key={diff}>
-              <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={1}>
+              <Text
+                fontSize="xs"
+                color="gray.500"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={1}
+              >
                 {diff}
               </Text>
               <VStack align="stretch" spacing={1}>
@@ -253,6 +400,7 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress
                     task={task}
                     isCompleted={completedTaskIds.includes(task.taskId)}
                     taskProgress={taskProgress}
+                    numericTaskProgress={numericTaskProgress}
                     teamMembers={teamMembers}
                     currentUserDiscordId={currentUserDiscordId}
                     userMemberRole={userMemberRole}
@@ -275,7 +423,10 @@ function TaskSection({ title, colorScheme, tasks, completedTaskIds, taskProgress
 function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
   const { showToast } = useToastContext();
   const [updateMembers, { loading }] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
-    onCompleted: () => { showToast('Role updated', 'success'); refetch(); },
+    onCompleted: () => {
+      showToast('Role updated', 'success');
+      refetch();
+    },
     onError: (err) => showToast(err.message ?? 'Failed to update role', 'error'),
   });
 
@@ -297,7 +448,11 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
         {isUnset ? '⚠️ Set your role to join tasks:' : 'My role:'}
       </Text>
       <ButtonGroup size="xs" isAttached isDisabled={loading}>
-        {[['PVMER', 'orange'], ['SKILLER', 'teal'], ['FLEX', 'purple']].map(([role, scheme]) => (
+        {[
+          ['PVMER', 'orange'],
+          ['SKILLER', 'teal'],
+          ['FLEX', 'purple'],
+        ].map(([role, scheme]) => (
           <Button
             key={role}
             colorScheme={scheme}
@@ -310,6 +465,32 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
       </ButtonGroup>
     </HStack>
   );
+}
+
+// ---------------------------------------------------------------------------
+// Live countdown hook
+// ---------------------------------------------------------------------------
+function calcCountdown(target) {
+  if (!target) return null;
+  const diff = new Date(target) - Date.now();
+  if (diff <= 0) return 'Ended';
+  const h = Math.floor(diff / 3_600_000);
+  const m = Math.floor((diff % 3_600_000) / 60_000);
+  const s = Math.floor((diff % 60_000) / 1_000);
+  if (h > 48) return `${Math.floor(h / 24)}d ${h % 24}h remaining`;
+  if (h > 0) return `${h}h ${m}m ${s}s remaining`;
+  if (m > 0) return `${m}m ${s}s remaining`;
+  return `${s}s remaining`;
+}
+
+function useCountdown(target) {
+  const [label, setLabel] = useState(() => calcCountdown(target));
+  useEffect(() => {
+    if (!target) return;
+    const id = setInterval(() => setLabel(calcCountdown(target)), 1_000);
+    return () => clearInterval(id);
+  }, [target]);
+  return label;
 }
 
 // ---------------------------------------------------------------------------
@@ -330,20 +511,19 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   const tasks = event.tasks ?? [];
   const completedTaskIds = team.completedTaskIds ?? [];
   const taskProgress = team.taskProgress ?? {};
+  const numericTaskProgress = team.numericTaskProgress ?? {};
   const currentUserDiscordId = user?.discordUserId ?? null;
 
   // Find the current user's role within this team
-  const memberRecord = (team.members ?? []).find((m) =>
-    typeof m !== 'string' && m.discordId === currentUserDiscordId
+  const memberRecord = (team.members ?? []).find(
+    (m) => typeof m !== 'string' && m.discordId === currentUserDiscordId
   );
   const userMemberRole = memberRecord?.role ?? 'ANY';
 
   const pvmerTasks = tasks.filter((t) => t.role === 'PVMER');
   const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
 
-  const gatheringEnd = event.gatheringEnd ? new Date(event.gatheringEnd) : null;
-  const now = new Date();
-  const hoursLeft = gatheringEnd ? Math.max(0, (gatheringEnd - now) / 1000 / 3600) : null;
+  const gatheringCountdown = useCountdown(event.gatheringEnd);
 
   const handleJoin = (taskId) => {
     joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
@@ -356,6 +536,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   const sharedTaskProps = {
     completedTaskIds,
     taskProgress,
+    numericTaskProgress,
     teamMembers: team.members,
     currentUserDiscordId,
     userMemberRole,
@@ -369,15 +550,17 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       <Box p={4} bg="green.900" borderRadius="lg" border="1px solid" borderColor="green.700">
         <HStack justify="space-between" flexWrap="wrap" gap={2} mb={memberRecord ? 3 : 0}>
           <VStack align="flex-start" spacing={0}>
-            <Text fontWeight="bold" color="green.200">⚒️ Gathering Phase</Text>
+            <Text fontWeight="bold" color="green.200">
+              ⚒️ Gathering Phase
+            </Text>
             <Text fontSize="sm" color="green.300">
-              Complete tasks to earn items for your war chest. Mark tasks in progress to coordinate with your team,
-              then submit via Discord with your screenshot.
+              Complete tasks to earn items for your war chest. Mark tasks in progress to coordinate
+              with your team, then submit via Discord with your screenshot.
             </Text>
           </VStack>
-          {hoursLeft !== null && (
+          {gatheringCountdown && (
             <Badge colorScheme="green" fontSize="sm" px={3} py={1}>
-              {hoursLeft < 1 ? '< 1h remaining' : `~${hoursLeft.toFixed(0)}h left`}
+              {gatheringCountdown}
             </Badge>
           )}
         </HStack>
@@ -404,9 +587,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 {...sharedTaskProps}
               />
             )}
-            {pvmerTasks.length > 0 && skillerTasks.length > 0 && (
-              <Divider borderColor="gray.600" />
-            )}
+            {pvmerTasks.length > 0 && skillerTasks.length > 0 && <Divider borderColor="gray.600" />}
             {skillerTasks.length > 0 && (
               <TaskSection
                 title="Skilling Tasks"
@@ -425,7 +606,9 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 
         {/* War chest sidebar */}
         <VStack align="stretch" spacing={4}>
-          <Text fontSize="sm" fontWeight="semibold" color="gray.300">Your War Chest</Text>
+          <Text fontSize="sm" fontWeight="semibold" color="gray.300">
+            Your War Chest
+          </Text>
           <WarChestPanel team={team} hidden={false} />
           <Text fontSize="xs" color="gray.500" textAlign="center">
             Items earned here are used during the Outfitting phase to build your champion.
@@ -440,19 +623,23 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 // OUTFITTING phase
 // ---------------------------------------------------------------------------
 function OutfittingPhaseBarracks({ event, team, isAdmin }) {
+  const outfittingCountdown = useCountdown(event.outfittingEnd);
   return (
     <VStack align="stretch" spacing={6}>
       <Box p={4} bg="blue.900" borderRadius="lg" border="1px solid" borderColor="blue.700">
         <HStack justify="space-between" flexWrap="wrap" gap={2}>
           <VStack align="flex-start" spacing={0}>
-            <Text fontWeight="bold" color="blue.200">🛡️ Outfitting Phase</Text>
+            <Text fontWeight="bold" color="blue.200">
+              🛡️ Outfitting Phase
+            </Text>
             <Text fontSize="sm" color="blue.300">
-              Kit out your champion using war chest items. The captain saves and locks the final loadout.
+              Kit out your champion using war chest items. The captain saves and locks the final
+              loadout.
             </Text>
           </VStack>
-          {event.outfittingEnd && (
+          {outfittingCountdown && (
             <Badge colorScheme="blue" fontSize="sm" px={3} py={1}>
-              Ends {new Date(event.outfittingEnd).toLocaleString()}
+              {outfittingCountdown}
             </Badge>
           )}
         </HStack>
@@ -480,7 +667,9 @@ function BattlePhaseBarracks({ event, team }) {
   return (
     <Center h="40vh" flexDir="column" gap={4}>
       <Text fontSize="4xl">⚔️</Text>
-      <Text fontSize="xl" fontWeight="bold" color="red.300">Battle is underway!</Text>
+      <Text fontSize="xl" fontWeight="bold" color="red.300">
+        Battle is underway!
+      </Text>
       <Text color="gray.400" textAlign="center">
         Your team's champion is in battle. Head to the event overview to watch.
       </Text>
@@ -507,7 +696,15 @@ function PhaseContent({ event, team, isAdmin, user, refetch }) {
   }
 
   if (phase === 'GATHERING') {
-    return <GatheringPhaseBarracks event={event} team={team} isAdmin={isAdmin} user={user} refetch={refetch} />;
+    return (
+      <GatheringPhaseBarracks
+        event={event}
+        team={team}
+        isAdmin={isAdmin}
+        user={user}
+        refetch={refetch}
+      />
+    );
   }
 
   if (phase === 'OUTFITTING') {
@@ -547,7 +744,8 @@ export default function ChampionForgeBarracksPage() {
 
   usePageTitle(team ? `${team.teamName} Barracks — Champion Forge` : 'Champion Forge');
 
-  const isAdmin = user?.admin ||
+  const isAdmin =
+    user?.admin ||
     event?.adminIds?.includes(String(user?.id)) ||
     event?.creatorId === String(user?.id);
 
@@ -569,15 +767,15 @@ export default function ChampionForgeBarracksPage() {
 
   if (loading && !event) {
     return (
-      <Center h="60vh">
-        <Spinner size="xl" color="purple.500" thickness="4px" />
+      <Center flex="1">
+        <Spinner size="xl" color="teal.500" thickness="4px" />
       </Center>
     );
   }
 
   if (error || !event) {
     return (
-      <Center h="60vh">
+      <Center flex="1">
         <Text color="red.400">Event not found or failed to load.</Text>
       </Center>
     );
@@ -585,7 +783,7 @@ export default function ChampionForgeBarracksPage() {
 
   if (!team) {
     return (
-      <Center h="60vh">
+      <Center flex="1">
         <Text color="red.400">Team not found.</Text>
       </Center>
     );
@@ -594,7 +792,7 @@ export default function ChampionForgeBarracksPage() {
   const { hasAccess, reason } = checkAccess();
 
   return (
-    <Box maxW="1200px" mx="auto" px={4} py={8} position="relative">
+    <Box maxW="1200px" mx="auto" px={4} py={8} position="relative" flex="1">
       {!hasAccess && (
         <BarracksAccessOverlay
           reason={reason}
@@ -608,11 +806,17 @@ export default function ChampionForgeBarracksPage() {
       <HStack justify="space-between" mb={6} flexWrap="wrap" gap={3}>
         <VStack align="flex-start" spacing={1}>
           <HStack>
-            <Text fontSize="2xl" fontWeight="bold" color="purple.300">
+            <Text fontSize="2xl" fontWeight="bold" color="teal.300">
               {team.teamName}
             </Text>
-            <Badge colorScheme="purple" fontSize="sm">Barracks</Badge>
-            {team.loadoutLocked && <Badge colorScheme="green" fontSize="sm">🔒 Locked</Badge>}
+            <Badge colorScheme="teal" fontSize="sm">
+              Barracks
+            </Badge>
+            {team.loadoutLocked && (
+              <Badge colorScheme="green" fontSize="sm">
+                🔒 Locked
+              </Badge>
+            )}
           </HStack>
           <Text fontSize="sm" color="gray.400">
             {event.eventName} · {event.status}
@@ -620,11 +824,18 @@ export default function ChampionForgeBarracksPage() {
         </VStack>
         <HStack spacing={2}>
           {isAdmin && (
-            <Badge colorScheme="purple" variant="outline" fontSize="xs" px={2} py={1}>Admin</Badge>
+            <Badge colorScheme="teal" variant="outline" fontSize="xs" px={2} py={1}>
+              Admin
+            </Badge>
           )}
-          <Button size="sm" variant="outline" leftIcon={<ArrowBackIcon />} color="gray.300"
+          <Button
+            size="sm"
+            variant="outline"
+            leftIcon={<ArrowBackIcon />}
+            color="gray.300"
             borderColor="gray.600"
-            onClick={() => window.history.back()}>
+            onClick={() => window.history.back()}
+          >
             Back
           </Button>
         </HStack>

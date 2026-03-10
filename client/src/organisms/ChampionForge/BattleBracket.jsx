@@ -1,23 +1,27 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import {
-  Box, VStack, HStack, Text, Button, Badge,
-} from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Button, Badge } from '@chakra-ui/react';
 import ConfirmModal from './ConfirmModal';
 import { SET_CAPTAIN_READY } from '../../graphql/clanWarsOperations';
 
 function MatchCard({
-  match, teams, isAdmin, myTeamId, eventId,
-  starting, onStartBattle, onSelectBattle,
+  match,
+  teams,
+  isAdmin,
+  myTeamId,
+  eventId,
+  starting,
+  onStartBattle,
+  onSelectBattle,
 }) {
   const team1 = teams.find((t) => t.teamId === match.team1Id);
   const team2 = teams.find((t) => t.teamId === match.team2Id);
 
-  const isActive    = !!match.battleId && !match.winnerId;
+  const isActive = !!match.battleId && !match.winnerId;
   const isCompleted = !!match.winnerId;
-  const isUpcoming  = !match.battleId && !match.winnerId;
+  const isUpcoming = !match.battleId && !match.winnerId;
 
-  const bothReady   = !!match.team1Ready && !!match.team2Ready;
+  const bothReady = !!match.team1Ready && !!match.team2Ready;
   const myTeamIsTeam1 = myTeamId === match.team1Id;
   const myTeamIsTeam2 = myTeamId === match.team2Id;
   const iAmInThisMatch = myTeamIsTeam1 || myTeamIsTeam2;
@@ -35,10 +39,23 @@ function MatchCard({
 
   if (match.isBye) {
     return (
-      <Box bg="gray.700" borderRadius="md" p={3} border="1px solid" borderColor="gray.600" minW="200px">
-        <Text fontSize="xs" color="gray.500" mb={1}>Bye</Text>
-        <Text fontSize="sm" fontWeight="medium" color="white">{team1?.teamName ?? 'TBD'}</Text>
-        <Badge colorScheme="green" fontSize="xs" mt={1}>Advances</Badge>
+      <Box
+        bg="gray.700"
+        borderRadius="md"
+        p={3}
+        border="1px solid"
+        borderColor="gray.600"
+        minW="200px"
+      >
+        <Text fontSize="xs" color="gray.500" mb={1}>
+          Bye
+        </Text>
+        <Text fontSize="sm" fontWeight="medium" color="white">
+          {team1?.teamName ?? 'TBD'}
+        </Text>
+        <Badge colorScheme="green" fontSize="xs" mt={1}>
+          Advances
+        </Badge>
       </Box>
     );
   }
@@ -56,9 +73,21 @@ function MatchCard({
       >
         {/* Status badge */}
         <HStack mb={3} flexWrap="wrap" spacing={1}>
-          {isActive    && <Badge colorScheme="red"    fontSize="xs">⚔️ In Progress</Badge>}
-          {isCompleted && <Badge colorScheme="green"  fontSize="xs">✅ Completed</Badge>}
-          {isUpcoming  && <Badge colorScheme="yellow" fontSize="xs">🔜 Upcoming</Badge>}
+          {isActive && (
+            <Badge colorScheme="red" fontSize="xs">
+              ⚔️ In Progress
+            </Badge>
+          )}
+          {isCompleted && (
+            <Badge colorScheme="green" fontSize="xs">
+              ✅ Completed
+            </Badge>
+          )}
+          {isUpcoming && (
+            <Badge colorScheme="yellow" fontSize="xs">
+              🔜 Upcoming
+            </Badge>
+          )}
         </HStack>
 
         {/* Teams + ready indicators */}
@@ -72,14 +101,21 @@ function MatchCard({
               {team1?.teamName ?? 'TBD'}
             </Text>
             {match.winnerId === match.team1Id && <Text fontSize="xs">🏆</Text>}
-            {isUpcoming && (
-              match.team1Ready
-                ? <Badge colorScheme="green" fontSize="xx-small">✅ ready</Badge>
-                : <Badge colorScheme="gray"  fontSize="xx-small">⏳ waiting</Badge>
-            )}
+            {isUpcoming &&
+              (match.team1Ready ? (
+                <Badge colorScheme="green" fontSize="xx-small">
+                  ✅ ready
+                </Badge>
+              ) : (
+                <Badge colorScheme="gray" fontSize="xx-small">
+                  ⏳ waiting
+                </Badge>
+              ))}
           </HStack>
 
-          <Text fontSize="10px" color="gray.500" textAlign="center" letterSpacing={2}>VS</Text>
+          <Text fontSize="10px" color="gray.500" textAlign="center" letterSpacing={2}>
+            VS
+          </Text>
 
           <HStack justify="space-between">
             <Text
@@ -90,17 +126,24 @@ function MatchCard({
               {team2?.teamName ?? 'TBD'}
             </Text>
             {match.winnerId === match.team2Id && <Text fontSize="xs">🏆</Text>}
-            {isUpcoming && (
-              match.team2Ready
-                ? <Badge colorScheme="green" fontSize="xx-small">✅ ready</Badge>
-                : <Badge colorScheme="gray"  fontSize="xx-small">⏳ waiting</Badge>
-            )}
+            {isUpcoming &&
+              (match.team2Ready ? (
+                <Badge colorScheme="green" fontSize="xx-small">
+                  ✅ ready
+                </Badge>
+              ) : (
+                <Badge colorScheme="gray" fontSize="xx-small">
+                  ⏳ waiting
+                </Badge>
+              ))}
           </HStack>
         </VStack>
 
         {/* Captain ready button */}
-        {isUpcoming && iAmInThisMatch && !isAdmin && (
-          amIReady ? (
+        {isUpcoming &&
+          iAmInThisMatch &&
+          !isAdmin &&
+          (amIReady ? (
             <Button size="xs" colorScheme="green" w="full" isDisabled variant="solid" mb={2}>
               ✅ You're Ready!
             </Button>
@@ -115,38 +158,35 @@ function MatchCard({
             >
               ✅ Ready Up
             </Button>
-          )
-        )}
+          ))}
 
         {/* Admin ready-up on behalf + start */}
         {isUpcoming && isAdmin && (
           <VStack spacing={1}>
             {/* Admin can ready both teams too */}
             <HStack w="full" spacing={1}>
-              {!match.team1Ready && (
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme="green"
-                  flex={1}
-                  isLoading={readying}
-                  onClick={() => setCaptainReady({ variables: { eventId, teamId: match.team1Id } })}
-                >
-                  Ready {team1?.teamName?.split(' ')[0]}
-                </Button>
-              )}
-              {!match.team2Ready && (
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme="green"
-                  flex={1}
-                  isLoading={readying}
-                  onClick={() => setCaptainReady({ variables: { eventId, teamId: match.team2Id } })}
-                >
-                  Ready {team2?.teamName?.split(' ')[0]}
-                </Button>
-              )}
+              <Button
+                size="xs"
+                variant={match.team1Ready ? 'solid' : 'outline'}
+                colorScheme="green"
+                flex={1}
+                isLoading={readying && !match.team1Ready}
+                isDisabled={!!match.team1Ready}
+                onClick={() => !match.team1Ready && setCaptainReady({ variables: { eventId, teamId: match.team1Id } })}
+              >
+                {match.team1Ready ? '✅' : `Ready ${team1?.teamName?.split(' ')[0]}`}
+              </Button>
+              <Button
+                size="xs"
+                variant={match.team2Ready ? 'solid' : 'outline'}
+                colorScheme="green"
+                flex={1}
+                isLoading={readying && !match.team2Ready}
+                isDisabled={!!match.team2Ready}
+                onClick={() => !match.team2Ready && setCaptainReady({ variables: { eventId, teamId: match.team2Id } })}
+              >
+                {match.team2Ready ? '✅' : `Ready ${team2?.teamName?.split(' ')[0]}`}
+              </Button>
             </HStack>
 
             <Button
@@ -166,9 +206,10 @@ function MatchCard({
         {(isActive || isCompleted) && match.battleId && (
           <Button
             size="xs"
-            colorScheme={isActive ? 'red' : 'gray'}
-            variant={isActive ? 'solid' : 'outline'}
+            colorScheme={isActive ? 'red' : 'blue'}
+            variant="solid"
             w="full"
+            color="white"
             mt={isCompleted ? 0 : undefined}
             onClick={() => onSelectBattle?.(match.battleId)}
           >
@@ -189,7 +230,9 @@ function MatchCard({
         body={
           bothReady
             ? `${team1?.teamName} vs ${team2?.teamName} — both captains are ready. Let's go!`
-            : `${!match.team1Ready ? team1?.teamName : team2?.teamName} hasn't readied up yet. Start the battle anyway?`
+            : `${
+                !match.team1Ready ? team1?.teamName : team2?.teamName
+              } hasn't readied up yet. Start the battle anyway?`
         }
         confirmLabel="Start Battle"
         colorScheme={bothReady ? 'red' : 'yellow'}
@@ -199,7 +242,12 @@ function MatchCard({
 }
 
 export default function BattleBracket({
-  event, isAdmin, myTeamId, starting, onStartBattle, onSelectBattle,
+  event,
+  isAdmin,
+  myTeamId,
+  starting,
+  onStartBattle,
+  onSelectBattle,
 }) {
   const bracket = event.bracket;
   const teams = event.teams ?? [];

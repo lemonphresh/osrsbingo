@@ -1,70 +1,15 @@
 'use strict';
 
 const crypto = require('crypto');
-const seedrandom = require('seedrandom');
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
 const { pubsub } = require('../pubsub');
 const { rollPvmerDrop, rollSkillerDrop, buildChampionStats, rollDamage, processSpecial } = require('../../utils/clanWarsRandomisation');
-const { CW_OBJECTIVE_COLLECTIONS } = require('../../utils/cwObjectiveCollections');
+const { sampleTasksFromPool, generateId } = require('../../utils/cwTaskSampler');
 
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function generateId(prefix) {
-  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let rand = '';
-  for (let i = 0; i < 8; i++) rand += chars[Math.floor(Math.random() * chars.length)];
-  return `${prefix}_${rand}`;
-}
-
-// Seeded Fisher-Yates shuffle — returns a new array
-function seededShuffle(arr, rng) {
-  const out = [...arr];
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(rng() * (i + 1));
-    [out[i], out[j]] = [out[j], out[i]];
-  }
-  return out;
-}
-
-// Sample `n` items from an array using a seeded RNG
-function seededSample(arr, n, rng) {
-  return seededShuffle(arr, rng).slice(0, n);
-}
-
-// Build task rows from the pool, seeded from the event seed.
-// Per bucket: 6 initiate, 5 adept, 4 master per role.
-function sampleTasksFromPool(eventId, seed) {
-  const rng = seedrandom(seed);
-  const tasks = [];
-
-  for (const role of ['PVMER', 'SKILLER']) {
-    const pool = CW_OBJECTIVE_COLLECTIONS[role];
-    const initiatePick = seededSample(pool.initiate, 6, rng);
-    const adeptPick    = seededSample(pool.adept,    5, rng);
-    const masterPick   = seededSample(pool.master,   4, rng);
-
-    for (const task of [...initiatePick, ...adeptPick, ...masterPick]) {
-      tasks.push({
-        taskId: generateId('cwtask'),
-        eventId,
-        label: task.label,
-        description: task.description ?? null,
-        difficulty: task.difficulty,
-        role: task.role,
-        isActive: true,
-      });
-    }
-  }
-
-  return tasks;
-}
 
 function isAdmin(event, userId, discordId) {
   if (!userId && !discordId) return false;
@@ -238,6 +183,7 @@ const Mutation = {
       eventConfig,
       bracket: null,
       seed,
+      difficulty: input.difficulty ?? 'standard',
       creatorId: String(user.id),
       adminIds: [String(user.id)],
     });
@@ -261,8 +207,8 @@ const Mutation = {
       );
     }
 
-    // Auto-generate task pool using seed
-    const taskRows = sampleTasksFromPool(eventId, seed);
+    // Auto-generate task pool using seed + event difficulty
+    const taskRows = sampleTasksFromPool(eventId, seed, input.difficulty ?? 'standard');
     await ClanWarsTask.bulkCreate(taskRows);
 
     logger.info(`[createClanWarsEvent] event=${eventId} created with seed, ${input.teams?.length ?? 0} team(s), ${taskRows.length} tasks`);
@@ -300,6 +246,13 @@ const Mutation = {
     } else if (status === 'OUTFITTING') {
       const hours = event.eventConfig?.outfittingHours ?? 24;
       updates.outfittingEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
+    } else if (status === 'BATTLE') {
+      // Auto-lock all teams that haven't locked their loadout yet
+      const { ClanWarsTeam } = getModels();
+      await ClanWarsTeam.update(
+        { loadoutLocked: true },
+        { where: { eventId, loadoutLocked: false } }
+      );
     }
 
     await event.update(updates);
@@ -504,6 +457,7 @@ const Mutation = {
       difficulty: input.difficulty,
       role: input.role,
       isActive: true,
+      quantity: input.quantity ?? null,
     });
   },
 
@@ -516,6 +470,86 @@ const Mutation = {
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
     await task.update({ isActive: false });
     return { success: true, message: 'Task deactivated' };
+  },
+
+  setTaskProgress: async (_, { eventId, teamId, taskId, value }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    const { ClanWarsTeam } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
+    const progress = { ...(team.numericTaskProgress ?? {}) };
+    progress[taskId] = Math.max(0, value);
+    await team.update({ numericTaskProgress: progress });
+    return team;
+  },
+
+  markTaskComplete: async (_, { eventId, teamId, taskId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    const { ClanWarsTeam, ClanWarsSubmission, ClanWarsItem } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
+
+    // Roll drops for all approved submissions that haven't been rewarded yet
+    const approvedSubs = await ClanWarsSubmission.findAll({
+      where: { eventId, teamId, taskId, status: 'APPROVED' },
+    });
+
+    const warChest = await getWarChest(teamId);
+    const warChestData = warChest.map((i) => ({ name: i.name, slot: i.slot, rarity: i.rarity }));
+
+    // PVMER: each approved submission gets its own individual drop.
+    // SKILLER: one reward total per task completion — roll once for the first unrewarded submission.
+    // Track whether a skiller reward has already been given (either previously or in this loop).
+    let skillerRewarded = approvedSubs.some((s) => s.role === 'SKILLER' && s.rewardItemId);
+
+    for (const sub of approvedSubs) {
+      if (sub.rewardItemId) continue; // already rewarded
+
+      let dropResult;
+      if (sub.role === 'PVMER') {
+        if (!sub.rewardSlot) continue; // slot not stored, skip
+        dropResult = rollPvmerDrop({ slot: sub.rewardSlot, difficulty: sub.difficulty, warChest: warChestData });
+      } else {
+        // SKILLER: only one reward per task completion
+        if (skillerRewarded) continue;
+        dropResult = rollSkillerDrop({ difficulty: sub.difficulty, warChest: warChestData });
+      }
+
+      if (!dropResult.success) {
+        logger.warn(`[ClanWars] markTaskComplete drop failed for sub ${sub.submissionId}: ${dropResult.reason}`);
+        continue;
+      }
+
+      const item = dropResult.item;
+      const slot = dropResult.slot ?? sub.rewardSlot;
+      const createdItem = await ClanWarsItem.create({
+        itemId: generateId('cwi'),
+        teamId,
+        eventId,
+        name: item.name,
+        slot,
+        rarity: dropResult.rarity,
+        itemSnapshot: item,
+        sourceSubmissionId: sub.submissionId,
+        earnedAt: new Date(),
+        isEquipped: false,
+        isUsed: false,
+      });
+      await sub.update({ rewardItemId: createdItem.itemId });
+      if (sub.role === 'SKILLER') skillerRewarded = true;
+    }
+
+    // Mark the task complete on the team
+    const current = team.completedTaskIds ?? [];
+    if (!current.includes(taskId)) {
+      await team.update({ completedTaskIds: [...current, taskId] });
+    }
+    return team;
   },
 
   // ---- Submissions (also called from bot via internal mutation) ----
@@ -575,58 +609,14 @@ const Mutation = {
       reviewNote: denialReason ?? null,
     };
 
-    if (approved) {
-      const warChest = await getWarChest(submission.teamId);
-      const warChestData = warChest.map((i) => ({ name: i.name, slot: i.slot, rarity: i.rarity }));
-
-      let dropResult;
-      if (submission.role === 'PVMER') {
-        if (!rewardSlot) throw new UserInputError('rewardSlot required for PVMER submissions');
-        dropResult = rollPvmerDrop({ slot: rewardSlot, difficulty: submission.difficulty, warChest: warChestData });
-      } else {
-        dropResult = rollSkillerDrop({ difficulty: submission.difficulty, warChest: warChestData });
-      }
-
-      if (!dropResult.success) {
-        logger.warn(`[ClanWars] Drop failed for submission ${submissionId}: ${dropResult.reason}`);
-        // Still approve submission but note no item was awarded
-        updates.reviewNote = `Approved — no item awarded: ${dropResult.reason}`;
-      } else {
-        const item = dropResult.item;
-        const slot = dropResult.slot ?? rewardSlot;
-
-        const createdItem = await ClanWarsItem.create({
-          itemId: generateId('cwi'),
-          teamId: submission.teamId,
-          eventId: submission.eventId,
-          name: item.name,
-          slot,
-          rarity: dropResult.rarity,
-          itemSnapshot: item,
-          sourceSubmissionId: submissionId,
-          earnedAt: new Date(),
-          isEquipped: false,
-          isUsed: false,
-        });
-
-        updates.rewardSlot = slot;
-        updates.rewardItemId = createdItem.itemId;
-      }
+    // Store the intended reward slot now, but don't roll the drop.
+    // The actual item is created when an admin explicitly marks the task complete.
+    if (approved && submission.role === 'PVMER') {
+      if (!rewardSlot) throw new UserInputError('rewardSlot required for PVMER submissions');
+      updates.rewardSlot = rewardSlot;
     }
 
     await submission.update(updates);
-
-    // Track completed task on the team
-    if (approved) {
-      const { ClanWarsTeam } = getModels();
-      const team = await ClanWarsTeam.findByPk(submission.teamId);
-      if (team && submission.taskId) {
-        const current = team.completedTaskIds ?? [];
-        if (!current.includes(submission.taskId)) {
-          await team.update({ completedTaskIds: [...current, submission.taskId] });
-        }
-      }
-    }
 
     await pubsub.publish(`CLAN_WARS_SUBMISSION_REVIEWED_${submission.eventId}`, {
       clanWarsSubmissionReviewed: submission,
@@ -635,21 +625,58 @@ const Mutation = {
     // Send Discord DM notification via notifications util (best-effort)
     try {
       const { sendClanWarsSubmissionResult } = require('../../utils/clanWarsNotifications');
-      const rewardItem = updates.rewardItemId
-        ? await ClanWarsItem.findByPk(updates.rewardItemId)
-        : null;
       await sendClanWarsSubmissionResult({
         discordId: submission.submittedBy,
         channelId: submission.channelId,
         taskLabel: submission.taskLabel,
         approved,
         denialReason,
-        item: rewardItem,
+        item: null, // item awarded at task completion, not approval
       });
     } catch (err) {
       logger.warn('[ClanWars] Discord notification failed:', err.message);
     }
 
+    return submission;
+  },
+
+  changeSubmissionRewardSlot: async (_, { submissionId, rewardSlot }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const { ClanWarsSubmission, ClanWarsItem } = getModels();
+    const submission = await ClanWarsSubmission.findByPk(submissionId);
+    if (!submission) throw new UserInputError('Submission not found');
+    if (submission.status !== 'APPROVED') throw new UserInputError('Can only change reward slot on approved submissions');
+    if (submission.role !== 'PVMER') throw new UserInputError('Reward slot only applies to PVMER submissions');
+    const event = await getEventOrThrow(submission.eventId);
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    await submission.update({ rewardSlot });
+    // If the item has already been rolled, re-roll it for the new slot so the
+    // item name/stats match the slot (not just rename a weapon to a legs item).
+    if (submission.rewardItemId) {
+      const existingItem = await ClanWarsItem.findByPk(submission.rewardItemId);
+      if (existingItem) {
+        const warChest = await getWarChest(existingItem.teamId);
+        const warChestData = warChest
+          .filter((i) => i.itemId !== existingItem.itemId)
+          .map((i) => ({ name: i.name, slot: i.slot, rarity: i.rarity }));
+        const dropResult = rollPvmerDrop({
+          slot: rewardSlot,
+          difficulty: submission.difficulty,
+          warChest: warChestData,
+        });
+        if (dropResult.success) {
+          await existingItem.update({
+            name: dropResult.item.name,
+            slot: dropResult.slot ?? rewardSlot,
+            rarity: dropResult.rarity,
+            itemSnapshot: dropResult.item,
+          });
+        } else {
+          // Roll failed (e.g. all slots full) — just update the slot label as fallback
+          await existingItem.update({ slot: rewardSlot });
+        }
+      }
+    }
     return submission;
   },
 
@@ -1044,6 +1071,188 @@ const Mutation = {
       },
     });
 
+    return battle;
+  },
+
+  devAutoBattle: async (_, { battleId }, { user }) => {
+    if (!user?.admin) throw new AuthenticationError('Admin only');
+
+    const { ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
+    const battle = await ClanWarsBattle.findByPk(battleId);
+    if (!battle) throw new UserInputError('Battle not found');
+    if (battle.status !== 'IN_PROGRESS') throw new UserInputError('Battle is not in progress');
+
+    let state = { ...battle.battleState };
+    const snap = battle.championSnapshots;
+
+    const MAX_TURNS = 200; // safety cap
+    let turn = 0;
+
+    while (state.hp.team1 > 0 && state.hp.team2 > 0 && turn < MAX_TURNS) {
+      turn++;
+      const actorSide = state.currentTurn;
+      const defSide = actorSide === 'team1' ? 'team2' : 'team1';
+      const actorTeamId = actorSide === 'team1' ? battle.team1Id : battle.team2Id;
+      const actorSnap = snap[actorSide === 'team1' ? 'champion1' : 'champion2'];
+      const defSnap = snap[actorSide === 'team1' ? 'champion2' : 'champion1'];
+
+      // Decay fortress
+      state.activeEffects[actorSide] = (state.activeEffects[actorSide] ?? [])
+        .map((e) => (e.type === 'fortress' ? { ...e, turns: e.turns - 1 } : e))
+        .filter((e) => e.turns > 0);
+
+      const isDefending = state.defendActive[defSide] ?? false;
+      const roll = rollDamage({
+        attackStat: actorSnap.stats.attack,
+        defenseStat: defSnap.stats.defense,
+        critChance: actorSnap.stats.crit,
+        isDefending,
+      });
+
+      state.hp[defSide] = Math.max(0, state.hp[defSide] - roll.damage);
+      state.defendActive[defSide] = false;
+      const narrative = `${roll.isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${roll.damage} damage!${roll.isCrit ? ' (critical hit!)' : ''}`;
+
+      const bleedResult = tickEffects(state, actorSide);
+      if (bleedResult.bleedDamage > 0) {
+        state.hp[actorSide] = Math.max(0, state.hp[actorSide] - bleedResult.bleedDamage);
+        state.activeEffects[actorSide] = bleedResult.effects;
+      }
+
+      const hpAfter = { team1: state.hp.team1, team2: state.hp.team2 };
+      state = advanceTurn(state);
+
+      await ClanWarsBattleLog.create({
+        eventLogId: generateId('cwbe'),
+        battleId,
+        turnNumber: state.turnNumber - 1,
+        actorTeamId,
+        action: 'ATTACK',
+        rollInputs: { attackStat: actorSnap.stats.attack, defenseStat: defSnap.stats.defense, critChance: actorSnap.stats.crit, isDefending },
+        damageDealt: roll.damage,
+        isCrit: roll.isCrit,
+        itemUsedId: null,
+        effectApplied: null,
+        hpAfter,
+        narrative,
+      });
+    }
+
+    // Determine winner
+    const winnerId = state.hp.team1 <= 0 ? battle.team2Id : battle.team1Id;
+    const winnerName = winnerId === battle.team1Id ? snap.champion1.teamName : snap.champion2.teamName;
+    const loserName = winnerId === battle.team1Id ? snap.champion2.teamName : snap.champion1.teamName;
+
+    await ClanWarsBattleLog.create({
+      eventLogId: generateId('cwbe'),
+      battleId,
+      turnNumber: state.turnNumber,
+      actorTeamId: null,
+      action: 'BATTLE_END',
+      rollInputs: null,
+      damageDealt: null,
+      isCrit: null,
+      narrative: `💀 ${loserName} has fallen! ${winnerName} wins!`,
+      hpAfter: { team1: state.hp.team1, team2: state.hp.team2 },
+    });
+
+    await battle.update({ battleState: state, status: 'COMPLETED', winnerId, endedAt: new Date() });
+
+    // Write winnerId back to bracket
+    const eventRecord = await getEventOrThrow(battle.eventId);
+    const b = eventRecord.bracket;
+    if (b?.rounds) {
+      const winnerRounds = b.rounds.map((round) => ({
+        ...round,
+        matches: round.matches.map((m) =>
+          m.battleId === battleId ? { ...m, winnerId } : m
+        ),
+      }));
+      await eventRecord.update({ bracket: { ...b, rounds: winnerRounds } });
+    }
+
+    await battle.reload();
+    return battle;
+  },
+
+  devSimulateNextMatch: async (_, { eventId }, { user }) => {
+    if (!user?.admin) throw new AuthenticationError('Admin only');
+
+    const { ClanWarsTeam, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
+    const event = await getEventOrThrow(eventId);
+
+    // Find the next bracket match without a battleId
+    const bracket = event.bracket;
+    if (!bracket?.rounds?.length) throw new UserInputError('No bracket found — generate it first');
+
+    let nextMatch = null;
+    for (const round of bracket.rounds) {
+      nextMatch = round.matches.find((m) => !m.isBye && !m.battleId && m.team1Id && m.team2Id);
+      if (nextMatch) break;
+    }
+    if (!nextMatch) throw new UserInputError('No unstarted matches found');
+
+    const { team1Id, team2Id } = nextMatch;
+
+    const [team1, team2] = await Promise.all([
+      ClanWarsTeam.findByPk(team1Id),
+      ClanWarsTeam.findByPk(team2Id),
+    ]);
+    if (!team1?.loadoutLocked || !team2?.loadoutLocked) {
+      throw new UserInputError('Both teams must have locked loadouts before battle can be simulated');
+    }
+
+    const [items1, items2] = await Promise.all([
+      ClanWarsItem.findAll({ where: { teamId: team1Id } }),
+      ClanWarsItem.findAll({ where: { teamId: team2Id } }),
+    ]);
+
+    const stats1 = buildChampionStats(team1.officialLoadout, items1.map((i) => i.toJSON()));
+    const stats2 = buildChampionStats(team2.officialLoadout, items2.map((i) => i.toJSON()));
+
+    const champion1 = { teamId: team1Id, teamName: team1.teamName, stats: stats1, loadout: team1.officialLoadout };
+    const champion2 = { teamId: team2Id, teamName: team2.teamName, stats: stats2, loadout: team2.officialLoadout };
+
+    const firstTurn = stats1.speed >= stats2.speed ? 'team1' : 'team2';
+    const initialState = { ...initBattleState(champion1, champion2), currentTurn: firstTurn };
+
+    const battle = await ClanWarsBattle.create({
+      battleId: generateId('cwb'),
+      eventId,
+      team1Id,
+      team2Id,
+      status: 'IN_PROGRESS',
+      championSnapshots: { champion1, champion2 },
+      battleState: initialState,
+      rngSeed: Math.random().toString(36).slice(2),
+      startedAt: new Date(),
+    });
+
+    await ClanWarsBattleLog.create({
+      eventLogId: generateId('cwbe'),
+      battleId: battle.battleId,
+      turnNumber: 0,
+      actorTeamId: null,
+      action: 'BATTLE_START',
+      rollInputs: null,
+      damageDealt: null,
+      isCrit: null,
+      narrative: `⚔️ Battle begins! ${team1.teamName} vs ${team2.teamName}. ${firstTurn === 'team1' ? team1.teamName : team2.teamName} goes first (higher speed).`,
+      hpAfter: { team1: initialState.hp.team1, team2: initialState.hp.team2 },
+    });
+
+    // Write battleId to bracket
+    const updatedRounds = bracket.rounds.map((round) => ({
+      ...round,
+      matches: round.matches.map((m) =>
+        !m.battleId && m.team1Id === team1Id && m.team2Id === team2Id
+          ? { ...m, battleId: battle.battleId }
+          : m
+      ),
+    }));
+    await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
+
+    // Battle is now IN_PROGRESS — client handles turn-by-turn play
     return battle;
   },
 };

@@ -772,6 +772,8 @@ const typeDefs = gql`
     # --- Champion Forge: Tasks ---
     addClanWarsTask(eventId: ID!, input: ClanWarsTaskInput!): ClanWarsTask!
     deleteClanWarsTask(taskId: ID!): MutationResponse!
+    setTaskProgress(eventId: ID!, teamId: ID!, taskId: ID!, value: Int!): ClanWarsTeam!
+    markTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
 
     # --- Champion Forge: Submissions ---
     createClanWarsSubmission(input: ClanWarsSubmissionInput!): ClanWarsSubmission!
@@ -782,6 +784,7 @@ const typeDefs = gql`
       rewardSlot: String
       denialReason: String
     ): ClanWarsSubmission!
+    changeSubmissionRewardSlot(submissionId: ID!, rewardSlot: String!): ClanWarsSubmission!
 
     # --- Champion Forge: Outfitting ---
     saveOfficialLoadout(teamId: ID!, loadout: JSON!): ClanWarsTeam!
@@ -800,6 +803,11 @@ const typeDefs = gql`
       action: ClanWarsBattleAction!
       itemId: ID
     ): ClanWarsBattle!
+
+    # Dev-only: auto-play a battle to completion (admin only)
+    devAutoBattle(battleId: ID!): ClanWarsBattle!
+    # Dev-only: start the next unstarted bracket match and simulate it to completion
+    devSimulateNextMatch(eventId: ID!): ClanWarsBattle!
   }
 
   # ============================================================
@@ -848,6 +856,7 @@ const typeDefs = gql`
     adminIds: [String!]
     seed: String
     guildId: String
+    difficulty: String
     teams: [ClanWarsTeam!]
     submissions: [ClanWarsSubmission!]
     tasks: [ClanWarsTask!]
@@ -874,6 +883,7 @@ const typeDefs = gql`
     captainDiscordId: String
     completedTaskIds: [String!]
     taskProgress: JSON
+    numericTaskProgress: JSON
     items: [ClanWarsItem!]
     submissions: [ClanWarsSubmission!]
   }
@@ -954,6 +964,8 @@ const typeDefs = gql`
     difficulty: String!
     role: String!
     isActive: Boolean!
+    acceptableItems: [String!]
+    quantity: Int
   }
 
   type ClanWarsSubmitResult {
@@ -984,6 +996,7 @@ const typeDefs = gql`
     turnTimerSeconds: Int
     maxConsumableSlots: Int
     flexRolesAllowed: Boolean
+    difficulty: String
     teams: [CreateClanWarsTeamInput!]
   }
 
@@ -1005,6 +1018,7 @@ const typeDefs = gql`
     description: String
     difficulty: String!
     role: String!
+    quantity: Int
   }
 
   input ClanWarsSubmissionInput {
