@@ -680,6 +680,14 @@ const Mutation = {
     return submission;
   },
 
+  sendBattleEmote: async (_, { battleId, emote }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    await pubsub.publish(`BATTLE_EMOTE_${battleId}`, {
+      battleEmoteReceived: { battleId, emote },
+    });
+    return true;
+  },
+
   // ---- Outfitting ----
 
   saveOfficialLoadout: async (_, { teamId, loadout }, { user }) => {

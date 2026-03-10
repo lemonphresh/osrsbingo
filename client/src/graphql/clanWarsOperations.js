@@ -574,6 +574,21 @@ export const CLAN_WARS_BATTLE_UPDATED = gql`
   }
 `;
 
+export const SEND_BATTLE_EMOTE = gql`
+  mutation SendBattleEmote($battleId: ID!, $emote: String!) {
+    sendBattleEmote(battleId: $battleId, emote: $emote)
+  }
+`;
+
+export const BATTLE_EMOTE_RECEIVED = gql`
+  subscription BattleEmoteReceived($battleId: ID!) {
+    battleEmoteReceived(battleId: $battleId) {
+      battleId
+      emote
+    }
+  }
+`;
+
 export const CLAN_WARS_SUBMISSION_ADDED = gql`
   ${CLAN_WARS_SUBMISSION_FIELDS}
   subscription ClanWarsSubmissionAdded($eventId: ID!) {

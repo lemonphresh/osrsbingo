@@ -25,6 +25,7 @@ const createSubscription = (topicFn) => ({
 module.exports = {
   ClanWarsSubscription: {
     clanWarsBattleUpdated: createSubscription((args) => `CLAN_WARS_BATTLE_UPDATED_${args.battleId}`),
+    battleEmoteReceived: createSubscription((args) => `BATTLE_EMOTE_${args.battleId}`),
     clanWarsSubmissionAdded: createSubscription((args) => `CLAN_WARS_SUBMISSION_ADDED_${args.eventId}`),
     clanWarsSubmissionReviewed: createSubscription((args) => `CLAN_WARS_SUBMISSION_REVIEWED_${args.eventId}`),
   },

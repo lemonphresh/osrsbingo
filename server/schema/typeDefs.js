@@ -808,6 +808,7 @@ const typeDefs = gql`
     devAutoBattle(battleId: ID!): ClanWarsBattle!
     # Dev-only: start the next unstarted bracket match and simulate it to completion
     devSimulateNextMatch(eventId: ID!): ClanWarsBattle!
+    sendBattleEmote(battleId: ID!, emote: String!): Boolean!
   }
 
   # ============================================================
@@ -974,6 +975,11 @@ const typeDefs = gql`
     item: ClanWarsItem
   }
 
+  type BattleEmote {
+    battleId: ID!
+    emote: String!
+  }
+
   type ClanWarsBattleUpdate {
     battleId: ID!
     battle: ClanWarsBattle!
@@ -1050,6 +1056,7 @@ const typeDefs = gql`
 
     # --- Champion Forge ---
     clanWarsBattleUpdated(battleId: ID!): ClanWarsBattleUpdate!
+    battleEmoteReceived(battleId: ID!): BattleEmote!
     clanWarsSubmissionAdded(eventId: ID!): ClanWarsSubmission!
     clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
   }

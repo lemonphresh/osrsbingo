@@ -1,17 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useMutation, useSubscription } from '@apollo/client';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Badge,
-  SimpleGrid,
-} from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Button, Badge, SimpleGrid } from '@chakra-ui/react';
 import {
   SUBMIT_BATTLE_ACTION,
   CLAN_WARS_BATTLE_UPDATED,
+  SEND_BATTLE_EMOTE,
+  BATTLE_EMOTE_RECEIVED,
 } from '../../graphql/clanWarsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 
@@ -71,7 +65,7 @@ function FloatingEmote({ emote, x, y, onDone }) {
   useEffect(() => {
     const t1 = setTimeout(() => {
       setVisible(false);
-      setTop(y - 60);
+      setTop(y - 120);
     }, 50);
     const t2 = setTimeout(onDone, 1200);
     return () => {
@@ -83,7 +77,7 @@ function FloatingEmote({ emote, x, y, onDone }) {
   return (
     <Box
       position="absolute"
-      left={`${x}px`}
+      left={`${x}%`}
       top={`${top}px`}
       fontSize="28px"
       opacity={visible ? 1 : 0}
@@ -113,7 +107,9 @@ function StatusBadges({ effects, defendActive }) {
         </Badge>
       ))}
       {defendActive && (
-        <Badge colorScheme="blue" fontSize="10px">🛡️ defending</Badge>
+        <Badge colorScheme="blue" fontSize="10px">
+          🛡️ defending
+        </Badge>
       )}
     </HStack>
   );
@@ -141,7 +137,9 @@ function ConsumableList({ consumableIds, items, onUse, disabled }) {
         );
       })}
       {consumableIds.length === 0 && (
-        <Text fontSize="xs" color="gray.500">No consumables remaining.</Text>
+        <Text fontSize="xs" color="gray.500">
+          No consumables remaining.
+        </Text>
       )}
     </VStack>
   );
@@ -180,15 +178,23 @@ export default function BattleScreen({
   const isBattleOver = battle?.status === 'COMPLETED';
 
   // Determine if this user is an active captain for one of the battle's teams
-  const isSpectator =
-    !myTeamId ||
-    (myTeamId !== battle?.team1Id && myTeamId !== battle?.team2Id);
+  const isSpectator = !myTeamId || (myTeamId !== battle?.team1Id && myTeamId !== battle?.team2Id);
 
   const mySide = myTeamId === battle?.team1Id ? 'team1' : 'team2';
   const isMyTurn = !isSpectator && state.currentTurn === mySide;
   const mySnap = snap[mySide === 'team1' ? 'champion1' : 'champion2'];
 
   const [submitAction, { loading: acting }] = useMutation(SUBMIT_BATTLE_ACTION);
+  const [sendEmote] = useMutation(SEND_BATTLE_EMOTE);
+
+  useSubscription(BATTLE_EMOTE_RECEIVED, {
+    variables: { battleId: battle?.battleId },
+    skip: !battle?.battleId,
+    onData: ({ data }) => {
+      const emote = data.data?.battleEmoteReceived?.emote;
+      if (emote) spawnEmote(emote);
+    },
+  });
 
   useSubscription(CLAN_WARS_BATTLE_UPDATED, {
     variables: { battleId: battle?.battleId },
@@ -245,7 +251,12 @@ export default function BattleScreen({
       const actorSide = currentBattle.battleState?.currentTurn;
       const actorTeamId = actorSide === 'team1' ? currentBattle.team1Id : currentBattle.team2Id;
       submitAction({
-        variables: { battleId: currentBattle.battleId, teamId: actorTeamId, action: 'ATTACK', itemId: null },
+        variables: {
+          battleId: currentBattle.battleId,
+          teamId: actorTeamId,
+          action: 'ATTACK',
+          itemId: null,
+        },
       }).catch(() => {});
     }, 2000);
     return () => clearInterval(autoRef.current);
@@ -279,9 +290,17 @@ export default function BattleScreen({
 
   const spawnEmote = (emote) => {
     const id = emoteIdRef.current++;
-    const x = 60 + Math.random() * 300;
-    const y = 40 + Math.random() * 80;
+    const x = 10 + Math.random() * 75; // percentage across arena width
+    const y = 160 + Math.random() * 60;
     setEmotes((e) => [...e, { id, emote, x, y }]);
+  };
+
+  const handleEmoteClick = (emote) => {
+    if (battle?.battleId) {
+      sendEmote({ variables: { battleId: battle.battleId, emote } });
+    } else {
+      spawnEmote(emote);
+    }
   };
 
   const handleAction = async (action, itemId) => {
@@ -309,7 +328,9 @@ export default function BattleScreen({
           Champion Forge · Battle · Turn {state.turnNumber ?? 1}
         </Text>
         {isSpectator && (
-          <Badge colorScheme="gray" fontSize="10px" variant="subtle">👁 Spectating</Badge>
+          <Badge colorScheme="gray" fontSize="10px" variant="subtle">
+            👁 Spectating
+          </Badge>
         )}
         {isAdmin && !isBattleOver && (
           <Button
@@ -324,25 +345,47 @@ export default function BattleScreen({
       </HStack>
 
       {/* Arena */}
-      <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="xl" p={5}
-        position="relative" overflow="hidden" mb={4}>
+      <Box
+        bg="gray.800"
+        border="1px solid"
+        borderColor="gray.600"
+        borderRadius="xl"
+        p={5}
+        position="relative"
+        overflow="hidden"
+        mb={4}
+      >
         {emotes.map((e) => (
-          <FloatingEmote key={e.id} emote={e.emote} x={e.x} y={e.y}
-            onDone={() => setEmotes((em) => em.filter((x) => x.id !== e.id))} />
+          <FloatingEmote
+            key={e.id}
+            emote={e.emote}
+            x={e.x}
+            y={e.y}
+            onDone={() => setEmotes((em) => em.filter((x) => x.id !== e.id))}
+          />
         ))}
 
         {!isBattleOver && (
           <Text textAlign="center" mb={3} fontSize="12px" color={isMyTurn ? '#4caf50' : '#888'}>
             {isMyTurn
               ? '🟢 your turn — pick an action'
-              : `⏳ waiting for ${state.currentTurn === 'team1' ? snap.champion1?.teamName : snap.champion2?.teamName}...`}
+              : `⏳ waiting for ${
+                  state.currentTurn === 'team1'
+                    ? snap.champion1?.teamName
+                    : snap.champion2?.teamName
+                }...`}
           </Text>
         )}
 
         {isBattleOver && winnerSnap && (
           <>
-            <Text textAlign="center" fontSize="18px" fontWeight="bold"
-              color="#c9a84c" textShadow="0 0 20px #c9a84c88">
+            <Text
+              textAlign="center"
+              fontSize="18px"
+              fontWeight="bold"
+              color="#c9a84c"
+              textShadow="0 0 20px #c9a84c88"
+            >
               🏆 {winnerSnap.teamName} wins!
             </Text>
             {lobbyCountdown !== null && (
@@ -359,32 +402,66 @@ export default function BattleScreen({
             <Text fontSize="11px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
               {snap.champion1?.teamName}
             </Text>
-            <HPBar current={state.hp?.team1 ?? 0} max={snap.champion1?.stats?.maxHp ?? 100} color="#e05c5c" />
+            <HPBar
+              current={state.hp?.team1 ?? 0}
+              max={snap.champion1?.stats?.maxHp ?? 100}
+              color="#e05c5c"
+            />
             <Text fontSize="11px" color="#e05c5c">
               {state.hp?.team1 ?? 0} / {snap.champion1?.stats?.maxHp ?? 100} hp
             </Text>
-            <StatusBadges effects={state.activeEffects?.team1} defendActive={state.defendActive?.team1} />
+            <StatusBadges
+              effects={state.activeEffects?.team1}
+              defendActive={state.defendActive?.team1}
+            />
             <Box pt={2}>
-              <ChampionSprite side="left" name={snap.champion1?.teamName ?? 'Team 1'} color="#e05c5c"
-                isShaking={shaking === 'left'} isFlashing={flashing === 'left'}
-                isDead={(state.hp?.team1 ?? 1) <= 0} />
+              <ChampionSprite
+                side="left"
+                name={snap.champion1?.teamName ?? 'Team 1'}
+                color="#e05c5c"
+                isShaking={shaking === 'left'}
+                isFlashing={flashing === 'left'}
+                isDead={(state.hp?.team1 ?? 1) <= 0}
+              />
             </Box>
           </VStack>
 
           {/* VS / timer */}
           <VStack spacing={2} align="center" pb={4}>
-            <Text fontSize="11px" color="gray.600">vs</Text>
+            <Text fontSize="11px" color="gray.600">
+              vs
+            </Text>
             {!isBattleOver && !isSpectator && (
-              <Box w="44px" h="44px" borderRadius="full" bg={`${timerColor}22`}
-                border={`2px solid ${timerColor}`} display="flex" alignItems="center"
-                justifyContent="center" fontSize="14px" fontWeight="bold" color={timerColor} transition="all 0.5s">
+              <Box
+                w="44px"
+                h="44px"
+                borderRadius="full"
+                bg={`${timerColor}22`}
+                border={`2px solid ${timerColor}`}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontSize="14px"
+                fontWeight="bold"
+                color={timerColor}
+                transition="all 0.5s"
+              >
                 {timer}
               </Box>
             )}
             {!isBattleOver && isSpectator && (
-              <Box w="44px" h="44px" borderRadius="full" bg="gray.700"
-                border="2px solid" borderColor="gray.600" display="flex" alignItems="center"
-                justifyContent="center" fontSize="18px">
+              <Box
+                w="44px"
+                h="44px"
+                borderRadius="full"
+                bg="gray.700"
+                border="2px solid"
+                borderColor="gray.600"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                fontSize="18px"
+              >
                 ⏳
               </Box>
             )}
@@ -395,25 +472,59 @@ export default function BattleScreen({
             <Text fontSize="11px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
               {snap.champion2?.teamName}
             </Text>
-            <HPBar current={state.hp?.team2 ?? 0} max={snap.champion2?.stats?.maxHp ?? 100} color="#5c9ee0" />
+            <HPBar
+              current={state.hp?.team2 ?? 0}
+              max={snap.champion2?.stats?.maxHp ?? 100}
+              color="#5c9ee0"
+            />
             <Text fontSize="11px" color="#5c9ee0" textAlign="right">
               {state.hp?.team2 ?? 0} / {snap.champion2?.stats?.maxHp ?? 100} hp
             </Text>
             <HStack justify="flex-end" flexWrap="wrap">
-              <StatusBadges effects={state.activeEffects?.team2} defendActive={state.defendActive?.team2} />
+              <StatusBadges
+                effects={state.activeEffects?.team2}
+                defendActive={state.defendActive?.team2}
+              />
             </HStack>
             <Box pt={2} alignSelf="flex-end">
-              <ChampionSprite side="right" name={snap.champion2?.teamName ?? 'Team 2'} color="#5c9ee0"
-                isShaking={shaking === 'right'} isFlashing={flashing === 'right'}
-                isDead={(state.hp?.team2 ?? 1) <= 0} />
+              <ChampionSprite
+                side="right"
+                name={snap.champion2?.teamName ?? 'Team 2'}
+                color="#5c9ee0"
+                isShaking={shaking === 'right'}
+                isFlashing={flashing === 'right'}
+                isDead={(state.hp?.team2 ?? 1) <= 0}
+              />
             </Box>
           </VStack>
         </SimpleGrid>
+      </Box>
 
-        {/* Emote bar */}
-        <HStack justify="center" flexWrap="wrap" spacing={1} mb={2}>
+      {/* Emote bar */}
+      <Box
+        bg="gray.800"
+        border="1px solid"
+        borderColor="gray.700"
+        borderRadius="lg"
+        px={3}
+        py={2}
+        mb={4}
+      >
+        <Text fontSize="10px" color="gray.500" textTransform="uppercase" letterSpacing={1} mb={1}>
+          React live — click to send an emote
+        </Text>
+        <HStack flexWrap="wrap" alignItems="center" justifyContent="center" spacing={0.5}>
           {EMOTE_OPTIONS.map((e) => (
-            <Button key={e} size="xs" variant="ghost" fontSize="16px" onClick={() => spawnEmote(e)} p={1}>{e}</Button>
+            <Button
+              key={e}
+              size="md"
+              variant="ghost"
+              fontSize="20px"
+              onClick={() => handleEmoteClick(e)}
+              p={1}
+            >
+              {e}
+            </Button>
           ))}
         </HStack>
       </Box>
@@ -423,8 +534,13 @@ export default function BattleScreen({
         <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="lg" p={4} mb={4}>
           <HStack mb={3} spacing={2}>
             {['attack', 'defend', 'special', 'item'].map((t) => (
-              <Button key={t} size="xs" variant={activeTab === t ? 'solid' : 'outline'} colorScheme="purple"
-                onClick={() => setActiveTab(t)}>
+              <Button
+                key={t}
+                size="xs"
+                variant={activeTab === t ? 'solid' : 'outline'}
+                colorScheme="purple"
+                onClick={() => setActiveTab(t)}
+              >
                 {t === 'attack' ? '⚔️' : t === 'defend' ? '🛡️' : t === 'special' ? '✨' : '🧪'} {t}
               </Button>
             ))}
@@ -432,26 +548,44 @@ export default function BattleScreen({
 
           {activeTab === 'attack' && (
             <VStack align="stretch">
-              <Text fontSize="xs" color="gray.400" mb={1}>Deal damage to the enemy champion.</Text>
-              <Button colorScheme="red" onClick={() => handleAction('ATTACK')} isLoading={acting}>⚔️ Attack</Button>
+              <Text fontSize="xs" color="gray.400" mb={1}>
+                Deal damage to the enemy champion.
+              </Text>
+              <Button colorScheme="red" onClick={() => handleAction('ATTACK')} isLoading={acting}>
+                ⚔️ Attack
+              </Button>
             </VStack>
           )}
           {activeTab === 'defend' && (
             <VStack align="stretch">
-              <Text fontSize="xs" color="gray.400" mb={1}>Reduce incoming damage by 60% until the next hit lands.</Text>
-              <Button colorScheme="blue" onClick={() => handleAction('DEFEND')} isLoading={acting}>🛡️ Defend</Button>
+              <Text fontSize="xs" color="gray.400" mb={1}>
+                Reduce incoming damage by 60% until the next hit lands.
+              </Text>
+              <Button colorScheme="blue" onClick={() => handleAction('DEFEND')} isLoading={acting}>
+                🛡️ Defend
+              </Button>
             </VStack>
           )}
           {activeTab === 'special' && (
             <VStack align="stretch">
               {specialUsed ? (
-                <Text fontSize="sm" color="gray.500">Special ability already used this battle.</Text>
+                <Text fontSize="sm" color="gray.500">
+                  Special ability already used this battle.
+                </Text>
               ) : mySpecials.length === 0 ? (
-                <Text fontSize="sm" color="gray.500">No special abilities equipped.</Text>
+                <Text fontSize="sm" color="gray.500">
+                  No special abilities equipped.
+                </Text>
               ) : (
                 <>
-                  <Text fontSize="xs" color="gray.400" mb={1}>One-time use — cannot be undone.</Text>
-                  <Button colorScheme="purple" onClick={() => handleAction('SPECIAL')} isLoading={acting}>
+                  <Text fontSize="xs" color="gray.400" mb={1}>
+                    One-time use — cannot be undone.
+                  </Text>
+                  <Button
+                    colorScheme="purple"
+                    onClick={() => handleAction('SPECIAL')}
+                    isLoading={acting}
+                  >
                     ✨ {mySpecials[0]}
                   </Button>
                 </>
@@ -459,23 +593,61 @@ export default function BattleScreen({
             </VStack>
           )}
           {activeTab === 'item' && (
-            <ConsumableList consumableIds={myConsumableIds} items={allItems ?? []}
-              onUse={(itemId) => handleAction('USE_ITEM', itemId)} disabled={acting} />
+            <ConsumableList
+              consumableIds={myConsumableIds}
+              items={allItems ?? []}
+              onUse={(itemId) => handleAction('USE_ITEM', itemId)}
+              disabled={acting}
+            />
           )}
         </Box>
       )}
 
       {/* Battle log */}
-      <Box ref={logRef} bg="gray.900" border="1px solid" borderColor="gray.700" borderRadius="lg"
-        p={3} h="180px" overflowY="auto" fontFamily="mono" fontSize="12px">
+      <Box
+        ref={logRef}
+        bg="gray.900"
+        border="1px solid"
+        borderColor="gray.700"
+        borderRadius="lg"
+        p={3}
+        h="180px"
+        overflowY="auto"
+        fontFamily="mono"
+        fontSize="12px"
+        sx={{
+          '&::-webkit-scrollbar': {
+            height: '4px',
+          },
+          '&::-webkit-scrollbar-track': {
+            background: 'transparent',
+            width: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            background: 'rgba(255, 255, 255, 0.3)',
+            borderRadius: '4px',
+            width: '4px',
+          },
+          '&::-webkit-scrollbar-thumb:hover': {
+            background: 'rgba(255, 255, 255, 0.4)',
+          },
+        }}
+      >
         {log.length === 0 && <Text color="gray.600">⚔️ Battle beginning...</Text>}
         {log.map((entry, i) => (
-          <Text key={i} mb={0.5}
+          <Text
+            key={i}
+            mb={0.5}
             color={
-              entry.action === 'SPECIAL' ? '#ce93d8' :
-              entry.action === 'USE_ITEM' ? '#ffe082' :
-              entry.action === 'BATTLE_START' || entry.action === 'BATTLE_END' ? '#666' : '#ccc'
-            }>
+              entry.action === 'SPECIAL'
+                ? '#ce93d8'
+                : entry.action === 'USE_ITEM'
+                ? '#ffe082'
+                : entry.action === 'BATTLE_START' || entry.action === 'BATTLE_END'
+                ? '#666'
+                : '#ccc'
+            }
+          >
             {entry.narrative}
           </Text>
         ))}
