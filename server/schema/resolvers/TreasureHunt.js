@@ -17,7 +17,7 @@ const {
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
-const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
+const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
@@ -1775,7 +1775,7 @@ const TreasureHuntResolvers = {
       team.changed('nodeProgress', true);
       await team.save();
       await team.reload();
-      await pubsub.publish(SUBMISSION_TOPICS.NODE_PROGRESS_UPDATED, {
+      await pubsub.publish(`NODE_PROGRESS_UPDATED_${eventId}`, {
         nodeProgressUpdated: { eventId, teamId, nodeId, value: clamped },
       });
 
