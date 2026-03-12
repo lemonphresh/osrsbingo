@@ -298,8 +298,6 @@ const AdminQuickActionsPanel = ({
       return true;
     });
 
-    const approvedSubmissions = submissions.filter((s) => s.status === 'APPROVED');
-    const deniedSubmissions = submissions.filter((s) => s.status === 'DENIED');
     const activeTeams = teams.filter((t) => t.completedNodes?.length > 0);
     const inactiveTeams = teams.filter((t) => !t.completedNodes || t.completedNodes.length === 0);
     const leadingTeam = [...teams].sort((a, b) => (b.currentPot || 0) - (a.currentPot || 0))[0];
@@ -319,9 +317,6 @@ const AdminQuickActionsPanel = ({
 
     return {
       pending: pendingSubmissions.length,
-      approved: approvedSubmissions.length,
-      denied: deniedSubmissions.length,
-      totalSubmissions: submissions.length,
       activeTeams: activeTeams.length,
       inactiveTeams: inactiveTeams.length,
       totalTeams: teams.length,
@@ -487,24 +482,6 @@ const AdminQuickActionsPanel = ({
                   <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={2}>
                     SUBMISSION STATS
                   </Text>
-                  <HStack justify="space-between" fontSize="xs">
-                    <HStack>
-                      <Icon as={CheckIcon} color="green.400" boxSize={3} />
-                      <Text color="white">Approved</Text>
-                    </HStack>
-                    <Text color="green.400" fontWeight="semibold">
-                      {stats.approved}
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between" fontSize="xs" mt={1}>
-                    <HStack>
-                      <Icon as={CloseIcon} color="red.400" boxSize={3} />
-                      <Text color="white">Denied</Text>
-                    </HStack>
-                    <Text color="red.400" fontWeight="semibold">
-                      {stats.denied}
-                    </Text>
-                  </HStack>
                 </Box>
 
                 {/* Member verification */}

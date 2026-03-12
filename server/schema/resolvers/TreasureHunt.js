@@ -271,36 +271,89 @@ const TreasureHuntResolvers = {
         TreasureNode.findAll({
           where: { eventId },
           attributes: ['nodeId', 'locationGroupId'],
+          raw: true,
         }),
       ]);
 
-      // Build nodeId -> locationGroupId lookup
-      const nodeToGroup = {};
-      nodes.forEach((n) => {
-        if (n.locationGroupId) nodeToGroup[n.nodeId] = n.locationGroupId;
-      });
+      // nodeId -> locationGroupId for sibling-node filtering
+      const nodeToGroup = new Map(
+        nodes.filter((n) => n.locationGroupId).map((n) => [n.nodeId, n.locationGroupId])
+      );
 
-      // For each team, map locationGroupId -> the nodeId they actually completed
-      const teamCompletedGroupMap = {};
-      submissions.forEach((sub) => {
-        const team = sub.team;
-        if (!team?.completedNodes) return;
-        if (!teamCompletedGroupMap[team.teamId]) {
-          teamCompletedGroupMap[team.teamId] = {};
-          team.completedNodes.forEach((nId) => {
-            const groupId = nodeToGroup[nId];
-            if (groupId) teamCompletedGroupMap[team.teamId][groupId] = nId;
-          });
-        }
-      });
-
-      // Drop any submission for a node the team passed over in favor of a sibling at the same location
       return submissions.filter((sub) => {
-        const groupId = nodeToGroup[sub.nodeId];
-        if (!groupId) return true;
-        const completedNodeInGroup = teamCompletedGroupMap[sub.team?.teamId]?.[groupId];
-        if (!completedNodeInGroup) return true;
-        return completedNodeInGroup === sub.nodeId;
+        const team = sub.team;
+        if (!team) return false;
+        // Completed nodes are lazy-loaded per accordion item — exclude them here
+        if (team.completedNodes?.includes(sub.nodeId)) return false;
+        // If a sibling at the same location is already completed, drop this sub too
+        const groupId = nodeToGroup.get(sub.nodeId);
+        if (groupId) {
+          const siblingCompleted = team.completedNodes?.some(
+            (nId) => nId !== sub.nodeId && nodeToGroup.get(nId) === groupId
+          );
+          if (siblingCompleted) return false;
+        }
+        return true;
+      });
+    },
+
+    // Lightweight summary (counts only) for completed nodes — used to populate
+    // the completed-node accordion headers without fetching full submission rows
+    getNodeSubmissionSummaries: async (_, { eventId }) => {
+      const teams = await TreasureTeam.findAll({
+        where: { eventId },
+        attributes: ['teamId', 'teamName', 'completedNodes'],
+        raw: true,
+      });
+
+      if (!teams.length) return [];
+
+      const teamIds = teams.map((t) => t.teamId);
+      const teamMap = new Map(teams.map((t) => [t.teamId, t]));
+
+      // Fetch just the 3 columns needed for counting — no full hydration
+      const subs = await TreasureSubmission.findAll({
+        where: { teamId: { [Op.in]: teamIds } },
+        attributes: ['nodeId', 'teamId', 'status'],
+        raw: true,
+      });
+
+      const summaryMap = new Map();
+      subs.forEach((s) => {
+        const key = `${s.nodeId}:${s.teamId}`;
+        if (!summaryMap.has(key)) {
+          summaryMap.set(key, { nodeId: s.nodeId, teamId: s.teamId, pendingCount: 0, approvedCount: 0 });
+        }
+        const e = summaryMap.get(key);
+        if (s.status === 'PENDING_REVIEW') e.pendingCount++;
+        if (s.status === 'APPROVED') e.approvedCount++;
+      });
+
+      // Only return summaries for completed nodes that actually have submissions
+      const result = [];
+      teams.forEach((team) => {
+        (team.completedNodes || []).forEach((nodeId) => {
+          const entry = summaryMap.get(`${nodeId}:${team.teamId}`);
+          if (entry) {
+            result.push({
+              nodeId,
+              teamId: team.teamId,
+              teamName: teamMap.get(team.teamId)?.teamName || 'Unknown',
+              pendingCount: entry.pendingCount,
+              approvedCount: entry.approvedCount,
+            });
+          }
+        });
+      });
+
+      return result;
+    },
+
+    // Full submissions for a specific node+team — called lazily when accordion is opened
+    getNodeSubmissions: async (_, { nodeId, teamId }) => {
+      return TreasureSubmission.findAll({
+        where: { nodeId, teamId },
+        order: [['submittedAt', 'DESC']],
       });
     },
 

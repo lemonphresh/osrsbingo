@@ -36,7 +36,7 @@ import {
 import { MdOutlineArrowBack } from 'react-icons/md';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
-import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS } from '../graphql/queries';
+import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS, GET_NODE_SUBMISSION_SUMMARIES } from '../graphql/queries';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
 import {
   REVIEW_SUBMISSION,
@@ -164,10 +164,14 @@ const TreasureEventView = () => {
     variables: { eventId },
     pollInterval: 5 * 60 * 1000,
   });
+  const { data: summariesData, refetch: refetchSummaries } = useQuery(GET_NODE_SUBMISSION_SUMMARIES, {
+    variables: { eventId },
+    pollInterval: 5 * 60 * 1000,
+  });
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const [generateMap, { loading: generateLoading }] = useMutation(GENERATE_TREASURE_MAP, {
-    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions'],
+    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions', 'GetNodeSubmissionSummaries'],
     awaitRefetchQueries: true,
     onCompleted: () => {
       showToast('Map generated successfully!', 'success');
@@ -180,6 +184,7 @@ const TreasureEventView = () => {
     onCompleted: () => {
       showToast('Submission reviewed!', 'success');
       refetchSubmissions();
+      refetchSummaries();
     },
     onError: (error) => showToast(`Error: ${error.message}`, 'error'),
   });
@@ -201,6 +206,7 @@ const TreasureEventView = () => {
       if (activity && REFETCH_ACTIVITY_TYPES.has(activity.type)) {
         refetchEvent();
         refetchSubmissions();
+        if (activity.type === 'node_completed') refetchSummaries();
       }
     },
     skip: !eventId,
@@ -226,6 +232,7 @@ const TreasureEventView = () => {
 
   const teams = event?.teams || [];
   const allSubmissions = submissionsData?.getAllSubmissions || [];
+  const completedNodeSummaries = summariesData?.getNodeSubmissionSummaries || [];
   const allPendingSubmissions = allSubmissions.filter((s) => s.status === 'PENDING_REVIEW');
   const allPendingIncompleteSubmissionsCount = allPendingSubmissions.filter((s) => {
     const t = teams.find((t) => t.teamId === s.teamId);
@@ -652,6 +659,7 @@ const TreasureEventView = () => {
                   <TabPanel px={0}>
                     <SubmissionsTab
                       allSubmissions={allSubmissions}
+                      completedNodeSummaries={completedNodeSummaries}
                       event={event}
                       currentColors={currentColors}
                       colorMode={colorMode}

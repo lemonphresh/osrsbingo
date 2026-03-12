@@ -723,6 +723,35 @@ export const GET_ALL_SUBMISSIONS = gql`
   }
 `;
 
+export const GET_NODE_SUBMISSION_SUMMARIES = gql`
+  query GetNodeSubmissionSummaries($eventId: ID!) {
+    getNodeSubmissionSummaries(eventId: $eventId) {
+      nodeId
+      teamId
+      teamName
+      pendingCount
+      approvedCount
+    }
+  }
+`;
+
+export const GET_NODE_SUBMISSIONS = gql`
+  query GetNodeSubmissions($nodeId: ID!, $teamId: ID!) {
+    getNodeSubmissions(nodeId: $nodeId, teamId: $teamId) {
+      submissionId
+      teamId
+      nodeId
+      submittedBy
+      submittedByUsername
+      proofUrl
+      status
+      reviewedBy
+      reviewedAt
+      submittedAt
+    }
+  }
+`;
+
 // ============================================================
 // GIELINOR RUSH: ACTIVITY FEED
 // ============================================================
