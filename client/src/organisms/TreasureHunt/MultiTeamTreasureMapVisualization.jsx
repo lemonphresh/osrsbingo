@@ -19,7 +19,6 @@ import {
   Image,
   IconButton,
   Collapse,
-  useDisclosure,
   useBreakpointValue,
   SimpleGrid,
 } from '@chakra-ui/react';
@@ -266,7 +265,8 @@ const MultiTeamTreasureMap = ({
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
   const [focusNodeId, setFocusNodeId] = useState(null);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
+  const [isLegendOpen, setIsLegendOpen] = useState(() => window.innerWidth >= 768);
+  const onToggle = () => setIsLegendOpen((v) => !v);
 
   // Determine if we should show all nodes based on event status
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';

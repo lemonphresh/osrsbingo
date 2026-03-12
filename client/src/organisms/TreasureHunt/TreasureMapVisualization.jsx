@@ -12,7 +12,6 @@ import {
   IconButton,
   useToast,
   Collapse,
-  useDisclosure,
   useBreakpointValue,
   WrapItem,
   Wrap,
@@ -270,7 +269,8 @@ const TreasureMapVisualization = ({
 }) => {
   const toast = useToast();
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
+  const [isLegendOpen, setIsLegendOpen] = useState(() => window.innerWidth >= 768);
+  const onToggle = () => setIsLegendOpen((v) => !v);
   const [isNodeOpen, setIsNodeOpen] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 
