@@ -428,6 +428,14 @@ const typeDefs = gql`
     team: TreasureTeam
   }
 
+  type NodeSubmissionSummary {
+    nodeId: ID!
+    teamId: ID!
+    teamName: String!
+    pendingCount: Int!
+    approvedCount: Int!
+  }
+
   # ============================================================
   # GIELINOR RUSH: ACTIVITY FEED
   # ============================================================
@@ -598,6 +606,8 @@ const typeDefs = gql`
     getAssociatedTreasureEvents: [TreasureEvent!]!
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getNodeSubmissionSummaries(eventId: ID!): [NodeSubmissionSummary!]!
+    getNodeSubmissions(nodeId: ID!, teamId: ID!): [TreasureSubmission!]!
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
