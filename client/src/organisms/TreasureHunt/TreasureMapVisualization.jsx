@@ -270,7 +270,7 @@ const TreasureMapVisualization = ({
 }) => {
   const toast = useToast();
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: true });
+  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
   const [isNodeOpen, setIsNodeOpen] = useState(null);
   const [imageLoaded, setImageLoaded] = useState(false);
 

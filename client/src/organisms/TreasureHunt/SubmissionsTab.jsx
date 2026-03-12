@@ -3,6 +3,9 @@ import {
   Accordion,
   AccordionItem,
   AccordionButton,
+  Input,
+  InputGroup,
+  InputLeftElement,
   AccordionPanel,
   AccordionIcon,
   Badge,
@@ -17,7 +20,7 @@ import {
   Tooltip,
   VStack,
 } from '@chakra-ui/react';
-import { CheckIcon, CloseIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import { CheckIcon, CloseIcon, ExternalLinkIcon, SearchIcon } from '@chakra-ui/icons';
 import { useQuery, useSubscription } from '@apollo/client';
 import { OBJECTIVE_TYPES, applyTeamBuffToNode } from '../../utils/treasureHuntHelpers';
 import NodeNoteEditor from './NodeNoteEditor';
@@ -228,15 +231,17 @@ const NodeSubmissionItem = ({
             )}
           </Flex>
 
-          <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
-            {progress.toLocaleString()} / {qty.toLocaleString()} ({pct}%)
-          </Text>
+          {qty > 0 && progress > 0 && (
+            <Text fontSize="xs" color={colorMode === 'dark' ? 'gray.400' : 'gray.500'}>
+              {progress.toLocaleString()} / {qty.toLocaleString()} ({pct}%)
+            </Text>
+          )}
 
           {!isCompleted && effectiveNode?.objective?.quantity && progress > 0 && (
             <Progress
               value={Math.min(100, Math.round((progress / effectiveNode.objective.quantity) * 100))}
               size="xs"
-              colorScheme="green"
+              colorScheme={isCompleted ? 'gray' : 'green'}
               borderRadius="none"
               mt={2}
               mx={-4}
@@ -473,8 +478,9 @@ const SubmissionsTab = ({
 }) => {
   const [confirmingKey, setConfirmingKey] = useState(null);
   const [progressOverrides, setProgressOverrides] = useState({});
-  const [openIndices, setOpenIndices] = useState([]);
+  const [openKeys, setOpenKeys] = useState(new Set());
   const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const [search, setSearch] = useState('');
 
   const COMPLETED_PAGE_SIZE = 5;
 
@@ -528,12 +534,32 @@ const SubmissionsTab = ({
     approvedCount: summary.approvedCount,
   }));
 
-  const visibleCompletedGroups = showAllCompleted
-    ? completedGroups
-    : completedGroups.slice(0, COMPLETED_PAGE_SIZE);
+  const nodeTitle = (nodeId) =>
+    (event.nodes?.find((n) => n.nodeId === nodeId)?.title || nodeId).toLowerCase();
 
-  const allItems = [...activeGroups, ...visibleCompletedGroups];
-  const openSet = new Set(openIndices);
+  const q = search.trim().toLowerCase();
+  const filteredActiveGroups = q
+    ? activeGroups.filter((g) => nodeTitle(g.nodeId).includes(q))
+    : activeGroups;
+  const filteredCompletedGroups = q
+    ? completedGroups.filter((g) => nodeTitle(g.nodeId).includes(q))
+    : completedGroups;
+
+  const visibleCompletedGroups = showAllCompleted
+    ? filteredCompletedGroups
+    : filteredCompletedGroups.slice(0, COMPLETED_PAGE_SIZE);
+
+  const allItems = [...filteredActiveGroups, ...visibleCompletedGroups];
+
+  // Key-based open tracking so indices don't go stale when active groups shift in
+  const controlledIndices = allItems.reduce((acc, item, i) => {
+    if (openKeys.has(item.key)) acc.push(i);
+    return acc;
+  }, []);
+
+  const handleAccordionChange = (newIndices) => {
+    setOpenKeys(new Set(newIndices.map((i) => allItems[i]?.key).filter(Boolean)));
+  };
 
   return (
     <VStack spacing={4} align="stretch">
@@ -550,13 +576,29 @@ const SubmissionsTab = ({
         </Text>
       </Box>
 
+      {(activeGroups.length + completedGroups.length) > 0 && (
+        <InputGroup size="sm">
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="gray.400" />
+          </InputLeftElement>
+          <Input
+            placeholder="Filter by node name…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            bg={colorMode === 'dark' ? 'gray.700' : 'white'}
+            borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
+            color={currentColors.textColor}
+          />
+        </InputGroup>
+      )}
+
       {allItems.length === 0 ? (
         <Text color={currentColors.white} textAlign="center" py={8}>
-          No pending submissions
+          {q ? `No submissions matching "${search}"` : 'No pending submissions'}
         </Text>
       ) : (
         <>
-        <Accordion allowMultiple onChange={setOpenIndices}>
+        <Accordion allowMultiple index={controlledIndices} onChange={handleAccordionChange}>
           {allItems.map((item, i) => (
             <NodeSubmissionItem
               key={item.key}
@@ -566,7 +608,7 @@ const SubmissionsTab = ({
               pendingCount={item.pendingCount}
               approvedCount={item.approvedCount}
               isCompleted={item.isCompleted}
-              isOpen={openSet.has(i)}
+              isOpen={openKeys.has(item.key)}
               event={event}
               currentColors={currentColors}
               colorMode={colorMode}
@@ -584,7 +626,7 @@ const SubmissionsTab = ({
             />
           ))}
         </Accordion>
-        {completedGroups.length > COMPLETED_PAGE_SIZE && (
+        {filteredCompletedGroups.length > COMPLETED_PAGE_SIZE && (
           <Button
             size="sm"
             variant="ghost"
@@ -594,7 +636,7 @@ const SubmissionsTab = ({
           >
             {showAllCompleted
               ? 'Show fewer completed nodes'
-              : `Show ${completedGroups.length - COMPLETED_PAGE_SIZE} more completed nodes`}
+              : `Show ${filteredCompletedGroups.length - COMPLETED_PAGE_SIZE} more completed nodes`}
           </Button>
         )}
         </>
