@@ -31,6 +31,17 @@ const CACHE_TTL = 5 * 60 * 1000;
 const searchCache = new Map(); // { query -> { results, cachedAt } }
 const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
+// Evict stale entries from unbounded Maps — prevents memory leak on long-running dynos
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of userCache) {
+    if (now - val.timestamp >= CACHE_TTL) userCache.delete(key);
+  }
+  for (const [key, val] of searchCache) {
+    if (now - val.cachedAt >= SEARCH_CACHE_TTL) searchCache.delete(key);
+  }
+}, CACHE_TTL).unref();
+
 const SECRET = process.env.JWTSECRETKEY;
 const app = express();
 const httpServer = createServer(app);
