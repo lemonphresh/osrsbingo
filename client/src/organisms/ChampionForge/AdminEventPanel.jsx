@@ -22,7 +22,6 @@ import {
 import { SettingsIcon } from '@chakra-ui/icons';
 import { useToastContext } from '../../providers/ToastProvider';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
-import WarChestPanel from './WarChestPanel';
 import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
   CREATE_CLAN_WARS_TEAM,

@@ -26,18 +26,25 @@ import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
 import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
 import GatheringPhase from '../organisms/ChampionForge/GatheringPhase';
-import OutfittingScreen from '../organisms/ChampionForge/OutfittingScreen';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 const STATUS_META = {
-  DRAFT:      { label: 'Draft',      color: 'gray',   description: 'Event is being set up.' },
-  GATHERING:  { label: 'Gathering',  color: 'green',  description: 'Players are completing tasks to fill their war chest.' },
-  OUTFITTING: { label: 'Outfitting', color: 'blue',   description: 'Teams are drafting their loadouts.' },
-  BATTLE:     { label: 'Battle',     color: 'red',    description: 'Champions are fighting!' },
-  COMPLETED:  { label: 'Completed',  color: 'purple', description: 'The event has ended.' },
-  ARCHIVED:   { label: 'Archived',   color: 'gray',   description: 'Archived.' },
+  DRAFT: { label: 'Draft', color: 'gray', description: 'Event is being set up.' },
+  GATHERING: {
+    label: 'Gathering',
+    color: 'green',
+    description: 'Players are completing tasks to fill their war chest.',
+  },
+  OUTFITTING: {
+    label: 'Outfitting',
+    color: 'blue',
+    description: 'Teams are drafting their loadouts.',
+  },
+  BATTLE: { label: 'Battle', color: 'red', description: 'Champions are fighting!' },
+  COMPLETED: { label: 'Completed', color: 'purple', description: 'The event has ended.' },
+  ARCHIVED: { label: 'Archived', color: 'gray', description: 'Archived.' },
 };
 
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
@@ -71,7 +78,7 @@ function useCountdown(target) {
 function PhaseBanner({ event, eventId }) {
   const navigate = useNavigate();
   const { status, gatheringEnd, outfittingEnd } = event;
-  const gatheringCountdown  = useCountdown(gatheringEnd);
+  const gatheringCountdown = useCountdown(gatheringEnd);
   const outfittingCountdown = useCountdown(outfittingEnd);
 
   if (status === 'DRAFT') return null;
@@ -81,7 +88,9 @@ function PhaseBanner({ event, eventId }) {
       <Box bg="green.900" border="1px solid" borderColor="green.700" borderRadius="lg" p={4}>
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={0}>
-            <Text fontWeight="bold" color="green.200">⚒️ Gathering Phase</Text>
+            <Text fontWeight="bold" color="green.200">
+              ⚒️ Gathering Phase
+            </Text>
             <Text fontSize="sm" color="green.400">
               Players are completing tasks to earn war chest items.
             </Text>
@@ -101,7 +110,9 @@ function PhaseBanner({ event, eventId }) {
       <Box bg="blue.900" border="1px solid" borderColor="blue.700" borderRadius="lg" p={4}>
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={0}>
-            <Text fontWeight="bold" color="blue.200">🛡️ Outfitting Phase</Text>
+            <Text fontWeight="bold" color="blue.200">
+              🛡️ Outfitting Phase
+            </Text>
             <Text fontSize="sm" color="blue.400">
               Captains are locking in their team loadouts.
             </Text>
@@ -128,8 +139,12 @@ function PhaseBanner({ event, eventId }) {
       >
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={0}>
-            <Text fontWeight="bold" color="red.200" fontSize="lg">⚔️ Battle in Progress!</Text>
-            <Text fontSize="sm" color="red.300">Champions are locked in combat.</Text>
+            <Text fontWeight="bold" color="red.200" fontSize="lg">
+              ⚔️ Battle in Progress!
+            </Text>
+            <Text fontSize="sm" color="red.300">
+              Champions are locked in combat.
+            </Text>
           </VStack>
           <Button
             colorScheme="red"
@@ -144,8 +159,7 @@ function PhaseBanner({ event, eventId }) {
   }
 
   if (status === 'COMPLETED' || status === 'ARCHIVED') {
-    const winner = event.bracket?.rounds
-      ?.slice(-1)[0]?.matches?.[0]?.winnerId;
+    const winner = event.bracket?.rounds?.slice(-1)[0]?.matches?.[0]?.winnerId;
     const winnerTeam = winner ? event.teams?.find((t) => t.teamId === winner) : null;
 
     return (
@@ -158,7 +172,9 @@ function PhaseBanner({ event, eventId }) {
                 {winnerTeam ? `${winnerTeam.teamName} won!` : 'Event complete'}
               </Text>
             </HStack>
-            <Text fontSize="sm" color="teal.400">The battle has concluded.</Text>
+            <Text fontSize="sm" color="teal.400">
+              The battle has concluded.
+            </Text>
           </VStack>
         </HStack>
       </Box>
@@ -186,12 +202,20 @@ function BracketSummary({ bracket, teams, eventId }) {
     <Box>
       <HStack mb={4} spacing={2}>
         <Text fontSize="xl">🏆</Text>
-        <Text fontWeight="bold" color="white" fontSize="lg">Battle Results</Text>
+        <Text fontWeight="bold" color="white" fontSize="lg">
+          Battle Results
+        </Text>
       </HStack>
       <VStack align="stretch" spacing={5}>
         {bracket.rounds.map((round, roundIdx) => (
           <Box key={roundIdx}>
-            <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={2}>
+            <Text
+              fontSize="xs"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={2}
+            >
               {getRoundLabel(roundIdx, bracket.rounds.length)}
             </Text>
             <VStack align="stretch" spacing={2}>
@@ -211,8 +235,12 @@ function BracketSummary({ bracket, teams, eventId }) {
                   >
                     {match.isBye ? (
                       <HStack spacing={3}>
-                        <Text color="teal.200" fontWeight="bold">{team1?.teamName ?? match.team1Id}</Text>
-                        <Badge colorScheme="gray" fontSize="xs">Bye</Badge>
+                        <Text color="teal.200" fontWeight="bold">
+                          {team1?.teamName ?? match.team1Id}
+                        </Text>
+                        <Badge colorScheme="gray" fontSize="xs">
+                          Bye
+                        </Badge>
                       </HStack>
                     ) : (
                       <HStack justify="space-between" flexWrap="wrap" gap={2}>
@@ -223,7 +251,9 @@ function BracketSummary({ bracket, teams, eventId }) {
                           >
                             {team1?.teamName ?? match.team1Id}
                           </Text>
-                          <Text color="gray.600" fontSize="xs">vs</Text>
+                          <Text color="gray.600" fontSize="xs">
+                            vs
+                          </Text>
                           <Text
                             color={match.winnerId === match.team2Id ? 'teal.200' : 'gray.400'}
                             fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}
@@ -233,9 +263,15 @@ function BracketSummary({ bracket, teams, eventId }) {
                         </HStack>
                         <HStack spacing={2}>
                           {winner && (
-                            <Badge colorScheme="teal" fontSize="xs">Winner: {winner.teamName}</Badge>
+                            <Badge colorScheme="teal" fontSize="xs">
+                              Winner: {winner.teamName}
+                            </Badge>
                           )}
-                          {!match.winnerId && <Badge colorScheme="gray" fontSize="xs">Pending</Badge>}
+                          {!match.winnerId && (
+                            <Badge colorScheme="gray" fontSize="xs">
+                              Pending
+                            </Badge>
+                          )}
                           {match.battleId && (
                             <Button
                               as={RouterLink}
@@ -288,9 +324,9 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
   const itemCount = team.items?.length ?? 0;
 
   // Role breakdown
-  const pvmers  = (team.members ?? []).filter((m) => m.role === 'PVMER').length;
+  const pvmers = (team.members ?? []).filter((m) => m.role === 'PVMER').length;
   const skillers = (team.members ?? []).filter((m) => m.role === 'SKILLER').length;
-  const anyRole  = (team.members ?? []).filter((m) => m.role === 'ANY' || !m.role).length;
+  const anyRole = (team.members ?? []).filter((m) => m.role === 'ANY' || !m.role).length;
 
   return (
     <Box
@@ -313,14 +349,13 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
         <HStack justify="space-between">
           <HStack spacing={2}>
             <Icon as={FaShieldAlt} color={isMember ? 'teal.300' : 'gray.500'} />
-            <Text fontWeight="bold" color="white" fontSize="md">{team.teamName}</Text>
+            <Text fontWeight="bold" color="white" fontSize="md">
+              {team.teamName}
+            </Text>
             {isMember && (
-              <Badge colorScheme="teal" fontSize="xs">Your Team</Badge>
-            )}
-            {team.captainDiscordId && (
-              <Tooltip label={`Captain: ${team.captainDiscordId}`} hasArrow>
-                <Icon as={FaCrown} color="yellow.400" boxSize={3} />
-              </Tooltip>
+              <Badge colorScheme="teal" fontSize="xs">
+                Your Team
+              </Badge>
             )}
           </HStack>
           <Tooltip label={loadoutStatus.label} hasArrow>
@@ -335,12 +370,9 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
         {team.members?.length > 0 ? (
           <HStack spacing={3}>
             <AvatarGroup size="xs" max={6}>
-              {team.members.map((m, i) => (
-                <Tooltip
-                  key={m.discordId ?? i}
-                  label={`${m.username ?? m.discordId} (${m.role ?? 'ANY'})`}
-                  hasArrow
-                >
+              {team.members.map((m, i) => {
+                const isCaptain = m.discordId === team.captainDiscordId;
+                const avatar = (
                   <Avatar
                     name={m.username ?? m.discordId}
                     src={
@@ -350,57 +382,104 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
                     }
                     bg="gray.600"
                   />
-                </Tooltip>
-              ))}
+                );
+                return (
+                  <Tooltip
+                    key={m.discordId ?? i}
+                    label={`${m.username ?? m.discordId}${isCaptain ? ' 👑 Captain' : ''} (${
+                      m.role ?? 'ANY'
+                    })`}
+                    hasArrow
+                  >
+                    {isCaptain ? (
+                      <Box position="relative" display="inline-flex">
+                        {avatar}
+                        <Icon
+                          as={FaCrown}
+                          position="absolute"
+                          top="-7px"
+                          left="50%"
+                          transform="translateX(-50%)"
+                          color="yellow.400"
+                          boxSize="10px"
+                          filter="drop-shadow(0 1px 1px rgba(0,0,0,0.8))"
+                        />
+                      </Box>
+                    ) : (
+                      avatar
+                    )}
+                  </Tooltip>
+                );
+              })}
             </AvatarGroup>
             <VStack align="flex-start" spacing={0}>
               <Text fontSize="xs" color="gray.300" fontWeight="medium">
                 {team.members.length} member{team.members.length !== 1 ? 's' : ''}
               </Text>
               <HStack spacing={1}>
-                {pvmers > 0  && <Badge colorScheme="orange" fontSize="xs">{pvmers} PvM</Badge>}
-                {skillers > 0 && <Badge colorScheme="teal"   fontSize="xs">{skillers} Skill</Badge>}
-                {anyRole > 0  && <Badge colorScheme="purple" fontSize="xs">{anyRole} Any</Badge>}
+                {pvmers > 0 && (
+                  <Badge colorScheme="orange" fontSize="xs">
+                    {pvmers} PvM
+                  </Badge>
+                )}
+                {skillers > 0 && (
+                  <Badge colorScheme="teal" fontSize="xs">
+                    {skillers} Skill
+                  </Badge>
+                )}
+                {anyRole > 0 && (
+                  <Badge colorScheme="purple" fontSize="xs">
+                    {anyRole} Any
+                  </Badge>
+                )}
               </HStack>
             </VStack>
           </HStack>
         ) : (
-          <Text fontSize="xs" color="gray.600">No members yet</Text>
+          <Text fontSize="xs" color="gray.600">
+            No members yet
+          </Text>
         )}
 
         {/* Stats row */}
-        {(phase === 'GATHERING' || phase === 'OUTFITTING' || phase === 'BATTLE' || phase === 'COMPLETED') && (
+        {(phase === 'GATHERING' ||
+          phase === 'OUTFITTING' ||
+          phase === 'BATTLE' ||
+          phase === 'COMPLETED') && (
           <HStack spacing={3}>
             {completedCount > 0 && (
               <HStack spacing={1}>
                 <Icon as={FaScroll} color="green.400" boxSize={3} />
-                <Text fontSize="xs" color="gray.400">{completedCount} tasks done</Text>
+                <Text fontSize="xs" color="gray.400">
+                  {completedCount} tasks done
+                </Text>
               </HStack>
             )}
             {itemCount > 0 && (
               <HStack spacing={1}>
-                <Text fontSize="xs" color="gray.400">⚔ {itemCount} items</Text>
+                <Text fontSize="xs" color="gray.400">
+                  ⚔ {itemCount} items
+                </Text>
               </HStack>
             )}
           </HStack>
         )}
 
         {/* CTA */}
-        <Button
-          size="sm"
-          colorScheme={canEnterBarracks ? 'purple' : 'gray'}
-          variant={canEnterBarracks ? 'solid' : 'outline'}
-          isDisabled={!canEnterBarracks && phase === 'DRAFT'}
-          onClick={() => navigate(barracksPath)}
-          leftIcon={<Icon as={FaShieldAlt} />}
-        >
-          {canEnterBarracks ? 'Enter Barracks' : 'View Barracks'}
-        </Button>
+        {canEnterBarracks && (
+          <Button
+            size="sm"
+            colorScheme="purple"
+            onClick={() => navigate(barracksPath)}
+            leftIcon={<Icon as={FaShieldAlt} />}
+          >
+            Enter Barracks
+          </Button>
+        )}
       </VStack>
     </Box>
   );
 }
-
 
 // ---------------------------------------------------------------------------
 // Main page
@@ -468,12 +547,16 @@ export default function ChampionForgeEventPage() {
       <HStack justify="space-between" flexWrap="wrap" gap={4}>
         <VStack align="flex-start" spacing={2}>
           <HStack spacing={3} flexWrap="wrap">
-            <Heading size="lg" color="white">{event.eventName}</Heading>
+            <Heading size="lg" color="white">
+              {event.eventName}
+            </Heading>
             <Badge colorScheme={meta.color} fontSize="sm" px={2} py={1}>
               {meta.label}
             </Badge>
           </HStack>
-          <Text fontSize="sm" color="gray.400">{meta.description}</Text>
+          <Text fontSize="sm" color="gray.400">
+            {meta.description}
+          </Text>
           {event.clanId && (
             <Text fontSize="xs" color="gray.500" fontFamily="mono">
               Clan: {event.clanId}
@@ -484,16 +567,28 @@ export default function ChampionForgeEventPage() {
         {event.eventConfig && (
           <SimpleGrid columns={3} spacing={4} fontSize="sm">
             <Box textAlign="center">
-              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Gathering</Text>
-              <Text color="white" fontWeight="semibold">{event.eventConfig.gatheringHours}h</Text>
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">
+                Gathering
+              </Text>
+              <Text color="white" fontWeight="semibold">
+                {event.eventConfig.gatheringHours}h
+              </Text>
             </Box>
             <Box textAlign="center">
-              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Outfitting</Text>
-              <Text color="white" fontWeight="semibold">{event.eventConfig.outfittingHours}h</Text>
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">
+                Outfitting
+              </Text>
+              <Text color="white" fontWeight="semibold">
+                {event.eventConfig.outfittingHours}h
+              </Text>
             </Box>
             <Box textAlign="center">
-              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">Turn Timer</Text>
-              <Text color="white" fontWeight="semibold">{event.eventConfig.turnTimerSeconds}s</Text>
+              <Text color="gray.500" fontSize="xs" textTransform="uppercase" letterSpacing="wider">
+                Turn Timer
+              </Text>
+              <Text color="white" fontWeight="semibold">
+                {event.eventConfig.turnTimerSeconds}s
+              </Text>
             </Box>
           </SimpleGrid>
         )}
@@ -520,9 +615,20 @@ export default function ChampionForgeEventPage() {
         <VStack align="stretch" spacing={6}>
           {backNav}
           {eventHeader}
-          <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="xl" p={10} textAlign="center">
-            <Text fontSize="2xl" mb={3}>⚙️</Text>
-            <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>Event in Preparation</Text>
+          <Box
+            bg="gray.800"
+            border="1px solid"
+            borderColor="gray.700"
+            borderRadius="xl"
+            p={10}
+            textAlign="center"
+          >
+            <Text fontSize="2xl" mb={3}>
+              ⚙️
+            </Text>
+            <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>
+              Event in Preparation
+            </Text>
             <Text fontSize="sm" color="gray.500">
               The admins are setting up this event. Check back soon!
             </Text>
@@ -533,9 +639,8 @@ export default function ChampionForgeEventPage() {
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
+    <Box maxW="1200px" mx="auto" px={4} py={16} flex="1" overflow="hidden" w="100%">
       <VStack align="stretch" spacing={6}>
-
         <HStack justify="space-between" align="center">
           {backNav}
           {isAdmin && (
@@ -564,7 +669,9 @@ export default function ChampionForgeEventPage() {
               <Text fontWeight="bold" color="white" fontSize="lg">
                 Teams
               </Text>
-              <Badge colorScheme="gray" fontSize="sm">{event.teams?.length ?? 0}</Badge>
+              <Badge colorScheme="gray" fontSize="sm">
+                {event.teams?.length ?? 0}
+              </Badge>
             </HStack>
             {!currentUserDiscordId && (
               <Text fontSize="xs" color="gray.500">
@@ -587,31 +694,59 @@ export default function ChampionForgeEventPage() {
               ))}
             </SimpleGrid>
           ) : (
-            <Box bg="gray.800" borderRadius="lg" p={8} textAlign="center" border="1px solid" borderColor="gray.700">
+            <Box
+              bg="gray.800"
+              borderRadius="lg"
+              p={8}
+              textAlign="center"
+              border="1px solid"
+              borderColor="gray.700"
+            >
               <Text color="gray.500">No teams yet.</Text>
             </Box>
           )}
         </Box>
 
-{/* ── Phase-specific content ── */}
+        {/* ── Phase-specific content ── */}
         {event.status === 'GATHERING' && effectiveIsAdmin && (
           <GatheringPhase event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
         )}
 
         {event.status === 'OUTFITTING' && (
-          <OutfittingScreen event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
+          <Box
+            bg="gray.800"
+            border="1px solid"
+            borderColor="gray.700"
+            borderRadius="xl"
+            p={10}
+            textAlign="center"
+          >
+            <Text fontSize="2xl" mb={3}>
+              ⚔️
+            </Text>
+            <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>
+              Outfitting Phase
+            </Text>
+            <Text fontSize="sm" color="gray.500">
+              Captains are selecting their champions' loadouts. Visit your team's barracks to kit
+              out your champion.
+            </Text>
+          </Box>
         )}
 
-{/* ── Battle results (concluded events) ── */}
+        {/* ── Battle results (concluded events) ── */}
         {(event.status === 'COMPLETED' || event.status === 'ARCHIVED') && event.bracket && (
           <BracketSummary bracket={event.bracket} teams={event.teams} eventId={eventId} />
         )}
 
-{/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
-        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'BATTLE' || event.status === 'COMPLETED' || event.status === 'ARCHIVED') && (
-          <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
-        )}
-
+        {/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
+        {effectiveIsAdmin &&
+          (event.status === 'DRAFT' ||
+            event.status === 'BATTLE' ||
+            event.status === 'COMPLETED' ||
+            event.status === 'ARCHIVED') && (
+            <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
+          )}
       </VStack>
     </Box>
   );

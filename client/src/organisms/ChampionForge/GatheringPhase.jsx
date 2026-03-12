@@ -31,7 +31,7 @@ import {
   SliderThumb,
   SliderTrack,
 } from '@chakra-ui/react';
-import { CopyIcon, CheckIcon } from '@chakra-ui/icons';
+import { CheckIcon } from '@chakra-ui/icons';
 import {
   GET_CLAN_WARS_SUBMISSIONS,
   REVIEW_CLAN_WARS_SUBMISSION,
@@ -40,8 +40,6 @@ import {
   CLAN_WARS_SUBMISSION_ADDED,
   CLAN_WARS_SUBMISSION_REVIEWED,
   UPDATE_CLAN_WARS_EVENT_STATUS,
-  JOIN_TASK_IN_PROGRESS,
-  LEAVE_TASK_IN_PROGRESS,
   SET_TASK_PROGRESS,
   MARK_TASK_COMPLETE,
 } from '../../graphql/clanWarsOperations';
@@ -59,7 +57,14 @@ const DIFFICULTY_COLOR = { initiate: 'green', adept: 'yellow', master: 'red' };
 // SubmissionCard
 // hideTaskInfo=true when rendered inside a task group (header already has task info)
 // ---------------------------------------------------------------------------
-function SubmissionCard({ submission, isAdmin, onReview, onSlotChanged, tasks, hideTaskInfo = false }) {
+function SubmissionCard({
+  submission,
+  isAdmin,
+  onReview,
+  onSlotChanged,
+  tasks,
+  hideTaskInfo = false,
+}) {
   const { showToast } = useToastContext();
   const [rewardSlot, setRewardSlot] = useState('weapon');
   const [denialReason, setDenialReason] = useState('');
@@ -174,13 +179,18 @@ function SubmissionCard({ submission, isAdmin, onReview, onSlotChanged, tasks, h
         <Box mt={2} p={2} bg="gray.800" borderRadius="md">
           {submission.rewardItem ? (
             <HStack flexWrap="wrap" gap={1}>
-              <Text fontSize="xs" color="gray.400">To Be Rewarded:</Text>
+              <Text fontSize="xs" color="gray.400">
+                To Be Rewarded:
+              </Text>
               <Badge
                 colorScheme={
-                  submission.rewardItem.rarity === 'epic' ? 'purple'
-                  : submission.rewardItem.rarity === 'rare' ? 'blue'
-                  : submission.rewardItem.rarity === 'uncommon' ? 'green'
-                  : 'gray'
+                  submission.rewardItem.rarity === 'epic'
+                    ? 'purple'
+                    : submission.rewardItem.rarity === 'rare'
+                    ? 'blue'
+                    : submission.rewardItem.rarity === 'uncommon'
+                    ? 'green'
+                    : 'gray'
                 }
               >
                 {submission.rewardItem.rarity}
@@ -188,11 +198,16 @@ function SubmissionCard({ submission, isAdmin, onReview, onSlotChanged, tasks, h
               <Text fontSize="xs" fontWeight="medium" color="white">
                 {submission.rewardItem.name}
               </Text>
-              <Text fontSize="xs" color="gray.500">({savedSlot ?? submission.rewardItem.slot})</Text>
+              <Text fontSize="xs" color="gray.500">
+                ({savedSlot ?? submission.rewardItem.slot})
+              </Text>
             </HStack>
-          ) : (savedSlot ?? submission.rewardSlot) ? (
+          ) : savedSlot ?? submission.rewardSlot ? (
             <Text fontSize="xs" color="gray.400">
-              Reward slot: <Text as="span" color="white">{savedSlot ?? submission.rewardSlot}</Text>
+              Reward slot:{' '}
+              <Text as="span" color="white">
+                {savedSlot ?? submission.rewardSlot}
+              </Text>
             </Text>
           ) : null}
 
@@ -210,21 +225,38 @@ function SubmissionCard({ submission, isAdmin, onReview, onSlotChanged, tasks, h
                     color="white"
                   >
                     {PVMER_SLOTS.map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
                     ))}
                   </Select>
-                  <Button size="xs" colorScheme="blue" isLoading={slotSaving} onClick={handleSaveSlot}>
+                  <Button
+                    size="xs"
+                    colorScheme="blue"
+                    isLoading={slotSaving}
+                    onClick={handleSaveSlot}
+                  >
                     Save
                   </Button>
-                  <Button size="xs" variant="ghost" color="gray.400" onClick={() => setEditingSlot(false)}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="gray.400"
+                    onClick={() => setEditingSlot(false)}
+                  >
                     Cancel
                   </Button>
                 </HStack>
               ) : (
-                <Button size="xs" variant="ghost" color="gray.500" onClick={() => {
-                  setEditSlotValue(submission.rewardSlot ?? 'weapon');
-                  setEditingSlot(true);
-                }}>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="gray.500"
+                  onClick={() => {
+                    setEditSlotValue(submission.rewardSlot ?? 'weapon');
+                    setEditingSlot(true);
+                  }}
+                >
                   ✏️ Change reward slot
                 </Button>
               )}
@@ -324,146 +356,6 @@ function SubmissionCard({ submission, isAdmin, onReview, onSlotChanged, tasks, h
             </VStack>
           )}
         </VStack>
-      )}
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// TaskCard — shows a single task with in-progress tracking & copy command
-// ---------------------------------------------------------------------------
-function TaskCard({ task, myTeam, myDiscordId, eventId, refetch }) {
-  const { showToast } = useToastContext();
-  const inProgressIds = myTeam?.taskProgress?.[task.taskId] ?? [];
-  const isCompleted = myTeam?.completedTaskIds?.includes(task.taskId);
-  const iAmInProgress = myDiscordId && inProgressIds.includes(myDiscordId);
-  const hasOthers = inProgressIds.length > 0;
-
-  const [join, { loading: joining }] = useMutation(JOIN_TASK_IN_PROGRESS, { onCompleted: refetch });
-  const [leave, { loading: leaving }] = useMutation(LEAVE_TASK_IN_PROGRESS, {
-    onCompleted: refetch,
-  });
-
-  const memberName = (discordId) =>
-    myTeam?.members?.find((m) => m.discordId === discordId)?.username ?? discordId;
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(`!cfsubmit ${task.taskId}`);
-    showToast('Submit command copied!', 'success');
-  };
-
-  const borderColor = isCompleted ? 'green.700' : hasOthers ? 'yellow.700' : 'gray.600';
-
-  return (
-    <Box
-      bg="gray.700"
-      border="1px solid"
-      borderColor={borderColor}
-      borderRadius="md"
-      p={3}
-      opacity={isCompleted ? 0.7 : 1}
-    >
-      <HStack justify="space-between" align="flex-start" mb={1}>
-        <VStack align="flex-start" spacing={0} flex={1} mr={2}>
-          <Text fontWeight="medium" fontSize="sm" color={isCompleted ? 'green.300' : 'white'}>
-            {task.label}
-          </Text>
-          {task.description && (
-            <Text fontSize="xs" color="gray.400">
-              {task.description}
-            </Text>
-          )}
-        </VStack>
-        <HStack spacing={1} flexShrink={0}>
-          <Badge colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'} fontSize="xs">
-            {task.role}
-          </Badge>
-          <Badge colorScheme={DIFFICULTY_COLOR[task.difficulty] ?? 'gray'} fontSize="xs">
-            {task.difficulty}
-          </Badge>
-          {isCompleted && (
-            <Badge colorScheme="green" fontSize="xs">
-              ✅ Done
-            </Badge>
-          )}
-        </HStack>
-      </HStack>
-
-      {hasOthers && !isCompleted && (
-        <Text fontSize="xs" color="yellow.400" mb={2}>
-          In progress: {inProgressIds.map(memberName).join(', ')}
-        </Text>
-      )}
-
-      {!isCompleted && myTeam && (
-        <HStack spacing={2} mt={2}>
-          {iAmInProgress ? (
-            <Button
-              size="xs"
-              colorScheme="red"
-              variant="outline"
-              isLoading={leaving}
-              onClick={() =>
-                leave({ variables: { eventId, teamId: myTeam.teamId, taskId: task.taskId } })
-              }
-            >
-              Leave
-            </Button>
-          ) : (
-            <Button
-              size="xs"
-              colorScheme={hasOthers ? 'blue' : 'green'}
-              variant="outline"
-              isLoading={joining}
-              onClick={() =>
-                join({ variables: { eventId, teamId: myTeam.teamId, taskId: task.taskId } })
-              }
-            >
-              {hasOthers ? '+ Join' : 'Mark In Progress'}
-            </Button>
-          )}
-
-          <HStack
-            spacing={1}
-            px={2}
-            py={1}
-            bg="gray.800"
-            borderRadius="md"
-            border="1px solid"
-            borderColor="gray.600"
-            cursor="pointer"
-            onClick={handleCopy}
-            _hover={{ borderColor: 'gray.400' }}
-            flexShrink={0}
-          >
-            <Code fontSize="xs" bg="transparent" color="gray.300">
-              !cfsubmit {task.taskId}
-            </Code>
-            <CopyIcon boxSize={3} color="gray.400" />
-          </HStack>
-        </HStack>
-      )}
-
-      {isCompleted && (
-        <HStack spacing={2} mt={2}>
-          <HStack
-            spacing={1}
-            px={2}
-            py={1}
-            bg="gray.800"
-            borderRadius="md"
-            border="1px solid"
-            borderColor="gray.600"
-            cursor="pointer"
-            onClick={handleCopy}
-            _hover={{ borderColor: 'gray.400' }}
-          >
-            <Code fontSize="xs" bg="transparent" color="gray.500">
-              !cfsubmit {task.taskId}
-            </Code>
-            <CopyIcon boxSize={3} color="gray.500" />
-          </HStack>
-        </HStack>
       )}
     </Box>
   );
@@ -576,13 +468,6 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   const [outfittingConfirmOpen, setOutfittingConfirmOpen] = useState(false);
   const [confirmingKey, setConfirmingKey] = useState(null);
 
-  const myTeam = event.teams?.find(
-    (t) =>
-      t.captainDiscordId === user?.discordUserId ||
-      t.members?.some((m) => m.discordId === user?.discordUserId)
-  );
-  const myDiscordId = user?.discordUserId ?? null;
-
   const { data: subsData, refetch: refetchSubs } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
     variables: { eventId: event.eventId },
     fetchPolicy: 'cache-and-network',
@@ -605,11 +490,6 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   });
 
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
-
-  const [setTaskProgress] = useMutation(SET_TASK_PROGRESS, {
-    onCompleted: refetch,
-    onError: (err) => showToast(err.message, 'error'),
-  });
 
   const [markTaskComplete] = useMutation(MARK_TASK_COMPLETE, {
     onCompleted: () => {

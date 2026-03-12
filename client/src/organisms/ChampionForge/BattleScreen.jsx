@@ -8,6 +8,21 @@ import {
   BATTLE_EMOTE_RECEIVED,
 } from '../../graphql/clanWarsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
+import ChampionSprite from './ChampionSprite';
+import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprites/spriteRegistry';
+
+const LAYER_ORDER = ['boots', 'legs', 'chest', 'gloves', 'cape', 'shield', 'helm', 'weapon'];
+
+function buildLayers(loadout, itemById) {
+  if (!loadout) return [];
+  return LAYER_ORDER.map((slot) => {
+    const id = loadout[slot];
+    if (!id) return null;
+    const item = itemById[id];
+    const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
+    return key ? getLayerSprite(key) : null;
+  }).filter(Boolean);
+}
 
 const EMOTE_OPTIONS = ['🔥', '💀', '😱', '👏', '🗡️', '🛡️', '💥', '😤', '🤩', '👀'];
 
@@ -30,33 +45,6 @@ function HPBar({ current, max, color }) {
 }
 
 // ---- Champion Sprite ----
-function ChampionSprite({ side, name, color, isShaking, isFlashing, isDead }) {
-  return (
-    <VStack spacing={1} align="center">
-      <Box
-        w="96px"
-        h="96px"
-        borderRadius="lg"
-        bg={`${color}22`}
-        border={`2px solid ${color}`}
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
-        fontSize="48px"
-        boxShadow={`0 0 20px ${color}44`}
-        transform={isShaking ? `translateX(${side === 'left' ? -8 : 8}px)` : 'none'}
-        filter={isFlashing ? 'brightness(3)' : isDead ? 'grayscale(1) opacity(0.4)' : 'none'}
-        transition="transform 0.1s, filter 0.1s"
-      >
-        {isDead ? '💀' : '🧙'}
-      </Box>
-      <Text fontSize="13px" fontWeight="bold" color={color} fontFamily="mono">
-        {name}
-      </Text>
-    </VStack>
-  );
-}
-
 // ---- Floating Emote ----
 function FloatingEmote({ emote, x, y, onDone }) {
   const [visible, setVisible] = useState(true);
@@ -72,7 +60,7 @@ function FloatingEmote({ emote, x, y, onDone }) {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, []);
+  }, [onDone, y]);
 
   return (
     <Box
@@ -149,6 +137,7 @@ export default function BattleScreen({
   battle: initialBattle,
   myTeamId,
   allItems,
+  allBattleItems = [],
   turnTimerSeconds = 60,
   isAdmin = false,
   onBattleEnd = null,
@@ -207,7 +196,7 @@ export default function BattleScreen({
         setLog((l) => [...l, update.latestEvent]);
       }
       if (update.latestEvent?.damageDealt > 0) {
-        const hitSide = update.latestEvent.actorTeamId === battle.team1Id ? 'right' : 'left';
+        const hitSide = update.latestEvent.actorTeamId === battle.team1Id ? 'left' : 'right';
         triggerShake(hitSide);
         triggerFlash(hitSide);
       }
@@ -228,6 +217,7 @@ export default function BattleScreen({
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.currentTurn, isBattleOver]);
 
   useEffect(() => {
@@ -260,6 +250,7 @@ export default function BattleScreen({
       }).catch(() => {});
     }, 2000);
     return () => clearInterval(autoRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlaying, isAdmin, isBattleOver, battle?.battleId]);
 
   // Lobby countdown: when battle ends, tick down 15s then call onBattleEnd
@@ -277,6 +268,7 @@ export default function BattleScreen({
       });
     }, 1000);
     return () => clearInterval(lobbyTimerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBattleOver]);
 
   const triggerShake = (side) => {
@@ -317,12 +309,18 @@ export default function BattleScreen({
 
   const timerColor = timer > 20 ? '#4caf50' : timer > 10 ? '#e0a020' : '#e05050';
   const myConsumableIds = state.consumablesRemaining?.[mySide] ?? [];
+
+  const battleItemById = Object.fromEntries(allBattleItems.map((i) => [i.itemId, i]));
+  const champion1Layers = buildLayers(snap.champion1?.loadout, battleItemById);
+  const champion2Layers = buildLayers(snap.champion2?.loadout, battleItemById);
+  const champion1Src = BASE_SPRITES[snap.champion1?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
+  const champion2Src = BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
   const specialUsed = state.specialUsed?.[mySide] ?? false;
   const mySpecials = mySnap?.stats?.specials ?? [];
   const winnerSnap = battle?.winnerId === battle?.team1Id ? snap.champion1 : snap.champion2;
 
   return (
-    <Box bg="gray.900" borderRadius="xl" p={4} fontFamily="mono">
+    <Box bg="gray.900" borderRadius="xl" p={4} w="100%" fontFamily="mono">
       <HStack justify="center" mb={3} spacing={3}>
         <Text fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase">
           Champion Forge · Battle · Turn {state.turnNumber ?? 1}
@@ -416,9 +414,12 @@ export default function BattleScreen({
             />
             <Box pt={2}>
               <ChampionSprite
-                side="left"
+                facing="right"
                 name={snap.champion1?.teamName ?? 'Team 1'}
                 color="#e05c5c"
+                hasBorder={false}
+                src={champion1Src}
+                layers={champion1Layers}
                 isShaking={shaking === 'left'}
                 isFlashing={flashing === 'left'}
                 isDead={(state.hp?.team1 ?? 1) <= 0}
@@ -488,9 +489,12 @@ export default function BattleScreen({
             </HStack>
             <Box pt={2} alignSelf="flex-end">
               <ChampionSprite
-                side="right"
+                facing="left"
+                hasBorder={false}
                 name={snap.champion2?.teamName ?? 'Team 2'}
                 color="#5c9ee0"
+                src={champion2Src}
+                layers={champion2Layers}
                 isShaking={shaking === 'right'}
                 isFlashing={flashing === 'right'}
                 isDead={(state.hp?.team2 ?? 1) <= 0}

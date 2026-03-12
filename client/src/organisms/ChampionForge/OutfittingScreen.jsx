@@ -28,6 +28,13 @@ import {
 } from '../../graphql/clanWarsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
+import ChampionSprite from './ChampionSprite';
+import {
+  BASE_SPRITES,
+  LAYER_SPRITES,
+  getLayerSprite,
+  getIconSprite,
+} from '../../assets/champion-forge/sprites/spriteRegistry';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
 const RARITY_LABELS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
@@ -75,7 +82,7 @@ const PAPERDOLL_POSITIONS = [
   { slot: 'boots', row: 6, col: 3 },
 ];
 
-const SLOT_W = 52;
+const SLOT_W = 64;
 const SLOT_GAP = 4;
 const GRID_W = 3 * SLOT_W + 2 * SLOT_GAP;
 const GRID_H = 6 * SLOT_W + 5 * SLOT_GAP;
@@ -104,9 +111,19 @@ function PaperdollSlot({ slot, equippedItem, isActive, onClick }) {
         _hover={{ borderColor: 'yellow.300' }}
         position="relative"
       >
-        <Text fontSize="xl" lineHeight={1}>
-          {SLOT_EMOJI[slot]}
-        </Text>
+        {equippedItem ? (
+          <Box
+            as="img"
+            src={getIconSprite(equippedItem.itemSnapshot?.inventoryIcon ?? equippedItem.itemSnapshot?.spriteKey)}
+            w={`${SLOT_W - 8}px`}
+            h={`${SLOT_W - 8}px`}
+            style={{ imageRendering: 'pixelated', objectFit: 'contain' }}
+          />
+        ) : (
+          <Text fontSize="xl" lineHeight={1}>
+            {SLOT_EMOJI[slot]}
+          </Text>
+        )}
         {equippedItem && (
           <Box
             position="absolute"
@@ -190,13 +207,30 @@ function ItemCard({ item, isSelected, isEquipped, onClick }) {
       onClick={() => !item.isUsed && onClick(item)}
       boxShadow={isSelected ? `0 0 10px ${RARITY_COLORS[item.rarity]}66` : 'none'}
     >
-      <HStack justify="space-between" mb={1}>
-        <Text fontSize="xs" fontWeight="bold" noOfLines={1} color="white">
+      <HStack justify="space-between" mb={1} align="flex-start">
+        {(snap.inventoryIcon ?? snap.spriteKey) && (
+          <Box
+            as="img"
+            src={getIconSprite(snap.inventoryIcon ?? snap.spriteKey)}
+            w="28px"
+            h="28px"
+            style={{ imageRendering: 'pixelated', objectFit: 'contain' }}
+            flexShrink={0}
+          />
+        )}
+        <Text fontSize="xs" fontWeight="bold" noOfLines={1} color="white" flex={1}>
           {item.name}
         </Text>
-        <Badge colorScheme={RARITY_LABELS[item.rarity]} fontSize="xx-small">
-          {item.rarity}
-        </Badge>
+        <VStack spacing={1} align="flex-end" flexShrink={0}>
+          <Badge colorScheme={RARITY_LABELS[item.rarity]} fontSize="xx-small">
+            {item.rarity}
+          </Badge>
+          {isSelected && (
+            <Badge colorScheme="purple" fontSize="xx-small">
+              equipped
+            </Badge>
+          )}
+        </VStack>
       </HStack>
 
       <SimpleGrid columns={2} spacing={1} fontSize="xs" color="gray.400">
@@ -218,11 +252,6 @@ function ItemCard({ item, isSelected, isEquipped, onClick }) {
         </Text>
       )}
 
-      {isEquipped && !isSelected && (
-        <Badge colorScheme="purple" fontSize="xx-small" mt={1}>
-          equipped
-        </Badge>
-      )}
     </Box>
   );
 }
@@ -321,12 +350,11 @@ export function TeamOutfitter({ team, event, isAdmin }) {
     activeSlot === 'consumable'
       ? 'Consumables'
       : activeSlot.charAt(0).toUpperCase() + activeSlot.slice(1);
-  const ALL_SLOTS = [...GEAR_SLOTS, 'consumable'];
 
   const isLocked = team.loadoutLocked;
   const officialLoadout = useMemo(() => team.officialLoadout ?? {}, [team.officialLoadout]);
   const displayLoadout = viewingOfficial ? officialLoadout : draftLoadout;
-  const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
+  const baseSprite = displayLoadout.baseSprite ?? 'baseSprite1';
 
   // Persist draft to localStorage whenever it changes
   useEffect(() => {
@@ -346,6 +374,15 @@ export function TeamOutfitter({ team, event, isAdmin }) {
   const equip = (slot, itemId) => {
     if (viewingOfficial || (isLocked && !isAdmin)) return;
     setDraftLoadout((prev) => ({ ...prev, [slot]: itemId }));
+  };
+
+  const unequip = (slot) => {
+    if (viewingOfficial || (isLocked && !isAdmin)) return;
+    setDraftLoadout((prev) => {
+      const next = { ...prev };
+      delete next[slot];
+      return next;
+    });
   };
 
   const equipConsumable = (itemId) => {
@@ -420,40 +457,72 @@ export function TeamOutfitter({ team, event, isAdmin }) {
       )}
 
       {/* Top row: gear slots | character sprite | stats */}
-      <Box display="grid" gridTemplateColumns="auto auto 1fr" gap={6} alignItems="start">
+      <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={10} alignItems="center" w="full">
         {/* Column 1 — Gear slots (paperdoll slot grid) */}
-        <Paperdoll
-          draftLoadout={displayLoadout}
-          items={items}
-          activeSlot={activeSlot}
-          onSlotClick={setActiveSlot}
-        />
+        <Box display="flex" alignItems="center" justifyContent="center">
+          <Paperdoll
+            draftLoadout={displayLoadout}
+            items={items}
+            activeSlot={activeSlot}
+            onSlotClick={setActiveSlot}
+          />
+        </Box>
 
-        {/* Column 2 — Character sprite placeholder */}
-        <Center
-          w={`${GRID_W}px`}
-          h={`${GRID_H}px`}
-          bg="gray.900"
-          border="1px dashed"
-          borderColor="gray.700"
-          borderRadius="lg"
-          flexShrink={0}
-        >
-          <Text fontSize="6xl" userSelect="none" opacity={0.25}>
-            🧍
-          </Text>
-        </Center>
+        {/* Column 2 — Character sprite */}
+        <VStack spacing={2} align="center">
+          <Center
+            w={`${GRID_W}px`}
+            h={`${GRID_H}px`}
+            bg="gray.900"
+            border="1px dashed"
+            borderColor="gray.700"
+            borderRadius="lg"
+          >
+            <ChampionSprite
+              hasBorder={false}
+              size={180}
+              color="#888"
+              src={BASE_SPRITES[baseSprite]}
+              layers={GEAR_SLOTS.map((slot) => {
+                const id = displayLoadout[slot];
+                if (!id) return null;
+                const item = items.find((i) => i.itemId === id);
+                const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
+                return key ? LAYER_SPRITES[key] : null;
+              }).filter(Boolean)}
+            />
+          </Center>
+          {/* Base sprite picker */}
+          <Box display="grid" gridTemplateColumns="repeat(5, 28px)" gap={1}>
+            {Object.entries(BASE_SPRITES).map(([key, src]) => (
+              <Box
+                key={key}
+                as="img"
+                src={src}
+                w="28px"
+                h="56px"
+                style={{ imageRendering: 'pixelated', objectFit: 'contain' }}
+                border="2px solid"
+                borderColor={baseSprite === key ? 'yellow.400' : 'gray.600'}
+                borderRadius="sm"
+                cursor="pointer"
+                onClick={() => !viewingOfficial && setDraftLoadout((prev) => ({ ...prev, baseSprite: key }))}
+              />
+            ))}
+          </Box>
+        </VStack>
 
         {/* Column 3 — Stats + actions */}
-        <VStack align="stretch" spacing={3}>
+        <VStack align="stretch" spacing={3} w="full" px={4}>
           <ChampionStat loadout={displayLoadout} items={items} />
 
           {/* Draft status + toggle */}
-          <HStack justify="space-between" align="center">
+          <VStack align="stretch" spacing={1}>
             <Badge
               fontSize="xx-small"
               colorScheme={viewingOfficial ? 'blue' : differsFromOfficial ? 'yellow' : 'green'}
               variant="subtle"
+              alignSelf="flex-start"
             >
               {viewingOfficial
                 ? '📋 viewing official'
@@ -482,34 +551,25 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                 </Button>
               )
             )}
-          </HStack>
+          </VStack>
 
-          {/* Export / Import — captain only, not when viewing official */}
+          {/* Export / Import / Save — stacked, captain only */}
           {isCaptain && !viewingOfficial && (
-            <VStack spacing={2}>
-              <HStack w="full" spacing={2}>
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme="teal"
-                  flex={1}
-                  onClick={handleExport}
-                >
-                  📤 Export
-                </Button>
-                <Button
-                  size="xs"
-                  variant={importOpen ? 'solid' : 'outline'}
-                  colorScheme="teal"
-                  flex={1}
-                  onClick={() => {
-                    setImportOpen((o) => !o);
-                    setImportCode('');
-                  }}
-                >
-                  📥 Import
-                </Button>
-              </HStack>
+            <VStack spacing={2} align="stretch">
+              <Button size="xs" variant="outline" colorScheme="teal" onClick={handleExport}>
+                📤 Export
+              </Button>
+              <Button
+                size="xs"
+                variant={importOpen ? 'solid' : 'outline'}
+                colorScheme="teal"
+                onClick={() => {
+                  setImportOpen((o) => !o);
+                  setImportCode('');
+                }}
+              >
+                📥 Import
+              </Button>
               <Collapse in={importOpen} animateOpacity style={{ width: '100%' }}>
                 <VStack spacing={2} align="stretch">
                   <Textarea
@@ -533,20 +593,24 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                   </Button>
                 </VStack>
               </Collapse>
+              {!isLocked && (
+                <Button
+                  colorScheme="blue"
+                  size="sm"
+                  w="full"
+                  isLoading={saving}
+                  onClick={handleSave}
+                >
+                  Save Loadout
+                </Button>
+              )}
             </VStack>
-          )}
-
-          {/* Save — captain only, unlocked, not when viewing official */}
-          {!isLocked && isCaptain && !viewingOfficial && (
-            <Button colorScheme="blue" size="sm" w="full" isLoading={saving} onClick={handleSave}>
-              Save as Official Loadout
-            </Button>
           )}
         </VStack>
       </Box>
 
-      {/* Inventory — full width, fixed min height to prevent layout shift */}
-      <Box mt={5} minH="240px">
+      {/* Inventory — fixed height scroll container to prevent page-width shift */}
+      <Box mt={5} h="320px" overflowY="auto">
         <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
           {SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
           {activeItems.length > 0 && (
@@ -576,7 +640,11 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                   item={item}
                   isSelected={displayLoadout[activeSlot] === item.itemId}
                   isEquipped={officialLoadout[activeSlot] === item.itemId}
-                  onClick={() => equip(activeSlot, item.itemId)}
+                  onClick={() =>
+                    displayLoadout[activeSlot] === item.itemId
+                      ? unequip(activeSlot)
+                      : equip(activeSlot, item.itemId)
+                  }
                 />
               )
             )}
@@ -588,7 +656,6 @@ export function TeamOutfitter({ team, event, isAdmin }) {
 }
 
 export default function OutfittingScreen({ event, isAdmin, refetch }) {
-  const { showToast } = useToastContext();
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
   const [battleConfirmOpen, setBattleConfirmOpen] = useState(false);
 
