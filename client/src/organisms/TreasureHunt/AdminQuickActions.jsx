@@ -477,13 +477,6 @@ const AdminQuickActionsPanel = ({
               <VStack spacing={2} align="stretch">
                 <Divider borderColor="gray.600" />
 
-                {/* Submission breakdown */}
-                <Box p={2} bg="gray.700" borderRadius="md">
-                  <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={2}>
-                    SUBMISSION STATS
-                  </Text>
-                </Box>
-
                 {/* Member verification */}
                 {stats.totalMembers > 0 && (
                   <Box p={2} bg="gray.700" borderRadius="md">
