@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogBody,
@@ -36,7 +36,7 @@ import {
 import { MdOutlineArrowBack } from 'react-icons/md';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
-import { GET_TREASURE_EVENT, GET_ALL_SUBMISSIONS, GET_NODE_SUBMISSION_SUMMARIES } from '../graphql/queries';
+import { GET_TREASURE_EVENT_PUBLIC, GET_TREASURE_EVENT_ADMIN_TEAMS, GET_ALL_SUBMISSIONS, GET_NODE_SUBMISSION_SUMMARIES } from '../graphql/queries';
 import useSubmissionNotifications from '../hooks/useSubmissionNotifications';
 import {
   REVIEW_SUBMISSION,
@@ -155,11 +155,45 @@ const TreasureEventView = () => {
   const cancelRef = useRef();
 
   // ── Queries ────────────────────────────────────────────────────────────────
+  // Public query — fires for everyone, lean team data only
   const {
-    data: eventData,
+    data: publicEventData,
     loading: eventLoading,
-    refetch: refetchEvent,
-  } = useQuery(GET_TREASURE_EVENT, { variables: { eventId } });
+    refetch: refetchPublicEvent,
+  } = useQuery(GET_TREASURE_EVENT_PUBLIC, { variables: { eventId } });
+
+  const publicEvent = publicEventData?.getTreasureEvent;
+
+  // Determine admin/ref from the public result (has adminIds/refIds)
+  const isEventAdmin =
+    user && publicEvent && (user.id === publicEvent.creatorId || publicEvent.adminIds?.includes(user.id));
+  const isEventRef = user && publicEvent && publicEvent.refIds?.includes(user.id);
+  const isEventAdminOrRef = isEventAdmin || isEventRef;
+
+  // Admin extras — only fires once we know the user is admin/ref
+  const { data: adminTeamsData, refetch: refetchAdminTeams } = useQuery(
+    GET_TREASURE_EVENT_ADMIN_TEAMS,
+    { variables: { eventId }, skip: !isEventAdminOrRef }
+  );
+
+  // Merge public + admin team extras into a single event object
+  const event = useMemo(() => {
+    if (!publicEvent) return null;
+    if (!adminTeamsData?.getTreasureEvent) return publicEvent;
+    const adminTeamMap = new Map(
+      adminTeamsData.getTreasureEvent.teams.map((t) => [t.teamId, t])
+    );
+    return {
+      ...publicEvent,
+      teams: publicEvent.teams.map((t) => ({ ...t, ...(adminTeamMap.get(t.teamId) || {}) })),
+    };
+  }, [publicEvent, adminTeamsData]);
+
+  const refetchEvent = () => {
+    refetchPublicEvent();
+    if (isEventAdminOrRef) refetchAdminTeams();
+  };
+
   const { data: submissionsData, refetch: refetchSubmissions } = useQuery(GET_ALL_SUBMISSIONS, {
     variables: { eventId },
     pollInterval: 5 * 60 * 1000,
@@ -171,7 +205,7 @@ const TreasureEventView = () => {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
   const [generateMap, { loading: generateLoading }] = useMutation(GENERATE_TREASURE_MAP, {
-    refetchQueries: ['GetTreasureEvent', 'GetAllSubmissions', 'GetNodeSubmissionSummaries'],
+    refetchQueries: ['GetTreasureEventPublic', 'GetTreasureEventAdminTeams', 'GetAllSubmissions', 'GetNodeSubmissionSummaries'],
     awaitRefetchQueries: true,
     onCompleted: () => {
       showToast('Map generated successfully!', 'success');
@@ -213,8 +247,6 @@ const TreasureEventView = () => {
   });
 
   // ── Derived state ──────────────────────────────────────────────────────────
-  const event = eventData?.getTreasureEvent;
-
   useEffect(() => {
     if (!event?.lastMapGeneratedAt) {
       setMapGenCooldownLeft(0);
@@ -349,11 +381,6 @@ const TreasureEventView = () => {
   const handleDenyWithReason = async (submissionId, denialReason) => {
     await handleReviewSubmission(submissionId, false, denialReason);
   };
-
-  const isEventAdmin =
-    user && event && (user.id === event.creatorId || event.adminIds?.includes(user.id));
-  const isEventRef = user && event && event.refIds?.includes(user.id);
-  const isEventAdminOrRef = isEventAdmin || isEventRef;
 
   const {
     isSupported: notificationsSupported,

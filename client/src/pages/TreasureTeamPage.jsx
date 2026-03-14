@@ -24,7 +24,7 @@ import {
 } from '@chakra-ui/react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
-import { GET_TREASURE_EVENT, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
+import { GET_TREASURE_EVENT_LEAN, GET_TREASURE_TEAM, GET_ALL_SUBMISSIONS } from '../graphql/queries';
 import PlayerSubmissionsPanel from '../organisms/TreasureHunt/PlayerSubmissionsPanel';
 import BuffHistoryPanel from '../organisms/TreasureHunt/BuffHistoryPanel';
 import {
@@ -101,7 +101,7 @@ const TreasureTeamView = () => {
     data: eventData,
     loading: eventLoading,
     refetch: refetchEvent,
-  } = useQuery(GET_TREASURE_EVENT, { variables: { eventId } });
+  } = useQuery(GET_TREASURE_EVENT_LEAN, { variables: { eventId } });
 
   const {
     data: teamData,
