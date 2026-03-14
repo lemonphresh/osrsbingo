@@ -456,31 +456,25 @@ export const GET_CALENDAR_VERSION = gql`
 // GIELINOR RUSH: EVENTS
 // ============================================================
 
-export const GET_TREASURE_EVENT = gql`
-  query GetTreasureEvent($eventId: ID!) {
+// Public query — fires for all users. Omits heavy per-team admin-only blobs.
+export const GET_TREASURE_EVENT_PUBLIC = gql`
+  query GetTreasureEventPublic($eventId: ID!) {
     getTreasureEvent(eventId: $eventId) {
-      # Identity
       eventId
       eventName
       eventPassword
       status
       clanId
-
-      # Dates
       startDate
       endDate
       createdAt
       updatedAt
-
-      # Configuration
       eventConfig
       derivedValues
       contentSelections
       mapStructure
       discordConfig
       lastMapGeneratedAt
-
-      # Ownership
       creatorId
       adminIds
       admins {
@@ -494,8 +488,6 @@ export const GET_TREASURE_EVENT = gql`
         displayName
         username
       }
-
-      # Teams (with full details)
       teams {
         teamId
         teamName
@@ -510,6 +502,36 @@ export const GET_TREASURE_EVENT = gql`
         keysHeld
         completedNodes
         availableNodes
+      }
+      nodes {
+        nodeId
+        nodeType
+        title
+        description
+        coordinates
+        mapLocation
+        locationGroupId
+        difficultyTier
+        prerequisites
+        unlocks
+        paths
+        objective
+        rewards
+        innTier
+        availableRewards
+      }
+    }
+  }
+`;
+
+// Admin/ref-only extras — fires only when isEventAdminOrRef is known.
+// Fetches the heavy per-team blobs stripped from the public query above.
+export const GET_TREASURE_EVENT_ADMIN_TEAMS = gql`
+  query GetTreasureEventAdminTeams($eventId: ID!) {
+    getTreasureEvent(eventId: $eventId) {
+      eventId
+      teams {
+        teamId
         innTransactions
         activeBuffs
         buffHistory
@@ -518,21 +540,29 @@ export const GET_TREASURE_EVENT = gql`
         nodeProgress
         inProgressNodes
         nodeUnlockTimes
-        submissions {
-          submissionId
-          submittedByUsername
-          channelId
-          nodeId
-          submittedBy
-          proofUrl
-          status
-          reviewedBy
-          reviewedAt
-          submittedAt
-        }
       }
+    }
+  }
+`;
 
-      # Nodes
+// Keep the old name as an alias so any other consumers don't break
+export const GET_TREASURE_EVENT = GET_TREASURE_EVENT_PUBLIC;
+
+// Lightweight event query for player team page — no teams block, no heavy config fields
+export const GET_TREASURE_EVENT_LEAN = gql`
+  query GetTreasureEventLean($eventId: ID!) {
+    getTreasureEvent(eventId: $eventId) {
+      eventId
+      eventName
+      status
+      clanId
+      startDate
+      endDate
+      eventPassword
+      mapStructure
+      creatorId
+      adminIds
+      refIds
       nodes {
         nodeId
         nodeType
