@@ -557,6 +557,8 @@ const typeDefs = gql`
     publicBoards: Int!
     totalVisits: Int!
     completionRate: Int!
+    totalBlindDrafts: Int!
+    totalGpWon: Float!
   }
 
   # ============================================================

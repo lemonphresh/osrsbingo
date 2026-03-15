@@ -5,6 +5,7 @@ const {
   User,
   TreasureEvent,
   TreasureTeam,
+  DraftRoom,
 } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -45,6 +46,8 @@ const resolvers = {
           usersThisWeek,
           publicBoards,
           visitStats,
+          totalBlindDrafts,
+          gpResult,
         ] = await Promise.all([
           BingoBoard.count(),
           User.count(),
@@ -54,6 +57,23 @@ const resolvers = {
           User.count({ where: { createdAt: { [Op.gte]: oneWeekAgo } } }),
           BingoBoard.count({ where: { isPublic: true } }),
           SiteStats.findByPk(1),
+          DraftRoom.count(),
+          TreasureEvent.findOne({
+            attributes: [
+              [
+                TreasureEvent.sequelize.fn(
+                  'SUM',
+                  TreasureEvent.sequelize.cast(
+                    TreasureEvent.sequelize.literal(`"eventConfig"->>'prize_pool_total'`),
+                    'bigint'
+                  )
+                ),
+                'total',
+              ],
+            ],
+            where: { status: 'COMPLETED' },
+            raw: true,
+          }),
         ]);
 
         const stats = {
@@ -66,6 +86,8 @@ const resolvers = {
           publicBoards,
           totalVisits: parseInt(visitStats?.visitCount) || 0,
           completionRate: totalTiles > 0 ? Math.round((completedTiles / totalTiles) * 100) : 0,
+          totalBlindDrafts,
+          totalGpWon: parseInt(gpResult?.total) || 0,
         };
 
         // Cache it
