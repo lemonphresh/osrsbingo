@@ -13,7 +13,14 @@ const LeaderboardPanel = ({
   onTeamClick,
   onEditTeam,
   userDiscordId,
-}) => (
+}) => {
+  const topPot = sortedTeams[0] ? Number(sortedTeams[0].currentPot || 0) : 0;
+  const tiedTeamIds =
+    topPot > 0 && sortedTeams.filter((t) => Number(t.currentPot || 0) === topPot).length > 1
+      ? new Set(sortedTeams.filter((t) => Number(t.currentPot || 0) === topPot).map((t) => t.teamId))
+      : new Set();
+
+  return (
   <Box
     flexShrink={0}
     flexGrow={0}
@@ -95,6 +102,7 @@ const LeaderboardPanel = ({
             key={team.teamId}
             team={team}
             index={idx}
+            isTied={tiedTeamIds.has(team.teamId)}
             event={event}
             currentColors={currentColors}
             colorMode={colorMode}
@@ -106,6 +114,7 @@ const LeaderboardPanel = ({
       </VStack>
     )}
   </Box>
-);
+  );
+};
 
 export default LeaderboardPanel;
