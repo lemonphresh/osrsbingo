@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { triggerEventCompletionCelebration } from '../../utils/celebrationEffect';
 import {
   Modal,
   ModalOverlay,
@@ -202,6 +203,7 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
 
   const [completeEvent, { loading: completeLoading }] = useMutation(COMPLETE_EVENT, {
     onCompleted: () => {
+      triggerEventCompletionCelebration();
       showToast('Event completed — final standings sent to Discord!', 'success');
       if (onSuccess) onSuccess();
       onClose();

@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { triggerEventCompletionCelebration } from '../../utils/celebrationEffect';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import { CHECK_DISCORD_CHANNELS, GET_TREASURE_ACTIVITIES } from '../../graphql/queries';
 import {
@@ -583,6 +584,16 @@ const AdminQuickActionsPanel = ({
               >
                 Comprehensive History
               </Button>
+              {process.env.NODE_ENV === 'development' && (
+                <Button
+                  size="sm"
+                  colorScheme="pink"
+                  variant="outline"
+                  onClick={triggerEventCompletionCelebration}
+                >
+                  🎉 Test Celebration
+                </Button>
+              )}
             </VStack>
           </Collapse>
         </Box>
