@@ -821,6 +821,8 @@ export const GET_SITE_STATS = gql`
       publicBoards
       totalVisits
       completionRate
+      totalBlindDrafts
+      totalGpWon
     }
   }
 `;

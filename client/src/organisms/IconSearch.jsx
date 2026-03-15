@@ -135,11 +135,10 @@ const IconSearch = ({ setTileState, tile, tileState }) => {
                         input: { icon: item.imageUrl === tile.icon ? null : item.imageUrl },
                       },
                     });
-                    setTileState({
-                      ...tile,
-                      ...tileState,
+                    setTileState((s) => ({
+                      ...s,
                       icon: item.imageUrl === tile.icon ? null : item.imageUrl,
-                    });
+                    }));
                   }}
                   src={item.imageUrl}
                   maxHeight="30px"
