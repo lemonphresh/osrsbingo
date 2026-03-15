@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const {
   TreasureEvent,
   TreasureTeam,
@@ -261,7 +261,17 @@ const TreasureHuntResolvers = {
     getAllSubmissions: async (_, { eventId }) => {
       const [submissions, nodes] = await Promise.all([
         TreasureSubmission.findAll({
-          where: { status: 'PENDING_REVIEW' },
+          where: {
+            [Op.or]: [
+              { status: 'PENDING_REVIEW' },
+              {
+                status: 'APPROVED',
+                [Op.and]: Sequelize.literal(
+                  `"TreasureSubmission"."nodeId" != ALL("team"."completedNodes")`
+                ),
+              },
+            ],
+          },
           include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
           order: [
             ['status', 'ASC'],
