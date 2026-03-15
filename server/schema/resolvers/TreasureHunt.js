@@ -261,7 +261,7 @@ const TreasureHuntResolvers = {
     getAllSubmissions: async (_, { eventId }) => {
       const [submissions, nodes] = await Promise.all([
         TreasureSubmission.findAll({
-          where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
+          where: { status: 'PENDING_REVIEW' },
           include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
           order: [
             ['status', 'ASC'],
