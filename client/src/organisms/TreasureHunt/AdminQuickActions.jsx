@@ -36,6 +36,7 @@ import {
   useDisclosure,
   useClipboard,
   Avatar,
+  Switch,
 } from '@chakra-ui/react';
 import {
   ChevronUpIcon,
@@ -128,6 +129,11 @@ const AdminQuickActionsPanel = ({
     onOpen: onInnRefundOpen,
     onClose: onInnRefundClose,
   } = useDisclosure();
+  const {
+    isOpen: isGpSplitOpen,
+    onOpen: onGpSplitOpen,
+    onClose: onGpSplitClose,
+  } = useDisclosure();
 
   const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
     CHECK_DISCORD_CHANNELS,
@@ -158,6 +164,8 @@ const AdminQuickActionsPanel = ({
   // even if the parent's Apollo cache hasn't re-rendered yet
   const [locallyUncompleted, setLocallyUncompleted] = useState(new Set());
   const [locallyReCompleted, setLocallyReCompleted] = useState(new Set());
+  const [awardRemainder, setAwardRemainder] = useState(false);
+  const [splitTopTwo, setSplitTopTwo] = useState(false);
   const PAGE_SIZE = 50;
 
   const handleOpenFullHistory = () => {
@@ -339,6 +347,451 @@ const AdminQuickActionsPanel = ({
     return null;
   }
 
+  const isPostEvent = event.status === 'COMPLETED' || event.status === 'ARCHIVED';
+
+  const fmtGp = (n) => {
+    const v = Number(n);
+    if (!v) return '0';
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
+    if (v >= 1_000) return `${Math.round(v / 1_000)}k`;
+    return `${v}`;
+  };
+
+  const gpSplitModal = (() => {
+    const prizePoolTotal = Number(event?.eventConfig?.prize_pool_total || 0);
+    const totalEarned = teams.reduce((sum, t) => sum + Number(t.currentPot || 0), 0);
+    const prizePoolLeftover = prizePoolTotal > 0 ? Math.max(0, prizePoolTotal - totalEarned) : 0;
+    const sortedTeams = [...teams].sort((a, b) => Number(b.currentPot || 0) - Number(a.currentPot || 0));
+    const leadingTeamId = sortedTeams[0]?.teamId;
+    const isTopTied =
+      sortedTeams.length >= 2 &&
+      Number(sortedTeams[0]?.currentPot || 0) === Number(sortedTeams[1]?.currentPot || 0);
+    const topTwoIds = isTopTied
+      ? new Set([sortedTeams[0]?.teamId, sortedTeams[1]?.teamId])
+      : new Set();
+
+    return (
+      <Modal isOpen={isGpSplitOpen} onClose={onGpSplitClose} scrollBehavior="inside" size="md">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaTrophy} color="yellow.400" />
+              <Text>GP Split Calculator</Text>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              Current pot divided equally among team members.
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {teams.length === 0 ? (
+              <Text color="gray.500" fontSize="sm">No teams.</Text>
+            ) : (
+              <VStack align="stretch" spacing={3}>
+                {sortedTeams.map((team) => {
+                  const isLeader = team.teamId === leadingTeamId;
+                  const isTopTwo = topTwoIds.has(team.teamId);
+                  const basePot = Number(team.currentPot || 0);
+                  const pot =
+                    isLeader && awardRemainder
+                      ? basePot + prizePoolLeftover
+                      : splitTopTwo && isTopTwo
+                      ? basePot + Math.floor(prizePoolLeftover / 2)
+                      : basePot;
+                  const memberCount = (team.members || []).length;
+                  const perMember = memberCount > 0 ? Math.floor(pot / memberCount) : 0;
+                  return (
+                    <Box
+                      key={team.teamId}
+                      p={3}
+                      bg="gray.700"
+                      borderRadius="md"
+                      borderLeft="3px solid"
+                      borderLeftColor={
+                        isLeader && awardRemainder
+                          ? 'green.400'
+                          : splitTopTwo && isTopTwo
+                          ? 'blue.400'
+                          : 'yellow.400'
+                      }
+                    >
+                      <HStack justify="space-between" mb={1}>
+                        <HStack spacing={2}>
+                          <Text fontWeight="semibold" fontSize="sm">{team.teamName}</Text>
+                          {isLeader && awardRemainder && (
+                            <Badge colorScheme="green" fontSize="xs">+leftover</Badge>
+                          )}
+                          {splitTopTwo && isTopTwo && (
+                            <Badge colorScheme="blue" fontSize="xs">+½ leftover</Badge>
+                          )}
+                        </HStack>
+                        <Badge colorScheme="yellow">{pot.toLocaleString()} gp total</Badge>
+                      </HStack>
+                      <HStack justify="space-between" mb={memberCount > 0 ? 2 : 0}>
+                        <Text fontSize="xs" color="gray.400">
+                          {memberCount} member{memberCount !== 1 ? 's' : ''}
+                        </Text>
+                        <Text fontSize="sm" color="yellow.300" fontWeight="semibold">
+                          {memberCount > 0 ? `${fmtGp(perMember)} gp each` : '—'}
+                        </Text>
+                      </HStack>
+                      {memberCount > 0 && (
+                        <VStack align="stretch" spacing={0.5}>
+                          {(team.members || []).map((m) => (
+                            <HStack
+                              key={m.discordUserId}
+                              justify="space-between"
+                              px={1}
+                              py={0.5}
+                              borderRadius="sm"
+                              _hover={{ bg: 'whiteAlpha.50' }}
+                            >
+                              <Text fontSize="xs" color="gray.300">
+                                {m.username || m.discordUsername || m.discordUserId}
+                              </Text>
+                              <Text fontSize="xs" color="gray.400" fontFamily="mono">
+                                {fmtGp(perMember)} gp
+                              </Text>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      )}
+                    </Box>
+                  );
+                })}
+
+                {prizePoolTotal > 0 && (
+                  <Box p={3} bg="gray.750" borderRadius="md" borderTop="2px solid" borderColor="gray.600">
+                    <VStack align="stretch" spacing={2}>
+                      <HStack justify="space-between">
+                        <Text fontSize="xs" color="gray.400">Total prize pool</Text>
+                        <Text fontSize="xs" color="gray.300" fontFamily="mono">{fmtGp(prizePoolTotal)} gp</Text>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text fontSize="xs" color="gray.400">Awarded to teams</Text>
+                        <Text fontSize="xs" color="gray.300" fontFamily="mono">{fmtGp(totalEarned)} gp</Text>
+                      </HStack>
+                      <HStack justify="space-between">
+                        <Text fontSize="xs" color={prizePoolLeftover > 0 ? 'yellow.300' : 'gray.400'} fontWeight="semibold">
+                          Leftover
+                        </Text>
+                        <Text fontSize="xs" color={prizePoolLeftover > 0 ? 'yellow.300' : 'gray.400'} fontFamily="mono" fontWeight="semibold">
+                          {fmtGp(prizePoolLeftover)} gp
+                        </Text>
+                      </HStack>
+                      {prizePoolLeftover > 0 && (
+                        <VStack align="stretch" spacing={1} pt={1} borderTop="1px solid" borderColor="whiteAlpha.100">
+                          <HStack justify="space-between">
+                            <Text fontSize="xs" color="gray.300">Award leftover to leading team</Text>
+                            <Switch
+                              size="sm"
+                              colorScheme="green"
+                              isChecked={awardRemainder}
+                              onChange={(e) => {
+                                setAwardRemainder(e.target.checked);
+                                if (e.target.checked) setSplitTopTwo(false);
+                              }}
+                            />
+                          </HStack>
+                          {isTopTied && (
+                            <HStack justify="space-between">
+                              <Text fontSize="xs" color="gray.300">Split leftover between tied #1 teams</Text>
+                              <Switch
+                                size="sm"
+                                colorScheme="blue"
+                                isChecked={splitTopTwo}
+                                onChange={(e) => {
+                                  setSplitTopTwo(e.target.checked);
+                                  if (e.target.checked) setAwardRemainder(false);
+                                }}
+                              />
+                            </HStack>
+                          )}
+                        </VStack>
+                      )}
+                    </VStack>
+                  </Box>
+                )}
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  })();
+
+  if (isPostEvent) {
+    return (
+      <>
+        <Box
+          position="fixed"
+          bottom={4}
+          left={4}
+          zIndex={1500}
+          width={isMinimized ? 'auto' : '260px'}
+          maxW="calc(100vw - 32px)"
+          bg="gray.800"
+          borderRadius="lg"
+          boxShadow="2xl"
+          border="2px solid"
+          borderColor="teal.600"
+          overflow="hidden"
+          transition="all 0.3s ease"
+        >
+          <HStack
+            p={3}
+            bg="teal.700"
+            justify="space-between"
+            cursor="pointer"
+            onClick={() => setIsMinimized(!isMinimized)}
+            _hover={{ opacity: 0.9 }}
+          >
+            <HStack spacing={2}>
+              <Icon as={FaCog} color="white" />
+              <Text fontWeight="semibold" color="white" fontSize="sm">
+                Post-Event Tools
+              </Text>
+            </HStack>
+            <IconButton
+              icon={isMinimized ? <ChevronUpIcon /> : <ChevronDownIcon />}
+              size="xs"
+              variant="ghost"
+              color="white"
+              _hover={{ bg: 'whiteAlpha.200' }}
+              aria-label={isMinimized ? 'Expand' : 'Minimize'}
+              onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
+            />
+          </HStack>
+          <Collapse in={!isMinimized} animateOpacity>
+            <VStack p={3} spacing={2} align="stretch">
+              <Button
+                size="sm"
+                leftIcon={<Icon as={FaTrophy} />}
+                colorScheme="yellow"
+                variant="outline"
+                onClick={onGpSplitOpen}
+              >
+                GP Split Calculator
+              </Button>
+              <Button
+                size="sm"
+                leftIcon={<Icon as={FaBook} />}
+                colorScheme="teal"
+                variant="outline"
+                onClick={handleOpenFullHistory}
+              >
+                Comprehensive History
+              </Button>
+            </VStack>
+          </Collapse>
+        </Box>
+        {gpSplitModal}
+        {/* Full History Modal */}
+        <Modal
+          isOpen={isFullHistoryOpen}
+          onClose={onFullHistoryClose}
+          scrollBehavior="inside"
+          size="xl"
+        >
+          <ModalOverlay />
+          <ModalContent
+            bg="gray.800"
+            color="white"
+            maxH={{ base: '90dvh', md: '85vh' }}
+            overflowY="auto"
+          >
+            <ModalHeader pb={2}>
+              <HStack justify="space-between" align="start" mr={8}>
+                <VStack align="start" spacing={1}>
+                  <HStack spacing={2}>
+                    <Icon as={FaBook} color="teal.400" />
+                    <Text>Comprehensive Move History</Text>
+                  </HStack>
+                  <HStack spacing={1}>
+                    <Button
+                      size="xs"
+                      variant={!fullHistoryUtc ? 'solid' : 'outline'}
+                      colorScheme={!fullHistoryUtc ? 'teal' : 'gray'}
+                      color={!fullHistoryUtc ? 'white' : 'gray.300'}
+                      onClick={() => setFullHistoryUtc(false)}
+                    >
+                      Local
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant={fullHistoryUtc ? 'solid' : 'outline'}
+                      colorScheme={fullHistoryUtc ? 'teal' : 'gray'}
+                      color={fullHistoryUtc ? 'white' : 'gray.300'}
+                      onClick={() => setFullHistoryUtc(true)}
+                    >
+                      UTC
+                    </Button>
+                  </HStack>
+                </VStack>
+                <HStack spacing={1} flexWrap="wrap" justify="flex-end" flex={1} ml={3}>
+                  <Button
+                    size="xs"
+                    variant={fullHistoryTeamFilter === null ? 'solid' : 'outline'}
+                    colorScheme={fullHistoryTeamFilter === null ? 'teal' : 'gray'}
+                    color={fullHistoryTeamFilter === null ? 'white' : 'gray.300'}
+                    onClick={() => setFullHistoryTeamFilter(null)}
+                  >
+                    All
+                  </Button>
+                  {teams.map((t) => (
+                    <Button
+                      key={t.teamId}
+                      size="xs"
+                      variant={fullHistoryTeamFilter === t.teamId ? 'solid' : 'outline'}
+                      colorScheme={fullHistoryTeamFilter === t.teamId ? 'teal' : 'gray'}
+                      color={fullHistoryTeamFilter === t.teamId ? 'white' : 'gray.300'}
+                      onClick={() =>
+                        setFullHistoryTeamFilter((prev) => (prev === t.teamId ? null : t.teamId))
+                      }
+                    >
+                      {t.teamName}
+                    </Button>
+                  ))}
+                </HStack>
+              </HStack>
+            </ModalHeader>
+            <ModalCloseButton />
+            <ModalBody
+              overflowY="auto"
+              css={{
+                '&::-webkit-scrollbar': { height: '6px' },
+                '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
+                '&::-webkit-scrollbar-thumb': { background: '#abb8ceff', borderRadius: '10px' },
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#abb8ceff transparent',
+              }}
+              pb={4}
+            >
+              {(() => {
+                const fmtGpLocal = (gp) => {
+                  const n = Number(gp);
+                  if (!n) return null;
+                  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M gp`;
+                  if (n >= 1_000) return `${Math.round(n / 1_000)}K gp`;
+                  return `${n} gp`;
+                };
+
+                const keyColorScheme = {
+                  bronze: 'orange', silver: 'gray', gold: 'yellow',
+                  green: 'green', blue: 'blue', red: 'red', purple: 'purple',
+                };
+
+                const activityConfig = {
+                  node_completed: { label: 'Completed', color: 'green.500', scheme: 'green', icon: FaHistory },
+                  node_uncompleted: { label: 'Uncompleted', color: 'red.400', scheme: 'red', icon: FaUndo },
+                  node_recompleted: { label: 'Re-completed', color: 'yellow.400', scheme: 'yellow', icon: FaRedoAlt },
+                  inn_visited: { label: 'Inn', color: 'purple.400', scheme: 'purple', icon: FaKey },
+                  inn_refunded: { label: 'Inn Refunded', color: 'orange.400', scheme: 'orange', icon: FaUndo },
+                  gp_gained: { label: 'GP Gained', color: 'yellow.300', scheme: 'yellow', icon: FaHistory },
+                };
+
+                const SKIP_TYPES = new Set(['gp_gained']);
+                const filtered = allActivities
+                  .filter((a) => !SKIP_TYPES.has(a.type))
+                  .filter((a) => (fullHistoryTeamFilter ? a.teamId === fullHistoryTeamFilter : true));
+
+                if (activitiesLoading && filtered.length === 0) {
+                  return <VStack py={6}><Text color="gray.400" fontSize="sm">Loading…</Text></VStack>;
+                }
+                if (filtered.length === 0) {
+                  return <Text color="gray.500" fontSize="sm" textAlign="center" py={8}>No activity recorded yet.</Text>;
+                }
+
+                const byDate = {};
+                filtered.forEach((a) => {
+                  const d = new Date(a.timestamp);
+                  const dateKey = fullHistoryUtc
+                    ? d.toISOString().slice(0, 10)
+                    : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+                  if (!byDate[dateKey]) byDate[dateKey] = [];
+                  byDate[dateKey].push(a);
+                });
+
+                return (
+                  <VStack align="stretch" spacing={4}>
+                    {Object.entries(byDate).map(([date, entries]) => (
+                      <Box key={date}>
+                        <Text fontSize="xs" fontWeight="semibold" color="gray.400" textTransform="uppercase" letterSpacing="wide" mb={2}>{date}</Text>
+                        <VStack align="stretch" spacing={1}>
+                          {entries.map((a) => {
+                            const team = teams.find((t) => t.teamId === a.teamId);
+                            const cfg = activityConfig[a.type] ?? { label: a.type, color: 'gray.500', scheme: 'gray', icon: FaHistory };
+                            const timeStr = fullHistoryUtc
+                              ? new Date(a.timestamp).toISOString().slice(11, 16) + ' UTC'
+                              : new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                            const pills = [];
+                            const gp = a.data?.reward || a.data?.gpRemoved || a.data?.gpRestored || a.data?.gpEarned || a.data?.amount;
+                            const gpStr = fmtGpLocal(gp);
+                            if (gpStr) {
+                              const isNegative = a.type === 'node_uncompleted';
+                              pills.push(<Badge key="gp" colorScheme="yellow" variant="subtle" fontSize="xs">{isNegative ? '−' : '+'}{gpStr}</Badge>);
+                            }
+                            (a.data?.keyRewards || a.data?.keysRestored || []).forEach((k, i) => {
+                              if (!k?.color || !k?.quantity) return;
+                              pills.push(<Badge key={`kg-${i}`} colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'} variant="subtle" fontSize="xs">+{k.quantity}</Badge>);
+                            });
+                            (a.data?.keysRemoved || []).forEach((k, i) => {
+                              if (!k?.color || !k?.quantity) return;
+                              pills.push(<Badge key={`kr-${i}`} colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'} variant="outline" fontSize="xs">−{k.quantity}</Badge>);
+                            });
+                            (a.data?.keysSpent || []).forEach((k, i) => {
+                              if (!k?.color || !k?.quantity) return;
+                              pills.push(<Badge key={`ks-${i}`} colorScheme={keyColorScheme[k.color?.toLowerCase()] ?? 'gray'} variant="outline" fontSize="xs">−{k.quantity}</Badge>);
+                            });
+                            (a.data?.buffRewards || a.data?.buffsRestored || a.data?.buffsEarned || []).forEach((b, i) => {
+                              const name = b?.buffType || b?.name || b;
+                              if (!name) return;
+                              pills.push(<Badge key={`bg-${i}`} colorScheme="purple" variant="subtle" fontSize="xs">+{name}</Badge>);
+                            });
+                            (a.data?.consumedBuffs || []).forEach((b, i) => {
+                              pills.push(<Badge key={`bc-${i}`} colorScheme="red" variant="outline" fontSize="xs">{b} already used</Badge>);
+                            });
+
+                            const nodeName = a.data?.nodeTitle || a.data?.innName || a.data?.nodeId || a.data?.innId || '—';
+
+                            return (
+                              <Box key={a.id} p={2} bg="gray.700" borderRadius="md" borderLeft="3px solid" borderLeftColor={cfg.color}>
+                                <HStack spacing={2} align="flex-start">
+                                  <Text fontSize="xs" color="gray.500" flexShrink={0} w="50px" pt="2px">{timeStr}</Text>
+                                  <VStack align="start" spacing={1} minW="110px">
+                                    <Badge bg="gray.600" color="gray.300" fontSize="xs" flexShrink={0}>{team?.teamName ?? a.teamId}</Badge>
+                                    <Badge colorScheme={cfg.scheme} fontSize="xs" flexShrink={0} alignSelf="flex-start">{cfg.label}</Badge>
+                                  </VStack>
+                                  <VStack align="start" spacing={1} flex={1} minW={0}>
+                                    <HStack spacing={1} flexWrap="nowrap" minW={0}>
+                                      <Text fontSize="sm" fontWeight="medium" noOfLines={1} flex={1} minW={0}>{nodeName}</Text>
+                                    </HStack>
+                                    {pills.length > 0 && <HStack spacing={1} flexWrap="wrap">{pills}</HStack>}
+                                  </VStack>
+                                </HStack>
+                              </Box>
+                            );
+                          })}
+                        </VStack>
+                      </Box>
+                    ))}
+                    {hasMore && (
+                      <Button size="sm" variant="outline" colorScheme="gray" color="gray.300" isLoading={activitiesLoading} onClick={handleLoadMore} mt={2}>
+                        Load older entries
+                      </Button>
+                    )}
+                  </VStack>
+                );
+              })()}
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  }
+
   const hasUrgentItems = stats.pending > 0 || stats.teamsWithoutMembers > 0;
 
   const QuickStat = ({ label, value, icon, color, onClick, tooltip }) => (
@@ -383,7 +836,6 @@ const AdminQuickActionsPanel = ({
         boxShadow="2xl"
         border="2px solid"
         borderColor={hasUrgentItems ? 'orange.400' : 'orange.500'}
-        overflow="hidden"
         transition="all 0.3s ease"
       >
         {/* Header */}
@@ -577,7 +1029,7 @@ const AdminQuickActionsPanel = ({
 
             {/* Quick Actions */}
             <HStack spacing={2} justify="center">
-              <Menu>
+              <Menu placement="top-start">
                 <MenuButton
                   size="sm"
                   variant="outline"
@@ -648,6 +1100,15 @@ const AdminQuickActionsPanel = ({
                     _hover={{ bg: 'gray.600' }}
                   >
                     Comprehensive Move History
+                  </MenuItem>
+                  <MenuItem
+                    icon={<FaTrophy />}
+                    color="white"
+                    bg="gray.700"
+                    onClick={onGpSplitOpen}
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    GP Split Calculator
                   </MenuItem>
                   {isEventAdmin && (
                     <>
@@ -1787,6 +2248,8 @@ const AdminQuickActionsPanel = ({
           </ModalBody>
         </ModalContent>
       </Modal>
+      {gpSplitModal}
+
       {/* Inn Refund Modal */}
       <Modal
         isOpen={isInnRefundOpen}

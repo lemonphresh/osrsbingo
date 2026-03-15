@@ -53,7 +53,16 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
 
   const sorted = [...teams].sort((a, b) => toNum(b.currentPot) - toNum(a.currentPot));
 
+  const topPot = sorted[0] ? toNum(sorted[0].currentPot) : 0;
+  const tiedTeamIds =
+    topPot > 0 && sorted.filter((t) => toNum(t.currentPot) === topPot).length > 1
+      ? new Set(sorted.filter((t) => toNum(t.currentPot) === topPot).map((t) => t.teamId))
+      : new Set();
+
   const totalGP = teams.reduce((sum, t) => sum + toNum(t.currentPot), 0);
+
+  const prizePoolTotal = toNum(event?.eventConfig?.prize_pool_total);
+  const prizePoolLeftover = prizePoolTotal > 0 ? Math.max(0, prizePoolTotal - totalGP) : 0;
 
   const totalNodesCompleted = teams.reduce((sum, t) => sum + (t.completedNodes?.length || 0), 0);
 
@@ -104,9 +113,16 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
         <Divider borderColor="gray.200" />
         {/* Leaderboard */}
         <Box w="full" overflowX="auto">
-          <Heading size="sm" color={currentColors.white} mb={3}>
-            Final Standings
-          </Heading>
+          <HStack spacing={2} mb={3}>
+            <Heading size="sm" color={currentColors.white}>
+              Final Standings
+            </Heading>
+            {tiedTeamIds.size > 0 && (
+              <Badge colorScheme="orange" fontSize="xs" px={2}>
+                🤝 TIE FOR 1ST
+              </Badge>
+            )}
+          </HStack>
           <Table size="sm" variant="striped" colorScheme="whiteAlpha">
             <Thead>
               <Tr>
@@ -118,9 +134,9 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
                   GP Earned
                 </Th>
                 <Th color="gray.300" isNumeric>
-                  Nodes
+                  Total Nodes
                 </Th>
-                <Th color="gray.300">Keys</Th>
+                <Th color="gray.300"></Th>
               </Tr>
             </Thead>
             <Tbody>
@@ -129,9 +145,19 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
                 return (
                   <Tr key={team.teamId}>
                     <Td color={currentColors.white} fontWeight="semibold">
-                      {MEDALS[i] ?? i + 1}
+                      <HStack spacing={1}>
+                        <Text>{tiedTeamIds.has(team.teamId) ? MEDALS[0] : MEDALS[i] ?? i + 1}</Text>
+                        {tiedTeamIds.has(team.teamId) && (
+                          <Badge colorScheme="orange" fontSize="2xs">
+                            TIE
+                          </Badge>
+                        )}
+                      </HStack>
                     </Td>
-                    <Td color={currentColors.white} fontWeight={i === 0 ? 'bold' : 'normal'}>
+                    <Td
+                      color={currentColors.white}
+                      fontWeight={tiedTeamIds.has(team.teamId) || i === 0 ? 'bold' : 'normal'}
+                    >
                       {team.teamName}
                     </Td>
                     <Td isNumeric color="yellow.400" fontWeight="semibold">
@@ -157,6 +183,30 @@ export default function EventSummaryPanel({ event, teams = [], nodes = [] }) {
               })}
             </Tbody>
           </Table>
+          {prizePoolLeftover > 0 && (
+            <Text fontSize="sm" color="gray.300" mt={3} fontStyle="italic">
+              {parseInt(event.creatorId) === 1 ? (
+                <>
+                  The leftover{' '}
+                  <Text as="span" color="yellow.300" fontWeight="semibold">
+                    {prizePoolLeftover.toLocaleString()} gp
+                  </Text>{' '}
+                  remaining from the total prize pool will be distributed evenly across the winning
+                  team(s). Lemon will be making a Discord post with more info. Go Gems!
+                </>
+              ) : (
+                <>
+                  Note:{' '}
+                  <Text as="span" color="yellow.300" fontWeight="semibold">
+                    {prizePoolLeftover.toLocaleString()} gp
+                  </Text>{' '}
+                  remaining from the total prize pool — the event runner will decide how it is used.
+                  Generally it is distributed evenly across the winning team(s) or used for future
+                  clan events. Reach out to the event runner for more info.
+                </>
+              )}
+            </Text>
+          )}
         </Box>
       </VStack>
 

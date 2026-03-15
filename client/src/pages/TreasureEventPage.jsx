@@ -759,7 +759,7 @@ const TreasureEventView = () => {
           mapGenCooldownLeft={mapGenCooldownLeft}
         />
       )}
-      {isEventAdmin && event.status === 'PUBLIC' && (
+      {isEventAdmin && ['PUBLIC', 'COMPLETED', 'ARCHIVED'].includes(event.status) && (
         <AdminQuickActionsPanel
           event={event}
           teams={teams}
