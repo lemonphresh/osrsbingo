@@ -331,6 +331,8 @@ export const UPDATE_TILE = gql`
       completedBy
       board
       value
+      progress
+      progressMax
     }
   }
 `;

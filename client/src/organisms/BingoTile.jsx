@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Flex, Image, Text, useDisclosure } from '@chakra-ui/react';
+import { Box, Flex, Image, Text, useDisclosure, Tooltip } from '@chakra-ui/react';
 import { CheckCircleIcon, CheckIcon, EditIcon } from '@chakra-ui/icons';
 import BingoTileDetails from './BingoTileDetails';
 import useBingoTileTheme from '../hooks/useBingoTileTheme';
@@ -8,7 +8,9 @@ import { MdLaunch } from 'react-icons/md';
 const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const size = ['48px', '64px', '96px', '120px'];
-  const { icon, isComplete, name, value } = tile;
+  const { icon, isComplete, name, value, progress, progressMax } = tile;
+  const hasProgress = (progressMax || 0) > 0;
+  const progressPct = hasProgress ? Math.min(100, Math.round(((progress || 0) / progressMax) * 100)) : 0;
   const [updatedCompletedPatterns, setUpdatedCompletedPatterns] = useState(completedPatterns);
   const [isPartOfCompletedGroup, setIsPartOfCompletedGroup] = useState(
     completedPatterns.some((group) => group.tiles.includes(tile.id))
@@ -124,6 +126,35 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
             <MdLaunch color="rgba(0,0,0,0.6)" id="icon" opacity="0" />
           )}
         </Box>
+
+        {/* Progress bar */}
+        {hasProgress && (
+          <Tooltip
+            label={`${progress || 0} / ${progressMax} (${progressPct}%)`}
+            placement="top"
+            hasArrow
+            openDelay={300}
+          >
+            <Box
+              position="absolute"
+              bottom={0}
+              left={0}
+              right={0}
+              height={['3px', '4px']}
+              bg="whiteAlpha.200"
+              borderBottomLeftRadius={['8px', '12px']}
+              borderBottomRightRadius={['8px', '12px']}
+              overflow="hidden"
+            >
+              <Box
+                height="100%"
+                width={`${progressPct}%`}
+                bg={progressPct >= 100 ? 'green.400' : 'purple.400'}
+                transition="width 0.3s ease"
+              />
+            </Box>
+          </Tooltip>
+        )}
 
         {/* Completed checkmark overlay - fades on hover */}
         {isComplete && (
