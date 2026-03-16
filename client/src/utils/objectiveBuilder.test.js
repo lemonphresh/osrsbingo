@@ -61,10 +61,10 @@ describe('groupItemsBySource', () => {
 // ─── DEFAULT_QUANTITIES ───────────────────────────────────────────────────────
 
 describe('DEFAULT_QUANTITIES', () => {
-  it('defines easy/medium/hard for boss_kc', () => {
-    expect(DEFAULT_QUANTITIES.boss_kc).toHaveProperty('easy');
+  it('defines short/medium/long for boss_kc', () => {
+    expect(DEFAULT_QUANTITIES.boss_kc).toHaveProperty('short');
     expect(DEFAULT_QUANTITIES.boss_kc).toHaveProperty('medium');
-    expect(DEFAULT_QUANTITIES.boss_kc).toHaveProperty('hard');
+    expect(DEFAULT_QUANTITIES.boss_kc).toHaveProperty('long');
   });
 
   it('each difficulty has a min and max', () => {
@@ -99,12 +99,12 @@ describe('buildFormattedObjectives', () => {
     ]);
   });
 
-  it('each type has easy, medium, and hard arrays', () => {
+  it('each type has short, medium, and long arrays', () => {
     const result = buildFormattedObjectives();
     result.forEach(({ difficulties }) => {
-      expect(Array.isArray(difficulties.easy)).toBe(true);
+      expect(Array.isArray(difficulties.short)).toBe(true);
       expect(Array.isArray(difficulties.medium)).toBe(true);
-      expect(Array.isArray(difficulties.hard)).toBe(true);
+      expect(Array.isArray(difficulties.long)).toBe(true);
     });
   });
 
@@ -112,9 +112,9 @@ describe('buildFormattedObjectives', () => {
     const result = buildFormattedObjectives();
     const bossKC = result.find((o) => o.type === 'boss_kc');
     const all = [
-      ...bossKC.difficulties.easy,
+      ...bossKC.difficulties.short,
       ...bossKC.difficulties.medium,
-      ...bossKC.difficulties.hard,
+      ...bossKC.difficulties.long,
     ];
     all.forEach((obj) => {
       expect(obj.quantity % 5).toBe(0);
@@ -125,20 +125,20 @@ describe('buildFormattedObjectives', () => {
     const result = buildFormattedObjectives();
     const xpGain = result.find((o) => o.type === 'xp_gain');
     const all = [
-      ...xpGain.difficulties.easy,
+      ...xpGain.difficulties.short,
       ...xpGain.difficulties.medium,
-      ...xpGain.difficulties.hard,
+      ...xpGain.difficulties.long,
     ];
     all.forEach((obj) => {
       expect(obj.quantity % 50000).toBe(0);
     });
   });
 
-  it('raids only appear in hard boss_kc objectives (not easy or medium)', () => {
+  it('raids only appear in long boss_kc objectives (not short or medium)', () => {
     const result = buildFormattedObjectives();
     const bossKC = result.find((o) => o.type === 'boss_kc');
     const easyAndMedium = [
-      ...bossKC.difficulties.easy,
+      ...bossKC.difficulties.short,
       ...bossKC.difficulties.medium,
     ];
     easyAndMedium.forEach((obj) => {
@@ -158,9 +158,9 @@ describe('buildFormattedObjectives', () => {
     const result = buildFormattedObjectives(contentSelections);
     const bossKC = result.find((o) => o.type === 'boss_kc');
     const all = [
-      ...bossKC.difficulties.easy,
+      ...bossKC.difficulties.short,
       ...bossKC.difficulties.medium,
-      ...bossKC.difficulties.hard,
+      ...bossKC.difficulties.long,
     ];
     expect(all.some((o) => o.contentId === targetBoss)).toBe(false);
   });
@@ -176,9 +176,9 @@ describe('buildFormattedObjectives', () => {
     const result = buildFormattedObjectives(contentSelections);
     const xpGain = result.find((o) => o.type === 'xp_gain');
     const all = [
-      ...xpGain.difficulties.easy,
+      ...xpGain.difficulties.short,
       ...xpGain.difficulties.medium,
-      ...xpGain.difficulties.hard,
+      ...xpGain.difficulties.long,
     ];
     expect(all.some((o) => o.contentId === targetSkill)).toBe(false);
   });
@@ -186,22 +186,22 @@ describe('buildFormattedObjectives', () => {
   it('custom quantity override takes precedence over defaults', () => {
     // Pick a boss and override its easy quantity to a fixed number (not a range)
     const defaults = getDefaultContentSelections();
-    const enabledEasyBoss = Object.values(
+    const enabledShortBoss = Object.values(
       require('./objectiveCollections').SOLO_BOSSES
-    ).find((b) => b.enabled && b.category === 'easy');
+    ).find((b) => b.enabled && b.category === 'short');
 
-    if (!enabledEasyBoss) return; // skip if no easy bosses
+    if (!enabledShortBoss) return; // skip if no short bosses
 
     const contentSelections = {
       customQuantities: {
         boss_kc: {
-          [enabledEasyBoss.id]: { easy: 999 },
+          [enabledShortBoss.id]: { short: 999 },
         },
       },
     };
     const result = buildFormattedObjectives(contentSelections);
     const bossKC = result.find((o) => o.type === 'boss_kc');
-    const match = bossKC.difficulties.easy.find((o) => o.contentId === enabledEasyBoss.id);
+    const match = bossKC.difficulties.short.find((o) => o.contentId === enabledShortBoss.id);
 
     if (match) {
       // 999 rounded to nearest 5 = 1000

@@ -367,11 +367,11 @@ const LiveActivityFeed = ({
       case 'node_completed':
         const diffText =
           activity.difficulty === 1
-            ? 'Easy'
+            ? 'Short'
             : activity.difficulty === 3
             ? 'Medium'
             : activity.difficulty === 5
-            ? 'Hard'
+            ? 'Long'
             : '';
         return `${diffText} ${activity.nodeTitle} (+${formatGP(activity.reward)} GP)`;
       case 'inn_visited':

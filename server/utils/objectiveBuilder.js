@@ -13,17 +13,17 @@ const {
 
 // Fallback defaults (only used if content item has no quantities defined)
 const DEFAULT_QUANTITIES = {
-  boss_kc: { easy: { min: 5, max: 15 }, medium: { min: 20, max: 30 }, hard: { min: 15, max: 35 } },
+  boss_kc: { short: { min: 5, max: 15 }, medium: { min: 20, max: 30 }, long: { min: 15, max: 35 } },
   xp_gain: {
-    easy: { min: 300000, max: 500000 },
+    short: { min: 300000, max: 500000 },
     medium: { min: 500000, max: 1000000 },
-    hard: { min: 800000, max: 1500000 },
+    long: { min: 800000, max: 1500000 },
   },
-  minigame: { easy: { min: 5, max: 15 }, medium: { min: 10, max: 20 }, hard: { min: 5, max: 15 } },
+  minigame: { short: { min: 5, max: 15 }, medium: { min: 10, max: 20 }, long: { min: 5, max: 15 } },
   clue_scrolls: {
-    easy: { min: 15, max: 30 },
+    short: { min: 15, max: 30 },
     medium: { min: 10, max: 20 },
-    hard: { min: 3, max: 8 },
+    long: { min: 3, max: 8 },
   },
 };
 
@@ -155,8 +155,8 @@ function buildBossKCObjectives(contentSelections = {}) {
       });
     });
 
-    // Raids (only on hard)
-    if (difficulty === 'hard') {
+    // Raids (only on long)
+    if (difficulty === 'long') {
       enabledRaids.forEach((r) => {
         let quantity = getQuantity('boss_kc', difficulty, r, contentSelections);
         if (quantity === null) return;
@@ -178,9 +178,9 @@ function buildBossKCObjectives(contentSelections = {}) {
   };
 
   return {
-    easy: buildForDifficulty('easy', (b) => b.category === 'easy'),
+    short: buildForDifficulty('short', (b) => b.category === 'short'),
     medium: buildForDifficulty('medium', (b) => b.category === 'medium'),
-    hard: buildForDifficulty('hard', (b) => ['hard', 'wilderness'].includes(b.category)),
+    long: buildForDifficulty('long', (b) => ['long', 'wilderness'].includes(b.category)),
   };
 }
 
@@ -215,9 +215,9 @@ function buildXPGainObjectives(contentSelections = {}) {
   };
 
   return {
-    easy: buildForDifficulty('easy'),
+    short: buildForDifficulty('short'),
     medium: buildForDifficulty('medium'),
-    hard: buildForDifficulty('hard'),
+    long: buildForDifficulty('long'),
   };
 }
 
@@ -249,13 +249,13 @@ function buildMinigameObjectives(contentSelections = {}) {
   };
 
   return {
-    easy: buildForDifficulty('easy', (m) => m.category === 'skilling'),
+    short: buildForDifficulty('short', (m) => m.category === 'skilling'),
     medium: buildForDifficulty(
       'medium',
       (m) => m.category === 'combat' && !m.tags?.includes('difficult')
     ),
-    hard: buildForDifficulty(
-      'hard',
+    long: buildForDifficulty(
+      'long',
       (m) => m.tags?.includes('difficult') || m.tags?.includes('solo')
     ),
   };
@@ -329,9 +329,9 @@ function buildItemCollectionObjectives(contentSelections = {}) {
   };
 
   return {
-    easy: buildForDifficulty('easy'),
+    short: buildForDifficulty('short'),
     medium: buildForDifficulty('medium'),
-    hard: buildForDifficulty('hard'),
+    long: buildForDifficulty('long'),
   };
 }
 
@@ -363,9 +363,9 @@ function buildClueScrollObjectives(contentSelections = {}) {
   };
 
   return {
-    easy: buildForDifficulty('easy', (c) => ['easy', 'medium'].includes(c.id)),
+    short: buildForDifficulty('short', (c) => ['easy', 'medium'].includes(c.id)),
     medium: buildForDifficulty('medium', (c) => ['hard', 'elite'].includes(c.id)),
-    hard: buildForDifficulty('hard', (c) => c.id === 'master'),
+    long: buildForDifficulty('long', (c) => c.id === 'master'),
   };
 }
 

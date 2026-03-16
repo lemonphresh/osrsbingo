@@ -172,9 +172,9 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
 
                 <Box p={3} bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} borderRadius="md">
                   <HStack mb={1}>
-                    <Badge colorScheme="green">EASY</Badge>
+                    <Badge colorScheme="green">SHORT</Badge>
                     <Badge colorScheme="yellow">MEDIUM</Badge>
-                    <Badge colorScheme="red">HARD</Badge>
+                    <Badge colorScheme="red">LONG</Badge>
                     <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Challenge Nodes
                     </Text>
@@ -284,7 +284,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                       <Tbody>
                         <Tr>
                           <Td>
-                            <Badge colorScheme="green">EASY</Badge>
+                            <Badge colorScheme="green">SHORT</Badge>
                           </Td>
                           <Td color={currentColors.textColor}>0.5x base</Td>
                           <Td color={currentColors.textColor}>1 key</Td>
@@ -298,7 +298,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                         </Tr>
                         <Tr>
                           <Td>
-                            <Badge colorScheme="red">HARD</Badge>
+                            <Badge colorScheme="red">LONG</Badge>
                           </Td>
                           <Td color={currentColors.textColor}>1.5x base</Td>
                           <Td color={currentColors.textColor}>2 keys</Td>

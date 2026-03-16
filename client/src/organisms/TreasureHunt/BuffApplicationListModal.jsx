@@ -73,9 +73,9 @@ const BuffApplicationListModal = ({
   };
 
   const getDifficultyBadge = (tier) => {
-    if (tier === 5) return { label: 'Hard', scheme: 'red' };
+    if (tier === 5) return { label: 'Long', scheme: 'red' };
     if (tier === 3) return { label: 'Medium', scheme: 'orange' };
-    if (tier === 1) return { label: 'Easy', scheme: 'green' };
+    if (tier === 1) return { label: 'Short', scheme: 'green' };
     return { label: 'Unknown', scheme: 'gray' };
   };
 
