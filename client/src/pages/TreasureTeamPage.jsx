@@ -31,7 +31,6 @@ import {
   ADMIN_COMPLETE_NODE,
   ADMIN_UNCOMPLETE_NODE,
   APPLY_BUFF_TO_NODE,
-  VISIT_INN,
   SUBMISSION_ADDED_SUB,
   SUBMISSION_REVIEWED_SUB,
   TREASURE_ACTIVITY_SUB,
@@ -114,14 +113,6 @@ const TreasureTeamView = () => {
   const [applyBuffToNode] = useMutation(APPLY_BUFF_TO_NODE, {
     onCompleted: () => { refetchEvent(); refetchTeam(); },
   });
-  const [visitInn] = useMutation(VISIT_INN);
-
-  const handleVisitInn = async (nodeId) => {
-    await visitInn({ variables: { eventId, teamId, nodeId } });
-    await refetchTeam();
-    await refetchEvent();
-  };
-
   const [selectedNode, setSelectedNode] = useState(null);
   const [adminMode, setAdminMode] = useState(false);
 
@@ -181,7 +172,7 @@ const TreasureTeamView = () => {
     skip: !eventId,
     onData: ({ data }) => {
       const type = data?.data?.treasureHuntActivity?.type;
-      if (type === 'inn_visited' || type === 'buff_applied') {
+      if (type === 'inn_purchased' || type === 'buff_applied') {
         refetchTeam();
       }
     },
@@ -244,16 +235,14 @@ const TreasureTeamView = () => {
   };
 
   const getNumberOfAvailableInns = () =>
-    effectiveNodes.filter((node) => {
-      const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
-      return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
-    }).length;
+    effectiveNodes.filter(
+      (node) => team?.availableNodes?.includes(node.nodeId) && node.nodeType === 'INN'
+    ).length;
 
   const getAvailableInnsList = () =>
-    effectiveNodes.filter((node) => {
-      const hasTransaction = team?.innTransactions?.some((t) => t.nodeId === node.nodeId);
-      return getNodeStatus(node) === 'completed' && node.nodeType === 'INN' && !hasTransaction;
-    });
+    effectiveNodes.filter(
+      (node) => team?.availableNodes?.includes(node.nodeId) && node.nodeType === 'INN'
+    );
 
   const handleSelectInn = (inn) => {
     setSelectedNode(inn);
@@ -303,7 +292,7 @@ const TreasureTeamView = () => {
       if (status === 'locked' && !adminMode) return;
       const effectiveNode = effectiveNodes.find((n) => n.nodeId === node.nodeId) || node;
       setSelectedNode({ ...effectiveNode, status });
-      if (node.nodeType === 'INN' && status === 'completed' && !adminMode) {
+      if (node.nodeType === 'INN' && status === 'available' && !adminMode) {
         onInnOpen();
       } else {
         onNodeOpen();
@@ -788,10 +777,7 @@ const TreasureTeamView = () => {
           onNodeClose();
           handleOpenBuffModal(node);
         }}
-        onVisitInn={async () => {
-          await handleVisitInn(selectedNode.nodeId);
-          onInnOpen();
-        }}
+        onVisitInn={() => onInnOpen()}
         currentUser={user}
         appliedBuff={selectedNode?.objective?.appliedBuff}
         lastCompletedNodeId={lastCompletedNodeId}

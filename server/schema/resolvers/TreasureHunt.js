@@ -969,34 +969,9 @@ const TreasureHuntResolvers = {
       if (node.nodeType !== 'INN') throw new Error('This node is not an Inn');
       if (!team.availableNodes?.includes(nodeId))
         throw new Error('This inn is not available to your team');
-      if (team.completedNodes?.includes(nodeId)) throw new Error('Inn already visited');
 
-      const completedNodes = [...(team.completedNodes || []), nodeId];
-      const availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
-      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
-      const now = new Date().toISOString();
-
-      if (node.unlocks?.length > 0) {
-        node.unlocks.forEach((unlockedNodeId) => {
-          if (
-            !availableNodes.includes(unlockedNodeId) &&
-            !completedNodes.includes(unlockedNodeId)
-          ) {
-            availableNodes.push(unlockedNodeId);
-            nodeUnlockTimes[unlockedNodeId] = now;
-          }
-        });
-      }
-
-      await team.update({ completedNodes, availableNodes, nodeUnlockTimes });
-
-      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
-        innId: nodeId,
-        innName: node.title,
-        visitedBy: context.user?.id || 'unknown',
-      });
-
-      logger.info(`[visitInn] ✅ inn visited teamId=${teamId} nodeId=${nodeId}`);
+      // Inn is no longer completed on visit — completion happens on purchase.
+      logger.info(`[visitInn] inn is available, no state change teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
     },
@@ -1929,6 +1904,9 @@ const TreasureHuntResolvers = {
       const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
       if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
 
+      if (!team.availableNodes?.includes(innNode.nodeId))
+        throw new Error('This inn is not available to your team');
+
       for (const cost of reward.key_cost) {
         if (cost.color === 'any') {
           const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
@@ -2001,9 +1979,29 @@ const TreasureHuntResolvers = {
       ];
       team.changed('innTransactions', true);
 
+      // Complete the inn on purchase (not on visit)
+      const completedNodes = [...(team.completedNodes || []), innNode.nodeId];
+      const availableNodes = (team.availableNodes || []).filter((n) => n !== innNode.nodeId);
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+      const now = new Date().toISOString();
+      if (innNode.unlocks?.length > 0) {
+        innNode.unlocks.forEach((unlockedNodeId) => {
+          if (!availableNodes.includes(unlockedNodeId) && !completedNodes.includes(unlockedNodeId)) {
+            availableNodes.push(unlockedNodeId);
+            nodeUnlockTimes[unlockedNodeId] = now;
+          }
+        });
+      }
+      team.completedNodes = completedNodes;
+      team.changed('completedNodes', true);
+      team.availableNodes = availableNodes;
+      team.changed('availableNodes', true);
+      team.nodeUnlockTimes = nodeUnlockTimes;
+      team.changed('nodeUnlockTimes', true);
+
       await team.save();
 
-      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
+      await logTreasureHuntActivity(eventId, teamId, 'inn_purchased', {
         innId: innNode.nodeId,
         innName: innNode.title,
         rewardId: reward.reward_id,
@@ -2070,6 +2068,14 @@ const TreasureHuntResolvers = {
       // Remove the transaction
       team.innTransactions = (team.innTransactions || []).filter((t) => t.nodeId !== nodeId);
       team.changed('innTransactions', true);
+
+      // Un-complete the inn — move it back to available so team can purchase again
+      team.completedNodes = (team.completedNodes || []).filter((n) => n !== nodeId);
+      team.changed('completedNodes', true);
+      if (!team.availableNodes?.includes(nodeId)) {
+        team.availableNodes = [...(team.availableNodes || []), nodeId];
+        team.changed('availableNodes', true);
+      }
 
       await team.save();
 

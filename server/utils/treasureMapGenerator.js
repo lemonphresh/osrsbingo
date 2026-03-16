@@ -280,7 +280,7 @@ function drawFromDeck(difficulty, difficultyMultiplier, usedTargetsInGroup, deck
 }
 
 function calculateGPReward(difficultyTier, avgGpPerNode) {
-  const multipliers = { 1: 0.5, 2: 0.75, 3: 1.0, 4: 1.25, 5: 1.5 };
+  const multipliers = { 1: 0.2, 3: 0.7, 5: 1.0 };
   return Math.floor(avgGpPerNode * (multipliers[difficultyTier] || 1.0));
 }
 
