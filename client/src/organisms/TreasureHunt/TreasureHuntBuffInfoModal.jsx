@@ -57,7 +57,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
       reduction: '50%',
       icon: '💫',
       description: 'Significant reduction, found on mid-tier nodes',
-      examples: ["Slayer's Focus", 'Training Momentum', 'Master Gatherer'],
+      examples: ["Slayer's Focus", 'Training Momentum'],
     },
     {
       tier: 'Major',
@@ -65,7 +65,7 @@ const BuffInfoModal = ({ isOpen, onClose }) => {
       reduction: '75%',
       icon: '⚡',
       description: 'Massive reduction, rare rewards from difficult nodes',
-      examples: ["Slayer's Mastery", 'Training Enlightenment', 'Legendary Gatherer'],
+      examples: ["Slayer's Mastery", 'Training Enlightenment'],
     },
     {
       tier: 'Universal',

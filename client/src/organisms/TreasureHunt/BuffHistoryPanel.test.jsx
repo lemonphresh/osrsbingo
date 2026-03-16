@@ -74,8 +74,8 @@ describe('getBuffIcon', () => {
   });
 
   it('returns box for gathering buffs', () => {
-    expect(getBuffIcon('Master Gatherer')).toBe('📦');
-    expect(getBuffIcon('Legendary gather')).toBe('📦');
+    expect(getBuffIcon('Efficient Gathering')).toBe('📦');
+    expect(getBuffIcon('efficient gather')).toBe('📦');
   });
 
   it('returns sparkle for versatile buffs', () => {

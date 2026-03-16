@@ -118,15 +118,13 @@ const INN_BUFF_POOL_BY_TIER = {
     { buffType: 'xp_reduction_minor', buffName: 'Training Efficiency' },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
   ],
   3: [
     { buffType: 'kill_reduction_moderate', buffName: "Slayer's Focus" },
     { buffType: 'kill_reduction_major', buffName: "Slayer's Mastery" },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'xp_reduction_major', buffName: 'Training Enlightenment' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
-    { buffType: 'item_reduction_major', buffName: 'Legendary Gatherer' },
+    { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
     { buffType: 'universal_reduction', buffName: 'Versatile Training' },
   ],
 };

@@ -94,8 +94,8 @@ const calculateDerivedValues = (config, startDate, endDate) => {
   const nodeBudgetPerTeam = maxRewardPerTeam * rewardSplit.nodes;
   const innBudgetPerTeam = maxRewardPerTeam * rewardSplit.inns;
 
-  const WORST_CASE_NODE_MULTIPLIER = 1.5;
-  const WORST_CASE_INN_MULTIPLIER = 1.2;
+  const WORST_CASE_NODE_MULTIPLIER = 1.3;
+  const WORST_CASE_INN_MULTIPLIER = 1.15;
 
   const avgGpPerNode = Math.floor(
     nodeBudgetPerTeam / (completableNodesPerTeam * WORST_CASE_NODE_MULTIPLIER)

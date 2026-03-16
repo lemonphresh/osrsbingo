@@ -174,13 +174,13 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
   const [updateTile] = useMutation(UPDATE_TILE);
 
   useEffect(() => {
-    if (tile) {
+    if (tile && tileState?.id !== tile.id) {
       setTileState({
         ...tile,
         dateCompleted: tile.dateCompleted ? formatDate(new Date(Number(tile.dateCompleted))) : null,
       });
     }
-  }, [tile]);
+  }, [tile, tileState?.id]);
 
   const handleClose = async () => {
     if (!isEditor || !tileState) {

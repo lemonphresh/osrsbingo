@@ -51,20 +51,7 @@ const BUFF_CONFIGS = {
     objectiveTypes: ['item_collection'],
     icon: '📦',
   },
-  item_reduction_moderate: {
-    name: 'Master Gatherer',
-    description: 'Reduces item collection by 50% on one collection objective',
-    reduction: 0.5,
-    objectiveTypes: ['item_collection'],
-    icon: '📦',
-  },
-  item_reduction_major: {
-    name: 'Legendary Gatherer',
-    description: 'Reduces item collection by 75% on one collection objective',
-    reduction: 0.75,
-    objectiveTypes: ['item_collection'],
-    icon: '📦',
-  },
+
   universal_reduction: {
     name: 'Versatile Training',
     description: 'Reduces any objective by 50% (your choice)',
@@ -105,8 +92,8 @@ function canApplyBuff(buff, objective) {
   if (!objective || !objective.type) return false;
   if (!buff.objectiveTypes.includes(objective.type)) return false;
 
-  // item_collection buffs only apply if quantity > 3
-  if (objective.type === 'item_collection' && objective.quantity <= 3) return false;
+  // item_collection buffs only apply if quantity > 2
+  if (objective.type === 'item_collection' && objective.quantity <= 2) return false;
 
   return true;
 }

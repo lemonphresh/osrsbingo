@@ -39,7 +39,7 @@ export const MOCK_BUFF_HISTORY = {
     },
     {
       buffId: 'buff_003',
-      buffName: 'Legendary Gatherer',
+      buffName: 'Efficient Gathering',
       usedOn: 'node_easy_001',
       usedAt: hoursAgo(24),
       originalRequirement: 500,
