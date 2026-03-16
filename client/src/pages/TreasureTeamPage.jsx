@@ -670,7 +670,7 @@ const TreasureTeamView = () => {
               adminMode={adminMode}
               onAdminComplete={handleAdminCompleteNode}
               onAdminUncomplete={handleAdminUncompleteNode}
-              onVisitInn={handleVisitInn}
+              onVisitInn={() => onInnOpen()}
               currentUser={user}
               onScrollToNode={scrollToNodeCard}
             />
