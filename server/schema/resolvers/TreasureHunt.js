@@ -43,7 +43,7 @@ function getCompletedNodeInGroup(team, locationGroupId, event) {
 }
 
 function getDifficultyName(difficultyTier) {
-  const tierMap = { 1: 'EASY', 3: 'MEDIUM', 5: 'HARD' };
+  const tierMap = { 1: 'SHORT', 3: 'MEDIUM', 5: 'LONG' };
   return tierMap[difficultyTier] || 'UNKNOWN';
 }
 

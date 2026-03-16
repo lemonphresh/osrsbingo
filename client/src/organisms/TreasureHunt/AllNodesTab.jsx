@@ -89,7 +89,7 @@ const AllNodesTab = ({ nodes, nodeSort, onSort, currentColors, colorMode }) => (
         </Thead>
         <Tbody>
           {nodes.map((node) => {
-            const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+            const diffMap = { 1: 'Short', 3: 'Medium', 5: 'Long' };
             const diffBadgeScheme =
               node.difficultyTier === 5
                 ? 'red'
