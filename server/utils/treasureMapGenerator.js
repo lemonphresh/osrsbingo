@@ -118,15 +118,13 @@ const INN_BUFF_POOL_BY_TIER = {
     { buffType: 'xp_reduction_minor', buffName: 'Training Efficiency' },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
   ],
   3: [
     { buffType: 'kill_reduction_moderate', buffName: "Slayer's Focus" },
     { buffType: 'kill_reduction_major', buffName: "Slayer's Mastery" },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'xp_reduction_major', buffName: 'Training Enlightenment' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
-    { buffType: 'item_reduction_major', buffName: 'Legendary Gatherer' },
+    { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
     { buffType: 'universal_reduction', buffName: 'Versatile Training' },
   ],
 };
@@ -234,6 +232,14 @@ function selectRandomNodes(nodes, count) {
  * Each objective appears exactly once. When the deck is exhausted it is
  * rebuilt and reshuffled so every content item is used again before repeats.
  */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function buildDeck(difficulty, formattedObjectives) {
   const items = [];
   formattedObjectives.forEach((objType) => {
@@ -282,7 +288,7 @@ function drawFromDeck(difficulty, difficultyMultiplier, usedTargetsInGroup, deck
 }
 
 function calculateGPReward(difficultyTier, avgGpPerNode) {
-  const multipliers = { 1: 0.5, 2: 0.75, 3: 1.0, 4: 1.25, 5: 1.5 };
+  const multipliers = { 1: 0.2, 3: 0.7, 5: 1.0 };
   return Math.floor(avgGpPerNode * (multipliers[difficultyTier] || 1.0));
 }
 
