@@ -232,6 +232,14 @@ function selectRandomNodes(nodes, count) {
  * Each objective appears exactly once. When the deck is exhausted it is
  * rebuilt and reshuffled so every content item is used again before repeats.
  */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function buildDeck(difficulty, formattedObjectives) {
   const items = [];
   formattedObjectives.forEach((objType) => {
