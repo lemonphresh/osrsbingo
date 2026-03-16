@@ -331,6 +331,8 @@ export const UPDATE_TILE = gql`
       completedBy
       board
       value
+      progress
+      progressMax
     }
   }
 `;
@@ -871,6 +873,18 @@ export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
 export const PURCHASE_INN_REWARD = gql`
   mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
     purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
+      teamId
+      currentPot
+      keysHeld
+      innTransactions
+      activeBuffs
+    }
+  }
+`;
+
+export const ADMIN_REFUND_INN_PURCHASE = gql`
+  mutation AdminRefundInnPurchase($eventId: ID!, $teamId: ID!, $nodeId: ID!) {
+    adminRefundInnPurchase(eventId: $eventId, teamId: $teamId, nodeId: $nodeId) {
       teamId
       currentPot
       keysHeld

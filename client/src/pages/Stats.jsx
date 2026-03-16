@@ -2,7 +2,6 @@
 import {
   Box,
   Flex,
-  SimpleGrid,
   Stat,
   StatLabel,
   StatNumber,
@@ -17,9 +16,20 @@ import { useQuery } from '@apollo/client';
 import { GET_SITE_STATS } from '../graphql/queries';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
-import { FaUsers, FaThLarge, FaCheckCircle, FaEye, FaCalendarWeek, FaGlobe } from 'react-icons/fa';
+import {
+  FaUsers,
+  FaThLarge,
+  FaCheckCircle,
+  FaEye,
+  FaCalendarWeek,
+  FaGlobe,
+  FaRandom,
+  FaCoins,
+} from 'react-icons/fa';
+import { formatGP } from '../utils/treasureHuntHelpers';
 
-const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
+const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue }) => {
+  const displayValue = formatValue ? formatValue(value) : value?.toLocaleString();
   return (
     <Box
       bg={'gray.700'}
@@ -28,6 +38,7 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
       borderWidth="1px"
       borderColor={'gray.600'}
       transition="all 0.2s"
+      h="100%"
       _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
     >
       <Stat>
@@ -39,7 +50,7 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading }) => {
           <Skeleton height="36px" width="80px" />
         ) : (
           <StatNumber fontSize="3xl" color={color}>
-            {value?.toLocaleString()}
+            {displayValue}
           </StatNumber>
         )}
         {helpText && <StatHelpText color={'gray.500'}>{helpText}</StatHelpText>}
@@ -70,7 +81,7 @@ const StatsPage = () => {
           <GemTitle size="xl" gemColor="purple">
             Site Stats
           </GemTitle>
-          <Text color="gray.400">See what the OSRS Bingo Hub community has been up to</Text>
+          <Text color="gray.400">See what the OSRS Bingo Hub community has been up to!</Text>
         </VStack>
 
         {error && (
@@ -80,52 +91,65 @@ const StatsPage = () => {
         )}
 
         {/* Main Stats Grid */}
-        <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={6} w="100%">
-          <StatCard
-            label="Total Users"
-            value={stats?.totalUsers}
-            icon={FaUsers}
-            color="purple.400"
-            isLoading={loading}
-          />
-          <StatCard
-            label="Boards Created"
-            value={stats?.totalBoards}
-            icon={FaThLarge}
-            color="teal.400"
-            helpText={`${stats?.publicBoards || 0} public`}
-            isLoading={loading}
-          />
-          <StatCard
-            label="Tiles Completed"
-            value={stats?.completedTiles}
-            icon={FaCheckCircle}
-            color="green.400"
-            helpText={`of ${stats?.totalTiles?.toLocaleString() || 0} total`}
-            isLoading={loading}
-          />
-          <StatCard
-            label="Total Visits Since Jan 2026"
-            value={stats?.totalVisits}
-            icon={FaEye}
-            color="blue.400"
-            isLoading={loading}
-          />
-          <StatCard
-            label="New Boards This Week"
-            value={stats?.boardsThisWeek}
-            icon={FaCalendarWeek}
-            color="orange.400"
-            isLoading={loading}
-          />
-          <StatCard
-            label="New Users This Week"
-            value={stats?.usersThisWeek}
-            icon={FaGlobe}
-            color="pink.400"
-            isLoading={loading}
-          />
-        </SimpleGrid>
+        <Flex flexWrap="wrap" justifyContent="center" alignItems="stretch" gap={6} w="100%">
+          {[
+            { label: 'Total Users', value: stats?.totalUsers, icon: FaUsers, color: 'purple.400' },
+            {
+              label: 'Boards Created',
+              value: stats?.totalBoards,
+              icon: FaThLarge,
+              color: 'teal.400',
+              helpText: `${stats?.publicBoards || 0} public`,
+            },
+            {
+              label: 'Tiles Completed',
+              value: stats?.completedTiles,
+              icon: FaCheckCircle,
+              color: 'green.400',
+              helpText: `of ${stats?.totalTiles?.toLocaleString() || 0} total`,
+            },
+            {
+              label: 'Total Visits Since Jan 2026',
+              value: stats?.totalVisits,
+              icon: FaEye,
+              color: 'blue.400',
+            },
+            {
+              label: 'New Boards This Week',
+              value: stats?.boardsThisWeek,
+              icon: FaCalendarWeek,
+              color: 'orange.400',
+            },
+            {
+              label: 'New Users This Week',
+              value: stats?.usersThisWeek,
+              icon: FaGlobe,
+              color: 'pink.400',
+            },
+            {
+              label: 'Blind Drafts Performed',
+              value: stats?.totalBlindDrafts,
+              icon: FaRandom,
+              color: 'cyan.400',
+            },
+            {
+              label: 'GP Won in Gielinor Rush Events',
+              value: stats?.totalGpWon,
+              icon: FaCoins,
+              color: 'yellow.400',
+              formatValue: (v) => formatGP(v ?? 0),
+            },
+          ].map((card) => (
+            <Box
+              key={card.label}
+              flexBasis={{ base: '100%', sm: 'calc(50% - 12px)', lg: 'calc(33.333% - 16px)' }}
+              flexGrow={0}
+              flexShrink={0}
+            >
+              <StatCard {...card} isLoading={loading} />
+            </Box>
+          ))}
+        </Flex>
 
         {/* Fun Footer */}
         <Box textAlign="center" py={4}>

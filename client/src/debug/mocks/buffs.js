@@ -29,17 +29,17 @@ export const MOCK_BUFFS = {
     },
   ],
 
-  major_item: [
+  minor_item: [
     {
       buffId: 'buff_003',
-      buffType: 'item_reduction_major',
-      buffName: 'Legendary Gatherer',
-      tier: 'major',
-      reduction: 0.75,
+      buffType: 'item_reduction_minor',
+      buffName: 'Efficient Gathering',
+      tier: 'minor',
+      reduction: 0.25,
       objectiveTypes: ['item_collection'],
       usesRemaining: 1,
       maxUses: 1,
-      description: 'Reduces item collection requirements by 75%',
+      description: 'Reduces item collection requirements by 25%',
     },
   ],
 
@@ -82,14 +82,14 @@ export const MOCK_BUFFS = {
     },
     {
       buffId: 'buff_003',
-      buffType: 'item_reduction_major',
-      buffName: 'Legendary Gatherer',
-      tier: 'major',
-      reduction: 0.75,
+      buffType: 'item_reduction_minor',
+      buffName: 'Efficient Gathering',
+      tier: 'minor',
+      reduction: 0.25,
       objectiveTypes: ['item_collection'],
       usesRemaining: 1,
       maxUses: 1,
-      description: 'Reduces item collection requirements by 75%',
+      description: 'Reduces item collection requirements by 25%',
     },
     {
       buffId: 'buff_004',

@@ -19,7 +19,6 @@ import {
   Image,
   IconButton,
   Collapse,
-  useDisclosure,
   useBreakpointValue,
   SimpleGrid,
 } from '@chakra-ui/react';
@@ -138,9 +137,9 @@ const getDifficultyColor = (difficultyTier) => {
 
 // Helper function to get difficulty name from tier
 const getDifficultyName = (difficultyTier) => {
-  if (difficultyTier === 1) return 'EASY';
+  if (difficultyTier === 1) return 'SHORT';
   if (difficultyTier === 3) return 'MEDIUM';
-  if (difficultyTier === 5) return 'HARD';
+  if (difficultyTier === 5) return 'LONG';
   return '';
 };
 
@@ -266,7 +265,8 @@ const MultiTeamTreasureMap = ({
   const [pulsingNodes, setPulsingNodes] = useState(new Set());
   const [focusNodeId, setFocusNodeId] = useState(null);
   const isMobile = useBreakpointValue({ base: true, md: false });
-  const { isOpen: isLegendOpen, onToggle } = useDisclosure({ defaultIsOpen: !isMobile });
+  const [isLegendOpen, setIsLegendOpen] = useState(() => window.innerWidth >= 768);
+  const onToggle = () => setIsLegendOpen((v) => !v);
 
   // Determine if we should show all nodes based on event status
   const shouldShowAllNodes = showAllNodes || event?.status === 'DRAFT';
@@ -470,11 +470,11 @@ const MultiTeamTreasureMap = ({
     if (completion?.available?.length > 0) {
       switch (difficultyTier) {
         case 1:
-          return '#9ee876ff'; // Green - EASY
+          return '#9ee876ff'; // Green - SHORT
         case 3:
           return '#e1ab45ff'; // Orange - MEDIUM
         case 5:
-          return '#F56565'; // Red - HARD
+          return '#F56565'; // Red - LONG
         default:
           return '#dc4f09ff'; // Default orange
       }

@@ -6,11 +6,11 @@ const SOLO_BOSSES = {
   giantMole: {
     id: 'giantMole',
     name: 'Giant Mole',
-    category: 'easy',
+    category: 'short',
     tags: ['safe', 'beginner', 'falador'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 100,
         max: 150,
       },
@@ -18,7 +18,7 @@ const SOLO_BOSSES = {
         min: 175,
         max: 200,
       },
-      hard: {
+      long: {
         min: 200,
         max: 250,
       },
@@ -28,11 +28,11 @@ const SOLO_BOSSES = {
   sarachnis: {
     id: 'sarachnis',
     name: 'Sarachnis',
-    category: 'easy',
+    category: 'short',
     tags: ['spider', 'f2p-accessible'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -40,7 +40,7 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
@@ -50,7 +50,7 @@ const SOLO_BOSSES = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -59,11 +59,11 @@ const SOLO_BOSSES = {
   obor: {
     id: 'obor',
     name: 'Obor',
-    category: 'easy',
+    category: 'short',
     tags: ['f2p', 'key', 'giant'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -71,13 +71,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      hard: {
+      long: {
         min: 1,
         max: 1,
       },
@@ -86,11 +86,11 @@ const SOLO_BOSSES = {
   krakenBoss: {
     id: 'krakenBoss',
     name: 'Kraken',
-    category: 'easy',
+    category: 'short',
     tags: ['slayer', '87-slayer', 'afk'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -98,13 +98,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -112,7 +112,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -125,7 +125,7 @@ const SOLO_BOSSES = {
     tags: ['dragon', 'quest', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -133,13 +133,13 @@ const SOLO_BOSSES = {
         min: 125,
         max: 175,
       },
-      hard: {
+      long: {
         min: 200,
         max: 300,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -147,7 +147,7 @@ const SOLO_BOSSES = {
         min: 3,
         max: 4,
       },
-      hard: {
+      long: {
         min: 5,
         max: 7,
       },
@@ -160,7 +160,7 @@ const SOLO_BOSSES = {
     tags: ['snake', 'quest', 'profitable', 'rotation'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 80,
       },
@@ -168,13 +168,13 @@ const SOLO_BOSSES = {
         min: 80,
         max: 160,
       },
-      hard: {
+      long: {
         min: 150,
         max: 250,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -182,7 +182,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -195,7 +195,7 @@ const SOLO_BOSSES = {
     tags: ['minigame', 'multiple', 'prayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -203,13 +203,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 4,
         max: 5,
       },
@@ -217,7 +217,7 @@ const SOLO_BOSSES = {
         min: 5,
         max: 7,
       },
-      hard: {
+      long: {
         min: 7,
         max: 9,
       },
@@ -230,7 +230,7 @@ const SOLO_BOSSES = {
     tags: ['slayer', 'duo'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -238,13 +238,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 2,
         max: 2,
       },
@@ -252,7 +252,7 @@ const SOLO_BOSSES = {
         min: 3,
         max: 4,
       },
-      hard: {
+      long: {
         min: 4,
         max: 5,
       },
@@ -265,7 +265,7 @@ const SOLO_BOSSES = {
     tags: ['spider', 'slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -273,13 +273,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -287,7 +287,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -300,7 +300,7 @@ const SOLO_BOSSES = {
     tags: ['slayer', '93-slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 100,
         max: 150,
       },
@@ -308,13 +308,13 @@ const SOLO_BOSSES = {
         min: 150,
         max: 200,
       },
-      hard: {
+      long: {
         min: 200,
         max: 250,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -322,7 +322,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -335,7 +335,7 @@ const SOLO_BOSSES = {
     tags: ['gwd', 'saradomin', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -343,13 +343,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -357,7 +357,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -370,7 +370,7 @@ const SOLO_BOSSES = {
     tags: ['gwd', 'bandos', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -378,13 +378,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -392,7 +392,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -405,7 +405,7 @@ const SOLO_BOSSES = {
     tags: ['gwd', 'armadyl', 'ranged', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -413,13 +413,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -427,7 +427,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -440,7 +440,7 @@ const SOLO_BOSSES = {
     tags: ['gwd', 'zamorak', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -448,13 +448,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 125,
       },
-      hard: {
+      long: {
         min: 125,
         max: 175,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -462,7 +462,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -475,7 +475,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -483,13 +483,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -497,7 +497,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -510,7 +510,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -518,13 +518,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -532,7 +532,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -545,7 +545,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -553,13 +553,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -567,7 +567,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -580,7 +580,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -588,13 +588,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -602,7 +602,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -615,7 +615,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'spider', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -623,13 +623,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -637,7 +637,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -650,7 +650,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'bear', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -658,13 +658,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -672,7 +672,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -685,7 +685,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'skeleton', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -693,13 +693,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -707,7 +707,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -720,7 +720,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'spider', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -728,13 +728,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -742,7 +742,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -755,7 +755,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'skeleton', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -763,13 +763,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -777,7 +777,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -790,7 +790,7 @@ const SOLO_BOSSES = {
     tags: ['wilderness', 'bear', 'dangerous'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -798,13 +798,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -812,7 +812,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -821,11 +821,11 @@ const SOLO_BOSSES = {
   corporealBeast: {
     id: 'corporealBeast',
     name: 'Corporeal Beast',
-    category: 'hard',
+    category: 'long',
     tags: ['group', 'difficult', 'spirit-shields'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
@@ -833,13 +833,13 @@ const SOLO_BOSSES = {
         min: 25,
         max: 35,
       },
-      hard: {
+      long: {
         min: 40,
         max: 60,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -847,7 +847,7 @@ const SOLO_BOSSES = {
         min: 1,
         max: 2,
       },
-      hard: {
+      long: {
         min: 2,
         max: 3,
       },
@@ -856,11 +856,11 @@ const SOLO_BOSSES = {
   cerberus: {
     id: 'cerberus',
     name: 'Cerberus',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'hellhound', '91-slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -868,13 +868,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -882,7 +882,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -891,11 +891,11 @@ const SOLO_BOSSES = {
   nex: {
     id: 'nex',
     name: 'Nex',
-    category: 'hard',
+    category: 'long',
     tags: ['gwd', 'group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -903,7 +903,7 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
@@ -913,7 +913,7 @@ const SOLO_BOSSES = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -926,7 +926,7 @@ const SOLO_BOSSES = {
     tags: ['group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -934,13 +934,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -948,7 +948,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -961,7 +961,7 @@ const SOLO_BOSSES = {
     tags: ['slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -969,7 +969,7 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
@@ -979,7 +979,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 2,
         max: 3,
       },
@@ -992,7 +992,7 @@ const SOLO_BOSSES = {
     tags: ['duo', 'trio', 'group-friendly', 'multiple'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 100,
         max: 150,
       },
@@ -1000,13 +1000,13 @@ const SOLO_BOSSES = {
         min: 150,
         max: 250,
       },
-      hard: {
+      long: {
         min: 250,
         max: 350,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 2,
         max: 3,
       },
@@ -1014,7 +1014,7 @@ const SOLO_BOSSES = {
         min: 3,
         max: 4,
       },
-      hard: {
+      long: {
         min: 4,
         max: 5,
       },
@@ -1027,7 +1027,7 @@ const SOLO_BOSSES = {
     tags: ['slayer', '85-slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1035,13 +1035,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1049,7 +1049,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1058,11 +1058,11 @@ const SOLO_BOSSES = {
   alchemicalHydra: {
     id: 'alchemicalHydra',
     name: 'Alchemical Hydra',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', '95-slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1070,13 +1070,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1084,7 +1084,7 @@ const SOLO_BOSSES = {
         min: 1,
         max: 2,
       },
-      hard: {
+      long: {
         min: 2,
         max: 3,
       },
@@ -1093,17 +1093,17 @@ const SOLO_BOSSES = {
   crystallineHunllef: {
     id: 'crystallineHunllef',
     name: 'Crystalline Hunllef',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'minigame'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1112,11 +1112,11 @@ const SOLO_BOSSES = {
   corruptedHunllef: {
     id: 'corruptedHunllef',
     name: 'Corrupted Hunllef',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'minigame'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
@@ -1124,13 +1124,13 @@ const SOLO_BOSSES = {
         min: 25,
         max: 50,
       },
-      hard: {
+      long: {
         min: 50,
         max: 75,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1138,7 +1138,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1147,11 +1147,11 @@ const SOLO_BOSSES = {
   vardorvis: {
     id: 'vardorvis',
     name: 'Vardorvis',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -1159,13 +1159,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 175,
         max: 250,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1173,7 +1173,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1182,11 +1182,11 @@ const SOLO_BOSSES = {
   whisperer: {
     id: 'whisperer',
     name: 'The Whisperer',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1194,13 +1194,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1208,7 +1208,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1217,11 +1217,11 @@ const SOLO_BOSSES = {
   dukeSucellus: {
     id: 'dukeSucellus',
     name: 'Duke Sucellus ',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -1229,13 +1229,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 175,
         max: 250,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1243,7 +1243,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1252,11 +1252,11 @@ const SOLO_BOSSES = {
   leviathan: {
     id: 'leviathan',
     name: 'The Leviathan',
-    category: 'hard',
+    category: 'long',
     tags: ['slayer', 'dt2'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1264,13 +1264,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1278,7 +1278,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1287,11 +1287,11 @@ const SOLO_BOSSES = {
   yama: {
     id: 'yama',
     name: 'Yama',
-    category: 'hard',
+    category: 'long',
     tags: ['duo', 'difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1299,13 +1299,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      hard: {
+      long: {
         min: 1,
         max: 1,
       },
@@ -1314,11 +1314,11 @@ const SOLO_BOSSES = {
   nightmare: {
     id: 'nightmare',
     name: 'Nightmare',
-    category: 'hard',
+    category: 'long',
     tags: ['difficult', 'group-friendly', 'duo', 'trio'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
@@ -1326,13 +1326,13 @@ const SOLO_BOSSES = {
         min: 25,
         max: 35,
       },
-      hard: {
+      long: {
         min: 40,
         max: 50,
       },
     },
     dropQuantities: {
-      hard: {
+      long: {
         min: 1,
         max: 1,
       },
@@ -1341,11 +1341,11 @@ const SOLO_BOSSES = {
   phosanisNightmare: {
     id: 'phosanisNightmare',
     name: "Phosani's Nightmare",
-    category: 'hard',
+    category: 'long',
     tags: ['difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
@@ -1353,13 +1353,13 @@ const SOLO_BOSSES = {
         min: 25,
         max: 35,
       },
-      hard: {
+      long: {
         min: 40,
         max: 50,
       },
     },
     dropQuantities: {
-      hard: {
+      long: {
         min: 1,
         max: 1,
       },
@@ -1372,7 +1372,7 @@ const SOLO_BOSSES = {
     tags: ['slayer'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1380,13 +1380,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -1394,7 +1394,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -1403,11 +1403,11 @@ const SOLO_BOSSES = {
   doom: {
     id: 'doom',
     name: 'Doom of Mokhaioitl',
-    category: 'hard',
+    category: 'long',
     tags: ['difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1415,7 +1415,7 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
@@ -1425,7 +1425,7 @@ const SOLO_BOSSES = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1434,11 +1434,11 @@ const SOLO_BOSSES = {
   amoxliatl: {
     id: 'amoxliatl',
     name: 'Amoxliatl',
-    category: 'easy',
+    category: 'short',
     tags: [],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 75,
         max: 100,
       },
@@ -1446,13 +1446,13 @@ const SOLO_BOSSES = {
         min: 100,
         max: 150,
       },
-      hard: {
+      long: {
         min: 150,
         max: 200,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -1460,7 +1460,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -1469,11 +1469,11 @@ const SOLO_BOSSES = {
   royalTitans: {
     id: 'royalTitans',
     name: 'Royal Titans',
-    category: 'easy',
+    category: 'short',
     tags: ['duo', 'group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1481,13 +1481,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -1495,7 +1495,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 2,
       },
-      hard: {
+      long: {
         min: 3,
         max: 3,
       },
@@ -1508,7 +1508,7 @@ const SOLO_BOSSES = {
     tags: ['group-friendly'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1516,13 +1516,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -1530,7 +1530,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -1543,7 +1543,7 @@ const SOLO_BOSSES = {
     tags: [],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 20,
         max: 30,
       },
@@ -1551,13 +1551,13 @@ const SOLO_BOSSES = {
         min: 35,
         max: 50,
       },
-      hard: {
+      long: {
         min: 50,
         max: 100,
       },
     },
     dropQuantities: {
-      easy: {
+      short: {
         min: 1,
         max: 2,
       },
@@ -1565,7 +1565,7 @@ const SOLO_BOSSES = {
         min: 2,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 4,
       },
@@ -1574,11 +1574,11 @@ const SOLO_BOSSES = {
   bryophyta: {
     id: 'bryophyta',
     name: 'Bryophyta',
-    category: 'easy',
+    category: 'short',
     tags: ['f2p', 'key', 'giant'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 50,
         max: 75,
       },
@@ -1586,13 +1586,13 @@ const SOLO_BOSSES = {
         min: 75,
         max: 100,
       },
-      hard: {
+      long: {
         min: 100,
         max: 150,
       },
     },
     dropQuantities: {
-      hard: {
+      long: {
         min: 1,
         max: 1,
       },
@@ -1608,7 +1608,7 @@ const RAIDS = {
     tags: ['raid', 'group', 'scaling'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -1616,7 +1616,7 @@ const RAIDS = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 10,
         max: 25,
       },
@@ -1626,7 +1626,7 @@ const RAIDS = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1639,7 +1639,7 @@ const RAIDS = {
     tags: ['raid', 'group', 'difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -1647,7 +1647,7 @@ const RAIDS = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 10,
         max: 25,
       },
@@ -1657,7 +1657,7 @@ const RAIDS = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1670,7 +1670,7 @@ const RAIDS = {
     tags: ['raid', 'group', 'scaling', 'invocation'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -1678,7 +1678,7 @@ const RAIDS = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 10,
         max: 25,
       },
@@ -1688,7 +1688,7 @@ const RAIDS = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1701,7 +1701,7 @@ const RAIDS = {
     tags: ['raid', 'group', 'scaling'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -1709,7 +1709,7 @@ const RAIDS = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 10,
         max: 25,
       },
@@ -1719,7 +1719,7 @@ const RAIDS = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1732,7 +1732,7 @@ const RAIDS = {
     tags: ['raid', 'group', 'difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -1740,7 +1740,7 @@ const RAIDS = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 10,
         max: 25,
       },
@@ -1750,7 +1750,7 @@ const RAIDS = {
         min: 1,
         max: 1,
       },
-      hard: {
+      long: {
         min: 2,
         max: 2,
       },
@@ -1766,7 +1766,7 @@ const SKILLS = {
     tags: ['afk', 'relaxing', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1774,7 +1774,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1787,7 +1787,7 @@ const SKILLS = {
     tags: ['afk', 'relaxing'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1795,7 +1795,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1808,7 +1808,7 @@ const SKILLS = {
     tags: ['afk', 'relaxing', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1816,7 +1816,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1829,7 +1829,7 @@ const SKILLS = {
     tags: ['passive', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1837,7 +1837,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1850,7 +1850,7 @@ const SKILLS = {
     tags: ['varied', 'click-intensive'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1858,7 +1858,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1871,7 +1871,7 @@ const SKILLS = {
     tags: ['click-intensive', 'useful'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1879,7 +1879,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1892,7 +1892,7 @@ const SKILLS = {
     tags: ['click-intensive', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1900,7 +1900,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1913,7 +1913,7 @@ const SKILLS = {
     tags: ['fast', 'easy', 'wintertodt'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1921,7 +1921,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1934,7 +1934,7 @@ const SKILLS = {
     tags: ['expensive', 'useful'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1942,7 +1942,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1955,7 +1955,7 @@ const SKILLS = {
     tags: ['expensive', 'useful', 'fast'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1963,7 +1963,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1976,7 +1976,7 @@ const SKILLS = {
     tags: ['fast', 'easy'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -1984,7 +1984,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -1997,7 +1997,7 @@ const SKILLS = {
     tags: ['slow', 'expensive'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2005,7 +2005,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2018,7 +2018,7 @@ const SKILLS = {
     tags: ['varied', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2026,7 +2026,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2039,7 +2039,7 @@ const SKILLS = {
     tags: ['fast', 'afk'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2047,7 +2047,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2060,7 +2060,7 @@ const SKILLS = {
     tags: ['slow', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2068,7 +2068,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2081,7 +2081,7 @@ const SKILLS = {
     tags: ['combat', 'varied', 'profitable'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2089,7 +2089,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2102,7 +2102,7 @@ const SKILLS = {
     tags: ['varied', 'profitable', 'click-intensive'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 300000,
         max: 500000,
       },
@@ -2110,7 +2110,7 @@ const SKILLS = {
         min: 500000,
         max: 1000000,
       },
-      hard: {
+      long: {
         min: 800000,
         max: 1500000,
       },
@@ -2126,7 +2126,7 @@ const MINIGAMES = {
     tags: ['fishing', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2134,7 +2134,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -2147,7 +2147,7 @@ const MINIGAMES = {
     tags: ['runecrafting', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2155,7 +2155,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -2168,7 +2168,7 @@ const MINIGAMES = {
     tags: ['firemaking', 'group', 'safe'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2176,7 +2176,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -2189,7 +2189,7 @@ const MINIGAMES = {
     tags: ['group', 'teamwork', 'rewards'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 8,
       },
@@ -2197,7 +2197,7 @@ const MINIGAMES = {
         min: 7,
         max: 12,
       },
-      hard: {
+      long: {
         min: 8,
         max: 15,
       },
@@ -2210,7 +2210,7 @@ const MINIGAMES = {
     tags: ['group', 'combat-xp', 'void'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2218,7 +2218,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -2231,7 +2231,7 @@ const MINIGAMES = {
     tags: ['group', 'pvp', 'fun'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2239,7 +2239,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -2252,7 +2252,7 @@ const MINIGAMES = {
     tags: ['solo', 'jad', 'fire-cape'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 1,
         max: 3,
       },
@@ -2260,7 +2260,7 @@ const MINIGAMES = {
         min: 1,
         max: 5,
       },
-      hard: {
+      long: {
         min: 5,
         max: 8,
       },
@@ -2273,7 +2273,7 @@ const MINIGAMES = {
     tags: ['solo', 'zuk', 'difficult', 'infernal-cape'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -2281,7 +2281,7 @@ const MINIGAMES = {
         min: 1,
         max: 3,
       },
-      hard: {
+      long: {
         min: 3,
         max: 5,
       },
@@ -2294,7 +2294,7 @@ const MINIGAMES = {
     tags: ['solo', 'quiver', 'difficult'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 1,
         max: 1,
       },
@@ -2302,7 +2302,7 @@ const MINIGAMES = {
         min: 1,
         max: 3,
       },
-      hard: {
+      long: {
         min: 4,
         max: 7,
       },
@@ -2315,7 +2315,7 @@ const MINIGAMES = {
     tags: ['mining', 'group', 'fun'],
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 15,
       },
@@ -2323,7 +2323,7 @@ const MINIGAMES = {
         min: 10,
         max: 20,
       },
-      hard: {
+      long: {
         min: 12,
         max: 25,
       },
@@ -4981,7 +4981,7 @@ const CLUE_TIERS = {
     color: 'pink',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 10,
         max: 20,
       },
@@ -4989,7 +4989,7 @@ const CLUE_TIERS = {
         min: 15,
         max: 20,
       },
-      hard: {
+      long: {
         min: 20,
         max: 25,
       },
@@ -5001,7 +5001,7 @@ const CLUE_TIERS = {
     color: 'green',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 10,
         max: 20,
       },
@@ -5009,7 +5009,7 @@ const CLUE_TIERS = {
         min: 15,
         max: 20,
       },
-      hard: {
+      long: {
         min: 20,
         max: 25,
       },
@@ -5021,7 +5021,7 @@ const CLUE_TIERS = {
     color: 'blue',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 8,
         max: 12,
       },
@@ -5029,7 +5029,7 @@ const CLUE_TIERS = {
         min: 10,
         max: 15,
       },
-      hard: {
+      long: {
         min: 15,
         max: 25,
       },
@@ -5041,7 +5041,7 @@ const CLUE_TIERS = {
     color: 'purple',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 5,
         max: 10,
       },
@@ -5049,7 +5049,7 @@ const CLUE_TIERS = {
         min: 7,
         max: 12,
       },
-      hard: {
+      long: {
         min: 10,
         max: 15,
       },
@@ -5061,7 +5061,7 @@ const CLUE_TIERS = {
     color: 'orange',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 3,
         max: 5,
       },
@@ -5069,7 +5069,7 @@ const CLUE_TIERS = {
         min: 5,
         max: 7,
       },
-      hard: {
+      long: {
         min: 8,
         max: 10,
       },
@@ -5081,7 +5081,7 @@ const CLUE_TIERS = {
     color: 'red',
     enabled: true,
     quantities: {
-      easy: {
+      short: {
         min: 2,
         max: 4,
       },
@@ -5089,7 +5089,7 @@ const CLUE_TIERS = {
         min: 3,
         max: 6,
       },
-      hard: {
+      long: {
         min: 5,
         max: 10,
       },

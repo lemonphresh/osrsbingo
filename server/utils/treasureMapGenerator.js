@@ -118,15 +118,13 @@ const INN_BUFF_POOL_BY_TIER = {
     { buffType: 'xp_reduction_minor', buffName: 'Training Efficiency' },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
   ],
   3: [
     { buffType: 'kill_reduction_moderate', buffName: "Slayer's Focus" },
     { buffType: 'kill_reduction_major', buffName: "Slayer's Mastery" },
     { buffType: 'xp_reduction_moderate', buffName: 'Training Momentum' },
     { buffType: 'xp_reduction_major', buffName: 'Training Enlightenment' },
-    { buffType: 'item_reduction_moderate', buffName: 'Master Gatherer' },
-    { buffType: 'item_reduction_major', buffName: 'Legendary Gatherer' },
+    { buffType: 'item_reduction_minor', buffName: 'Efficient Gathering' },
     { buffType: 'universal_reduction', buffName: 'Versatile Training' },
   ],
 };
@@ -141,7 +139,7 @@ const INN_BUFF_POOL_BY_TIER = {
 function injectBuffsIntoInnRewards(innNodes) {
   if (!innNodes || innNodes.length === 0) return;
 
-  const MIN_BUFF_RATIO = 0.4;
+  const MIN_BUFF_RATIO = 0.15;
   const minInnsWithBuff = Math.ceil(innNodes.length * MIN_BUFF_RATIO);
 
   // Shuffle indices so guaranteed slots are spread randomly across all inns
@@ -153,8 +151,8 @@ function injectBuffsIntoInnRewards(innNodes) {
     const inn = innNodes[innIndex];
     if (!inn.availableRewards || inn.availableRewards.length === 0) return;
 
-    // Guaranteed for first minInnsWithBuff, 25% random chance for the rest
-    const shouldBuff = i < minInnsWithBuff || Math.random() < 0.25;
+    // Guaranteed for first minInnsWithBuff, 10% random chance for the rest
+    const shouldBuff = i < minInnsWithBuff || Math.random() < 0.1;
     if (!shouldBuff) return;
 
     // Pick a random reward slot to attach the buff to
@@ -180,7 +178,7 @@ function injectBuffsIntoInnRewards(innNodes) {
 
 function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
   const standardNodes = nodes.filter((n) => n.nodeType === 'STANDARD');
-  const numBuffNodes = Math.floor(standardNodes.length * 0.3);
+  const numBuffNodes = Math.floor(standardNodes.length * 0.15);
 
   logger.info(`Assigning buffs to ${numBuffNodes} of ${standardNodes.length} standard nodes`);
 
@@ -229,66 +227,68 @@ function selectRandomNodes(nodes, count) {
   return [...nodes].sort(() => Math.random() - 0.5).slice(0, Math.min(count, nodes.length));
 }
 
-function generateObjective(
-  difficulty,
-  difficultyMultiplier = 1.0,
-  formattedObjectives,
-  objectiveUsageByDifficulty = null
-) {
-  const availableObjectiveTypes = formattedObjectives.filter(
-    (objType) => objType.difficulties[difficulty] && objType.difficulties[difficulty].length > 0
-  );
-
-  if (availableObjectiveTypes.length === 0) {
-    throw new Error(`No objectives available for difficulty: ${difficulty}`);
+/**
+ * Build a shuffled deck of all objectives for a given difficulty.
+ * Each objective appears exactly once. When the deck is exhausted it is
+ * rebuilt and reshuffled so every content item is used again before repeats.
+ */
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
 
-  const allPossibleObjectives = [];
-  availableObjectiveTypes.forEach((objType) => {
-    objType.difficulties[difficulty].forEach((obj) => {
-      allPossibleObjectives.push({
+function buildDeck(difficulty, formattedObjectives) {
+  const items = [];
+  formattedObjectives.forEach((objType) => {
+    (objType.difficulties[difficulty] || []).forEach((obj) => {
+      items.push({
         type: objType.type,
         target: obj?.target,
-        quantity: Math.ceil(obj?.quantity * difficultyMultiplier),
+        quantity: obj?.quantity,
         contentId: obj?.contentId,
-        _key: `${objType.type}:${obj?.target || obj?.contentId}`,
       });
     });
   });
+  return shuffle([...items]);
+}
 
-  let availableObjectives = allPossibleObjectives;
+/**
+ * Draw the next objective for a difficulty from the deck, skipping targets
+ * already used within the current location group so the three nodes at one
+ * location don't all point at the same boss/skill.
+ *
+ * If every remaining deck entry conflicts with the group (very small pools),
+ * we just take the front of the deck rather than getting stuck.
+ * When the deck runs empty it is rebuilt and reshuffled automatically.
+ */
+function drawFromDeck(difficulty, difficultyMultiplier, usedTargetsInGroup, deckByDifficulty, formattedObjectives) {
+  let deck = deckByDifficulty[difficulty];
 
-  if (objectiveUsageByDifficulty) {
-    const usageQueue = objectiveUsageByDifficulty[difficulty] || [];
-    const dynamicCooldown = Math.max(3, Math.floor(allPossibleObjectives.length * 0.6));
-    const recentlyUsed = new Set(usageQueue.slice(-dynamicCooldown));
-    availableObjectives = allPossibleObjectives.filter((obj) => !recentlyUsed.has(obj._key));
-
-    if (availableObjectives.length === 0) {
-      logger.warn(
-        `All ${difficulty} objectives on cooldown (${allPossibleObjectives.length} total, cooldown ${dynamicCooldown}) - allowing all`
-      );
-      availableObjectives = allPossibleObjectives;
-    }
+  if (deck.length === 0) {
+    logger.info(`[deck] ${difficulty} deck exhausted — rebuilding`);
+    deckByDifficulty[difficulty] = buildDeck(difficulty, formattedObjectives);
+    deck = deckByDifficulty[difficulty];
   }
 
-  const selected = availableObjectives[Math.floor(Math.random() * availableObjectives.length)];
+  // Find the first entry that doesn't conflict with the current group
+  let idx = deck.findIndex((obj) => !usedTargetsInGroup.has(obj.target));
+  if (idx === -1) idx = 0; // No safe choice — just take the first
 
-  if (objectiveUsageByDifficulty) {
-    if (!objectiveUsageByDifficulty[difficulty]) objectiveUsageByDifficulty[difficulty] = [];
-    objectiveUsageByDifficulty[difficulty].push(selected._key);
-  }
+  const [selected] = deck.splice(idx, 1);
 
   return {
     type: selected.type,
     target: selected.target,
-    quantity: selected.quantity,
+    quantity: Math.ceil(selected.quantity * difficultyMultiplier),
     contentId: selected.contentId,
   };
 }
 
 function calculateGPReward(difficultyTier, avgGpPerNode) {
-  const multipliers = { 1: 0.5, 2: 0.75, 3: 1.0, 4: 1.25, 5: 1.5 };
+  const multipliers = { 1: 0.2, 3: 0.7, 5: 1.0 };
   return Math.floor(avgGpPerNode * (multipliers[difficultyTier] || 1.0));
 }
 
@@ -352,15 +352,23 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const edges = [];
   const locationGroups = [];
   const paths = [
-    { path_id: 'mountain_path', key_color: 'red', difficulty: 'hard' },
+    { path_id: 'mountain_path', key_color: 'red', difficulty: 'long' },
     { path_id: 'trade_route', key_color: 'blue', difficulty: 'medium' },
-    { path_id: 'coastal_path', key_color: 'green', difficulty: 'easy' },
+    { path_id: 'coastal_path', key_color: 'green', difficulty: 'short' },
   ];
 
   const locationUsageQueue = [];
   const generatedNodeIds = new Set();
 
-  const objectiveUsageByDifficulty = { easy: [], medium: [], hard: [] };
+  const deckByDifficulty = {
+    short: buildDeck('short', formattedObjectives),
+    medium: buildDeck('medium', formattedObjectives),
+    long: buildDeck('long', formattedObjectives),
+  };
+
+  logger.info(
+    `[deck] Initial deck sizes — short: ${deckByDifficulty.short.length}, medium: ${deckByDifficulty.medium.length}, long: ${deckByDifficulty.long.length}`
+  );
 
   const LOCATION_COOLDOWN = Math.floor(OSRS_LOCATIONS.length * 0.6);
 
@@ -395,9 +403,9 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
   const createLocationGroup = (location, pathInfo, prerequisiteNodeIds, nodeCounter) => {
     const groupId = `loc_${uuidv4().substring(0, 8)}`;
     const difficulties = [
-      { name: 'easy', tier: 1 },
+      { name: 'short', tier: 1 },
       { name: 'medium', tier: 3 },
-      { name: 'hard', tier: 5 },
+      { name: 'long', tier: 5 },
     ];
 
     const groupNodes = [];
@@ -407,25 +415,13 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     difficulties.forEach(({ name, tier }) => {
       const nodeId = generateNodeId(nodeCounter.value++);
 
-      let objective;
-      let attempts = 0;
-      const maxAttempts = 20;
-
-      do {
-        objective = generateObjective(
-          name,
-          difficultyMultiplier,
-          formattedObjectives,
-          objectiveUsageByDifficulty
-        );
-        attempts++;
-      } while (usedTargetsInGroup.has(objective.target) && attempts < maxAttempts);
-
-      if (attempts >= maxAttempts) {
-        logger.warn(
-          `Could not find unique objective for ${name} at ${location.name} after ${maxAttempts} attempts`
-        );
-      }
+      const objective = drawFromDeck(
+        name,
+        difficultyMultiplier,
+        usedTargetsInGroup,
+        deckByDifficulty,
+        formattedObjectives
+      );
 
       usedTargetsInGroup.add(objective.target);
 
@@ -445,7 +441,10 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         objective,
         rewards: {
           gp: calculateGPReward(tier, avg_gp_per_node),
-          keys: [{ color: pathInfo.key_color, quantity: name === 'hard' ? 2 : 1 }],
+          // ~30% of short, ~20% of medium, ~10% of long nodes are keyless (pure GP)
+          keys: Math.random() < { short: 0.3, medium: 0.2, long: 0.1 }[name]
+            ? []
+            : [{ color: pathInfo.key_color, quantity: name === 'long' ? 2 : 1 }],
         },
         difficultyTier: tier,
         innTier: null,
@@ -591,7 +590,7 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
     `Location cooldown: ${LOCATION_COOLDOWN} (${locationUsageQueue.length} total location uses)`
   );
   logger.info(
-    `Objectives generated - Easy: ${objectiveUsageByDifficulty.easy.length}, Medium: ${objectiveUsageByDifficulty.medium.length}, Hard: ${objectiveUsageByDifficulty.hard.length}`
+    `[deck] Remaining after generation — short: ${deckByDifficulty.short.length}, medium: ${deckByDifficulty.medium.length}, long: ${deckByDifficulty.long.length}`
   );
 
   // Assign buffs to standard nodes

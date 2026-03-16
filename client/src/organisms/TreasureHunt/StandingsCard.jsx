@@ -34,6 +34,7 @@ const PRESET_COLORS = [
 const StandingsCard = ({
   team,
   index,
+  isTied = false,
   event,
   currentColors,
   colorMode,
@@ -43,7 +44,7 @@ const StandingsCard = ({
 }) => {
   const navigate = useNavigate();
   const teamColor = PRESET_COLORS[index % PRESET_COLORS.length];
-  const isLeader = index === 0 && (team.currentPot || 0) > 0;
+  const isLeader = (index === 0 || isTied) && (team.currentPot || 0) > 0;
   const isOnTeam = userDiscordId && team.members?.some((m) => m.discordUserId === userDiscordId);
   const standardCount = event.nodes?.filter((n) => n.nodeType === 'STANDARD').length ?? 0;
   const innCount = event.nodes?.filter((n) => n.nodeType === 'INN').length ?? 0;
@@ -110,8 +111,8 @@ const StandingsCard = ({
             {team.teamName}
           </Text>
           {isLeader && (
-            <Badge colorScheme="yellow" fontSize="xs">
-              Leader
+            <Badge colorScheme={isTied ? 'orange' : 'yellow'} fontSize="xs">
+              {isTied ? 'Tied' : 'Leader'}
             </Badge>
           )}
         </HStack>

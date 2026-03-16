@@ -88,6 +88,8 @@ const typeDefs = gql`
     isComplete: Boolean!
     completedBy: String
     dateCompleted: String
+    progress: Int
+    progressMax: Int
   }
 
   type PopularTile {
@@ -144,6 +146,8 @@ const typeDefs = gql`
     isComplete: Boolean
     completedBy: String
     dateCompleted: String
+    progress: Int
+    progressMax: Int
   }
 
   input BonusSettingsInput {
@@ -428,6 +432,14 @@ const typeDefs = gql`
     team: TreasureTeam
   }
 
+  type NodeSubmissionSummary {
+    nodeId: ID!
+    teamId: ID!
+    teamName: String!
+    pendingCount: Int!
+    approvedCount: Int!
+  }
+
   # ============================================================
   # GIELINOR RUSH: ACTIVITY FEED
   # ============================================================
@@ -549,6 +561,8 @@ const typeDefs = gql`
     publicBoards: Int!
     totalVisits: Int!
     completionRate: Int!
+    totalBlindDrafts: Int!
+    totalGpWon: Float!
   }
 
   # ============================================================
@@ -598,6 +612,8 @@ const typeDefs = gql`
     getAssociatedTreasureEvents: [TreasureEvent!]!
     getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
     getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getNodeSubmissionSummaries(eventId: ID!): [NodeSubmissionSummary!]!
+    getNodeSubmissions(nodeId: ID!, teamId: ID!): [TreasureSubmission!]!
     getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
     getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
@@ -745,6 +761,7 @@ const typeDefs = gql`
 
     # --- Gielinor Rush: Inns ---
     purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
+    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
 
     # --- Blind Draft Room ---
     createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!

@@ -10,14 +10,16 @@ import {
   Spinner,
   Text,
   Tooltip,
+  useToast,
   VStack,
 } from '@chakra-ui/react';
-import { CheckIcon, CopyIcon } from '@chakra-ui/icons';
+import { CheckIcon, CloseIcon, CopyIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useMutation, useQuery } from '@apollo/client';
 import { debounce } from 'lodash';
 import { useAuth } from '../providers/AuthProvider';
 import { GET_USERS } from '../graphql/queries';
+import { DELETE_USER } from '../graphql/mutations';
 import usePageTitle from '../hooks/usePageTitle';
 
 // ── Copy button ───────────────────────────────────────────────────────────────
@@ -103,9 +105,10 @@ function FilterTab({ label, active, count, onClick }) {
 
 // ── User row ──────────────────────────────────────────────────────────────────
 
-function UserRow({ u }) {
+function UserRow({ u, onDelete, isCurrentUser }) {
   const avatarSrc = discordAvatarUrl(u.discordUserId, u.discordAvatar);
   const isLinked = !!u.discordUserId;
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <Flex
@@ -197,6 +200,49 @@ function UserRow({ u }) {
           {formatDate(u.createdAt)}
         </Text>
       </Box>
+
+      {/* Delete */}
+      {!isCurrentUser && (
+        <Box>
+          {confirming ? (
+            <HStack spacing={1}>
+              <Text fontSize="xs" color="red.400" whiteSpace="nowrap">
+                Delete?
+              </Text>
+              <Tooltip label="Confirm delete" hasArrow>
+                <IconButton
+                  size="xs"
+                  icon={<CheckIcon />}
+                  colorScheme="red"
+                  onClick={() => { setConfirming(false); onDelete(u.id); }}
+                  aria-label="Confirm delete"
+                />
+              </Tooltip>
+              <IconButton
+                size="xs"
+                icon={<CloseIcon />}
+                variant="ghost"
+                color="gray.400"
+                onClick={() => setConfirming(false)}
+                aria-label="Cancel"
+              />
+            </HStack>
+          ) : (
+            <Tooltip label="Delete user" hasArrow>
+              <IconButton
+                size="xs"
+                icon={<DeleteIcon />}
+                colorScheme="red"
+                variant="ghost"
+                onClick={() => setConfirming(true)}
+                aria-label="Delete user"
+                opacity={0.4}
+                _hover={{ opacity: 1 }}
+              />
+            </Tooltip>
+          )}
+        </Box>
+      )}
     </Flex>
   );
 }
@@ -206,6 +252,7 @@ function UserRow({ u }) {
 const AdminUsersPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -219,6 +266,24 @@ const AdminUsersPage = () => {
   }, [navigate, user]);
 
   const { data, loading, error } = useQuery(GET_USERS, { skip: !user?.admin });
+
+  const [deleteUser] = useMutation(DELETE_USER);
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteUser({
+        variables: { id },
+        update(cache) {
+          cache.updateQuery({ query: GET_USERS }, (existing) =>
+            existing ? { getUsers: existing.getUsers.filter((u) => u.id !== id) } : existing
+          );
+        },
+      });
+      toast({ title: 'User deleted', status: 'success', duration: 3000, isClosable: true });
+    } catch (err) {
+      toast({ title: 'Delete failed', description: err.message, status: 'error', duration: 4000, isClosable: true });
+    }
+  };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debounceSearch = useCallback(
@@ -331,7 +396,12 @@ const AdminUsersPage = () => {
             {filtered.length} user{filtered.length !== 1 ? 's' : ''}
           </Text>
           {filtered.map((u) => (
-            <UserRow key={u.id} u={u} />
+            <UserRow
+              key={u.id}
+              u={u}
+              onDelete={handleDelete}
+              isCurrentUser={u.id === user?.id}
+            />
           ))}
         </VStack>
       )}

@@ -34,6 +34,14 @@ module.exports = (sequelize) => {
         type: DataTypes.INTEGER,
         allowNull: false,
       },
+      progress: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
+      progressMax: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
       board: {
         type: DataTypes.INTEGER,
         references: {

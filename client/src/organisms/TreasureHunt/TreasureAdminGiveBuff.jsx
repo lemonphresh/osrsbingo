@@ -24,8 +24,6 @@ const BUFF_TYPES = {
   xp_reduction_moderate: { label: 'Training Momentum (50%)', icon: '📚' },
   xp_reduction_major: { label: 'Training Enlightenment (75%)', icon: '📚' },
   item_reduction_minor: { label: 'Efficient Gathering (25%)', icon: '📦' },
-  item_reduction_moderate: { label: 'Master Gatherer (50%)', icon: '📦' },
-  item_reduction_major: { label: 'Legendary Gatherer (75%)', icon: '📦' },
   universal_reduction: { label: 'Versatile Training (50%)', icon: '✨' },
   multi_use_minor: { label: 'Persistent Focus (25% x2)', icon: '🔄' },
 };

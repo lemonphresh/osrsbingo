@@ -63,11 +63,11 @@ const getActivityDescription = (activity) => {
     case 'node_completed': {
       const diffText =
         activity.difficulty === 1
-          ? 'Easy'
+          ? 'Short'
           : activity.difficulty === 3
           ? 'Medium'
           : activity.difficulty === 5
-          ? 'Hard'
+          ? 'Long'
           : '';
       return `${diffText} ${activity.nodeTitle} (+${formatGP(activity.reward)} GP)`;
     }
@@ -225,14 +225,14 @@ describe('getActivityTitle', () => {
 // ── getActivityDescription ────────────────────────────────────────────────────
 
 describe('getActivityDescription', () => {
-  it('node_completed — easy', () => {
+  it('node_completed — short', () => {
     const result = getActivityDescription({
       type: 'node_completed',
       difficulty: 1,
       nodeTitle: 'Rat Catcher',
       reward: 50000,
     });
-    expect(result).toBe('Easy Rat Catcher (+50K GP)');
+    expect(result).toBe('Short Rat Catcher (+50K GP)');
   });
 
   it('node_completed — medium', () => {
@@ -245,14 +245,14 @@ describe('getActivityDescription', () => {
     expect(result).toBe('Medium Barrows (+200K GP)');
   });
 
-  it('node_completed — hard', () => {
+  it('node_completed — long', () => {
     const result = getActivityDescription({
       type: 'node_completed',
       difficulty: 5,
       nodeTitle: 'Zulrah',
       reward: 1500000,
     });
-    expect(result).toBe('Hard Zulrah (+1.5M GP)');
+    expect(result).toBe('Long Zulrah (+1.5M GP)');
   });
 
   it('inn_visited — sums keys and shows GP', () => {

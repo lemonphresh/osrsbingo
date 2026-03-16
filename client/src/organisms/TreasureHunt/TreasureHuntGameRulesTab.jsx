@@ -172,9 +172,9 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
 
                 <Box p={3} bg={colorMode === 'dark' ? 'gray.700' : 'gray.100'} borderRadius="md">
                   <HStack mb={1}>
-                    <Badge colorScheme="green">EASY</Badge>
+                    <Badge colorScheme="green">SHORT</Badge>
                     <Badge colorScheme="yellow">MEDIUM</Badge>
-                    <Badge colorScheme="red">HARD</Badge>
+                    <Badge colorScheme="red">LONG</Badge>
                     <Text fontWeight="semibold" fontSize="sm" color={currentColors.textColor}>
                       Challenge Nodes
                     </Text>
@@ -193,9 +193,9 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                     </Text>
                   </HStack>
                   <Text fontSize="xs" color={currentColors.textColor}>
-                    Each location offers Easy, Medium, and Hard variants, but your team can only
-                    complete <strong>ONE</strong> difficulty per location. Choose wisely! Harder
-                    nodes give more GP but take longer.
+                    Each location offers Short, Medium, and Long variants, but your team can only
+                    complete <strong>ONE</strong> difficulty per location. Choose wisely! Longer
+                    nodes give more GP but take more effort.
                   </Text>
                 </Box>
 
@@ -284,23 +284,23 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                       <Tbody>
                         <Tr>
                           <Td>
-                            <Badge colorScheme="green">EASY</Badge>
+                            <Badge colorScheme="green">SHORT</Badge>
                           </Td>
-                          <Td color={currentColors.textColor}>0.5x base</Td>
+                          <Td color={currentColors.textColor}>20% of max</Td>
                           <Td color={currentColors.textColor}>1 key</Td>
                         </Tr>
                         <Tr>
                           <Td>
                             <Badge colorScheme="yellow">MEDIUM</Badge>
                           </Td>
-                          <Td color={currentColors.textColor}>1.0x base</Td>
+                          <Td color={currentColors.textColor}>70% of max</Td>
                           <Td color={currentColors.textColor}>1 key</Td>
                         </Tr>
                         <Tr>
                           <Td>
-                            <Badge colorScheme="red">HARD</Badge>
+                            <Badge colorScheme="red">LONG</Badge>
                           </Td>
-                          <Td color={currentColors.textColor}>1.5x base</Td>
+                          <Td color={currentColors.textColor}>100% of max</Td>
                           <Td color={currentColors.textColor}>2 keys</Td>
                         </Tr>
                       </Tbody>
@@ -308,7 +308,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   </TableContainer>
 
                   <Text fontSize="xs" color={currentColors.textColor} fontStyle="italic">
-                    💡 Hard nodes give 3x more GP than Easy nodes, but require more effort!
+                    💡 Long nodes give 5x more GP than Short nodes, but require more effort!
                   </Text>
                 </Box>
 
@@ -656,7 +656,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             </Box>
           )}
           <Text fontSize="xs" color={currentColors.textColor} fontStyle="italic" mt={2}>
-            💡 Strategy Tip: Hard nodes give 3x more GP than Easy nodes, but take longer. Balance
+            💡 Strategy Tip: Long nodes give 5x more GP than Short nodes, but take longer. Balance
             speed with reward size. Use buffs strategically to tackle difficult challenges, and
             diversify your paths to unlock combo Inn trades!
           </Text>

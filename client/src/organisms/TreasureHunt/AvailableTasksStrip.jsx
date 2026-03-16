@@ -222,7 +222,7 @@ const AvailableTasksStrip = ({
               {availableNodes.map((node) => {
                 const isInn = node.nodeType === 'INN';
                 const hasBuffApplied = !!node.objective?.appliedBuff;
-                const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+                const diffMap = { 1: 'Short', 3: 'Medium', 5: 'Long' };
                 const diffColor = { 1: 'green', 3: 'orange', 5: 'red' };
                 const accentColor = isInn
                   ? 'yellow.400'
@@ -275,6 +275,7 @@ const AvailableTasksStrip = ({
                       overflow="hidden"
                       border="1px solid"
                       borderColor={colorMode === 'dark' ? 'whiteAlpha.200' : 'gray.200'}
+                      role="group"
                       _hover={{ borderColor: accentColor }}
                       transition="background 0.3s ease, border-color 0.2s ease"
                       sx={
@@ -322,6 +323,7 @@ const AvailableTasksStrip = ({
                                     '50%': { opacity: 0.45 },
                                   },
                                 }}
+                                _groupHover={{ opacity: 0, transition: 'opacity 0.15s ease' }}
                               >
                                 NEW
                               </Badge>
@@ -469,7 +471,7 @@ const AvailableTasksStrip = ({
                 const isFirstInGroup = !seen.has(groupKey);
                 if (isFirstInGroup) seen.add(groupKey);
                 const locationName = node.title.includes(' - ') ? node.title.split(' - ')[0] : null;
-                const diffMap = { 1: 'Easy', 3: 'Medium', 5: 'Hard' };
+                const diffMap = { 1: 'Short', 3: 'Medium', 5: 'Long' };
                 const diffColor = { 1: 'green', 3: 'orange', 5: 'red' };
                 const hasBuffApplied = !!node.objective?.appliedBuff;
                 return (
@@ -498,6 +500,7 @@ const AvailableTasksStrip = ({
                       bg="whiteAlpha.100"
                       borderRadius="md"
                       cursor="pointer"
+                      role="group"
                       _hover={{ bg: 'whiteAlpha.200' }}
                       onClick={() => {
                         markSeen(node.nodeId);
@@ -521,7 +524,13 @@ const AvailableTasksStrip = ({
                             : node.title}
                         </Text>
                         {!seenNodeIds.has(node.nodeId) && (
-                          <Badge colorScheme="green" fontSize="9px" px={1} flexShrink={0}>
+                          <Badge
+                            colorScheme="green"
+                            fontSize="9px"
+                            px={1}
+                            flexShrink={0}
+                            _groupHover={{ opacity: 0, transition: 'opacity 0.15s ease' }}
+                          >
                             NEW
                           </Badge>
                         )}

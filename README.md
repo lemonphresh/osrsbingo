@@ -2,7 +2,7 @@
 
 **The ultimate competitive event platform for Old School RuneScape clans.**
 
-Create custom bingo boards to track your goals, or run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, completing OSRS objectives and battling for a GP prize pool.
+Create custom bingo boards to track your goals, run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, or host a **Blind Draft** to build balanced teams before an event.
 
 🌐 **[osrsbingohub.com](https://www.osrsbingohub.com)** • 3,000+ boards created • Built for the community
 
@@ -13,18 +13,29 @@ Create custom bingo boards to track your goals, or run full-scale **Gielinor Rus
 ### 🎯 Bingo Boards
 
 - **Fully customizable** tiles with any OSRS objective
+- **Progress tracking** — set a goal and drag a slider to update progress per tile
 - **Share with clanmates** via unique links
-- **Real-time progress** tracking
 - **Multiple templates** to get started quickly
 
 ### ⚔️ Gielinor Rush
 
 - **Procedurally generated maps** tailored to your event configuration
-- **Three difficulty paths** per location — risk vs. reward strategy
+- **Three difficulty paths** per location — Short, Medium, and Long objectives
 - **Key & Inn mechanics** — collect keys, trade for bonus GP at checkpoints
+- **Buff system** — earn and spend buffs to reduce objective requirements
 - **Automated prize distribution** with hard-capped budget guarantees
 - **Discord bot integration** — submit proofs, check progress, all from Discord
 - **Live updates** via WebSocket subscriptions
+
+### 🎲 Blind Draft
+
+- **Create a draft room** with a custom name, team count, and pick timer
+- **Three draft formats**: Snake, Linear, or Auction
+- **Blind picks** — teams can't see each other's selections during the draft
+- **Captain PIN system** — captains join via a shareable link and room PIN
+- **Auto-timer** — configurable pick clock enforces pace
+- **Big reveal** — all picks are revealed simultaneously when the draft completes
+- **Stat categories & tier formulas** — weight players by any custom stat
 
 ---
 
@@ -43,7 +54,7 @@ Create custom bingo boards to track your goals, or run full-scale **Gielinor Rus
 
 ## 🎮 For Event Runners
 
-Running a Gielinor Rush event is straightforward:
+### Running a Gielinor Rush
 
 | Step             | Action                                               |
 | ---------------- | ---------------------------------------------------- |
@@ -54,6 +65,16 @@ Running a Gielinor Rush event is straightforward:
 | **5. Payout**    | Winners calculated automatically — you're done!      |
 
 > 💡 **Budget Guarantee**: The hard-capped system ensures you'll _never_ owe more than your prize pool, no matter what teams achieve.
+
+### Running a Blind Draft
+
+| Step            | Action                                                  |
+| --------------- | ------------------------------------------------------- |
+| **1. Create**   | Set room name, team count, format, and pick timer       |
+| **2. Add pool** | Import the player pool with optional stat categories    |
+| **3. Invite**   | Share room links with team captains; they join with PIN |
+| **4. Draft**    | Each captain picks in turn — other teams can't see      |
+| **5. Reveal**   | All picks revealed at once when the draft completes     |
 
 ---
 
@@ -233,11 +254,11 @@ This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3
 ### The Game Loop
 
 1. **Navigate** — Teams start at the START node and unlock paths across the map
-2. **Choose** — Each location offers Easy, Medium, or Hard objectives (pick ONE)
-3. **Complete** — Finish OSRS tasks (boss KC, XP gains, item collection, etc.)
+2. **Choose** — Each location offers Short, Medium, or Long objectives (pick ONE per location)
+3. **Complete** — Finish OSRS tasks (boss KC, XP gains, item drops, clue scrolls, etc.)
 4. **Submit** — Upload proof via Discord bot
 5. **Earn** — Approved submissions grant GP + keys
-6. **Trade** — Spend keys at Inns for bonus GP rewards
+6. **Trade** — Spend keys at Inns for bonus GP rewards (inn completes on purchase)
 7. **Win** — Highest GP total at event end takes the prize!
 
 ### Map Structure
@@ -247,7 +268,31 @@ This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3
 | **Location Groups** | Each map location offers 3 difficulty variants                                     |
 | **One Choice Rule** | Teams can only complete ONE difficulty per location                                |
 | **Paths**           | Mountain (🔴), Trade Route (🔵), Coastal (🟢) — each grants different colored keys |
-| **Inns**            | Checkpoints where teams trade keys for GP bonuses                                  |
+| **Inns**            | Checkpoints where teams trade keys for GP bonuses — completing an Inn requires making a purchase |
+
+### Objective Types
+
+| Type                | Description                                      |
+| ------------------- | ------------------------------------------------ |
+| **Boss KC**         | Kill a boss N times                              |
+| **XP Gain**         | Gain N XP in a skill                             |
+| **Item Collection** | Obtain N drops from a boss or raid               |
+| **Minigame**        | Complete N runs of a minigame                    |
+| **Clue Scrolls**    | Complete N clue scrolls of a given tier          |
+
+### Buffs
+
+Buffs are earned from nodes and Inn purchases. They reduce objective requirements when applied.
+
+| Category    | Options                             |
+| ----------- | ----------------------------------- |
+| **Kill**    | 25%, 50%, or 75% KC reduction       |
+| **XP**      | 25%, 50%, or 75% XP reduction       |
+| **Items**   | 25% drop count reduction            |
+| **Universal** | 50% reduction on any objective    |
+| **Multi-use** | 25% reduction on two objectives   |
+
+> Item buffs require the objective to have more than 2 drops.
 
 ### Budget System
 
@@ -260,41 +305,53 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 #### Node Rewards by Difficulty
 
-| Difficulty | GP Multiplier | Keys Earned |
-| ---------- | ------------- | ----------- |
-| 🟢 Easy    | 0.5x base     | 1 key       |
-| 🟡 Medium  | 1.0x base     | 1 key       |
-| 🔴 Hard    | 1.5x base     | 2 keys      |
+| Difficulty  | GP Value      | Keys Earned |
+| ----------- | ------------- | ----------- |
+| 🟢 Short    | 20% of max    | 1 key       |
+| 🟡 Medium   | 70% of max    | 1 key       |
+| 🔴 Long     | 100% of max   | 2 keys      |
+
+> Long nodes pay **5× more** than Short nodes. Each path's max GP is calibrated to the total node budget.
 
 #### Inn Trade Options
 
 | Option     | Key Cost        | Payout    |
 | ---------- | --------------- | --------- |
-| **Small**  | 2 any           | 80% base  |
-| **Medium** | 4 any           | 100% base |
+| **Quick**  | 2 any           | 80% base  |
+| **Standard** | 4 any         | 100% base |
 | **Combo**  | 2🔴 + 2🔵 + 2🟢 | 120% base |
 
-#### Example: 100M Prize Pool (10 Teams)
+---
 
-```
-Per-team budget: 10,000,000 GP
+## 🎲 Blind Draft: How It Works
 
-┌─────────────────┬──────────┬─────────┬───────────┬──────────┐
-│ Strategy        │ Node GP  │ Inn GP  │ Total     │ % Budget │
-├─────────────────┼──────────┼─────────┼───────────┼──────────┤
-│ All Easy+Small  │ 2.33M    │ 2.0M    │ 4.33M     │ 43%      │
-│ Mixed/Average   │ 4.67M    │ 2.5M    │ 7.17M     │ 72%      │
-│ All Hard+Combo  │ 7.0M     │ 3.0M    │ 10.0M     │ 100%     │
-└─────────────────┴──────────┴─────────┴───────────┴──────────┘
-```
+### Formats
 
-> ✅ **Guaranteed**: Maximum possible payout = 100% of budget. Event runners always have enough GP.
+| Format      | Description                                                           |
+| ----------- | --------------------------------------------------------------------- |
+| **Snake**   | Teams pick in order, reversing each round (1-2-3-3-2-1...)           |
+| **Linear**  | Teams always pick in the same order (1-2-3-1-2-3...)                 |
+| **Auction** | Each team bids on players using a budget                              |
+
+### Draft Flow
+
+1. Organizer creates a room and sets format, team count, pick timer, and player pool
+2. Each team gets a unique join link + PIN for their captain
+3. Once all captains join, organizer starts the draft
+4. Teams pick in turn — picks are **hidden** from other teams during the draft
+5. When all picks are done, picks are **revealed to everyone simultaneously**
+
+### Picking Rules
+
+- Pick timer is enforced per pick (default 60s) — the organizer can pick on behalf of a timed-out captain
+- Organizer can always make picks regardless of whose turn it is
+- Picks per turn is configurable (default: 1)
 
 ---
 
 ## 🤖 Discord Bot
 
-Integrate your event directly into Discord for seamless team coordination.
+Integrate your Gielinor Rush event directly into Discord for seamless team coordination.
 
 ### Setup
 
@@ -318,16 +375,18 @@ Integrate your event directly into Discord for seamless team coordination.
 
 ### Core Tables
 
-| Table                 | Purpose                    |
-| --------------------- | -------------------------- |
-| `Users`               | Accounts & authentication  |
-| `BingoBoards`         | Bingo board configurations |
-| `BingoTiles`          | Individual tile objectives |
-| `TreasureEvents`      | Gielinor Rush event config |
-| `TreasureTeams`       | Competing teams            |
-| `TreasureNodes`       | Map objectives             |
-| `TreasureSubmissions` | Proof submissions          |
-| `TreasureActivity`    | Live activity feed         |
+| Table                 | Purpose                          |
+| --------------------- | -------------------------------- |
+| `Users`               | Accounts & authentication        |
+| `BingoBoards`         | Bingo board configurations       |
+| `BingoTiles`          | Individual tile objectives       |
+| `TreasureEvents`      | Gielinor Rush event config       |
+| `TreasureTeams`       | Competing teams                  |
+| `TreasureNodes`       | Map objectives                   |
+| `TreasureSubmissions` | Proof submissions                |
+| `TreasureActivity`    | Live activity feed               |
+| `DraftRooms`          | Blind Draft room config          |
+| `DraftPlayers`        | Player pool entries per room     |
 
 ### Migration Commands
 

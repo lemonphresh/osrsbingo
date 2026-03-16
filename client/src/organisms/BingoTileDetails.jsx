@@ -16,6 +16,10 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Slider,
+  SliderFilledTrack,
+  SliderThumb,
+  SliderTrack,
   Text,
   Spinner,
   Wrap,
@@ -174,13 +178,13 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
   const [updateTile] = useMutation(UPDATE_TILE);
 
   useEffect(() => {
-    if (tile) {
+    if (tile && tileState?.id !== tile.id) {
       setTileState({
         ...tile,
         dateCompleted: tile.dateCompleted ? formatDate(new Date(Number(tile.dateCompleted))) : null,
       });
     }
-  }, [tile]);
+  }, [tile, tileState?.id]);
 
   const handleClose = async () => {
     if (!isEditor || !tileState) {
@@ -196,6 +200,8 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
       input.isComplete = tileState.isComplete;
       input.dateCompleted = tileState.isComplete ? new Date().toISOString() : null;
     }
+    if ((tileState.progressMax || 0) !== (tile.progressMax || 0))
+      input.progressMax = parseInt(tileState.progressMax, 10) || 0;
 
     if (Object.keys(input).length > 0) {
       setSaving(true);
@@ -322,6 +328,74 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                 isEditor={isEditor}
                 onChange={(val) => setTileState((s) => ({ ...s, completedBy: val }))}
               />
+            )}
+
+            {(isEditor || (tileState.progressMax || 0) > 0) && (
+              <Flex flexDirection="column" gap="6px" mt="12px">
+                <Text
+                  as="span"
+                  color={theme.colors.purple[300]}
+                  fontWeight="semibold"
+                >
+                  Progress Tracking:
+                </Text>
+                {isEditor && (
+                  <InlineEditField
+                    label="Goal"
+                    value={tileState.progressMax || 0}
+                    inputType="number"
+                    isEditor={isEditor}
+                    onChange={(val) =>
+                      setTileState((s) => ({ ...s, progressMax: parseInt(val, 10) || 0 }))
+                    }
+                  />
+                )}
+                {(tileState.progressMax || 0) > 0 && (
+                  <>
+                    <Flex justify="space-between">
+                      <Text fontSize="sm" color="gray.400">
+                        {tileState.progress || 0} / {tileState.progressMax}
+                      </Text>
+                      <Text fontSize="sm" color="gray.400">
+                        {Math.round(((tileState.progress || 0) / tileState.progressMax) * 100)}%
+                      </Text>
+                    </Flex>
+                    <Slider
+                      min={0}
+                      max={tileState.progressMax}
+                      value={tileState.progress || 0}
+                      onChange={(val) => setTileState((s) => ({ ...s, progress: val }))}
+                      onChangeEnd={(val) => {
+                        const input = { progress: val };
+                        if (val >= tileState.progressMax) {
+                          input.isComplete = true;
+                          input.dateCompleted = new Date().toISOString();
+                          setTileState((s) => ({
+                            ...s,
+                            isComplete: true,
+                            dateCompleted: formatDate(new Date()),
+                          }));
+                        } else if (tileState.isComplete) {
+                          input.isComplete = false;
+                          input.dateCompleted = null;
+                          setTileState((s) => ({
+                            ...s,
+                            isComplete: false,
+                            dateCompleted: null,
+                          }));
+                        }
+                        updateTile({ variables: { id: tile.id, input } });
+                      }}
+                      colorScheme="purple"
+                    >
+                      <SliderTrack bg="gray.600">
+                        <SliderFilledTrack />
+                      </SliderTrack>
+                      <SliderThumb />
+                    </Slider>
+                  </>
+                )}
+              </Flex>
             )}
           </Flex>
 

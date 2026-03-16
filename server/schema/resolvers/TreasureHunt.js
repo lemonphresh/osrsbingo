@@ -1,5 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const {
   TreasureEvent,
   TreasureTeam,
@@ -17,7 +17,7 @@ const {
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
-const { pubsub, SUBMISSION_TOPICS } = require('../pubsub');
+const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
@@ -43,7 +43,7 @@ function getCompletedNodeInGroup(team, locationGroupId, event) {
 }
 
 function getDifficultyName(difficultyTier) {
-  const tierMap = { 1: 'EASY', 3: 'MEDIUM', 5: 'HARD' };
+  const tierMap = { 1: 'SHORT', 3: 'MEDIUM', 5: 'LONG' };
   return tierMap[difficultyTier] || 'UNKNOWN';
 }
 
@@ -94,8 +94,8 @@ const calculateDerivedValues = (config, startDate, endDate) => {
   const nodeBudgetPerTeam = maxRewardPerTeam * rewardSplit.nodes;
   const innBudgetPerTeam = maxRewardPerTeam * rewardSplit.inns;
 
-  const WORST_CASE_NODE_MULTIPLIER = 1.5;
-  const WORST_CASE_INN_MULTIPLIER = 1.2;
+  const WORST_CASE_NODE_MULTIPLIER = 1.3;
+  const WORST_CASE_INN_MULTIPLIER = 1.15;
 
   const avgGpPerNode = Math.floor(
     nodeBudgetPerTeam / (completableNodesPerTeam * WORST_CASE_NODE_MULTIPLIER)
@@ -261,7 +261,17 @@ const TreasureHuntResolvers = {
     getAllSubmissions: async (_, { eventId }) => {
       const [submissions, nodes] = await Promise.all([
         TreasureSubmission.findAll({
-          where: { status: { [Op.in]: ['PENDING_REVIEW', 'APPROVED'] } },
+          where: {
+            [Op.or]: [
+              { status: 'PENDING_REVIEW' },
+              {
+                status: 'APPROVED',
+                [Op.and]: Sequelize.literal(
+                  `"TreasureSubmission"."nodeId" != ALL("team"."completedNodes")`
+                ),
+              },
+            ],
+          },
           include: [{ model: TreasureTeam, as: 'team', where: { eventId } }],
           order: [
             ['status', 'ASC'],
@@ -271,36 +281,89 @@ const TreasureHuntResolvers = {
         TreasureNode.findAll({
           where: { eventId },
           attributes: ['nodeId', 'locationGroupId'],
+          raw: true,
         }),
       ]);
 
-      // Build nodeId -> locationGroupId lookup
-      const nodeToGroup = {};
-      nodes.forEach((n) => {
-        if (n.locationGroupId) nodeToGroup[n.nodeId] = n.locationGroupId;
-      });
+      // nodeId -> locationGroupId for sibling-node filtering
+      const nodeToGroup = new Map(
+        nodes.filter((n) => n.locationGroupId).map((n) => [n.nodeId, n.locationGroupId])
+      );
 
-      // For each team, map locationGroupId -> the nodeId they actually completed
-      const teamCompletedGroupMap = {};
-      submissions.forEach((sub) => {
-        const team = sub.team;
-        if (!team?.completedNodes) return;
-        if (!teamCompletedGroupMap[team.teamId]) {
-          teamCompletedGroupMap[team.teamId] = {};
-          team.completedNodes.forEach((nId) => {
-            const groupId = nodeToGroup[nId];
-            if (groupId) teamCompletedGroupMap[team.teamId][groupId] = nId;
-          });
-        }
-      });
-
-      // Drop any submission for a node the team passed over in favor of a sibling at the same location
       return submissions.filter((sub) => {
-        const groupId = nodeToGroup[sub.nodeId];
-        if (!groupId) return true;
-        const completedNodeInGroup = teamCompletedGroupMap[sub.team?.teamId]?.[groupId];
-        if (!completedNodeInGroup) return true;
-        return completedNodeInGroup === sub.nodeId;
+        const team = sub.team;
+        if (!team) return false;
+        // Completed nodes are lazy-loaded per accordion item — exclude them here
+        if (team.completedNodes?.includes(sub.nodeId)) return false;
+        // If a sibling at the same location is already completed, drop this sub too
+        const groupId = nodeToGroup.get(sub.nodeId);
+        if (groupId) {
+          const siblingCompleted = team.completedNodes?.some(
+            (nId) => nId !== sub.nodeId && nodeToGroup.get(nId) === groupId
+          );
+          if (siblingCompleted) return false;
+        }
+        return true;
+      });
+    },
+
+    // Lightweight summary (counts only) for completed nodes — used to populate
+    // the completed-node accordion headers without fetching full submission rows
+    getNodeSubmissionSummaries: async (_, { eventId }) => {
+      const teams = await TreasureTeam.findAll({
+        where: { eventId },
+        attributes: ['teamId', 'teamName', 'completedNodes'],
+        raw: true,
+      });
+
+      if (!teams.length) return [];
+
+      const teamIds = teams.map((t) => t.teamId);
+      const teamMap = new Map(teams.map((t) => [t.teamId, t]));
+
+      // Fetch just the 3 columns needed for counting — no full hydration
+      const subs = await TreasureSubmission.findAll({
+        where: { teamId: { [Op.in]: teamIds } },
+        attributes: ['nodeId', 'teamId', 'status'],
+        raw: true,
+      });
+
+      const summaryMap = new Map();
+      subs.forEach((s) => {
+        const key = `${s.nodeId}:${s.teamId}`;
+        if (!summaryMap.has(key)) {
+          summaryMap.set(key, { nodeId: s.nodeId, teamId: s.teamId, pendingCount: 0, approvedCount: 0 });
+        }
+        const e = summaryMap.get(key);
+        if (s.status === 'PENDING_REVIEW') e.pendingCount++;
+        if (s.status === 'APPROVED') e.approvedCount++;
+      });
+
+      // Only return summaries for completed nodes that actually have submissions
+      const result = [];
+      teams.forEach((team) => {
+        (team.completedNodes || []).forEach((nodeId) => {
+          const entry = summaryMap.get(`${nodeId}:${team.teamId}`);
+          if (entry) {
+            result.push({
+              nodeId,
+              teamId: team.teamId,
+              teamName: teamMap.get(team.teamId)?.teamName || 'Unknown',
+              pendingCount: entry.pendingCount,
+              approvedCount: entry.approvedCount,
+            });
+          }
+        });
+      });
+
+      return result;
+    },
+
+    // Full submissions for a specific node+team — called lazily when accordion is opened
+    getNodeSubmissions: async (_, { nodeId, teamId }) => {
+      return TreasureSubmission.findAll({
+        where: { nodeId, teamId },
+        order: [['submittedAt', 'DESC']],
       });
     },
 
@@ -906,34 +969,9 @@ const TreasureHuntResolvers = {
       if (node.nodeType !== 'INN') throw new Error('This node is not an Inn');
       if (!team.availableNodes?.includes(nodeId))
         throw new Error('This inn is not available to your team');
-      if (team.completedNodes?.includes(nodeId)) throw new Error('Inn already visited');
 
-      const completedNodes = [...(team.completedNodes || []), nodeId];
-      const availableNodes = (team.availableNodes || []).filter((n) => n !== nodeId);
-      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
-      const now = new Date().toISOString();
-
-      if (node.unlocks?.length > 0) {
-        node.unlocks.forEach((unlockedNodeId) => {
-          if (
-            !availableNodes.includes(unlockedNodeId) &&
-            !completedNodes.includes(unlockedNodeId)
-          ) {
-            availableNodes.push(unlockedNodeId);
-            nodeUnlockTimes[unlockedNodeId] = now;
-          }
-        });
-      }
-
-      await team.update({ completedNodes, availableNodes, nodeUnlockTimes });
-
-      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
-        innId: nodeId,
-        innName: node.title,
-        visitedBy: context.user?.id || 'unknown',
-      });
-
-      logger.info(`[visitInn] ✅ inn visited teamId=${teamId} nodeId=${nodeId}`);
+      // Inn is no longer completed on visit — completion happens on purchase.
+      logger.info(`[visitInn] inn is available, no state change teamId=${teamId} nodeId=${nodeId}`);
       await team.reload();
       return team;
     },
@@ -1775,7 +1813,7 @@ const TreasureHuntResolvers = {
       team.changed('nodeProgress', true);
       await team.save();
       await team.reload();
-      await pubsub.publish(SUBMISSION_TOPICS.NODE_PROGRESS_UPDATED, {
+      await pubsub.publish(`NODE_PROGRESS_UPDATED_${eventId}`, {
         nodeProgressUpdated: { eventId, teamId, nodeId, value: clamped },
       });
 
@@ -1866,6 +1904,9 @@ const TreasureHuntResolvers = {
       const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
       if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
 
+      if (!team.availableNodes?.includes(innNode.nodeId))
+        throw new Error('This inn is not available to your team');
+
       for (const cost of reward.key_cost) {
         if (cost.color === 'any') {
           const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
@@ -1906,10 +1947,13 @@ const TreasureHuntResolvers = {
       team.currentPot = (currentPotBigInt + payoutBigInt).toString();
 
       const activeBuffs = [...(team.activeBuffs || [])];
+      const grantedBuffIds = [];
       if (reward.buffs?.length > 0) {
         reward.buffs.forEach((buffReward) => {
           try {
-            activeBuffs.push(createBuff(buffReward.buffType));
+            const newBuff = createBuff(buffReward.buffType);
+            activeBuffs.push(newBuff);
+            grantedBuffIds.push(newBuff.buffId);
           } catch (err) {
             logger.warn(
               `[purchaseInnReward] failed to create buff ${buffReward.buffType}:`,
@@ -1929,14 +1973,35 @@ const TreasureHuntResolvers = {
           keysSpent,
           payout: reward.payout,
           buffsGranted: reward.buffs || [],
+          buffIds: grantedBuffIds,
           purchasedAt: new Date().toISOString(),
         },
       ];
       team.changed('innTransactions', true);
 
+      // Complete the inn on purchase (not on visit)
+      const completedNodes = [...(team.completedNodes || []), innNode.nodeId];
+      const availableNodes = (team.availableNodes || []).filter((n) => n !== innNode.nodeId);
+      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
+      const now = new Date().toISOString();
+      if (innNode.unlocks?.length > 0) {
+        innNode.unlocks.forEach((unlockedNodeId) => {
+          if (!availableNodes.includes(unlockedNodeId) && !completedNodes.includes(unlockedNodeId)) {
+            availableNodes.push(unlockedNodeId);
+            nodeUnlockTimes[unlockedNodeId] = now;
+          }
+        });
+      }
+      team.completedNodes = completedNodes;
+      team.changed('completedNodes', true);
+      team.availableNodes = availableNodes;
+      team.changed('availableNodes', true);
+      team.nodeUnlockTimes = nodeUnlockTimes;
+      team.changed('nodeUnlockTimes', true);
+
       await team.save();
 
-      await logTreasureHuntActivity(eventId, teamId, 'inn_visited', {
+      await logTreasureHuntActivity(eventId, teamId, 'inn_purchased', {
         innId: innNode.nodeId,
         innName: innNode.title,
         rewardId: reward.reward_id,
@@ -1948,6 +2013,81 @@ const TreasureHuntResolvers = {
       logger.info(
         `[purchaseInnReward] ✅ teamId=${teamId} purchased rewardId=${rewardId} payout=${reward.payout}`
       );
+      return team;
+    },
+
+    adminRefundInnPurchase: async (_, { eventId, teamId, nodeId }, context) => {
+      logger.info(`[adminRefundInnPurchase] eventId=${eventId} teamId=${teamId} nodeId=${nodeId}`);
+
+      if (!context.user) throw new Error('Not authenticated');
+      const isAdminOrRef = await isEventAdminOrRef(context.user.id, eventId);
+      if (!isAdminOrRef) throw new Error('Not authorized');
+
+      const team = await TreasureTeam.findOne({ where: { eventId, teamId } });
+      if (!team) throw new Error('Team not found');
+
+      await team.reload();
+
+      const transaction = team.innTransactions?.find((t) => t.nodeId === nodeId);
+      if (!transaction) throw new Error('No inn purchase found for this node');
+
+      // Restore keys
+      const keysHeld = [...(team.keysHeld || [])];
+      for (const spent of transaction.keysSpent || []) {
+        const existing = keysHeld.find((k) => k.color === spent.color);
+        if (existing) {
+          existing.quantity += spent.quantity;
+        } else {
+          keysHeld.push({ color: spent.color, quantity: spent.quantity });
+        }
+      }
+      team.keysHeld = keysHeld;
+      team.changed('keysHeld', true);
+
+      // Refund GP
+      const currentPotBigInt = BigInt(team.currentPot || 0);
+      const payoutBigInt = BigInt(transaction.payout || 0);
+      team.currentPot = (currentPotBigInt - payoutBigInt).toString();
+
+      // Remove buffs granted by this purchase
+      if (transaction.buffIds?.length > 0) {
+        team.activeBuffs = (team.activeBuffs || []).filter(
+          (b) => !transaction.buffIds.includes(b.buffId)
+        );
+      } else if (transaction.buffsGranted?.length > 0) {
+        // Fallback for older transactions: match by buffType, remove first match per type
+        const activeBuffs = [...(team.activeBuffs || [])];
+        for (const granted of transaction.buffsGranted) {
+          const idx = activeBuffs.findIndex((b) => b.buffType === granted.buffType);
+          if (idx !== -1) activeBuffs.splice(idx, 1);
+        }
+        team.activeBuffs = activeBuffs;
+      }
+      team.changed('activeBuffs', true);
+
+      // Remove the transaction
+      team.innTransactions = (team.innTransactions || []).filter((t) => t.nodeId !== nodeId);
+      team.changed('innTransactions', true);
+
+      // Un-complete the inn — move it back to available so team can purchase again
+      team.completedNodes = (team.completedNodes || []).filter((n) => n !== nodeId);
+      team.changed('completedNodes', true);
+      if (!team.availableNodes?.includes(nodeId)) {
+        team.availableNodes = [...(team.availableNodes || []), nodeId];
+        team.changed('availableNodes', true);
+      }
+
+      await team.save();
+
+      await logTreasureHuntActivity(eventId, teamId, 'inn_refunded', {
+        innId: nodeId,
+        keysRefunded: transaction.keysSpent || [],
+        gpRefunded: transaction.payout,
+        buffsRemoved: transaction.buffsGranted || [],
+        refundedBy: context.user.id,
+      });
+
+      logger.info(`[adminRefundInnPurchase] ✅ teamId=${teamId} nodeId=${nodeId} refunded`);
       return team;
     },
   },
