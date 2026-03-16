@@ -272,6 +272,8 @@ export const GET_BOARD = gql`
         isComplete
         completedBy
         dateCompleted
+        progress
+        progressMax
       }
     }
   }

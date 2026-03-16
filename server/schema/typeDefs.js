@@ -88,6 +88,8 @@ const typeDefs = gql`
     isComplete: Boolean!
     completedBy: String
     dateCompleted: String
+    progress: Int
+    progressMax: Int
   }
 
   type PopularTile {
@@ -144,6 +146,8 @@ const typeDefs = gql`
     isComplete: Boolean
     completedBy: String
     dateCompleted: String
+    progress: Int
+    progressMax: Int
   }
 
   input BonusSettingsInput {
