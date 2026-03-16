@@ -66,6 +66,7 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
         onClick={onOpen}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        overflow="hidden"
         padding={['4px', '8px']}
         position="relative"
         transition="all ease 0.2s"
@@ -142,8 +143,6 @@ const BingoTile = ({ completedPatterns, cursor, isEditor, tile, themeName }) => 
               right={0}
               height={['3px', '4px']}
               bg="whiteAlpha.200"
-              borderBottomLeftRadius={['8px', '12px']}
-              borderBottomRightRadius={['8px', '12px']}
               overflow="hidden"
             >
               <Box
