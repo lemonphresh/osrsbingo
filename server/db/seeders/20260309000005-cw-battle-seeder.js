@@ -4,7 +4,7 @@
  *
  * Creates an event in the BATTLE phase with:
  *   • 8 teams with locked loadouts + equipped gear (real items from clanWarsItems.js)
- *   • 3-round single-elimination bracket (QF → SF → Final)
+ *   • Double-elimination bracket (WB + LB + Grand Final)
  *   • No battles started yet — use ⚡ Simulate Next Match to run them
  *
  * Run:
@@ -15,6 +15,7 @@
 
 const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
 const { ITEMS } = require('../../utils/clanWarsItems');
+const { buildDEBracket8 } = require('../../utils/cwBracket');
 
 const EVENT_ID = 'cwev_battle01';
 
@@ -36,31 +37,8 @@ const TEAM_DEFS = [
   { id: T[7], name: 'Lunar Syndicate', weapon: 'Emberstrike Wand',       chest: 'Padded Gambeson',         cons: ['Quickfoot Elixir',  'Voidfire Flask']    },
 ];
 
-// 3-round bracket for 8 teams:
-//   QF (round 0): T0vT1, T2vT3, T4vT5, T6vT7
-const BRACKET = {
-  rounds: [
-    {
-      matches: [
-        { team1Id: T[0], team2Id: T[1], winnerId: null, battleId: null },
-        { team1Id: T[2], team2Id: T[3], winnerId: null, battleId: null },
-        { team1Id: T[4], team2Id: T[5], winnerId: null, battleId: null },
-        { team1Id: T[6], team2Id: T[7], winnerId: null, battleId: null },
-      ],
-    },
-    {
-      matches: [
-        { team1Id: null, team2Id: null, winnerId: null, battleId: null },
-        { team1Id: null, team2Id: null, winnerId: null, battleId: null },
-      ],
-    },
-    {
-      matches: [
-        { team1Id: null, team2Id: null, winnerId: null, battleId: null },
-      ],
-    },
-  ],
-};
+// Double-elimination bracket: WB (R1→R2→WBFinal) + LB (R1→R2→SF→Final) + Grand Final
+const BRACKET = buildDEBracket8(T);
 
 function makeItems(def, eventId, now) {
   const rows = [];
@@ -125,7 +103,7 @@ module.exports = {
       updatedAt: now,
     });
 
-    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard');
+    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     for (let i = 0; i < TEAM_DEFS.length; i++) {
       const def = TEAM_DEFS[i];
@@ -158,12 +136,12 @@ module.exports = {
     const allItems = TEAM_DEFS.flatMap((def) => makeItems(def, EVENT_ID, now));
     await ClanWarsItem.bulkCreate(allItems);
 
-    console.log('✅ Dev Battle seeder complete! (8 teams, 3-round bracket)');
+    console.log('✅ Dev Battle seeder complete! (8 teams, double-elimination bracket)');
     console.log(`   Event ID : ${EVENT_ID}`);
     console.log(`   Visit    : /champion-forge/${EVENT_ID}/battle`);
     console.log('   Iron Vanguard wields the Axe of the Fallen King');
-    console.log('   All 8 teams have locked loadouts — QF: T1vT2, T3vT4, T5vT6, T7vT8');
-    console.log('   Click ⚡ Simulate Next Match to start quarterfinals one at a time.');
+    console.log('   All 8 teams have locked loadouts — WB Round 1 ready to go.');
+    console.log('   Click ⚡ Simulate Next Match to progress the bracket one match at a time.');
   },
 
   async down(queryInterface) {

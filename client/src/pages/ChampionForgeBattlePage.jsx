@@ -52,7 +52,7 @@ export default function ChampionForgeBattlePage() {
     (t) => t.captainDiscordId === user?.discordUserId || (isAdmin && t.captainDiscordId == null)
   );
 
-  // Find the currently active battle from bracket
+  // Find the currently active battle from bracket (searches WB, LB, and grand final)
   const activeBattleId = useMemo(() => {
     const bracket = event?.bracket;
     if (!bracket?.rounds) return null;
@@ -60,6 +60,14 @@ export default function ChampionForgeBattlePage() {
       for (const match of round.matches) {
         if (match.battleId && !match.winnerId) return match.battleId;
       }
+    }
+    for (const round of bracket.losersBracket ?? []) {
+      for (const match of round.matches) {
+        if (match.battleId && !match.winnerId) return match.battleId;
+      }
+    }
+    if (bracket.grandFinal?.battleId && !bracket.grandFinal?.winnerId) {
+      return bracket.grandFinal.battleId;
     }
     return null;
   }, [event]);
@@ -115,9 +123,13 @@ export default function ChampionForgeBattlePage() {
   const isEventDone = event?.status === 'COMPLETED' || event?.status === 'ARCHIVED';
 
   const allMatchesDone = useMemo(() => {
-    const rounds = event?.bracket?.rounds;
-    if (!rounds?.length) return false;
-    return rounds.every((r) => r.matches.every((m) => m.isBye || !!m.winnerId));
+    const bracket = event?.bracket;
+    if (!bracket?.rounds?.length) return false;
+    const roundsDone = (rounds) => (rounds ?? []).every((r) => r.matches.every((m) => m.isBye || !!m.winnerId));
+    if (!roundsDone(bracket.rounds)) return false;
+    if (!roundsDone(bracket.losersBracket)) return false;
+    if (bracket.grandFinal && !bracket.grandFinal.winnerId) return false;
+    return true;
   }, [event]);
 
   const handleStartBattle = async (t1, t2) => {

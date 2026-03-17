@@ -88,8 +88,8 @@ module.exports = {
       updatedAt: now,
     });
 
-    // Generate full task pool (same as real event creation)
-    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard');
+    // Generate full task pool (3 members/team, same as seeder teams)
+    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     const pvmerTasks   = tasks.filter(t => t.role === 'PVMER');
     const skillerTasks = tasks.filter(t => t.role === 'SKILLER');

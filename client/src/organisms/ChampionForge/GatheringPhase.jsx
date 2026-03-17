@@ -50,7 +50,7 @@ import WarChestPanel from './WarChestPanel';
 import ConfirmModal from './ConfirmModal';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
-const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots'];
+const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots', 'trinket'];
 const DIFFICULTY_COLOR = { initiate: 'green', adept: 'yellow', master: 'red' };
 
 // ---------------------------------------------------------------------------
@@ -288,7 +288,7 @@ function SubmissionCard({
           {submission.role === 'PVMER' && (
             <>
               <Text fontSize="sm" color="gray.300">
-                Based off of the actual drop the player got, choose what slot this reward is for.
+                Based on the player's actual drop, assign the reward slot.
               </Text>
               <HStack>
                 <Text fontSize="xs" color="gray.400">

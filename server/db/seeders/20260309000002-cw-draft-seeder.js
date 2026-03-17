@@ -15,15 +15,13 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000002-cw-draft-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
-
 const EVENT_ID = 'cwev_draft01';
 const TEAM1_ID = 'cwt_draft_t1';
 
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask } = models;
+    const { ClanWarsEvent, ClanWarsTeam } = models;
 
     const existing = await ClanWarsEvent.findByPk(EVENT_ID);
     if (existing) {
@@ -74,11 +72,6 @@ module.exports = {
       updatedAt: now,
     });
 
-    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard');
-    await ClanWarsTask.bulkCreate(
-      tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now }))
-    );
-
     console.log('✅ Dev Draft seeder complete!');
     console.log(`   Event ID : ${EVENT_ID}`);
     console.log(`   Visit    : /champion-forge/${EVENT_ID}`);
@@ -87,9 +80,8 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask } = models;
+    const { ClanWarsEvent, ClanWarsTeam } = models;
 
-    await ClanWarsTask.destroy(  { where: { eventId: EVENT_ID } });
     await ClanWarsTeam.destroy(  { where: { eventId: EVENT_ID } });
     await ClanWarsEvent.destroy( { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Draft seeder undone.');

@@ -34,16 +34,22 @@ function seededRange(min, max, rng) {
   return min + Math.floor(rng() * (max - min + 1));
 }
 
+const REFERENCE_TEAM_SIZE = 5;
+
 /**
  * Build task rows from the full pool, seeded from `seed`.
  * All tasks are included every event; seeded shuffle randomises their order.
  *
+ * xp_gain and minigame_completions quantities are scaled by avgTeamSize relative
+ * to REFERENCE_TEAM_SIZE (5). item_collection (boss drops) are not scaled.
+ *
  * @param {string} eventId
- * @param {string} seed       - arbitrary string fed to seedrandom
+ * @param {string} seed            - arbitrary string fed to seedrandom
  * @param {string} eventDifficulty - 'casual' | 'standard' | 'hardcore'
- * @returns {Array<Object>}   - task row objects (no createdAt/updatedAt)
+ * @param {number} avgTeamSize     - average members per team (default 5)
+ * @returns {Array<Object>}        - task row objects (no createdAt/updatedAt)
  */
-function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard') {
+function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTeamSize = REFERENCE_TEAM_SIZE) {
   const rng = seedrandom(seed);
   const tasks = [];
 
@@ -64,6 +70,12 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard') {
         resolvedQuantity = (typeof qtys === 'object' && 'min' in qtys)
           ? seededRange(qtys.min, qtys.max, rng)
           : qtys;
+
+        // Scale xp_gain and minigame_completions by team size
+        if (task.type === 'xp_gain' || task.type === 'minigame_completions') {
+          resolvedQuantity = Math.round(resolvedQuantity * (avgTeamSize / REFERENCE_TEAM_SIZE));
+        }
+
         description = (task.descriptionTemplate ?? task.description ?? '').replace(
           '{quantity}',
           typeof resolvedQuantity === 'number' && resolvedQuantity >= 1000

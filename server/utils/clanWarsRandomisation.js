@@ -53,14 +53,15 @@ function rollItem(slot, rarity) {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-/** Rerolls until unique, walks up rarity tier if current tier is exhausted. */
+/** Rerolls until unique, walks up rarity tier if current tier is exhausted.
+ *  If all items in the slot are owned, allows a duplicate (trinkets expect this). */
 function rollUniqueItem(slot, rarity, warChest, maxAttempts = 10) {
   const ownedNames = new Set(warChest.map((i) => i.name));
   const rarityOrder = ['common', 'uncommon', 'rare', 'epic'];
   let idx = rarityOrder.indexOf(rarity);
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    if (idx >= rarityOrder.length) return null; // exhausted all tiers
+    if (idx >= rarityOrder.length) break; // exhausted all tiers — fall through to dupe
     const pool = ITEMS.filter(
       (i) => i.slot === slot && i.rarity === rarityOrder[idx] && !ownedNames.has(i.name)
     );
@@ -68,7 +69,10 @@ function rollUniqueItem(slot, rarity, warChest, maxAttempts = 10) {
     idx++; // tier exhausted — walk up
   }
 
-  return null;
+  // All unique items in this slot are owned — allow a duplicate
+  const dupePool = ITEMS.filter((i) => i.slot === slot);
+  if (dupePool.length === 0) return null;
+  return dupePool[Math.floor(Math.random() * dupePool.length)];
 }
 
 // ============================================================
@@ -79,7 +83,7 @@ function rollUniqueItem(slot, rarity, warChest, maxAttempts = 10) {
 function rollPvmerDrop({ slot, difficulty, warChest }) {
   const rarity = rollRarity(difficulty);
   const item = rollUniqueItem(slot, rarity, warChest);
-  if (!item) return { success: false, reason: `Team owns every ${slot} item` };
+  if (!item) return { success: false, reason: `No items found for slot: ${slot}` };
   return { success: true, item, slot, rarity };
 }
 
@@ -88,15 +92,7 @@ function rollSkillerDrop({ difficulty, warChest }) {
   const slot = weightedRandom(SKILLER_SLOT_WEIGHTS);
   const rarity = rollRarity(difficulty);
   const item = rollUniqueItem(slot, rarity, warChest);
-
-  if (!item) {
-    // Try a fallback slot
-    const fallbackSlot = weightedRandom(SKILLER_SLOT_WEIGHTS);
-    const fallbackItem = rollUniqueItem(fallbackSlot, rarity, warChest);
-    if (!fallbackItem) return { success: false, reason: 'War chest full for all skiller slots' };
-    return { success: true, item: fallbackItem, slot: fallbackSlot, rarity };
-  }
-
+  if (!item) return { success: false, reason: `No items found for slot: ${slot}` };
   return { success: true, item, slot, rarity };
 }
 
@@ -240,7 +236,7 @@ function buildChampionStats(loadout, items) {
     return { attack: 10, defense: 10, speed: 10, crit: 5, hp: CHAMPION_BASE_HP, maxHp: CHAMPION_BASE_HP, specials: [] };
   }
 
-  const GEAR_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots', 'shield', 'ring', 'amulet', 'cape'];
+  const GEAR_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots', 'shield', 'ring', 'amulet', 'cape', 'trinket'];
   const itemsById = Object.fromEntries(items.map((i) => [i.itemId, i]));
 
   const stats = { attack: 0, defense: 0, speed: 0, crit: 0, hp: CHAMPION_BASE_HP };

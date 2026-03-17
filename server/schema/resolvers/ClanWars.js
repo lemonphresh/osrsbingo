@@ -7,6 +7,14 @@ const logger = require('../../utils/logger');
 const { pubsub } = require('../pubsub');
 const { rollPvmerDrop, rollSkillerDrop, buildChampionStats, rollDamage, processSpecial } = require('../../utils/clanWarsRandomisation');
 const { sampleTasksFromPool, generateId } = require('../../utils/cwTaskSampler');
+const {
+  buildSEBracket,
+  buildDEBracket,
+  advanceBracketAfterBattle,
+  findNextUnstartedMatch,
+  setBattleIdInBracket,
+  setTeamReadyInBracket,
+} = require('../../utils/cwBracket');
 
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
@@ -160,7 +168,7 @@ const Mutation = {
 
   createClanWarsEvent: async (_, { input }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask } = getModels();
+    const { ClanWarsEvent, ClanWarsTeam } = getModels();
 
     const gatheringHours = input.gatheringHours ?? 48;
     const outfittingHours = input.outfittingHours ?? 24;
@@ -207,11 +215,7 @@ const Mutation = {
       );
     }
 
-    // Auto-generate task pool using seed + event difficulty
-    const taskRows = sampleTasksFromPool(eventId, seed, input.difficulty ?? 'standard');
-    await ClanWarsTask.bulkCreate(taskRows);
-
-    logger.info(`[createClanWarsEvent] event=${eventId} created with seed, ${input.teams?.length ?? 0} team(s), ${taskRows.length} tasks`);
+    logger.info(`[createClanWarsEvent] event=${eventId} created with seed, ${input.teams?.length ?? 0} team(s)`);
     return event;
   },
 
@@ -243,6 +247,16 @@ const Mutation = {
       const hours = event.eventConfig?.gatheringHours ?? 48;
       updates.gatheringStart = now;
       updates.gatheringEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
+
+      // Generate task pool now that team sizes are known
+      const { ClanWarsTeam, ClanWarsTask } = getModels();
+      const teams = await ClanWarsTeam.findAll({ where: { eventId } });
+      const totalMembers = teams.reduce((sum, t) => sum + (t.members?.length ?? 1), 0);
+      const avgTeamSize = teams.length > 0 ? Math.round(totalMembers / teams.length) : 5;
+      const taskRows = sampleTasksFromPool(eventId, event.seed, event.difficulty ?? 'standard', avgTeamSize);
+      await ClanWarsTask.bulkCreate(taskRows.map((r) => ({ ...r, createdAt: now, updatedAt: now })));
+      logger.info(`[updateClanWarsEventStatus] event=${eventId} tasks generated: ${taskRows.length} (avgTeamSize=${avgTeamSize})`);
+
     } else if (status === 'OUTFITTING') {
       const hours = event.eventConfig?.outfittingHours ?? 24;
       updates.outfittingEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
@@ -342,7 +356,7 @@ const Mutation = {
     return { success: true, message: 'Event deleted' };
   },
 
-  generateClanWarsBracket: async (_, { eventId }, { user }) => {
+  generateClanWarsBracket: async (_, { eventId, bracketType }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
@@ -354,43 +368,12 @@ const Mutation = {
     const teams = await ClanWarsTeam.findAll({ where: { eventId } });
 
     // Shuffle teams
-    const shuffled = [...teams].sort(() => Math.random() - 0.5);
+    const shuffledIds = [...teams].sort(() => Math.random() - 0.5).map((t) => t.teamId);
 
-    // Build single-elimination bracket
-    const rounds = [];
-    let remaining = shuffled;
+    const useDe = bracketType === 'DOUBLE_ELIMINATION';
+    const bracket = useDe ? buildDEBracket(shuffledIds) : buildSEBracket(shuffledIds);
 
-    while (remaining.length > 1) {
-      const matches = [];
-      const nextRound = [];
-
-      for (let i = 0; i < remaining.length - 1; i += 2) {
-        matches.push({
-          team1Id: remaining[i].teamId,
-          team2Id: remaining[i + 1].teamId,
-          winnerId: null,
-          battleId: null,
-        });
-        nextRound.push(null); // placeholder for winner
-      }
-
-      // Bye if odd number
-      if (remaining.length % 2 !== 0) {
-        matches.push({
-          team1Id: remaining[remaining.length - 1].teamId,
-          team2Id: null,
-          winnerId: remaining[remaining.length - 1].teamId,
-          battleId: null,
-          isBye: true,
-        });
-      }
-
-      rounds.push({ matches });
-      // For bracket structure we only care about shape, not advancing winners
-      remaining = nextRound;
-    }
-
-    await event.update({ bracket: { rounds } });
+    await event.update({ bracket });
     return event;
   },
 
@@ -760,19 +743,9 @@ const Mutation = {
     }
 
     const bracket = event.bracket ?? { rounds: [] };
-    let found = false;
-    const updatedRounds = bracket.rounds.map((round) => ({
-      ...round,
-      matches: round.matches.map((m) => {
-        if (found || m.battleId) return m; // already started, skip
-        if (m.team1Id === teamId) { found = true; return { ...m, team1Ready: true }; }
-        if (m.team2Id === teamId) { found = true; return { ...m, team2Ready: true }; }
-        return m;
-      }),
-    }));
-
-    if (!found) throw new UserInputError('No upcoming match found for this team');
-    await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
+    const updated = setTeamReadyInBracket(bracket, teamId);
+    if (!updated) throw new UserInputError('No upcoming match found for this team');
+    await event.update({ bracket: updated });
     return event;
   },
 
@@ -848,25 +821,8 @@ const Mutation = {
 
     // Write battleId back to the bracket so clients can auto-detect via polling
     const bracket = event.bracket ?? { rounds: [] };
-    let bracketUpdated = false;
-    const updatedRounds = bracket.rounds.map((round) => ({
-      ...round,
-      matches: round.matches.map((m) => {
-        if (
-          !bracketUpdated &&
-          !m.battleId &&
-          ((m.team1Id === team1Id && m.team2Id === team2Id) ||
-           (m.team1Id === team2Id && m.team2Id === team1Id))
-        ) {
-          bracketUpdated = true;
-          return { ...m, battleId: battle.battleId };
-        }
-        return m;
-      }),
-    }));
-    if (bracketUpdated) {
-      await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
-    }
+    const updatedBracket = setBattleIdInBracket(bracket, team1Id, team2Id, battle.battleId);
+    await event.update({ bracket: updatedBracket });
 
     return battle;
   },
@@ -1039,18 +995,15 @@ const Mutation = {
 
     await battle.update(battleUpdates);
 
-    // Write winnerId back to the bracket so clients can detect round completion via polling
+    // Advance bracket after battle completes (writes winnerId + fills next round slots)
     if (battleOver) {
       const eventRecord = await getEventOrThrow(battle.eventId);
       const b = eventRecord.bracket;
-      if (b?.rounds) {
-        const winnerRounds = b.rounds.map((round) => ({
-          ...round,
-          matches: round.matches.map((m) =>
-            m.battleId === battleId ? { ...m, winnerId } : m
-          ),
-        }));
-        await eventRecord.update({ bracket: { ...b, rounds: winnerRounds } });
+      if (b) {
+        const advancedBracket = advanceBracketAfterBattle(
+          b, battleId, winnerId, battle.team1Id, battle.team2Id
+        );
+        await eventRecord.update({ bracket: advancedBracket });
       }
     }
 
@@ -1166,17 +1119,14 @@ const Mutation = {
 
     await battle.update({ battleState: state, status: 'COMPLETED', winnerId, endedAt: new Date() });
 
-    // Write winnerId back to bracket
+    // Advance bracket after battle completes
     const eventRecord = await getEventOrThrow(battle.eventId);
     const b = eventRecord.bracket;
-    if (b?.rounds) {
-      const winnerRounds = b.rounds.map((round) => ({
-        ...round,
-        matches: round.matches.map((m) =>
-          m.battleId === battleId ? { ...m, winnerId } : m
-        ),
-      }));
-      await eventRecord.update({ bracket: { ...b, rounds: winnerRounds } });
+    if (b) {
+      const advancedBracket = advanceBracketAfterBattle(
+        b, battleId, winnerId, battle.team1Id, battle.team2Id
+      );
+      await eventRecord.update({ bracket: advancedBracket });
     }
 
     await battle.reload();
@@ -1189,15 +1139,11 @@ const Mutation = {
     const { ClanWarsTeam, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
     const event = await getEventOrThrow(eventId);
 
-    // Find the next bracket match without a battleId
+    // Find the next bracket match without a battleId (searches WB, LB, and grand final)
     const bracket = event.bracket;
     if (!bracket?.rounds?.length) throw new UserInputError('No bracket found — generate it first');
 
-    let nextMatch = null;
-    for (const round of bracket.rounds) {
-      nextMatch = round.matches.find((m) => !m.isBye && !m.battleId && m.team1Id && m.team2Id);
-      if (nextMatch) break;
-    }
+    const nextMatch = findNextUnstartedMatch(bracket);
     if (!nextMatch) throw new UserInputError('No unstarted matches found');
 
     const { team1Id, team2Id } = nextMatch;
@@ -1249,16 +1195,8 @@ const Mutation = {
       hpAfter: { team1: initialState.hp.team1, team2: initialState.hp.team2 },
     });
 
-    // Write battleId to bracket
-    const updatedRounds = bracket.rounds.map((round) => ({
-      ...round,
-      matches: round.matches.map((m) =>
-        !m.battleId && m.team1Id === team1Id && m.team2Id === team2Id
-          ? { ...m, battleId: battle.battleId }
-          : m
-      ),
-    }));
-    await event.update({ bracket: { ...bracket, rounds: updatedRounds } });
+    // Write battleId to bracket (searches all sections for DE brackets)
+    await event.update({ bracket: setBattleIdInBracket(bracket, team1Id, team2Id, battle.battleId) });
 
     // Battle is now IN_PROGRESS — client handles turn-by-turn play
     return battle;

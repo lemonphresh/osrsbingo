@@ -778,7 +778,7 @@ const typeDefs = gql`
     joinTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
     leaveTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
     deleteClanWarsEvent(eventId: ID!): MutationResponse!
-    generateClanWarsBracket(eventId: ID!): ClanWarsEvent!
+    generateClanWarsBracket(eventId: ID!, bracketType: String): ClanWarsEvent!
 
     # --- Champion Forge: Teams ---
     createClanWarsTeam(eventId: ID!, input: CreateClanWarsTeamInput!): ClanWarsTeam!

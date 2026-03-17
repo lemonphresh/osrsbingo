@@ -8,6 +8,8 @@
     "migrate": "npx sequelize-cli db:migrate --config db/config/config.json --migrations-path db/migrations",
     "cfseed": "bash scripts/seed-champion-forge-dev.sh",
     "cfseed:undo": "bash scripts/seed-champion-forge-dev.sh undo",
+    "cf:sync": "node scripts/syncCwObjectives.js",
+    "content:sync": "node utils/convert_excel_sheet.js utils/osrs_content_manager.xlsx utils/objectiveCollections.js && node scripts/syncCwObjectives.js",
     "test": "jest",
     "prepare": "husky"
   },

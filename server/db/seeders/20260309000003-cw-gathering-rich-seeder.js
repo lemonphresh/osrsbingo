@@ -76,8 +76,8 @@ module.exports = {
       updatedAt: now,
     });
 
-    // Generate the full task pool (same logic as createClanWarsEvent resolver)
-    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard');
+    // Generate the full task pool (3 members/team, same as seeder teams)
+    const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     // Look up specific tasks by label for team progress / submissions
     const barrowsTask    = tasks.find(t => t.label === 'Grave Situation');

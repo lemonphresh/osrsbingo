@@ -302,8 +302,8 @@ export const DELETE_CLAN_WARS_EVENT = gql`
 `;
 
 export const GENERATE_CLAN_WARS_BRACKET = gql`
-  mutation GenerateClanWarsBracket($eventId: ID!) {
-    generateClanWarsBracket(eventId: $eventId) {
+  mutation GenerateClanWarsBracket($eventId: ID!, $bracketType: String) {
+    generateClanWarsBracket(eventId: $eventId, bracketType: $bracketType) {
       eventId
       bracket
     }

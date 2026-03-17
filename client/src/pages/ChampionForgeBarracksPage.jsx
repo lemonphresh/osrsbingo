@@ -346,6 +346,7 @@ function TaskRow({
 // ---------------------------------------------------------------------------
 function TaskSection({
   title,
+  subtitle,
   colorScheme,
   tasks,
   completedTaskIds,
@@ -367,7 +368,7 @@ function TaskSection({
 
   return (
     <Box>
-      <HStack mb={3} justify="space-between">
+      <HStack mb={subtitle ? 1 : 3} justify="space-between">
         <HStack spacing={2}>
           <Badge colorScheme={colorScheme} fontSize="sm" px={2} py={1}>
             {title}
@@ -377,6 +378,11 @@ function TaskSection({
           </Text>
         </HStack>
       </HStack>
+      {subtitle && (
+        <Text fontSize="xs" color="gray.500" mb={3}>
+          {subtitle}
+        </Text>
+      )}
 
       <VStack align="stretch" spacing={2}>
         {DIFF_ORDER.map((diff) => {
@@ -442,6 +448,12 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
 
   const isUnset = !currentRole || currentRole === 'UNSET';
 
+  const ROLE_TOOLTIPS = {
+    PVMER: 'Complete boss & combat tasks. Admin assigns the reward slot (weapon, helm, chest, legs, gloves, boots, or trinket) based on your actual drop.',
+    SKILLER: 'Complete XP & minigame tasks. Rewards are auto-assigned — consumables, rings, amulets, capes, or shields.',
+    FLEX: 'Work on any task. Reward type depends on the task you complete.',
+  };
+
   return (
     <HStack spacing={2} flexWrap="wrap" align="center">
       <Text fontSize="xs" color={isUnset ? 'yellow.300' : 'gray.400'} fontWeight="semibold">
@@ -453,14 +465,15 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
           ['SKILLER', 'teal'],
           ['FLEX', 'purple'],
         ].map(([role, scheme]) => (
-          <Button
-            key={role}
-            colorScheme={scheme}
-            variant={currentRole === role ? 'solid' : 'outline'}
-            onClick={() => setRole(role)}
-          >
-            {role === 'PVMER' ? 'PvMer' : role === 'SKILLER' ? 'Skiller' : 'Flex'}
-          </Button>
+          <Tooltip key={role} label={ROLE_TOOLTIPS[role]} hasArrow placement="top">
+            <Button
+              colorScheme={scheme}
+              variant={currentRole === role ? 'solid' : 'outline'}
+              onClick={() => setRole(role)}
+            >
+              {role === 'PVMER' ? 'PvMer' : role === 'SKILLER' ? 'Skiller' : 'Flex'}
+            </Button>
+          </Tooltip>
         ))}
       </ButtonGroup>
     </HStack>
@@ -582,6 +595,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             {pvmerTasks.length > 0 && (
               <TaskSection
                 title="PvM Tasks"
+                subtitle="Drops: weapon, helm, chest, legs, gloves, boots, or trinket — admin picks your slot"
                 colorScheme="orange"
                 tasks={pvmerTasks}
                 {...sharedTaskProps}
@@ -591,6 +605,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             {skillerTasks.length > 0 && (
               <TaskSection
                 title="Skilling Tasks"
+                subtitle="Drops: consumable, ring, amulet, cape, or shield — auto-assigned"
                 colorScheme="teal"
                 tasks={skillerTasks}
                 {...sharedTaskProps}

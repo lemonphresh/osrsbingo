@@ -365,6 +365,7 @@ function TaskPool({ event, refetch }) {
 export default function AdminEventPanel({ event, refetch }) {
   const { showToast } = useToastContext();
   const [updateStatus] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
+  const [bracketType, setBracketType] = useState('SINGLE_ELIMINATION');
   const [generateBracket] = useMutation(GENERATE_CLAN_WARS_BRACKET, { onCompleted: refetch });
   const [forceStatus] = useMutation(ADMIN_FORCE_EVENT_STATUS, { onCompleted: refetch });
   const [lockAllLoadouts, { loading: lockingAll }] = useMutation(ADMIN_LOCK_ALL_LOADOUTS, {
@@ -401,7 +402,7 @@ export default function AdminEventPanel({ event, refetch }) {
 
   const handleGenerateBracket = async () => {
     try {
-      await generateBracket({ variables: { eventId: event.eventId } });
+      await generateBracket({ variables: { eventId: event.eventId, bracketType } });
       showToast('Bracket generated!', 'success');
     } catch {
       showToast('Failed to generate bracket', 'error');
@@ -437,9 +438,24 @@ export default function AdminEventPanel({ event, refetch }) {
         {/* Phase advance */}
         <HStack spacing={2}>
           {event.status === 'OUTFITTING' && (
-            <Button size="sm" variant="outline" colorScheme="blue" onClick={handleGenerateBracket}>
-              Generate Bracket
-            </Button>
+            <HStack spacing={1}>
+              <Select
+                size="sm"
+                value={bracketType}
+                onChange={(e) => setBracketType(e.target.value)}
+                w="auto"
+                bg="gray.700"
+                borderColor="gray.600"
+                color="gray.200"
+                fontSize="xs"
+              >
+                <option value="SINGLE_ELIMINATION">Single Elim</option>
+                <option value="DOUBLE_ELIMINATION">Double Elim</option>
+              </Select>
+              <Button size="sm" variant="outline" colorScheme="blue" onClick={handleGenerateBracket}>
+                Generate Bracket
+              </Button>
+            </HStack>
           )}
           {nextStatus && (
             <Button
@@ -642,18 +658,33 @@ export default function AdminEventPanel({ event, refetch }) {
                     >
                       Bracket
                     </Text>
-                    <Button
-                      size="sm"
-                      colorScheme="blue"
-                      variant="outline"
-                      onClick={() =>
-                        generateBracket({ variables: { eventId: event.eventId } })
-                          .then(() => showToast('Bracket regenerated', 'success'))
-                          .catch((e) => showToast(e.message, 'error'))
-                      }
-                    >
-                      Regenerate Bracket
-                    </Button>
+                    <HStack spacing={1}>
+                      <Select
+                        size="sm"
+                        value={bracketType}
+                        onChange={(e) => setBracketType(e.target.value)}
+                        w="auto"
+                        bg="gray.700"
+                        borderColor="gray.600"
+                        color="gray.200"
+                        fontSize="xs"
+                      >
+                        <option value="SINGLE_ELIMINATION">Single Elim</option>
+                        <option value="DOUBLE_ELIMINATION">Double Elim</option>
+                      </Select>
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        variant="outline"
+                        onClick={() =>
+                          generateBracket({ variables: { eventId: event.eventId, bracketType } })
+                            .then(() => showToast('Bracket regenerated', 'success'))
+                            .catch((e) => showToast(e.message, 'error'))
+                        }
+                      >
+                        Regenerate Bracket
+                      </Button>
+                    </HStack>
                   </Box>
                 </VStack>
               </AccordionPanel>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { Box, VStack, HStack, Text, Button, Badge } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Button, Badge, Divider } from '@chakra-ui/react';
 import ConfirmModal from './ConfirmModal';
 import { SET_CAPTAIN_READY } from '../../graphql/clanWarsOperations';
 
@@ -163,7 +163,6 @@ function MatchCard({
         {/* Admin ready-up on behalf + start */}
         {isUpcoming && isAdmin && (
           <VStack spacing={1}>
-            {/* Admin can ready both teams too */}
             <HStack w="full" spacing={1}>
               <Button
                 size="xs"
@@ -241,6 +240,141 @@ function MatchCard({
   );
 }
 
+function RoundColumn({ round, roundLabel, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle }) {
+  return (
+    <VStack align="flex-start" spacing={4} minW="240px">
+      <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing={1}>
+        {roundLabel}
+      </Text>
+      <VStack spacing={6} align="stretch">
+        {round.matches.map((match, matchIdx) => (
+          <MatchCard
+            key={matchIdx}
+            match={match}
+            teams={teams}
+            isAdmin={isAdmin}
+            myTeamId={myTeamId}
+            eventId={eventId}
+            starting={starting}
+            onStartBattle={onStartBattle}
+            onSelectBattle={onSelectBattle}
+          />
+        ))}
+      </VStack>
+    </VStack>
+  );
+}
+
+function getSELabel(roundIdx, totalRounds) {
+  if (roundIdx === totalRounds - 1) return 'Final';
+  if (roundIdx === totalRounds - 2 && totalRounds > 2) return 'Semifinal';
+  return `Round ${roundIdx + 1}`;
+}
+
+// ---------------------------------------------------------------------------
+// Single-elimination layout (original)
+// ---------------------------------------------------------------------------
+function SEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle }) {
+  return (
+    <Box overflowX="auto">
+      <HStack align="flex-start" spacing={8} pb={4}>
+        {bracket.rounds.map((round, roundIdx) => (
+          <RoundColumn
+            key={roundIdx}
+            round={round}
+            roundLabel={getSELabel(roundIdx, bracket.rounds.length)}
+            teams={teams}
+            isAdmin={isAdmin}
+            myTeamId={myTeamId}
+            eventId={eventId}
+            starting={starting}
+            onStartBattle={onStartBattle}
+            onSelectBattle={onSelectBattle}
+          />
+        ))}
+      </HStack>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Double-elimination layout
+// ---------------------------------------------------------------------------
+function DEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle }) {
+  const sharedProps = { teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle };
+
+  const lbRounds = bracket.losersBracket ?? [];
+  const gf = bracket.grandFinal;
+
+  return (
+    <VStack align="stretch" spacing={6}>
+      {/* Winners Bracket */}
+      <Box>
+        <HStack mb={3} spacing={2} align="center">
+          <Text fontSize="xs" fontWeight="bold" color="yellow.400" textTransform="uppercase" letterSpacing={2}>
+            Winners Bracket
+          </Text>
+          <Text fontSize="xs" color="gray.600">(lose here and you drop to Losers Bracket)</Text>
+        </HStack>
+        <Box overflowX="auto">
+          <HStack align="flex-start" spacing={8} pb={2}>
+            {bracket.rounds.map((round, roundIdx) => (
+              <RoundColumn
+                key={roundIdx}
+                round={round}
+                roundLabel={round.label ?? getSELabel(roundIdx, bracket.rounds.length)}
+                {...sharedProps}
+              />
+            ))}
+          </HStack>
+        </Box>
+      </Box>
+
+      <Divider borderColor="gray.700" />
+
+      {/* Losers Bracket */}
+      {lbRounds.length > 0 && (
+        <Box>
+          <HStack mb={3} spacing={2} align="center">
+            <Text fontSize="xs" fontWeight="bold" color="orange.400" textTransform="uppercase" letterSpacing={2}>
+              Losers Bracket
+            </Text>
+            <Text fontSize="xs" color="gray.600">(one more loss and you're eliminated)</Text>
+          </HStack>
+          <Box overflowX="auto">
+            <HStack align="flex-start" spacing={8} pb={2}>
+              {lbRounds.map((round, roundIdx) => (
+                <RoundColumn
+                  key={roundIdx}
+                  round={round}
+                  roundLabel={round.label ?? `LB Round ${roundIdx + 1}`}
+                  {...sharedProps}
+                />
+              ))}
+            </HStack>
+          </Box>
+        </Box>
+      )}
+
+      {/* Grand Final */}
+      {gf && (
+        <>
+          <Divider borderColor="gray.700" />
+          <Box>
+            <Text fontSize="xs" fontWeight="bold" color="purple.300" textTransform="uppercase" letterSpacing={2} mb={3}>
+              Grand Final
+            </Text>
+            <MatchCard match={gf} {...sharedProps} />
+          </Box>
+        </>
+      )}
+    </VStack>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main export
+// ---------------------------------------------------------------------------
 export default function BattleBracket({
   event,
   isAdmin,
@@ -260,36 +394,11 @@ export default function BattleBracket({
     );
   }
 
-  return (
-    <Box overflowX="auto">
-      <HStack align="flex-start" spacing={8} pb={4}>
-        {bracket.rounds.map((round, roundIdx) => (
-          <VStack key={roundIdx} align="flex-start" spacing={4} minW="240px">
-            <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing={1}>
-              {roundIdx === bracket.rounds.length - 1
-                ? 'Final'
-                : roundIdx === bracket.rounds.length - 2 && bracket.rounds.length > 2
-                ? 'Semifinal'
-                : `Round ${roundIdx + 1}`}
-            </Text>
-            <VStack spacing={6} align="stretch">
-              {round.matches.map((match, matchIdx) => (
-                <MatchCard
-                  key={matchIdx}
-                  match={match}
-                  teams={teams}
-                  isAdmin={isAdmin}
-                  myTeamId={myTeamId}
-                  eventId={event.eventId}
-                  starting={starting}
-                  onStartBattle={onStartBattle}
-                  onSelectBattle={onSelectBattle}
-                />
-              ))}
-            </VStack>
-          </VStack>
-        ))}
-      </HStack>
-    </Box>
-  );
+  const sharedProps = { teams, isAdmin, myTeamId, eventId: event.eventId, starting, onStartBattle, onSelectBattle };
+
+  if (bracket.type === 'DOUBLE_ELIMINATION') {
+    return <DEBracket bracket={bracket} {...sharedProps} />;
+  }
+
+  return <SEBracket bracket={bracket} {...sharedProps} />;
 }

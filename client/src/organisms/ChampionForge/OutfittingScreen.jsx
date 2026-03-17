@@ -50,6 +50,7 @@ const GEAR_SLOTS = [
   'ring',
   'amulet',
   'cape',
+  'trinket',
 ];
 const SLOT_EMOJI = {
   weapon: '⚔️',
@@ -63,6 +64,7 @@ const SLOT_EMOJI = {
   amulet: '📿',
   cape: '🧣',
   consumable: '🧪',
+  trinket: '🔮',
 };
 
 // ---------------------------------------------------------------------------
@@ -73,6 +75,7 @@ const PAPERDOLL_POSITIONS = [
   { slot: 'helm', row: 1, col: 2 },
   { slot: 'cape', row: 2, col: 1 },
   { slot: 'amulet', row: 2, col: 2 },
+  { slot: 'trinket', row: 2, col: 3 },
   { slot: 'weapon', row: 3, col: 1 },
   { slot: 'shield', row: 3, col: 3 },
   { slot: 'chest', row: 4, col: 2 },
