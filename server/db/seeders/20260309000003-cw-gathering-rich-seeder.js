@@ -80,12 +80,12 @@ module.exports = {
     const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     // Look up specific tasks by label for team progress / submissions
-    const barrowsTask    = tasks.find(t => t.label === 'Grave Situation');
-    const dkTask         = tasks.find(t => t.label === 'Triple Crown');
-    const zulrahTask     = tasks.find(t => t.label === 'Snake Charmer');
-    const fishingTask    = tasks.find(t => t.label === 'Hooked In');
-    const wintertodtTask = tasks.find(t => t.label === 'Cold Snap');
-    const miningTask     = tasks.find(t => t.label === 'Rock Solid');
+    const barrowsTask    = tasks.find(t => t.label === 'Barrows');
+    const dkTask         = tasks.find(t => t.label === 'Dagannoth Kings');
+    const zulrahTask     = tasks.find(t => t.label === 'Zulrah');
+    const fishingTask    = tasks.find(t => t.label === 'Fishing XP');
+    const wintertodtTask = tasks.find(t => t.label === 'Wintertodt');
+    const miningTask     = tasks.find(t => t.label === 'Mining XP');
 
     // -------------------------------------------------------------------------
     // Team 1: Iron Vanguard

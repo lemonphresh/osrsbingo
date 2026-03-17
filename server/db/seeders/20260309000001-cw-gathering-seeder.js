@@ -64,10 +64,10 @@ module.exports = {
     const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     // Look up specific tasks by label for use in team progress / submissions
-    const barrowsTask = tasks.find((t) => t.label === 'Grave Situation');
-    const dkTask = tasks.find((t) => t.label === 'Triple Crown');
-    const fishingTask = tasks.find((t) => t.label === 'Hooked In');
-    const wintertodtTask = tasks.find((t) => t.label === 'Cold Snap');
+    const barrowsTask = tasks.find((t) => t.label === 'Barrows');
+    const dkTask = tasks.find((t) => t.label === 'Dagannoth Kings');
+    const fishingTask = tasks.find((t) => t.label === 'Fishing XP');
+    const wintertodtTask = tasks.find((t) => t.label === 'Wintertodt');
 
     await ClanWarsTeam.create({
       teamId: TEAM1_ID,

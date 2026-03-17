@@ -65,6 +65,34 @@ function initBattleState(snap1, snap2) {
   };
 }
 
+// Returns a stat object merged with active buff/debuff effects for a side.
+function getEffectiveStats(snap, effects) {
+  const base = { ...snap.stats };
+  for (const e of effects ?? []) {
+    if (e.type === 'buff') {
+      if (e.stat === 'all') {
+        base.attack  = (base.attack  ?? 0) + e.value;
+        base.defense = (base.defense ?? 0) + e.value;
+        base.speed   = (base.speed   ?? 0) + e.value;
+        base.crit    = (base.crit    ?? 0) + e.value;
+      } else if (e.stat in base) {
+        base[e.stat] = (base[e.stat] ?? 0) + e.value;
+      }
+    } else if (e.type === 'debuff' && e.debuffType === 'weaken') {
+      base.attack = Math.max(0, (base.attack ?? 0) - e.value);
+    }
+  }
+  return base;
+}
+
+function hasFortress(effects) {
+  return (effects ?? []).some((e) => e.type === 'fortress');
+}
+
+function isBlinded(effects) {
+  return (effects ?? []).some((e) => e.type === 'debuff' && e.debuffType === 'blind');
+}
+
 // Process bleed/status effects at end of a team's turn
 function tickEffects(state, side) {
   const effects = state.activeEffects[side] ?? [];
@@ -76,10 +104,11 @@ function tickEffects(state, side) {
       bleedDamage += effect.value;
       if (effect.turns > 1) remaining.push({ ...effect, turns: effect.turns - 1 });
     } else if (effect.type === 'fortress') {
-      // fortress counts down on attacker's turn — handled in submitBattleAction
+      // fortress counts down on actor's turn at top of submitBattleAction
       remaining.push(effect);
     } else {
-      remaining.push(effect);
+      // buff, debuff, and all other timed effects — decrement and drop when expired
+      if (effect.turns > 1) remaining.push({ ...effect, turns: effect.turns - 1 });
     }
   }
 
@@ -863,17 +892,25 @@ const Mutation = {
     const isDefending = newState.defendActive[defSide] ?? false;
 
     if (action === 'ATTACK') {
-      const roll = rollDamage({
-        attackStat: actorSnap.stats.attack,
-        defenseStat: defSnap.stats.defense,
-        critChance: actorSnap.stats.crit,
-        isDefending,
-      });
-      damageDealt = roll.damage;
-      isCrit = roll.isCrit;
-      newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
-      newState.defendActive[defSide] = false;
-      narrative = `${isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${damageDealt} damage!${isCrit ? ' (critical hit!)' : ''}`;
+      if (isBlinded(newState.activeEffects[actorSide])) {
+        narrative = `😵 ${actorSnap.teamName} is blinded and misses their attack!`;
+      } else {
+        const actorEffStats = getEffectiveStats(actorSnap, newState.activeEffects[actorSide]);
+        const defEffStats   = getEffectiveStats(defSnap,   newState.activeEffects[defSide]);
+        const roll = rollDamage({
+          attackStat:  actorEffStats.attack,
+          defenseStat: defEffStats.defense,
+          critChance:  actorEffStats.crit,
+          isDefending,
+        });
+        const fortressMult = hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1;
+        damageDealt = fortressMult < 1 ? Math.max(1, Math.round(roll.damage * fortressMult)) : roll.damage;
+        isCrit = roll.isCrit;
+        newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
+        newState.defendActive[defSide] = false;
+        const fortressNote = fortressMult < 1 ? ' (fortress absorbed 60%!)' : '';
+        narrative = `${isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${damageDealt} damage!${isCrit ? ' (critical hit!)' : ''}${fortressNote}`;
+      }
 
     } else if (action === 'DEFEND') {
       newState.defendActive[actorSide] = true;
@@ -884,10 +921,16 @@ const Mutation = {
       const specials = actorSnap.stats.specials ?? [];
       if (!specials.length) throw new UserInputError('No special ability available');
 
-      const specialId = specials[0];
-      const result = processSpecial(specialId, actorSnap, defSnap, newState, actorSide, defSide);
+      const actorEffStats = getEffectiveStats(actorSnap, newState.activeEffects[actorSide]);
+      const defEffStats   = getEffectiveStats(defSnap,   newState.activeEffects[defSide]);
+      const actorSnapEff  = { ...actorSnap, stats: actorEffStats };
+      const defSnapEff    = { ...defSnap,   stats: defEffStats };
 
-      damageDealt = result.damage;
+      const specialId = specials[0];
+      const result = processSpecial(specialId, actorSnapEff, defSnapEff, newState, actorSide, defSide);
+
+      const fortressMult = result.damage > 0 ? (hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1) : 1;
+      damageDealt = result.damage > 0 ? Math.max(1, Math.round(result.damage * fortressMult)) : 0;
       isCrit = result.isCrit ?? false;
       newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
       if (result.attackerHeal) newState.hp[actorSide] = Math.min(actorSnap.stats.maxHp, newState.hp[actorSide] + result.attackerHeal);
@@ -896,7 +939,8 @@ const Mutation = {
       newState.specialUsed[actorSide] = true;
       newState.defendActive[defSide] = false;
       effectApplied = specialId;
-      narrative = result.narrative;
+      const fortressNote = fortressMult < 1 ? ` (fortress absorbed 60% — actual damage: ${damageDealt})` : '';
+      narrative = result.narrative + fortressNote;
 
     } else if (action === 'USE_ITEM') {
       if (!itemId) throw new UserInputError('itemId required for USE_ITEM action');

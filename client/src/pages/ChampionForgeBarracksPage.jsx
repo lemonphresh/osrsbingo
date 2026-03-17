@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
   Center,
@@ -31,6 +31,9 @@ import {
   JOIN_TASK_IN_PROGRESS,
   LEAVE_TASK_IN_PROGRESS,
   UPDATE_CLAN_WARS_TEAM_MEMBERS,
+  GET_CLAN_WARS_SUBMISSIONS,
+  CLAN_WARS_SUBMISSION_ADDED,
+  CLAN_WARS_SUBMISSION_REVIEWED,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -507,6 +510,116 @@ function useCountdown(target) {
 }
 
 // ---------------------------------------------------------------------------
+// Submission feed — player-facing, read-only
+// ---------------------------------------------------------------------------
+const STATUS_COLOR = { PENDING: 'yellow', APPROVED: 'green', DENIED: 'red' };
+const STATUS_LABEL = { PENDING: 'pending', APPROVED: 'approved', DENIED: 'denied' };
+
+function SubmissionFeed({ eventId, teamId }) {
+  const { data, refetch } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
+    variables: { eventId },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  useSubscription(CLAN_WARS_SUBMISSION_ADDED, {
+    variables: { eventId },
+    onData: () => refetch(),
+  });
+  useSubscription(CLAN_WARS_SUBMISSION_REVIEWED, {
+    variables: { eventId },
+    onData: () => refetch(),
+  });
+
+  const subs = (data?.getClanWarsSubmissions ?? [])
+    .filter((s) => s.teamId === teamId)
+    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+
+  if (subs.length === 0) return null;
+
+  const pendingCount = subs.filter((s) => s.status === 'PENDING').length;
+
+  return (
+    <Box>
+      <HStack mb={3} spacing={2}>
+        <Text fontSize="sm" fontWeight="semibold" color="gray.300">
+          Your Submissions
+        </Text>
+        {pendingCount > 0 && (
+          <Badge colorScheme="yellow" fontSize="xs">
+            {pendingCount} pending review
+          </Badge>
+        )}
+      </HStack>
+      <VStack spacing={2} align="stretch">
+        {subs.map((sub) => (
+          <Box
+            key={sub.submissionId}
+            p={3}
+            bg="gray.700"
+            borderRadius="md"
+            border="1px solid"
+            borderColor={
+              sub.status === 'APPROVED'
+                ? 'green.700'
+                : sub.status === 'DENIED'
+                ? 'red.900'
+                : 'gray.600'
+            }
+          >
+            <HStack justify="space-between" flexWrap="wrap" gap={1}>
+              <HStack spacing={2} flex={1} minW={0}>
+                <Badge colorScheme={STATUS_COLOR[sub.status]} fontSize="xs" flexShrink={0}>
+                  {STATUS_LABEL[sub.status]}
+                </Badge>
+                <Text fontSize="sm" color="white" noOfLines={1}>
+                  {sub.taskLabel ?? sub.taskId}
+                </Text>
+              </HStack>
+              <Text fontSize="xs" color="gray.500" flexShrink={0}>
+                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : ''}
+              </Text>
+            </HStack>
+
+            {sub.status === 'APPROVED' && sub.rewardItem && (
+              <HStack mt={1} spacing={1}>
+                <Text fontSize="xs" color="gray.400">reward:</Text>
+                <Badge
+                  colorScheme={
+                    sub.rewardItem.rarity === 'epic' ? 'purple'
+                    : sub.rewardItem.rarity === 'rare' ? 'blue'
+                    : sub.rewardItem.rarity === 'uncommon' ? 'green'
+                    : 'gray'
+                  }
+                  fontSize="xs"
+                >
+                  {sub.rewardItem.rarity}
+                </Badge>
+                <Text fontSize="xs" color="gray.300">{sub.rewardItem.name}</Text>
+              </HStack>
+            )}
+
+            {sub.status === 'APPROVED' && !sub.rewardItem && (
+              <Text fontSize="xs" color="gray.500" mt={1}>
+                approved — reward rolls when task is marked complete
+              </Text>
+            )}
+
+            {sub.status === 'DENIED' && sub.reviewNote && (
+              <Box mt={1} px={2} py={1} bg="red.900" borderRadius="sm">
+                <Text fontSize="xs" color="red.200">
+                  <Text as="span" fontWeight="semibold">reason: </Text>
+                  {sub.reviewNote}
+                </Text>
+              </Box>
+            )}
+          </Box>
+        ))}
+      </VStack>
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // GATHERING phase
 // ---------------------------------------------------------------------------
 function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
@@ -616,6 +729,9 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 <Text color="gray.500">No tasks assigned to this event yet.</Text>
               </Center>
             )}
+
+            <Divider borderColor="gray.600" />
+            <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
           </VStack>
         </Box>
 

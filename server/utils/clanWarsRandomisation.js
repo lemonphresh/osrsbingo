@@ -79,12 +79,19 @@ function rollUniqueItem(slot, rarity, warChest, maxAttempts = 10) {
 // DROP PIPELINES
 // ============================================================
 
-/** PvMer drop: admin picks the slot, system rolls rarity + item. */
+const MISC_PVMER_SLOTS = ['gloves', 'boots', 'trinket'];
+
+/** PvMer drop: admin picks the slot, system rolls rarity + item.
+ *  slot='misc' randomly resolves to gloves, boots, or trinket. */
 function rollPvmerDrop({ slot, difficulty, warChest }) {
+  const resolvedSlot =
+    slot === 'misc'
+      ? MISC_PVMER_SLOTS[Math.floor(Math.random() * MISC_PVMER_SLOTS.length)]
+      : slot;
   const rarity = rollRarity(difficulty);
-  const item = rollUniqueItem(slot, rarity, warChest);
-  if (!item) return { success: false, reason: `No items found for slot: ${slot}` };
-  return { success: true, item, slot, rarity };
+  const item = rollUniqueItem(resolvedSlot, rarity, warChest);
+  if (!item) return { success: false, reason: `No items found for slot: ${resolvedSlot}` };
+  return { success: true, item, slot: resolvedSlot, rarity };
 }
 
 /** Skiller drop: fully automatic — system picks slot and rolls item. */
@@ -101,10 +108,10 @@ function rollSkillerDrop({ difficulty, warChest }) {
 // ============================================================
 
 function rollDamage({ attackStat, defenseStat, critChance, isDefending = false }) {
-  const base = Math.max(1, attackStat - defenseStat * 0.5);
+  const base = Math.max(1, attackStat - defenseStat * 0.3);
   const variance = 0.85 + Math.random() * 0.3;
   const defMult = isDefending ? 0.4 : 1;
-  const isCrit = Math.random() * 100 < critChance;
+  const isCrit = Math.random() * 100 < Math.min(critChance, 75);
   const damage = Math.round(base * variance * defMult * (isCrit ? 1.5 : 1));
   return { damage: Math.max(1, damage), isCrit };
 }
@@ -221,7 +228,7 @@ function processSpecial(specialId, actorSnap, defSnap, state, actorSide, defSide
 // CHAMPION STAT BUILDER
 // ============================================================
 
-const CHAMPION_BASE_HP = 100;
+const CHAMPION_BASE_HP = 150;
 
 /**
  * buildChampionStats(loadout, items)
@@ -239,7 +246,7 @@ function buildChampionStats(loadout, items) {
   const GEAR_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots', 'shield', 'ring', 'amulet', 'cape', 'trinket'];
   const itemsById = Object.fromEntries(items.map((i) => [i.itemId, i]));
 
-  const stats = { attack: 0, defense: 0, speed: 0, crit: 0, hp: CHAMPION_BASE_HP };
+  const stats = { attack: 8, defense: 0, speed: 0, crit: 0, hp: CHAMPION_BASE_HP };
   const specials = [];
 
   for (const slot of GEAR_SLOTS) {
@@ -258,6 +265,12 @@ function buildChampionStats(loadout, items) {
     if (item.itemSnapshot.special?.id) {
       specials.push(item.itemSnapshot.special.id);
     }
+  }
+
+  // Move the captain's chosen special to front so it fires first
+  if (loadout.chosenSpecial) {
+    const idx = specials.indexOf(loadout.chosenSpecial);
+    if (idx > 0) specials.unshift(...specials.splice(idx, 1));
   }
 
   return { ...stats, maxHp: stats.hp, specials };

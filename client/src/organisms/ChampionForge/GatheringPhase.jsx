@@ -50,7 +50,14 @@ import WarChestPanel from './WarChestPanel';
 import ConfirmModal from './ConfirmModal';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
-const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'gloves', 'boots', 'trinket'];
+const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'misc'];
+const PVMER_SLOT_LABELS = {
+  weapon: 'Weapon',
+  helm: 'Helm',
+  chest: 'Chest',
+  legs: 'Legs',
+  misc: 'Misc — randomly rolls gloves, boots, or trinket',
+};
 const DIFFICULTY_COLOR = { initiate: 'green', adept: 'yellow', master: 'red' };
 
 // ---------------------------------------------------------------------------
@@ -226,7 +233,7 @@ function SubmissionCard({
                   >
                     {PVMER_SLOTS.map((s) => (
                       <option key={s} value={s}>
-                        {s}
+                        {PVMER_SLOT_LABELS[s] ?? s}
                       </option>
                     ))}
                   </Select>
