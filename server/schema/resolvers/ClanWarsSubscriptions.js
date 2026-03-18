@@ -28,5 +28,7 @@ module.exports = {
     battleEmoteReceived: createSubscription((args) => `BATTLE_EMOTE_${args.battleId}`),
     clanWarsSubmissionAdded: createSubscription((args) => `CLAN_WARS_SUBMISSION_ADDED_${args.eventId}`),
     clanWarsSubmissionReviewed: createSubscription((args) => `CLAN_WARS_SUBMISSION_REVIEWED_${args.eventId}`),
+    clanWarsPreScreenshotAdded: createSubscription((args) => `CLAN_WARS_PRESCREENSHOT_ADDED_${args.eventId}`),
+    clanWarsEventUpdated: createSubscription((args) => `CLAN_WARS_EVENT_UPDATED_${args.eventId}`),
   },
 };

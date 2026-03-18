@@ -5,6 +5,8 @@
  * Best-effort — all functions swallow errors so they never break the main flow.
  */
 
+const SITE_URL = process.env.SITE_URL || 'https://osrsbingohub.com';
+
 let _botClient = null;
 
 function registerBotClient(client) {
@@ -68,14 +70,17 @@ async function sendClanWarsSubmissionResult({
   }
 }
 
-async function sendClanWarsPhaseAnnouncement({ guildId, channelId, eventName, phase }) {
+async function sendClanWarsPhaseAnnouncement({ channelId, eventId, eventName, phase }) {
   if (!_botClient || !channelId) return;
 
+  const eventUrl = `${SITE_URL}/champion-forge/${eventId}`;
+  const battleUrl = `${SITE_URL}/champion-forge/${eventId}/battle`;
+
   const messages = {
-    GATHERING: `⚔️ **Champion Forge** — **${eventName}** has entered the **Gathering Phase**! Submit tasks with \`!cfsubmit <task_id> <proof_url>\` to fill your war chest.`,
-    OUTFITTING: `🛡️ **Champion Forge** — **${eventName}** has entered the **Outfitting Phase**! Head to the website to equip your champion.`,
-    BATTLE: `🏆 **Champion Forge** — **${eventName}** — Battle Phase has begun! Watch the fight at osrsbingohub.com/champion-forge.`,
-    COMPLETED: `🎉 **Champion Forge** — **${eventName}** is complete! Check the post-battle summary on the website.`,
+    GATHERING: `⚔️ **${eventName}** - The Champion Forge's coals have been lit... and the Gathering has begun!\nComplete tasks and submit screenshots via Discord to fill your war chest. Use \`!cfsubmit <task_id>\` in your team's bot channel.\n\n📊 Track progress: ${eventUrl}`,
+    OUTFITTING: `🏁 **${eventName}** - Gathering has ended!\nTime to kit out your champion with your war chest items. Captains, head to the outfitting screen. Team members, experiment with different combinations and share your builds to prepare for the upcoming battle!\n\n🛡️ Outfit your champion: ${eventUrl}`,
+    BATTLE: `🛡️ **${eventName}** - Outfitting is complete. Prepare yourselves for battle!\nCaptains, ready up when you're set.\n\n⚔️ Ready up here: ${eventUrl}`,
+    BATTLE_START: `⚔️ **${eventName}** - Battles have begun! Tune in here:\n${battleUrl}`,
   };
 
   const msg = messages[phase];
@@ -89,8 +94,22 @@ async function sendClanWarsPhaseAnnouncement({ guildId, channelId, eventName, ph
   }
 }
 
+async function sendCaptainMissingAlert({ channelId, eventName, missingTeams }) {
+  if (!_botClient || !channelId) return;
+  try {
+    const channel = await _botClient.channels.fetch(channelId);
+    const teamList = missingTeams.map((t) => `• **${t.teamName}**`).join('\n');
+    await channel.send(
+      `⚠️ **${eventName}** — The gathering phase has ended, but the following teams have no captain assigned:\n${teamList}\n\nPlease assign captains on the event page. Once all captains are set, the event will automatically advance to Outfitting.`
+    );
+  } catch (_) {
+    // best-effort
+  }
+}
+
 module.exports = {
   registerBotClient,
   sendClanWarsSubmissionResult,
   sendClanWarsPhaseAnnouncement,
+  sendCaptainMissingAlert,
 };

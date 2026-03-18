@@ -28,6 +28,7 @@ const CLAN_WARS_TEAM_FIELDS = gql`
     members {
       discordId
       username
+      rsn
       avatar
       role
     }
@@ -150,8 +151,24 @@ export const GET_CLAN_WARS_EVENT = gql`
       bracket
       creatorId
       adminIds
+      refIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+      refs {
+        id
+        displayName
+        username
+        rsn
+      }
       guildId
+      announcementsChannelId
+      scheduledGatheringStart
       difficulty
+      eventPassword
       createdAt
       teams {
         ...ClanWarsTeamFields
@@ -202,6 +219,27 @@ export const GET_CLAN_WARS_SUBMISSIONS = gql`
   ${CLAN_WARS_SUBMISSION_FIELDS}
   query GetClanWarsSubmissions($eventId: ID!, $status: ClanWarsSubmissionStatus) {
     getClanWarsSubmissions(eventId: $eventId, status: $status) {
+      ...ClanWarsSubmissionFields
+    }
+  }
+`;
+
+export const GET_CLAN_WARS_SUBMISSION_SUMMARIES = gql`
+  query GetClanWarsSubmissionSummaries($eventId: ID!) {
+    getClanWarsSubmissionSummaries(eventId: $eventId) {
+      taskId
+      teamId
+      pendingCount
+      approvedCount
+      deniedCount
+    }
+  }
+`;
+
+export const GET_CLAN_WARS_TASK_SUBMISSIONS = gql`
+  ${CLAN_WARS_SUBMISSION_FIELDS}
+  query GetClanWarsTaskSubmissions($eventId: ID!, $taskId: String!, $teamId: ID!) {
+    getClanWarsTaskSubmissions(eventId: $eventId, taskId: $taskId, teamId: $teamId) {
       ...ClanWarsSubmissionFields
     }
   }
@@ -276,6 +314,8 @@ export const UPDATE_CLAN_WARS_EVENT_SETTINGS = gql`
     updateClanWarsEventSettings(eventId: $eventId, input: $input) {
       eventId
       guildId
+      announcementsChannelId
+      scheduledGatheringStart
     }
   }
 `;
@@ -450,6 +490,24 @@ export const CHANGE_SUBMISSION_REWARD_SLOT = gql`
   }
 `;
 
+export const UNDO_SUBMISSION_APPROVAL = gql`
+  ${CLAN_WARS_SUBMISSION_FIELDS}
+  mutation UndoSubmissionApproval($submissionId: ID!) {
+    undoSubmissionApproval(submissionId: $submissionId) {
+      ...ClanWarsSubmissionFields
+    }
+  }
+`;
+
+export const UNDO_TASK_COMPLETE = gql`
+  ${CLAN_WARS_TEAM_FIELDS}
+  mutation UndoTaskComplete($eventId: ID!, $teamId: ID!, $taskId: ID!) {
+    undoTaskComplete(eventId: $eventId, teamId: $teamId, taskId: $taskId) {
+      ...ClanWarsTeamFields
+    }
+  }
+`;
+
 export const SAVE_OFFICIAL_LOADOUT = gql`
   mutation SaveOfficialLoadout($teamId: ID!, $loadout: JSON!) {
     saveOfficialLoadout(teamId: $teamId, loadout: $loadout) {
@@ -487,6 +545,66 @@ export const ADMIN_LOCK_ALL_LOADOUTS = gql`
       teamId
       teamName
       loadoutLocked
+    }
+  }
+`;
+
+export const ADD_CLAN_WARS_ADMIN = gql`
+  mutation AddClanWarsAdmin($eventId: ID!, $userId: ID!) {
+    addClanWarsAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_CLAN_WARS_ADMIN = gql`
+  mutation RemoveClanWarsAdmin($eventId: ID!, $userId: ID!) {
+    removeClanWarsAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const ADD_CLAN_WARS_REF = gql`
+  mutation AddClanWarsRef($eventId: ID!, $userId: ID!) {
+    addClanWarsRef(eventId: $eventId, userId: $userId) {
+      eventId
+      refIds
+      refs {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_CLAN_WARS_REF = gql`
+  mutation RemoveClanWarsRef($eventId: ID!, $userId: ID!) {
+    removeClanWarsRef(eventId: $eventId, userId: $userId) {
+      eventId
+      refIds
+      refs {
+        id
+        displayName
+        username
+        rsn
+      }
     }
   }
 `;
@@ -603,6 +721,49 @@ export const CLAN_WARS_SUBMISSION_REVIEWED = gql`
   subscription ClanWarsSubmissionReviewed($eventId: ID!) {
     clanWarsSubmissionReviewed(eventId: $eventId) {
       ...ClanWarsSubmissionFields
+    }
+  }
+`;
+
+const CLAN_WARS_PRESCREENSHOT_FIELDS = gql`
+  fragment ClanWarsPreScreenshotFields on ClanWarsPreScreenshot {
+    preScreenshotId
+    eventId
+    teamId
+    taskId
+    taskLabel
+    submittedBy
+    submittedUsername
+    screenshotUrl
+    channelId
+    messageId
+    submittedAt
+  }
+`;
+
+export const GET_CLAN_WARS_PRE_SCREENSHOTS = gql`
+  ${CLAN_WARS_PRESCREENSHOT_FIELDS}
+  query GetClanWarsPreScreenshots($eventId: ID!) {
+    getClanWarsPreScreenshots(eventId: $eventId) {
+      ...ClanWarsPreScreenshotFields
+    }
+  }
+`;
+
+export const CLAN_WARS_PRESCREENSHOT_ADDED = gql`
+  ${CLAN_WARS_PRESCREENSHOT_FIELDS}
+  subscription ClanWarsPreScreenshotAdded($eventId: ID!) {
+    clanWarsPreScreenshotAdded(eventId: $eventId) {
+      ...ClanWarsPreScreenshotFields
+    }
+  }
+`;
+
+export const CLAN_WARS_EVENT_UPDATED = gql`
+  subscription ClanWarsEventUpdated($eventId: ID!) {
+    clanWarsEventUpdated(eventId: $eventId) {
+      eventId
+      status
     }
   }
 `;

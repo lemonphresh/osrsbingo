@@ -74,6 +74,10 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
         // Scale xp_gain and minigame_completions by team size
         if (task.type === 'xp_gain' || task.type === 'minigame_completions') {
           resolvedQuantity = Math.round(resolvedQuantity * (avgTeamSize / REFERENCE_TEAM_SIZE));
+          // Round XP tasks up to the nearest 10k so numbers stay clean
+          if (task.type === 'xp_gain') {
+            resolvedQuantity = Math.ceil(resolvedQuantity / 10_000) * 10_000;
+          }
         }
 
         description = (task.descriptionTemplate ?? task.description ?? '').replace(
@@ -88,6 +92,7 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
 
       tasks.push({
         taskId:          generateId('cwtask'),
+        objectiveId:     task.id,
         eventId,
         label:           task.label,
         description,

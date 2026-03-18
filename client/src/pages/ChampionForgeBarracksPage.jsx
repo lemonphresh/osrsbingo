@@ -15,30 +15,47 @@ import {
   AlertIcon,
   Icon,
   SimpleGrid,
-  Divider,
-  Tooltip,
   Code,
   ButtonGroup,
   Progress,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalCloseButton,
+  useDisclosure,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Divider,
+  useClipboard,
+  IconButton,
+  Image,
 } from '@chakra-ui/react';
 import { LockIcon, ArrowBackIcon, CheckCircleIcon, CopyIcon } from '@chakra-ui/icons';
 import { FaDiscord } from 'react-icons/fa';
 import {
   GET_CLAN_WARS_EVENT,
-  SAVE_OFFICIAL_LOADOUT,
-  LOCK_CLAN_WARS_LOADOUT,
-  GET_CLAN_WARS_WAR_CHEST,
   JOIN_TASK_IN_PROGRESS,
   LEAVE_TASK_IN_PROGRESS,
   UPDATE_CLAN_WARS_TEAM_MEMBERS,
   GET_CLAN_WARS_SUBMISSIONS,
   CLAN_WARS_SUBMISSION_ADDED,
   CLAN_WARS_SUBMISSION_REVIEWED,
+  CLAN_WARS_EVENT_UPDATED,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
+import { useTimezone, fmtTs } from '../hooks/useTimezone';
+import TimezoneToggle from '../atoms/TimezoneToggle';
 import { TeamOutfitter } from '../organisms/ChampionForge/OutfittingScreen';
+import laidee from '../assets/laidee.png';
+import gnomeChild from '../assets/gnomechild.png';
+import gemoji from '../assets/adventurepath-small.webp';
 import WarChestPanel from '../organisms/ChampionForge/WarChestPanel';
 
 // ---------------------------------------------------------------------------
@@ -173,6 +190,401 @@ function BarracksAccessOverlay({ reason, teamName, eventId, userDiscordId }) {
 }
 
 // ---------------------------------------------------------------------------
+// Task detail modal
+// ---------------------------------------------------------------------------
+function TaskDetailModal({
+  isOpen,
+  onClose,
+  task,
+  isCompleted,
+  isMeInProgress,
+  canJoin,
+  othersInProgress,
+  inProgressIds,
+  getMemberName,
+  numericTaskProgress,
+  onJoin,
+  onLeave,
+  handleCopyCommand,
+  gatheringStart,
+  gatheringEnd,
+}) {
+  const { utc } = useTimezone();
+  const { showToast } = useToastContext();
+  if (!task) return null;
+
+  const isDropTask = task.acceptableItems?.length > 0;
+  const isXpTask = !isDropTask && task.quantity > 0;
+
+  const handleCopyPrescreen = () => {
+    navigator.clipboard.writeText(`!cfpresubmit ${task.taskId}`);
+    showToast('Prescreenshot command copied! Attach your screenshot in Discord.', 'success');
+  };
+
+  const progress = numericTaskProgress?.[task.taskId] ?? 0;
+  const pct = isCompleted ? 100 : Math.min(100, Math.round((progress / task.quantity) * 100));
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="md" isCentered>
+      <ModalOverlay bg="blackAlpha.700" backdropFilter="blur(4px)" />
+      <ModalContent
+        bg="gray.800"
+        border="1px solid"
+        borderColor="gray.600"
+        borderRadius="xl"
+        mx={4}
+      >
+        <ModalHeader pb={2}>
+          <HStack spacing={3} align="flex-start" pr={8}>
+            {isCompleted && <Icon as={CheckCircleIcon} color="green.400" mt="3px" flexShrink={0} />}
+            <VStack align="flex-start" spacing={2} flex={1}>
+              <Text
+                fontSize="lg"
+                fontWeight="bold"
+                color={isCompleted ? 'green.200' : 'white'}
+                lineHeight="short"
+              >
+                {task.label}
+              </Text>
+              <HStack spacing={2} flexWrap="wrap">
+                <Badge colorScheme={DIFF_COLOR[task.difficulty]}>{task.difficulty}</Badge>
+                <Badge colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'} variant="outline">
+                  {task.role === 'PVMER' ? 'PvM' : 'Skilling'}
+                </Badge>
+                {isCompleted && <Badge colorScheme="green">done</Badge>}
+                {isMeInProgress && <Badge colorScheme="teal">in progress</Badge>}
+              </HStack>
+            </VStack>
+          </HStack>
+        </ModalHeader>
+        <ModalCloseButton color="gray.400" />
+
+        <ModalBody pb={6}>
+          <VStack align="stretch" spacing={4}>
+            {/* Description */}
+            {task.description && (
+              <Text fontSize="sm" color="gray.300">
+                {task.description}
+              </Text>
+            )}
+
+            {/* Acceptable drops — PvM tasks */}
+            {task.acceptableItems?.length > 0 && (
+              <Box
+                p={3}
+                bg="orange.900"
+                borderRadius="md"
+                border="1px solid"
+                borderColor="orange.700"
+              >
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  color="orange.300"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={2}
+                >
+                  Acceptable Drops
+                </Text>
+                <HStack flexWrap="wrap" gap={1}>
+                  {task.acceptableItems.map((item) => (
+                    <Badge key={item} colorScheme="orange" variant="outline" fontSize="xs">
+                      {item}
+                    </Badge>
+                  ))}
+                </HStack>
+              </Box>
+            )}
+
+            {/* Progress bar */}
+            {task.quantity > 0 && (
+              <Box>
+                <HStack justify="space-between" mb={1}>
+                  <Text
+                    fontSize="xs"
+                    color="gray.400"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                  >
+                    Progress
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    {isCompleted ? task.quantity.toLocaleString() : progress.toLocaleString()} /{' '}
+                    {task.quantity.toLocaleString()} ({pct}%)
+                  </Text>
+                </HStack>
+                <Progress
+                  value={pct}
+                  size="sm"
+                  colorScheme={isCompleted ? 'green' : 'blue'}
+                  borderRadius="full"
+                  bg="gray.700"
+                />
+              </Box>
+            )}
+
+            {/* Who's working on it */}
+            {inProgressIds.length > 0 && (
+              <Box>
+                <Text
+                  fontSize="xs"
+                  color="gray.400"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={2}
+                >
+                  Currently working on this
+                </Text>
+                <VStack align="stretch" spacing={1}>
+                  {inProgressIds.map((id) => (
+                    <HStack key={id} px={2} py={1} bg="gray.700" borderRadius="md" spacing={2}>
+                      <Box
+                        w="6px"
+                        h="6px"
+                        borderRadius="full"
+                        bg={id === inProgressIds[0] ? 'teal.400' : 'gray.500'}
+                        flexShrink={0}
+                      />
+                      <Text fontSize="sm" color={id === inProgressIds[0] ? 'teal.200' : 'gray.300'}>
+                        {getMemberName(id)}
+                      </Text>
+                    </HStack>
+                  ))}
+                </VStack>
+              </Box>
+            )}
+
+            {/* Actions */}
+            {!isCompleted && (
+              <Box pt={1}>
+                {isMeInProgress ? (
+                  <Box p={3} bg="blackAlpha.400" borderRadius="md">
+                    {isXpTask && (
+                      <Box
+                        mb={3}
+                        p={3}
+                        bg="blue.900"
+                        borderRadius="md"
+                        border="1px solid"
+                        borderColor="blue.700"
+                      >
+                        <Text fontSize="xs" color="blue.300" fontWeight="semibold" mb={1}>
+                          📸 Step 1 — Prescreenshot your current XP:
+                        </Text>
+                        <Text fontSize="xs" color="blue.400" mb={2}>
+                          Run this before you start grinding so admins can verify your gain.
+                        </Text>
+                        <HStack spacing={2}>
+                          <Code
+                            fontSize="xs"
+                            bg="gray.900"
+                            color="blue.200"
+                            px={2}
+                            py={1}
+                            borderRadius="md"
+                            flex={1}
+                          >
+                            !cfpresubmit {task.taskId}
+                          </Code>
+                          <Button
+                            size="xs"
+                            colorScheme="blue"
+                            leftIcon={<CopyIcon />}
+                            onClick={handleCopyPrescreen}
+                          >
+                            Copy
+                          </Button>
+                        </HStack>
+                      </Box>
+                    )}
+                    <Text fontSize="xs" color="teal.300" mb={2}>
+                      {isXpTask
+                        ? 'Step 2 — Submit via Discord when done grinding:'
+                        : 'Submit via Discord when done in-game:'}
+                    </Text>
+                    <HStack spacing={2} mb={2}>
+                      <Code
+                        fontSize="xs"
+                        bg="gray.900"
+                        color="teal.200"
+                        px={2}
+                        py={1}
+                        borderRadius="md"
+                        flex={1}
+                      >
+                        !cfsubmit {task.taskId}
+                      </Code>
+                      <Button
+                        size="xs"
+                        colorScheme="teal"
+                        leftIcon={<CopyIcon />}
+                        onClick={handleCopyCommand}
+                      >
+                        Copy
+                      </Button>
+                    </HStack>
+                    <Text fontSize="xs" color="teal.400" mb={3}>
+                      Attach your screenshot in Discord when you run the command.
+                    </Text>
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      variant="ghost"
+                      onClick={() => {
+                        onLeave();
+                        onClose();
+                      }}
+                      w="full"
+                    >
+                      Leave quest
+                    </Button>
+                  </Box>
+                ) : canJoin ? (
+                  <Button
+                    size="sm"
+                    colorScheme={othersInProgress.length > 0 ? 'blue' : 'teal'}
+                    onClick={() => {
+                      onJoin();
+                      onClose();
+                    }}
+                    w="full"
+                  >
+                    {othersInProgress.length > 0 ? 'Join quest' : 'Start quest'}
+                  </Button>
+                ) : null}
+              </Box>
+            )}
+            {/* Screenshot guidelines */}
+            <Divider borderColor="gray.600" />
+            <Accordion allowToggle>
+              <AccordionItem border="none">
+                <AccordionButton px={0} _hover={{ bg: 'transparent' }}>
+                  <Text
+                    flex={1}
+                    textAlign="left"
+                    fontSize="xs"
+                    color="gray.400"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                  >
+                    What makes a valid screenshot?
+                  </Text>
+                  <AccordionIcon color="gray.500" />
+                </AccordionButton>
+                <AccordionPanel px={0} pb={2}>
+                  <VStack align="stretch" spacing={3}>
+                    <Box p={3} bg="gray.700" borderRadius="md">
+                      <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={2}>
+                        Required for all submissions
+                      </Text>
+                      <VStack align="stretch" spacing={1}>
+                        <Text fontSize="xs" color="gray.400">
+                          • Full game client visible (not cropped)
+                        </Text>
+                        <Text fontSize="xs" color="gray.400">
+                          • Event password visible via Wise Old Man or Clan Events plugin
+                        </Text>
+                        {isDropTask && (
+                          <>
+                            <Text fontSize="xs" color="gray.400">
+                              • The drop visible in your chatbox
+                            </Text>
+                            <Text fontSize="xs" color="gray.400">
+                              • Boss kill count visible in chatbox or adventure log
+                            </Text>
+                          </>
+                        )}
+                      </VStack>
+                    </Box>
+
+                    {isXpTask && (
+                      <Box
+                        p={3}
+                        bg="blue.900"
+                        border="1px solid"
+                        borderColor="blue.700"
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="blue.300" mb={2}>
+                          XP gain verification
+                        </Text>
+                        <VStack align="stretch" spacing={2}>
+                          <Text fontSize="xs" color="gray.300">
+                            Submit a screenshot of your character's{' '}
+                            <Text as="span" color="blue.200" fontWeight="semibold">
+                              Wise Old Man
+                            </Text>{' '}
+                            page showing gains from the event start time to the end:
+                          </Text>
+                          <HStack spacing={2} flexWrap="wrap">
+                            <Text fontSize="xs" color="gray.400" flexShrink={0}>
+                              Start:
+                            </Text>
+                            <Code
+                              fontSize="xs"
+                              bg="gray.800"
+                              color="blue.200"
+                              px={1}
+                              borderRadius="sm"
+                            >
+                              {fmtTs(gatheringStart, utc)}
+                            </Code>
+                          </HStack>
+                          <HStack spacing={2} flexWrap="wrap">
+                            <Text fontSize="xs" color="gray.400" flexShrink={0}>
+                              End:
+                            </Text>
+                            <Code
+                              fontSize="xs"
+                              bg="gray.800"
+                              color="blue.200"
+                              px={1}
+                              borderRadius="sm"
+                            >
+                              {fmtTs(gatheringEnd, utc)}
+                            </Code>
+                          </HStack>
+                          <Text fontSize="xs" color="gray.400">
+                            If the xp values in WOM look off, log out and back in then refresh Wise
+                            Old Man.
+                          </Text>
+                          <Box
+                            p={2}
+                            bg="yellow.900"
+                            border="1px solid"
+                            borderColor="yellow.700"
+                            borderRadius="sm"
+                          >
+                            <Text fontSize="xs" color="yellow.300">
+                              ⚠️ If you already had XP in this skill before the event, use{' '}
+                              <Code
+                                fontSize="xs"
+                                bg="blackAlpha.400"
+                                color="yellow.200"
+                                px={1}
+                                borderRadius="sm"
+                              >
+                                !cfpresubmit
+                              </Code>{' '}
+                              (from Step 1) before grinding to record your baseline.
+                            </Text>
+                          </Box>
+                        </VStack>
+                      </Box>
+                    )}
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
+          </VStack>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Task row — in-progress tracking + Discord submit command
 // ---------------------------------------------------------------------------
 function TaskRow({
@@ -185,8 +597,11 @@ function TaskRow({
   userMemberRole,
   onJoin,
   onLeave,
+  gatheringStart,
+  gatheringEnd,
 }) {
   const { showToast } = useToastContext();
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const inProgressIds = taskProgress?.[task.taskId] ?? [];
   const isMeInProgress = !!currentUserDiscordId && inProgressIds.includes(currentUserDiscordId);
@@ -212,119 +627,91 @@ function TaskRow({
     showToast('Command copied! Attach your screenshot in Discord.', 'success');
   };
 
+  const progress = numericTaskProgress?.[task.taskId] ?? 0;
+  const pct = isCompleted
+    ? 100
+    : Math.min(100, Math.round((progress / (task.quantity || 1)) * 100));
+
   return (
-    <Box
-      p={3}
-      bg={isCompleted ? 'green.900' : isMeInProgress ? 'teal.900' : 'gray.700'}
-      borderRadius="md"
-      border="1px solid"
-      borderColor={isCompleted ? 'green.700' : isMeInProgress ? 'teal.600' : 'gray.600'}
-      opacity={isCompleted ? 0.75 : 1}
-    >
-      <HStack justify="space-between" mb={isMeInProgress || inProgressIds.length > 0 ? 2 : 0}>
-        <HStack spacing={3} flex={1} minW={0}>
-          {isCompleted && <Icon as={CheckCircleIcon} color="green.400" flexShrink={0} />}
-          <VStack align="flex-start" spacing={0} minW={0}>
-            <Text
-              fontSize="sm"
-              fontWeight="medium"
-              color={isCompleted ? 'green.200' : 'white'}
-              noOfLines={2}
-            >
-              {task.label}
-            </Text>
-            {task.description && (
-              <Text fontSize="xs" color="gray.400" noOfLines={1}>
-                {task.description}
+    <>
+      <Box
+        p={3}
+        bg={isCompleted ? 'green.900' : isMeInProgress ? 'teal.900' : 'gray.800'}
+        borderRadius="md"
+        border="1px solid"
+        borderColor={isCompleted ? 'green.700' : isMeInProgress ? 'teal.600' : 'gray.700'}
+        opacity={isCompleted ? 0.75 : 1}
+        cursor="pointer"
+        onClick={onOpen}
+        _hover={{
+          borderColor: isCompleted ? 'green.600' : isMeInProgress ? 'teal.400' : 'gray.500',
+        }}
+        transition="border-color 0.15s"
+      >
+        <HStack justify="space-between" align="flex-start">
+          <HStack spacing={3} flex={1} minW={0} align="flex-start">
+            {isCompleted && <Icon as={CheckCircleIcon} color="green.400" flexShrink={0} mt="2px" />}
+            <VStack align="flex-start" spacing={1} minW={0}>
+              <Text fontSize="sm" fontWeight="medium" color={isCompleted ? 'green.200' : 'white'}>
+                {task.label}
               </Text>
+              {task.description && (
+                <Text fontSize="xs" color="gray.300" noOfLines={2}>
+                  {task.description}
+                </Text>
+              )}
+              {inProgressIds.length > 0 && (
+                <HStack spacing={1} flexWrap="wrap">
+                  <Text fontSize="xs" color="gray.500">
+                    working:
+                  </Text>
+                  {inProgressIds.map((id) => (
+                    <Badge
+                      key={id}
+                      colorScheme={id === currentUserDiscordId ? 'teal' : 'gray'}
+                      fontSize="xs"
+                    >
+                      {getMemberName(id)}
+                    </Badge>
+                  ))}
+                </HStack>
+              )}
+            </VStack>
+          </HStack>
+
+          <VStack spacing={1} flexShrink={0} align="flex-end">
+            <HStack spacing={1}>
+              <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">
+                {task.difficulty}
+              </Badge>
+              {isCompleted && (
+                <Badge colorScheme="green" fontSize="xs">
+                  done
+                </Badge>
+              )}
+              {isMeInProgress && (
+                <Badge colorScheme="teal" fontSize="xs">
+                  in progress
+                </Badge>
+              )}
+            </HStack>
+            {!isCompleted && !isMeInProgress && canJoin && (
+              <Button
+                size="xs"
+                colorScheme={othersInProgress.length > 0 ? 'blue' : 'teal'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onJoin();
+                }}
+              >
+                {othersInProgress.length > 0 ? 'Join quest' : 'Start quest'}
+              </Button>
             )}
           </VStack>
         </HStack>
-        <HStack spacing={2} flexShrink={0}>
-          <Badge colorScheme={DIFF_COLOR[task.difficulty]} fontSize="xs">
-            {task.difficulty}
-          </Badge>
-          {isCompleted && (
-            <Badge colorScheme="green" fontSize="xs">
-              done
-            </Badge>
-          )}
-          {isMeInProgress && (
-            <Badge colorScheme="teal" fontSize="xs">
-              in progress
-            </Badge>
-          )}
-          {!isCompleted && !isMeInProgress && canJoin && (
-            <Button
-              size="xs"
-              colorScheme={othersInProgress.length > 0 ? 'blue' : 'teal'}
-              onClick={onJoin}
-            >
-              {othersInProgress.length > 0 ? 'Join them' : 'Work on this'}
-            </Button>
-          )}
-        </HStack>
-      </HStack>
 
-      {/* Who's working on it */}
-      {inProgressIds.length > 0 && (
-        <HStack spacing={1} flexWrap="wrap" mt={1} mb={isMeInProgress ? 2 : 0}>
-          <Text fontSize="xs" color="gray.400">
-            Working on it:
-          </Text>
-          {inProgressIds.map((id) => (
-            <Badge
-              key={id}
-              colorScheme={id === currentUserDiscordId ? 'teal' : 'gray'}
-              fontSize="xs"
-            >
-              {getMemberName(id)}
-            </Badge>
-          ))}
-        </HStack>
-      )}
-
-      {/* My in-progress controls: copy command + leave */}
-      {isMeInProgress && (
-        <Box mt={1} p={2} bg="teal.900" borderRadius="md">
-          <Text fontSize="xs" color="teal.300" mb={1}>
-            When done in-game, submit via Discord:
-          </Text>
-          <HStack spacing={2}>
-            <Code
-              fontSize="xs"
-              bg="gray.800"
-              color="teal.200"
-              px={2}
-              py={1}
-              borderRadius="md"
-              flex={1}
-            >
-              !cfsubmit {task.taskId}
-            </Code>
-            <Button
-              size="xs"
-              colorScheme="teal"
-              leftIcon={<CopyIcon />}
-              onClick={handleCopyCommand}
-            >
-              Copy
-            </Button>
-            <Button size="xs" colorScheme="red" variant="ghost" onClick={onLeave}>
-              Leave
-            </Button>
-          </HStack>
-          <Text fontSize="xs" color="teal.400" mt={1}>
-            Attach your screenshot in Discord when you run the command.
-          </Text>
-        </Box>
-      )}
-
-      {/* Numeric progress bar — only shown when task has a quantity */}
-      {task.quantity > 0 && (() => {
-        const progress = numericTaskProgress?.[task.taskId] ?? 0;
-        const pct = isCompleted ? 100 : Math.min(100, Math.round((progress / task.quantity) * 100));
-        return (
+        {/* Compact progress bar */}
+        {task.quantity > 0 && (
           <Box mt={2}>
             <Text fontSize="xs" color="gray.400" mb={1}>
               {isCompleted ? task.quantity.toLocaleString() : progress.toLocaleString()} /{' '}
@@ -338,9 +725,27 @@ function TaskRow({
               bg="gray.700"
             />
           </Box>
-        );
-      })()}
-    </Box>
+        )}
+      </Box>
+
+      <TaskDetailModal
+        isOpen={isOpen}
+        onClose={onClose}
+        task={task}
+        isCompleted={isCompleted}
+        isMeInProgress={isMeInProgress}
+        canJoin={canJoin}
+        othersInProgress={othersInProgress}
+        inProgressIds={inProgressIds}
+        getMemberName={getMemberName}
+        numericTaskProgress={numericTaskProgress}
+        onJoin={onJoin}
+        onLeave={onLeave}
+        handleCopyCommand={handleCopyCommand}
+        gatheringStart={gatheringStart}
+        gatheringEnd={gatheringEnd}
+      />
+    </>
   );
 }
 
@@ -360,6 +765,8 @@ function TaskSection({
   userMemberRole,
   onJoin,
   onLeave,
+  gatheringStart,
+  gatheringEnd,
 }) {
   const byDiff = DIFF_ORDER.reduce((acc, d) => {
     acc[d] = tasks.filter((t) => t.difficulty === d);
@@ -370,58 +777,93 @@ function TaskSection({
   const done = tasks.filter((t) => completedTaskIds.includes(t.taskId)).length;
 
   return (
-    <Box>
-      <HStack mb={subtitle ? 1 : 3} justify="space-between">
+    <Box
+      bg="gray.700"
+      border="1px solid"
+      borderColor="gray.600"
+      borderRadius="lg"
+      p={3}
+      display="flex"
+      flexDir="column"
+      h="100%"
+    >
+      <HStack mb={1} justify="space-between" flexShrink={0}>
         <HStack spacing={2}>
-          <Badge colorScheme={colorScheme} fontSize="sm" px={2} py={1}>
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color="gray.400"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
             {title}
-          </Badge>
-          <Text fontSize="xs" color="gray.400">
-            {done}/{total} completed
           </Text>
+          <Badge colorScheme={colorScheme} fontSize="xx-small">
+            {done}/{total}
+          </Badge>
         </HStack>
       </HStack>
       {subtitle && (
-        <Text fontSize="xs" color="gray.500" mb={3}>
+        <Text fontSize="xs" color="gray.500" mb={2} flexShrink={0}>
           {subtitle}
         </Text>
       )}
 
-      <VStack align="stretch" spacing={2}>
-        {DIFF_ORDER.map((diff) => {
-          const diffTasks = byDiff[diff];
-          if (!diffTasks.length) return null;
-          return (
-            <Box key={diff}>
-              <Text
-                fontSize="xs"
-                color="gray.500"
-                textTransform="uppercase"
-                letterSpacing="wider"
-                mb={1}
-              >
-                {diff}
-              </Text>
-              <VStack align="stretch" spacing={1}>
-                {diffTasks.map((task) => (
-                  <TaskRow
-                    key={task.taskId}
-                    task={task}
-                    isCompleted={completedTaskIds.includes(task.taskId)}
-                    taskProgress={taskProgress}
-                    numericTaskProgress={numericTaskProgress}
-                    teamMembers={teamMembers}
-                    currentUserDiscordId={currentUserDiscordId}
-                    userMemberRole={userMemberRole}
-                    onJoin={() => onJoin(task.taskId)}
-                    onLeave={() => onLeave(task.taskId)}
-                  />
-                ))}
-              </VStack>
-            </Box>
-          );
-        })}
-      </VStack>
+      <Box
+        overflowY="auto"
+        flex={1}
+        pr={1}
+        maxH="520px"
+        css={{
+          '&::-webkit-scrollbar': { width: '8px' },
+          '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
+          '&::-webkit-scrollbar-thumb': {
+            background: '#abb8ceff',
+            borderRadius: '10px',
+            '&:hover': { background: '#718096' },
+          },
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#abb8ceff transparent',
+        }}
+      >
+        <VStack align="stretch" spacing={2}>
+          {DIFF_ORDER.map((diff) => {
+            const diffTasks = byDiff[diff];
+            if (!diffTasks.length) return null;
+            return (
+              <Box key={diff}>
+                <Text
+                  fontSize="xs"
+                  color="gray.500"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={1}
+                >
+                  {diff}
+                </Text>
+                <VStack align="stretch" spacing={1}>
+                  {diffTasks.map((task) => (
+                    <TaskRow
+                      key={task.taskId}
+                      task={task}
+                      isCompleted={completedTaskIds.includes(task.taskId)}
+                      taskProgress={taskProgress}
+                      numericTaskProgress={numericTaskProgress}
+                      teamMembers={teamMembers}
+                      currentUserDiscordId={currentUserDiscordId}
+                      userMemberRole={userMemberRole}
+                      onJoin={() => onJoin(task.taskId)}
+                      onLeave={() => onLeave(task.taskId)}
+                      gatheringStart={gatheringStart}
+                      gatheringEnd={gatheringEnd}
+                    />
+                  ))}
+                </VStack>
+              </Box>
+            );
+          })}
+        </VStack>
+      </Box>
     </Box>
   );
 }
@@ -429,8 +871,33 @@ function TaskSection({
 // ---------------------------------------------------------------------------
 // Role selector — lets the current member update their own role
 // ---------------------------------------------------------------------------
+const ROLES = [
+  {
+    key: 'PVMER',
+    label: 'PvMer',
+    scheme: 'orange',
+    img: laidee,
+    desc: 'Boss kills & combat drops. Earns gear slots: weapon, helm, chest, legs, gloves, boots, or trinket.',
+  },
+  {
+    key: 'SKILLER',
+    label: 'Skiller',
+    scheme: 'teal',
+    img: gnomeChild,
+    desc: 'XP gains & minigame tasks. Earns utility slots: consumables, rings, amulets, capes, or shields.',
+  },
+  {
+    key: 'FLEX',
+    label: 'Flex',
+    scheme: 'purple',
+    img: gemoji,
+    desc: 'Any task goes. Rewards earned depend on the specific task you complete.',
+  },
+];
+
 function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
   const { showToast } = useToastContext();
+  const [hoveredRole, setHoveredRole] = useState(null);
   const [updateMembers, { loading }] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
     onCompleted: () => {
       showToast('Role updated', 'success');
@@ -440,46 +907,102 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
   });
 
   const setRole = (role) => {
-    if (role === currentRole) return;
+    const newRole = role === currentRole ? 'UNSET' : role;
     const updated = (team.members ?? []).map((m) =>
       m.discordId === myDiscordId
-        ? { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role }
+        ? { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role: newRole }
         : { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role: m.role }
     );
     updateMembers({ variables: { teamId: team.teamId, members: updated } });
   };
 
   const isUnset = !currentRole || currentRole === 'UNSET';
+  const activeRole = ROLES.find((r) => r.key === currentRole);
 
-  const ROLE_TOOLTIPS = {
-    PVMER: 'Complete boss & combat tasks. Admin assigns the reward slot (weapon, helm, chest, legs, gloves, boots, or trinket) based on your actual drop.',
-    SKILLER: 'Complete XP & minigame tasks. Rewards are auto-assigned — consumables, rings, amulets, capes, or shields.',
-    FLEX: 'Work on any task. Reward type depends on the task you complete.',
-  };
+  if (!isUnset) {
+    return (
+      <Box p={3} bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="lg">
+        <HStack spacing={3} flexWrap="wrap" align="center">
+          <Text fontSize="xs" color="gray.400" fontWeight="semibold" flexShrink={0}>
+            My role:
+          </Text>
+          <ButtonGroup size="sm" isAttached isDisabled={loading}>
+            {ROLES.map(({ key, label, scheme }) => (
+              <Button
+                key={key}
+                colorScheme={scheme}
+                variant={currentRole === key ? 'solid' : 'ghost'}
+                onClick={() => setRole(key)}
+              >
+                {label}
+              </Button>
+            ))}
+          </ButtonGroup>
+          {activeRole && (
+            <Text fontSize="xs" color="gray.500" fontStyle="italic">
+              {activeRole.desc}
+            </Text>
+          )}
+        </HStack>
+      </Box>
+    );
+  }
 
   return (
-    <HStack spacing={2} flexWrap="wrap" align="center">
-      <Text fontSize="xs" color={isUnset ? 'yellow.300' : 'gray.400'} fontWeight="semibold">
-        {isUnset ? '⚠️ Set your role to join tasks:' : 'My role:'}
-      </Text>
-      <ButtonGroup size="xs" isAttached isDisabled={loading}>
-        {[
-          ['PVMER', 'orange'],
-          ['SKILLER', 'teal'],
-          ['FLEX', 'purple'],
-        ].map(([role, scheme]) => (
-          <Tooltip key={role} label={ROLE_TOOLTIPS[role]} hasArrow placement="top">
-            <Button
-              colorScheme={scheme}
-              variant={currentRole === role ? 'solid' : 'outline'}
-              onClick={() => setRole(role)}
+    <Box p={4} bg="yellow.900" border="2px solid" borderColor="yellow.600" borderRadius="lg">
+      <VStack align="stretch" spacing={4}>
+        <VStack align="flex-start" spacing={1}>
+          <Text fontWeight="bold" color="yellow.200" fontSize="md">
+            ⚠️ Choose your role before joining tasks
+          </Text>
+          <Text fontSize="sm" color="yellow.400">
+            Coordinate with your team! Decide who's bossing, who's skilling, and who's going flex.
+            Your role determines which tasks you can join and what reward slots you can earn.
+          </Text>
+        </VStack>
+        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
+          {ROLES.map(({ key, label, scheme, img, desc }) => (
+            <Box
+              key={key}
+              as="button"
+              onClick={() => !loading && setRole(key)}
+              onMouseEnter={() => setHoveredRole(key)}
+              onMouseLeave={() => setHoveredRole(null)}
+              p={4}
+              bg={hoveredRole === key ? `${scheme}.900` : 'blackAlpha.400'}
+              border="2px solid"
+              borderColor={hoveredRole === key ? `${scheme}.400` : `${scheme}.700`}
+              borderRadius="lg"
+              textAlign="left"
+              cursor="pointer"
+              transition="all 0.15s"
+              disabled={loading}
             >
-              {role === 'PVMER' ? 'PvMer' : role === 'SKILLER' ? 'Skiller' : 'Flex'}
-            </Button>
-          </Tooltip>
-        ))}
-      </ButtonGroup>
-    </HStack>
+              <HStack spacing={3} align="center">
+                <Box display="flex" alignItems="center" justifyContent="center" flexShrink={0}>
+                  <Image
+                    src={img}
+                    alt={label}
+                    w="64px"
+                    h="64px"
+                    objectFit="contain"
+                    style={{ imageRendering: 'pixelated' }}
+                  />
+                </Box>
+                <VStack align="flex-start" spacing={1} flex={1}>
+                  <Text fontSize="lg" fontWeight="bold" color={`${scheme}.300`}>
+                    {label}
+                  </Text>
+                  <Text fontSize="sm" color="gray.300" lineHeight="short" textAlign="left">
+                    {desc}
+                  </Text>
+                </VStack>
+              </HStack>
+            </Box>
+          ))}
+        </SimpleGrid>
+      </VStack>
+    </Box>
   );
 }
 
@@ -516,6 +1039,7 @@ const STATUS_COLOR = { PENDING: 'yellow', APPROVED: 'green', DENIED: 'red' };
 const STATUS_LABEL = { PENDING: 'pending', APPROVED: 'approved', DENIED: 'denied' };
 
 function SubmissionFeed({ eventId, teamId }) {
+  const { utc } = useTimezone();
   const { data, refetch } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
     variables: { eventId },
     fetchPolicy: 'cache-and-network',
@@ -540,22 +1064,32 @@ function SubmissionFeed({ eventId, teamId }) {
 
   return (
     <Box>
-      <HStack mb={3} spacing={2}>
-        <Text fontSize="sm" fontWeight="semibold" color="gray.300">
-          Your Submissions
-        </Text>
-        {pendingCount > 0 && (
-          <Badge colorScheme="yellow" fontSize="xs">
-            {pendingCount} pending review
-          </Badge>
-        )}
+      <HStack mb={2} spacing={2} justify="space-between">
+        <HStack spacing={2}>
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color="gray.400"
+            textTransform="uppercase"
+            letterSpacing="wider"
+          >
+            Submissions
+          </Text>
+          {pendingCount > 0 && (
+            <Badge colorScheme="yellow" fontSize="xx-small">
+              {pendingCount} pending
+            </Badge>
+          )}
+        </HStack>
+        <TimezoneToggle />
       </HStack>
-      <VStack spacing={2} align="stretch">
+      <VStack spacing={1} align="stretch">
         {subs.map((sub) => (
           <Box
             key={sub.submissionId}
-            p={3}
-            bg="gray.700"
+            px={2}
+            py={2}
+            bg="gray.800"
             borderRadius="md"
             border="1px solid"
             borderColor={
@@ -571,30 +1105,37 @@ function SubmissionFeed({ eventId, teamId }) {
                 <Badge colorScheme={STATUS_COLOR[sub.status]} fontSize="xs" flexShrink={0}>
                   {STATUS_LABEL[sub.status]}
                 </Badge>
-                <Text fontSize="sm" color="white" noOfLines={1}>
+                <Text fontSize="xs" color="white" noOfLines={1}>
                   {sub.taskLabel ?? sub.taskId}
                 </Text>
               </HStack>
               <Text fontSize="xs" color="gray.500" flexShrink={0}>
-                {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : ''}
+                {fmtTs(sub.submittedAt, utc)}
               </Text>
             </HStack>
 
             {sub.status === 'APPROVED' && sub.rewardItem && (
               <HStack mt={1} spacing={1}>
-                <Text fontSize="xs" color="gray.400">reward:</Text>
+                <Text fontSize="xs" color="gray.400">
+                  reward:
+                </Text>
                 <Badge
                   colorScheme={
-                    sub.rewardItem.rarity === 'epic' ? 'purple'
-                    : sub.rewardItem.rarity === 'rare' ? 'blue'
-                    : sub.rewardItem.rarity === 'uncommon' ? 'green'
-                    : 'gray'
+                    sub.rewardItem.rarity === 'epic'
+                      ? 'purple'
+                      : sub.rewardItem.rarity === 'rare'
+                      ? 'blue'
+                      : sub.rewardItem.rarity === 'uncommon'
+                      ? 'green'
+                      : 'gray'
                   }
                   fontSize="xs"
                 >
                   {sub.rewardItem.rarity}
                 </Badge>
-                <Text fontSize="xs" color="gray.300">{sub.rewardItem.name}</Text>
+                <Text fontSize="xs" color="gray.300">
+                  {sub.rewardItem.name}
+                </Text>
               </HStack>
             )}
 
@@ -607,7 +1148,9 @@ function SubmissionFeed({ eventId, teamId }) {
             {sub.status === 'DENIED' && sub.reviewNote && (
               <Box mt={1} px={2} py={1} bg="red.900" borderRadius="sm">
                 <Text fontSize="xs" color="red.200">
-                  <Text as="span" fontWeight="semibold">reason: </Text>
+                  <Text as="span" fontWeight="semibold">
+                    reason:{' '}
+                  </Text>
                   {sub.reviewNote}
                 </Text>
               </Box>
@@ -622,8 +1165,11 @@ function SubmissionFeed({ eventId, teamId }) {
 // ---------------------------------------------------------------------------
 // GATHERING phase
 // ---------------------------------------------------------------------------
+const IS_DEV = process.env.NODE_ENV !== 'production';
+
 function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   const { showToast } = useToastContext();
+  const [previewRole, setPreviewRole] = useState(null);
 
   const [joinTask] = useMutation(JOIN_TASK_IN_PROGRESS, {
     onCompleted: refetch,
@@ -645,11 +1191,15 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     (m) => typeof m !== 'string' && m.discordId === currentUserDiscordId
   );
   const userMemberRole = memberRecord?.role ?? 'ANY';
+  const effectiveRole = previewRole ?? userMemberRole;
 
   const pvmerTasks = tasks.filter((t) => t.role === 'PVMER');
   const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
 
   const gatheringCountdown = useCountdown(event.gatheringEnd);
+  const { onCopy: copyPassword, hasCopied: passwordCopied } = useClipboard(
+    event.eventPassword ?? ''
+  );
 
   const handleJoin = (taskId) => {
     joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
@@ -665,16 +1215,18 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     numericTaskProgress,
     teamMembers: team.members,
     currentUserDiscordId,
-    userMemberRole,
+    userMemberRole: effectiveRole,
     onJoin: handleJoin,
     onLeave: handleLeave,
+    gatheringStart: event.gatheringStart,
+    gatheringEnd: event.gatheringEnd,
   };
 
   return (
     <VStack align="stretch" spacing={6}>
       {/* Phase banner */}
       <Box p={4} bg="green.900" borderRadius="lg" border="1px solid" borderColor="green.700">
-        <HStack justify="space-between" flexWrap="wrap" gap={2} mb={memberRecord ? 3 : 0}>
+        <HStack justify="space-between" flexWrap="wrap" gap={2}>
           <VStack align="flex-start" spacing={0}>
             <Text fontWeight="bold" color="green.200">
               ⚒️ Gathering Phase
@@ -690,60 +1242,156 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             </Badge>
           )}
         </HStack>
-        {memberRecord && (
-          <MyRoleSelector
-            team={team}
-            myDiscordId={currentUserDiscordId}
-            currentRole={userMemberRole}
-            refetch={refetch}
-          />
+        {event.eventPassword && (
+          <HStack my={3} spacing={2} align="center">
+            <Text fontSize="xs" color="green.400" fontWeight="semibold">
+              Event Password:
+            </Text>
+            <Code
+              fontSize="sm"
+              bg="gray.800"
+              color="green.200"
+              px={2}
+              py={0.5}
+              borderRadius="sm"
+              letterSpacing="wider"
+            >
+              {event.eventPassword}
+            </Code>
+            <IconButton
+              size="xs"
+              variant="ghost"
+              colorScheme="green"
+              aria-label="Copy password"
+              icon={<CopyIcon />}
+              onClick={copyPassword}
+              title={passwordCopied ? 'Copied!' : 'Copy password'}
+            />
+            {passwordCopied && (
+              <Text fontSize="xs" color="green.400">
+                Copied!
+              </Text>
+            )}
+          </HStack>
         )}
       </Box>
 
-      {/* Two-column layout: tasks + war chest */}
-      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6}>
-        {/* Task list — takes 2/3 */}
-        <Box gridColumn={{ lg: 'span 2' }}>
-          <VStack align="stretch" spacing={6}>
-            {pvmerTasks.length > 0 && (
-              <TaskSection
-                title="PvM Tasks"
-                subtitle="Drops: weapon, helm, chest, legs, gloves, boots, or trinket — admin picks your slot"
-                colorScheme="orange"
-                tasks={pvmerTasks}
-                {...sharedTaskProps}
-              />
-            )}
-            {pvmerTasks.length > 0 && skillerTasks.length > 0 && <Divider borderColor="gray.600" />}
-            {skillerTasks.length > 0 && (
-              <TaskSection
-                title="Skilling Tasks"
-                subtitle="Drops: consumable, ring, amulet, cape, or shield — auto-assigned"
-                colorScheme="teal"
-                tasks={skillerTasks}
-                {...sharedTaskProps}
-              />
-            )}
-            {tasks.length === 0 && (
-              <Center h="200px">
-                <Text color="gray.500">No tasks assigned to this event yet.</Text>
-              </Center>
-            )}
+      {memberRecord && (
+        <MyRoleSelector
+          team={team}
+          myDiscordId={currentUserDiscordId}
+          currentRole={userMemberRole}
+          refetch={refetch}
+        />
+      )}
 
-            <Divider borderColor="gray.600" />
-            <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
-          </VStack>
+      {/* Admin role preview — dev/staging only */}
+      {isAdmin && IS_DEV && (
+        <Box
+          px={3}
+          py={2}
+          bg="purple.900"
+          border="1px solid"
+          borderColor="purple.700"
+          borderRadius="md"
+        >
+          <HStack spacing={3} flexWrap="wrap" align="center">
+            <Text
+              fontSize="xs"
+              color="purple.300"
+              fontWeight="semibold"
+              textTransform="uppercase"
+              letterSpacing="wider"
+            >
+              🛠 (TESTING ONLY) Preview as:
+            </Text>
+            <ButtonGroup size="xs" isAttached>
+              {[
+                ['PVMER', 'orange'],
+                ['SKILLER', 'teal'],
+                ['FLEX', 'purple'],
+              ].map(([role, scheme]) => (
+                <Button
+                  key={role}
+                  colorScheme={scheme}
+                  variant={previewRole === role ? 'solid' : 'ghost'}
+                  onClick={() => setPreviewRole(previewRole === role ? null : role)}
+                >
+                  {role === 'PVMER' ? 'PvMer' : role === 'SKILLER' ? 'Skiller' : 'Flex'}
+                </Button>
+              ))}
+            </ButtonGroup>
+            {previewRole ? (
+              <>
+                <Text fontSize="xs" color="purple.400">
+                  viewing as <strong>{previewRole}</strong>
+                </Text>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  colorScheme="gray"
+                  onClick={() => setPreviewRole(null)}
+                >
+                  reset
+                </Button>
+              </>
+            ) : (
+              <Text fontSize="xs" color="purple.600">
+                select a role to preview task visibility
+              </Text>
+            )}
+          </HStack>
+        </Box>
+      )}
+
+      {/* Two-column layout: quest logs + sidebar */}
+      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="start">
+        {/* Quest logs — PvM and Skilling side by side, takes 2/3 */}
+        <Box gridColumn={{ lg: 'span 2' }}>
+          {tasks.length === 0 ? (
+            <Center h="200px">
+              <Text color="gray.500">No tasks assigned to this event yet.</Text>
+            </Center>
+          ) : (
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+              {pvmerTasks.length > 0 && (
+                <TaskSection
+                  title="PvM Tasks"
+                  subtitle="Drops: weapon, helm, chest, legs, or misc"
+                  colorScheme="orange"
+                  tasks={pvmerTasks}
+                  {...sharedTaskProps}
+                />
+              )}
+              {skillerTasks.length > 0 && (
+                <TaskSection
+                  title="Skilling Tasks"
+                  subtitle="Drops: consumable, ring, amulet, cape, or shield"
+                  colorScheme="teal"
+                  tasks={skillerTasks}
+                  {...sharedTaskProps}
+                />
+              )}
+            </SimpleGrid>
+          )}
         </Box>
 
-        {/* War chest sidebar */}
+        {/* Right sidebar — war chest + submissions */}
         <VStack align="stretch" spacing={4}>
-          <Text fontSize="sm" fontWeight="semibold" color="gray.300">
-            Your War Chest
-          </Text>
-          <WarChestPanel team={team} hidden={false} />
-          <Text fontSize="xs" color="gray.500" textAlign="center">
-            Items earned here are used during the Outfitting phase to build your champion.
-          </Text>
+          <Box>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="gray.400"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={2}
+            >
+              War Chest
+            </Text>
+            <WarChestPanel team={team} hidden={false} />
+          </Box>
+          <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
         </VStack>
       </SimpleGrid>
     </VStack>
@@ -868,6 +1516,11 @@ export default function ChampionForgeBarracksPage() {
   const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },
     fetchPolicy: 'cache-and-network',
+  });
+
+  useSubscription(CLAN_WARS_EVENT_UPDATED, {
+    variables: { eventId },
+    onData: () => refetch(),
   });
 
   const event = data?.getClanWarsEvent;

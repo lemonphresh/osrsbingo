@@ -637,6 +637,9 @@ const typeDefs = gql`
     getClanWarsTeam(eventId: ID!, teamId: ID!): ClanWarsTeam
     getClanWarsWarChest(teamId: ID!): [ClanWarsItem!]!
     getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus): [ClanWarsSubmission!]!
+    getClanWarsSubmissionSummaries(eventId: ID!): [ClanWarsSubmissionSummary!]!
+    getClanWarsTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [ClanWarsSubmission!]!
+    getClanWarsPreScreenshots(eventId: ID!): [ClanWarsPreScreenshot!]!
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
     getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
@@ -779,6 +782,10 @@ const typeDefs = gql`
     leaveTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
     deleteClanWarsEvent(eventId: ID!): MutationResponse!
     generateClanWarsBracket(eventId: ID!, bracketType: String): ClanWarsEvent!
+    addClanWarsAdmin(eventId: ID!, userId: ID!): ClanWarsEvent!
+    removeClanWarsAdmin(eventId: ID!, userId: ID!): ClanWarsEvent!
+    addClanWarsRef(eventId: ID!, userId: ID!): ClanWarsEvent!
+    removeClanWarsRef(eventId: ID!, userId: ID!): ClanWarsEvent!
 
     # --- Champion Forge: Teams ---
     createClanWarsTeam(eventId: ID!, input: CreateClanWarsTeamInput!): ClanWarsTeam!
@@ -791,9 +798,21 @@ const typeDefs = gql`
     deleteClanWarsTask(taskId: ID!): MutationResponse!
     setTaskProgress(eventId: ID!, teamId: ID!, taskId: ID!, value: Int!): ClanWarsTeam!
     markTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
+    undoTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
 
     # --- Champion Forge: Submissions ---
     createClanWarsSubmission(input: ClanWarsSubmissionInput!): ClanWarsSubmission!
+    createClanWarsPreScreenshot(
+      eventId: ID!
+      teamId: ID
+      taskId: String!
+      taskLabel: String
+      submittedBy: String!
+      submittedUsername: String
+      screenshotUrl: String
+      channelId: String
+      messageId: String
+    ): ClanWarsPreScreenshot!
     reviewClanWarsSubmission(
       submissionId: ID!
       approved: Boolean!
@@ -802,6 +821,7 @@ const typeDefs = gql`
       denialReason: String
     ): ClanWarsSubmission!
     changeSubmissionRewardSlot(submissionId: ID!, rewardSlot: String!): ClanWarsSubmission!
+    undoSubmissionApproval(submissionId: ID!): ClanWarsSubmission!
 
     # --- Champion Forge: Outfitting ---
     saveOfficialLoadout(teamId: ID!, loadout: JSON!): ClanWarsTeam!
@@ -872,9 +892,15 @@ const typeDefs = gql`
     bracket: JSON
     creatorId: String
     adminIds: [String!]
+    admins: [User!]
+    refIds: [String!]
+    refs: [User!]
     seed: String
     guildId: String
+    announcementsChannelId: String
+    scheduledGatheringStart: DateTime
     difficulty: String
+    eventPassword: String
     teams: [ClanWarsTeam!]
     submissions: [ClanWarsSubmission!]
     tasks: [ClanWarsTask!]
@@ -886,6 +912,7 @@ const typeDefs = gql`
   type ClanWarsMember {
     discordId: String!
     username: String
+    rsn: String
     avatar: String
     role: String
   }
@@ -918,6 +945,29 @@ const typeDefs = gql`
     earnedAt: DateTime
     isEquipped: Boolean!
     isUsed: Boolean!
+  }
+
+  type ClanWarsSubmissionSummary {
+    taskId: String!
+    teamId: ID!
+    pendingCount: Int!
+    approvedCount: Int!
+    deniedCount: Int!
+  }
+
+  type ClanWarsPreScreenshot {
+    preScreenshotId: ID!
+    eventId: ID!
+    teamId: ID
+    taskId: String!
+    taskLabel: String
+    submittedBy: String!
+    submittedUsername: String
+    screenshotUrl: String
+    channelId: String
+    messageId: String
+    submittedAt: DateTime
+    createdAt: DateTime
   }
 
   type ClanWarsSubmission {
@@ -1009,6 +1059,8 @@ const typeDefs = gql`
 
   input UpdateClanWarsEventSettingsInput {
     guildId: String
+    announcementsChannelId: String
+    scheduledGatheringStart: DateTime
   }
 
   input CreateClanWarsEventInput {
@@ -1020,6 +1072,7 @@ const typeDefs = gql`
     maxConsumableSlots: Int
     flexRolesAllowed: Boolean
     difficulty: String
+    bracketType: String
     teams: [CreateClanWarsTeamInput!]
   }
 
@@ -1076,6 +1129,8 @@ const typeDefs = gql`
     battleEmoteReceived(battleId: ID!): BattleEmote!
     clanWarsSubmissionAdded(eventId: ID!): ClanWarsSubmission!
     clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
+    clanWarsPreScreenshotAdded(eventId: ID!): ClanWarsPreScreenshot!
+    clanWarsEventUpdated(eventId: ID!): ClanWarsEvent!
   }
 `;
 

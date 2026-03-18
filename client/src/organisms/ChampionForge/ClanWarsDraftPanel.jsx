@@ -17,10 +17,19 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  ButtonGroup,
+  Tooltip,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
 } from '@chakra-ui/react';
-import { CheckIcon, WarningIcon, SettingsIcon, StarIcon, DeleteIcon } from '@chakra-ui/icons';
-import { FaDiscord, FaUsers, FaScroll } from 'react-icons/fa';
+import { CheckIcon, WarningIcon, SettingsIcon, DeleteIcon } from '@chakra-ui/icons';
+import { FaDiscord, FaUsers, FaScroll, FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
+import { useAuth } from '../../providers/AuthProvider';
+import ClanWarsStaffManager from './ClanWarsStaffManager';
 import {
   VERIFY_DISCORD_GUILD,
   UPDATE_CLAN_WARS_EVENT_SETTINGS,
@@ -87,6 +96,17 @@ function GuildIdForm({ eventId, currentGuildId, refetch }) {
   const [value, setValue] = useState(currentGuildId ?? '');
   const [verifiedName, setVerifiedName] = useState(null);
 
+  // Fetch display name for already-saved guild ID on mount
+  React.useEffect(() => {
+    if (!currentGuildId) return;
+    fetch(`${API_BASE}/discguild/${currentGuildId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.name) setVerifiedName(d.name);
+      })
+      .catch(() => {});
+  }, [currentGuildId]);
+
   const [verifyGuild, { loading: verifying }] = useLazyQuery(VERIFY_DISCORD_GUILD, {
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
@@ -117,31 +137,129 @@ function GuildIdForm({ eventId, currentGuildId, refetch }) {
   };
 
   return (
-    <HStack spacing={2} mt={2}>
-      <Input
-        size="sm"
-        placeholder="Discord Server (Guild) ID"
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setVerifiedName(null);
-        }}
-        bg="gray.700"
-        borderColor="gray.600"
-        color="white"
-        _placeholder={{ color: 'gray.500' }}
-        fontFamily="mono"
-      />
-      <Button
-        size="sm"
-        colorScheme="purple"
-        isLoading={verifying || saving}
-        onClick={handleVerifyAndSave}
-        flexShrink={0}
-      >
-        Verify & Save
-      </Button>
-    </HStack>
+    <Box mt={2}>
+      <HStack spacing={2}>
+        <Input
+          size="sm"
+          placeholder="Discord Server (Guild) ID"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setVerifiedName(null);
+          }}
+          bg="gray.700"
+          borderColor="gray.600"
+          color="white"
+          _placeholder={{ color: 'gray.500' }}
+          fontFamily="mono"
+        />
+        <Button
+          size="sm"
+          colorScheme="purple"
+          isLoading={verifying || saving}
+          onClick={handleVerifyAndSave}
+          flexShrink={0}
+        >
+          Verify & Save
+        </Button>
+      </HStack>
+      {verifiedName && (
+        <Text fontSize="xs" color="green.400" mt={1}>
+          ✅{' '}
+          <Text as="span" fontWeight="semibold">
+            {verifiedName}
+          </Text>{' '}
+          <Text as="span" color="gray.500">
+            (id: {currentGuildId || value})
+          </Text>
+        </Text>
+      )}
+    </Box>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Announcements channel setup
+// ---------------------------------------------------------------------------
+function AnnouncementsChannelForm({ eventId, currentChannelId, refetch }) {
+  const { showToast } = useToastContext();
+  const [value, setValue] = useState(currentChannelId ?? '');
+  const [channelName, setChannelName] = useState(null);
+
+  // Fetch display name for already-saved channel ID on mount
+  React.useEffect(() => {
+    if (!currentChannelId) return;
+    fetch(`${API_BASE}/discchannel/${currentChannelId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.name) setChannelName(d.name);
+      })
+      .catch(() => {});
+  }, [currentChannelId]);
+
+  const [updateSettings, { loading: saving }] = useMutation(UPDATE_CLAN_WARS_EVENT_SETTINGS, {
+    onCompleted: (data) => {
+      const saved = data?.updateClanWarsEventSettings?.announcementsChannelId;
+      if (saved) {
+        fetch(`${API_BASE}/discchannel/${saved}`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then((d) => {
+            if (d?.name) setChannelName(d.name);
+          })
+          .catch(() => {});
+      }
+      showToast('Announcements channel saved', 'success');
+      refetch();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to save', 'error'),
+  });
+
+  const handleSave = () => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    updateSettings({ variables: { eventId, input: { announcementsChannelId: trimmed } } });
+  };
+
+  return (
+    <Box mt={2}>
+      <HStack spacing={2}>
+        <Input
+          size="sm"
+          placeholder="Announcements Channel ID"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setChannelName(null);
+          }}
+          bg="gray.700"
+          borderColor="gray.600"
+          color="white"
+          _placeholder={{ color: 'gray.500' }}
+          fontFamily="mono"
+        />
+        <Button
+          size="sm"
+          colorScheme="purple"
+          isLoading={saving}
+          isDisabled={!value.trim() || value.trim() === currentChannelId}
+          onClick={handleSave}
+          flexShrink={0}
+        >
+          Save
+        </Button>
+      </HStack>
+      {channelName && (
+        <Text fontSize="xs" color="green.400" mt={1}>
+          ✅{' '}
+          <Text as="span" fontWeight="semibold">
+            #{channelName}
+          </Text>{' '}
+          <Text as="span" color="gray.500">
+            (id: {currentChannelId || value})
+          </Text>
+        </Text>
+      )}
+    </Box>
   );
 }
 
@@ -175,7 +293,10 @@ function DraftTeamCard({ team, eventId, refetch }) {
 
   const handleMemberSelect = async (discordId) => {
     setNewMemberId(discordId);
-    if (!discordId) { setNewMemberUsername(''); return; }
+    if (!discordId) {
+      setNewMemberUsername('');
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/discuser/${discordId}`);
       if (res.ok) {
@@ -194,8 +315,15 @@ function DraftTeamCard({ team, eventId, refetch }) {
       return;
     }
     setAdding(true);
-    const newMember = { discordId: newMemberId, username: newMemberUsername || newMemberId, avatar: null, role: 'UNSET' };
-    const updated = [...(team.members ?? []), newMember].map(({ discordId, username, avatar, role }) => ({ discordId, username, avatar, role }));
+    const newMember = {
+      discordId: newMemberId,
+      username: newMemberUsername || newMemberId,
+      avatar: null,
+      role: 'UNSET',
+    };
+    const updated = [...(team.members ?? []), newMember].map(
+      ({ discordId, username, avatar, role }) => ({ discordId, username, avatar, role })
+    );
     try {
       await updateMembers({ variables: { teamId: team.teamId, members: updated } });
       showToast('Member added', 'success');
@@ -209,7 +337,12 @@ function DraftTeamCard({ team, eventId, refetch }) {
   const handleRemoveMember = async (discordId) => {
     const updated = (team.members ?? [])
       .filter((m) => m.discordId !== discordId)
-      .map(({ discordId: id, username, avatar, role }) => ({ discordId: id, username, avatar, role }));
+      .map(({ discordId: id, username, avatar, role }) => ({
+        discordId: id,
+        username,
+        avatar,
+        role,
+      }));
     try {
       await updateMembers({ variables: { teamId: team.teamId, members: updated } });
       showToast('Member removed', 'success');
@@ -227,52 +360,63 @@ function DraftTeamCard({ team, eventId, refetch }) {
     }
   };
 
-  const roleColor = (role) => role === 'PVMER' ? 'orange' : role === 'SKILLER' ? 'teal' : role === 'FLEX' ? 'purple' : 'gray';
-
   return (
-    <Box borderRadius="lg" border="1px solid" borderColor="gray.600" w="full">
+    <Box
+      borderRadius="lg"
+      border="1px solid"
+      borderColor="gray.600"
+      w="full"
+      display="flex"
+      flexDirection="column"
+    >
       {/* Card header */}
-      <HStack
-        px={3} py={2}
-        bg="gray.700"
-        borderTopRadius="lg"
-        justify="space-between"
-      >
-        <Text fontWeight="semibold" color="white" fontSize="sm">{team.teamName}</Text>
+      <HStack px={3} py={2} bg="gray.700" borderTopRadius="lg" justify="space-between">
+        <Text fontWeight="semibold" color="white" fontSize="sm">
+          {team.teamName}
+        </Text>
         <Button size="xs" colorScheme="red" variant="ghost" onClick={handleDelete}>
           Delete Team
         </Button>
       </HStack>
 
-      <VStack align="stretch" spacing={0} px={3} pt={2} pb={1}>
+      <VStack align="stretch" spacing={0} px={3} pt={2} pb={1} flex={1}>
         {/* Member list */}
         {(team.members ?? []).length === 0 ? (
-          <Text fontSize="xs" color="gray.500" py={1}>No members yet — add one below.</Text>
+          <Text fontSize="xs" color="gray.500" py={1}>
+            No members yet — add one below.
+          </Text>
         ) : (
           (team.members ?? []).map((m) => {
             const isCaptain = m.discordId === team.captainDiscordId;
             return (
-              <HStack key={m.discordId} spacing={2} py={1} borderBottom="1px solid" borderColor="gray.700">
-                <Badge colorScheme={roleColor(m.role)} fontSize="xs" flexShrink={0}>
-                  {m.role ?? 'ANY'}
-                </Badge>
-                {isCaptain && (
-                  <Icon as={StarIcon} color="yellow.400" boxSize={3} flexShrink={0} />
-                )}
-                <Text fontSize="xs" color={isCaptain ? 'yellow.300' : 'gray.200'} flex={1} noOfLines={1}>
+              <HStack
+                key={m.discordId}
+                spacing={2}
+                py={1}
+                borderBottom="1px solid"
+                borderColor="gray.700"
+              >
+                {isCaptain && <Icon as={FaCrown} color="yellow.400" boxSize={3} flexShrink={0} />}
+                <Text
+                  fontSize="xs"
+                  color={isCaptain ? 'yellow.300' : 'gray.200'}
+                  flex={1}
+                  noOfLines={1}
+                >
                   {m.username ?? m.discordId}
                 </Text>
                 {!isCaptain && (
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    colorScheme="yellow"
-                    onClick={() => handleSetCaptain(m.discordId)}
-                    title="Set as captain"
-                    px={1}
-                  >
-                    <Icon as={StarIcon} boxSize={3} />
-                  </Button>
+                  <Tooltip label="Set as captain" placement="top" hasArrow openDelay={200}>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="yellow"
+                      onClick={() => handleSetCaptain(m.discordId)}
+                      px={1}
+                    >
+                      <Icon as={FaCrown} boxSize={3} />
+                    </Button>
+                  </Tooltip>
                 )}
                 <Button
                   size="xs"
@@ -290,14 +434,24 @@ function DraftTeamCard({ team, eventId, refetch }) {
       </VStack>
 
       {/* Add member form */}
-      <Box px={3} pb={3} pt={2}>
-        <Text fontSize="xs" color="gray.500" fontWeight="semibold" mb={1} textTransform="uppercase" letterSpacing="wider">
+      <Box px={3} pb={3} pt={2} mt="auto">
+        <Text
+          fontSize="xs"
+          color="gray.500"
+          fontWeight="semibold"
+          mb={1}
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
           Add Member
         </Text>
         <DiscordMemberInput
           value={newMemberId}
           onChange={handleMemberSelect}
-          onRemove={() => { setNewMemberId(''); setNewMemberUsername(''); }}
+          onRemove={() => {
+            setNewMemberId('');
+            setNewMemberUsername('');
+          }}
           showRemove={!!newMemberId}
         />
         <HStack mt={2} spacing={2}>
@@ -367,31 +521,215 @@ function AddTeamForm({ eventId, refetch }) {
 }
 
 // ---------------------------------------------------------------------------
-// Launch confirm modal
+// Launch confirm modal — Start Now or Schedule
 // ---------------------------------------------------------------------------
-function LaunchConfirmModal({ isOpen, onClose, onConfirm, loading }) {
+function localDatetimeMin() {
+  const d = new Date(Date.now() + 60_000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
+// Convert a UTC ISO string to the YYYY-MM-DDTHH:MM format the datetime-local input expects (local time)
+function isoToLocalDatetimeInput(iso) {
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
+function fmtScheduled(iso, utc) {
+  const fmt = {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  return utc
+    ? new Date(iso).toLocaleString(undefined, { ...fmt, timeZone: 'UTC' }) + ' UTC'
+    : new Date(iso).toLocaleString(undefined, { ...fmt, timeZoneName: 'short' });
+}
+
+function LaunchConfirmModal({
+  isOpen,
+  onClose,
+  onStartNow,
+  onSchedule,
+  loadingNow,
+  loadingSchedule,
+  initialMode = 'now',
+  initialScheduledAt = '',
+}) {
+  const [mode, setMode] = useState('now');
+  const [scheduledAt, setScheduledAt] = useState('');
+  const [useUtc, setUseUtc] = useState(false);
+
+  const localTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // Reset on open, pre-fill if editing an existing schedule
+  React.useEffect(() => {
+    if (isOpen) {
+      setMode(initialMode);
+      setScheduledAt(initialScheduledAt);
+      setUseUtc(false);
+    }
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSchedule = () => {
+    if (!scheduledAt) return;
+    // UTC mode: treat input as UTC by appending Z; local mode: browser converts from local
+    const iso = useUtc
+      ? new Date(scheduledAt + 'Z').toISOString()
+      : new Date(scheduledAt).toISOString();
+    onSchedule(iso);
+  };
+
+  // min must match the input's timezone interpretation
+  const minDatetime = useUtc
+    ? new Date(Date.now() + 60_000).toISOString().slice(0, 16)
+    : localDatetimeMin();
+
+  // Show the equivalent in the other timezone after a value is picked
+  let conversionHint = null;
+  if (scheduledAt) {
+    try {
+      const fmt = {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      };
+      if (useUtc) {
+        conversionHint =
+          '= ' +
+          new Date(scheduledAt + 'Z').toLocaleString(undefined, { ...fmt, timeZoneName: 'short' });
+      } else {
+        conversionHint =
+          '= ' +
+          new Date(scheduledAt).toLocaleString(undefined, { ...fmt, timeZone: 'UTC' }) +
+          ' UTC';
+      }
+    } catch {}
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="sm">
       <ModalOverlay />
       <ModalContent bg="gray.800" border="1px solid" borderColor="gray.700" color="white">
         <ModalHeader color="white" fontSize="md">
-          Start Gathering Phase?
+          Launch Gathering Phase
         </ModalHeader>
         <ModalBody>
-          <Text fontSize="sm" color="gray.300">
-            This will open the gathering phase for all players. The event clock starts now and{' '}
-            <Text as="span" color="yellow.300" fontWeight="semibold">
-              this cannot be undone.
+          <VStack align="stretch" spacing={4}>
+            <ButtonGroup isAttached w="100%" size="sm">
+              <Button
+                flex={1}
+                color="white"
+                _hover={{ color: mode === 'now' ? 'white' : 'gray.400' }}
+                colorScheme={mode === 'now' ? 'green' : 'gray'}
+                variant={mode === 'now' ? 'solid' : 'outline'}
+                onClick={() => setMode('now')}
+              >
+                Start Now
+              </Button>
+              <Button
+                flex={1}
+                color="white"
+                _hover={{ color: mode === 'schedule' ? 'white' : 'gray.400' }}
+                colorScheme={mode === 'schedule' ? 'purple' : 'gray'}
+                variant={mode === 'schedule' ? 'solid' : 'outline'}
+                onClick={() => setMode('schedule')}
+              >
+                Schedule
+              </Button>
+            </ButtonGroup>
+
+            <Text fontSize="sm" color="gray.300">
+              This is essentially the start of the entire event. Make sure you've completed the
+              checklist and set up your Discord server and channels before launching.
             </Text>
-          </Text>
+
+            {mode === 'now' ? (
+              <Text fontSize="sm" color="gray.300">
+                The gathering clock starts immediately.{' '}
+                <Text as="span" color="yellow.300" fontWeight="semibold">
+                  This cannot be undone.
+                </Text>
+              </Text>
+            ) : (
+              <VStack align="stretch" spacing={2}>
+                <HStack justify="space-between" align="center">
+                  <Text fontSize="xs" color="gray.400">
+                    {useUtc ? 'UTC' : `Local · ${localTz}`}
+                  </Text>
+                  <ButtonGroup isAttached size="xs">
+                    <Button
+                      colorScheme="purple"
+                      _hover={{ bg: !useUtc ? 'purple.600' : 'gray.700' }}
+                      variant={!useUtc ? 'solid' : 'outline'}
+                      color="white"
+                      onClick={() => {
+                        setUseUtc(false);
+                        setScheduledAt('');
+                      }}
+                    >
+                      Local
+                    </Button>
+                    <Button
+                      colorScheme="purple"
+                      variant={useUtc ? 'solid' : 'outline'}
+                      _hover={{ bg: useUtc ? 'purple.600' : 'gray.700' }}
+                      color="white"
+                      onClick={() => {
+                        setUseUtc(true);
+                        setScheduledAt('');
+                      }}
+                    >
+                      UTC
+                    </Button>
+                  </ButtonGroup>
+                </HStack>
+                <Input
+                  type="datetime-local"
+                  size="sm"
+                  min={minDatetime}
+                  value={scheduledAt}
+                  onChange={(e) => setScheduledAt(e.target.value)}
+                  bg="gray.700"
+                  borderColor="gray.600"
+                  color="white"
+                />
+                {conversionHint && (
+                  <Text fontSize="xs" color="gray.500">
+                    {conversionHint}
+                  </Text>
+                )}
+              </VStack>
+            )}
+          </VStack>
         </ModalBody>
         <ModalFooter gap={2}>
           <Button variant="ghost" color="gray.400" onClick={onClose}>
             Cancel
           </Button>
-          <Button colorScheme="green" isLoading={loading} onClick={onConfirm}>
-            Start Gathering
-          </Button>
+          {mode === 'now' ? (
+            <Button colorScheme="green" isLoading={loadingNow} onClick={onStartNow}>
+              Start Gathering
+            </Button>
+          ) : (
+            <Button
+              colorScheme="purple"
+              isLoading={loadingSchedule}
+              isDisabled={!scheduledAt}
+              onClick={handleSchedule}
+            >
+              Schedule
+            </Button>
+          )}
         </ModalFooter>
       </ModalContent>
     </Modal>
@@ -402,14 +740,26 @@ function LaunchConfirmModal({ isOpen, onClose, onConfirm, loading }) {
 // Main draft panel
 // ---------------------------------------------------------------------------
 export default function ClanWarsDraftPanel({ event, refetch }) {
+  const { user } = useAuth();
   const { showToast } = useToastContext();
   const [showLaunchModal, setShowLaunchModal] = useState(false);
+  const [bannerUtc, setBannerUtc] = useState(false);
+  const scheduleActionRef = React.useRef('schedule');
   const [updateStatus, { loading: advancing }] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, {
     onCompleted: () => {
       showToast('Gathering phase started!', 'success');
       refetch();
     },
     onError: (err) => showToast(err.message ?? 'Failed to advance', 'error'),
+  });
+  const [updateSettings, { loading: scheduling }] = useMutation(UPDATE_CLAN_WARS_EVENT_SETTINGS, {
+    onCompleted: () => {
+      const isCancel = scheduleActionRef.current === 'cancel';
+      showToast(isCancel ? 'Schedule cancelled' : 'Gathering phase scheduled!', 'success');
+      setShowLaunchModal(false);
+      refetch();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to update', 'error'),
   });
 
   const teams = event.teams ?? [];
@@ -447,14 +797,23 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
       icon: FaUsers,
       required: false,
     },
-    tasks: {
-      done: (event.tasks?.length ?? 0) > 0,
-      label: 'Task Pool',
+    announcementsChannel: {
+      done: !!event.announcementsChannelId,
+      label: 'Announcements Channel',
+      description: event.announcementsChannelId
+        ? `Channel set: ${event.announcementsChannelId}`
+        : 'Optional, but recommended. Bot will post phase announcements here.',
+      icon: FaDiscord,
+      required: false,
+    },
+    staffRefs: {
+      done: (event.refIds ?? []).length > 0,
+      label: 'Event Refs',
       description:
-        (event.tasks?.length ?? 0) > 0
-          ? `${event.tasks.length} tasks in pool`
-          : 'No tasks seeded — use admin controls to add tasks.',
-      icon: FaScroll,
+        (event.refIds ?? []).length > 0
+          ? `${event.refIds.length} ref(s) added`
+          : 'Optional, but recommended. Add trustworthy refs to help approve submissions.',
+      icon: FaUsers,
       required: false,
     },
   };
@@ -468,6 +827,20 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
     } catch {
       // error shown via onError above
     }
+  };
+
+  const handleScheduleGathering = (isoString) => {
+    scheduleActionRef.current = 'schedule';
+    updateSettings({
+      variables: { eventId: event.eventId, input: { scheduledGatheringStart: isoString } },
+    });
+  };
+
+  const handleCancelSchedule = () => {
+    scheduleActionRef.current = 'cancel';
+    updateSettings({
+      variables: { eventId: event.eventId, input: { scheduledGatheringStart: null } },
+    });
   };
 
   return (
@@ -497,17 +870,88 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
               DRAFT
             </Badge>
           </HStack>
-          <Button
-            size="sm"
-            colorScheme="green"
-            isDisabled={!canLaunch}
-            onClick={() => setShowLaunchModal(true)}
-          >
-            Launch Event →
-          </Button>
+          {!event.scheduledGatheringStart && (
+            <Button
+              size="sm"
+              colorScheme="green"
+              isDisabled={!canLaunch}
+              onClick={() => setShowLaunchModal(true)}
+            >
+              Launch Event →
+            </Button>
+          )}
         </HStack>
 
         <VStack align="stretch" spacing={5} p={5}>
+          {/* Scheduled launch banner */}
+          {event.scheduledGatheringStart && (
+            <Box
+              bg="purple.900"
+              border="1px solid"
+              borderColor="purple.600"
+              borderRadius="md"
+              px={4}
+              py={3}
+            >
+              <HStack justify="space-between" align="flex-start">
+                <VStack align="flex-start" spacing={1}>
+                  <Text
+                    fontSize="xs"
+                    color="purple.400"
+                    fontWeight="semibold"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                  >
+                    ⏰ Gathering Launch Scheduled
+                  </Text>
+                  <HStack spacing={2} align="center" flexWrap="wrap">
+                    <Text fontSize="sm" color="white" fontWeight="semibold">
+                      {fmtScheduled(event.scheduledGatheringStart, bannerUtc)}
+                    </Text>
+                    <ButtonGroup isAttached size="xs">
+                      <Button
+                        colorScheme="purple"
+                        variant={!bannerUtc ? 'solid' : 'outline'}
+                        color="white"
+                        onClick={() => setBannerUtc(false)}
+                      >
+                        Local
+                      </Button>
+                      <Button
+                        colorScheme="purple"
+                        variant={bannerUtc ? 'solid' : 'outline'}
+                        color="white"
+                        onClick={() => setBannerUtc(true)}
+                      >
+                        UTC
+                      </Button>
+                    </ButtonGroup>
+                  </HStack>
+                </VStack>
+                <HStack spacing={2} flexShrink={0}>
+                  <Button
+                    size="xs"
+                    colorScheme="purple"
+                    variant="outline"
+                    color="white"
+                    onClick={() => setShowLaunchModal(true)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="xs"
+                    colorScheme="red"
+                    variant="ghost"
+                    isLoading={scheduling}
+                    onClick={handleCancelSchedule}
+                  >
+                    Cancel
+                  </Button>
+                </HStack>
+              </HStack>
+            </Box>
+          )}
+
           {/* Checklist */}
           <Box>
             <Text
@@ -524,7 +968,8 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
               <ChecklistItem {...checks.guildId} />
               <ChecklistItem {...checks.teams} />
               <ChecklistItem {...checks.members} />
-              <ChecklistItem {...checks.tasks} />
+              <ChecklistItem {...checks.announcementsChannel} />
+              <ChecklistItem {...checks.staffRefs} />
             </VStack>
           </Box>
 
@@ -542,7 +987,8 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
                 Discord Guild ID
               </Text>
               <Text fontSize="xs" color="gray.400" mb={2}>
-                Find this in Discord: Server Settings → Widget → Server ID.
+                Enable Developer Mode in Discord (User Settings → Advanced → Developer Mode), then
+                right-click your server icon and select Copy Server ID.
               </Text>
               <GuildIdForm
                 eventId={event.eventId}
@@ -560,22 +1006,57 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
                 color="gray.500"
                 textTransform="uppercase"
                 letterSpacing="wider"
-                mb={2}
+                mb={1}
               >
                 Discord Guild ID
               </Text>
-              <HStack>
-                <Text fontSize="sm" color="green.400" fontFamily="mono">
-                  {event.guildId}
-                </Text>
-                <GuildIdForm
-                  eventId={event.eventId}
-                  currentGuildId={event.guildId}
-                  refetch={refetch}
-                />
-              </HStack>
+              <GuildIdForm
+                eventId={event.eventId}
+                currentGuildId={event.guildId}
+                refetch={refetch}
+              />
             </Box>
           )}
+
+          {/* Announcements channel */}
+          <Box>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={1}
+            >
+              Announcements Channel
+            </Text>
+            <Text fontSize="xs" color="gray.400" mb={1}>
+              The bot will post phase announcements here (gathering start, outfitting, battles).
+              Enable Developer Mode, right-click a channel and select Copy Channel ID.
+            </Text>
+            <AnnouncementsChannelForm
+              eventId={event.eventId}
+              currentChannelId={event.announcementsChannelId}
+              refetch={refetch}
+            />
+          </Box>
+
+          {/* Staff manager */}
+          <Accordion allowMultiple defaultIndex={[0]} reduceMotion>
+            <AccordionItem border="none" borderRadius="md" bg="gray.750">
+              <AccordionButton px={3} py={2} _hover={{ bg: 'gray.700' }} borderRadius="md">
+                <Box flex="1" textAlign="left">
+                  <Text fontWeight="semibold" color="gray.300" fontSize="sm">
+                    Staff - Admins & Refs
+                  </Text>
+                </Box>
+                <AccordionIcon color="gray.400" />
+              </AccordionButton>
+              <AccordionPanel px={3} pb={4}>
+                <ClanWarsStaffManager event={event} currentUserId={user?.id} refetch={refetch} />
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
 
           <Divider borderColor="gray.700" />
 
@@ -595,14 +1076,16 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
 
             {teams.length > 0 ? (
               <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3} mb={3}>
-                {teams.map((team) => (
-                  <DraftTeamCard
-                    key={team.teamId}
-                    team={team}
-                    eventId={event.eventId}
-                    refetch={refetch}
-                  />
-                ))}
+                {[...teams]
+                  .sort((a, b) => a.teamId.localeCompare(b.teamId))
+                  .map((team) => (
+                    <DraftTeamCard
+                      key={team.teamId}
+                      team={team}
+                      eventId={event.eventId}
+                      refetch={refetch}
+                    />
+                  ))}
               </SimpleGrid>
             ) : (
               <Text fontSize="sm" color="gray.600" mb={3}>
@@ -633,8 +1116,16 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
       <LaunchConfirmModal
         isOpen={showLaunchModal}
         onClose={() => setShowLaunchModal(false)}
-        onConfirm={handleLaunch}
-        loading={advancing}
+        onStartNow={handleLaunch}
+        onSchedule={handleScheduleGathering}
+        loadingNow={advancing}
+        loadingSchedule={scheduling}
+        initialMode={event.scheduledGatheringStart ? 'schedule' : 'now'}
+        initialScheduledAt={
+          event.scheduledGatheringStart
+            ? isoToLocalDatetimeInput(event.scheduledGatheringStart)
+            : ''
+        }
       />
     </>
   );

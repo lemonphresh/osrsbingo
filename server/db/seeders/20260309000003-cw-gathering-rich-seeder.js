@@ -24,6 +24,12 @@ const EVENT_ID  = 'cwev_gather_rich';
 const TEAM1_ID  = 'cwt_gr_t1';
 const TEAM2_ID  = 'cwt_gr_t2';
 
+// Real admin Discord IDs — added to Team 1 so local devs can test barracks UI
+const REAL_ADMINS = [
+  { discordId: '221415080514945035', username: 'buttlid', role: 'PVMER'   },
+  { discordId: '136602347999592448', username: 'Cealsha', role: 'SKILLER' },
+];
+
 // Snapshots pulled from server/utils/clanWarsItems.js
 const ITEM_SNAPSHOTS = {
   COPPER_SKULLCAP:     { name: 'Copper Skullcap',      slot: 'helm',        rarity: 'common',   stats: { attack: 0,  defense: 10, speed: 5,  crit: 0,  hp: 10 }, special: null, consumableType: null, consumableEffect: null },
@@ -38,7 +44,7 @@ const ITEM_SNAPSHOTS = {
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem } = models;
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem, ClanWarsPreScreenshot } = models;
 
     const existing = await ClanWarsEvent.findByPk(EVENT_ID);
     if (existing) {
@@ -80,12 +86,12 @@ module.exports = {
     const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     // Look up specific tasks by label for team progress / submissions
-    const barrowsTask    = tasks.find(t => t.label === 'Barrows');
-    const dkTask         = tasks.find(t => t.label === 'Dagannoth Kings');
-    const zulrahTask     = tasks.find(t => t.label === 'Zulrah');
-    const fishingTask    = tasks.find(t => t.label === 'Fishing XP');
-    const wintertodtTask = tasks.find(t => t.label === 'Wintertodt');
-    const miningTask     = tasks.find(t => t.label === 'Mining XP');
+    const barrowsTask    = tasks.find(t => t.objectiveId === 'pvm_barrows');
+    const dkTask         = tasks.find(t => t.objectiveId === 'pvm_dagannothKings');
+    const zulrahTask     = tasks.find(t => t.objectiveId === 'pvm_zulrah');
+    const fishingTask    = tasks.find(t => t.objectiveId === 'skl_fishing_xp');
+    const wintertodtTask = tasks.find(t => t.objectiveId === 'skl_wintertodt');
+    const miningTask     = tasks.find(t => t.objectiveId === 'skl_mining_xp');
 
     // -------------------------------------------------------------------------
     // Team 1: Iron Vanguard
@@ -99,6 +105,7 @@ module.exports = {
         { discordId: '100000000000000001', username: 'devuser',    avatar: null, role: 'PVMER'   },
         { discordId: '100000000000000002', username: 'IronBow',    avatar: null, role: 'PVMER'   },
         { discordId: '100000000000000003', username: 'VanguardWC', avatar: null, role: 'SKILLER' },
+        ...REAL_ADMINS.map((a) => ({ discordId: a.discordId, username: a.username, avatar: null, role: a.role })),
       ],
       officialLoadout: null,
       loadoutLocked: false,
@@ -315,6 +322,42 @@ module.exports = {
       createdAt: now, updatedAt: now,
     });
 
+    // -------------------------------------------------------------------------
+    // Prescreenshots — real admins + devuser on pending/in-progress tasks
+    // -------------------------------------------------------------------------
+    await ClanWarsPreScreenshot.bulkCreate([
+      // buttlid prescreened the zulrah task before submitting
+      {
+        preScreenshotId: 'cwps_gr_001',
+        eventId: EVENT_ID, teamId: TEAM1_ID,
+        taskId: zulrahTask.taskId, taskLabel: zulrahTask.label,
+        submittedBy: REAL_ADMINS[0].discordId, submittedUsername: REAL_ADMINS[0].username,
+        screenshotUrl: 'https://i.imgur.com/placeholder_pre1.png',
+        channelId: '111111111111111111', messageId: '999000000000000001',
+        submittedAt: ago(50), createdAt: now, updatedAt: now,
+      },
+      // Cealsha also prescreened zulrah
+      {
+        preScreenshotId: 'cwps_gr_002',
+        eventId: EVENT_ID, teamId: TEAM1_ID,
+        taskId: zulrahTask.taskId, taskLabel: zulrahTask.label,
+        submittedBy: REAL_ADMINS[1].discordId, submittedUsername: REAL_ADMINS[1].username,
+        screenshotUrl: 'https://i.imgur.com/placeholder_pre2.png',
+        channelId: '111111111111111111', messageId: '999000000000000002',
+        submittedAt: ago(45), createdAt: now, updatedAt: now,
+      },
+      // devuser prescreened barrows (now approved — shows stash even after completion)
+      {
+        preScreenshotId: 'cwps_gr_003',
+        eventId: EVENT_ID, teamId: TEAM1_ID,
+        taskId: barrowsTask.taskId, taskLabel: barrowsTask.label,
+        submittedBy: '100000000000000001', submittedUsername: 'devuser',
+        screenshotUrl: 'https://i.imgur.com/placeholder_pre3.png',
+        channelId: '111111111111111111', messageId: '999000000000000003',
+        submittedAt: ago(115), createdAt: now, updatedAt: now,
+      },
+    ]);
+
     console.log('✅ Dev Rich Gathering seeder complete!');
     console.log(`   Event ID   : ${EVENT_ID}`);
     console.log(`   Team 1     : ${TEAM1_ID}  (Iron Vanguard — 2 completed, 1 in-progress, 1 pending + 1 denied)`);
@@ -326,13 +369,14 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem } = models;
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem, ClanWarsPreScreenshot } = models;
 
-    await ClanWarsItem.destroy(       { where: { eventId: EVENT_ID } });
-    await ClanWarsSubmission.destroy( { where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy(       { where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy(       { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy(      { where: { eventId: EVENT_ID } });
+    await ClanWarsPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
+    await ClanWarsItem.destroy(         { where: { eventId: EVENT_ID } });
+    await ClanWarsSubmission.destroy(   { where: { eventId: EVENT_ID } });
+    await ClanWarsTask.destroy(         { where: { eventId: EVENT_ID } });
+    await ClanWarsTeam.destroy(         { where: { eventId: EVENT_ID } });
+    await ClanWarsEvent.destroy(        { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Rich Gathering seeder undone.');
   },
 };

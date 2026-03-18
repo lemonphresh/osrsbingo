@@ -143,6 +143,27 @@ const fieldResolvers = {
   },
 
   // ============================================================
+  // CHAMPION FORGE EVENT FIELD RESOLVERS
+  // ============================================================
+  ClanWarsEvent: {
+    admins: async (event, _, { loaders }) => {
+      if (!event.adminIds?.length) return [];
+      const admins = await Promise.all(
+        event.adminIds.map((id) => loaders.userById.load(id.toString()))
+      );
+      return admins.filter(Boolean);
+    },
+
+    refs: async (event, _, { loaders }) => {
+      if (!event.refIds?.length) return [];
+      const refs = await Promise.all(
+        event.refIds.map((id) => loaders.userById.load(id.toString()))
+      );
+      return refs.filter(Boolean);
+    },
+  },
+
+  // ============================================================
   // CHAMPION FORGE TEAM FIELD RESOLVERS
   // ============================================================
   ClanWarsTeam: {
@@ -158,7 +179,7 @@ const fieldResolvers = {
       const discordIds = normalised.map((m) => m.discordId).filter(Boolean);
       const siteUsers = await User.findAll({
         where: { discordUserId: discordIds },
-        attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username'],
+        attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username', 'rsn'],
       });
       const siteMap = new Map(siteUsers.map((u) => [u.discordUserId, u]));
 
@@ -169,6 +190,7 @@ const fieldResolvers = {
             return {
               discordId: m.discordId,
               username: siteUser.discordUsername ?? siteUser.username ?? m.username ?? null,
+              rsn: siteUser.rsn ?? null,
               avatar: siteUser.discordAvatar ?? m.avatar ?? null,
               role: m.role ?? null,
             };
@@ -176,7 +198,7 @@ const fieldResolvers = {
 
           // Fall back to what was stored (from event creation form input)
           if (m.username) {
-            return { discordId: m.discordId, username: m.username, avatar: m.avatar ?? null, role: m.role ?? null };
+            return { discordId: m.discordId, username: m.username, rsn: null, avatar: m.avatar ?? null, role: m.role ?? null };
           }
 
           // Last resort — Discord API
@@ -184,6 +206,7 @@ const fieldResolvers = {
           return {
             discordId: m.discordId,
             username: discordUser?.global_name ?? discordUser?.username ?? null,
+            rsn: null,
             avatar: discordUser?.avatar ?? null,
             role: m.role ?? null,
           };

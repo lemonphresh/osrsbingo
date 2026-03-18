@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
+import { useAuth } from '../../providers/AuthProvider';
 import ConfirmModal from './ConfirmModal';
+import ClanWarsStaffManager from './ClanWarsStaffManager';
 import {
   Box,
   VStack,
@@ -18,10 +20,13 @@ import {
   AccordionPanel,
   AccordionIcon,
   Icon,
+  Code,
+  Link,
+  Tooltip,
 } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
+import { FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
-import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
   CREATE_CLAN_WARS_TEAM,
@@ -30,11 +35,7 @@ import {
   DELETE_CLAN_WARS_TASK,
   SET_CLAN_WARS_CAPTAIN,
   GENERATE_CLAN_WARS_BRACKET,
-  ADMIN_FORCE_EVENT_STATUS,
-  ADMIN_LOCK_ALL_LOADOUTS,
 } from '../../graphql/clanWarsOperations';
-
-const IS_DEV = process.env.NODE_ENV !== 'production';
 
 const DIFFICULTY_COLORS = { initiate: 'green', adept: 'yellow', master: 'red' };
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
@@ -46,7 +47,6 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
   const { showToast } = useToastContext();
   const [deleteTeam] = useMutation(DELETE_CLAN_WARS_TEAM, { onCompleted: refetch });
   const [setCaptain] = useMutation(SET_CLAN_WARS_CAPTAIN, { onCompleted: refetch });
-  const [captainInput, setCaptainInput] = useState('');
   const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleDelete = async () => {
@@ -60,19 +60,27 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
     }
   };
 
-  const handleSetCaptainById = async (discordId) => {
-    if (!discordId?.trim()) return;
+  const handleSetCaptain = async (discordId) => {
     try {
-      await setCaptain({ variables: { teamId: team.teamId, discordId: discordId.trim() } });
+      await setCaptain({ variables: { teamId: team.teamId, discordId } });
       showToast('Captain set', 'success');
-      setCaptainInput('');
     } catch {
       showToast('Failed to set captain', 'error');
     }
   };
 
+  const captainMember = (team.members ?? []).find((m) => m.discordId === team.captainDiscordId);
+
   return (
-    <Box bg="gray.700" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
+    <Box
+      bg="gray.700"
+      borderRadius="md"
+      p={4}
+      border="1px solid"
+      borderColor="gray.600"
+      display="flex"
+      flexDirection="column"
+    >
       <HStack justify="space-between" mb={2}>
         <Text fontWeight="bold" color="white">
           {team.teamName}
@@ -86,41 +94,59 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
 
       <Text fontSize="xs" color="gray.400" mb={2}>
         {team.members?.length ?? 0} members
-        {team.captainDiscordId && ` · Captain: ${team.captainDiscordId}`}
+        {captainMember
+          ? ` · Captain: ${captainMember.rsn || captainMember.username || captainMember.discordId}`
+          : team.captainDiscordId
+          ? ` · Captain: ${team.captainDiscordId}`
+          : ' · No captain set'}
       </Text>
 
-      <VStack align="stretch" spacing={1} mb={2}>
-        {(team.members ?? []).slice(0, 4).map((m, i) => (
-          <HStack key={m.discordId ?? i} spacing={2}>
-            <Badge colorScheme={ROLE_COLORS[m.role] ?? 'gray'} fontSize="xs" flexShrink={0}>
-              {m.role ?? '—'}
-            </Badge>
-            <Text fontSize="xs" color="gray.300" noOfLines={1}>
-              {m.username ?? m.discordId}
-            </Text>
-          </HStack>
-        ))}
-        {(team.members?.length ?? 0) > 4 && (
-          <Text fontSize="xs" color="gray.500">
-            +{team.members.length - 4} more
+      <VStack align="stretch" spacing={0}>
+        {(team.members ?? []).length === 0 ? (
+          <Text fontSize="xs" color="gray.500" py={1}>
+            No members yet.
           </Text>
+        ) : (
+          (team.members ?? []).map((m) => {
+            const isCaptain = m.discordId === team.captainDiscordId;
+            return (
+              <HStack
+                key={m.discordId}
+                spacing={2}
+                py={1}
+                borderBottom="1px solid"
+                borderColor="gray.600"
+              >
+                <Badge colorScheme={ROLE_COLORS[m.role] ?? 'gray'} fontSize="xs" flexShrink={0}>
+                  {m.role ?? 'ANY'}
+                </Badge>
+                {isCaptain && <Icon as={FaCrown} color="yellow.400" boxSize={3} flexShrink={0} />}
+                <Text
+                  fontSize="xs"
+                  color={isCaptain ? 'yellow.300' : 'gray.300'}
+                  flex={1}
+                  noOfLines={1}
+                >
+                  {m.rsn || m.username || m.discordId}
+                </Text>
+                {!isCaptain && (
+                  <Tooltip label="Set as captain" placement="top" hasArrow openDelay={200}>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="yellow"
+                      onClick={() => handleSetCaptain(m.discordId)}
+                      px={1}
+                    >
+                      <Icon as={FaCrown} boxSize={3} />
+                    </Button>
+                  </Tooltip>
+                )}
+              </HStack>
+            );
+          })
         )}
       </VStack>
-
-      <Box mt={2}>
-        <Text fontSize="xs" color="gray.500" mb={1}>
-          Set Captain
-        </Text>
-        <DiscordMemberInput
-          value={captainInput}
-          onChange={(id) => {
-            setCaptainInput(id);
-            handleSetCaptainById(id);
-          }}
-          onRemove={() => setCaptainInput('')}
-          showRemove={!!captainInput}
-        />
-      </Box>
 
       <ConfirmModal
         isOpen={deleteOpen}
@@ -363,14 +389,11 @@ function TaskPool({ event, refetch }) {
 // Main admin panel — phase controls + team/task management + dev tools
 // ---------------------------------------------------------------------------
 export default function AdminEventPanel({ event, refetch }) {
+  const { user } = useAuth();
   const { showToast } = useToastContext();
   const [updateStatus] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
   const [bracketType, setBracketType] = useState('SINGLE_ELIMINATION');
   const [generateBracket] = useMutation(GENERATE_CLAN_WARS_BRACKET, { onCompleted: refetch });
-  const [forceStatus] = useMutation(ADMIN_FORCE_EVENT_STATUS, { onCompleted: refetch });
-  const [lockAllLoadouts, { loading: lockingAll }] = useMutation(ADMIN_LOCK_ALL_LOADOUTS, {
-    onCompleted: refetch,
-  });
   const [advanceOpen, setAdvanceOpen] = useState(false);
   const [pendingNext, setPendingNext] = useState(null);
 
@@ -410,6 +433,25 @@ export default function AdminEventPanel({ event, refetch }) {
   };
 
   const nextStatus = NEXT_STATUS[event.status];
+
+  const gatheringMsLeft = event.gatheringEnd ? new Date(event.gatheringEnd) - Date.now() : 0;
+  function fmtDuration(ms) {
+    const totalMinutes = Math.floor(ms / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+    return parts.join(' ');
+  }
+  const advanceConfirmBody =
+    pendingNext === 'OUTFITTING' && gatheringMsLeft > 0
+      ? `This will end the gathering phase early — ${fmtDuration(
+          gatheringMsLeft
+        )} still remaining. This action cannot be undone.`
+      : 'This action cannot be undone.';
 
   return (
     <Box
@@ -452,7 +494,12 @@ export default function AdminEventPanel({ event, refetch }) {
                 <option value="SINGLE_ELIMINATION">Single Elim</option>
                 <option value="DOUBLE_ELIMINATION">Double Elim</option>
               </Select>
-              <Button size="sm" variant="outline" colorScheme="blue" onClick={handleGenerateBracket}>
+              <Button
+                size="sm"
+                variant="outline"
+                colorScheme="blue"
+                onClick={handleGenerateBracket}
+              >
                 Generate Bracket
               </Button>
             </HStack>
@@ -501,196 +548,149 @@ export default function AdminEventPanel({ event, refetch }) {
               )}
             </AccordionPanel>
           </AccordionItem>
+        </Accordion>
 
-          {/* Task pool section */}
+        {/* Staff manager — admins + refs */}
+        <Accordion allowMultiple reduceMotion>
           <AccordionItem border="none">
             <AccordionButton px={5} py={3} _hover={{ bg: 'gray.750' }}>
               <Box flex="1" textAlign="left">
                 <Text fontWeight="semibold" color="gray.200" fontSize="sm">
-                  Task Pool ({event.tasks?.length ?? 0})
+                  Staff - Admins & Ref Setup
                 </Text>
               </Box>
               <AccordionIcon color="gray.400" />
             </AccordionButton>
             <AccordionPanel px={5} pb={4}>
-              <TaskPool event={event} refetch={refetch} />
+              <ClanWarsStaffManager event={event} currentUserId={user?.id} refetch={refetch} />
             </AccordionPanel>
           </AccordionItem>
-
-          {/* War chests section */}
-          {/* {(event.teams?.length ?? 0) > 0 && (
-            <AccordionItem border="none">
-              <AccordionButton px={5} py={3} _hover={{ bg: 'gray.750' }}>
-                <Box flex="1" textAlign="left">
-                  <Text fontWeight="semibold" color="gray.200" fontSize="sm">
-                    War Chests
-                  </Text>
-                </Box>
-                <AccordionIcon color="gray.400" />
-              </AccordionButton>
-              <AccordionPanel px={5} pb={4}>
-                <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
-                  {event.teams.map((team) => (
-                    <WarChestPanel key={team.teamId} team={team} hidden={false} />
-                  ))}
-                </SimpleGrid>
-              </AccordionPanel>
-            </AccordionItem>
-          )} */}
         </Accordion>
 
         {/* Bot instructions */}
-        <Box
-          px={5}
-          py={4}
-          bg="blue.900"
-          borderLeft="3px solid"
-          borderLeftColor="blue.400"
-          mx={5}
-          my={4}
-          borderRadius="md"
-        >
-          <Text fontWeight="semibold" color="blue.200" mb={1} fontSize="sm">
-            Discord Bot Setup
+        <Box mx={5} my={4}>
+          <Text fontWeight="semibold" color="blue.200" mb={3} fontSize="sm">
+            ⚔️ Discord Bot Setup
           </Text>
-          <Text color="blue.300" fontSize="sm">
-            Players mark tasks in-progress on the site, then submit via Discord:{' '}
-            <code>!cfsubmit &lt;task_id&gt;</code> with a screenshot attached.
-          </Text>
-        </Box>
-
-        {/* Dev tools */}
-        {IS_DEV && (
-          <Accordion allowToggle reduceMotion>
-            <AccordionItem border="none">
-              <AccordionButton
-                px={5}
-                py={3}
-                _hover={{ bg: 'orange.900' }}
-                borderTop="1px solid"
-                borderColor="orange.800"
-              >
-                <Box flex="1" textAlign="left">
-                  <Text fontWeight="semibold" color="orange.400" fontSize="sm">
-                    🛠 Dev Tools
+          <VStack align="stretch" spacing={3}>
+            {/* Steps */}
+            {[
+              {
+                n: '1',
+                heading: 'Add the bot to your server',
+                body: (
+                  <Text fontSize="xs" color="gray.300">
+                    Use the{' '}
+                    <Link
+                      href={process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL}
+                      isExternal
+                      color="blue.300"
+                    >
+                      bot installation link
+                    </Link>{' '}
+                    to invite the Bingo Hub bot to your Discord server.
+                  </Text>
+                ),
+              },
+              {
+                n: '2',
+                heading: 'Add player Discord IDs to their team entries',
+                body: (
+                  <Text fontSize="xs" color="gray.300">
+                    When creating or editing teams, paste each player's Discord user ID into their
+                    member entry. The bot uses this to identify who is submitting, no roles or
+                    channel setup needed.
+                  </Text>
+                ),
+              },
+              {
+                n: '3',
+                heading: 'Share these commands with your players',
+                body: (
+                  <VStack align="stretch" spacing={1}>
+                    {[
+                      ['!cfsubmit <task_id> [attach screenshot]', 'submit a completion'],
+                      [
+                        '!cfpresubmit <task_id> [attach screenshot]',
+                        'record baseline XP or collection log stuff before grinding',
+                      ],
+                      ['!cf', 'show command help'],
+                    ].map(([cmd, desc]) => (
+                      <HStack key={cmd} spacing={2} align="baseline">
+                        <Code
+                          fontSize="xs"
+                          bg="gray.800"
+                          color="blue.200"
+                          px={1.5}
+                          py={0.5}
+                          borderRadius="sm"
+                          flexShrink={0}
+                        >
+                          {cmd}
+                        </Code>
+                        <Text fontSize="xs" color="gray.400">
+                          {desc}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </VStack>
+                ),
+              },
+            ].map(({ n, heading, body }) => (
+              <HStack key={n} align="flex-start" spacing={3}>
+                <Box
+                  w="20px"
+                  h="20px"
+                  borderRadius="full"
+                  bg="blue.700"
+                  flexShrink={0}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  mt="1px"
+                >
+                  <Text fontSize="xs" fontWeight="bold" color="blue.200">
+                    {n}
                   </Text>
                 </Box>
-                <AccordionIcon color="orange.400" />
-              </AccordionButton>
-              <AccordionPanel px={5} pb={5}>
-                <Text fontSize="xs" color="orange.400" mb={4}>
-                  Admin fast-forward controls — not shown in production.
-                </Text>
-                <VStack align="stretch" spacing={4}>
-                  {/* Force phase jump */}
-                  <Box>
-                    <Text
-                      fontSize="xs"
-                      fontWeight="bold"
-                      color="gray.400"
-                      mb={2}
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                    >
-                      Force Phase Jump
-                    </Text>
-                    <HStack flexWrap="wrap" gap={2}>
-                      {['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED', 'ARCHIVED'].map(
-                        (s) => (
-                          <Button
-                            key={s}
-                            size="xs"
-                            color={event.status === s ? 'white' : 'gray.300'}
-                            variant={event.status === s ? 'solid' : 'outline'}
-                            colorScheme={event.status === s ? 'orange' : 'gray'}
-                            onClick={() =>
-                              forceStatus({ variables: { eventId: event.eventId, status: s } })
-                                .then(() => showToast(`Forced to ${s}`, 'success'))
-                                .catch((e) => showToast(e.message, 'error'))
-                            }
-                          >
-                            {s}
-                          </Button>
-                        )
-                      )}
-                    </HStack>
-                  </Box>
-
-                  {/* Lock all loadouts */}
-                  <Box>
-                    <Text
-                      fontSize="xs"
-                      fontWeight="bold"
-                      color="gray.400"
-                      mb={2}
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                    >
-                      Loadouts
-                    </Text>
-                    <Button
-                      size="sm"
-                      colorScheme="orange"
-                      variant="outline"
-                      isLoading={lockingAll}
-                      onClick={() =>
-                        lockAllLoadouts({ variables: { eventId: event.eventId } })
-                          .then(() => showToast('All loadouts locked', 'success'))
-                          .catch((e) => showToast(e.message, 'error'))
-                      }
-                    >
-                      Lock All Loadouts
-                    </Button>
-                    <Text fontSize="xs" color="gray.500" mt={1}>
-                      Locks teams that have an official loadout. Skips teams without one.
-                    </Text>
-                  </Box>
-
-                  {/* Regenerate bracket */}
-                  <Box>
-                    <Text
-                      fontSize="xs"
-                      fontWeight="bold"
-                      color="gray.400"
-                      mb={2}
-                      textTransform="uppercase"
-                      letterSpacing={1}
-                    >
-                      Bracket
-                    </Text>
-                    <HStack spacing={1}>
-                      <Select
-                        size="sm"
-                        value={bracketType}
-                        onChange={(e) => setBracketType(e.target.value)}
-                        w="auto"
-                        bg="gray.700"
-                        borderColor="gray.600"
-                        color="gray.200"
-                        fontSize="xs"
-                      >
-                        <option value="SINGLE_ELIMINATION">Single Elim</option>
-                        <option value="DOUBLE_ELIMINATION">Double Elim</option>
-                      </Select>
-                      <Button
-                        size="sm"
-                        colorScheme="blue"
-                        variant="outline"
-                        onClick={() =>
-                          generateBracket({ variables: { eventId: event.eventId, bracketType } })
-                            .then(() => showToast('Bracket regenerated', 'success'))
-                            .catch((e) => showToast(e.message, 'error'))
-                        }
-                      >
-                        Regenerate Bracket
-                      </Button>
-                    </HStack>
-                  </Box>
+                <VStack align="flex-start" spacing={1} flex={1}>
+                  <Text fontSize="xs" fontWeight="semibold" color="white">
+                    {heading}
+                  </Text>
+                  {body}
                 </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
-        )}
+              </HStack>
+            ))}
+
+            {/* Hot tip */}
+            <Box
+              mt={1}
+              px={3}
+              py={2}
+              bg="yellow.900"
+              border="1px solid"
+              borderColor="yellow.700"
+              borderRadius="md"
+            >
+              <Text fontSize="xs" color="yellow.300">
+                <Text as="span" fontWeight="bold">
+                  💡 Hot tip:{' '}
+                </Text>
+                Set up a dedicated{' '}
+                <Text as="span" color="yellow.200" fontWeight="semibold">
+                  #team-name-bot
+                </Text>{' '}
+                channel for bot commands alongside each{' '}
+                <Text as="span" color="yellow.200" fontWeight="semibold">
+                  #team-name-chat
+                </Text>{' '}
+                channel so players can use the bot channel for bot commands and keep their yapping
+                separate in the chat channel. It keeps things tidy and makes it easier for admins to
+                cross check pending submissions.
+              </Text>
+            </Box>
+          </VStack>
+        </Box>
       </VStack>
 
       <ConfirmModal
@@ -701,7 +701,7 @@ export default function AdminEventPanel({ event, refetch }) {
         }}
         onConfirm={handleAdvance}
         title={pendingNext ? `${PHASE_LABELS[pendingNext]}?` : ''}
-        body="This action cannot be undone."
+        body={advanceConfirmBody}
         confirmLabel={pendingNext ? PHASE_LABELS[pendingNext] : 'Confirm'}
         colorScheme="purple"
       />

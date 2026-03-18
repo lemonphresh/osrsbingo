@@ -23,10 +23,16 @@ const EVENT_ID = 'cwev_gather01';
 const TEAM1_ID = 'cwt_gather_t1';
 const TEAM2_ID = 'cwt_gather_t2';
 
+// Real admin Discord IDs — added to Team 1 so local devs can test barracks UI
+const REAL_ADMINS = [
+  { discordId: '221415080514945035', username: 'buttlid',  role: 'PVMER'   },
+  { discordId: '136602347999592448', username: 'Cealsha',  role: 'SKILLER' },
+];
+
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission } = models;
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsPreScreenshot } = models;
 
     const existing = await ClanWarsEvent.findByPk(EVENT_ID);
     if (existing) {
@@ -64,19 +70,20 @@ module.exports = {
     const tasks = sampleTasksFromPool(EVENT_ID, EVENT_ID, 'standard', 3);
 
     // Look up specific tasks by label for use in team progress / submissions
-    const barrowsTask = tasks.find((t) => t.label === 'Barrows');
-    const dkTask = tasks.find((t) => t.label === 'Dagannoth Kings');
-    const fishingTask = tasks.find((t) => t.label === 'Fishing XP');
-    const wintertodtTask = tasks.find((t) => t.label === 'Wintertodt');
+    const barrowsTask    = tasks.find((t) => t.objectiveId === 'pvm_barrows');
+    const dkTask         = tasks.find((t) => t.objectiveId === 'pvm_dagannothKings');
+    const fishingTask    = tasks.find((t) => t.objectiveId === 'skl_fishing_xp');
+    const wintertodtTask = tasks.find((t) => t.objectiveId === 'skl_wintertodt');
 
     await ClanWarsTeam.create({
       teamId: TEAM1_ID,
       eventId: EVENT_ID,
       teamName: 'Iron Vanguard',
       members: [
-        { discordId: '100000000000000001', username: 'devuser', avatar: null, role: 'PVMER' },
-        { discordId: '100000000000000002', username: 'IronBow', avatar: null, role: 'PVMER' },
+        { discordId: '100000000000000001', username: 'devuser',    avatar: null, role: 'PVMER'   },
+        { discordId: '100000000000000002', username: 'IronBow',    avatar: null, role: 'PVMER'   },
         { discordId: '100000000000000003', username: 'VanguardWC', avatar: null, role: 'SKILLER' },
+        ...REAL_ADMINS.map((a) => ({ discordId: a.discordId, username: a.username, avatar: null, role: a.role })),
       ],
       officialLoadout: null,
       loadoutLocked: false,
@@ -165,6 +172,25 @@ module.exports = {
       updatedAt: now,
     });
 
+    // Prescreenshots — one per real admin for the barrows task
+    await ClanWarsPreScreenshot.bulkCreate(
+      REAL_ADMINS.map((admin, i) => ({
+        preScreenshotId: `cwps_g_00${i + 1}`,
+        eventId: EVENT_ID,
+        teamId: TEAM1_ID,
+        taskId: barrowsTask.taskId,
+        taskLabel: barrowsTask.label,
+        submittedBy: admin.discordId,
+        submittedUsername: admin.username,
+        screenshotUrl: 'https://i.imgur.com/placeholder.png',
+        channelId: '111111111111111111',
+        messageId: `99999999999999990${i}`,
+        submittedAt: new Date(now - (60 - i * 10) * 60_000),
+        createdAt: now,
+        updatedAt: now,
+      }))
+    );
+
     console.log('✅ Dev Gathering seeder complete!');
     console.log(`   Event ID : ${EVENT_ID}`);
     console.log(`   Visit    : /champion-forge/${EVENT_ID}`);
@@ -172,8 +198,9 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission } = models;
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsPreScreenshot } = models;
 
+    await ClanWarsPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
     await ClanWarsSubmission.destroy({ where: { eventId: EVENT_ID } });
     await ClanWarsTask.destroy({ where: { eventId: EVENT_ID } });
     await ClanWarsTeam.destroy({ where: { eventId: EVENT_ID } });

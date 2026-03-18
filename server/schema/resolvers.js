@@ -63,6 +63,7 @@ const resolvers = {
   },
   ClanWarsEvent: {
     ...ClanWarsResolvers.ClanWarsEvent,
+    ...fieldResolvers.ClanWarsEvent,
   },
   ClanWarsTeam: {
     ...ClanWarsResolvers.ClanWarsTeam,

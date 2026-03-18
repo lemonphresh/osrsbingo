@@ -52,10 +52,95 @@ const EXCLUDED_BOSS_IDS = new Set([
 ]);
 
 // ---------------------------------------------------------------------------
+// Quest-style names — shown as the task label in the UI
+// Falls back to boss/skill/minigame name if not listed here.
+// ---------------------------------------------------------------------------
+
+const QUEST_NAMES = {
+  // PvM bosses
+  giantMole: 'Underground Royalty',
+  sarachnis: 'Eight-Legged Nightmare',
+  obor: 'Fee-Fi-Fo-Fum',
+  krakenBoss: 'Release the Kraken',
+  vorkath: 'To Slay a Dragon',
+  zulrah: 'Snake Pit',
+  barrows: 'Rest in Pieces',
+  grotesqueGuardians: 'Gargoyle Smasher',
+  araxxor: 'Web of Doom',
+  thermonuclearSmokeDevil: "Where There's Smoke",
+  commanderZilyana: 'For Saradomin!',
+  generalGraardor: 'Bandos Brawl',
+  kreeArra: 'Eyes of the Sky',
+  krilTsutsaroth: "Zamorak's Champion",
+  chaosFanatic: 'Wilderness Weirdo',
+  crazyArchaeologist: 'Digging Too Deep',
+  scorpia: 'Stings So Good',
+  chaosElemental: 'Wild Magic',
+  spindel: 'Itsy Bitsy Spider',
+  artio: 'Bear Necessities',
+  calvarion: 'Skeletal Stand-Off',
+  venenatis: 'Web of Venom',
+  vetion: "Death's Hound",
+  callisto: "Honey, I'm Home",
+  corporealBeast: 'Corp Crush',
+  cerberus: 'Three Heads Are Better',
+  nex: 'Ancient Reckoning',
+  hueycoatl: 'Feathered Fury',
+  shellbaneGryphon: 'Shell Shocked',
+  dagannothKings: 'King of the Cave',
+  abyssalSire: 'Abyssal Affairs',
+  alchemicalHydra: 'Hydra Problem',
+  crystallineHunllef: 'Crystal Clear',
+  corruptedHunllef: 'Corruption Within',
+  vardorvis: 'Viking Burial',
+  whisperer: 'Whispers in the Dark',
+  dukeSucellus: 'Noblesse Oblige',
+  leviathan: 'Sea Serpent Slayer',
+  yama: 'Gates of Hell',
+  nightmare: 'Sweet Dreams Not',
+  phosanisNightmare: 'No Rest for the Wicked',
+  phantomMuspah: 'What Dreams May Come',
+  doom: 'Doom Runner',
+  amoxliatl: 'Hot Pursuit',
+  royalTitans: 'Clash of Giants',
+  moons: 'Lunar Carnage',
+  kalphiteQueen: "Queen's Gambit",
+  bryophyta: "Moss Giant's Bane",
+  chambersOfXeric: 'Raid Ready',
+  theatreOfBlood: 'Blood Sport',
+  tombsOfAmascut: 'Desert Delve',
+  chambersOfXericChallengeMode: 'Expert Raider',
+  theatreOfBloodHardMode: 'Theatre of Pain',
+  // Skills
+  fishing: "Gone Fishin'",
+  woodcutting: 'Timber!',
+  mining: 'Rock Solid',
+  hunter: 'Hunt or Be Hunted',
+  agility: 'Parkour Pro',
+  thieving: 'Five-Finger Discount',
+  firemaking: 'Trial by Fire',
+  herblore: 'Brewing Trouble',
+  smithing: 'Iron Will',
+  runecrafting: 'Rune Factory',
+  slayer: 'Monster Mash',
+  sailing: 'Set Sail',
+  // Minigames
+  tempoross: 'Taming the Tide',
+  guardiansOfTheRift: 'Rift Runner',
+  wintertodt: 'Into the Cold',
+  barbarianAssault: 'Hold the Line',
+  pestControl: 'Bug Hunt',
+  fightCaves: 'Fire Hazard',
+  inferno: 'Through the Inferno',
+  colosseum: 'Glory in the Sand',
+  zalcano: 'Rock the Boat',
+};
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-const DIFF_MAP = { easy: 'initiate', medium: 'adept', hard: 'master' };
+const DIFF_MAP = { easy: 'initiate', short: 'initiate', medium: 'adept', wilderness: 'adept', hard: 'master', long: 'master' };
 const QTY_MAP = { easy: 'casual', medium: 'standard', hard: 'hardcore' };
 
 const ALL_BOSSES_BY_ID = {};
@@ -118,32 +203,49 @@ const pvmTasks = Object.entries(itemsByBoss).flatMap(([bossId, acceptableItems])
   const boss = lookupBoss(bossId);
   if (!boss || boss.enabled === false) return [];
   const difficulty = DIFF_MAP[boss.category] ?? 'adept';
+  const bossName = boss.name.trim();
   return [
     {
       id: `pvm_${bossId}`,
-      label: boss.name,
+      label: QUEST_NAMES[bossId] ?? bossName,
       type: 'item_collection',
       role: 'PVMER',
       difficulty,
-      boss: boss.name,
-      descriptionTemplate: `Obtain {quantity} drop(s) from ${boss.name}.`,
+      boss: bossName,
+      descriptionTemplate: `Obtain {quantity} drops from ${bossName}.`,
       acceptableItems,
       quantities: mapQuantities(boss.dropQuantities),
     },
   ];
 });
 
+function roundUp10k(qty) {
+  if (typeof qty === 'number') return Math.ceil(qty / 10_000) * 10_000;
+  if (qty && 'min' in qty)
+    return {
+      min: Math.ceil(qty.min / 10_000) * 10_000,
+      max: Math.ceil(qty.max / 10_000) * 10_000,
+    };
+  return qty;
+}
+
+function roundQuantities10k(quantities) {
+  const out = {};
+  for (const [k, v] of Object.entries(quantities)) out[k] = roundUp10k(v);
+  return out;
+}
+
 // SKILLER xp_gain — one task per skill
 const xpTasks = Object.values(SKILLS)
   .filter((s) => s.enabled !== false && !EXCLUDED_SKILL_IDS.has(s.id))
   .map((skill) => ({
     id: `skl_${skill.id}_xp`,
-    label: `${skill.name} XP`,
+    label: QUEST_NAMES[skill.id] ?? `${skill.name} XP`,
     type: 'xp_gain',
     role: 'SKILLER',
     difficulty: DIFF_MAP[skill.category] ?? 'adept',
     descriptionTemplate: `Earn {quantity} ${skill.name} XP.`,
-    quantities: mapQuantities(skill.quantities),
+    quantities: roundQuantities10k(mapQuantities(skill.quantities)),
   }));
 
 // minigame_completions — PVM_MINIGAME_IDS get role PVMER, rest get SKILLER
@@ -151,11 +253,11 @@ const minigameTasks = Object.values(MINIGAMES)
   .filter((m) => m.enabled !== false && !EXCLUDED_MINIGAME_IDS.has(m.id))
   .map((mg) => ({
     id: `${PVM_MINIGAME_IDS.has(mg.id) ? 'pvm' : 'skl'}_${mg.id}`,
-    label: mg.name,
+    label: QUEST_NAMES[mg.id] ?? mg.name,
     type: 'minigame_completions',
     role: PVM_MINIGAME_IDS.has(mg.id) ? 'PVMER' : 'SKILLER',
     difficulty: DIFF_MAP[mg.category] ?? 'adept',
-    descriptionTemplate: `Complete {quantity} ${mg.name} round(s).`,
+    descriptionTemplate: `Complete {quantity} ${mg.name}.`,
     quantities: mapQuantities(mg.quantities),
   }));
 

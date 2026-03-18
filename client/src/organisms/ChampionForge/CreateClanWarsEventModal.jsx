@@ -21,7 +21,7 @@ import {
   Box,
   IconButton,
   Badge,
-  Select,
+  Tooltip,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
@@ -37,16 +37,54 @@ const DEFAULT_CONFIG = {
   maxConsumableSlots: 4,
   flexRolesAllowed: false,
   difficulty: 'standard',
+  bracketType: 'SINGLE_ELIMINATION',
 };
 
+function TimingLabel({ label, tip }) {
+  return (
+    <HStack spacing={1} align="center">
+      <Text as="span">{label}</Text>
+      <Tooltip
+        label={tip}
+        hasArrow
+        placement="top"
+        maxW="260px"
+        bg="gray.700"
+        color="gray.100"
+        fontSize="xs"
+        p={3}
+      >
+        <Text
+          as="span"
+          fontSize="10px"
+          color="gray.500"
+          cursor="help"
+          border="1px solid"
+          borderColor="gray.600"
+          borderRadius="full"
+          w="14px"
+          h="14px"
+          display="inline-flex"
+          alignItems="center"
+          justifyContent="center"
+          flexShrink={0}
+          _hover={{ color: 'gray.300', borderColor: 'gray.400' }}
+        >
+          ?
+        </Text>
+      </Tooltip>
+    </HStack>
+  );
+}
+
 const DIFFICULTY_OPTIONS = [
-  { value: 'casual',   label: 'Casual',   hint: 'Fewer drops required — great for shorter events' },
-  { value: 'standard', label: 'Standard', hint: 'Balanced challenge for most clans'               },
-  { value: 'hardcore', label: 'Hardcore', hint: 'More drops required — for experienced teams'     },
+  { value: 'casual', label: 'Casual', hint: 'Fewer drops required, great for shorter events' },
+  { value: 'standard', label: 'Standard', hint: 'Balanced challenge for most clans' },
+  { value: 'hardcore', label: 'Hardcore', hint: 'More drops required, for experienced teams' },
 ];
 
 const DEFAULT_TEAM = { teamName: '', members: [] };
-const DEFAULT_MEMBER = { discordId: '', role: 'ANY' };
+const DEFAULT_MEMBER = { discordId: '', role: 'UNSET' };
 
 const STEPS = ['Event Setup', 'Teams & Rosters', 'Review & Create'];
 
@@ -79,7 +117,9 @@ function StepEventConfig({ config, onChange }) {
   return (
     <VStack spacing={4} align="stretch">
       <FormControl isRequired>
-        <FormLabel fontSize="sm" color="gray.300">Event Name</FormLabel>
+        <FormLabel fontSize="sm" color="gray.300">
+          Event Name
+        </FormLabel>
         <Input
           value={config.eventName}
           onChange={(e) => set('eventName', e.target.value)}
@@ -93,22 +133,46 @@ function StepEventConfig({ config, onChange }) {
       </FormControl>
 
       <Divider borderColor="gray.600" />
-      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+      <Text
+        fontSize="xs"
+        fontWeight="semibold"
+        color="gray.500"
+        textTransform="uppercase"
+        letterSpacing="wider"
+      >
         Phase Timings
       </Text>
 
       <HStack spacing={4}>
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.300">Gathering (hours)</FormLabel>
-          <NumberInput min={1} max={168} value={config.gatheringHours}
-            onChange={(v) => set('gatheringHours', v)}>
+          <FormLabel fontSize="sm" color="gray.300">
+            <TimingLabel
+              label="Gathering (hours)"
+              tip="How long players have to complete tasks and earn items for their war chest. 48 hours is a good starting point for a weekend event."
+            />
+          </FormLabel>
+          <NumberInput
+            min={1}
+            max={168}
+            value={config.gatheringHours}
+            onChange={(v) => set('gatheringHours', v)}
+          >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
         </FormControl>
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.300">Outfitting (hours)</FormLabel>
-          <NumberInput min={1} max={48} value={config.outfittingHours}
-            onChange={(v) => set('outfittingHours', v)}>
+          <FormLabel fontSize="sm" color="gray.300">
+            <TimingLabel
+              label="Outfitting (hours)"
+              tip="How long teams have to decide on their loadout using their earned items on their champion's gear slots before the battle begins. 24 hours gives everyone a fair window and accounts for varying timezones and availability."
+            />
+          </FormLabel>
+          <NumberInput
+            min={1}
+            max={48}
+            value={config.outfittingHours}
+            onChange={(v) => set('outfittingHours', v)}
+          >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
         </FormControl>
@@ -116,23 +180,46 @@ function StepEventConfig({ config, onChange }) {
 
       <HStack spacing={4}>
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.300">Turn Timer (seconds)</FormLabel>
-          <NumberInput min={15} max={300} value={config.turnTimerSeconds}
-            onChange={(v) => set('turnTimerSeconds', v)}>
+          <FormLabel fontSize="sm" color="gray.300">
+            <TimingLabel
+              label="Turn Timer (seconds)"
+              tip="How many seconds each team has to choose their action during the battle phase. 60 seconds works well for most groups. Shorter timers add pressure; longer ones suit more casual play."
+            />
+          </FormLabel>
+          <NumberInput
+            min={15}
+            max={300}
+            value={config.turnTimerSeconds}
+            onChange={(v) => set('turnTimerSeconds', v)}
+          >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
         </FormControl>
         <FormControl>
-          <FormLabel fontSize="sm" color="gray.300">Max Consumable Slots</FormLabel>
-          <NumberInput min={1} max={6} value={config.maxConsumableSlots}
-            onChange={(v) => set('maxConsumableSlots', v)}>
+          <FormLabel fontSize="sm" color="gray.300">
+            <TimingLabel
+              label="Max Consumable Slots"
+              tip="The maximum number of consumable items (potions, food, etc.) each team can equip on their champion. Consumables are single-use boosts usable during battle."
+            />
+          </FormLabel>
+          <NumberInput
+            min={1}
+            max={6}
+            value={config.maxConsumableSlots}
+            onChange={(v) => set('maxConsumableSlots', v)}
+          >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
         </FormControl>
       </HStack>
 
       <FormControl display="flex" alignItems="center">
-        <FormLabel fontSize="sm" color="gray.300" mb={0}>Allow Flex Roles</FormLabel>
+        <FormLabel fontSize="sm" color="gray.300" mb={0}>
+          <TimingLabel
+            label="Allow Flex Roles"
+            tip="When enabled, players signed up as Flex can complete any task regardless of role. Useful for smaller teams that want flexibility. When disabled, PvMers can only do PvM tasks and Skillers can only do skilling tasks."
+          />
+        </FormLabel>
         <Switch
           colorScheme="purple"
           isChecked={config.flexRolesAllowed}
@@ -141,7 +228,13 @@ function StepEventConfig({ config, onChange }) {
       </FormControl>
 
       <Divider borderColor="gray.600" />
-      <Text fontSize="xs" fontWeight="semibold" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+      <Text
+        fontSize="xs"
+        fontWeight="semibold"
+        color="gray.500"
+        textTransform="uppercase"
+        letterSpacing="wider"
+      >
         Event Difficulty
       </Text>
       <Text fontSize="xs" color="gray.500">
@@ -158,12 +251,78 @@ function StepEventConfig({ config, onChange }) {
             colorScheme="teal"
             onClick={() => set('difficulty', value)}
             flexDirection="column"
-            h="auto"
+            h="80px"
             py={2}
             whiteSpace="normal"
+            textAlign="center"
+            alignItems="center"
+            justifyContent="center"
           >
-            <Text fontSize="sm" fontWeight="bold">{label}</Text>
-            <Text fontSize="9px" fontWeight="normal" color={config.difficulty === value ? 'teal.100' : 'gray.400'} mt={0.5}>
+            <Text fontSize="sm" fontWeight="bold">
+              {label}
+            </Text>
+            <Text
+              fontSize="11px"
+              fontWeight="normal"
+              color={config.difficulty === value ? 'teal.100' : 'gray.400'}
+              mt={0.5}
+            >
+              {hint}
+            </Text>
+          </Button>
+        ))}
+      </HStack>
+
+      <Divider borderColor="gray.600" />
+      <Text
+        fontSize="xs"
+        fontWeight="semibold"
+        color="gray.500"
+        textTransform="uppercase"
+        letterSpacing="wider"
+      >
+        Bracket Format
+      </Text>
+      <Text fontSize="xs" color="gray.500">
+        How teams are eliminated. Double elimination requires exactly 4 or 8 teams.
+      </Text>
+      <HStack spacing={2}>
+        {[
+          {
+            value: 'SINGLE_ELIMINATION',
+            label: 'Single Elimination',
+            hint: "One loss and you're out",
+          },
+          {
+            value: 'DOUBLE_ELIMINATION',
+            label: 'Double Elimination',
+            hint: 'Two losses to be knocked out (4 or 8 teams)',
+          },
+        ].map(({ value, label, hint }) => (
+          <Button
+            key={value}
+            flex={1}
+            size="sm"
+            variant={config.bracketType === value ? 'solid' : 'outline'}
+            colorScheme="purple"
+            onClick={() => set('bracketType', value)}
+            flexDirection="column"
+            h="80px"
+            py={2}
+            whiteSpace="normal"
+            textAlign="center"
+            alignItems="center"
+            justifyContent="center"
+          >
+            <Text fontSize="sm" fontWeight="bold">
+              {label}
+            </Text>
+            <Text
+              fontSize="11px"
+              fontWeight="normal"
+              color={config.bracketType === value ? 'purple.100' : 'gray.400'}
+              mt={0.5}
+            >
               {hint}
             </Text>
           </Button>
@@ -193,7 +352,9 @@ function TeamCard({ team, index, onChange, onRemove }) {
     <Box bg="gray.700" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
       <HStack mb={3} justify="space-between">
         <HStack>
-          <Badge colorScheme="purple" fontSize="xs">Team {index + 1}</Badge>
+          <Badge colorScheme="purple" fontSize="xs">
+            Team {index + 1}
+          </Badge>
           <Text fontSize="sm" color="gray.300" fontWeight="medium">
             {team.teamName || 'Unnamed'}
           </Text>
@@ -209,7 +370,9 @@ function TeamCard({ team, index, onChange, onRemove }) {
       </HStack>
 
       <FormControl mb={3}>
-        <FormLabel fontSize="xs" color="gray.400" mb={1}>Team Name</FormLabel>
+        <FormLabel fontSize="xs" color="gray.400" mb={1}>
+          Team Name
+        </FormLabel>
         <Input
           size="sm"
           value={team.teamName}
@@ -240,30 +403,19 @@ function TeamCard({ team, index, onChange, onRemove }) {
                 colorMode="dark"
                 isDuplicateInForm={isDuplicate}
               />
-              <HStack>
-                <FormLabel fontSize="xs" color="gray.400" mb={0} whiteSpace="nowrap">Role</FormLabel>
-                <Select
-                  size="sm"
-                  value={m.role}
-                  onChange={(e) => updateMember(mi, { ...m, role: e.target.value })}
-                  bg="gray.700"
-                  borderColor="gray.600"
-                  color="white"
-                  maxW="140px"
-                >
-                  <option value="ANY">Any</option>
-                  <option value="PVMER">PvMer</option>
-                  <option value="SKILLER">Skiller</option>
-                </Select>
-              </HStack>
             </VStack>
           );
         })}
       </VStack>
 
       {team.members.length < 10 && (
-        <Button size="xs" leftIcon={<AddIcon />} variant="ghost" colorScheme="purple"
-          onClick={addMember}>
+        <Button
+          size="xs"
+          leftIcon={<AddIcon />}
+          variant="ghost"
+          colorScheme="purple"
+          onClick={addMember}
+        >
           Add Member
         </Button>
       )}
@@ -280,8 +432,8 @@ function StepTeams({ teams, onChange }) {
   return (
     <VStack spacing={4} align="stretch">
       <Text fontSize="sm" color="gray.400">
-        Add the teams competing in this event. Each team can have up to 10 members.
-        Tasks and item drops are seeded at event creation — your roster can be adjusted later.
+        Add the teams competing in this event. Each team can have up to 10 members. Tasks and item
+        drops are seeded at event creation, and your roster can be adjusted later.
       </Text>
 
       {teams.map((team, ti) => (
@@ -295,8 +447,13 @@ function StepTeams({ teams, onChange }) {
       ))}
 
       {teams.length < 16 && (
-        <Button leftIcon={<AddIcon />} variant="outline" colorScheme="purple" size="sm"
-          onClick={addTeam}>
+        <Button
+          leftIcon={<AddIcon />}
+          variant="outline"
+          colorScheme="purple"
+          size="sm"
+          onClick={addTeam}
+        >
           Add Team
         </Button>
       )}
@@ -312,17 +469,59 @@ function StepReview({ config, teams }) {
   return (
     <VStack spacing={4} align="stretch">
       <Box bg="gray.700" p={4} borderRadius="md">
-        <Text fontSize="sm" fontWeight="bold" color="purple.300" mb={2}>Event Config</Text>
-        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Name</Text>
-          <Text fontSize="sm" color="white">{config.eventName}</Text></HStack>
-        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Difficulty</Text>
-          <Text fontSize="sm" color="white" textTransform="capitalize">{config.difficulty}</Text></HStack>
-        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Gathering</Text>
-          <Text fontSize="sm" color="white">{config.gatheringHours}h</Text></HStack>
-        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Outfitting</Text>
-          <Text fontSize="sm" color="white">{config.outfittingHours}h</Text></HStack>
-        <HStack justify="space-between"><Text fontSize="sm" color="gray.400">Turn Timer</Text>
-          <Text fontSize="sm" color="white">{config.turnTimerSeconds}s</Text></HStack>
+        <Text fontSize="sm" fontWeight="bold" color="purple.300" mb={2}>
+          Event Config
+        </Text>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Name
+          </Text>
+          <Text fontSize="sm" color="white">
+            {config.eventName}
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Difficulty
+          </Text>
+          <Text fontSize="sm" color="white" textTransform="capitalize">
+            {config.difficulty}
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Bracket
+          </Text>
+          <Text fontSize="sm" color="white">
+            {config.bracketType === 'DOUBLE_ELIMINATION'
+              ? 'Double Elimination'
+              : 'Single Elimination'}
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Gathering
+          </Text>
+          <Text fontSize="sm" color="white">
+            {config.gatheringHours}h
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Outfitting
+          </Text>
+          <Text fontSize="sm" color="white">
+            {config.outfittingHours}h
+          </Text>
+        </HStack>
+        <HStack justify="space-between">
+          <Text fontSize="sm" color="gray.400">
+            Turn Timer
+          </Text>
+          <Text fontSize="sm" color="white">
+            {config.turnTimerSeconds}s
+          </Text>
+        </HStack>
       </Box>
 
       <Box bg="gray.700" p={4} borderRadius="md">
@@ -330,13 +529,19 @@ function StepReview({ config, teams }) {
           Teams ({teamsWithMembers.length})
         </Text>
         {teamsWithMembers.length === 0 ? (
-          <Text fontSize="sm" color="gray.500">No teams added — you can add them after creation.</Text>
+          <Text fontSize="sm" color="gray.500">
+            No teams added — you can add them after creation.
+          </Text>
         ) : (
           <VStack spacing={2} align="stretch">
             {teamsWithMembers.map((t, i) => (
               <HStack key={i} justify="space-between">
-                <Text fontSize="sm" color="white">{t.teamName}</Text>
-                <Badge colorScheme="gray" fontSize="xs">{t.members.filter((m) => m.discordId).length} members</Badge>
+                <Text fontSize="sm" color="white">
+                  {t.teamName}
+                </Text>
+                <Badge colorScheme="gray" fontSize="xs">
+                  {t.members.filter((m) => m.discordId).length} members
+                </Badge>
               </HStack>
             ))}
           </VStack>
@@ -344,8 +549,8 @@ function StepReview({ config, teams }) {
       </Box>
 
       <Text fontSize="xs" color="gray.500">
-        A unique seed will be generated for this event. Tasks (30 total) will be auto-assigned
-        from the Champion Forge task pool using this seed. You can adjust them after creation.
+        A unique seed will be generated for this event. Tasks (30 total) will be auto-assigned from
+        the Champion Forge task pool using this seed.
       </Text>
     </VStack>
   );
@@ -397,6 +602,7 @@ export default function CreateClanWarsEventModal({ isOpen, onClose, onSubmit }) 
         maxConsumableSlots: Number(config.maxConsumableSlots),
         flexRolesAllowed: config.flexRolesAllowed,
         difficulty: config.difficulty,
+        bracketType: config.bracketType,
         teams: validTeams,
       });
 

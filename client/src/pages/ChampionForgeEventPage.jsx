@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
-import { useQuery } from '@apollo/client';
+import { useQuery, useSubscription } from '@apollo/client';
 import {
   Box,
   Center,
@@ -20,7 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon, LockIcon, UnlockIcon } from '@chakra-ui/icons';
 import { FaShieldAlt, FaScroll, FaCrown } from 'react-icons/fa';
-import { GET_CLAN_WARS_EVENT } from '../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_EVENT, CLAN_WARS_EVENT_UPDATED } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
@@ -337,6 +337,8 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
       overflow="hidden"
       transition="border-color 0.2s"
       _hover={{ borderColor: isMember ? 'teal.400' : 'gray.500' }}
+      display="flex"
+      flexDirection="column"
     >
       {/* Card header */}
       <Box
@@ -365,7 +367,7 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
       </Box>
 
       {/* Card body */}
-      <VStack align="stretch" spacing={3} p={4}>
+      <VStack align="stretch" spacing={3} p={4} flex={1}>
         {/* Member avatars */}
         {team.members?.length > 0 ? (
           <HStack spacing={3}>
@@ -467,7 +469,7 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
 
         {/* CTA */}
         {canEnterBarracks && (
-          <Button
+          <Button mt="auto"
             size="sm"
             colorScheme="purple"
             onClick={() => navigate(barracksPath)}
@@ -491,6 +493,11 @@ export default function ChampionForgeEventPage() {
   const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },
     fetchPolicy: 'cache-and-network',
+  });
+
+  useSubscription(CLAN_WARS_EVENT_UPDATED, {
+    variables: { eventId },
+    onData: () => refetch(),
   });
 
   const event = data?.getClanWarsEvent;

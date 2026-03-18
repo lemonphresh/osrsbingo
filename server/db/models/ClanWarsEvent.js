@@ -8,7 +8,8 @@ module.exports = (sequelize) => {
       ClanWarsEvent.hasMany(models.ClanWarsItem,       { foreignKey: 'eventId', as: 'items' });
       ClanWarsEvent.hasMany(models.ClanWarsSubmission, { foreignKey: 'eventId', as: 'submissions' });
       ClanWarsEvent.hasMany(models.ClanWarsBattle,     { foreignKey: 'eventId', as: 'battles' });
-      ClanWarsEvent.hasMany(models.ClanWarsTask,       { foreignKey: 'eventId', as: 'tasks' });
+      ClanWarsEvent.hasMany(models.ClanWarsTask,          { foreignKey: 'eventId', as: 'tasks' });
+      ClanWarsEvent.hasMany(models.ClanWarsPreScreenshot, { foreignKey: 'eventId', as: 'preScreenshots' });
     }
   }
 
@@ -22,6 +23,7 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 'DRAFT',
       },
+      scheduledGatheringStart: { type: DataTypes.DATE, allowNull: true },
       gatheringStart: { type: DataTypes.DATE, allowNull: true },
       gatheringEnd:   { type: DataTypes.DATE, allowNull: true },
       outfittingEnd:  { type: DataTypes.DATE, allowNull: true },
@@ -33,8 +35,15 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: [],
       },
-      seed:    { type: DataTypes.STRING, allowNull: true },
-      guildId: { type: DataTypes.STRING, allowNull: true },
+      refIds: {
+        type: DataTypes.ARRAY(DataTypes.STRING),
+        allowNull: false,
+        defaultValue: [],
+      },
+      seed:          { type: DataTypes.STRING, allowNull: true },
+      guildId:                { type: DataTypes.STRING, allowNull: true },
+      announcementsChannelId: { type: DataTypes.STRING, allowNull: true },
+      eventPassword: { type: DataTypes.STRING(30), allowNull: true },
       difficulty: {
         type: DataTypes.ENUM('casual', 'standard', 'hardcore'),
         allowNull: false,

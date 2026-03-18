@@ -12,6 +12,14 @@ function generateId(prefix) {
   return `${prefix}_${rand}`;
 }
 
+function findTeamByDiscordId(teams, discordUserId) {
+  return teams.find((t) =>
+    (t.members ?? []).some((m) =>
+      typeof m === 'string' ? m === discordUserId : m.discordId === discordUserId,
+    ),
+  );
+}
+
 module.exports = {
   name: 'cfsubmit',
   aliases: ['cws'],
@@ -40,11 +48,6 @@ module.exports = {
 
     const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission } = getModels();
 
-    const memberRoles = message.member?.roles?.cache;
-    if (!memberRoles) {
-      return message.reply('❌ Could not read your Discord roles. Are you in the server properly?');
-    }
-
     // Look up the task
     const task = await ClanWarsTask.findOne({ where: { taskId, isActive: true } });
     if (!task) {
@@ -57,14 +60,12 @@ module.exports = {
       return message.reply('❌ This event is not currently in the Gathering phase.');
     }
 
-    // Find which team this user belongs to (match Discord role)
+    // Find which team this user belongs to via their linked Discord user ID
     const teams = await ClanWarsTeam.findAll({ where: { eventId: event.eventId } });
-    const team = teams.find((t) => t.discordRoleId && memberRoles.has(t.discordRoleId));
+    const team = findTeamByDiscordId(teams, message.author.id);
 
     if (!team) {
-      return message.reply(
-        '❌ You are not assigned to a team in this event. Ask an admin to add your Discord role.',
-      );
+      return message.reply('❌ Your Discord account is not on a team in this event.');
     }
 
     // Check the member's role in the team (SKILLER/PVMER/FLEX)
@@ -96,23 +97,78 @@ module.exports = {
         submittedAt: new Date(),
       });
 
-      const embed = new EmbedBuilder()
-        .setTitle('📬 Submission Received')
-        .setColor(0x7d5fff)
-        .setDescription(
-          `**${message.author.username}**, your submission for **${task.label}** is pending review.`,
-        )
-        .addFields(
-          { name: 'Team', value: team.teamName, inline: true },
-          { name: 'Difficulty', value: task.difficulty, inline: true },
-          { name: 'Role', value: task.role, inline: true },
-        )
-        .setFooter({ text: 'An admin will review your submission shortly.' });
-
-      return message.reply({ embeds: [embed] });
+      return message.reply(`✅ **${task.label}** submitted for **${team.teamName}** — pending review.`);
     } catch (err) {
       console.error('[cfsubmit] Error creating submission:', err);
       return message.reply('❌ Failed to record your submission. Please try again.');
+    }
+  },
+};
+
+// Pre-screenshot command
+module.exports.cfpresubmit = {
+  name: 'cfpresubmit',
+  aliases: ['cwps'],
+  description: 'Submit a prescreenshot to confirm your starting state for a Champion Forge task',
+
+  /**
+   * Usage: !cfpresubmit <task_id>  (attach a screenshot to the message)
+   */
+  async execute(message, args) {
+    if (args.length < 1) {
+      return message.reply(
+        '❌ Usage: `!cfpresubmit <task_id>` — attach a screenshot to this message\n' +
+          'Example: `!cfpresubmit cwtask_abc123` (with screenshot attached)',
+      );
+    }
+
+    const [taskId] = args;
+    const screenshot = message.attachments.first()?.url ?? null;
+
+    if (!screenshot) {
+      return message.reply(
+        '❌ Please attach a screenshot to your message.\n' +
+          'Usage: `!cfpresubmit <task_id>` with a screenshot attached.',
+      );
+    }
+
+    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsPreScreenshot } = getModels();
+
+    // Look up the task
+    const task = await ClanWarsTask.findOne({ where: { taskId, isActive: true } });
+    if (!task) {
+      return message.reply(`❌ Task \`${taskId}\` not found. Check your task ID and try again.`);
+    }
+
+    // Look up the event — must be in GATHERING
+    const event = await ClanWarsEvent.findByPk(task.eventId);
+    if (!event || event.status !== 'GATHERING') {
+      return message.reply('❌ This event is not currently in the Gathering phase.');
+    }
+
+    // Find which team this user belongs to via their linked Discord user ID
+    const teams = await ClanWarsTeam.findAll({ where: { eventId: event.eventId } });
+    const team = findTeamByDiscordId(teams, message.author.id);
+
+    try {
+      await ClanWarsPreScreenshot.create({
+        preScreenshotId: generateId('cwps'),
+        eventId: event.eventId,
+        teamId: team?.teamId ?? null,
+        taskId,
+        taskLabel: task.label,
+        submittedBy: message.author.id,
+        submittedUsername: message.author.username,
+        screenshotUrl: screenshot,
+        channelId: message.channelId,
+        messageId: message.id,
+        submittedAt: new Date(),
+      });
+
+      return message.reply(`📸 Prescreenshot logged for **${task.label}**.`);
+    } catch (err) {
+      console.error('[cfpresubmit] Error storing prescreenshot:', err);
+      return message.reply('❌ Failed to record your prescreenshot. Please try again.');
     }
   },
 };
@@ -136,6 +192,12 @@ module.exports.help = {
           inline: false,
         },
         {
+          name: '📸 Pre-screenshot',
+          value:
+            '`!cfpresubmit <task_id>` — Submit a prescreenshot showing your starting state (attach screenshot)\n`!cwps <task_id>` — Shorthand',
+          inline: false,
+        },
+        {
           name: 'ℹ️ Info',
           value:
             'All other actions (outfitting, battle, war chest) happen on the website at **osrsbingohub.com/champion-forge**.',
@@ -143,7 +205,7 @@ module.exports.help = {
         },
       )
       .setFooter({
-        text: "Your Discord role determines your team. Ask an admin if you're not assigned.",
+        text: 'Your Discord ID must be added to your team by an admin on the website.',
       });
 
     return message.reply({ embeds: [embed] });

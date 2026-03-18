@@ -2,7 +2,7 @@
 
 const crypto = require('crypto');
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
-const { Op } = require('sequelize');
+const { Op, fn, col, literal } = require('sequelize');
 const logger = require('../../utils/logger');
 const { pubsub } = require('../pubsub');
 const { rollPvmerDrop, rollSkillerDrop, buildChampionStats, rollDamage, processSpecial } = require('../../utils/clanWarsRandomisation');
@@ -19,12 +19,24 @@ const {
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
 
+const { sendClanWarsPhaseAnnouncement } = require('../../utils/clanWarsNotifications');
+const { triggerGatheringTransition } = require('../../utils/cwScheduler');
+
 function isAdmin(event, userId, discordId) {
   if (!userId && !discordId) return false;
   if (event.creatorId === String(userId) || event.creatorId === discordId) return true;
   if (event.adminIds?.includes(String(userId))) return true;
   if (event.adminIds?.includes(discordId)) return true;
   return false;
+}
+
+function isRef(event, userId) {
+  if (!userId) return false;
+  return event.refIds?.includes(String(userId)) ?? false;
+}
+
+function isAdminOrRef(event, userId, discordId) {
+  return isAdmin(event, userId, discordId) || isRef(event, userId);
 }
 
 async function getEventOrThrow(eventId) {
@@ -169,6 +181,40 @@ const Query = {
     return ClanWarsSubmission.findAll({ where, order: [['submittedAt', 'DESC']] });
   },
 
+  getClanWarsSubmissionSummaries: async (_, { eventId }) => {
+    const { ClanWarsSubmission } = getModels();
+    const rows = await ClanWarsSubmission.findAll({
+      where: { eventId },
+      attributes: [
+        'taskId',
+        'teamId',
+        'status',
+        [fn('COUNT', col('submissionId')), 'count'],
+      ],
+      group: ['taskId', 'teamId', 'status'],
+      raw: true,
+    });
+
+    const map = {};
+    for (const row of rows) {
+      const key = `${row.taskId}_${row.teamId}`;
+      if (!map[key]) map[key] = { taskId: row.taskId, teamId: row.teamId, pendingCount: 0, approvedCount: 0, deniedCount: 0 };
+      const count = parseInt(row.count, 10);
+      if (row.status === 'PENDING')  map[key].pendingCount  = count;
+      if (row.status === 'APPROVED') map[key].approvedCount = count;
+      if (row.status === 'DENIED')   map[key].deniedCount   = count;
+    }
+    return Object.values(map);
+  },
+
+  getClanWarsTaskSubmissions: async (_, { eventId, taskId, teamId }) => {
+    const { ClanWarsSubmission } = getModels();
+    return ClanWarsSubmission.findAll({
+      where: { eventId, taskId, teamId },
+      order: [['submittedAt', 'DESC']],
+    });
+  },
+
   getClanWarsBattle: async (_, { battleId }) => {
     const { ClanWarsBattle } = getModels();
     return ClanWarsBattle.findByPk(battleId);
@@ -185,6 +231,11 @@ const Query = {
   getClanWarsTaskPool: async (_, { eventId }) => {
     const { ClanWarsTask } = getModels();
     return ClanWarsTask.findAll({ where: { eventId, isActive: true } });
+  },
+
+  getClanWarsPreScreenshots: async (_, { eventId }) => {
+    const { ClanWarsPreScreenshot } = getModels();
+    return ClanWarsPreScreenshot.findAll({ where: { eventId }, order: [['submittedAt', 'DESC']] });
   },
 };
 
@@ -210,6 +261,7 @@ const Mutation = {
       turnTimerSeconds: input.turnTimerSeconds ?? 60,
       maxConsumableSlots: input.maxConsumableSlots ?? 4,
       flexRolesAllowed: input.flexRolesAllowed ?? false,
+      bracketType: input.bracketType ?? 'SINGLE_ELIMINATION',
     };
 
     const event = await ClanWarsEvent.create({
@@ -273,18 +325,10 @@ const Mutation = {
     const now = new Date();
 
     if (status === 'GATHERING') {
-      const hours = event.eventConfig?.gatheringHours ?? 48;
-      updates.gatheringStart = now;
-      updates.gatheringEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
-
-      // Generate task pool now that team sizes are known
-      const { ClanWarsTeam, ClanWarsTask } = getModels();
-      const teams = await ClanWarsTeam.findAll({ where: { eventId } });
-      const totalMembers = teams.reduce((sum, t) => sum + (t.members?.length ?? 1), 0);
-      const avgTeamSize = teams.length > 0 ? Math.round(totalMembers / teams.length) : 5;
-      const taskRows = sampleTasksFromPool(eventId, event.seed, event.difficulty ?? 'standard', avgTeamSize);
-      await ClanWarsTask.bulkCreate(taskRows.map((r) => ({ ...r, createdAt: now, updatedAt: now })));
-      logger.info(`[updateClanWarsEventStatus] event=${eventId} tasks generated: ${taskRows.length} (avgTeamSize=${avgTeamSize})`);
+      await triggerGatheringTransition(event);
+      logger.info(`[updateClanWarsEventStatus] event=${eventId} transitioned to GATHERING`);
+      pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { clanWarsEventUpdated: event });
+      return event;
 
     } else if (status === 'OUTFITTING') {
       const hours = event.eventConfig?.outfittingHours ?? 24;
@@ -299,6 +343,18 @@ const Mutation = {
     }
 
     await event.update(updates);
+
+    // Fire Discord announcement (best-effort, non-blocking)
+    if (event.announcementsChannelId) {
+      sendClanWarsPhaseAnnouncement({
+        channelId: event.announcementsChannelId,
+        eventId: event.eventId,
+        eventName: event.eventName,
+        phase: status,
+      });
+    }
+
+    pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { clanWarsEventUpdated: event });
     return event;
   },
 
@@ -309,6 +365,8 @@ const Mutation = {
 
     const updates = {};
     if (input.guildId !== undefined) updates.guildId = input.guildId ?? null;
+    if (input.announcementsChannelId !== undefined) updates.announcementsChannelId = input.announcementsChannelId ?? null;
+    if (input.scheduledGatheringStart !== undefined) updates.scheduledGatheringStart = input.scheduledGatheringStart ?? null;
 
     await event.update(updates);
     logger.info(`[updateClanWarsEventSettings] event=${eventId} updated by user=${user.id}`);
@@ -399,10 +457,51 @@ const Mutation = {
     // Shuffle teams
     const shuffledIds = [...teams].sort(() => Math.random() - 0.5).map((t) => t.teamId);
 
-    const useDe = bracketType === 'DOUBLE_ELIMINATION';
+    const resolvedBracketType = bracketType ?? event.eventConfig?.bracketType ?? 'SINGLE_ELIMINATION';
+    const useDe = resolvedBracketType === 'DOUBLE_ELIMINATION';
     const bracket = useDe ? buildDEBracket(shuffledIds) : buildSEBracket(shuffledIds);
 
     await event.update({ bracket });
+    return event;
+  },
+
+  // ---- Admins & Refs ----
+
+  addClanWarsAdmin: async (_, { eventId, userId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (event.creatorId !== String(user.id))
+      throw new AuthenticationError('Only the event creator can add admins');
+    const newAdminIds = [...new Set([...(event.adminIds ?? []), String(userId)])];
+    await event.update({ adminIds: newAdminIds });
+    return event;
+  },
+
+  removeClanWarsAdmin: async (_, { eventId, userId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (event.creatorId !== String(user.id))
+      throw new AuthenticationError('Only the event creator can remove admins');
+    await event.update({ adminIds: (event.adminIds ?? []).filter((id) => id !== String(userId)) });
+    return event;
+  },
+
+  addClanWarsRef: async (_, { eventId, userId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user.id))
+      throw new AuthenticationError('Only admins can add refs');
+    const newRefIds = [...new Set([...(event.refIds ?? []), String(userId)])];
+    await event.update({ refIds: newRefIds });
+    return event;
+  },
+
+  removeClanWarsRef: async (_, { eventId, userId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user.id))
+      throw new AuthenticationError('Only admins can remove refs');
+    await event.update({ refIds: (event.refIds ?? []).filter((id) => id !== String(userId)) });
     return event;
   },
 
@@ -487,7 +586,7 @@ const Mutation = {
   setTaskProgress: async (_, { eventId, teamId, taskId, value }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
-    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
     const { ClanWarsTeam } = getModels();
     const team = await ClanWarsTeam.findByPk(teamId);
     if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
@@ -500,7 +599,7 @@ const Mutation = {
   markTaskComplete: async (_, { eventId, teamId, taskId }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
-    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
 
     const { ClanWarsTeam, ClanWarsSubmission, ClanWarsItem } = getModels();
     const team = await ClanWarsTeam.findByPk(teamId);
@@ -564,6 +663,34 @@ const Mutation = {
     return team;
   },
 
+  undoTaskComplete: async (_, { eventId, teamId, taskId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const event = await getEventOrThrow(eventId);
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    const { ClanWarsTeam, ClanWarsSubmission, ClanWarsItem } = getModels();
+    const team = await ClanWarsTeam.findByPk(teamId);
+    if (!team || team.eventId !== eventId) throw new UserInputError('Team not found');
+
+    // Remove taskId from completedTaskIds
+    const current = team.completedTaskIds ?? [];
+    await team.update({ completedTaskIds: current.filter((id) => id !== taskId) });
+
+    // Find all approved submissions for this task/team that have a reward item
+    const approvedSubs = await ClanWarsSubmission.findAll({
+      where: { eventId, teamId, taskId, status: 'APPROVED' },
+    });
+
+    for (const sub of approvedSubs) {
+      if (!sub.rewardItemId) continue;
+      // Delete the item and clear the reference
+      await ClanWarsItem.destroy({ where: { itemId: sub.rewardItemId } });
+      await sub.update({ rewardItemId: null });
+    }
+
+    return team;
+  },
+
   // ---- Submissions (also called from bot via internal mutation) ----
 
   createClanWarsSubmission: async (_, { input }) => {
@@ -612,7 +739,7 @@ const Mutation = {
     if (submission.status !== 'PENDING') throw new UserInputError('Submission already reviewed');
 
     const event = await getEventOrThrow(submission.eventId);
-    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
 
     const updates = {
       status: approved ? 'APPROVED' : 'DENIED',
@@ -660,7 +787,7 @@ const Mutation = {
     if (submission.status !== 'APPROVED') throw new UserInputError('Can only change reward slot on approved submissions');
     if (submission.role !== 'PVMER') throw new UserInputError('Reward slot only applies to PVMER submissions');
     const event = await getEventOrThrow(submission.eventId);
-    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
     await submission.update({ rewardSlot });
     // If the item has already been rolled, re-roll it for the new slot so the
     // item name/stats match the slot (not just rename a weapon to a legs item).
@@ -690,6 +817,64 @@ const Mutation = {
       }
     }
     return submission;
+  },
+
+  undoSubmissionApproval: async (_, { submissionId }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+    const { ClanWarsSubmission, ClanWarsItem } = getModels();
+    const submission = await ClanWarsSubmission.findByPk(submissionId);
+    if (!submission) throw new UserInputError('Submission not found');
+    if (submission.status !== 'APPROVED') throw new UserInputError('Submission is not approved');
+    const event = await getEventOrThrow(submission.eventId);
+    if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    // If an item was already created for this submission, delete it
+    if (submission.rewardItemId) {
+      await ClanWarsItem.destroy({ where: { itemId: submission.rewardItemId } });
+    }
+
+    await submission.update({
+      status: 'PENDING',
+      reviewedBy: null,
+      reviewedAt: null,
+      reviewNote: null,
+      rewardSlot: null,
+      rewardItemId: null,
+    });
+
+    await pubsub.publish(`CLAN_WARS_SUBMISSION_REVIEWED_${submission.eventId}`, {
+      clanWarsSubmissionReviewed: submission,
+    });
+
+    return submission;
+  },
+
+  createClanWarsPreScreenshot: async (_, args) => {
+    const { ClanWarsPreScreenshot } = getModels();
+    const event = await getEventOrThrow(args.eventId);
+    if (event.status !== 'GATHERING') {
+      throw new UserInputError('Event is not in GATHERING phase');
+    }
+
+    const preScreenshot = await ClanWarsPreScreenshot.create({
+      preScreenshotId: generateId('cwps'),
+      eventId: args.eventId,
+      teamId: args.teamId ?? null,
+      taskId: args.taskId,
+      taskLabel: args.taskLabel ?? null,
+      submittedBy: args.submittedBy,
+      submittedUsername: args.submittedUsername ?? null,
+      screenshotUrl: args.screenshotUrl ?? null,
+      channelId: args.channelId ?? null,
+      messageId: args.messageId ?? null,
+      submittedAt: new Date(),
+    });
+
+    await pubsub.publish(`CLAN_WARS_PRESCREENSHOT_ADDED_${args.eventId}`, {
+      clanWarsPreScreenshotAdded: preScreenshot,
+    });
+
+    return preScreenshot;
   },
 
   sendBattleEmote: async (_, { battleId, emote }, { user }) => {
@@ -741,6 +926,7 @@ const Mutation = {
     }
     await event.update(updates);
     logger.info(`[adminForceEventStatus] event=${eventId} forced to ${status} by user=${user.id}`);
+    pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { clanWarsEventUpdated: event });
     return event;
   },
 
@@ -852,6 +1038,16 @@ const Mutation = {
     const bracket = event.bracket ?? { rounds: [] };
     const updatedBracket = setBattleIdInBracket(bracket, team1Id, team2Id, battle.battleId);
     await event.update({ bracket: updatedBracket });
+
+    // Fire "battles have begun" announcement (best-effort)
+    if (event.announcementsChannelId) {
+      sendClanWarsPhaseAnnouncement({
+        channelId: event.announcementsChannelId,
+        eventId: event.eventId,
+        eventName: event.eventName,
+        phase: 'BATTLE_START',
+      });
+    }
 
     return battle;
   },

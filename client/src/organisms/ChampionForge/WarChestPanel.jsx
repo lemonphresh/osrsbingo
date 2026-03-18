@@ -64,14 +64,14 @@ function ItemTile({ item }) {
       label={
         <VStack align="flex-start" spacing={1} fontSize="xs" p={1}>
           <Text fontWeight="bold">{item.name}</Text>
-          <Text color="gray.300">
+          <Text color="gray.400">
             {item.slot} · {item.rarity}
           </Text>
-          {stats.attack > 0 && <Text>ATK +{stats.attack}</Text>}
-          {stats.defense > 0 && <Text>DEF +{stats.defense}</Text>}
-          {stats.speed > 0 && <Text>SPD +{stats.speed}</Text>}
-          {stats.crit > 0 && <Text>CRIT +{stats.crit}%</Text>}
-          {stats.hp > 0 && <Text>HP +{stats.hp}</Text>}
+          {stats.attack > 0 && <Text color="red.300">ATK +{stats.attack}</Text>}
+          {stats.defense > 0 && <Text color="blue.300">DEF +{stats.defense}</Text>}
+          {stats.speed > 0 && <Text color="green.300">SPD +{stats.speed}</Text>}
+          {stats.crit > 0 && <Text color="yellow.300">CRIT +{stats.crit}%</Text>}
+          {stats.hp > 0 && <Text color="pink.300">HP +{stats.hp}</Text>}
           {snap.special && (
             <Text color="purple.300">
               ✨ {snap.special.label}: {snap.special.description}
@@ -84,6 +84,11 @@ function ItemTile({ item }) {
       }
       hasArrow
       placement="top"
+      bg="gray.900"
+      color="white"
+      border="1px solid"
+      borderColor="gray.600"
+      borderRadius="md"
     >
       <Box
         w="52px"
