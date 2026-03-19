@@ -54,7 +54,9 @@ const Root = () => {
             </HStack>
           </Alert>
         )}
-        <AuthConsumer />
+        <Flex flex="1" flexDirection="column">
+          <AuthConsumer />
+        </Flex>
         <Footer />
       </Flex>
     </AuthProvider>

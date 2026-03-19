@@ -117,9 +117,11 @@ module.exports = {
           throw new ApolloError('Incorrect password', 'UNAUTHORIZED');
         }
 
-        const token = jwt.sign({ userId: user.id, admin: user.admin }, context.jwtSecret, {
-          expiresIn: '7d',
-        });
+        const token = jwt.sign(
+          { userId: user.id, admin: user.admin, discordUserId: user.discordUserId ?? null },
+          context.jwtSecret,
+          { expiresIn: '7d' }
+        );
 
         return { user, token };
       } catch (error) {

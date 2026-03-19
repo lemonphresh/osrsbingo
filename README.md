@@ -2,7 +2,7 @@
 
 **The ultimate competitive event platform for Old School RuneScape clans.**
 
-Create custom bingo boards to track your goals, run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, or host a **Blind Draft** to build balanced teams before an event.
+Create custom bingo boards to track your goals, run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, host a **Blind Draft** to build balanced teams, or run a full clan tournament with **Champion Forge**.
 
 🌐 **[osrsbingohub.com](https://www.osrsbingohub.com)** • 3,000+ boards created • Built for the community
 
@@ -26,6 +26,19 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 - **Automated prize distribution** with hard-capped budget guarantees
 - **Discord bot integration** — submit proofs, check progress, all from Discord
 - **Live updates** via WebSocket subscriptions
+
+### ⚔️ Champion Forge
+
+- **Four-phase tournament structure**: Draft → Gathering → Outfitting → Battle
+- **Gathering phase** — players complete OSRS tasks to earn items for their war chest, submitted via Discord bot with admin approve/deny review
+- **War chest** — approved drops become equippable gear and consumables for your champion
+- **Outfitting phase** — full paperdoll gear slots (helm, cape, amulet, weapon, chest, shield, legs, gloves, boots, ring, trinket) with a live training dummy battle previewer
+- **Turn-based battle engine** — attacks, defends, specials, and consumable items
+- **Bracket support** — single-elimination and double-elimination formats
+- **Live battle screen** with real-time WebSocket updates and a per-turn action timer
+- **Battle replay** — step through any completed fight turn by turn
+- **Per-action visual effects** — CSS-animated slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs, and debuffs
+- **Synthesized sound effects** — every action has a unique Web Audio API sound, with a per-user volume slider
 
 ### 🎲 Blind Draft
 
@@ -65,6 +78,16 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 | **5. Payout**    | Winners calculated automatically — you're done!      |
 
 > 💡 **Budget Guarantee**: The hard-capped system ensures you'll _never_ owe more than your prize pool, no matter what teams achieve.
+
+### Running a Champion Forge
+
+| Step               | Action                                                                    |
+| ------------------ | ------------------------------------------------------------------------- |
+| **1. Draft**       | Configure teams, members, tasks, and phase durations                      |
+| **2. Gathering**   | Players complete OSRS tasks and submit proof via Discord bot               |
+| **3. Review**      | Admins approve or deny submissions; items land in each team's war chest    |
+| **4. Outfitting**  | Teams equip their champion from their war chest before the timer runs out  |
+| **5. Battle**      | Champions fight in a live turn-based bracket — last team standing wins!   |
 
 ### Running a Blind Draft
 
@@ -323,6 +346,39 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 ---
 
+## ⚔️ Champion Forge: How It Works
+
+### The Four Phases
+
+| Phase          | What Happens                                                                 |
+| -------------- | ---------------------------------------------------------------------------- |
+| **Draft**      | Admin configures teams, assigns members, sets task list and phase timings    |
+| **Gathering**  | Players complete OSRS tasks and submit proof via Discord bot                 |
+| **Outfitting** | Teams equip their champion with war chest items before the deadline          |
+| **Battle**     | Turn-based bracket combat — champions fight until one team is left standing  |
+
+### Battle Mechanics
+
+| Action      | Description                                                                  |
+| ----------- | ---------------------------------------------------------------------------- |
+| **Attack**  | Deal damage based on weapon stats vs. opponent's defense                     |
+| **Defend**  | Reduce incoming damage for the next hit                                      |
+| **Special** | Unique ability tied to your equipped weapon (cleave, barrage, lifesteal, etc.) |
+| **Item**    | Use a consumable from your war chest (heal, damage, debuff, buff, etc.)      |
+
+### Stats & Items
+
+Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, trinket, weapon, chest, shield, legs, gloves, boots, ring, and two consumable slots. Items are earned exclusively through gathering phase submissions — no pay-to-win.
+
+### Discord Bot Commands (Champion Forge)
+
+| Command                          | Description                                      |
+| -------------------------------- | ------------------------------------------------ |
+| `!cfsubmit <task_id>` + img      | Submit a task completion for review              |
+| `!cfpresubmit`                   | Record a pre-screenshot baseline for XP tasks    |
+
+---
+
 ## 🎲 Blind Draft: How It Works
 
 ### Formats
@@ -387,6 +443,14 @@ Integrate your Gielinor Rush event directly into Discord for seamless team coord
 | `TreasureActivity`    | Live activity feed               |
 | `DraftRooms`          | Blind Draft room config          |
 | `DraftPlayers`        | Player pool entries per room     |
+| `ClanWarsEvents`      | Champion Forge event config      |
+| `ClanWarsTeams`       | Competing teams and war chests   |
+| `ClanWarsTasks`       | Gathering phase task definitions |
+| `ClanWarsSubmissions` | Proof submissions with review    |
+| `ClanWarsItems`       | Equippable item definitions      |
+| `ClanWarsTeamItems`   | Items earned per team            |
+| `ClanWarsBattles`     | Battle instances and state       |
+| `ClanWarsBattleEvents`| Turn-by-turn battle log          |
 
 ### Migration Commands
 

@@ -5,7 +5,7 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled, isChampionForgeEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import { useAuth } from '../providers/AuthProvider';
 
@@ -26,8 +26,8 @@ const AboutPage = () => {
         <VStack spacing={6} align="stretch" mt={6}>
           <Text>
             OSRS Bingo Hub is a free community tool for Old School RuneScape players to create,
-            share, and track bingo boards for their in-game goals and clan events. No
-            microtransactions, no ads, no nonsense. Just bingo. 🎯
+            share, and track bingo boards, run treasure hunt events, host blind drafts, and now run
+            full clan tournaments with Champion Forge. No microtransactions, no ads, no nonsense. 🎯
           </Text>
 
           <Box>
@@ -38,11 +38,14 @@ const AboutPage = () => {
               {[
                 'Create custom bingo boards with your own objectives',
                 'Track progress and compete with friends and clanmates',
+                'Share public boards with the community',
                 isGielinorRushEnabled(user)
                   ? 'Run Gielinor Rush events: team-based treasure hunts across Gielinor'
                   : undefined,
-                'Share public boards with the community',
-                'Discord bot integration for clan events',
+                isChampionForgeEnabled(user)
+                  ? 'Run Champion Forge tournaments: blind drafts, gathering phases, outfitting, and live bracket battles'
+                  : 'Champion Forge clan tournaments coming soon',
+                'Discord integration for submissions and event management',
               ].map(
                 (item, i) =>
                   item && (

@@ -197,6 +197,42 @@ app.get('/discuser/:userId', discordLimiter, async (req, res) => {
   }
 });
 
+app.get('/discguild/:guildId', discordLimiter, async (req, res) => {
+  const { guildId } = req.params;
+  if (!guildId || !/^\d{17,19}$/.test(guildId)) {
+    return res.status(400).json({ error: 'Invalid guild ID format' });
+  }
+  try {
+    const response = await fetch(`https://discord.com/api/v10/guilds/${guildId}`, {
+      headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Guild not found' });
+    const data = await response.json();
+    res.json({ id: data.id, name: data.name });
+  } catch (error) {
+    logger.error({ err: error }, 'Discord guild lookup error');
+    res.status(500).json({ error: 'Failed to fetch guild info' });
+  }
+});
+
+app.get('/discchannel/:channelId', discordLimiter, async (req, res) => {
+  const { channelId } = req.params;
+  if (!channelId || !/^\d{17,19}$/.test(channelId)) {
+    return res.status(400).json({ error: 'Invalid channel ID format' });
+  }
+  try {
+    const response = await fetch(`https://discord.com/api/v10/channels/${channelId}`, {
+      headers: { Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}` },
+    });
+    if (!response.ok) return res.status(response.status).json({ error: 'Channel not found' });
+    const data = await response.json();
+    res.json({ id: data.id, name: data.name });
+  } catch (error) {
+    logger.error({ err: error }, 'Discord channel lookup error');
+    res.status(500).json({ error: 'Failed to fetch channel info' });
+  }
+});
+
 /**
  * POST /api/discord/users/batch
  * Fetches multiple Discord users at once
@@ -323,7 +359,7 @@ const serverCleanup = useServer(
       if (token) {
         try {
           const decoded = jwt.verify(token, SECRET);
-          user = { id: decoded.userId, admin: decoded.admin };
+          user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
           logger.info({ userId: user.id }, 'WebSocket authenticated');
         } catch (err) {
           logger.warn('Invalid WebSocket token');
@@ -351,7 +387,7 @@ const server = new ApolloServer({
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
-        user = { id: decoded.userId, admin: decoded.admin };
+        user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
       } catch (err) {
         logger.warn('Invalid or expired token');
       }
