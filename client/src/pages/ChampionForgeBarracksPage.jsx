@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
@@ -50,6 +50,7 @@ import {
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
+import { playSubmissionApproved, playSubmissionDenied, playTaskComplete } from '../utils/soundEngine';
 import { useTimezone, fmtTs } from '../hooks/useTimezone';
 import TimezoneToggle from '../atoms/TimezoneToggle';
 import { TeamOutfitter } from '../organisms/ChampionForge/OutfittingScreen';
@@ -1072,7 +1073,12 @@ function SubmissionFeed({ eventId, teamId }) {
   });
   useSubscription(CLAN_WARS_SUBMISSION_REVIEWED, {
     variables: { eventId },
-    onData: () => refetch(),
+    onData: ({ data }) => {
+      refetch();
+      const status = data?.data?.clanWarsSubmissionReviewed?.status;
+      if (status === 'APPROVED') playSubmissionApproved();
+      else if (status === 'DENIED') playSubmissionDenied();
+    },
   });
 
   const subs = (data?.getClanWarsSubmissions ?? [])
@@ -1202,10 +1208,18 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   });
 
   const tasks = event.tasks ?? [];
-  const completedTaskIds = team.completedTaskIds ?? [];
+  const completedTaskIds = React.useMemo(() => team.completedTaskIds ?? [], [team.completedTaskIds]);
   const taskProgress = team.taskProgress ?? {};
   const numericTaskProgress = team.numericTaskProgress ?? {};
   const currentUserDiscordId = user?.discordUserId ?? null;
+
+  const prevCompletedRef = useRef(completedTaskIds);
+  useEffect(() => {
+    const prev = prevCompletedRef.current;
+    const hasNew = completedTaskIds.some((id) => !prev.includes(id));
+    if (hasNew) playTaskComplete();
+    prevCompletedRef.current = completedTaskIds;
+  }, [completedTaskIds]);
 
   // Find the current user's role within this team
   const memberRecord = (team.members ?? []).find(

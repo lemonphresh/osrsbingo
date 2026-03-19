@@ -80,12 +80,15 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
           }
         }
 
-        description = (task.descriptionTemplate ?? task.description ?? '').replace(
-          '{quantity}',
+        const quantityStr =
           typeof resolvedQuantity === 'number' && resolvedQuantity >= 1000
             ? resolvedQuantity.toLocaleString('en-US')
-            : String(resolvedQuantity)
-        );
+            : String(resolvedQuantity);
+        description = (task.descriptionTemplate ?? task.description ?? '')
+          .replace('{quantity}', quantityStr)
+          .replace(/(\d[\d,]*) drops\b/, (_, n) =>
+            parseInt(n.replace(/,/g, ''), 10) === 1 ? `${n} drop` : `${n} drops`
+          );
       } else {
         description = task.description ?? null;
       }

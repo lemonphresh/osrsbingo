@@ -2,31 +2,39 @@
 
 /**
  * ClanWars Discord notification helpers.
+ * Uses the Discord REST API directly (same pattern as bot/verify.js) so these
+ * functions work from any process — server or bot — without a Discord.js client.
  * Best-effort — all functions swallow errors so they never break the main flow.
  */
 
+const DISCORD_API = 'https://discord.com/api/v10';
 const SITE_URL = process.env.SITE_URL || 'https://osrsbingohub.com';
 
-let _botClient = null;
-
-function registerBotClient(client) {
-  _botClient = client;
-}
+// No-op — kept so bot/index.js doesn't break (it still calls registerBotClient on ready)
+function registerBotClient() {}
 
 function rarityColor(rarity) {
   const map = { common: 0x999999, uncommon: 0x2ecc71, rare: 0x3498db, epic: 0x9b59b6 };
   return map[rarity] ?? 0xffffff;
 }
 
-async function sendDM(discordId, content) {
-  if (!_botClient) return;
+async function discordFetch(path, options = {}) {
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return null;
   try {
-    const user = await _botClient.users.fetch(discordId);
-    await user.send(content);
+    return await fetch(`${DISCORD_API}${path}`, {
+      ...options,
+      headers: {
+        Authorization: `Bot ${token}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+      },
+    });
   } catch (_) {
-    // ignore — user may have DMs disabled
+    return null;
   }
 }
+
 
 async function sendClanWarsSubmissionResult({
   discordId,
@@ -36,42 +44,28 @@ async function sendClanWarsSubmissionResult({
   denialReason,
   item,
 }) {
-  if (!_botClient) return;
-
+  if (!channelId) return;
   try {
-    const { EmbedBuilder } = require('discord.js');
-
+    let content;
     if (approved && item) {
-      const embed = new EmbedBuilder()
-        .setTitle('✅ Submission Approved!')
-        .setColor(rarityColor(item.rarity))
-        .setDescription(`Your submission for **${taskLabel}** was approved.`)
-        .addFields({
-          name: 'Item Earned',
-          value: `**${item.name}** *(${item.rarity})*\nSlot: ${item.slot}`,
-          inline: false,
-        });
-
-      await sendDM(discordId, { embeds: [embed] });
+      content = `<@${discordId}> ✅ Your submission for **${taskLabel}** was approved! You earned **${item.name}** *(${item.rarity})*.`;
     } else if (approved) {
-      await sendDM(
-        discordId,
-        `✅ Your submission for **${taskLabel}** was approved! (War chest may be full for that slot.)`
-      );
+      content = `<@${discordId}> ✅ Your submission for **${taskLabel}** was approved! (War chest may be full for that slot.)`;
     } else {
       const reason = denialReason || 'No reason given.';
-      await sendDM(
-        discordId,
-        `❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nYou may resubmit.`
-      );
+      content = `<@${discordId}> ❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nYou may resubmit.`;
     }
-  } catch (err) {
+    await discordFetch(`/channels/${channelId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  } catch (_) {
     // best-effort
   }
 }
 
 async function sendClanWarsPhaseAnnouncement({ channelId, eventId, eventName, phase }) {
-  if (!_botClient || !channelId) return;
+  if (!channelId) return;
 
   const eventUrl = `${SITE_URL}/champion-forge/${eventId}`;
   const battleUrl = `${SITE_URL}/champion-forge/${eventId}/battle`;
@@ -87,21 +81,25 @@ async function sendClanWarsPhaseAnnouncement({ channelId, eventId, eventName, ph
   if (!msg) return;
 
   try {
-    const channel = await _botClient.channels.fetch(channelId);
-    await channel.send(msg);
+    await discordFetch(`/channels/${channelId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content: msg }),
+    });
   } catch (_) {
     // best-effort
   }
 }
 
 async function sendCaptainMissingAlert({ channelId, eventName, missingTeams }) {
-  if (!_botClient || !channelId) return;
+  if (!channelId) return;
   try {
-    const channel = await _botClient.channels.fetch(channelId);
     const teamList = missingTeams.map((t) => `• **${t.teamName}**`).join('\n');
-    await channel.send(
-      `⚠️ **${eventName}** — The gathering phase has ended, but the following teams have no captain assigned:\n${teamList}\n\nPlease assign captains on the event page. Once all captains are set, the event will automatically advance to Outfitting.`
-    );
+    await discordFetch(`/channels/${channelId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        content: `⚠️ **${eventName}** — The gathering phase has ended, but the following teams have no captain assigned:\n${teamList}\n\nPlease assign captains on the event page. Once all captains are set, the event will automatically advance to Outfitting.`,
+      }),
+    });
   } catch (_) {
     // best-effort
   }
