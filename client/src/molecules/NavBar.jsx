@@ -31,6 +31,7 @@ const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 const NavBar = () => {
   const { user } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
+  const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
   const { data: invitationsData } = useQuery(GET_PENDING_INVITATIONS, {
     skip: !user,
@@ -285,42 +286,205 @@ const NavBar = () => {
           </NavLink>
         </Flex>
 
-        <Link
-          style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
-          to={user ? `/user/${user.id}` : '/login'}
-        >
-          <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
-            {user ? user.username : 'log in'}
-          </Text>
-          <Box position="relative">
+        {user ? (
+          <>
+            {/* Backdrop */}
+            {isNavMenuOpen && (
+              <Box
+                position="fixed"
+                inset="0"
+                zIndex={98}
+                backgroundColor="rgba(0,0,0,0.45)"
+                onClick={() => setIsNavMenuOpen(false)}
+              />
+            )}
+
+            {/* Trigger */}
+            <Box
+              cursor="pointer"
+              display="flex"
+              alignItems="center"
+              position="relative"
+              onClick={() => setIsNavMenuOpen((v) => !v)}
+              _hover={{ opacity: 0.8 }}
+            >
+              <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
+                {user.username}
+              </Text>
+              <Box position="relative">
+                <Image
+                  aria-hidden
+                  height={['48px', '32px']}
+                  src={GnomeChild}
+                  width={['48px', '32px']}
+                />
+                {pendingInviteCount > 0 && (
+                  <Badge
+                    position="absolute"
+                    top="-4px"
+                    right="-4px"
+                    backgroundColor={theme.colors.red[500]}
+                    color="white"
+                    borderRadius="full"
+                    fontSize="10px"
+                    fontWeight="semibold"
+                    minWidth="18px"
+                    height="18px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    boxShadow="0 2px 4px rgba(0,0,0,0.3)"
+                  >
+                    {pendingInviteCount > 9 ? '9+' : pendingInviteCount}
+                  </Badge>
+                )}
+              </Box>
+            </Box>
+
+            {/* Slide-in drawer */}
+            <Box
+              position="fixed"
+              top="0"
+              right="0"
+              height="100vh"
+              width="260px"
+              zIndex={99}
+              backgroundColor="#0d1520"
+              borderLeft="3px solid rgba(50, 104, 107, 0.8)"
+              boxShadow="-8px 0 40px rgba(0,0,0,0.8)"
+              display="flex"
+              flexDirection="column"
+              transform={isNavMenuOpen ? 'translateX(0)' : 'translateX(100%)'}
+              transition="transform 0.22s cubic-bezier(0.4, 0, 0.2, 1)"
+            >
+              {/* Drawer header */}
+              <Box
+                padding="20px 16px 16px"
+                borderBottom="1px solid rgba(255,255,255,0.08)"
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+              >
+                <HStack spacing={3}>
+                  <Image src={GnomeChild} height="28px" width="28px" aria-hidden />
+                  <Text fontWeight="semibold" color="white" fontSize="sm">
+                    {user.username}
+                  </Text>
+                </HStack>
+                <IconButton
+                  icon={<MdClose />}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  opacity={0.5}
+                  onClick={() => setIsNavMenuOpen(false)}
+                  aria-label="Close menu"
+                  _hover={{ opacity: 1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                />
+              </Box>
+
+              {/* Drawer items */}
+              <Box overflowY="auto" flex={1} paddingBottom="16px">
+                {[
+                  {
+                    section: 'My Stuff',
+                    items: [
+                      { label: 'My Account', to: `/user/${user.id}` },
+                      { label: 'My Boards', to: '/bingo' },
+                    ],
+                  },
+                  {
+                    section: 'Public',
+                    items: [
+                      { label: 'View All Boards', to: '/boards' },
+                      { label: 'View GR Events', to: '/gielinor-rush/active' },
+                    ],
+                  },
+                  {
+                    section: 'Site Tools',
+                    items: [
+                      { label: 'Bingo Creator', to: '/boards/create' },
+                      { label: 'Blind Draft', to: '/blind-draft' },
+                      { label: 'Gielinor Rush', to: '/gielinor-rush' },
+                      ...(isChampionForgeEnabled(user)
+                        ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
+                        : []),
+                    ],
+                  },
+                ].map(({ section, items }) => (
+                  <Box key={section} paddingTop="16px">
+                    <Text
+                      paddingX="20px"
+                      paddingBottom="4px"
+                      fontSize="10px"
+                      fontWeight="bold"
+                      letterSpacing="0.1em"
+                      color="rgba(255,255,255,0.35)"
+                      textTransform="uppercase"
+                    >
+                      {section}
+                    </Text>
+                    {items.map((item) => (
+                      <Link key={item.to} to={item.to} onClick={() => setIsNavMenuOpen(false)}>
+                        <HStack
+                          paddingX="20px"
+                          paddingY="11px"
+                          justifyContent="space-between"
+                          transition="background 0.12s"
+                          _hover={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
+                        >
+                          <Text color="white" fontSize="sm" fontWeight="medium">
+                            {item.label}
+                          </Text>
+                          {item.isNew && (
+                            <Badge colorScheme="yellow" fontSize="xs">
+                              New
+                            </Badge>
+                          )}
+                        </HStack>
+                      </Link>
+                    ))}
+                  </Box>
+                ))}
+              </Box>
+
+              {/* Support button */}
+              <Box padding="16px" borderTop="1px solid rgba(255,255,255,0.08)" margin="0 auto">
+                <PleaseEffect>
+                  <Link to="/support" onClick={() => setIsNavMenuOpen(false)}>
+                    <HStack
+                      justifyContent="center"
+                      padding="10px 16px"
+                      backgroundColor="rgba(244, 211, 94, 0.12)"
+                      borderRadius="8px"
+                      border="1px solid rgba(244, 211, 94, 0.3)"
+                      _hover={{ backgroundColor: 'rgba(244, 211, 94, 0.2)' }}
+                      transition="background 0.12s"
+                      spacing={2}
+                    >
+                      <FaHeart color={theme.colors.red[400]} size={13} />
+                      <Text color={theme.colors.yellow[300]} fontSize="sm" fontWeight="semibold">
+                        Support the Site
+                      </Text>
+                    </HStack>
+                  </Link>
+                </PleaseEffect>
+              </Box>
+            </Box>
+          </>
+        ) : (
+          <Link style={{ display: 'flex', alignItems: 'center', position: 'relative' }} to="/login">
+            <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
+              log in
+            </Text>
             <Image
               aria-hidden
               height={['48px', '32px']}
               src={GnomeChild}
               width={['48px', '32px']}
             />
-            {pendingInviteCount > 0 && (
-              <Badge
-                position="absolute"
-                top="-4px"
-                right="-4px"
-                backgroundColor={theme.colors.red[500]}
-                color="white"
-                borderRadius="full"
-                fontSize="10px"
-                fontWeight="semibold"
-                minWidth="18px"
-                height="18px"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                boxShadow="0 2px 4px rgba(0,0,0,0.3)"
-              >
-                {pendingInviteCount > 9 ? '9+' : pendingInviteCount}
-              </Badge>
-            )}
-          </Box>
-        </Link>
+          </Link>
+        )}
       </Flex>
     </>
   );
