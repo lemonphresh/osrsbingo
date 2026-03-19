@@ -20,6 +20,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon, LockIcon, UnlockIcon } from '@chakra-ui/icons';
 import { FaShieldAlt, FaScroll, FaCrown } from 'react-icons/fa';
+import BattleReplayModal from '../organisms/ChampionForge/BattleReplayModal';
 import { GET_CLAN_WARS_EVENT, CLAN_WARS_EVENT_UPDATED } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import usePageTitle from '../hooks/usePageTitle';
@@ -44,7 +45,6 @@ const STATUS_META = {
   },
   BATTLE: { label: 'Battle', color: 'red', description: 'Champions are fighting!' },
   COMPLETED: { label: 'Completed', color: 'purple', description: 'The event has ended.' },
-  ARCHIVED: { label: 'Archived', color: 'gray', description: 'Archived.' },
 };
 
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
@@ -158,8 +158,10 @@ function PhaseBanner({ event, eventId }) {
     );
   }
 
-  if (status === 'COMPLETED' || status === 'ARCHIVED') {
-    const winner = event.bracket?.rounds?.slice(-1)[0]?.matches?.[0]?.winnerId;
+  if (status === 'COMPLETED') {
+    const winner =
+      event.bracket?.grandFinal?.winnerId ??
+      event.bracket?.rounds?.slice(-1)[0]?.matches?.[0]?.winnerId;
     const winnerTeam = winner ? event.teams?.find((t) => t.teamId === winner) : null;
 
     return (
@@ -185,114 +187,311 @@ function PhaseBanner({ event, eventId }) {
 }
 
 // ---------------------------------------------------------------------------
-// Bracket summary — shown on completed / archived events
+// Completed event sub-components
 // ---------------------------------------------------------------------------
-function BracketSummary({ bracket, teams, eventId }) {
+function WinnerBanner({ event }) {
+  const winnerId =
+    event.bracket?.grandFinal?.winnerId ??
+    event.bracket?.rounds?.slice(-1)[0]?.matches?.[0]?.winnerId;
+  const winnerTeam = winnerId ? (event.teams ?? []).find((t) => t.teamId === winnerId) : null;
+
+  return (
+    <Box
+      bgGradient="linear(to-r, yellow.900, purple.900)"
+      border="2px solid"
+      borderColor="yellow.600"
+      borderRadius="xl"
+      p={6}
+      textAlign="center"
+      boxShadow="0 0 30px rgba(214,158,46,0.25)"
+    >
+      <Text fontSize="4xl" mb={2}>🏆</Text>
+      {winnerTeam ? (
+        <>
+          <Text fontSize="2xl" fontWeight="bold" color="yellow.300" mb={1}>
+            {winnerTeam.teamName}
+          </Text>
+          <Text fontSize="sm" color="yellow.600" mb={3}>
+            Champion of {event.eventName}
+          </Text>
+          {winnerTeam.members?.length > 0 && (
+            <HStack justify="center" spacing={2}>
+              <AvatarGroup size="sm" max={6}>
+                {winnerTeam.members.map((m, i) => (
+                  <Tooltip
+                    key={m.discordId ?? i}
+                    label={`${m.username ?? m.discordId}${m.discordId === winnerTeam.captainDiscordId ? ' 👑' : ''}`}
+                    hasArrow
+                  >
+                    <Avatar
+                      name={m.username ?? m.discordId}
+                      src={
+                        m.avatar
+                          ? `https://cdn.discordapp.com/avatars/${m.discordId}/${m.avatar}.png`
+                          : undefined
+                      }
+                      bg="yellow.700"
+                    />
+                  </Tooltip>
+                ))}
+              </AvatarGroup>
+            </HStack>
+          )}
+        </>
+      ) : (
+        <Text fontSize="xl" color="yellow.400">Event Complete</Text>
+      )}
+    </Box>
+  );
+}
+
+function CompletedBracket({ bracket, teams, onRewatch }) {
   if (!bracket?.rounds?.length) return null;
 
+  const isDE = bracket.type === 'DOUBLE_ELIMINATION';
   const teamMap = Object.fromEntries((teams ?? []).map((t) => [t.teamId, t]));
 
-  const getRoundLabel = (i, total) => {
+  const MatchRow = ({ match }) => {
+    const team1 = teamMap[match.team1Id];
+    const team2 = match.team2Id ? teamMap[match.team2Id] : null;
+    const winner = match.winnerId ? teamMap[match.winnerId] : null;
+
+    return (
+      <Box
+        bg="gray.800"
+        border="1px solid"
+        borderColor={match.winnerId ? 'teal.700' : 'gray.700'}
+        borderRadius="lg"
+        p={3}
+      >
+        {match.isBye ? (
+          <HStack spacing={3}>
+            <Text color="teal.200" fontWeight="bold">{team1?.teamName ?? match.team1Id}</Text>
+            <Badge colorScheme="gray" fontSize="xs">Bye</Badge>
+          </HStack>
+        ) : (
+          <HStack justify="space-between" flexWrap="wrap" gap={2}>
+            <HStack spacing={3}>
+              <Text
+                color={match.winnerId === match.team1Id ? 'teal.200' : 'gray.400'}
+                fontWeight={match.winnerId === match.team1Id ? 'bold' : 'normal'}
+              >
+                {team1?.teamName ?? match.team1Id}
+              </Text>
+              <Text color="gray.600" fontSize="xs">vs</Text>
+              <Text
+                color={match.winnerId === match.team2Id ? 'teal.200' : 'gray.400'}
+                fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}
+              >
+                {team2?.teamName ?? match.team2Id}
+              </Text>
+            </HStack>
+            <HStack spacing={2}>
+              {winner && (
+                <Badge colorScheme="teal" fontSize="xs">
+                  Winner: {winner.teamName}
+                </Badge>
+              )}
+              {!match.winnerId && (
+                <Badge colorScheme="gray" fontSize="xs">Pending</Badge>
+              )}
+              {match.battleId && (
+                <Button
+                  size="xs"
+                  colorScheme="purple"
+                  variant="ghost"
+                  onClick={() => onRewatch(match.battleId)}
+                >
+                  ⏮ Rewatch
+                </Button>
+              )}
+            </HStack>
+          </HStack>
+        )}
+      </Box>
+    );
+  };
+
+  const RoundSection = ({ label, matches, accent }) => (
+    <Box>
+      <Text
+        fontSize="xs"
+        color={accent ?? 'gray.500'}
+        textTransform="uppercase"
+        letterSpacing="wider"
+        mb={2}
+      >
+        {label}
+      </Text>
+      <VStack align="stretch" spacing={2}>
+        {matches.map((match, i) => (
+          <MatchRow key={i} match={match} />
+        ))}
+      </VStack>
+    </Box>
+  );
+
+  const getSELabel = (i, total) => {
     if (total === 1 || i === total - 1) return 'Final';
     if (i === total - 2) return 'Semifinals';
     return `Round ${i + 1}`;
   };
 
   return (
-    <Box>
+    <Box bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="xl" p={5}>
       <HStack mb={4} spacing={2}>
-        <Text fontSize="xl">🏆</Text>
-        <Text fontWeight="bold" color="white" fontSize="lg">
-          Battle Results
-        </Text>
+        <Text fontSize="lg">⚔️</Text>
+        <Text fontWeight="bold" color="white" fontSize="lg">Battle Results</Text>
       </HStack>
-      <VStack align="stretch" spacing={5}>
-        {bracket.rounds.map((round, roundIdx) => (
-          <Box key={roundIdx}>
-            <Text
-              fontSize="xs"
-              color="gray.500"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={2}
-            >
-              {getRoundLabel(roundIdx, bracket.rounds.length)}
-            </Text>
-            <VStack align="stretch" spacing={2}>
-              {round.matches.map((match, matchIdx) => {
-                const team1 = teamMap[match.team1Id];
-                const team2 = match.team2Id ? teamMap[match.team2Id] : null;
-                const winner = match.winnerId ? teamMap[match.winnerId] : null;
 
-                return (
-                  <Box
-                    key={matchIdx}
-                    bg="gray.800"
-                    border="1px solid"
-                    borderColor={match.winnerId ? 'teal.700' : 'gray.700'}
-                    borderRadius="lg"
-                    p={3}
-                  >
-                    {match.isBye ? (
-                      <HStack spacing={3}>
-                        <Text color="teal.200" fontWeight="bold">
-                          {team1?.teamName ?? match.team1Id}
-                        </Text>
-                        <Badge colorScheme="gray" fontSize="xs">
-                          Bye
-                        </Badge>
-                      </HStack>
-                    ) : (
-                      <HStack justify="space-between" flexWrap="wrap" gap={2}>
-                        <HStack spacing={3}>
-                          <Text
-                            color={match.winnerId === match.team1Id ? 'teal.200' : 'gray.400'}
-                            fontWeight={match.winnerId === match.team1Id ? 'bold' : 'normal'}
-                          >
-                            {team1?.teamName ?? match.team1Id}
-                          </Text>
-                          <Text color="gray.600" fontSize="xs">
-                            vs
-                          </Text>
-                          <Text
-                            color={match.winnerId === match.team2Id ? 'teal.200' : 'gray.400'}
-                            fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}
-                          >
-                            {team2?.teamName ?? match.team2Id}
-                          </Text>
-                        </HStack>
-                        <HStack spacing={2}>
-                          {winner && (
-                            <Badge colorScheme="teal" fontSize="xs">
-                              Winner: {winner.teamName}
-                            </Badge>
-                          )}
-                          {!match.winnerId && (
-                            <Badge colorScheme="gray" fontSize="xs">
-                              Pending
-                            </Badge>
-                          )}
-                          {match.battleId && (
-                            <Button
-                              as={RouterLink}
-                              to={`/champion-forge/${eventId}/battle`}
-                              size="xs"
-                              colorScheme="gray"
-                              variant="outline"
-                            >
-                              View Battle →
-                            </Button>
-                          )}
-                        </HStack>
-                      </HStack>
-                    )}
-                  </Box>
-                );
-              })}
+      {isDE ? (
+        <VStack align="stretch" spacing={6}>
+          <Box>
+            <Text fontSize="sm" fontWeight="semibold" color="teal.300" mb={3}>Winners Bracket</Text>
+            <VStack align="stretch" spacing={5}>
+              {bracket.rounds.map((round, i) => (
+                <RoundSection key={i} label={round.label ?? `Round ${i + 1}`} matches={round.matches} />
+              ))}
             </VStack>
           </Box>
-        ))}
-      </VStack>
+          {bracket.losersBracket?.length > 0 && (
+            <Box>
+              <Text fontSize="sm" fontWeight="semibold" color="orange.300" mb={3}>Losers Bracket</Text>
+              <VStack align="stretch" spacing={5}>
+                {bracket.losersBracket.map((round, i) => (
+                  <RoundSection key={i} label={round.label ?? `LB Round ${i + 1}`} matches={round.matches} accent="orange.700" />
+                ))}
+              </VStack>
+            </Box>
+          )}
+          {bracket.grandFinal && (
+            <Box>
+              <Text fontSize="sm" fontWeight="semibold" color="yellow.300" mb={3}>Grand Final</Text>
+              <Box
+                bg="gray.750"
+                border="2px solid"
+                borderColor="yellow.600"
+                borderRadius="lg"
+                p={3}
+              >
+                <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                  <HStack spacing={3}>
+                    <Text
+                      color={bracket.grandFinal.winnerId === bracket.grandFinal.team1Id ? 'yellow.300' : 'gray.400'}
+                      fontWeight={bracket.grandFinal.winnerId === bracket.grandFinal.team1Id ? 'bold' : 'normal'}
+                    >
+                      {teamMap[bracket.grandFinal.team1Id]?.teamName ?? bracket.grandFinal.team1Id}
+                    </Text>
+                    <Text color="gray.600" fontSize="xs">vs</Text>
+                    <Text
+                      color={bracket.grandFinal.winnerId === bracket.grandFinal.team2Id ? 'yellow.300' : 'gray.400'}
+                      fontWeight={bracket.grandFinal.winnerId === bracket.grandFinal.team2Id ? 'bold' : 'normal'}
+                    >
+                      {teamMap[bracket.grandFinal.team2Id]?.teamName ?? bracket.grandFinal.team2Id}
+                    </Text>
+                  </HStack>
+                  <HStack spacing={2}>
+                    {bracket.grandFinal.winnerId && (
+                      <Badge colorScheme="yellow" fontSize="xs">
+                        🏆 {teamMap[bracket.grandFinal.winnerId]?.teamName}
+                      </Badge>
+                    )}
+                    {bracket.grandFinal.battleId && (
+                      <Button
+                        size="xs"
+                        colorScheme="purple"
+                        variant="ghost"
+                        onClick={() => onRewatch(bracket.grandFinal.battleId)}
+                      >
+                        ⏮ Rewatch
+                      </Button>
+                    )}
+                  </HStack>
+                </HStack>
+              </Box>
+            </Box>
+          )}
+        </VStack>
+      ) : (
+        <VStack align="stretch" spacing={5}>
+          {bracket.rounds.map((round, i) => (
+            <RoundSection key={i} label={getSELabel(i, bracket.rounds.length)} matches={round.matches} />
+          ))}
+        </VStack>
+      )}
+    </Box>
+  );
+}
+
+function CompletedTeamsGrid({ teams, bracket }) {
+  const winnerId =
+    bracket?.grandFinal?.winnerId ??
+    bracket?.rounds?.slice(-1)[0]?.matches?.[0]?.winnerId;
+
+  // Runner-up: loser of the grand final (DE) or the non-winner finalist (SE)
+  const runnerUpId = bracket?.grandFinal
+    ? (bracket.grandFinal.team1Id === winnerId
+        ? bracket.grandFinal.team2Id
+        : bracket.grandFinal.team1Id)
+    : bracket?.rounds?.slice(-1)[0]?.matches?.[0]
+      ? (bracket.rounds.slice(-1)[0].matches[0].team1Id === winnerId
+          ? bracket.rounds.slice(-1)[0].matches[0].team2Id
+          : bracket.rounds.slice(-1)[0].matches[0].team1Id)
+      : null;
+
+  if (!teams?.length) return null;
+
+  return (
+    <Box>
+      <Text
+        fontWeight="semibold"
+        fontSize="sm"
+        color="gray.400"
+        mb={3}
+        textTransform="uppercase"
+        letterSpacing="wide"
+      >
+        All Teams
+      </Text>
+      <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={3}>
+        {teams.map((team) => {
+          const isWinner = team.teamId === winnerId;
+          const isRunnerUp = team.teamId === runnerUpId;
+          return (
+            <Box
+              key={team.teamId}
+              bg="gray.800"
+              border="1px solid"
+              borderColor={isWinner ? 'yellow.500' : isRunnerUp ? 'gray.500' : 'gray.700'}
+              borderRadius="lg"
+              p={4}
+            >
+              <HStack mb={2} justify="space-between">
+                <Text fontWeight="bold" color="white" fontSize="sm" noOfLines={1}>
+                  {isWinner && '🏆 '}{team.teamName}
+                </Text>
+                {isWinner && <Badge colorScheme="yellow" fontSize="xs">Champion</Badge>}
+                {isRunnerUp && <Badge colorScheme="gray" fontSize="xs">Runner-up</Badge>}
+              </HStack>
+              <VStack align="flex-start" spacing={1}>
+                <Text fontSize="xs" color="gray.500">
+                  {team.members?.length ?? 0} members
+                </Text>
+                {(team.completedTaskIds?.length ?? 0) > 0 && (
+                  <Text fontSize="xs" color="green.400">
+                    ✓ {team.completedTaskIds.length} tasks completed
+                  </Text>
+                )}
+                {(team.items?.length ?? 0) > 0 && (
+                  <Text fontSize="xs" color="gray.400">
+                    ⚔ {team.items.length} items
+                  </Text>
+                )}
+              </VStack>
+            </Box>
+          );
+        })}
+      </SimpleGrid>
     </Box>
   );
 }
@@ -512,6 +711,7 @@ export default function ChampionForgeEventPage() {
 
   const [viewAsParticipant, setViewAsParticipant] = useState(false);
   const effectiveIsAdmin = isAdmin && !viewAsParticipant;
+  const [replayBattleId, setReplayBattleId] = useState(null);
 
   // Get the logged-in user's Discord ID for team membership checks
   const currentUserDiscordId = user?.discordUserId ?? null;
@@ -602,6 +802,34 @@ export default function ChampionForgeEventPage() {
       </HStack>
     </Box>
   );
+
+  // ── Completed event layout ──
+  if (event.status === 'COMPLETED') {
+    return (
+      <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
+        <VStack align="stretch" spacing={6}>
+          {backNav}
+          <WinnerBanner event={event} />
+          {event.bracket && (
+            <CompletedBracket
+              bracket={event.bracket}
+              teams={event.teams}
+              onRewatch={(id) => setReplayBattleId(id)}
+            />
+          )}
+          <CompletedTeamsGrid teams={event.teams} bracket={event.bracket} />
+          {effectiveIsAdmin && (
+            <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
+          )}
+        </VStack>
+        <BattleReplayModal
+          isOpen={!!replayBattleId}
+          onClose={() => setReplayBattleId(null)}
+          battleId={replayBattleId}
+        />
+      </Box>
+    );
+  }
 
   // ── Draft phase layout ──
   if (event.status === 'DRAFT') {
@@ -741,19 +969,10 @@ export default function ChampionForgeEventPage() {
           </Box>
         )}
 
-        {/* ── Battle results (concluded events) ── */}
-        {(event.status === 'COMPLETED' || event.status === 'ARCHIVED') && event.bracket && (
-          <BracketSummary bracket={event.bracket} teams={event.teams} eventId={eventId} />
-        )}
-
         {/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
-        {effectiveIsAdmin &&
-          (event.status === 'DRAFT' ||
-            event.status === 'BATTLE' ||
-            event.status === 'COMPLETED' ||
-            event.status === 'ARCHIVED') && (
-            <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
-          )}
+        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'BATTLE') && (
+          <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
+        )}
       </VStack>
     </Box>
   );

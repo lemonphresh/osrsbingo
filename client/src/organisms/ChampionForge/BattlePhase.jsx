@@ -65,7 +65,7 @@ export default function BattlePhase({ event: initialEvent, isAdmin, refetch }) {
   const [startBattle] = useMutation(START_CLAN_WARS_BATTLE);
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
 
-  const isEventDone = event.status === 'COMPLETED' || event.status === 'ARCHIVED';
+  const isEventDone = event.status === 'COMPLETED';
 
   const allMatchesDone = useMemo(() => {
     const rounds = event.bracket?.rounds;

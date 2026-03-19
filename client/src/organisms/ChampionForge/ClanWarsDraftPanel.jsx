@@ -1,4 +1,12 @@
 import React, { useState } from 'react';
+import {
+  playSubmissionIncoming,
+  playSubmissionApproved,
+  playSubmissionDenied,
+  playTaskComplete,
+  playBattleSound,
+} from '../../utils/soundEngine';
+import BattleVolumeSlider from './BattleVolumeSlider';
 import { useMutation, useLazyQuery } from '@apollo/client';
 import {
   Box,
@@ -737,6 +745,79 @@ function LaunchConfirmModal({
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Dev-only sound test widget
+// ---------------------------------------------------------------------------
+const UI_SOUNDS = [
+  { label: 'Sub In', fn: playSubmissionIncoming },
+  { label: 'Approved', fn: playSubmissionApproved },
+  { label: 'Denied', fn: playSubmissionDenied },
+  { label: 'Task Done', fn: playTaskComplete },
+];
+
+const BATTLE_SOUNDS = [
+  'slash', 'critSlash', 'doubleSlash', 'shield', 'fortressRipple',
+  'lightning', 'bleed', 'drain', 'heal', 'explosion', 'debuff', 'buff',
+];
+
+function SoundDevWidget() {
+  const [open, setOpen] = useState(false);
+
+  if (process.env.NODE_ENV !== 'development') return null;
+
+  return (
+    <Box mt={6} border="1px dashed" borderColor="purple.600" borderRadius="md" overflow="hidden">
+      <Box
+        px={3}
+        py={2}
+        bg="purple.900"
+        cursor="pointer"
+        onClick={() => setOpen((o) => !o)}
+        userSelect="none"
+      >
+        <Text fontSize="xs" color="purple.300" fontWeight="semibold" letterSpacing="wider" textTransform="uppercase">
+          {open ? '▲' : '▾'} 🔊 Dev — Sound Tester
+        </Text>
+      </Box>
+
+      {open && (
+        <Box px={4} py={3} bg="gray.900">
+          <VStack align="stretch" spacing={3}>
+            <Box>
+              <Text fontSize="xs" color="gray.500" mb={2} textTransform="uppercase" letterSpacing="wider">
+                UI Sounds
+              </Text>
+              <HStack spacing={2} flexWrap="wrap">
+                {UI_SOUNDS.map(({ label, fn }) => (
+                  <Button key={label} size="xs" colorScheme="purple" variant="outline" onClick={fn}>
+                    {label}
+                  </Button>
+                ))}
+              </HStack>
+            </Box>
+
+            <Box>
+              <HStack justify="space-between" mb={2}>
+                <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+                  Battle Sounds
+                </Text>
+                <BattleVolumeSlider />
+              </HStack>
+              <HStack spacing={2} flexWrap="wrap">
+                {BATTLE_SOUNDS.map((key) => (
+                  <Button key={key} size="xs" colorScheme="orange" variant="outline" onClick={() => playBattleSound(key)}>
+                    {key}
+                  </Button>
+                ))}
+              </HStack>
+            </Box>
+          </VStack>
+        </Box>
+      )}
+    </Box>
+  );
+}
+
 // Main draft panel
 // ---------------------------------------------------------------------------
 export default function ClanWarsDraftPanel({ event, refetch }) {
@@ -1112,6 +1193,8 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
           )}
         </VStack>
       </Box>
+
+      <SoundDevWidget />
 
       <LaunchConfirmModal
         isOpen={showLaunchModal}

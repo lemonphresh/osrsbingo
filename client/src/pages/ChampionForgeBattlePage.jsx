@@ -17,7 +17,6 @@ import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import BattleScreen from '../organisms/ChampionForge/BattleScreen';
 import BattleBracket from '../organisms/ChampionForge/BattleBracket';
-import PostBattleSummary from '../organisms/ChampionForge/PostBattleSummary';
 import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
 
 export default function ChampionForgeBattlePage() {
@@ -120,7 +119,12 @@ export default function ChampionForgeBattlePage() {
     onCompleted: refetch,
   });
 
-  const isEventDone = event?.status === 'COMPLETED' || event?.status === 'ARCHIVED';
+  const isEventDone = event?.status === 'COMPLETED';
+
+  // Redirect to event overview when event is done (battle page is for live battles only)
+  useEffect(() => {
+    if (isEventDone) navigate(`/champion-forge/${eventId}`);
+  }, [isEventDone, eventId, navigate]);
 
   const allMatchesDone = useMemo(() => {
     const bracket = event?.bracket;
@@ -227,7 +231,7 @@ export default function ChampionForgeBattlePage() {
           </Center>
         )
       ) : isEventDone ? (
-        <PostBattleSummary event={event} />
+        null
       ) : showBattleId ? (
         battleLoading && !activeBattle ? (
           <Center h="300px">

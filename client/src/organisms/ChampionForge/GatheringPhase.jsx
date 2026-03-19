@@ -18,6 +18,12 @@ import {
   Accordion,
 } from '@chakra-ui/react';
 import { useTimezone } from '../../hooks/useTimezone';
+import {
+  playSubmissionIncoming,
+  playSubmissionApproved,
+  playSubmissionDenied,
+  playTaskComplete,
+} from '../../utils/soundEngine';
 import TimezoneToggle from '../../atoms/TimezoneToggle';
 import {
   GET_CLAN_WARS_SUBMISSION_SUMMARIES,
@@ -82,6 +88,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
 
   const [markTaskComplete] = useMutation(MARK_TASK_COMPLETE, {
     onCompleted: () => {
+      playTaskComplete();
       refetch();
       showToast('Task marked complete!', 'success');
     },
@@ -108,6 +115,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   useSubscription(CLAN_WARS_SUBMISSION_ADDED, {
     variables: { eventId: event.eventId },
     onData: () => {
+      playSubmissionIncoming();
       triggerSubsRefetch();
       showToast('New submission!', 'info');
     },
@@ -180,6 +188,8 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   const gatheringEnded = event.gatheringEnd ? new Date(event.gatheringEnd) <= new Date() : false;
 
   const handleReview = async ({ submissionId, approved, rewardSlot, denialReason }) => {
+    if (approved) playSubmissionApproved();
+    else playSubmissionDenied();
     await reviewSubmission({
       variables: {
         submissionId,

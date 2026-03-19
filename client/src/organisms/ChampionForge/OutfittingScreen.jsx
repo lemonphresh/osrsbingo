@@ -42,6 +42,8 @@ import {
   getLayerSprite,
   getIconSprite,
 } from '../../assets/champion-forge/sprites/spriteRegistry';
+import ActionEffect from './ActionEffect';
+import { getSpecialEffects, getConsumableEffects, resolveSide } from './battleAnimations';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
 const RARITY_LABELS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
@@ -79,23 +81,23 @@ const SLOT_EMOJI = {
 // ---------------------------------------------------------------------------
 
 const PAPERDOLL_POSITIONS = [
-  { slot: 'helm', row: 1, col: 2 },
-  { slot: 'cape', row: 2, col: 1 },
-  { slot: 'amulet', row: 2, col: 2 },
+  { slot: 'helm',    row: 1, col: 2 },
+  { slot: 'cape',    row: 2, col: 1 },
+  { slot: 'amulet',  row: 2, col: 2 },
   { slot: 'trinket', row: 2, col: 3 },
-  { slot: 'weapon', row: 3, col: 1 },
-  { slot: 'shield', row: 3, col: 3 },
-  { slot: 'chest', row: 4, col: 2 },
-  { slot: 'legs', row: 5, col: 2 },
-  { slot: 'gloves', row: 6, col: 1 },
-  { slot: 'ring', row: 6, col: 2 },
-  { slot: 'boots', row: 6, col: 3 },
+  { slot: 'weapon',  row: 3, col: 1 },
+  { slot: 'chest',   row: 3, col: 2 },
+  { slot: 'shield',  row: 3, col: 3 },
+  { slot: 'legs',    row: 4, col: 2 },
+  { slot: 'gloves',  row: 5, col: 1 },
+  { slot: 'boots',   row: 5, col: 2 },
+  { slot: 'ring',    row: 5, col: 3 },
 ];
 
 const SLOT_W = 64;
 const SLOT_GAP = 4;
 const GRID_W = 3 * SLOT_W + 2 * SLOT_GAP;
-const GRID_H = 6 * SLOT_W + 5 * SLOT_GAP;
+const GRID_H = 5 * SLOT_W + 4 * SLOT_GAP;
 
 function PaperdollSlot({ slot, equippedItem, isActive, onClick }) {
   const border = equippedItem ? RARITY_COLORS[equippedItem.rarity] ?? '#888' : undefined;
@@ -161,7 +163,7 @@ function Paperdoll({ draftLoadout, items, activeSlot, onSlotClick }) {
         left={0}
         display="grid"
         gridTemplateColumns={`repeat(3, ${SLOT_W}px)`}
-        gridTemplateRows={`repeat(6, ${SLOT_W}px)`}
+        gridTemplateRows={`repeat(5, ${SLOT_W}px)`}
         gap={`${SLOT_GAP}px`}
         zIndex={1}
       >
@@ -367,15 +369,21 @@ function ChampionStat({ loadout, items }) {
   );
 }
 
-function ConsumablePins({ loadout, items, maxSlots, onRemove, isLocked }) {
+function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activeSlot, isLocked }) {
   const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
   const equipped = (loadout.consumables ?? []).slice(0, maxSlots);
   const slots = Array.from({ length: maxSlots }, (_, i) => equipped[i] ?? null);
+  const isActive = activeSlot === 'consumable';
 
   return (
-    <Box bg="gray.800" borderRadius="md" p={3} border="1px solid" borderColor="gray.600" mt={2}>
+    <Box
+      bg="gray.800" borderRadius="md" p={3} border="1px solid" mt={2}
+      borderColor={isActive ? 'purple.500' : 'gray.600'}
+      boxShadow={isActive ? '0 0 0 1px var(--chakra-colors-purple-500)' : 'none'}
+      transition="border-color 0.15s, box-shadow 0.15s"
+    >
       <HStack justify="space-between" mb={2}>
-        <Text fontSize="xs" color="gray.400" fontWeight="semibold">
+        <Text fontSize="xs" color={isActive ? 'purple.300' : 'gray.400'} fontWeight="semibold">
           Battle Pack
         </Text>
         <Text fontSize="xx-small" color={equipped.length === maxSlots ? 'green.400' : 'gray.600'}>
@@ -398,6 +406,9 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, isLocked }) {
               border="1px solid"
               borderColor={item ? (rColor + '66') : 'gray.700'}
               minH="28px"
+              cursor={!isLocked ? 'pointer' : 'default'}
+              _hover={!isLocked ? { borderColor: 'purple.500', bg: item ? 'gray.900' : 'gray.800' } : {}}
+              onClick={() => !isLocked && onSlotClick('consumable')}
             >
               <Text fontSize="xx-small" color="gray.600" w="12px" flexShrink={0}>
                 {i + 1}.
@@ -431,14 +442,14 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, isLocked }) {
                       minW={0}
                       h="auto"
                       p={0}
-                      onClick={() => onRemove(itemId)}
+                      onClick={(e) => { e.stopPropagation(); onRemove(itemId); }}
                     >
                       ×
                     </Button>
                   )}
                 </>
               ) : (
-                <Text fontSize="xx-small" color="gray.700" fontStyle="italic">empty slot</Text>
+                <Text fontSize="xx-small" color="gray.700" fontStyle="italic">+ add consumable</Text>
               )}
             </HStack>
           );
@@ -583,6 +594,8 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
   const [dummyFlashing, setDummyFlashing] = useState(false);
   const [myActiveEffects, setMyActiveEffects] = useState([]);
   const [dummyActiveEffects, setDummyActiveEffects] = useState([]);
+  const [effects, setEffects] = useState([]);
+  const effectIdRef = React.useRef(0);
   const logRef = React.useRef(null);
 
   const equippedConsumableIds = displayLoadout?.consumables ?? [];
@@ -600,6 +613,15 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     }
   };
 
+  // actorSide: 'me' | 'dummy'  — me is always on the left in the layout
+  const spawnEffects = (defs, actorSide) => {
+    defs.forEach(({ effectKey, side }) => {
+      const id = effectIdRef.current++;
+      const isActorOnLeft = actorSide === 'me';
+      setEffects((e) => [...e, { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) }]);
+    });
+  };
+
   const reset = React.useCallback(() => {
     setMyHp(myStats?.maxHp ?? 150);
     setDummyHp(DEMO_DUMMY.maxHp);
@@ -615,6 +637,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     setDummyShaking(false); setDummyFlashing(false);
     setMyActiveEffects([]);
     setDummyActiveEffects([]);
+    setEffects([]);
   }, [myStats?.maxHp]); // eslint-disable-line react-hooks/exhaustive-deps
 
   React.useEffect(() => { if (isOpen) reset(); }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -645,10 +668,12 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
       const roll = clientRollDamage({ attackStat: myEffStats.attack, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
       newDummyHp = Math.max(0, dummyHp - roll.damage);
       iHitDummy = true;
+      spawnEffects([{ effectKey: roll.isCrit ? 'critSlash' : 'slash', side: 'defender' }], 'me');
       myEntries.push({ text: `${roll.isCrit ? '💥 CRIT! ' : ''}${myName} attacks for ${roll.damage} damage!`, type: 'attack' });
 
     } else if (action === 'DEFEND') {
       newMeDefending = true;
+      spawnEffects([{ effectKey: 'shield', side: 'actor' }], 'me');
       myEntries.push({ text: `🛡️ ${myName} takes a defensive stance. Incoming damage −60%.`, type: 'defend' });
 
     } else if (action === 'SPECIAL') {
@@ -661,6 +686,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         newDummyEffects.push({ type: 'bleed', value: 5, turns: 3 });
         iHitDummy = true;
+        spawnEffects(getSpecialEffects('cleave', roll.isCrit), 'me');
         myEntries.push({ text: `⚡ ${myName} uses CLEAVE! ${roll.damage} damage + bleed (5/turn, 3 turns)!`, type: 'special' });
       } else if (spId === 'ambush') {
         const base = Math.max(1, myEffStats.attack);
@@ -668,6 +694,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         const damage = Math.max(1, Math.round(base * variance * 1.5));
         newDummyHp = Math.max(0, dummyHp - damage);
         iHitDummy = true;
+        spawnEffects(getSpecialEffects('ambush', true), 'me');
         myEntries.push({ text: `💥 ${myName} uses AMBUSH! ${damage} guaranteed crit (defense ignored)!`, type: 'special' });
       } else if (spId === 'barrage') {
         const r1 = clientRollDamage({ attackStat: myEffStats.attack * 0.65, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
@@ -675,6 +702,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         const total = r1.damage + r2.damage;
         newDummyHp = Math.max(0, dummyHp - total);
         iHitDummy = true;
+        spawnEffects(getSpecialEffects('barrage'), 'me');
         myEntries.push({ text: `⚡ ${myName} uses BARRAGE! ${r1.damage} + ${r2.damage} = ${total} total!`, type: 'special' });
       } else if (spId === 'chain_lightning') {
         const base = myEffStats.attack * 1.2;
@@ -682,6 +710,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         const damage = Math.max(1, Math.round(base * variance));
         newDummyHp = Math.max(0, dummyHp - damage);
         iHitDummy = true;
+        spawnEffects(getSpecialEffects('chain_lightning'), 'me');
         myEntries.push({ text: `⚡ ${myName} unleashes CHAIN LIGHTNING! ${damage} unblockable magic damage!`, type: 'special' });
       } else if (spId === 'lifesteal') {
         const roll = clientRollDamage({ attackStat: myEffStats.attack, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
@@ -689,14 +718,17 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         curMyHp = Math.min(maxHp, curMyHp + heal);
         iHitDummy = true;
+        spawnEffects(getSpecialEffects('lifesteal', roll.isCrit), 'me');
         myEntries.push({ text: `🩸 ${myName} uses LIFESTEAL! ${roll.damage} damage, healed ${heal} HP!`, type: 'special' });
       } else if (spId === 'fortress') {
         newMyEffects.push({ type: 'fortress', turns: 2 });
+        spawnEffects(getSpecialEffects('fortress'), 'me');
         myEntries.push({ text: `🛡️ ${myName} activates FORTRESS! Incoming damage −60% for 2 turns.`, type: 'special' });
       } else {
         const roll = clientRollDamage({ attackStat: myEffStats.attack * 1.2, defenseStat: 0, critChance: myEffStats.crit });
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         iHitDummy = true;
+        spawnEffects([{ effectKey: roll.isCrit ? 'critSlash' : 'slash', side: 'defender' }], 'me');
         myEntries.push({ text: `✨ ${myName} uses ${sp?.label ?? 'Special'}! ${roll.damage} damage!`, type: 'special' });
       }
 
@@ -705,6 +737,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
       const item = consumableItems.find((i) => i.itemId === itemId);
       const effect = item?.itemSnapshot?.consumableEffect;
       const effectType = effect?.type ?? 'heal';
+      spawnEffects(getConsumableEffects(effectType), 'me');
       if (effectType === 'heal') {
         curMyHp = Math.min(maxHp, curMyHp + effect.value);
         myEntries.push({ text: `🍖 ${myName} uses ${item?.name}! Restored ${effect.value} HP.`, type: 'item' });
@@ -726,6 +759,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     const { remaining: tickedDummyEffects, bleed: dummyBleed } = previewTickEffects(newDummyEffects);
     if (dummyBleed > 0) {
       newDummyHp = Math.max(0, newDummyHp - dummyBleed);
+      spawnEffects([{ effectKey: 'bleed', side: 'defender' }], 'me');
       myEntries.push({ text: `🩸 Training Dummy bleeds for ${dummyBleed} damage!`, type: 'attack' });
     }
 
@@ -795,7 +829,10 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     setWaiting(true);
 
     setTimeout(() => {
-      if (!dummyIsBlind) triggerHit('me');
+      if (!dummyIsBlind) {
+        triggerHit('me');
+        spawnEffects([{ effectKey: dummyEntry.text.includes('CRIT') ? 'critSlash' : 'slash', side: 'defender' }], 'dummy');
+      }
       setLog((prev) => [
         ...prev,
         dummyEntry,
@@ -835,7 +872,15 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
             </Text>
 
             {/* Arena */}
-            <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="xl" p={5}>
+            <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="xl" p={5} position="relative" overflow="hidden">
+              {effects.map((e) => (
+                <ActionEffect
+                  key={e.id}
+                  effectKey={e.effectKey}
+                  targetSide={e.targetSide}
+                  onDone={() => setEffects((ef) => ef.filter((x) => x.id !== e.id))}
+                />
+              ))}
               <Text textAlign="center" mb={3} fontSize="12px"
                 color={battleOver ? '#c9a84c' : waiting ? '#888' : '#4caf50'}>
                 {battleOver === 'win' ? `🏆 ${myName} wins!`
@@ -1139,7 +1184,7 @@ export function TeamOutfitter({ team, event, isAdmin }) {
   };
 
   return (
-    <Box>
+    <Box overflowX="hidden">
       {isLocked && (
         <Alert
           status="success"
@@ -1155,9 +1200,9 @@ export function TeamOutfitter({ team, event, isAdmin }) {
       )}
 
       {/* Top row: gear slots | character sprite | stats */}
-      <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={10} alignItems="center" w="full">
+      <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={10} alignItems="flex-start" w="full">
         {/* Column 1 — Gear slots (paperdoll slot grid) */}
-        <Box display="flex" alignItems="center" justifyContent="center">
+        <Box display="flex" alignItems="flex-start" justifyContent="center">
           <Paperdoll
             draftLoadout={displayLoadout}
             items={items}
@@ -1224,6 +1269,8 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                   ...prev,
                   consumables: (prev.consumables ?? []).filter((id) => id !== itemId),
                 }))}
+                onSlotClick={setActiveSlot}
+                activeSlot={activeSlot}
                 isLocked={isLocked && !isAdmin}
               />
               <SpecialPicker
@@ -1391,8 +1438,8 @@ export function TeamOutfitter({ team, event, isAdmin }) {
         </VStack>
       </Box>
 
-      {/* Inventory — fixed height scroll container to prevent page-width shift */}
-      <Box mt={5} h="320px" overflowY="auto">
+      {/* Inventory — fixed height, always-visible scrollbar to prevent layout shift */}
+      <Box mt={5} h="320px" overflowY="scroll" style={{ scrollbarGutter: 'stable' }}>
         <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
           {SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
           {activeItems.length > 0 && (

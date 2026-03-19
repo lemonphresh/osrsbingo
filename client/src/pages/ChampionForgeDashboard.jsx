@@ -15,6 +15,7 @@ import {
 } from '@chakra-ui/react';
 import {
   GET_ALL_CLAN_WARS_EVENTS,
+  GET_MY_CLAN_WARS_EVENTS,
   CREATE_CLAN_WARS_EVENT,
   DELETE_CLAN_WARS_EVENT,
 } from '../graphql/clanWarsOperations';
@@ -31,7 +32,6 @@ const STATUS_COLORS = {
   OUTFITTING: 'blue',
   BATTLE: 'red',
   COMPLETED: 'purple',
-  ARCHIVED: 'blackAlpha',
 };
 
 const STATUS_LABELS = {
@@ -40,7 +40,6 @@ const STATUS_LABELS = {
   OUTFITTING: 'Outfitting',
   BATTLE: 'Battle',
   COMPLETED: 'Completed',
-  ARCHIVED: 'Archived',
 };
 
 function EventCard({ event, isAdmin }) {
@@ -133,13 +132,16 @@ export default function ChampionForgeDashboard() {
   const navigate = useNavigate();
 
   const { data, loading, error } = useQuery(GET_ALL_CLAN_WARS_EVENTS);
+  const { data: myData } = useQuery(GET_MY_CLAN_WARS_EVENTS);
   const [createEvent] = useMutation(CREATE_CLAN_WARS_EVENT, {
     refetchQueries: ['GetAllClanWarsEvents'],
   });
 
   const events = data?.getAllClanWarsEvents ?? [];
-  const activeEvents = events.filter((e) => !['ARCHIVED', 'COMPLETED'].includes(e.status));
-  const pastEvents = events.filter((e) => ['ARCHIVED', 'COMPLETED'].includes(e.status));
+  const activeEvents = events.filter((e) => e.status !== 'COMPLETED');
+  const myPastEvents = (myData?.getMyClanWarsEvents ?? []).filter((e) =>
+    e.status === 'COMPLETED'
+  );
 
   const handleCreate = async (input) => {
     try {
@@ -192,7 +194,7 @@ export default function ChampionForgeDashboard() {
 
       <Divider my={5} borderColor="gray.600" />
 
-      {activeEvents.length === 0 && pastEvents.length === 0 ? (
+      {activeEvents.length === 0 && myPastEvents.length === 0 ? (
         <Center h="40vh" flexDir="column" gap={3}>
           <Text fontSize="4xl">⚔️</Text>
           <Text color="gray.400" textAlign="center">
@@ -222,7 +224,7 @@ export default function ChampionForgeDashboard() {
             </Box>
           )}
 
-          {pastEvents.length > 0 && (
+          {myPastEvents.length > 0 && (
             <Box>
               <Text
                 fontWeight="semibold"
@@ -232,10 +234,10 @@ export default function ChampionForgeDashboard() {
                 textTransform="uppercase"
                 letterSpacing="wide"
               >
-                Past Events
+                My Past Events
               </Text>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {pastEvents.map((event) => (
+                {myPastEvents.map((event) => (
                   <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
                 ))}
               </SimpleGrid>

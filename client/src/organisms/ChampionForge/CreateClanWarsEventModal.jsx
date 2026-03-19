@@ -11,6 +11,7 @@ import {
   HStack,
   FormControl,
   FormLabel,
+  FormHelperText,
   Input,
   NumberInput,
   NumberInputField,
@@ -25,6 +26,15 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+
+function toHumanDuration(hours) {
+  const h = Number(hours);
+  if (!h || h < 1) return '';
+  if (h < 24) return `${h} hr${h !== 1 ? 's' : ''}`;
+  const days = Math.floor(h / 24);
+  const rem = h % 24;
+  return rem === 0 ? `${days}d` : `${days}d ${rem}h`;
+}
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -159,6 +169,9 @@ function StepEventConfig({ config, onChange }) {
           >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
+          <FormHelperText color="gray.500" fontSize="xs" whiteSpace="nowrap">
+            1–168 hrs (max 7 days){config.gatheringHours ? ` · ${toHumanDuration(config.gatheringHours)}` : ''}
+          </FormHelperText>
         </FormControl>
         <FormControl>
           <FormLabel fontSize="sm" color="gray.300">
@@ -175,6 +188,9 @@ function StepEventConfig({ config, onChange }) {
           >
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
+          <FormHelperText color="gray.500" fontSize="xs" whiteSpace="nowrap">
+            1–48 hrs (max 2 days){config.outfittingHours ? ` · ${toHumanDuration(config.outfittingHours)}` : ''}
+          </FormHelperText>
         </FormControl>
       </HStack>
 

@@ -10,6 +10,10 @@ import {
 import { useToastContext } from '../../providers/ToastProvider';
 import ChampionSprite from './ChampionSprite';
 import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprites/spriteRegistry';
+import ActionEffect from './ActionEffect';
+import { getActionEffects, resolveSide } from './battleAnimations';
+import BattleVolumeSlider from './BattleVolumeSlider';
+import { playBattleSound } from '../../utils/soundEngine';
 
 const LAYER_ORDER = ['boots', 'legs', 'chest', 'gloves', 'cape', 'shield', 'helm', 'weapon'];
 
@@ -44,35 +48,24 @@ function HPBar({ current, max, color }) {
   );
 }
 
-// ---- Champion Sprite ----
-// ---- Floating Emote ----
+
+// ---- Floating Emote (user-sent emoji bar only) ----
 function FloatingEmote({ emote, x, y, onDone }) {
   const [visible, setVisible] = useState(true);
   const [top, setTop] = useState(y);
 
   useEffect(() => {
-    const t1 = setTimeout(() => {
-      setVisible(false);
-      setTop(y - 120);
-    }, 50);
+    const t1 = setTimeout(() => { setVisible(false); setTop(y - 120); }, 50);
     const t2 = setTimeout(onDone, 1200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [onDone, y]);
 
   return (
     <Box
-      position="absolute"
-      left={`${x}%`}
-      top={`${top}px`}
-      fontSize="28px"
-      opacity={visible ? 1 : 0}
+      position="absolute" left={`${x}%`} top={`${top}px`}
+      fontSize="28px" opacity={visible ? 1 : 0}
       transition="top 1.1s ease-out, opacity 1.1s ease-out"
-      pointerEvents="none"
-      userSelect="none"
-      zIndex={10}
+      pointerEvents="none" userSelect="none" zIndex={10}
     >
       {emote}
     </Box>
@@ -145,9 +138,11 @@ export default function BattleScreen({
   const { showToast } = useToastContext();
   const logRef = useRef(null);
   const emoteIdRef = useRef(0);
+  const effectIdRef = useRef(0);
 
   const [battle, setBattle] = useState(initialBattle);
   const [emotes, setEmotes] = useState([]);
+  const [effects, setEffects] = useState([]);
   const [shaking, setShaking] = useState(null);
   const [flashing, setFlashing] = useState(null);
   const [log, setLog] = useState([]);
@@ -195,10 +190,19 @@ export default function BattleScreen({
       if (update.latestEvent?.narrative) {
         setLog((l) => [...l, update.latestEvent]);
       }
-      if (update.latestEvent?.damageDealt > 0) {
-        const hitSide = update.latestEvent.actorTeamId === battle.team1Id ? 'left' : 'right';
+      const evt = update.latestEvent;
+      if (evt?.damageDealt > 0) {
+        const hitSide = evt.actorTeamId === battle.team1Id ? 'right' : 'left';
         triggerShake(hitSide);
         triggerFlash(hitSide);
+      }
+      if (evt) {
+        const isActorOnLeft = evt.actorTeamId === battle.team1Id;
+        getActionEffects(evt).forEach(({ effectKey, side }) => {
+          const id = effectIdRef.current++;
+          setEffects((e) => [...e, { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) }]);
+          playBattleSound(effectKey);
+        });
       }
     },
   });
@@ -321,25 +325,28 @@ export default function BattleScreen({
 
   return (
     <Box bg="gray.900" borderRadius="xl" p={4} w="100%" fontFamily="mono">
-      <HStack justify="center" mb={3} spacing={3}>
-        <Text fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase">
-          Champion Forge · Battle · Turn {state.turnNumber ?? 1}
-        </Text>
-        {isSpectator && (
-          <Badge colorScheme="gray" fontSize="10px" variant="subtle">
-            👁 Spectating
-          </Badge>
-        )}
-        {isAdmin && !isBattleOver && (
-          <Button
-            size="xs"
-            colorScheme={autoPlaying ? 'red' : 'orange'}
-            variant="outline"
-            onClick={() => setAutoPlaying((p) => !p)}
-          >
-            {autoPlaying ? '⏹ Stop' : '⚡ Auto-Play'}
-          </Button>
-        )}
+      <HStack justify="space-between" mb={3} spacing={3}>
+        <HStack spacing={3}>
+          <Text fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase">
+            Champion Forge · Battle · Turn {state.turnNumber ?? 1}
+          </Text>
+          {isSpectator && (
+            <Badge colorScheme="gray" fontSize="10px" variant="subtle">
+              👁 Spectating
+            </Badge>
+          )}
+          {isAdmin && !isBattleOver && (
+            <Button
+              size="xs"
+              colorScheme={autoPlaying ? 'red' : 'orange'}
+              variant="outline"
+              onClick={() => setAutoPlaying((p) => !p)}
+            >
+              {autoPlaying ? '⏹ Stop' : '⚡ Auto-Play'}
+            </Button>
+          )}
+        </HStack>
+        <BattleVolumeSlider />
       </HStack>
 
       {/* Arena */}
@@ -353,6 +360,14 @@ export default function BattleScreen({
         overflow="hidden"
         mb={4}
       >
+        {effects.map((e) => (
+          <ActionEffect
+            key={e.id}
+            effectKey={e.effectKey}
+            targetSide={e.targetSide}
+            onDone={() => setEffects((ef) => ef.filter((x) => x.id !== e.id))}
+          />
+        ))}
         {emotes.map((e) => (
           <FloatingEmote
             key={e.id}

@@ -858,7 +858,6 @@ const typeDefs = gql`
     OUTFITTING
     BATTLE
     COMPLETED
-    ARCHIVED
   }
 
   enum ClanWarsSubmissionStatus {

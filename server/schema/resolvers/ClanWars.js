@@ -157,6 +157,7 @@ const Query = {
         [Op.or]: [
           { creatorId: String(user.id) },
           { adminIds: { [Op.contains]: [String(user.id)] } },
+          { refIds: { [Op.contains]: [String(user.id)] } },
         ],
       },
       order: [['createdAt', 'DESC']],
@@ -310,7 +311,7 @@ const Mutation = {
       GATHERING: ['OUTFITTING'],
       OUTFITTING: ['BATTLE'],
       BATTLE: ['COMPLETED'],
-      COMPLETED: ['ARCHIVED'],
+      COMPLETED: [],
     };
 
     if (!validTransitions[event.status]?.includes(status)) {
@@ -912,7 +913,7 @@ const Mutation = {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
-    const validStatuses = ['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED', 'ARCHIVED'];
+    const validStatuses = ['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED'];
     if (!validStatuses.includes(status)) throw new UserInputError(`Unknown status: ${status}`);
     const updates = { status };
     const now = new Date();

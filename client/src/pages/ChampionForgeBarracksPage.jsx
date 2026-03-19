@@ -208,13 +208,32 @@ function TaskDetailModal({
   handleCopyCommand,
   gatheringStart,
   gatheringEnd,
+  eventId,
+  currentUserDiscordId,
 }) {
   const { utc } = useTimezone();
   const { showToast } = useToastContext();
-  if (!task) return null;
 
-  const isDropTask = task.acceptableItems?.length > 0;
-  const isXpTask = !isDropTask && task.quantity > 0;
+  const isDropTask = task?.acceptableItems?.length > 0;
+  const isXpTask = !isDropTask && task?.quantity > 0;
+  const taskRole = isDropTask ? 'PVMER' : 'SKILLER';
+
+  const { data: subData } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
+    variables: { eventId },
+    skip: !eventId || !currentUserDiscordId,
+    fetchPolicy: 'cache-first',
+  });
+
+  const hasSubmittedToType = (subData?.clanWarsSubmissions ?? []).some(
+    (s) => s.submittedBy === currentUserDiscordId && s.role === taskRole
+  );
+
+  const handleJoin = () => {
+    onJoin();
+    onClose();
+  };
+
+  if (!task) return null;
 
   const handleCopyPrescreen = () => {
     navigator.clipboard.writeText(`!cfpresubmit ${task.taskId}`);
@@ -444,10 +463,7 @@ function TaskDetailModal({
                   <Button
                     size="sm"
                     colorScheme={othersInProgress.length > 0 ? 'blue' : 'teal'}
-                    onClick={() => {
-                      onJoin();
-                      onClose();
-                    }}
+                    onClick={handleJoin}
                     w="full"
                   >
                     {othersInProgress.length > 0 ? 'Join quest' : 'Start quest'}
@@ -457,7 +473,7 @@ function TaskDetailModal({
             )}
             {/* Screenshot guidelines */}
             <Divider borderColor="gray.600" />
-            <Accordion allowToggle>
+            <Accordion allowToggle defaultIndex={hasSubmittedToType ? undefined : 0}>
               <AccordionItem border="none">
                 <AccordionButton px={0} _hover={{ bg: 'transparent' }}>
                   <Text
@@ -599,6 +615,7 @@ function TaskRow({
   onLeave,
   gatheringStart,
   gatheringEnd,
+  eventId,
 }) {
   const { showToast } = useToastContext();
   const { isOpen, onOpen, onClose } = useDisclosure();
@@ -744,6 +761,8 @@ function TaskRow({
         handleCopyCommand={handleCopyCommand}
         gatheringStart={gatheringStart}
         gatheringEnd={gatheringEnd}
+        eventId={eventId}
+        currentUserDiscordId={currentUserDiscordId}
       />
     </>
   );
@@ -767,6 +786,7 @@ function TaskSection({
   onLeave,
   gatheringStart,
   gatheringEnd,
+  eventId,
 }) {
   const byDiff = DIFF_ORDER.reduce((acc, d) => {
     acc[d] = tasks.filter((t) => t.difficulty === d);
@@ -856,6 +876,7 @@ function TaskSection({
                       onLeave={() => onLeave(task.taskId)}
                       gatheringStart={gatheringStart}
                       gatheringEnd={gatheringEnd}
+                      eventId={eventId}
                     />
                   ))}
                 </VStack>
@@ -1220,6 +1241,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     onLeave: handleLeave,
     gatheringStart: event.gatheringStart,
     gatheringEnd: event.gatheringEnd,
+    eventId: event.eventId,
   };
 
   return (
@@ -1494,7 +1516,7 @@ function PhaseContent({ event, team, isAdmin, user, refetch }) {
     return <BattlePhaseBarracks event={event} team={team} />;
   }
 
-  if (phase === 'COMPLETED' || phase === 'ARCHIVED') {
+  if (phase === 'COMPLETED') {
     return (
       <Center h="40vh" flexDir="column" gap={3}>
         <Text fontSize="3xl">🏆</Text>
