@@ -13,13 +13,43 @@ import {
   FaGripHorizontal,
   FaUserFriends,
   FaFlag,
+  FaFistRaised,
 } from 'react-icons/fa';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled, isBlindDraftEnabled } from '../config/featureFlags';
+import {
+  isGielinorRushEnabled,
+  isBlindDraftEnabled,
+  isChampionForgeEnabled,
+} from '../config/featureFlags';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
+  {
+    version: '2.2.0',
+    date: 'April 2026',
+    title: 'Champion Forge ⚔️',
+    type: isChampionForgeEnabled() ? 'major' : 'upcoming',
+    icon: FaFistRaised,
+    details:
+      'A full clan tournament engine built right into the hub. Run structured competitions across four phases, from item gathering to champion outfitting to a live turn-based battle bracket. This one has been my favorite so far to build.',
+    highlights: [
+      'Four-phase event structure: Draft → Gathering → Outfitting → Battle',
+      'Gathering phase: task-based item collection with Discord bot submission workflow and admin review (approve/deny)',
+      'War chest system: approved drops become equippable items for your champion',
+      'Outfitting phase: full paperdoll gear slots with training dummy battle previewer',
+      'Consumable slot system: equip potions and throwables from your war chest',
+      'Turn-based battle engine with attacks, defends, specials, and consumable items',
+      'Single-elimination and double-elimination bracket support',
+      'Live battle screen with real-time WebSocket updates and turn timer',
+      'Battle replay: step through completed fights turn by turn',
+      'Per-action CSS visual effects: slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs/debuffs, and more',
+      'Web Audio API sound effects for every action',
+      'Volume slider for battle sequences, persisted per user',
+      'Admin/ref panel with pre-screenshot support and announcements channel config',
+      'Event password integration for submission verification',
+    ],
+  },
   {
     version: '2.1.1',
     date: 'March 2026',
@@ -57,7 +87,7 @@ const CHANGELOG_ENTRIES = [
     version: '2.0.0',
     date: 'October 2025 - March 2026',
     title: 'Gielinor Rush 🎉',
-    type: isGielinorRushEnabled() ? 'major' : 'upcoming',
+    type: isGielinorRushEnabled() ? 'feature' : 'upcoming',
     icon: FaGamepad,
     details: `A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's ${
       isGielinorRushEnabled() ? 'finally' : 'nearly'
