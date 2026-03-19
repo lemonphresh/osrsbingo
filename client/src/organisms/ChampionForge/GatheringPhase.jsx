@@ -23,6 +23,7 @@ import {
   playSubmissionApproved,
   playSubmissionDenied,
   playTaskComplete,
+  warmUpAudio,
 } from '../../utils/soundEngine';
 import TimezoneToggle from '../../atoms/TimezoneToggle';
 import {
@@ -50,6 +51,8 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const { utc } = useTimezone();
+
+  useEffect(() => { warmUpAudio(); }, []);
 
   const [showAllCompleted, setShowAllCompleted] = useState(false);
 

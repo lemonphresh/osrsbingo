@@ -25,6 +25,15 @@ function getAC() {
   return _ctx;
 }
 
+/**
+ * Call on page mount to initialize the AudioContext while the user is still
+ * on the page. This ensures sounds fire correctly even if the tab is later
+ * moved to the background (Chrome suspends new contexts created in hidden tabs).
+ */
+export function warmUpAudio() {
+  try { getAC(); } catch (_) {}
+}
+
 function battleDest() {
   getAC();
   return _battleGain;
@@ -112,17 +121,15 @@ export function playSubmissionIncoming() {
   try {
     const ac = getAC();
     const dest = uiDest(ac);
-    // Two ascending tones: A4 → D5
     oscNode(ac, dest, { freq: 440, peak: 0.35, attack: 0.005, duration: 0.15 });
     oscNode(ac, dest, { freq: 587, peak: 0.35, attack: 0.005, duration: 0.22, delay: 0.12 });
-  } catch (_) { /* silently ignore audio errors */ }
+  } catch (_) {}
 }
 
 export function playSubmissionApproved() {
   try {
     const ac = getAC();
     const dest = uiDest(ac);
-    // C5 → E5 → G5 → C6 ascending arpeggio
     [523, 659, 784, 1047].forEach((freq, i) => {
       oscNode(ac, dest, { freq, type: 'triangle', peak: 0.28, attack: 0.008, duration: 0.22, delay: i * 0.07 });
     });
@@ -133,7 +140,6 @@ export function playSubmissionDenied() {
   try {
     const ac = getAC();
     const dest = uiDest(ac);
-    // G4 → Eb4 → C4 descending
     [392, 311, 261].forEach((freq, i) => {
       oscNode(ac, dest, { freq, type: 'sawtooth', peak: 0.16, attack: 0.01, duration: 0.22, delay: i * 0.1 });
     });
@@ -144,7 +150,6 @@ export function playTaskComplete() {
   try {
     const ac = getAC();
     const dest = uiDest(ac);
-    // C5 E5 G5 quick, then C6 held
     [523, 659, 784].forEach((freq, i) => {
       oscNode(ac, dest, { freq, peak: 0.28, attack: 0.01, duration: 0.18, delay: i * 0.09 });
     });

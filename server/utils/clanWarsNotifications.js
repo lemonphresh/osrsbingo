@@ -13,10 +13,6 @@ const SITE_URL = process.env.SITE_URL || 'https://osrsbingohub.com';
 // No-op — kept so bot/index.js doesn't break (it still calls registerBotClient on ready)
 function registerBotClient() {}
 
-function rarityColor(rarity) {
-  const map = { common: 0x999999, uncommon: 0x2ecc71, rare: 0x3498db, epic: 0x9b59b6 };
-  return map[rarity] ?? 0xffffff;
-}
 
 async function discordFetch(path, options = {}) {
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -50,7 +46,7 @@ async function sendClanWarsSubmissionResult({
     if (approved && item) {
       content = `<@${discordId}> ✅ Your submission for **${taskLabel}** was approved! You earned **${item.name}** *(${item.rarity})*.`;
     } else if (approved) {
-      content = `<@${discordId}> ✅ Your submission for **${taskLabel}** was approved! (War chest may be full for that slot.)`;
+      content = `<@${discordId}> ✅ Your submission for **${taskLabel}** was approved!`;
     } else {
       const reason = denialReason || 'No reason given.';
       content = `<@${discordId}> ❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nYou may resubmit.`;

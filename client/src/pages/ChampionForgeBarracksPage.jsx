@@ -50,7 +50,7 @@ import {
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
-import { playSubmissionApproved, playSubmissionDenied, playTaskComplete } from '../utils/soundEngine';
+import { playSubmissionApproved, playSubmissionDenied, playTaskComplete, warmUpAudio } from '../utils/soundEngine';
 import { useTimezone, fmtTs } from '../hooks/useTimezone';
 import TimezoneToggle from '../atoms/TimezoneToggle';
 import { TeamOutfitter } from '../organisms/ChampionForge/OutfittingScreen';
@@ -1548,6 +1548,8 @@ function PhaseContent({ event, team, isAdmin, user, refetch }) {
 export default function ChampionForgeBarracksPage() {
   const { eventId, teamId } = useParams();
   const { user } = useAuth();
+
+  useEffect(() => { warmUpAudio(); }, []);
 
   const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },
