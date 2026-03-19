@@ -16,7 +16,6 @@ import {
 } from '@chakra-ui/react';
 import {
   GET_ALL_CLAN_WARS_EVENTS,
-  GET_MY_CLAN_WARS_EVENTS,
   CREATE_CLAN_WARS_EVENT,
   DELETE_CLAN_WARS_EVENT,
 } from '../graphql/clanWarsOperations';
@@ -487,21 +486,57 @@ function EventCard({ event, isAdmin }) {
   );
 }
 
+const PAST_PAGE_SIZE = 6;
+
+const SectionLabel = ({ children }) => (
+  <Text
+    fontWeight="semibold"
+    fontSize="xs"
+    color="gray.500"
+    mb={3}
+    textTransform="uppercase"
+    letterSpacing="wider"
+  >
+    {children}
+  </Text>
+);
+
 function ChampionForgeDashboardContent() {
   usePageTitle('Champion Forge');
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [pastPage, setPastPage] = useState(0);
 
   const { data, loading, error } = useQuery(GET_ALL_CLAN_WARS_EVENTS);
-  const { data: myData } = useQuery(GET_MY_CLAN_WARS_EVENTS);
   const [createEvent] = useMutation(CREATE_CLAN_WARS_EVENT, {
     refetchQueries: ['GetAllClanWarsEvents'],
   });
 
-  const events = data?.getAllClanWarsEvents ?? [];
-  const activeEvents = events.filter((e) => e.status !== 'COMPLETED');
-  const myPastEvents = (myData?.getMyClanWarsEvents ?? []).filter((e) => e.status === 'COMPLETED');
+  const allEvents = data?.getAllClanWarsEvents ?? [];
+  const uid = user?.id;
+
+  const isMyEvent = (e) => e.creatorId === uid;
+  const isAdminOrRef = (e) =>
+    !isMyEvent(e) && (e.adminIds?.includes(uid) || e.refIds?.includes(uid));
+
+  const myEvents = allEvents.filter((e) => e.status !== 'COMPLETED' && isMyEvent(e));
+  const adminRefEvents = allEvents.filter((e) => e.status !== 'COMPLETED' && isAdminOrRef(e));
+  const otherActiveEvents = allEvents.filter(
+    (e) =>
+      ['GATHERING', 'OUTFITTING', 'BATTLE'].includes(e.status) &&
+      !isMyEvent(e) &&
+      !isAdminOrRef(e)
+  );
+  const pastEvents = allEvents.filter((e) => e.status === 'COMPLETED');
+  const pastSlice = pastEvents.slice(pastPage * PAST_PAGE_SIZE, (pastPage + 1) * PAST_PAGE_SIZE);
+  const totalPastPages = Math.ceil(pastEvents.length / PAST_PAGE_SIZE);
+
+  const hasAnything =
+    myEvents.length > 0 ||
+    adminRefEvents.length > 0 ||
+    otherActiveEvents.length > 0 ||
+    pastEvents.length > 0;
 
   const handleCreate = async (input) => {
     try {
@@ -531,71 +566,146 @@ function ChampionForgeDashboardContent() {
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={4} py={24} flex="1">
-      <HStack justify="space-between" mb={2}>
-        <VStack align="flex-start" spacing={0}>
-          <Text fontSize="2xl" fontWeight="bold" color="teal.300">
-            Champion Forge
-          </Text>
+    <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[16, 20, 24]} flex="1">
+      <HStack justify="space-between" align="flex-end" mb={6}>
+        <VStack align="flex-start" spacing={1}>
+          <GemTitle gemColor="yellow">Champion Forge</GemTitle>
           <Text fontSize="sm" color="gray.400">
             Build your war chest, equip your champion, and battle for glory.
           </Text>
         </VStack>
-
-        <Button colorScheme="purple" size="sm" onClick={() => setIsCreateOpen(true)}>
+        <Button
+          backgroundColor={theme.colors.yellow[600]}
+          color={theme.colors.gray[900]}
+          fontWeight="semibold"
+          size="sm"
+          _hover={{ backgroundColor: theme.colors.yellow[500] }}
+          onClick={() => setIsCreateOpen(true)}
+          flexShrink={0}
+        >
           + New Event
         </Button>
       </HStack>
 
-      <Divider my={5} borderColor="gray.600" />
+      <Divider mb={8} borderColor="gray.700" />
 
-      {activeEvents.length === 0 && myPastEvents.length === 0 ? (
-        <Center h="40vh" flexDir="column" gap={3}>
-          <Text fontSize="4xl">⚔️</Text>
-          <Text color="gray.400" textAlign="center">
-            No Champion Forge events yet. Create one to get started!
-          </Text>
+      {!hasAnything ? (
+        <Center py={16}>
+          <Box
+            textAlign="center"
+            maxW="480px"
+            padding={['32px', '48px']}
+            backgroundColor={theme.colors.teal[900]}
+            borderRadius="16px"
+            borderWidth="1px"
+            borderColor={theme.colors.teal[700]}
+          >
+            <Text fontSize="5xl" mb={4}>
+              ⚔️
+            </Text>
+            <Text fontSize="xl" fontWeight="bold" color="white" mb={2}>
+              No events yet
+            </Text>
+            <Text fontSize="sm" color="gray.400" mb={8} lineHeight="1.7">
+              Start your first Champion Forge tournament and get your clan competing. Four phases,
+              real loot, live battles.
+            </Text>
+            <Button
+              backgroundColor={theme.colors.yellow[600]}
+              color={theme.colors.gray[900]}
+              fontWeight="semibold"
+              size="md"
+              height="44px"
+              paddingX="32px"
+              _hover={{ backgroundColor: theme.colors.yellow[500] }}
+              onClick={() => setIsCreateOpen(true)}
+            >
+              Create Your First Event
+            </Button>
+          </Box>
         </Center>
       ) : (
         <VStack align="stretch" spacing={8}>
-          {activeEvents.length > 0 && (
+          {myEvents.length > 0 && (
             <Box>
-              <Text
-                fontWeight="semibold"
-                fontSize="sm"
-                color="gray.400"
-                mb={3}
-                textTransform="uppercase"
-                letterSpacing="wide"
-              >
-                Active Events
-              </Text>
+              <SectionLabel>My Events</SectionLabel>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {activeEvents.map((event) => (
+                {myEvents.map((event) => (
+                  <EventCard
+                    key={event.eventId}
+                    event={event}
+                    isAdmin={user?.admin || event.creatorId === uid}
+                  />
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {adminRefEvents.length > 0 && (
+            <Box>
+              <SectionLabel>Events I'm Admining / Reffing</SectionLabel>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                {adminRefEvents.map((event) => (
+                  <EventCard
+                    key={event.eventId}
+                    event={event}
+                    isAdmin={user?.admin}
+                  />
+                ))}
+              </SimpleGrid>
+            </Box>
+          )}
+
+          {(myEvents.length > 0 || adminRefEvents.length > 0) && otherActiveEvents.length > 0 && (
+            <Divider borderColor="gray.700" />
+          )}
+
+          {otherActiveEvents.length > 0 && (
+            <Box>
+              <SectionLabel>Active Events</SectionLabel>
+              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                {otherActiveEvents.map((event) => (
                   <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
                 ))}
               </SimpleGrid>
             </Box>
           )}
 
-          {myPastEvents.length > 0 && (
-            <Box>
-              <Text
-                fontWeight="semibold"
-                fontSize="sm"
-                color="gray.400"
-                mb={3}
-                textTransform="uppercase"
-                letterSpacing="wide"
-              >
-                My Past Events
-              </Text>
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {myPastEvents.map((event) => (
-                  <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
-                ))}
-              </SimpleGrid>
-            </Box>
+          {pastEvents.length > 0 && (
+            <>
+              <Divider borderColor="gray.700" />
+              <Box>
+                <SectionLabel>Past Events</SectionLabel>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                  {pastSlice.map((event) => (
+                    <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
+                  ))}
+                </SimpleGrid>
+                {totalPastPages > 1 && (
+                  <HStack justify="center" mt={5} spacing={3}>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={pastPage === 0}
+                      onClick={() => setPastPage((p) => p - 1)}
+                    >
+                      ← Prev
+                    </Button>
+                    <Text fontSize="sm" color="gray.400">
+                      {pastPage + 1} / {totalPastPages}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      isDisabled={pastPage >= totalPastPages - 1}
+                      onClick={() => setPastPage((p) => p + 1)}
+                    >
+                      Next →
+                    </Button>
+                  </HStack>
+                )}
+              </Box>
+            </>
           )}
         </VStack>
       )}
@@ -612,7 +722,7 @@ function ChampionForgeDashboardContent() {
 export default function ChampionForgeDashboard() {
   const { user } = useAuth();
 
-  if (!isChampionForgeEnabled(user)) {
+  if (!isChampionForgeEnabled(user) || !user) {
     return <ChampionForgeLanding />;
   }
 

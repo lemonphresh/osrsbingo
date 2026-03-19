@@ -230,7 +230,7 @@ const Landing = () => {
                 Gielinor Rush
               </Text>
               <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
-                {isGielinorRushEnabled(user) ? 'NEW' : 'COMING SOON'}
+                {isGielinorRushEnabled(user) ? 'NEW' : 'SOON'}
               </Text>
             </HStack>
             <Flex justifyContent="center" marginBottom="20px">
@@ -270,33 +270,51 @@ const Landing = () => {
             padding={['20px', '28px']}
             order={[4, 4, 4, 4]}
             borderWidth="2px"
-            borderColor={theme.colors.yellow[500]}
+            borderColor={theme.colors.blue[500]}
           >
             <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.yellow[300]}>
+              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.blue[300]}>
                 Champion Forge
               </Text>
               <Text
                 fontSize="xs"
                 bg={
-                  isChampionForgeEnabled(user) ? theme.colors.yellow[600] : theme.colors.gray[600]
+                  isChampionForgeEnabled(user) ? theme.colors.blue[600] : 'rgba(244, 211, 94, 0.12)'
+                }
+                border={
+                  isChampionForgeEnabled(user) ? 'none' : '1px solid rgba(244, 211, 94, 0.35)'
+                }
+                color={
+                  isChampionForgeEnabled(user) ? theme.colors.gray[900] : theme.colors.blue[300]
                 }
                 px={2}
                 py={1}
                 borderRadius="full"
+                fontWeight="semibold"
+                whiteSpace="nowrap"
               >
-                {isChampionForgeEnabled(user) ? 'NEW' : 'COMING SOON'}
+                {isChampionForgeEnabled(user) ? 'NEW' : 'SOON'}
               </Text>
             </HStack>
             <Flex
               justifyContent="center"
               alignItems="center"
               marginBottom="20px"
-              backgroundColor={theme.colors.gray[900]}
+              background="linear-gradient(135deg, #0d1a1a 0%, #1a1008 50%, #0d1a1a 100%)"
               borderRadius="8px"
               height="180px"
+              gap={[4, 6]}
             >
-              <Text fontSize="4xl">⚔️</Text>
+              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
+                📋
+              </Text>
+              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
+                ⛏️
+              </Text>
+              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
+                🛡️
+              </Text>
+              <Text fontSize="3xl">⚔️</Text>
             </Flex>
             <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
               Run full clan tournaments across four phases: gathering, outfitting, and live
@@ -307,15 +325,18 @@ const Landing = () => {
               <Button
                 width="100%"
                 backgroundColor={
-                  isChampionForgeEnabled(user) ? theme.colors.yellow[600] : theme.colors.gray[600]
+                  isChampionForgeEnabled(user) ? theme.colors.blue[600] : 'transparent'
                 }
                 color={
-                  isChampionForgeEnabled(user) ? theme.colors.gray[900] : theme.colors.gray[300]
+                  isChampionForgeEnabled(user) ? theme.colors.gray[900] : theme.colors.blue[300]
+                }
+                border={
+                  isChampionForgeEnabled(user) ? 'none' : `1px solid ${theme.colors.blue[600]}`
                 }
                 _hover={{
                   backgroundColor: isChampionForgeEnabled(user)
-                    ? theme.colors.yellow[500]
-                    : theme.colors.gray[500],
+                    ? theme.colors.blue[500]
+                    : 'rgba(244, 211, 94, 0.1)',
                 }}
               >
                 {isChampionForgeEnabled(user) ? 'Get Started' : 'Learn More'}

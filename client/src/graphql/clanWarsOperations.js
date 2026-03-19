@@ -103,6 +103,7 @@ export const GET_ALL_CLAN_WARS_EVENTS = gql`
       bracket
       creatorId
       adminIds
+      refIds
       difficulty
       createdAt
       teams {
@@ -126,6 +127,7 @@ export const GET_MY_CLAN_WARS_EVENTS = gql`
       bracket
       creatorId
       adminIds
+      refIds
       difficulty
       createdAt
       teams {
