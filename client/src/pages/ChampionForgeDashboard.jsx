@@ -72,7 +72,7 @@ const PHASES = [
     color: theme.colors.green[400],
     borderColor: theme.colors.green[600],
     icon: '⛏️',
-    desc: 'Teams race to complete OSRS tasks: boss kills, collection log drops, skilling milestones. Each completion earns crafting materials for your war chest. Discord submissions with screenshot proof keep it honest.',
+    desc: 'Teams race to complete OSRS tasks: boss kills, collection log drops, skilling milestones. Each completion earns armor, weapons, consumables and more for your war chest. Discord submissions with screenshot proof keep it honest.',
   },
   {
     number: '03',
@@ -214,10 +214,10 @@ function ChampionForgeLanding() {
           </Text>
           <Text fontSize="sm" color="gray.300" lineHeight="1.8">
             Champion Forge turns your OSRS clan into a full RPG tournament. Teams compete across
-            four phases: drafting players and event setup, completing in-game tasks to build a war
-            chest, outfitting a champion with gear and specials earned through gameplay, and finally
-            battling head-to-head in a live turn-based bracket. Everything ties back to what your
-            team actually accomplished in Old School RuneScape.
+            four phases: team and event setup, completing in-game tasks to generously supply a war
+            chest, outfitting a champion with gear and specials earned through tasks completed, and
+            finally battling head-to-head in a live turn-based bracket. Everything ties back to what
+            your team actually accomplished in Old School RuneScape.
           </Text>
         </Box>
 
@@ -531,7 +531,7 @@ function ChampionForgeDashboardContent() {
   }
 
   return (
-    <Box maxW="1200px" mx="auto" px={4} py={8} flex="1">
+    <Box maxW="1200px" mx="auto" px={4} py={24} flex="1">
       <HStack justify="space-between" mb={2}>
         <VStack align="flex-start" spacing={0}>
           <Text fontSize="2xl" fontWeight="bold" color="teal.300">
@@ -541,11 +541,10 @@ function ChampionForgeDashboardContent() {
             Build your war chest, equip your champion, and battle for glory.
           </Text>
         </VStack>
-        {user?.admin && (
-          <Button colorScheme="purple" size="sm" onClick={() => setIsCreateOpen(true)}>
-            + New Event
-          </Button>
-        )}
+
+        <Button colorScheme="purple" size="sm" onClick={() => setIsCreateOpen(true)}>
+          + New Event
+        </Button>
       </HStack>
 
       <Divider my={5} borderColor="gray.600" />
@@ -554,8 +553,7 @@ function ChampionForgeDashboardContent() {
         <Center h="40vh" flexDir="column" gap={3}>
           <Text fontSize="4xl">⚔️</Text>
           <Text color="gray.400" textAlign="center">
-            No Champion Forge events yet.
-            {user?.admin && ' Create one to get started!'}
+            No Champion Forge events yet. Create one to get started!
           </Text>
         </Center>
       ) : (
