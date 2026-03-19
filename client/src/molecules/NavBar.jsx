@@ -22,7 +22,7 @@ import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { FaHeart } from 'react-icons/fa';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
@@ -125,14 +125,14 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
                   Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                {isGielinorRushEnabled(user) ? (
+                {isChampionForgeEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also, clan leaders, go try <strong>Gielinor Rush</strong>, it's new! It's cool!
-                    It's fun!
+                    Also, clan leaders, go check out <strong>Champion Forge</strong>! Full clan
+                    tournaments are here! ⚔️
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    <strong>Gielinor Rush</strong> is coming soon... get hype 👀
+                    <strong>Champion Forge</strong> is coming soon... clan tournaments, get hype 👀
                   </Text>
                 )}
               </VStack>
@@ -164,18 +164,18 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isGielinorRushEnabled(user) ? (
-                <Link to="/gielinor-rush">
+              {isChampionForgeEnabled(user) ? (
+                <Link to="/champion-forge">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
-                    Gielinor Rush →
+                    Champion Forge →
                   </Text>
                 </Link>
               ) : (
                 <HStack spacing={1}>
                   <Text color={theme.colors.gray[400]} fontSize="sm" textAlign="center">
-                    Gielinor Rush
+                    Champion Forge
                   </Text>
-                  <Badge colorScheme="orange" fontSize="xs">
+                  <Badge colorScheme="yellow" fontSize="xs">
                     Soon
                   </Badge>
                 </HStack>
