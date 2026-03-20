@@ -30,7 +30,7 @@ export function useTimezone() {
 
 export function fmtTs(date, utc) {
   if (!date) return '';
-  const d = new Date(date);
+  const d = new Date(isNaN(date) ? date : Number(date));
   return utc
     ? d.toLocaleString(undefined, { timeZone: 'UTC' }) + ' UTC'
     : d.toLocaleString();
@@ -38,7 +38,7 @@ export function fmtTs(date, utc) {
 
 export function fmtDate(date, utc) {
   if (!date) return '';
-  const d = new Date(date);
+  const d = new Date(isNaN(date) ? date : Number(date));
   return utc
     ? d.toLocaleDateString(undefined, { timeZone: 'UTC' }) + ' UTC'
     : d.toLocaleDateString();

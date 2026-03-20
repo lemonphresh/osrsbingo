@@ -2,7 +2,7 @@ import React from 'react';
 import { HStack, Text, Button, ButtonGroup } from '@chakra-ui/react';
 import { useTimezone } from '../hooks/useTimezone';
 
-export default function TimezoneToggle() {
+export default function TimezoneToggle({ colorScheme = 'purple' }) {
   const { utc, toggle } = useTimezone();
   return (
     <HStack spacing={1} align="center" flexShrink={0}>
@@ -11,7 +11,7 @@ export default function TimezoneToggle() {
       </Text>
       <ButtonGroup size="xs" isAttached>
         <Button
-          colorScheme="purple"
+          colorScheme={colorScheme}
           variant={utc ? 'ghost' : 'solid'}
           h="16px"
           minW="34px"
@@ -22,7 +22,7 @@ export default function TimezoneToggle() {
           Local
         </Button>
         <Button
-          colorScheme="purple"
+          colorScheme={colorScheme}
           variant={utc ? 'solid' : 'ghost'}
           h="16px"
           minW="28px"

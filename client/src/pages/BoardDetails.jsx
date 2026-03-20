@@ -4,6 +4,7 @@ import {
   Flex,
   FormControl,
   FormLabel,
+  HStack,
   Icon,
   Spinner,
   Switch,
@@ -42,6 +43,8 @@ import IsPublic from '../molecules/EditField/IsPublic';
 import BonusSettings from '../molecules/EditField/BonusSettings';
 import RandomTilePickerModal from '../organisms/RandomTilePickerModal';
 import usePageTitle from '../hooks/usePageTitle';
+import { useTimezone, fmtTs } from '../hooks/useTimezone';
+import TimezoneToggle from '../atoms/TimezoneToggle';
 
 const removeTypename = (obj) => {
   const { __typename, ...rest } = obj;
@@ -56,6 +59,7 @@ const BoardDetails = () => {
     variables: { id: params.boardId },
   });
   usePageTitle(data?.getBingoBoard?.name || 'Bingo Board');
+  const { utc } = useTimezone();
   const { showToast } = useToastContext();
   const { isOpen: isPickerOpen, onOpen: onPickerOpen, onClose: onPickerClose } = useDisclosure();
   const [board, setBoard] = useState(null);
@@ -305,6 +309,14 @@ const BoardDetails = () => {
       </Flex>
 
       <Section flexDirection="column" maxWidth="720px" width="100%">
+        {board?.createdAt && (
+          <HStack justify="flex-end" mb={3} spacing={2}>
+            <Text fontSize="xs" color="gray.400">
+              created {fmtTs(board.createdAt, utc)}
+            </Text>
+            <TimezoneToggle colorScheme="pink" />
+          </HStack>
+        )}
         <Name
           board={board}
           canEdit={isEditor && isEditMode}
