@@ -17,6 +17,7 @@ import { ApolloClient, ApolloProvider, HttpLink, InMemoryCache, split } from '@a
 import routes from './routes';
 import theme from './theme';
 import { ToastProvider } from './providers/ToastProvider';
+import ChunkErrorBoundary from './atoms/ChunkErrorBoundary';
 
 const httpUrl = process.env.REACT_APP_SERVER_URL
   ? `${process.env.REACT_APP_SERVER_URL}/graphql`
@@ -68,12 +69,14 @@ const router = createBrowserRouter(routes);
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ApolloProvider client={client}>
-      <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
-        <ToastProvider>
-          <RouterProvider router={router} />
-        </ToastProvider>
-      </ChakraProvider>
-    </ApolloProvider>
+    <ChunkErrorBoundary>
+      <ApolloProvider client={client}>
+        <ChakraProvider theme={theme} initialColorMode={theme.config.initialColorMode}>
+          <ToastProvider>
+            <RouterProvider router={router} />
+          </ToastProvider>
+        </ChakraProvider>
+      </ApolloProvider>
+    </ChunkErrorBoundary>
   </React.StrictMode>
 );
