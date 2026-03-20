@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -50,6 +50,7 @@ import {
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
+import { isChampionForgeEnabled } from '../config/featureFlags';
 import { playSubmissionApproved, playSubmissionDenied, playTaskComplete, warmUpAudio } from '../utils/soundEngine';
 import { useTimezone, fmtTs } from '../hooks/useTimezone';
 import TimezoneToggle from '../atoms/TimezoneToggle';
@@ -1823,6 +1824,8 @@ export default function ChampionForgeBarracksPage() {
       ? { hasAccess: true, reason: 'authorized' }
       : { hasAccess: false, reason: 'not_member' };
   };
+
+  if (!isChampionForgeEnabled(user)) return <Navigate to="/champion-forge" replace />;
 
   if (loading && !event) {
     return (

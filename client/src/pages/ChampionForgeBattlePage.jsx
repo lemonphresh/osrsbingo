@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { Box, Center, Spinner, Text, VStack, HStack, Button, Badge } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
+import { isChampionForgeEnabled } from '../config/featureFlags';
 import BattleScreen from '../organisms/ChampionForge/BattleScreen';
 import BattleBracket from '../organisms/ChampionForge/BattleBracket';
 import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
@@ -160,6 +161,8 @@ export default function ChampionForgeBattlePage() {
       setStarting(false);
     }
   };
+
+  if (!isChampionForgeEnabled(user)) return <Navigate to="/champion-forge" replace />;
 
   if (loading && !event) {
     return (

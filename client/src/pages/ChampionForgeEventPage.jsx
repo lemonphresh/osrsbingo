@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useParams, useNavigate, Link as RouterLink } from 'react-router-dom';
+import { useParams, useNavigate, Navigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -23,6 +23,7 @@ import { FaShieldAlt, FaScroll, FaCrown } from 'react-icons/fa';
 import BattleReplayModal from '../organisms/ChampionForge/BattleReplayModal';
 import { GET_CLAN_WARS_EVENT, CLAN_WARS_EVENT_UPDATED } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
+import { isChampionForgeEnabled } from '../config/featureFlags';
 import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
 import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
@@ -715,6 +716,8 @@ export default function ChampionForgeEventPage() {
 
   // Get the logged-in user's Discord ID for team membership checks
   const currentUserDiscordId = user?.discordUserId ?? null;
+
+  if (!isChampionForgeEnabled(user)) return <Navigate to="/champion-forge" replace />;
 
   if (loading && !event) {
     return (
