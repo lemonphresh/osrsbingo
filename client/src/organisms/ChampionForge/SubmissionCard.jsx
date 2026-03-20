@@ -11,6 +11,7 @@ import {
   Select,
   Input,
   Tooltip,
+  Checkbox,
 } from '@chakra-ui/react';
 import { fmtTs } from '../../hooks/useTimezone';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -44,6 +45,7 @@ export default function SubmissionCard({
   const [loading, setLoading] = useState(false);
   const [undoLoading, setUndoLoading] = useState(false);
   const [confirmingApprove, setConfirmingApprove] = useState(false);
+  const [noReward, setNoReward] = useState(false);
   const [editingSlot, setEditingSlot] = useState(false);
   const [editSlotValue, setEditSlotValue] = useState(submission.rewardSlot ?? 'weapon');
   const [slotSaving, setSlotSaving] = useState(false);
@@ -77,7 +79,13 @@ export default function SubmissionCard({
       await onReview({
         submissionId: submission.submissionId,
         approved,
-        rewardSlot: approved && submission.role === 'PVMER' ? rewardSlot : undefined,
+        rewardSlot: approved
+          ? noReward
+            ? 'none'
+            : submission.role === 'PVMER'
+            ? rewardSlot
+            : undefined
+          : undefined,
         denialReason: !approved ? denialReason : undefined,
       });
     } finally {
@@ -176,6 +184,8 @@ export default function SubmissionCard({
                 ({savedSlot ?? submission.rewardItem.slot})
               </Text>
             </HStack>
+          ) : (savedSlot ?? submission.rewardSlot) === 'none' ? (
+            <Text fontSize="xs" color="gray.500">No reward assigned.</Text>
           ) : savedSlot ?? submission.rewardSlot ? (
             <Text fontSize="xs" color="gray.400">
               Reward slot:{' '}
@@ -285,75 +295,97 @@ export default function SubmissionCard({
               <Text fontSize="sm" color="gray.300">
                 Based on the player's actual drop, assign the reward slot.
               </Text>
-              <HStack>
-                <Text fontSize="xs" color="gray.400">
-                  Reward Slot:
-                </Text>
-                <Select
-                  size="xs"
-                  value={rewardSlot}
-                  onChange={(e) => setRewardSlot(e.target.value)}
-                  w="auto"
-                  bg="gray.800"
-                  borderColor="gray.600"
-                  color="white"
-                >
-                  {PVMER_SLOTS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
-                <Tooltip
-                  label={
-                    <Box>
-                      {Object.entries(PVMER_SLOT_LABELS).map(([slot, desc]) => (
-                        <Box key={slot} mb={1}>
-                          <Text as="span" fontWeight="bold" color="white">
-                            {slot}:{' '}
-                          </Text>
-                          <Text as="span" color="gray.300">
-                            {desc}
-                          </Text>
-                        </Box>
-                      ))}
-                    </Box>
-                  }
-                  placement="right"
-                  bg="gray.900"
-                  color="white"
-                  border="1px solid"
-                  borderColor="gray.600"
-                  borderRadius="md"
-                  p={3}
-                  hasArrow
-                >
-                  <Text
-                    as="span"
-                    fontSize="xs"
-                    color="gray.500"
-                    cursor="help"
+              {!noReward && (
+                <HStack>
+                  <Text fontSize="xs" color="gray.400">
+                    Reward Slot:
+                  </Text>
+                  <Select
+                    size="xs"
+                    value={rewardSlot}
+                    onChange={(e) => setRewardSlot(e.target.value)}
+                    w="auto"
+                    bg="gray.800"
+                    borderColor="gray.600"
+                    color="white"
+                  >
+                    {PVMER_SLOTS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </Select>
+                  <Tooltip
+                    label={
+                      <Box>
+                        {Object.entries(PVMER_SLOT_LABELS).map(([slot, desc]) => (
+                          <Box key={slot} mb={1}>
+                            <Text as="span" fontWeight="bold" color="white">
+                              {slot}:{' '}
+                            </Text>
+                            <Text as="span" color="gray.300">
+                              {desc}
+                            </Text>
+                          </Box>
+                        ))}
+                      </Box>
+                    }
+                    placement="right"
+                    bg="gray.900"
+                    color="white"
                     border="1px solid"
                     borderColor="gray.600"
-                    borderRadius="full"
-                    w="16px"
-                    h="16px"
-                    display="inline-flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    flexShrink={0}
-                    _hover={{ color: 'gray.300', borderColor: 'gray.400' }}
+                    borderRadius="md"
+                    p={3}
+                    hasArrow
                   >
-                    ?
-                  </Text>
-                </Tooltip>
-              </HStack>
+                    <Text
+                      as="span"
+                      fontSize="xs"
+                      color="gray.500"
+                      cursor="help"
+                      border="1px solid"
+                      borderColor="gray.600"
+                      borderRadius="full"
+                      w="16px"
+                      h="16px"
+                      display="inline-flex"
+                      alignItems="center"
+                      justifyContent="center"
+                      flexShrink={0}
+                      _hover={{ color: 'gray.300', borderColor: 'gray.400' }}
+                    >
+                      ?
+                    </Text>
+                  </Tooltip>
+                </HStack>
+              )}
+              <Checkbox
+                size="sm"
+                isChecked={noReward}
+                onChange={(e) => setNoReward(e.target.checked)}
+                colorScheme="orange"
+              >
+                <Text fontSize="xs" color="gray.400">No reward</Text>
+              </Checkbox>
             </>
+          )}
+          {submission.role === 'SKILLER' && (
+            <Checkbox
+              size="sm"
+              isChecked={noReward}
+              onChange={(e) => setNoReward(e.target.checked)}
+              colorScheme="orange"
+            >
+              <Text fontSize="xs" color="gray.400">No reward</Text>
+            </Checkbox>
           )}
           {confirmingApprove ? (
             <Box p={3} bg="green.900" borderRadius="md" border="1px solid" borderColor="green.700">
               <Text fontSize="sm" color="green.200" mb={2} fontWeight="semibold">
-                {submission.role === 'PVMER'
+                {noReward
+                  ? 'Approve this submission with no reward?'
+                  : submission.role === 'PVMER'
                   ? `Approve and assign reward to the ${rewardSlot} slot?`
                   : 'Approve this submission?'}
               </Text>

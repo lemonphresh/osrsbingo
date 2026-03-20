@@ -158,6 +158,48 @@ export function playTaskComplete() {
 }
 
 // ---------------------------------------------------------------------------
+// Victory / tournament fanfare — routed through battleGain
+// ---------------------------------------------------------------------------
+
+export function playBattleVictory() {
+  try {
+    const ac = getAC();
+    const dest = battleDest();
+    // Bass anchor
+    oscNode(ac, dest, { freq: 196, type: 'triangle', peak: 0.25, attack: 0.02, duration: 1.2 });
+    // Rising fanfare C5→E5→G5→C6
+    [523, 659, 784, 1047].forEach((freq, i) => {
+      oscNode(ac, dest, { freq, type: 'triangle', peak: 0.30, attack: 0.01, duration: 0.22, delay: i * 0.09 });
+    });
+    // Sustained G5 + C6 chord to close
+    oscNode(ac, dest, { freq: 784,  peak: 0.22, attack: 0.02, duration: 0.9, delay: 0.38 });
+    oscNode(ac, dest, { freq: 1047, peak: 0.32, attack: 0.015, duration: 1.0, delay: 0.42 });
+  } catch (_) {}
+}
+
+export function playTournamentComplete() {
+  try {
+    const ac = getAC();
+    const dest = battleDest();
+    // Thunderous boom
+    noiseNode(ac, dest, { filterFreq: 380, filterType: 'lowpass', peak: 0.55, attack: 0.01, duration: 0.65 });
+    oscNode(ac, dest, { freq: 65, type: 'triangle', peak: 0.65, attack: 0.01, duration: 0.75 });
+    // Grand rising phrase
+    [[0.25, 523], [0.42, 659], [0.59, 784], [0.76, 1047], [0.93, 1175]].forEach(([d, f]) => {
+      oscNode(ac, dest, { freq: f, type: 'triangle', peak: 0.36, attack: 0.01, duration: 0.30, delay: d });
+    });
+    // Full triumphant chord C5+E5+G5+C6 held
+    [[1.2, 523], [1.2, 659], [1.2, 784], [1.2, 1047]].forEach(([d, f]) => {
+      oscNode(ac, dest, { freq: f, type: 'triangle', peak: 0.28, attack: 0.04, duration: 2.0, delay: d });
+    });
+    // Deep bass octave
+    oscNode(ac, dest, { freq: 131, type: 'triangle', peak: 0.38, attack: 0.02, duration: 2.2, delay: 1.1 });
+    // High shimmer
+    noiseNode(ac, dest, { filterFreq: 3200, filterType: 'highpass', Q: 1, peak: 0.18, attack: 0.12, duration: 2.0, delay: 1.2 });
+  } catch (_) {}
+}
+
+// ---------------------------------------------------------------------------
 // Battle sounds — routed through battleGain (user volume slider)
 // ---------------------------------------------------------------------------
 

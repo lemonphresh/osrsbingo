@@ -136,6 +136,19 @@ export default function ChampionForgeBattlePage() {
     return true;
   }, [event]);
 
+  // True when the currently active battle is the only remaining undecided match
+  const isLastBattle = useMemo(() => {
+    const bracket = event?.bracket;
+    if (!bracket || !showBattleId) return false;
+    const allMatches = [
+      ...(bracket.rounds ?? []).flatMap((r) => r.matches),
+      ...(bracket.losersBracket ?? []).flatMap((r) => r.matches),
+      ...(bracket.grandFinal ? [bracket.grandFinal] : []),
+    ];
+    const pending = allMatches.filter((m) => !m.isBye && !m.winnerId);
+    return pending.length === 1 && pending[0].battleId === showBattleId;
+  }, [event, showBattleId]);
+
   const handleStartBattle = async (t1, t2) => {
     setStarting(true);
     try {
@@ -245,6 +258,7 @@ export default function ChampionForgeBattlePage() {
             allBattleItems={allBattleItems}
             turnTimerSeconds={event.eventConfig?.turnTimerSeconds ?? 60}
             isAdmin={isAdmin}
+            isLastBattle={isLastBattle}
             onBattleEnd={() => {
               setShowBattleId(null);
               navigate(`/champion-forge/${eventId}`);

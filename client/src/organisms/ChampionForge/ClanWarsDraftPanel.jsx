@@ -5,6 +5,8 @@ import {
   playSubmissionDenied,
   playTaskComplete,
   playBattleSound,
+  playBattleVictory,
+  playTournamentComplete,
 } from '../../utils/soundEngine';
 import BattleVolumeSlider from './BattleVolumeSlider';
 import { useMutation, useLazyQuery } from '@apollo/client';
@@ -753,6 +755,8 @@ const UI_SOUNDS = [
   { label: 'Approved', fn: playSubmissionApproved },
   { label: 'Denied', fn: playSubmissionDenied },
   { label: 'Task Done', fn: playTaskComplete },
+  { label: 'Victory', fn: playBattleVictory },
+  { label: 'Tournament End', fn: playTournamentComplete },
 ];
 
 const BATTLE_SOUNDS = [

@@ -834,7 +834,6 @@ function TaskSection({
         overflowY="auto"
         flex={1}
         pr={1}
-        maxH="520px"
         css={{
           '&::-webkit-scrollbar': { width: '8px' },
           '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
@@ -1110,7 +1109,19 @@ function SubmissionFeed({ eventId, teamId }) {
         </HStack>
         <TimezoneToggle />
       </HStack>
-      <VStack spacing={1} align="stretch">
+      <VStack
+        spacing={1}
+        align="stretch"
+        maxH="400px"
+        overflowY="auto"
+        css={{
+          '&::-webkit-scrollbar': { width: '6px' },
+          '&::-webkit-scrollbar-track': { background: 'transparent' },
+          '&::-webkit-scrollbar-thumb': { background: '#4a5568', borderRadius: '10px' },
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#4a5568 transparent',
+        }}
+      >
         {subs.map((sub) => (
           <Box
             key={sub.submissionId}
@@ -1230,6 +1241,40 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 
   const pvmerTasks = tasks.filter((t) => t.role === 'PVMER');
   const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
+
+  const [selectedQuestTaskId, setSelectedQuestTaskId] = useState(null);
+  const selectedQuestTask = tasks.find((t) => t.taskId === selectedQuestTaskId) ?? null;
+
+  const getMemberName = (discordId) => {
+    const m = (team.members ?? []).find((tm) => tm.discordId === discordId);
+    return m?.username ?? discordId;
+  };
+
+  const handleQuestCopyCommand = () => {
+    if (selectedQuestTask) {
+      navigator.clipboard.writeText(`!cfsubmit ${selectedQuestTask.taskId}`);
+      showToast('Command copied! Attach your screenshot in Discord.', 'success');
+    }
+  };
+
+  // Active quest log: tasks with player assignments, not yet completed, sorted by progress %
+  const questEntries = React.useMemo(() => {
+    const entries = [];
+    for (const [taskId, assignedIds] of Object.entries(taskProgress)) {
+      if (!assignedIds?.length) continue;
+      const task = tasks.find((t) => t.taskId === taskId);
+      if (!task || !task.isActive) continue;
+      if (completedTaskIds.includes(taskId)) continue;
+      const progress = numericTaskProgress[taskId] ?? 0;
+      const total = task.quantity ?? null;
+      const percent = total ? progress / total : 0;
+      const assignedPlayers = assignedIds
+        .map((id) => (team.members ?? []).find((m) => m.discordId === id))
+        .filter(Boolean);
+      entries.push({ taskId, task, assignedPlayers, progress, total, percent });
+    }
+    return entries.sort((a, b) => b.percent - a.percent);
+  }, [taskProgress, numericTaskProgress, completedTaskIds, tasks, team.members]);
 
   const gatheringCountdown = useCountdown(event.gatheringEnd);
   const { onCopy: copyPassword, hasCopied: passwordCopied } = useClipboard(
@@ -1380,16 +1425,135 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
         </Box>
       )}
 
+      {/* Active Quest Log */}
+      {questEntries.length > 0 && (
+        <Box>
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color="gray.400"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            mb={3}
+          >
+            Active Quests
+          </Text>
+          <SimpleGrid columns={{ base: 1, sm: 2, md: 3, xl: 4 }} spacing={3}>
+            {questEntries.map(({ taskId, task, assignedPlayers, progress, total }) => (
+              <Box
+                key={taskId}
+                bg="gray.800"
+                border="1px solid"
+                borderColor="gray.600"
+                borderRadius="md"
+                p={3}
+                cursor="pointer"
+                onClick={() => setSelectedQuestTaskId(taskId)}
+                _hover={{ borderColor: 'gray.400' }}
+                transition="border-color 0.15s"
+              >
+                <HStack mb={1} spacing={1} flexWrap="wrap">
+                  <Badge
+                    colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'}
+                    fontSize="2xs"
+                  >
+                    {task.role === 'PVMER' ? 'PvM' : 'Skill'}
+                  </Badge>
+                  <Badge
+                    colorScheme={DIFF_COLOR[task.difficulty] ?? 'gray'}
+                    fontSize="2xs"
+                  >
+                    {task.difficulty}
+                  </Badge>
+                </HStack>
+                <Text
+                  fontSize="sm"
+                  fontWeight="semibold"
+                  color="white"
+                  lineHeight="shorter"
+                  mb={2}
+                  noOfLines={2}
+                >
+                  {task.label}
+                </Text>
+                {total != null && (
+                  <>
+                    <Progress
+                      value={(progress / total) * 100}
+                      size="xs"
+                      colorScheme="green"
+                      borderRadius="full"
+                      mb={1}
+                    />
+                    <Text fontSize="xs" color="gray.400" mb={1}>
+                      {progress} / {total}
+                    </Text>
+                  </>
+                )}
+                <VStack align="flex-start" spacing={0} mt={1}>
+                  <Text fontSize="2xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+                    Adventurers
+                  </Text>
+                  <HStack spacing={1} flexWrap="wrap">
+                    {assignedPlayers.map((p) => (
+                      <Text
+                        key={p.discordId}
+                        fontSize="xs"
+                        color={
+                          p.role === 'PVMER' ? 'orange.300'
+                          : p.role === 'SKILLER' ? 'teal.300'
+                          : p.role === 'FLEX' || p.role === 'ANY' ? 'purple.300'
+                          : 'gray.300'
+                        }
+                      >
+                        {p.rsn || p.username}
+                      </Text>
+                    ))}
+                  </HStack>
+                </VStack>
+              </Box>
+            ))}
+          </SimpleGrid>
+        </Box>
+      )}
+
+      {selectedQuestTask && (
+        <TaskDetailModal
+          isOpen={!!selectedQuestTaskId}
+          onClose={() => setSelectedQuestTaskId(null)}
+          task={selectedQuestTask}
+          isCompleted={completedTaskIds.includes(selectedQuestTaskId)}
+          isMeInProgress={!!(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId))}
+          canJoin={
+            !completedTaskIds.includes(selectedQuestTaskId) &&
+            !(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId)) &&
+            !!effectiveRole && effectiveRole !== 'UNSET' &&
+            (selectedQuestTask.role === 'ANY' || effectiveRole === 'ANY' || effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
+          }
+          othersInProgress={(taskProgress[selectedQuestTaskId] ?? []).filter((id) => id !== currentUserDiscordId)}
+          inProgressIds={taskProgress[selectedQuestTaskId] ?? []}
+          getMemberName={getMemberName}
+          numericTaskProgress={numericTaskProgress}
+          onJoin={handleJoin}
+          onLeave={handleLeave}
+          handleCopyCommand={handleQuestCopyCommand}
+          gatheringStart={event.gatheringStart}
+          gatheringEnd={event.gatheringEnd}
+          eventId={event.eventId}
+          currentUserDiscordId={currentUserDiscordId}
+        />
+      )}
+
       {/* Two-column layout: quest logs + sidebar */}
-      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="start">
+      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="stretch">
         {/* Quest logs — PvM and Skilling side by side, takes 2/3 */}
-        <Box gridColumn={{ lg: 'span 2' }}>
+        <Box gridColumn={{ lg: 'span 2' }} h="100%">
           {tasks.length === 0 ? (
             <Center h="200px">
               <Text color="gray.500">No tasks assigned to this event yet.</Text>
             </Center>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+            <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4} h="100%">
               {pvmerTasks.length > 0 && (
                 <TaskSection
                   title="PvM Tasks"
@@ -1414,6 +1578,67 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 
         {/* Right sidebar — war chest + submissions */}
         <VStack align="stretch" spacing={4}>
+          {/* Team roster */}
+          <Box>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="gray.400"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={2}
+            >
+              Team Roster
+            </Text>
+            <VStack
+              align="stretch"
+              spacing={1}
+              p={2}
+              bg="gray.800"
+              borderRadius="md"
+              border="1px solid"
+              borderColor="gray.700"
+              maxH="180px"
+              overflowY="auto"
+              css={{
+                '&::-webkit-scrollbar': { width: '6px' },
+                '&::-webkit-scrollbar-track': { background: 'transparent' },
+                '&::-webkit-scrollbar-thumb': { background: '#4a5568', borderRadius: '10px' },
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#4a5568 transparent',
+              }}
+            >
+              {(team.members ?? []).filter((m) => typeof m !== 'string').length === 0 ? (
+                <Text fontSize="xs" color="gray.600">No members yet.</Text>
+              ) : (
+                (team.members ?? [])
+                  .filter((m) => typeof m !== 'string')
+                  .sort((a, b) => {
+                    const order = { PVMER: 0, SKILLER: 1, FLEX: 2, ANY: 3 };
+                    return (order[a.role] ?? 4) - (order[b.role] ?? 4);
+                  })
+                  .map((m) => (
+                    <HStack key={m.discordId} spacing={2} justify="space-between">
+                      <Text fontSize="xs" color="gray.300" isTruncated>
+                        {m.rsn || m.username || m.discordId}
+                      </Text>
+                      <Badge
+                        fontSize="2xs"
+                        colorScheme={
+                          m.role === 'PVMER' ? 'orange'
+                          : m.role === 'SKILLER' ? 'teal'
+                          : 'purple'
+                        }
+                        flexShrink={0}
+                      >
+                        {m.role === 'ANY' ? 'FLEX' : m.role}
+                      </Badge>
+                    </HStack>
+                  ))
+              )}
+            </VStack>
+          </Box>
+
           <Box>
             <Text
               fontSize="xs"
@@ -1425,7 +1650,19 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             >
               War Chest
             </Text>
-            <WarChestPanel team={team} hidden={false} />
+            <Box
+              maxH="360px"
+              overflowY="auto"
+              css={{
+                '&::-webkit-scrollbar': { width: '6px' },
+                '&::-webkit-scrollbar-track': { background: 'transparent' },
+                '&::-webkit-scrollbar-thumb': { background: '#4a5568', borderRadius: '10px' },
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#4a5568 transparent',
+              }}
+            >
+              <WarChestPanel team={team} hidden={false} />
+            </Box>
           </Box>
           <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
         </VStack>

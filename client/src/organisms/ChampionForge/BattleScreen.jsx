@@ -13,7 +13,7 @@ import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprite
 import ActionEffect from './ActionEffect';
 import { getActionEffects, resolveSide } from './battleAnimations';
 import BattleVolumeSlider from './BattleVolumeSlider';
-import { playBattleSound } from '../../utils/soundEngine';
+import { playBattleSound, playBattleVictory, playTournamentComplete, warmUpAudio } from '../../utils/soundEngine';
 
 const LAYER_ORDER = ['boots', 'legs', 'chest', 'gloves', 'cape', 'shield', 'helm', 'weapon'];
 
@@ -133,6 +133,7 @@ export default function BattleScreen({
   allBattleItems = [],
   turnTimerSeconds = 60,
   isAdmin = false,
+  isLastBattle = false,
   onBattleEnd = null,
 }) {
   const { showToast } = useToastContext();
@@ -156,6 +157,9 @@ export default function BattleScreen({
   const battleRef = useRef(battle);
 
   battleRef.current = battle;
+
+  // Pre-warm audio context while user is active on the page
+  useEffect(() => { warmUpAudio(); }, []);
 
   const state = battle?.battleState ?? {};
   const snap = battle?.championSnapshots ?? {};
@@ -197,12 +201,20 @@ export default function BattleScreen({
         triggerFlash(hitSide);
       }
       if (evt) {
-        const isActorOnLeft = evt.actorTeamId === battle.team1Id;
-        getActionEffects(evt).forEach(({ effectKey, side }) => {
-          const id = effectIdRef.current++;
-          setEffects((e) => [...e, { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) }]);
-          playBattleSound(effectKey);
-        });
+        if (evt.action === 'BATTLE_END') {
+          if (isLastBattle) {
+            playTournamentComplete();
+          } else {
+            playBattleVictory();
+          }
+        } else {
+          const isActorOnLeft = evt.actorTeamId === battle.team1Id;
+          getActionEffects(evt).forEach(({ effectKey, side }) => {
+            const id = effectIdRef.current++;
+            setEffects((e) => [...e, { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) }]);
+            playBattleSound(effectKey);
+          });
+        }
       }
     },
   });

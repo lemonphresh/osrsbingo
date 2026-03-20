@@ -14,6 +14,7 @@ const {
   findNextUnstartedMatch,
   setBattleIdInBracket,
   setTeamReadyInBracket,
+  allMatchesDone,
 } = require('../../utils/cwBracket');
 
 // Models are loaded lazily to avoid circular require issues at startup
@@ -621,6 +622,7 @@ const Mutation = {
 
     for (const sub of approvedSubs) {
       if (sub.rewardItemId) continue; // already rewarded
+      if (sub.rewardSlot === 'none') continue; // explicitly marked no reward
 
       let dropResult;
       if (sub.role === 'PVMER') {
@@ -751,9 +753,14 @@ const Mutation = {
 
     // Store the intended reward slot now, but don't roll the drop.
     // The actual item is created when an admin explicitly marks the task complete.
-    if (approved && submission.role === 'PVMER') {
-      if (!rewardSlot) throw new UserInputError('rewardSlot required for PVMER submissions');
-      updates.rewardSlot = rewardSlot;
+    // rewardSlot='none' is valid for both roles — no drop will be rolled at task completion.
+    if (approved) {
+      if (submission.role === 'PVMER') {
+        if (!rewardSlot) throw new UserInputError('rewardSlot required for PVMER submissions');
+        updates.rewardSlot = rewardSlot;
+      } else if (rewardSlot === 'none') {
+        updates.rewardSlot = 'none';
+      }
     }
 
     await submission.update(updates);
@@ -1245,6 +1252,15 @@ const Mutation = {
           b, battleId, winnerId, battle.team1Id, battle.team2Id
         );
         await eventRecord.update({ bracket: advancedBracket });
+
+        // Auto-complete the event when all bracket matches are done
+        if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
+          await eventRecord.update({ status: 'COMPLETED' });
+          await pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${battle.eventId}`, {
+            clanWarsEventUpdated: eventRecord,
+          });
+          logger.info(`[ClanWars] Event ${battle.eventId} auto-completed — all bracket matches done`);
+        }
       }
     }
 
@@ -1368,6 +1384,13 @@ const Mutation = {
         b, battleId, winnerId, battle.team1Id, battle.team2Id
       );
       await eventRecord.update({ bracket: advancedBracket });
+
+      if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
+        await eventRecord.update({ status: 'COMPLETED' });
+        await pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${battle.eventId}`, {
+          clanWarsEventUpdated: eventRecord,
+        });
+      }
     }
 
     await battle.reload();
