@@ -17,7 +17,8 @@ import { JOIN_DRAFT_ROOM_AS_CAPTAIN, START_DRAFT } from '../../graphql/draftOper
 import { useToastContext } from '../../providers/ToastProvider';
 import { saveCaptainSession, loadCaptainSession } from '../../utils/draftSession';
 
-const IS_DEV = process.env.NODE_ENV !== 'production';
+const IS_DEV =
+  process.env.NODE_ENV !== 'production' || process.env.REACT_APP_ENV === 'staging';
 
 export default function DraftLobby({ room, userRole, userId }) {
   const { showToast } = useToastContext();

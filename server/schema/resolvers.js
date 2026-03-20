@@ -7,6 +7,8 @@ const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
 const TreasureHuntSubscriptions = require('./resolvers/TreasureHuntSubscriptions');
 const DraftRoomResolvers = require('./resolvers/DraftRoom');
 const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
+const ClanWarsResolvers = require('./resolvers/ClanWars');
+const ClanWarsSubscriptions = require('./resolvers/ClanWarsSubscriptions');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 
@@ -24,6 +26,7 @@ const resolvers = {
     ...TreasureHuntResolvers.Query,
     ...SiteStats.Query,
     ...DraftRoomResolvers.Query,
+    ...ClanWarsResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -34,10 +37,12 @@ const resolvers = {
     ...TreasureHuntResolvers.Mutation,
     ...SiteStats.Mutation,
     ...DraftRoomResolvers.Mutation,
+    ...ClanWarsResolvers.Mutation,
   },
   Subscription: {
     ...TreasureHuntSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
+    ...ClanWarsSubscriptions.ClanWarsSubscription,
   },
 
   // type resolvers (field-level resolvers for nested data)
@@ -55,6 +60,20 @@ const resolvers = {
   },
   TreasureSubmission: {
     ...fieldResolvers.TreasureSubmission,
+  },
+  ClanWarsEvent: {
+    ...ClanWarsResolvers.ClanWarsEvent,
+    ...fieldResolvers.ClanWarsEvent,
+  },
+  ClanWarsTeam: {
+    ...ClanWarsResolvers.ClanWarsTeam,
+    ...fieldResolvers.ClanWarsTeam,
+  },
+  ClanWarsSubmission: {
+    ...ClanWarsResolvers.ClanWarsSubmission,
+  },
+  ClanWarsBattle: {
+    ...ClanWarsResolvers.ClanWarsBattle,
   },
 };
 

@@ -58,10 +58,6 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: true,
       },
-      teams: {
-        type: DataTypes.JSONB,
-        allowNull: true,
-      },
       displayName: {
         type: DataTypes.STRING,
         allowNull: false,
