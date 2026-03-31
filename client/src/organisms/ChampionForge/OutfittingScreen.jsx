@@ -335,7 +335,7 @@ function computeChampionStats(loadout, items) {
 }
 
 function ChampionStat({ loadout, items }) {
-  const { attack: atk, defense: def, speed: spd, crit, maxHp: hp, specials } = computeChampionStats(loadout, items);
+  const { attack: atk, defense: def, speed: spd, crit, maxHp: hp } = computeChampionStats(loadout, items);
 
   return (
     <Box bg="gray.800" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
@@ -349,23 +349,6 @@ function ChampionStat({ loadout, items }) {
         <StatRow label="Crit" value={`${crit}%`} color="yellow.400" />
         <StatRow label="HP" value={hp} color="pink.400" />
       </VStack>
-      {specials.length > 0 && (
-        <Box mt={3}>
-          <Text fontSize="xs" color="gray.500" mb={1}>
-            Specials
-          </Text>
-          {specials.map((sp) => (
-            <HStack key={sp.id} spacing={2} mb={1}>
-              <Badge colorScheme="purple" fontSize="xx-small">
-                {sp.label}
-              </Badge>
-              <Text fontSize="xx-small" color="gray.400">
-                {sp.description}
-              </Text>
-            </HStack>
-          ))}
-        </Box>
-      )}
     </Box>
   );
 }
