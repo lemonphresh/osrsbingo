@@ -18,6 +18,7 @@ import {
   GET_ALL_CLAN_WARS_EVENTS,
   CREATE_CLAN_WARS_EVENT,
   DELETE_CLAN_WARS_EVENT,
+  DEV_SEED_CF_EVENT,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -506,10 +507,14 @@ function ChampionForgeDashboardContent() {
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
   const [pastPage, setPastPage] = useState(0);
 
   const { data, loading, error } = useQuery(GET_ALL_CLAN_WARS_EVENTS);
   const [createEvent] = useMutation(CREATE_CLAN_WARS_EVENT, {
+    refetchQueries: ['GetAllClanWarsEvents'],
+  });
+  const [seedDevEvent, { loading: seeding }] = useMutation(DEV_SEED_CF_EVENT, {
     refetchQueries: ['GetAllClanWarsEvents'],
   });
 
@@ -524,9 +529,7 @@ function ChampionForgeDashboardContent() {
   const adminRefEvents = allEvents.filter((e) => e.status !== 'COMPLETED' && isAdminOrRef(e));
   const otherActiveEvents = allEvents.filter(
     (e) =>
-      ['GATHERING', 'OUTFITTING', 'BATTLE'].includes(e.status) &&
-      !isMyEvent(e) &&
-      !isAdminOrRef(e)
+      ['GATHERING', 'OUTFITTING', 'BATTLE'].includes(e.status) && !isMyEvent(e) && !isAdminOrRef(e)
   );
   const pastEvents = allEvents.filter((e) => e.status === 'COMPLETED');
   const pastSlice = pastEvents.slice(pastPage * PAST_PAGE_SIZE, (pastPage + 1) * PAST_PAGE_SIZE);
@@ -574,6 +577,17 @@ function ChampionForgeDashboardContent() {
             Build your war chest, equip your champion, and battle for glory.
           </Text>
         </VStack>
+        {process.env.REACT_APP_ENV !== 'production' && (
+          <Button
+            size="sm"
+            variant="outline"
+            colorScheme="orange"
+            flexShrink={0}
+            onClick={() => setIsSeedConfirmOpen(true)}
+          >
+            🧪 DEV/STAGE ONLY: Seed Test Events
+          </Button>
+        )}
         <Button
           backgroundColor={theme.colors.yellow[600]}
           color={theme.colors.gray[900]}
@@ -646,11 +660,7 @@ function ChampionForgeDashboardContent() {
               <SectionLabel>Events I'm Admining / Reffing</SectionLabel>
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
                 {adminRefEvents.map((event) => (
-                  <EventCard
-                    key={event.eventId}
-                    event={event}
-                    isAdmin={user?.admin}
-                  />
+                  <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
                 ))}
               </SimpleGrid>
             </Box>
@@ -714,6 +724,29 @@ function ChampionForgeDashboardContent() {
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreate}
+      />
+
+      <ConfirmModal
+        isOpen={isSeedConfirmOpen}
+        onClose={() => setIsSeedConfirmOpen(false)}
+        onConfirm={async () => {
+          setIsSeedConfirmOpen(false);
+          try {
+            await seedDevEvent();
+            showToast("Test events seeded — you're an admin on all of them!", 'success');
+          } catch (e) {
+            showToast(e.message ?? 'Seed failed', 'error');
+          }
+        }}
+        title="🧪 Seed Test Events"
+        body={`This will create all Champion Forge scenario events and add you as an admin on each one.${
+          user?.discordUserId
+            ? " Since you have Discord linked, you'll also be added as a team member on the gathering events."
+            : " You won't be added to any teams because you don't have a Discord account linked — connect Discord in your profile first if you need barracks access."
+        }`}
+        confirmLabel="Seed Events"
+        colorScheme="orange"
+        isLoading={seeding}
       />
     </Box>
   );

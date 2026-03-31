@@ -841,6 +841,8 @@ const typeDefs = gql`
       itemId: ID
     ): ClanWarsBattle!
 
+    # Dev-only: seed all CF scenario events; adds caller to adminIds on each
+    devSeedCfEvent: Boolean!
     # Dev-only: auto-play a battle to completion (admin only)
     devAutoBattle(battleId: ID!): ClanWarsBattle!
     # Dev-only: start the next unstarted bracket match and simulate it to completion

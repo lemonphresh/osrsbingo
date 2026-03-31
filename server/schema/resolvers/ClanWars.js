@@ -1292,6 +1292,14 @@ const Mutation = {
     return battle;
   },
 
+  devSeedCfEvent: async (_, __, { user }) => {
+    if (!user) throw new AuthenticationError('Must be logged in');
+    if (process.env.NODE_ENV === 'production') throw new ApolloError('Not available in production');
+    const { seedAllCfEvents } = require('../../utils/cwDevSeed');
+    await seedAllCfEvents(user.id, { discordId: user.discordUserId, discordUsername: user.discordUsername });
+    return true;
+  },
+
   devAutoBattle: async (_, { battleId }, { user }) => {
     if (!user?.admin) throw new AuthenticationError('Admin only');
 
