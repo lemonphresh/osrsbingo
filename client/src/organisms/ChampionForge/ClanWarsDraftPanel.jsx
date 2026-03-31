@@ -35,7 +35,8 @@ import {
   AccordionPanel,
   AccordionIcon,
 } from '@chakra-ui/react';
-import { CheckIcon, WarningIcon, SettingsIcon, DeleteIcon } from '@chakra-ui/icons';
+import { CheckIcon, WarningIcon, SettingsIcon, DeleteIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import { Link } from '@chakra-ui/react';
 import { FaDiscord, FaUsers, FaScroll, FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useAuth } from '../../providers/AuthProvider';
@@ -1061,6 +1062,19 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
           {/* Guild ID form (always visible in draft) */}
           {!checks.guildId.done && (
             <Box>
+              <Button
+                as={Link}
+                href={process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL}
+                isExternal
+                colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
+                size="sm"
+                rightIcon={<ExternalLinkIcon />}
+                _hover={{ textDecoration: 'none' }}
+                w="100%"
+                mb={3}
+              >
+                Add Bot to Discord Server
+              </Button>
               <Text
                 fontSize="xs"
                 fontWeight="semibold"
@@ -1085,6 +1099,19 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
 
           {checks.guildId.done && (
             <Box>
+              <Button
+                as={Link}
+                href={process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL}
+                isExternal
+                colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
+                size="sm"
+                rightIcon={<ExternalLinkIcon />}
+                _hover={{ textDecoration: 'none' }}
+                w="100%"
+                mb={3}
+              >
+                Add Bot to Discord Server
+              </Button>
               <Text
                 fontSize="xs"
                 fontWeight="semibold"
