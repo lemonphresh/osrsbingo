@@ -44,6 +44,7 @@ import {
 } from '../../assets/champion-forge/sprites/spriteRegistry';
 import ActionEffect from './ActionEffect';
 import { getSpecialEffects, getConsumableEffects, resolveSide } from './battleAnimations';
+import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
 const RARITY_LABELS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
@@ -462,17 +463,29 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
 function SpecialPicker({ loadout, items, chosenSpecial, onPick, isLocked }) {
   const available = computeAvailableSpecials(loadout, items);
   if (available.length === 0) return null;
+
+  // Deduplicate by special id, collecting all source slots
+  const seen = new Map();
+  available.forEach((sp) => {
+    if (seen.has(sp.id)) {
+      seen.get(sp.id).slots.push(sp.slot);
+    } else {
+      seen.set(sp.id, { ...sp, slots: [sp.slot] });
+    }
+  });
+  const deduped = [...seen.values()];
+
   return (
     <Box bg="gray.800" borderRadius="md" p={3} border="1px solid" borderColor="gray.600" mt={2}>
       <Text fontSize="xs" color="gray.400" mb={2} fontWeight="semibold">
         Active Special — pick which fires in battle
       </Text>
       <VStack spacing={1} align="stretch">
-        {available.map((sp) => {
-          const isActive = chosenSpecial === sp.id || (!chosenSpecial && sp === available[0]);
+        {deduped.map((sp) => {
+          const isActive = chosenSpecial === sp.id || (!chosenSpecial && sp === deduped[0]);
           return (
             <Box
-              key={sp.slot + sp.id}
+              key={sp.id}
               onClick={() => !isLocked && onPick(sp.id)}
               cursor={isLocked ? 'default' : 'pointer'}
               borderRadius="sm"
@@ -498,7 +511,7 @@ function SpecialPicker({ loadout, items, chosenSpecial, onPick, isLocked }) {
                 </Text>
               </HStack>
               <Text fontSize="xx-small" color="gray.600" mt={0.5}>
-                from {sp.slot}
+                from {sp.slots.join(' or ')}
               </Text>
             </Box>
           );
@@ -852,12 +865,14 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
 
   const hasSpecial = (myStats?.specials?.length ?? 0) > 0;
   const mySpriteSrc = BASE_SPRITES[displayLoadout?.baseSprite ?? 'baseSprite1'];
-  const myLayers = GEAR_SLOTS.map((slot) => {
+  const resolveLayer = (slot) => {
     const id = displayLoadout?.[slot]; if (!id) return null;
     const item = (items ?? []).find((i) => i.itemId === id);
     const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
     return key ? getLayerSprite(key) : null;
-  }).filter(Boolean);
+  };
+  const myBackLayers = BACK_SLOTS.map(resolveLayer).filter(Boolean);
+  const myLayers = LAYER_ORDER.map(resolveLayer).filter(Boolean);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" isCentered>
@@ -900,7 +915,7 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                   {meDefending && <Badge colorScheme="blue" fontSize="10px">🛡️ defending</Badge>}
                   <Box pt={2}>
                     <ChampionSprite facing="right" hasBorder={false} color="#e05c5c"
-                      src={mySpriteSrc} layers={myLayers} isDead={myHp <= 0}
+                      src={mySpriteSrc} backLayers={myBackLayers} layers={myLayers} isDead={myHp <= 0}
                       isShaking={myShaking} isFlashing={myFlashing} />
                   </Box>
                 </VStack>
@@ -1109,6 +1124,16 @@ export function TeamOutfitter({ team, event, isAdmin }) {
     });
   };
 
+  const unequipAll = () => {
+    if (viewingOfficial || (isLocked && !isAdmin)) return;
+    setDraftLoadout((prev) => {
+      const next = { ...prev };
+      GEAR_SLOTS.forEach((slot) => delete next[slot]);
+      return next;
+    });
+    setActiveSlot('weapon');
+  };
+
   const equipConsumable = (itemId) => {
     if (viewingOfficial || (isLocked && !isAdmin)) return;
     setDraftLoadout((prev) => {
@@ -1202,13 +1227,22 @@ export function TeamOutfitter({ team, event, isAdmin }) {
       {/* Top row: gear slots | character sprite | stats */}
       <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={10} alignItems="flex-start" w="full">
         {/* Column 1 — Gear slots (paperdoll slot grid) */}
-        <Box display="flex" alignItems="flex-start" justifyContent="center">
+        <Box display="flex" flexDir="column" alignItems="center" justifyContent="flex-start" gap={2}>
           <Paperdoll
             draftLoadout={displayLoadout}
             items={items}
             activeSlot={activeSlot}
             onSlotClick={setActiveSlot}
           />
+          <Button
+            size="xs"
+            variant="ghost"
+            colorScheme="red"
+            isDisabled={viewingOfficial || (isLocked && !isAdmin) || GEAR_SLOTS.every((s) => !displayLoadout[s])}
+            onClick={unequipAll}
+          >
+            Unequip All
+          </Button>
         </Box>
 
         {/* Column 2 — Character sprite */}
@@ -1226,7 +1260,14 @@ export function TeamOutfitter({ team, event, isAdmin }) {
               size={180}
               color="#888"
               src={BASE_SPRITES[baseSprite]}
-              layers={GEAR_SLOTS.map((slot) => {
+              backLayers={BACK_SLOTS.map((slot) => {
+                const id = displayLoadout[slot];
+                if (!id) return null;
+                const item = items.find((i) => i.itemId === id);
+                const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
+                return key ? LAYER_SPRITES[key] : null;
+              }).filter(Boolean)}
+              layers={LAYER_ORDER.map((slot) => {
                 const id = displayLoadout[slot];
                 if (!id) return null;
                 const item = items.find((i) => i.itemId === id);

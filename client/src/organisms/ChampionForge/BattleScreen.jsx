@@ -13,19 +13,27 @@ import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprite
 import ActionEffect from './ActionEffect';
 import { getActionEffects, resolveSide } from './battleAnimations';
 import BattleVolumeSlider from './BattleVolumeSlider';
-import { playBattleSound, playBattleVictory, playTournamentComplete, warmUpAudio } from '../../utils/soundEngine';
-
-const LAYER_ORDER = ['boots', 'legs', 'chest', 'gloves', 'cape', 'shield', 'helm', 'weapon'];
+import {
+  playBattleSound,
+  playBattleVictory,
+  playTournamentComplete,
+  warmUpAudio,
+} from '../../utils/soundEngine';
+import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 function buildLayers(loadout, itemById) {
-  if (!loadout) return [];
-  return LAYER_ORDER.map((slot) => {
+  if (!loadout) return { layers: [], backLayers: [] };
+  const resolve = (slot) => {
     const id = loadout[slot];
     if (!id) return null;
     const item = itemById[id];
     const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
     return key ? getLayerSprite(key) : null;
-  }).filter(Boolean);
+  };
+  return {
+    backLayers: [...BACK_SLOTS].map(resolve).filter(Boolean),
+    layers: LAYER_ORDER.map(resolve).filter(Boolean),
+  };
 }
 
 const EMOTE_OPTIONS = ['🔥', '💀', '😱', '👏', '🗡️', '🛡️', '💥', '😤', '🤩', '👀'];
@@ -48,24 +56,34 @@ function HPBar({ current, max, color }) {
   );
 }
 
-
 // ---- Floating Emote (user-sent emoji bar only) ----
 function FloatingEmote({ emote, x, y, onDone }) {
   const [visible, setVisible] = useState(true);
   const [top, setTop] = useState(y);
 
   useEffect(() => {
-    const t1 = setTimeout(() => { setVisible(false); setTop(y - 120); }, 50);
+    const t1 = setTimeout(() => {
+      setVisible(false);
+      setTop(y - 120);
+    }, 50);
     const t2 = setTimeout(onDone, 1200);
-    return () => { clearTimeout(t1); clearTimeout(t2); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [onDone, y]);
 
   return (
     <Box
-      position="absolute" left={`${x}%`} top={`${top}px`}
-      fontSize="28px" opacity={visible ? 1 : 0}
+      position="absolute"
+      left={`${x}%`}
+      top={`${top}px`}
+      fontSize="28px"
+      opacity={visible ? 1 : 0}
       transition="top 1.1s ease-out, opacity 1.1s ease-out"
-      pointerEvents="none" userSelect="none" zIndex={10}
+      pointerEvents="none"
+      userSelect="none"
+      zIndex={10}
     >
       {emote}
     </Box>
@@ -159,7 +177,9 @@ export default function BattleScreen({
   battleRef.current = battle;
 
   // Pre-warm audio context while user is active on the page
-  useEffect(() => { warmUpAudio(); }, []);
+  useEffect(() => {
+    warmUpAudio();
+  }, []);
 
   const state = battle?.battleState ?? {};
   const snap = battle?.championSnapshots ?? {};
@@ -211,7 +231,10 @@ export default function BattleScreen({
           const isActorOnLeft = evt.actorTeamId === battle.team1Id;
           getActionEffects(evt).forEach(({ effectKey, side }) => {
             const id = effectIdRef.current++;
-            setEffects((e) => [...e, { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) }]);
+            setEffects((e) => [
+              ...e,
+              { id, effectKey, targetSide: resolveSide(side, isActorOnLeft) },
+            ]);
             playBattleSound(effectKey);
           });
         }
@@ -327,10 +350,18 @@ export default function BattleScreen({
   const myConsumableIds = state.consumablesRemaining?.[mySide] ?? [];
 
   const battleItemById = Object.fromEntries(allBattleItems.map((i) => [i.itemId, i]));
-  const champion1Layers = buildLayers(snap.champion1?.loadout, battleItemById);
-  const champion2Layers = buildLayers(snap.champion2?.loadout, battleItemById);
-  const champion1Src = BASE_SPRITES[snap.champion1?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
-  const champion2Src = BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
+  const { layers: champion1Layers, backLayers: champion1BackLayers } = buildLayers(
+    snap.champion1?.loadout,
+    battleItemById
+  );
+  const { layers: champion2Layers, backLayers: champion2BackLayers } = buildLayers(
+    snap.champion2?.loadout,
+    battleItemById
+  );
+  const champion1Src =
+    BASE_SPRITES[snap.champion1?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
+  const champion2Src =
+    BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
   const specialUsed = state.specialUsed?.[mySide] ?? false;
   const mySpecials = mySnap?.stats?.specials ?? [];
   const winnerSnap = battle?.winnerId === battle?.team1Id ? snap.champion1 : snap.champion2;
@@ -446,6 +477,7 @@ export default function BattleScreen({
                 color="#e05c5c"
                 hasBorder={false}
                 src={champion1Src}
+                backLayers={champion1BackLayers}
                 layers={champion1Layers}
                 isShaking={shaking === 'left'}
                 isFlashing={flashing === 'left'}
@@ -521,6 +553,7 @@ export default function BattleScreen({
                 name={snap.champion2?.teamName ?? 'Team 2'}
                 color="#5c9ee0"
                 src={champion2Src}
+                backLayers={champion2BackLayers}
                 layers={champion2Layers}
                 isShaking={shaking === 'right'}
                 isFlashing={flashing === 'right'}
