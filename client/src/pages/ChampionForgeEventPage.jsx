@@ -972,8 +972,8 @@ export default function ChampionForgeEventPage() {
           </Box>
         )}
 
-        {/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
-        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'BATTLE') && (
+        {/* ── Admin panel (DRAFT + OUTFITTING + BATTLE phases) ── */}
+        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'OUTFITTING' || event.status === 'BATTLE') && (
           <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
         )}
       </VStack>
