@@ -29,6 +29,7 @@ import { FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
+  UPDATE_CLAN_WARS_TEAM_MEMBERS,
   CREATE_CLAN_WARS_TEAM,
   DELETE_CLAN_WARS_TEAM,
   ADD_CLAN_WARS_TASK,
@@ -47,7 +48,45 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
   const { showToast } = useToastContext();
   const [deleteTeam] = useMutation(DELETE_CLAN_WARS_TEAM, { onCompleted: refetch });
   const [setCaptain] = useMutation(SET_CLAN_WARS_CAPTAIN, { onCompleted: refetch });
+  const [updateMembers] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, { onCompleted: refetch });
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [newDiscordId, setNewDiscordId] = useState('');
+  const [addLoading, setAddLoading] = useState(false);
+
+  const canEditMembers = !['BATTLE', 'COMPLETED'].includes(eventStatus);
+
+  const memberInputs = (members) =>
+    members.map((m) => ({ discordId: m.discordId, username: m.username ?? null, avatar: m.avatar ?? null, role: m.role ?? null }));
+
+  const handleRemoveMember = async (discordId) => {
+    const updated = (team.members ?? []).filter((m) => m.discordId !== discordId);
+    try {
+      await updateMembers({ variables: { teamId: team.teamId, members: memberInputs(updated) } });
+      showToast('Member removed', 'success');
+    } catch {
+      showToast('Failed to remove member', 'error');
+    }
+  };
+
+  const handleAddMember = async () => {
+    const id = newDiscordId.trim();
+    if (!id) return;
+    if ((team.members ?? []).some((m) => m.discordId === id)) {
+      showToast('Already a member', 'error');
+      return;
+    }
+    setAddLoading(true);
+    try {
+      const updated = [...(team.members ?? []), { discordId: id, username: null, avatar: null, role: null }];
+      await updateMembers({ variables: { teamId: team.teamId, members: memberInputs(updated) } });
+      showToast('Member added', 'success');
+      setNewDiscordId('');
+    } catch {
+      showToast('Failed to add member', 'error');
+    } finally {
+      setAddLoading(false);
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -142,11 +181,49 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
                     </Button>
                   </Tooltip>
                 )}
+                {canEditMembers && (
+                  <Tooltip label="Remove member" placement="top" hasArrow openDelay={200}>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="red"
+                      onClick={() => handleRemoveMember(m.discordId)}
+                      px={1}
+                    >
+                      ×
+                    </Button>
+                  </Tooltip>
+                )}
               </HStack>
             );
           })
         )}
       </VStack>
+
+      {canEditMembers && (
+        <HStack spacing={2} mt={3}>
+          <Input
+            size="xs"
+            placeholder="Discord user ID"
+            value={newDiscordId}
+            onChange={(e) => setNewDiscordId(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddMember()}
+            bg="gray.800"
+            borderColor="gray.600"
+            color="white"
+            _placeholder={{ color: 'gray.500' }}
+          />
+          <Button
+            size="xs"
+            colorScheme="green"
+            isLoading={addLoading}
+            onClick={handleAddMember}
+            flexShrink={0}
+          >
+            Add
+          </Button>
+        </HStack>
+      )}
 
       <ConfirmModal
         isOpen={deleteOpen}
@@ -543,7 +620,7 @@ export default function AdminEventPanel({ event, refetch }) {
                   />
                 ))}
               </SimpleGrid>
-              {event.eventStatus === 'DRAFT' && (
+              {event.status === 'DRAFT' && (
                 <AddTeamForm eventId={event.eventId} refetch={refetch} />
               )}
             </AccordionPanel>

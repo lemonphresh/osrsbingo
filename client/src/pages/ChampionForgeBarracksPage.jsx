@@ -917,9 +917,13 @@ const ROLES = [
   },
 ];
 
-function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
+function MyRoleSelector({ team, event, myDiscordId, currentRole, roleLocked, refetch }) {
   const { showToast } = useToastContext();
   const [hoveredRole, setHoveredRole] = useState(null);
+  const flexRolesAllowed = event?.eventConfig?.flexRolesAllowed ?? true;
+  const flexCount = (team.members ?? []).filter((m) => m.discordId !== myDiscordId && m.role === 'FLEX').length;
+  const maxFlex = Math.max(1, Math.ceil((team.members ?? []).length * 0.2));
+  const flexFull = flexCount >= maxFlex;
   const [updateMembers, { loading }] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
     onCompleted: () => {
       showToast('Role updated', 'success');
@@ -940,6 +944,27 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
 
   const isUnset = !currentRole || currentRole === 'UNSET';
   const activeRole = ROLES.find((r) => r.key === currentRole);
+
+  // Role is locked once the player has joined a task — show locked state instead of switcher
+  if (!isUnset && roleLocked) {
+    const scheme = activeRole?.scheme ?? 'gray';
+    return (
+      <Box p={3} bg="gray.800" border="1px solid" borderColor={`${scheme}.600`} borderRadius="lg">
+        <HStack spacing={2}>
+          <LockIcon color={`${scheme}.400`} boxSize={3} />
+          <Text fontSize="xs" color="gray.400" fontWeight="semibold">
+            Role locked:
+          </Text>
+          <Badge colorScheme={scheme} fontSize="xs">
+            {currentRole}
+          </Badge>
+          <Text fontSize="xs" color="gray.500" fontStyle="italic">
+            {activeRole?.desc}
+          </Text>
+        </HStack>
+      </Box>
+    );
+  }
 
   if (!isUnset) {
     return (
@@ -981,47 +1006,60 @@ function MyRoleSelector({ team, myDiscordId, currentRole, refetch }) {
             Coordinate with your team! Decide who's bossing, who's skilling, and who's going flex.
             Your role determines which tasks you can join and what reward slots you can earn.
           </Text>
+          <Text fontSize="sm" color="yellow.600">
+            You can switch freely until you join your first task — after that, your role locks in.
+          </Text>
         </VStack>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
-          {ROLES.map(({ key, label, scheme, img, desc }) => (
-            <Box
-              key={key}
-              as="button"
-              onClick={() => !loading && setRole(key)}
-              onMouseEnter={() => setHoveredRole(key)}
-              onMouseLeave={() => setHoveredRole(null)}
-              p={4}
-              bg={hoveredRole === key ? `${scheme}.900` : 'blackAlpha.400'}
-              border="2px solid"
-              borderColor={hoveredRole === key ? `${scheme}.400` : `${scheme}.700`}
-              borderRadius="lg"
-              textAlign="left"
-              cursor="pointer"
-              transition="all 0.15s"
-              disabled={loading}
-            >
-              <HStack spacing={3} align="center">
-                <Box display="flex" alignItems="center" justifyContent="center" flexShrink={0}>
-                  <Image
-                    src={img}
-                    alt={label}
-                    w="64px"
-                    h="64px"
-                    objectFit="contain"
-                    style={{ imageRendering: 'pixelated' }}
-                  />
-                </Box>
-                <VStack align="flex-start" spacing={1} flex={1}>
-                  <Text fontSize="lg" fontWeight="bold" color={`${scheme}.300`}>
-                    {label}
-                  </Text>
-                  <Text fontSize="sm" color="gray.300" lineHeight="short" textAlign="left">
-                    {desc}
-                  </Text>
-                </VStack>
-              </HStack>
-            </Box>
-          ))}
+          {ROLES.filter(({ key }) => key !== 'FLEX' || flexRolesAllowed).map(({ key, label, scheme, img, desc }) => {
+            const isFlexCard = key === 'FLEX';
+            const isDisabledCard = loading || (isFlexCard && flexFull);
+            return (
+              <Box
+                key={key}
+                as="button"
+                onClick={() => !isDisabledCard && setRole(key)}
+                onMouseEnter={() => !isDisabledCard && setHoveredRole(key)}
+                onMouseLeave={() => setHoveredRole(null)}
+                p={4}
+                bg={hoveredRole === key ? `${scheme}.900` : 'blackAlpha.400'}
+                border="2px solid"
+                borderColor={hoveredRole === key ? `${scheme}.400` : `${scheme}.700`}
+                borderRadius="lg"
+                textAlign="left"
+                cursor={isDisabledCard ? 'not-allowed' : 'pointer'}
+                opacity={isDisabledCard ? 0.5 : 1}
+                transition="all 0.15s"
+                disabled={isDisabledCard}
+              >
+                <HStack spacing={3} align="center">
+                  <Box display="flex" alignItems="center" justifyContent="center" flexShrink={0}>
+                    <Image
+                      src={img}
+                      alt={label}
+                      w="64px"
+                      h="64px"
+                      objectFit="contain"
+                      style={{ imageRendering: 'pixelated' }}
+                    />
+                  </Box>
+                  <VStack align="flex-start" spacing={1} flex={1}>
+                    <Text fontSize="lg" fontWeight="bold" color={`${scheme}.300`}>
+                      {label}
+                    </Text>
+                    <Text fontSize="sm" color="gray.300" lineHeight="short" textAlign="left">
+                      {desc}
+                    </Text>
+                    {isFlexCard && (
+                      <Text fontSize="xs" color={flexFull ? 'red.400' : 'purple.400'} fontWeight="semibold">
+                        {flexCount} / {maxFlex} slots taken{flexFull ? ' — full' : ''}
+                      </Text>
+                    )}
+                  </VStack>
+                </HStack>
+              </Box>
+            );
+          })}
         </SimpleGrid>
       </VStack>
     </Box>
@@ -1282,8 +1320,27 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     event.eventPassword ?? ''
   );
 
+  // Role is locked once the player has joined any task
+  const roleLocked =
+    !!currentUserDiscordId &&
+    Object.values(taskProgress).some((ids) => Array.isArray(ids) && ids.includes(currentUserDiscordId));
+
+  const [pendingJoinTaskId, setPendingJoinTaskId] = useState(null);
+
   const handleJoin = (taskId) => {
+    if (!roleLocked) {
+      // First task join — confirm role lock first
+      setPendingJoinTaskId(taskId);
+      return;
+    }
     joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
+  };
+
+  const confirmJoin = () => {
+    if (pendingJoinTaskId) {
+      joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingJoinTaskId } });
+    }
+    setPendingJoinTaskId(null);
   };
 
   const handleLeave = (taskId) => {
@@ -1361,8 +1418,10 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       {memberRecord && (
         <MyRoleSelector
           team={team}
+          event={event}
           myDiscordId={currentUserDiscordId}
           currentRole={userMemberRole}
+          roleLocked={roleLocked}
           refetch={refetch}
         />
       )}
@@ -1668,6 +1727,40 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
           <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
         </VStack>
       </SimpleGrid>
+
+      {/* Role lock confirmation modal */}
+      <Modal isOpen={!!pendingJoinTaskId} onClose={() => setPendingJoinTaskId(null)} isCentered>
+        <ModalOverlay />
+        <ModalContent bg="gray.800" border="1px solid" borderColor="yellow.600">
+          <ModalHeader color="yellow.200">⚠️ This will lock your role</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack align="stretch" spacing={4}>
+              <Text color="gray.300">
+                Once you join a task, your role is locked in as{' '}
+                <Text as="span" fontWeight="bold" color={
+                  userMemberRole === 'PVMER' ? 'orange.300' :
+                  userMemberRole === 'SKILLER' ? 'teal.300' : 'purple.300'
+                }>
+                  {userMemberRole}
+                </Text>
+                . You won't be able to switch roles after this.
+              </Text>
+              <Text fontSize="sm" color="gray.500">
+                Make sure you've coordinated with your team before committing.
+              </Text>
+              <HStack spacing={3} justify="flex-end">
+                <Button variant="ghost" size="sm" onClick={() => setPendingJoinTaskId(null)}>
+                  Cancel
+                </Button>
+                <Button colorScheme="teal" size="sm" onClick={confirmJoin}>
+                  Lock in and join
+                </Button>
+              </HStack>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </VStack>
   );
 }
@@ -1724,9 +1817,9 @@ function BattlePhaseBarracks({ event, team }) {
         Battle is underway!
       </Text>
       <Text color="gray.400" textAlign="center">
-        Your team's champion is in battle. Head to the event overview to watch.
+        Your team's champion is in battle. Head to the battle page to watch.
       </Text>
-      <Button colorScheme="red" onClick={() => navigate(`/champion-forge/${event.eventId}`)}>
+      <Button colorScheme="red" onClick={() => navigate(`/champion-forge/${event.eventId}/battle`)}>
         Watch the Battle
       </Button>
     </Center>

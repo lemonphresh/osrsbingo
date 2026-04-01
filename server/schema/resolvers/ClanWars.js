@@ -20,7 +20,7 @@ const {
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
 
-const { sendClanWarsPhaseAnnouncement } = require('../../utils/clanWarsNotifications');
+const { sendClanWarsPhaseAnnouncement, sendBattleCompleteAnnouncement } = require('../../utils/clanWarsNotifications');
 const { triggerGatheringTransition } = require('../../utils/cwScheduler');
 
 function isAdmin(event, userId, discordId) {
@@ -552,6 +552,29 @@ const Mutation = {
         return true;
       });
       if (!onlyOwnChange) throw new AuthenticationError('Not an event admin');
+
+      // Role is locked once the player has joined any task
+      const hasJoinedTask = Object.values(team.taskProgress ?? {}).some(
+        (ids) => Array.isArray(ids) && ids.includes(discordId)
+      );
+      if (hasJoinedTask) {
+        throw new UserInputError('Your role is locked once you have joined a task');
+      }
+
+      // Enforce FLEX cap: max 20% of team (at least 1)
+      const newRole = members.find((m) => m.discordId === discordId)?.role;
+      if (newRole === 'FLEX') {
+        if (!event.eventConfig?.flexRolesAllowed) {
+          throw new UserInputError('Flex role is not available for this event');
+        }
+        const flexCount = (team.members ?? []).filter(
+          (m) => m.discordId !== discordId && m.role === 'FLEX'
+        ).length;
+        const maxFlex = Math.max(1, Math.ceil((team.members ?? []).length * 0.2));
+        if (flexCount >= maxFlex) {
+          throw new UserInputError(`Flex slots are full (max ${maxFlex} for this team)`);
+        }
+      }
     }
 
     await team.update({ members });
@@ -1283,6 +1306,22 @@ const Mutation = {
           });
           logger.info(`[ClanWars] Event ${battle.eventId} auto-completed — all bracket matches done`);
         }
+      }
+
+      // Notify announcements channel of battle completion
+      if (eventRecord.announcementsChannelId) {
+        const loserTeamId = battle.team1Id === winnerId ? battle.team2Id : battle.team1Id;
+        const [winnerTeam, loserTeam] = await Promise.all([
+          ClanWarsTeam.findByPk(winnerId),
+          ClanWarsTeam.findByPk(loserTeamId),
+        ]);
+        sendBattleCompleteAnnouncement({
+          channelId: eventRecord.announcementsChannelId,
+          eventId: eventRecord.eventId,
+          eventName: eventRecord.eventName,
+          winnerTeamName: winnerTeam?.teamName ?? 'Unknown',
+          loserTeamName: loserTeam?.teamName ?? 'Unknown',
+        });
       }
     }
 

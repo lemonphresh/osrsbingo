@@ -101,9 +101,25 @@ async function sendCaptainMissingAlert({ channelId, eventName, missingTeams }) {
   }
 }
 
+async function sendBattleCompleteAnnouncement({ channelId, eventId, eventName, winnerTeamName, loserTeamName }) {
+  if (!channelId) return;
+  const battleUrl = `${SITE_URL}/champion-forge/${eventId}/battle`;
+  try {
+    await discordFetch(`/channels/${channelId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        content: `⚔️ **${eventName}** — Battle complete!\n**${winnerTeamName}** defeated **${loserTeamName}**!\n\n📊 View the bracket: ${battleUrl}`,
+      }),
+    });
+  } catch (_) {
+    // best-effort
+  }
+}
+
 module.exports = {
   registerBotClient,
   sendClanWarsSubmissionResult,
   sendClanWarsPhaseAnnouncement,
   sendCaptainMissingAlert,
+  sendBattleCompleteAnnouncement,
 };
