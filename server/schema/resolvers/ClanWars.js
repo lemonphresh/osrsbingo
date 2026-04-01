@@ -531,7 +531,29 @@ const Mutation = {
     if (!user) throw new AuthenticationError('Not authenticated');
     const team = await getTeamOrThrow(teamId);
     const event = await getEventOrThrow(team.eventId);
-    if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    if (!isAdmin(event, user.id)) {
+      // Non-admins may only update their own member entry (e.g. setting their role)
+      const discordId = user.discordUserId ?? null;
+      if (!discordId) throw new AuthenticationError('Not an event admin');
+
+      const existing = team.members ?? [];
+      const isMember = existing.some((m) =>
+        typeof m === 'string' ? m === discordId : m.discordId === discordId
+      );
+      if (!isMember) throw new AuthenticationError('Not an event admin');
+
+      // Ensure the update only touches the caller's own entry
+      const onlyOwnChange = members.every((m) => {
+        if (m.discordId !== discordId) {
+          const orig = existing.find((e) => e.discordId === m.discordId);
+          return orig && orig.role === m.role;
+        }
+        return true;
+      });
+      if (!onlyOwnChange) throw new AuthenticationError('Not an event admin');
+    }
+
     await team.update({ members });
     return team;
   },

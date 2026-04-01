@@ -164,9 +164,12 @@ export const DELETE_USER = gql`
 export const LINK_DISCORD_ACCOUNT = gql`
   mutation LinkDiscordAccount($userId: ID!, $discordUserId: String!) {
     linkDiscordAccount(userId: $userId, discordUserId: $discordUserId) {
-      id
-      discordUserId
-      displayName
+      token
+      user {
+        id
+        discordUserId
+        displayName
+      }
     }
   }
 `;

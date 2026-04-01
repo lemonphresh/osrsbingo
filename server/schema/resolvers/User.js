@@ -68,7 +68,13 @@ module.exports = {
         user.discordUserId = discordUserId;
         await user.save();
 
-        return user;
+        const token = jwt.sign(
+          { userId: user.id, admin: user.admin, discordUserId: user.discordUserId ?? null },
+          context.jwtSecret,
+          { expiresIn: '7d' }
+        );
+
+        return { user, token };
       } catch (error) {
         logger.error('Error linking Discord account:', error);
         throw error;

@@ -666,7 +666,7 @@ const typeDefs = gql`
     loginUser(username: String!, password: String!): AuthPayload
 
     # --- Discord Linking ---
-    linkDiscordAccount(userId: ID!, discordUserId: String!): User!
+    linkDiscordAccount(userId: ID!, discordUserId: String!): AuthPayload!
     unlinkDiscordAccount(userId: ID!): User!
 
     # --- Bingo Boards ---
