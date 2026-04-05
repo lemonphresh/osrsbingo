@@ -197,6 +197,11 @@ const typeDefs = gql`
     SAVED
   }
 
+  enum CalendarEventPublishStatus {
+    DRAFT
+    OFFICIAL
+  }
+
   type CalendarEvent {
     id: ID!
     title: String!
@@ -206,6 +211,7 @@ const typeDefs = gql`
     allDay: Boolean!
     eventType: CalendarEventType!
     status: CalendarEventStatus!
+    publishStatus: CalendarEventPublishStatus!
     createdAt: DateTime!
     updatedAt: DateTime!
   }
@@ -231,6 +237,7 @@ const typeDefs = gql`
     end: DateTime!
     allDay: Boolean = false
     eventType: CalendarEventType!
+    publishStatus: CalendarEventPublishStatus = OFFICIAL
   }
 
   input UpdateCalendarEventInput {
@@ -599,6 +606,7 @@ const typeDefs = gql`
       offset: Int = 0
       limit: Int = 500
       status: CalendarEventStatus = ACTIVE
+      publishStatus: CalendarEventPublishStatus
     ): CalendarEventsPage!
     savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
     calendarVersion: CalendarVersion!
@@ -694,6 +702,7 @@ const typeDefs = gql`
     deleteCalendarEvent(id: ID!): Boolean!
     saveCalendarEvent(id: ID!): CalendarEvent!
     restoreCalendarEvent(id: ID!, start: DateTime!, end: DateTime!): CalendarEvent!
+    promoteCalendarEvent(id: ID!): CalendarEvent!
 
     # --- Gielinor Rush: Events ---
     createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!

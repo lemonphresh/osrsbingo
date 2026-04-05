@@ -31,9 +31,12 @@ const calendarResolvers = {
 
   Query: {
     // Optionally accept a status arg if your SDL includes it (default ACTIVE).
-    async calendarEvents(_, { offset = 0, limit = 500, status = 'ACTIVE' }, ctx) {
+    async calendarEvents(_, { offset = 0, limit = 500, status = 'ACTIVE', publishStatus }, ctx) {
       requireCalendarAuth(ctx);
-      const where = status ? { status } : undefined;
+      const where = {
+        ...(status ? { status } : {}),
+        ...(publishStatus ? { publishStatus } : {}),
+      };
       const { rows, count } = await CalendarEvent.findAndCountAll({
         where,
         order: [['start', 'ASC']],
@@ -128,7 +131,8 @@ const calendarResolvers = {
       }
       const e = await CalendarEvent.create({
         ...input,
-        status: input.status || 'ACTIVE', // in case you pass it
+        status: 'ACTIVE',
+        publishStatus: input.publishStatus || 'OFFICIAL',
         eventType: normalizeType(input.eventType),
       });
       return e;
@@ -159,6 +163,14 @@ const calendarResolvers = {
       const e = await CalendarEvent.findByPk(id);
       if (!e) throw new UserInputError('Not found');
       await e.update({ status: 'SAVED' });
+      return e;
+    },
+
+    async promoteCalendarEvent(_, { id }, ctx) {
+      requireCalendarAuth(ctx);
+      const e = await CalendarEvent.findByPk(id);
+      if (!e) throw new UserInputError('Not found');
+      await e.update({ publishStatus: 'OFFICIAL' });
       return e;
     },
 
