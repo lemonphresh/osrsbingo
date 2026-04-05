@@ -13,6 +13,7 @@ import IronmanIcon from '../assets/ironman.png';
 import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
+import ExampleCf from '../assets/cfoutfittingpreview.webp';
 import usePageTitle from '../hooks/usePageTitle';
 import {
   isGielinorRushEnabled,
@@ -305,16 +306,15 @@ const Landing = () => {
               height="180px"
               gap={[4, 6]}
             >
-              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
-                📋
-              </Text>
-              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
-                ⛏️
-              </Text>
-              <Text fontSize="2xl" style={{ opacity: 0.7 }}>
-                🛡️
-              </Text>
-              <Text fontSize="3xl">⚔️</Text>
+              <Image
+                alt="Champion Forge outfitting screen"
+                backgroundColor={theme.colors.gray[900]}
+                borderRadius="8px"
+                maxHeight="180px"
+                padding="8px"
+                src={ExampleCf}
+                loading="lazy"
+              />
             </Flex>
             <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
               Run full clan tournaments across four phases: gathering, outfitting, and live

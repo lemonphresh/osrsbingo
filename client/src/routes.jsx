@@ -35,6 +35,7 @@ const ChampionForgeDashboard = lazy(() => import('./pages/ChampionForgeDashboard
 const ChampionForgeEventPage = lazy(() => import('./pages/ChampionForgeEventPage'));
 const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarracksPage'));
 const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
+const ChampionForgeGuidePage = lazy(() => import('./pages/ChampionForgeGuidePage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -174,6 +175,11 @@ const routes = [
       {
         path: '/champion-forge/:eventId/battle',
         element: withSuspense(ChampionForgeBattlePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/champion-forge/guide',
+        element: withSuspense(ChampionForgeGuidePage),
         errorElement: <ErrorPage />,
       },
       {

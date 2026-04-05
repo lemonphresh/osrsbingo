@@ -168,6 +168,7 @@ function MatchCard({
 
         {/* Captain ready button */}
         {isUpcoming &&
+          match.team1Id && match.team2Id &&
           iAmInThisMatch &&
           !isAdmin &&
           (amIReady ? (
@@ -188,7 +189,7 @@ function MatchCard({
           ))}
 
         {/* Admin ready-up on behalf + start */}
-        {isUpcoming && isAdmin && (
+        {isUpcoming && isAdmin && match.team1Id && match.team2Id && (
           <VStack spacing={1}>
             <HStack w="full" spacing={1}>
               <Button

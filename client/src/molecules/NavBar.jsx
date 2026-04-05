@@ -351,7 +351,7 @@ const NavBar = () => {
               zIndex={99}
               backgroundColor="#0d1520"
               borderLeft="3px solid rgba(50, 104, 107, 0.8)"
-              boxShadow="-8px 0 40px rgba(0,0,0,0.8)"
+              boxShadow={isNavMenuOpen ? '-8px 0 40px rgba(0,0,0,0.8)' : 'none'}
               display="flex"
               flexDirection="column"
               transform={isNavMenuOpen ? 'translateX(0)' : 'translateX(100%)'}

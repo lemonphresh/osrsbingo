@@ -13,7 +13,19 @@ import {
   Badge,
   Divider,
   Flex,
+  Image,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  ModalCloseButton,
 } from '@chakra-ui/react';
+import CfGathering from '../assets/cfgathering.webp';
+import CfOutfitting from '../assets/cfoutfittingpreview.webp';
+import CfBattle from '../assets/cfbattle.webp';
+import CfDraft from '../assets/cfdraft.webp';
+import Infernal from '../assets/infernal.png';
+
 import {
   GET_ALL_CLAN_WARS_EVENTS,
   CREATE_CLAN_WARS_EVENT,
@@ -52,6 +64,7 @@ const PHASES = [
     color: theme.colors.purple[400],
     borderColor: theme.colors.purple[600],
     icon: '📋',
+    preview: CfDraft,
     desc: (
       <>
         Admins set up teams, configure event rules, and import rosters.{' '}
@@ -72,6 +85,7 @@ const PHASES = [
     color: theme.colors.green[400],
     borderColor: theme.colors.green[600],
     icon: '⛏️',
+    preview: CfGathering,
     desc: 'Teams race to complete OSRS tasks: boss kills, collection log drops, skilling milestones. Each completion earns armor, weapons, consumables and more for your war chest. Discord submissions with screenshot proof keep it honest.',
   },
   {
@@ -80,6 +94,7 @@ const PHASES = [
     color: theme.colors.blue[400],
     borderColor: theme.colors.blue[600],
     icon: '🛡️',
+    preview: CfOutfitting,
     desc: 'Spend your war chest to build your champion. Allocate stats across Attack, Defense, HP, and Speed. Equip gear unlocked from gathering: weapons, armor, trinkets, and special abilities that define your fight style.',
   },
   {
@@ -88,6 +103,7 @@ const PHASES = [
     color: theme.colors.red[400],
     borderColor: theme.colors.red[600],
     icon: '⚔️',
+    preview: CfBattle,
     desc: 'Champions face off in a single or double elimination bracket. Turn-based combat plays out in real time with specials, consumables, bleed, lifesteal, and chain lightning. Watch replays of every fight after the dust settles.',
   },
 ];
@@ -125,7 +141,7 @@ const FEATURES = [
   },
 ];
 
-function ChampionForgeLanding() {
+function ChampionForgeLanding({ hideActions = false }) {
   usePageTitle('Champion Forge');
 
   return (
@@ -135,7 +151,9 @@ function ChampionForgeLanding() {
         position="relative"
         overflow="hidden"
         minHeight={['280px', '360px', '420px']}
-        background={`linear-gradient(135deg, ${theme.colors.gray[900]} 0%, #1a1008 40%, #2a1800 70%, ${theme.colors.gray[900]} 100%)`}
+        backgroundImage={`linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.87) 100%), url(${Infernal})`}
+        backgroundSize="cover"
+        backgroundPosition="center"
       >
         {/* Decorative glow */}
         <Box
@@ -172,17 +190,19 @@ function ChampionForgeLanding() {
           >
             The full clan tournament experience for OSRS. Four phases. Real combat. One champion.
           </Text>
-          <Badge
-            fontSize="sm"
-            px={4}
-            py={2}
-            borderRadius="full"
-            bg={theme.colors.yellow[800]}
-            color={theme.colors.yellow[200]}
-            letterSpacing="wider"
-          >
-            COMING SOON
-          </Badge>
+          {!hideActions && (
+            <Badge
+              fontSize="sm"
+              px={4}
+              py={2}
+              borderRadius="full"
+              bg={theme.colors.yellow[800]}
+              color={theme.colors.yellow[200]}
+              letterSpacing="wider"
+            >
+              COMING SOON
+            </Badge>
+          )}
         </Flex>
       </Box>
 
@@ -243,6 +263,17 @@ function ChampionForgeLanding() {
               display="flex"
               flexDirection="column"
             >
+              {phase.preview && (
+                <Image
+                  src={phase.preview}
+                  alt={phase.name}
+                  borderRadius="6px"
+                  mb={3}
+                  w="100%"
+                  objectFit="cover"
+                  maxH="140px"
+                />
+              )}
               <HStack marginBottom="8px">
                 <Text fontSize="xl">{phase.icon}</Text>
                 <Text fontSize="xs" color="gray.500" letterSpacing="widest" fontWeight="semibold">
@@ -353,6 +384,7 @@ function ChampionForgeLanding() {
         </Box>
 
         {/* CTA */}
+        {!hideActions && (
         <Box
           textAlign="center"
           padding={['24px', '36px']}
@@ -400,8 +432,23 @@ function ChampionForgeLanding() {
             </a>
           </HStack>
         </Box>
+        )}
       </Flex>
     </Flex>
+  );
+}
+
+function ChampionForgeInfoModal({ isOpen, onClose }) {
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="6xl" scrollBehavior="inside">
+      <ModalOverlay bg="blackAlpha.800" />
+      <ModalContent bg="gray.900" maxH="90vh" borderRadius="xl">
+        <ModalCloseButton color="gray.400" size="lg" top={3} right={4} zIndex={10} />
+        <ModalBody p={0} overflowY="auto">
+          <ChampionForgeLanding hideActions />
+        </ModalBody>
+      </ModalContent>
+    </Modal>
   );
 }
 
@@ -508,6 +555,7 @@ function ChampionForgeDashboardContent() {
   const { showToast } = useToastContext();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSeedConfirmOpen, setIsSeedConfirmOpen] = useState(false);
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
   const [pastPage, setPastPage] = useState(0);
 
   const { data, loading, error } = useQuery(GET_ALL_CLAN_WARS_EVENTS);
@@ -598,6 +646,15 @@ function ChampionForgeDashboardContent() {
           flexShrink={0}
         >
           + New Event
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme="teal"
+          flexShrink={0}
+          onClick={() => setIsAboutOpen(true)}
+        >
+          ℹ️ How it Works
         </Button>
       </HStack>
 
@@ -748,6 +805,8 @@ function ChampionForgeDashboardContent() {
         colorScheme="orange"
         isLoading={seeding}
       />
+
+      <ChampionForgeInfoModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
     </Box>
   );
 }
