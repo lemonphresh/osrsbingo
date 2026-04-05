@@ -446,6 +446,22 @@ function ChampionForgeInfoModal({ isOpen, onClose }) {
         <ModalCloseButton color="gray.400" size="lg" top={3} right={4} zIndex={10} />
         <ModalBody p={0} overflowY="auto">
           <ChampionForgeLanding hideActions />
+          <Box
+            padding="20px 32px"
+            borderTopWidth="1px"
+            borderColor={theme.colors.gray[700]}
+            textAlign="center"
+          >
+            <Link to="/champion-forge/guide" onClick={onClose}>
+              <Text
+                fontSize="sm"
+                color={theme.colors.teal[400]}
+                _hover={{ textDecoration: 'underline' }}
+              >
+                📖 Read the Full Event Guide
+              </Text>
+            </Link>
+          </Box>
         </ModalBody>
       </ModalContent>
     </Modal>
@@ -656,6 +672,16 @@ function ChampionForgeDashboardContent() {
         >
           ℹ️ How it Works
         </Button>
+        <Link to="/champion-forge/guide">
+          <Button
+            size="sm"
+            variant="ghost"
+            colorScheme="teal"
+            flexShrink={0}
+          >
+            📖 Event Guide
+          </Button>
+        </Link>
       </HStack>
 
       <Divider mb={8} borderColor="gray.700" />

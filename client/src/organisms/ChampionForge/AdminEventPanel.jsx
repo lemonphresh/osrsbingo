@@ -547,7 +547,7 @@ export default function AdminEventPanel({ event, refetch }) {
         borderColor="teal.700"
         justify="space-between"
       >
-        <HStack spacing={2}>
+        <HStack spacing={3}>
           <Icon as={SettingsIcon} color="teal.300" />
           <Text fontWeight="semibold" color="teal.200" fontSize="sm">
             Admin Controls

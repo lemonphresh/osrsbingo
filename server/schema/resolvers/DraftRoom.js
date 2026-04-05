@@ -214,6 +214,13 @@ const Query = {
     // Return without players for list view
     return rooms.map((r) => ({ ...r.toJSON(), players: [] }));
   },
+
+  async fetchWomStats(_, { rsns }) {
+    if (!rsns || rsns.length === 0) return [];
+    const capped = rsns.slice(0, 50);
+    const stats = await fetchAllPlayerStats(capped);
+    return stats;
+  },
 };
 
 // ---------------------------------------------------------------------------

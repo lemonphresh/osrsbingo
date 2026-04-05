@@ -637,6 +637,7 @@ const typeDefs = gql`
     # --- Blind Draft Room ---
     getDraftRoom(roomId: ID!): DraftRoom
     getMyDraftRooms: [DraftRoom!]!
+    fetchWomStats(rsns: [String!]!): [JSON!]!
 
     # --- Champion Forge ---
     getClanWarsEvent(eventId: ID!): ClanWarsEvent

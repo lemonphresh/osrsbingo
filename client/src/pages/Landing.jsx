@@ -14,6 +14,7 @@ import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
 import ExampleCf from '../assets/cfoutfittingpreview.webp';
+import TeamBalancerPreview from '../assets/teambalancer.webp';
 import usePageTitle from '../hooks/usePageTitle';
 import {
   isGielinorRushEnabled,
@@ -34,7 +35,7 @@ const Landing = () => {
   return (
     <Flex flex="1" flexDirection="column" height="100%">
       {/* ── Hero with panning map background ── */}
-      <Box position="relative" overflow="hidden" minHeight={['auto', '460px', '520px']}>
+      <Box position="relative" overflow="hidden" minHeight={['auto', '360px', '420px']}>
         {/* Map layer */}
         <Box
           position="absolute"
@@ -65,7 +66,7 @@ const Landing = () => {
           flexDirection="column"
           alignItems="center"
           justifyContent="center"
-          minHeight={['250px', '460px', '520px']}
+          minHeight={['250px', '360px', '420px']}
           paddingX={['16px', '24px', '64px']}
           paddingTop={['36px', '36px', '72px']}
           paddingBottom={['24px', '24px', '48px']}
@@ -119,55 +120,8 @@ const Landing = () => {
         paddingBottom={['32px', '64px']}
         paddingTop="40px"
       >
-        {/* Main Features */}
-        <Flex flexDirection={['column', 'column', 'column', 'row']} gap="24px" marginBottom="48px">
-          {/* Blind Draft */}
-          {isBlindDraftEnabled(user) && (
-            <Box
-              flex="1"
-              display="flex"
-              flexDirection="column"
-              backgroundColor={theme.colors.teal[900]}
-              borderRadius="12px"
-              padding={['20px', '28px']}
-              borderWidth="2px"
-              borderColor={theme.colors.pink[600]}
-              order={[3, 3, 3, 1]}
-            >
-              <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-                <Text fontSize="xl" fontWeight="semibold" color={theme.colors.pink[300]}>
-                  Blind Draft
-                </Text>
-                <Text fontSize="xs" bg={theme.colors.pink[700]} px={2} py={1} borderRadius="full">
-                  NEW
-                </Text>
-              </HStack>
-              <Flex justifyContent="center" marginBottom="20px">
-                <Image
-                  alt="Blind draft room showing anonymized player cards"
-                  backgroundColor={theme.colors.gray[900]}
-                  borderRadius="8px"
-                  maxHeight="180px"
-                  padding="8px"
-                  src={BlindDraft}
-                  loading="lazy"
-                />
-              </Flex>
-              <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
-                Host fair team drafts where captains pick players by stats alone, no names visible
-                until it's over. Supports snake, linear, and auction formats with a real-time timer.
-              </Text>
-              <Link to="/blind-draft" style={{ marginTop: 'auto' }}>
-                <Button
-                  width="100%"
-                  backgroundColor={theme.colors.pink[600]}
-                  _hover={{ backgroundColor: theme.colors.pink[700] }}
-                >
-                  Try Blind Draft
-                </Button>
-              </Link>
-            </Box>
-          )}
+        {/* Main Features — Row 1: core event tools */}
+        <Flex flexDirection={['column', 'column', 'row']} gap="24px" marginBottom="24px">
           {/* Bingo Boards */}
           <Box
             flex="1"
@@ -175,16 +129,16 @@ const Landing = () => {
             flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
-            padding={['20px', '28px']}
+            padding={['16px', '20px']}
             borderWidth="2px"
             borderColor={theme.colors.purple[400]}
-            order={[1, 1, 1, 2]}
           >
             <Text
               fontSize="xl"
               fontWeight="semibold"
               color={theme.colors.purple[300]}
               marginBottom="16px"
+              fontFamily="Raleway"
             >
               Bingo Boards
             </Text>
@@ -221,13 +175,17 @@ const Landing = () => {
             flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
-            padding={['20px', '28px']}
-            order={[2, 2, 2, 3]}
+            padding={['16px', '20px']}
             borderWidth="2px"
             borderColor={theme.colors.orange[400]}
           >
             <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.orange[300]}>
+              <Text
+                fontSize="xl"
+                fontFamily="Raleway"
+                fontWeight="semibold"
+                color={theme.colors.orange[300]}
+              >
                 Gielinor Rush
               </Text>
               <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
@@ -268,13 +226,17 @@ const Landing = () => {
             flexDirection="column"
             backgroundColor={theme.colors.teal[900]}
             borderRadius="12px"
-            padding={['20px', '28px']}
-            order={[4, 4, 4, 4]}
+            padding={['16px', '20px']}
             borderWidth="2px"
             borderColor={theme.colors.blue[500]}
           >
             <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-              <Text fontSize="xl" fontWeight="semibold" color={theme.colors.blue[300]}>
+              <Text
+                fontFamily="Raleway"
+                fontSize="xl"
+                fontWeight="semibold"
+                color={theme.colors.blue[300]}
+              >
                 Champion Forge
               </Text>
               <Text
@@ -301,7 +263,6 @@ const Landing = () => {
               justifyContent="center"
               alignItems="center"
               marginBottom="20px"
-              background="linear-gradient(135deg, #0d1a1a 0%, #1a1008 50%, #0d1a1a 100%)"
               borderRadius="8px"
               height="180px"
               gap={[4, 6]}
@@ -340,6 +301,109 @@ const Landing = () => {
                 }}
               >
                 {isChampionForgeEnabled(user) ? 'Get Started' : 'Learn More'}
+              </Button>
+            </Link>
+          </Box>
+        </Flex>
+
+        {/* Main Features — Row 2: drafting tools */}
+        <Flex flexDirection={['column', 'column', 'row']} gap="24px" marginBottom="48px">
+          {/* Blind Draft */}
+          {isBlindDraftEnabled(user) && (
+            <Box
+              flex="1"
+              display="flex"
+              flexDirection="column"
+              backgroundColor={theme.colors.teal[900]}
+              borderRadius="12px"
+              padding={['16px', '20px']}
+              borderWidth="2px"
+              borderColor={theme.colors.pink[600]}
+            >
+              <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+                <Text
+                  fontFamily="Raleway"
+                  fontSize="xl"
+                  fontWeight="semibold"
+                  color={theme.colors.pink[300]}
+                >
+                  Blind Draft
+                </Text>
+              </HStack>
+              <Flex justifyContent="center" marginBottom="20px">
+                <Image
+                  alt="Blind draft room showing anonymized player cards"
+                  backgroundColor={theme.colors.gray[900]}
+                  borderRadius="8px"
+                  maxHeight="180px"
+                  padding="8px"
+                  src={BlindDraft}
+                  loading="lazy"
+                />
+              </Flex>
+              <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+                Host fair team drafts where captains pick players by stats alone, no names visible
+                until it's over. Supports snake, linear, and auction formats with a real-time timer.
+              </Text>
+              <Link to="/blind-draft" style={{ marginTop: 'auto' }}>
+                <Button
+                  width="100%"
+                  backgroundColor={theme.colors.pink[600]}
+                  _hover={{ backgroundColor: theme.colors.pink[700] }}
+                >
+                  Try Blind Draft
+                </Button>
+              </Link>
+            </Box>
+          )}
+
+          {/* Team Balancer */}
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            backgroundColor={theme.colors.teal[900]}
+            borderRadius="12px"
+            padding={['16px', '20px']}
+            borderWidth="2px"
+            borderColor={theme.colors.green[500]}
+          >
+            <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+              <Text
+                fontFamily="Raleway"
+                fontSize="xl"
+                fontWeight="semibold"
+                color={theme.colors.green[300]}
+              >
+                Team Balancer
+              </Text>
+              <Text fontSize="xs" bg={theme.colors.green[700]} px={2} py={1} borderRadius="full">
+                NEW
+              </Text>
+            </HStack>
+            <Flex justifyContent="center" marginBottom="20px">
+              <Image
+                alt="Team Balancer showing balanced teams by WOM stats"
+                backgroundColor={theme.colors.gray[900]}
+                borderRadius="8px"
+                maxHeight="180px"
+                padding="8px"
+                src={TeamBalancerPreview}
+                loading="lazy"
+              />
+            </Flex>
+            <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+              Paste a list of RSNs and auto-balance them into fair teams using Wise Old Man stats.
+              Choose a preset (All-Rounder, PvM, Skilling, or Raid) and get teams sorted by EHB/Y,
+              EHP/Y, raid KCs, and more. No account needed.
+            </Text>
+            <Link to="/team-balancer" style={{ marginTop: 'auto' }}>
+              <Button
+                width="100%"
+                backgroundColor={theme.colors.green[600]}
+                _hover={{ backgroundColor: theme.colors.green[700] }}
+              >
+                Balance Teams
               </Button>
             </Link>
           </Box>
@@ -389,7 +453,7 @@ const Landing = () => {
                 borderLeftColor={color[400]}
                 flexDirection="column"
               >
-                <Flex justifyContent="start" marginBottom="8px">
+                <Flex justifyContent="start" alignItems="center" marginBottom="8px">
                   <Flex
                     p={2}
                     borderRadius="24px"
@@ -400,7 +464,7 @@ const Landing = () => {
                   >
                     <Image src={icon} alt={alt} height="20px" width="20px" />
                   </Flex>
-                  <Text fontWeight="semibold" color={color[300]}>
+                  <Text fontFamily="Raleway" fontWeight="semibold" color={color[300]}>
                     {label}
                   </Text>
                 </Flex>
@@ -426,6 +490,7 @@ const Landing = () => {
             fontWeight="semibold"
             marginBottom="12px"
             color={theme.colors.pink[300]}
+            fontFamily="Raleway"
           >
             About This Project
           </Text>

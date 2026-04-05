@@ -36,6 +36,7 @@ const ChampionForgeEventPage = lazy(() => import('./pages/ChampionForgeEventPage
 const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarracksPage'));
 const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
 const ChampionForgeGuidePage = lazy(() => import('./pages/ChampionForgeGuidePage'));
+const TeamBalancerPage = lazy(() => import('./pages/TeamBalancerPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -140,6 +141,11 @@ const routes = [
       {
         path: '/blind-draft',
         element: withSuspense(DraftDashboard),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/team-balancer',
+        element: withSuspense(TeamBalancerPage),
         errorElement: <ErrorPage />,
       },
       {
