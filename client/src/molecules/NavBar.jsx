@@ -128,7 +128,7 @@ const NavBar = () => {
                 </Text>
                 {isChampionForgeEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also, clan leaders, go check out <strong>Champion Forge</strong>! Full clan
+                    Also, event runners, go check out <strong>Champion Forge</strong>! Full clan
                     tournaments are here! ⚔️
                   </Text>
                 ) : (
@@ -351,7 +351,7 @@ const NavBar = () => {
               zIndex={99}
               backgroundColor="#0d1520"
               borderLeft="3px solid rgba(50, 104, 107, 0.8)"
-              boxShadow="-8px 0 40px rgba(0,0,0,0.8)"
+              boxShadow={isNavMenuOpen ? '-8px 0 40px rgba(0,0,0,0.8)' : 'none'}
               display="flex"
               flexDirection="column"
               transform={isNavMenuOpen ? 'translateX(0)' : 'translateX(100%)'}
@@ -405,6 +405,7 @@ const NavBar = () => {
                     items: [
                       { label: 'Bingo Creator', to: '/boards/create' },
                       { label: 'Blind Draft', to: '/blind-draft' },
+                      { label: 'Team Balancer', to: '/team-balancer' },
                       { label: 'Gielinor Rush', to: '/gielinor-rush' },
                       ...(isChampionForgeEnabled(user)
                         ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]

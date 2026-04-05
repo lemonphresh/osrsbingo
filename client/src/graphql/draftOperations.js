@@ -70,6 +70,12 @@ export const GET_MY_DRAFT_ROOMS = gql`
   }
 `;
 
+export const FETCH_WOM_STATS = gql`
+  query FetchWomStats($rsns: [String!]!) {
+    fetchWomStats(rsns: $rsns)
+  }
+`;
+
 // ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------

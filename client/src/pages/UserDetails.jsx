@@ -362,6 +362,24 @@ const UserDetails = () => {
                   Build a champion and battle rival clans
                 </Text>
               </Box>
+              <Box
+                as={Link}
+                to="/team-balancer"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.green[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.green[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.green[300]} mb={1}>
+                  Team Balancer
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Auto-balance a list of RSNs into fair teams using WOM stats
+                </Text>
+              </Box>
               {isBlindDraftEnabled(user) && (
               <Box
                 as={Link}

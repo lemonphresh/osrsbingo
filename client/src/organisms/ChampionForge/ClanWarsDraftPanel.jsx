@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import {
   playSubmissionIncoming,
   playSubmissionApproved,
@@ -35,7 +36,13 @@ import {
   AccordionPanel,
   AccordionIcon,
 } from '@chakra-ui/react';
-import { CheckIcon, WarningIcon, SettingsIcon, DeleteIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import {
+  CheckIcon,
+  WarningIcon,
+  SettingsIcon,
+  DeleteIcon,
+  ExternalLinkIcon,
+} from '@chakra-ui/icons';
 import { Link } from '@chakra-ui/react';
 import { FaDiscord, FaUsers, FaScroll, FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -761,8 +768,18 @@ const UI_SOUNDS = [
 ];
 
 const BATTLE_SOUNDS = [
-  'slash', 'critSlash', 'doubleSlash', 'shield', 'fortressRipple',
-  'lightning', 'bleed', 'drain', 'heal', 'explosion', 'debuff', 'buff',
+  'slash',
+  'critSlash',
+  'doubleSlash',
+  'shield',
+  'fortressRipple',
+  'lightning',
+  'bleed',
+  'drain',
+  'heal',
+  'explosion',
+  'debuff',
+  'buff',
 ];
 
 function SoundDevWidget() {
@@ -780,7 +797,13 @@ function SoundDevWidget() {
         onClick={() => setOpen((o) => !o)}
         userSelect="none"
       >
-        <Text fontSize="xs" color="purple.300" fontWeight="semibold" letterSpacing="wider" textTransform="uppercase">
+        <Text
+          fontSize="xs"
+          color="purple.300"
+          fontWeight="semibold"
+          letterSpacing="wider"
+          textTransform="uppercase"
+        >
           {open ? '▲' : '▾'} 🔊 Dev — Sound Tester
         </Text>
       </Box>
@@ -789,7 +812,13 @@ function SoundDevWidget() {
         <Box px={4} py={3} bg="gray.900">
           <VStack align="stretch" spacing={3}>
             <Box>
-              <Text fontSize="xs" color="gray.500" mb={2} textTransform="uppercase" letterSpacing="wider">
+              <Text
+                fontSize="xs"
+                color="gray.500"
+                mb={2}
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
                 UI Sounds
               </Text>
               <HStack spacing={2} flexWrap="wrap">
@@ -803,14 +832,25 @@ function SoundDevWidget() {
 
             <Box>
               <HStack justify="space-between" mb={2}>
-                <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+                <Text
+                  fontSize="xs"
+                  color="gray.500"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                >
                   Battle Sounds
                 </Text>
                 <BattleVolumeSlider />
               </HStack>
               <HStack spacing={2} flexWrap="wrap">
                 {BATTLE_SOUNDS.map((key) => (
-                  <Button key={key} size="xs" colorScheme="orange" variant="outline" onClick={() => playBattleSound(key)}>
+                  <Button
+                    key={key}
+                    size="xs"
+                    colorScheme="orange"
+                    variant="outline"
+                    onClick={() => playBattleSound(key)}
+                  >
                     {key}
                   </Button>
                 ))}
@@ -956,16 +996,29 @@ export default function ClanWarsDraftPanel({ event, refetch }) {
               DRAFT
             </Badge>
           </HStack>
-          {!event.scheduledGatheringStart && (
-            <Button
-              size="sm"
-              colorScheme="green"
-              isDisabled={!canLaunch}
-              onClick={() => setShowLaunchModal(true)}
-            >
-              Launch Event →
-            </Button>
-          )}
+          <HStack spacing={2}>
+            {' '}
+            <RouterLink to="/champion-forge/guide" target="_blank" rel="noopener noreferrer">
+              <Text
+                fontSize="sm"
+                color="teal.300"
+                fontWeight="medium"
+                _hover={{ color: 'teal.100', textDecoration: 'underline' }}
+              >
+                📖 Event Guide
+              </Text>
+            </RouterLink>{' '}
+            {!event.scheduledGatheringStart && (
+              <Button
+                size="sm"
+                colorScheme="green"
+                isDisabled={!canLaunch}
+                onClick={() => setShowLaunchModal(true)}
+              >
+                Launch Event →
+              </Button>
+            )}
+          </HStack>
         </HStack>
 
         <VStack align="stretch" spacing={5} p={5}>
