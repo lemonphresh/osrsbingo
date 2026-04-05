@@ -26,6 +26,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { isChampionForgeEnabled } from '../config/featureFlags';
 import usePageTitle from '../hooks/usePageTitle';
 import AdminEventPanel from '../organisms/ChampionForge/AdminEventPanel';
+import BattleBracket from '../organisms/ChampionForge/BattleBracket';
 import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
 import GatheringPhase from '../organisms/ChampionForge/GatheringPhase';
 
@@ -951,29 +952,33 @@ export default function ChampionForgeEventPage() {
         )}
 
         {event.status === 'OUTFITTING' && (
-          <Box
-            bg="gray.800"
-            border="1px solid"
-            borderColor="gray.700"
-            borderRadius="xl"
-            p={10}
-            textAlign="center"
-          >
-            <Text fontSize="2xl" mb={3}>
-              ⚔️
-            </Text>
-            <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>
-              Outfitting Phase
-            </Text>
-            <Text fontSize="sm" color="gray.500">
-              Captains are selecting their champions' loadouts. Visit your team's barracks to kit
-              out your champion.
-            </Text>
-          </Box>
+          event.bracket ? (
+            <BattleBracket event={event} preview />
+          ) : (
+            <Box
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="xl"
+              p={10}
+              textAlign="center"
+            >
+              <Text fontSize="2xl" mb={3}>
+                ⚔️
+              </Text>
+              <Text fontWeight="bold" color="gray.300" fontSize="lg" mb={1}>
+                Outfitting Phase
+              </Text>
+              <Text fontSize="sm" color="gray.500">
+                Captains are selecting their champions' loadouts. Visit your team's barracks to kit
+                out your champion.
+              </Text>
+            </Box>
+          )
         )}
 
-        {/* ── Admin panel (DRAFT + BATTLE phases only) ── */}
-        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'BATTLE') && (
+        {/* ── Admin panel (DRAFT + OUTFITTING + BATTLE phases) ── */}
+        {effectiveIsAdmin && (event.status === 'DRAFT' || event.status === 'OUTFITTING' || event.status === 'BATTLE') && (
           <AdminEventPanel event={event} isAdmin={effectiveIsAdmin} refetch={refetch} />
         )}
       </VStack>

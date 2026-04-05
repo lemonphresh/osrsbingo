@@ -8,7 +8,7 @@ import { Box, Text, VStack } from '@chakra-ui/react';
  *   - All sprite PNGs (base + equipment) must be the SAME canvas size (e.g. 32×64 or 48×96).
  *   - Equipment PNGs are fully transparent except where the item appears on the body.
  *   - Pass `layers` as an ordered array of src strings: base first, then equipment in draw order.
- *   - Recommended layer order: base → boots → legs → chest → gloves → cape → shield → helm → weapon
+ *   - Recommended layer order: base → cape → boots → legs → chest → gloves → shield → helm → weapon
  *
  * Props:
  *   src         string    — base character sprite PNG
@@ -26,6 +26,7 @@ import { Box, Text, VStack } from '@chakra-ui/react';
  */
 export default function ChampionSprite({
   src,
+  backLayers = [],
   layers = [],
   facing = 'right',
   size = 96,
@@ -76,6 +77,9 @@ export default function ChampionSprite({
       >
         {hasSprite ? (
           <>
+            {backLayers.map((layerSrc, i) => (
+              <Box key={`back-${i}`} as="img" src={layerSrc} alt="" style={imgStyle} />
+            ))}
             {src && <Box as="img" src={src} alt="" style={imgStyle} />}
             {layers.map((layerSrc, i) => (
               <Box key={i} as="img" src={layerSrc} alt="" style={imgStyle} />

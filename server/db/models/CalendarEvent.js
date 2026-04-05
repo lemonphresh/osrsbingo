@@ -11,6 +11,7 @@ module.exports = (sequelize, DataTypes) => {
       allDay: { type: DataTypes.BOOLEAN, defaultValue: false },
       eventType: { type: DataTypes.STRING, allowNull: false, defaultValue: 'MISC' },
       status: { type: DataTypes.STRING, allowNull: false, defaultValue: 'ACTIVE' },
+      publishStatus: { type: DataTypes.STRING, allowNull: false, defaultValue: 'OFFICIAL' },
     },
     { tableName: 'CalendarEvents' }
   );

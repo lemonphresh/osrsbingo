@@ -14,7 +14,7 @@ const BoardViewAllAdmin = lazy(() => import('./pages/BoardViewAllAdmin'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const BoardDetails = lazy(() => import('./pages/BoardDetails'));
 const BoardCreation = lazy(() => import('./pages/BoardCreation'));
-const Calendar = lazy(() => import('./pages/Calendar'));
+const EGHub = lazy(() => import('./pages/EGHub'));
 const TreasureHuntDashboard = lazy(() => import('./pages/TreasureHuntDashboard'));
 const TreasureEventView = lazy(() => import('./pages/TreasureEventPage'));
 const TreasureTeamPage = lazy(() => import('./pages/TreasureTeamPage'));
@@ -108,7 +108,7 @@ const routes = [
       },
       {
         path: '/calendar',
-        element: withSuspense(Calendar),
+        element: withSuspense(EGHub),
         errorElement: <ErrorPage />,
       },
       {

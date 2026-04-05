@@ -503,8 +503,11 @@ describe('User Mutations', () => {
     const result = validateOperation(`
       mutation LinkDiscordAccount($userId: ID!, $discordUserId: String!) {
         linkDiscordAccount(userId: $userId, discordUserId: $discordUserId) {
-          id
-          discordUserId
+          token
+          user {
+            id
+            discordUserId
+          }
         }
       }
     `);

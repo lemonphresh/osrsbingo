@@ -409,8 +409,8 @@ export const GET_PENDING_INVITATIONS = gql`
 // ============================================================
 
 export const GET_CALENDAR_EVENTS = gql`
-  query GetCalendarEvents($offset: Int, $limit: Int) {
-    calendarEvents(offset: $offset, limit: $limit) {
+  query GetCalendarEvents($offset: Int, $limit: Int, $publishStatus: CalendarEventPublishStatus) {
+    calendarEvents(offset: $offset, limit: $limit, publishStatus: $publishStatus) {
       totalCount
       items {
         id
@@ -420,6 +420,7 @@ export const GET_CALENDAR_EVENTS = gql`
         end
         allDay
         eventType
+        publishStatus
       }
     }
   }

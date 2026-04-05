@@ -19,31 +19,32 @@ import {
   Center,
 } from '@chakra-ui/react';
 import { RepeatIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import {
-  GET_CLAN_WARS_BATTLE,
-  GET_CLAN_WARS_WAR_CHEST,
-} from '../../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_BATTLE, GET_CLAN_WARS_WAR_CHEST } from '../../graphql/clanWarsOperations';
 import ChampionSprite from './ChampionSprite';
 import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprites/spriteRegistry';
 import ActionEffect from './ActionEffect';
 import { getActionEffects, resolveSide } from './battleAnimations';
 import BattleVolumeSlider from './BattleVolumeSlider';
 import { playBattleSound } from '../../utils/soundEngine';
+import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 // ---------------------------------------------------------------------------
-// Helpers (mirrored from BattleScreen)
+// Helpers
 // ---------------------------------------------------------------------------
-const LAYER_ORDER = ['boots', 'legs', 'chest', 'gloves', 'cape', 'shield', 'helm', 'weapon'];
 
 function buildLayers(loadout, itemById) {
-  if (!loadout) return [];
-  return LAYER_ORDER.map((slot) => {
+  if (!loadout) return { layers: [], backLayers: [] };
+  const resolve = (slot) => {
     const id = loadout[slot];
     if (!id) return null;
     const item = itemById[id];
     const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
     return key ? getLayerSprite(key) : null;
-  }).filter(Boolean);
+  };
+  return {
+    backLayers: [...BACK_SLOTS].map(resolve).filter(Boolean),
+    layers: LAYER_ORDER.map(resolve).filter(Boolean),
+  };
 }
 
 // ---- HP Bar ----
@@ -63,7 +64,6 @@ function HPBar({ current, max, color }) {
     </Box>
   );
 }
-
 
 function getNarrativeColor(action) {
   if (action === 'SPECIAL') return '#ce93d8';
@@ -118,19 +118,23 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
 
   const team1Name = snap.champion1?.teamName ?? 'Team 1';
   const team2Name = snap.champion2?.teamName ?? 'Team 2';
-  const winnerName =
-    battle?.winnerId === battle?.team1Id ? team1Name : team2Name;
+  const winnerName = battle?.winnerId === battle?.team1Id ? team1Name : team2Name;
 
   // Sprite layers
-  const allItems = [
-    ...(t1Data?.getClanWarsWarChest ?? []),
-    ...(t2Data?.getClanWarsWarChest ?? []),
-  ];
+  const allItems = [...(t1Data?.getClanWarsWarChest ?? []), ...(t2Data?.getClanWarsWarChest ?? [])];
   const battleItemById = Object.fromEntries(allItems.map((i) => [i.itemId, i]));
-  const champion1Layers = buildLayers(snap.champion1?.loadout, battleItemById);
-  const champion2Layers = buildLayers(snap.champion2?.loadout, battleItemById);
-  const champion1Src = BASE_SPRITES[snap.champion1?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
-  const champion2Src = BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
+  const { layers: champion1Layers, backLayers: champion1BackLayers } = buildLayers(
+    snap.champion1?.loadout,
+    battleItemById
+  );
+  const { layers: champion2Layers, backLayers: champion2BackLayers } = buildLayers(
+    snap.champion2?.loadout,
+    battleItemById
+  );
+  const champion1Src =
+    BASE_SPRITES[snap.champion1?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
+  const champion2Src =
+    BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
 
   // Reset on open / battleId change
   useEffect(() => {
@@ -189,13 +193,26 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered scrollBehavior="inside">
       <ModalOverlay bg="blackAlpha.700" />
-      <ModalContent bg="gray.900" border="1px solid" borderColor="gray.700" fontFamily="mono" mx={2} minH="720px" maxH="720px" overflow="hidden" display="flex" flexDirection="column">
+      <ModalContent
+        bg="gray.900"
+        border="1px solid"
+        borderColor="gray.700"
+        fontFamily="mono"
+        mx={2}
+        minH="720px"
+        maxH="720px"
+        overflow="hidden"
+        display="flex"
+        flexDirection="column"
+      >
         <ModalHeader pb={2} color="white" fontSize="md">
           <HStack spacing={2} justify="space-between">
             <HStack spacing={2} flexWrap="wrap">
               <Text>⏮</Text>
               <Text>{team1Name}</Text>
-              <Text color="gray.500" fontSize="sm">vs</Text>
+              <Text color="gray.500" fontSize="sm">
+                vs
+              </Text>
               <Text>{team2Name}</Text>
               {battle?.winnerId && (
                 <Badge colorScheme="yellow" fontSize="xs">
@@ -241,7 +258,12 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
                 <SimpleGrid columns={3} alignItems="flex-end" gap={3}>
                   {/* Team 1 */}
                   <VStack spacing={2} align="flex-start">
-                    <Text fontSize="10px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
+                    <Text
+                      fontSize="10px"
+                      color="gray.400"
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                    >
                       {team1Name}
                     </Text>
                     <HPBar current={hp1} max={maxHp1} color="#e05c5c" />
@@ -255,6 +277,7 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
                         color="#e05c5c"
                         hasBorder={false}
                         src={champion1Src}
+                        backLayers={champion1BackLayers}
                         layers={champion1Layers}
                         isShaking={shaking === 'left'}
                         isFlashing={flashing === 'left'}
@@ -266,7 +289,9 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
 
                   {/* VS / progress */}
                   <VStack spacing={2} align="center" pb={2}>
-                    <Text fontSize="10px" color="gray.600">vs</Text>
+                    <Text fontSize="10px" color="gray.600">
+                      vs
+                    </Text>
                     <Text fontSize="10px" color="gray.500">
                       Turn {step} / {log.length}
                     </Text>
@@ -282,7 +307,12 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
 
                   {/* Team 2 */}
                   <VStack spacing={2} align="flex-end">
-                    <Text fontSize="10px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
+                    <Text
+                      fontSize="10px"
+                      color="gray.400"
+                      textTransform="uppercase"
+                      letterSpacing={1}
+                    >
                       {team2Name}
                     </Text>
                     <HPBar current={hp2} max={maxHp2} color="#5c9ee0" />
@@ -296,6 +326,7 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
                         color="#5c9ee0"
                         hasBorder={false}
                         src={champion2Src}
+                        backLayers={champion2BackLayers}
                         layers={champion2Layers}
                         isShaking={shaking === 'right'}
                         isFlashing={flashing === 'right'}
@@ -400,12 +431,13 @@ export default function BattleReplayModal({ isOpen, onClose, battleId }) {
                 fontSize="11px"
                 sx={{
                   '&::-webkit-scrollbar': { width: '4px' },
-                  '&::-webkit-scrollbar-thumb': { background: 'rgba(255,255,255,0.2)', borderRadius: '4px' },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: 'rgba(255,255,255,0.2)',
+                    borderRadius: '4px',
+                  },
                 }}
               >
-                {step === 0 && (
-                  <Text color="gray.600">Press ▶ Play to start the replay...</Text>
-                )}
+                {step === 0 && <Text color="gray.600">Press ▶ Play to start the replay...</Text>}
                 {log.slice(0, step).map((entry, i) => (
                   <Text
                     key={i}

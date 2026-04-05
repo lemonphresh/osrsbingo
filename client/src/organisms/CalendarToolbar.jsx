@@ -10,6 +10,7 @@ export default function Toolbar({
   onEdit,
   onSaveForLater,
   onDelete,
+  onPromote,
   title,
 }) {
   const ref = useRef(null);
@@ -43,6 +44,11 @@ export default function Toolbar({
           <Button size="sm" variant="outline" onClick={onSaveForLater}>
             Save for later
           </Button>
+          {onPromote && (
+            <Button size="sm" colorScheme="green" variant="outline" onClick={onPromote}>
+              Promote to Official
+            </Button>
+          )}
           <Button size="sm" colorScheme="red" variant="outline" onClick={onDelete}>
             Delete
           </Button>

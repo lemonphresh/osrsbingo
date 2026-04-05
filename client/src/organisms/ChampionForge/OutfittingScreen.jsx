@@ -44,6 +44,7 @@ import {
 } from '../../assets/champion-forge/sprites/spriteRegistry';
 import ActionEffect from './ActionEffect';
 import { getSpecialEffects, getConsumableEffects, resolveSide } from './battleAnimations';
+import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
 const RARITY_LABELS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
@@ -81,17 +82,17 @@ const SLOT_EMOJI = {
 // ---------------------------------------------------------------------------
 
 const PAPERDOLL_POSITIONS = [
-  { slot: 'helm',    row: 1, col: 2 },
-  { slot: 'cape',    row: 2, col: 1 },
-  { slot: 'amulet',  row: 2, col: 2 },
+  { slot: 'helm', row: 1, col: 2 },
+  { slot: 'cape', row: 2, col: 1 },
+  { slot: 'amulet', row: 2, col: 2 },
   { slot: 'trinket', row: 2, col: 3 },
-  { slot: 'weapon',  row: 3, col: 1 },
-  { slot: 'chest',   row: 3, col: 2 },
-  { slot: 'shield',  row: 3, col: 3 },
-  { slot: 'legs',    row: 4, col: 2 },
-  { slot: 'gloves',  row: 5, col: 1 },
-  { slot: 'boots',   row: 5, col: 2 },
-  { slot: 'ring',    row: 5, col: 3 },
+  { slot: 'weapon', row: 3, col: 1 },
+  { slot: 'chest', row: 3, col: 2 },
+  { slot: 'shield', row: 3, col: 3 },
+  { slot: 'legs', row: 4, col: 2 },
+  { slot: 'gloves', row: 5, col: 1 },
+  { slot: 'boots', row: 5, col: 2 },
+  { slot: 'ring', row: 5, col: 3 },
 ];
 
 const SLOT_W = 64;
@@ -126,16 +127,14 @@ function PaperdollSlot({ slot, equippedItem, isActive, onClick }) {
         {equippedItem ? (
           <Box
             as="img"
-            src={getIconSprite(equippedItem.itemSnapshot?.inventoryIcon ?? equippedItem.itemSnapshot?.spriteKey)}
+            src={getIconSprite(
+              equippedItem.itemSnapshot?.inventoryIcon ?? equippedItem.itemSnapshot?.spriteKey
+            )}
             w={`${SLOT_W - 8}px`}
             h={`${SLOT_W - 8}px`}
             style={{ imageRendering: 'pixelated', objectFit: 'contain' }}
           />
-        ) : (
-          <Text fontSize="xl" lineHeight={1}>
-            {SLOT_EMOJI[slot]}
-          </Text>
-        )}
+        ) : null}
         {equippedItem && (
           <Box
             position="absolute"
@@ -200,7 +199,9 @@ function StatDiff({ diff, suffix }) {
   if (!diff) return null;
   return (
     <Text as="span" color={diff > 0 ? 'green.300' : 'red.300'} ml={1}>
-      ({diff > 0 ? '+' : ''}{diff}{suffix})
+      ({diff > 0 ? '+' : ''}
+      {diff}
+      {suffix})
     </Text>
   );
 }
@@ -224,10 +225,13 @@ function ItemCard({ item, isSelected, isEquipped, onClick, compareItem }) {
   const cStats = compareItem?.itemSnapshot?.stats;
 
   // Rows to show: any stat this item has, plus any the equipped item has (so losses are visible)
-  const statRows = STAT_KEYS.filter(({ key }) => (stats[key] ?? 0) > 0 || (cStats && (cStats[key] ?? 0) > 0));
+  const statRows = STAT_KEYS.filter(
+    ({ key }) => (stats[key] ?? 0) > 0 || (cStats && (cStats[key] ?? 0) > 0)
+  );
 
   return (
     <Box
+      position="relative"
       border="2px solid"
       borderColor={isSelected ? 'yellow.400' : border}
       borderRadius="md"
@@ -239,8 +243,31 @@ function ItemCard({ item, isSelected, isEquipped, onClick, compareItem }) {
       transition="all 0.1s"
       onClick={() => !item.isUsed && onClick(item)}
       boxShadow={isSelected ? `0 0 10px ${RARITY_COLORS[item.rarity]}66` : 'none'}
+      minH={item.slot === 'consumable' ? '96px' : '150px'}
     >
-      <HStack justify="space-between" mb={1} align="flex-start">
+      {isSelected && (
+        <Box
+          position="absolute"
+          top={0}
+          right="6px"
+          w="10px"
+          h="16px"
+          bg="white"
+          _after={{
+            content: '""',
+            position: 'absolute',
+            bottom: '-5px',
+            left: 0,
+            borderLeft: '5px solid',
+            borderRight: '5px solid',
+            borderTop: '5px solid',
+            borderLeftColor: 'transparent',
+            borderRightColor: 'transparent',
+            borderTopColor: 'white',
+          }}
+        />
+      )}
+      <HStack mb={1} align="flex-start" spacing={1}>
         {(snap.inventoryIcon ?? snap.spriteKey) && (
           <Box
             as="img"
@@ -251,33 +278,32 @@ function ItemCard({ item, isSelected, isEquipped, onClick, compareItem }) {
             flexShrink={0}
           />
         )}
-        <Text fontSize="xs" fontWeight="bold" noOfLines={1} color="white" flex={1}>
+        <Text
+          fontSize="xs"
+          fontWeight="bold"
+          noOfLines={2}
+          minH="2.5em"
+          color="white"
+          flex={1}
+          lineHeight="1.25"
+        >
           {item.name}
         </Text>
-        <VStack spacing={1} align="flex-end" flexShrink={0}>
-          <Badge colorScheme={RARITY_LABELS[item.rarity]} fontSize="xx-small">
-            {item.rarity}
-          </Badge>
-          {isSelected && (
-            <Badge colorScheme="purple" fontSize="xx-small">
-              equipped
-            </Badge>
-          )}
-        </VStack>
       </HStack>
 
-      <SimpleGrid columns={2} spacing={1} fontSize="xs" color="gray.400">
+      <VStack spacing={0} align="stretch" fontSize="xx-small" color="gray.400">
         {statRows.map(({ key, label, suffix }) => {
           const val = stats[key] ?? 0;
           const diff = cStats ? val - (cStats[key] ?? 0) : 0;
           return (
             <Text key={key}>
-              {label} +{val}{suffix}
+              {label} +{val}
+              {suffix}
               {!isSelected && cStats && <StatDiff diff={diff} suffix={suffix} />}
             </Text>
           );
         })}
-      </SimpleGrid>
+      </VStack>
 
       {snap.special && (
         <Text fontSize="xx-small" color="purple.400" mt={1} noOfLines={1}>
@@ -285,11 +311,10 @@ function ItemCard({ item, isSelected, isEquipped, onClick, compareItem }) {
         </Text>
       )}
       {snap.consumableEffect && (
-        <Text fontSize="xx-small" color="blue.400" mt={1} noOfLines={1}>
+        <Text fontSize="xx-small" color="blue.400" mt={1} noOfLines={2}>
           🧪 {snap.consumableEffect.description}
         </Text>
       )}
-
     </Box>
   );
 }
@@ -309,7 +334,11 @@ function computeAvailableSpecials(loadout, items) {
 
 function computeChampionStats(loadout, items) {
   const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
-  let atk = 8, def = 0, spd = 0, crit = 0, hp = 150;
+  let atk = 8,
+    def = 0,
+    spd = 0,
+    crit = 0,
+    hp = 150;
   const specials = [];
   GEAR_SLOTS.forEach((slot) => {
     const id = loadout[slot];
@@ -334,7 +363,13 @@ function computeChampionStats(loadout, items) {
 }
 
 function ChampionStat({ loadout, items }) {
-  const { attack: atk, defense: def, speed: spd, crit, maxHp: hp, specials } = computeChampionStats(loadout, items);
+  const {
+    attack: atk,
+    defense: def,
+    speed: spd,
+    crit,
+    maxHp: hp,
+  } = computeChampionStats(loadout, items);
 
   return (
     <Box bg="gray.800" borderRadius="md" p={4} border="1px solid" borderColor="gray.600">
@@ -348,23 +383,6 @@ function ChampionStat({ loadout, items }) {
         <StatRow label="Crit" value={`${crit}%`} color="yellow.400" />
         <StatRow label="HP" value={hp} color="pink.400" />
       </VStack>
-      {specials.length > 0 && (
-        <Box mt={3}>
-          <Text fontSize="xs" color="gray.500" mb={1}>
-            Specials
-          </Text>
-          {specials.map((sp) => (
-            <HStack key={sp.id} spacing={2} mb={1}>
-              <Badge colorScheme="purple" fontSize="xx-small">
-                {sp.label}
-              </Badge>
-              <Text fontSize="xx-small" color="gray.400">
-                {sp.description}
-              </Text>
-            </HStack>
-          ))}
-        </Box>
-      )}
     </Box>
   );
 }
@@ -377,7 +395,11 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
 
   return (
     <Box
-      bg="gray.800" borderRadius="md" p={3} border="1px solid" mt={2}
+      bg="gray.800"
+      borderRadius="md"
+      p={3}
+      border="1px solid"
+      mt={2}
       borderColor={isActive ? 'purple.500' : 'gray.600'}
       boxShadow={isActive ? '0 0 0 1px var(--chakra-colors-purple-500)' : 'none'}
       transition="border-color 0.15s, box-shadow 0.15s"
@@ -404,10 +426,12 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
               borderRadius="sm"
               bg={item ? 'gray.900' : 'gray.850'}
               border="1px solid"
-              borderColor={item ? (rColor + '66') : 'gray.700'}
+              borderColor={item ? rColor + '66' : 'gray.700'}
               minH="28px"
               cursor={!isLocked ? 'pointer' : 'default'}
-              _hover={!isLocked ? { borderColor: 'purple.500', bg: item ? 'gray.900' : 'gray.800' } : {}}
+              _hover={
+                !isLocked ? { borderColor: 'purple.500', bg: item ? 'gray.900' : 'gray.800' } : {}
+              }
               onClick={() => !isLocked && onSlotClick('consumable')}
             >
               <Text fontSize="xx-small" color="gray.600" w="12px" flexShrink={0}>
@@ -426,7 +450,9 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
                     />
                   )}
                   <VStack spacing={0} align="flex-start" flex={1} overflow="hidden">
-                    <Text fontSize="xx-small" color="white" noOfLines={1}>{item.name}</Text>
+                    <Text fontSize="xx-small" color="white" noOfLines={1}>
+                      {item.name}
+                    </Text>
                     {snap.consumableEffect?.description && (
                       <Text fontSize="xx-small" color="gray.500" noOfLines={1}>
                         {snap.consumableEffect.description}
@@ -442,14 +468,19 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
                       minW={0}
                       h="auto"
                       p={0}
-                      onClick={(e) => { e.stopPropagation(); onRemove(itemId); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemove(itemId);
+                      }}
                     >
                       ×
                     </Button>
                   )}
                 </>
               ) : (
-                <Text fontSize="xx-small" color="gray.700" fontStyle="italic">+ add consumable</Text>
+                <Text fontSize="xx-small" color="gray.700" fontStyle="italic">
+                  + add consumable
+                </Text>
               )}
             </HStack>
           );
@@ -462,17 +493,29 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
 function SpecialPicker({ loadout, items, chosenSpecial, onPick, isLocked }) {
   const available = computeAvailableSpecials(loadout, items);
   if (available.length === 0) return null;
+
+  // Deduplicate by special id, collecting all source slots
+  const seen = new Map();
+  available.forEach((sp) => {
+    if (seen.has(sp.id)) {
+      seen.get(sp.id).slots.push(sp.slot);
+    } else {
+      seen.set(sp.id, { ...sp, slots: [sp.slot] });
+    }
+  });
+  const deduped = [...seen.values()];
+
   return (
     <Box bg="gray.800" borderRadius="md" p={3} border="1px solid" borderColor="gray.600" mt={2}>
       <Text fontSize="xs" color="gray.400" mb={2} fontWeight="semibold">
         Active Special — pick which fires in battle
       </Text>
       <VStack spacing={1} align="stretch">
-        {available.map((sp) => {
-          const isActive = chosenSpecial === sp.id || (!chosenSpecial && sp === available[0]);
+        {deduped.map((sp) => {
+          const isActive = chosenSpecial === sp.id || (!chosenSpecial && sp === deduped[0]);
           return (
             <Box
-              key={sp.slot + sp.id}
+              key={sp.id}
               onClick={() => !isLocked && onPick(sp.id)}
               cursor={isLocked ? 'default' : 'pointer'}
               borderRadius="sm"
@@ -493,12 +536,16 @@ function SpecialPicker({ loadout, items, chosenSpecial, onPick, isLocked }) {
                 >
                   {sp.label}
                 </Badge>
-                <Text fontSize="xx-small" color={isActive ? 'gray.200' : 'gray.500'} lineHeight="short">
+                <Text
+                  fontSize="xx-small"
+                  color={isActive ? 'gray.200' : 'gray.500'}
+                  lineHeight="short"
+                >
                   {sp.description}
                 </Text>
               </HStack>
               <Text fontSize="xx-small" color="gray.600" mt={0.5}>
-                from {sp.slot}
+                from {sp.slots.join(' or ')}
               </Text>
             </Box>
           );
@@ -510,8 +557,16 @@ function SpecialPicker({ loadout, items, chosenSpecial, onPick, isLocked }) {
 
 const STAT_GUIDE = [
   { label: 'ATK', color: 'red.300', desc: 'Raw damage output. Each point adds to your base hit.' },
-  { label: 'DEF', color: 'blue.300', desc: 'Reduces incoming hits. Each point cancels 0.3 ATK from the enemy roll (e.g. 100 DEF negates 30 ATK).' },
-  { label: 'SPD', color: 'green.300', desc: 'Whoever has more speed goes first. No effect after that.' },
+  {
+    label: 'DEF',
+    color: 'blue.300',
+    desc: 'Reduces incoming hits. Each point cancels 0.3 ATK from the enemy roll (e.g. 100 DEF negates 30 ATK).',
+  },
+  {
+    label: 'SPD',
+    color: 'green.300',
+    desc: 'Whoever has more speed goes first. No effect after that.',
+  },
   { label: 'CRIT', color: 'yellow.300', desc: '% chance each hit deals 1.5x damage.' },
   { label: 'HP', color: 'pink.300', desc: 'Total health pool. You start at 150 + gear bonuses.' },
 ];
@@ -535,8 +590,11 @@ function previewGetEffectiveStats(baseStats, effects) {
   const s = { ...baseStats };
   for (const e of effects ?? []) {
     if (e.type === 'buff') {
-      if (e.stat === 'all') { s.attack = (s.attack ?? 0) + e.value; s.defense = (s.defense ?? 0) + e.value; s.crit = (s.crit ?? 0) + e.value; }
-      else if (e.stat in s) s[e.stat] = (s[e.stat] ?? 0) + e.value;
+      if (e.stat === 'all') {
+        s.attack = (s.attack ?? 0) + e.value;
+        s.defense = (s.defense ?? 0) + e.value;
+        s.crit = (s.crit ?? 0) + e.value;
+      } else if (e.stat in s) s[e.stat] = (s[e.stat] ?? 0) + e.value;
     } else if (e.type === 'debuff' && e.debuffType === 'weaken') {
       s.attack = Math.max(0, (s.attack ?? 0) - e.value);
     }
@@ -552,8 +610,10 @@ function previewTickEffects(effects) {
   let bleed = 0;
   const remaining = [];
   for (const e of effects ?? []) {
-    if (e.type === 'bleed') { bleed += e.value; if (e.turns > 1) remaining.push({ ...e, turns: e.turns - 1 }); }
-    else if (e.type === 'fortress') remaining.push(e); // decays separately
+    if (e.type === 'bleed') {
+      bleed += e.value;
+      if (e.turns > 1) remaining.push({ ...e, turns: e.turns - 1 });
+    } else if (e.type === 'fortress') remaining.push(e); // decays separately
     else if (e.turns > 1) remaining.push({ ...e, turns: e.turns - 1 });
   }
   return { remaining, bleed };
@@ -603,11 +663,13 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
 
   const triggerHit = (side) => {
     if (side === 'me') {
-      setMyShaking(true); setMyFlashing(true);
+      setMyShaking(true);
+      setMyFlashing(true);
       setTimeout(() => setMyShaking(false), 300);
       setTimeout(() => setMyFlashing(false), 200);
     } else {
-      setDummyShaking(true); setDummyFlashing(true);
+      setDummyShaking(true);
+      setDummyFlashing(true);
       setTimeout(() => setDummyShaking(false), 300);
       setTimeout(() => setDummyFlashing(false), 200);
     }
@@ -633,15 +695,21 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     setActiveTab('attack');
     setTurnNumber(1);
     setWaiting(false);
-    setMyShaking(false); setMyFlashing(false);
-    setDummyShaking(false); setDummyFlashing(false);
+    setMyShaking(false);
+    setMyFlashing(false);
+    setDummyShaking(false);
+    setDummyFlashing(false);
     setMyActiveEffects([]);
     setDummyActiveEffects([]);
     setEffects([]);
   }, [myStats?.maxHp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  React.useEffect(() => { if (isOpen) reset(); }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
-  React.useEffect(() => { if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight; }, [log]);
+  React.useEffect(() => {
+    if (isOpen) reset();
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+  React.useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [log]);
 
   const doAction = (action, itemId) => {
     if (battleOver || waiting || !myStats) return;
@@ -661,33 +729,48 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
       .filter((e) => e.turns > 0);
     let newDummyEffects = [...dummyActiveEffects];
 
-    const myEffStats    = previewGetEffectiveStats(myStats, newMyEffects);
+    const myEffStats = previewGetEffectiveStats(myStats, newMyEffects);
     const dummyEffStats = previewGetEffectiveStats(DEMO_DUMMY, newDummyEffects);
 
     if (action === 'ATTACK') {
-      const roll = clientRollDamage({ attackStat: myEffStats.attack, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
+      const roll = clientRollDamage({
+        attackStat: myEffStats.attack,
+        defenseStat: dummyEffStats.defense,
+        critChance: myEffStats.crit,
+      });
       newDummyHp = Math.max(0, dummyHp - roll.damage);
       iHitDummy = true;
       spawnEffects([{ effectKey: roll.isCrit ? 'critSlash' : 'slash', side: 'defender' }], 'me');
-      myEntries.push({ text: `${roll.isCrit ? '💥 CRIT! ' : ''}${myName} attacks for ${roll.damage} damage!`, type: 'attack' });
-
+      myEntries.push({
+        text: `${roll.isCrit ? '💥 CRIT! ' : ''}${myName} attacks for ${roll.damage} damage!`,
+        type: 'attack',
+      });
     } else if (action === 'DEFEND') {
       newMeDefending = true;
       spawnEffects([{ effectKey: 'shield', side: 'actor' }], 'me');
-      myEntries.push({ text: `🛡️ ${myName} takes a defensive stance. Incoming damage −60%.`, type: 'defend' });
-
+      myEntries.push({
+        text: `🛡️ ${myName} takes a defensive stance. Incoming damage −60%.`,
+        type: 'defend',
+      });
     } else if (action === 'SPECIAL') {
       newSpecialUsed = true;
       const sp = myStats.specials[0];
       const spId = sp?.id;
 
       if (spId === 'cleave') {
-        const roll = clientRollDamage({ attackStat: myEffStats.attack * 0.8, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
+        const roll = clientRollDamage({
+          attackStat: myEffStats.attack * 0.8,
+          defenseStat: dummyEffStats.defense,
+          critChance: myEffStats.crit,
+        });
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         newDummyEffects.push({ type: 'bleed', value: 5, turns: 3 });
         iHitDummy = true;
         spawnEffects(getSpecialEffects('cleave', roll.isCrit), 'me');
-        myEntries.push({ text: `⚡ ${myName} uses CLEAVE! ${roll.damage} damage + bleed (5/turn, 3 turns)!`, type: 'special' });
+        myEntries.push({
+          text: `⚡ ${myName} uses CLEAVE! ${roll.damage} damage + bleed (5/turn, 3 turns)!`,
+          type: 'special',
+        });
       } else if (spId === 'ambush') {
         const base = Math.max(1, myEffStats.attack);
         const variance = 0.85 + Math.random() * 0.3;
@@ -695,15 +778,29 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         newDummyHp = Math.max(0, dummyHp - damage);
         iHitDummy = true;
         spawnEffects(getSpecialEffects('ambush', true), 'me');
-        myEntries.push({ text: `💥 ${myName} uses AMBUSH! ${damage} guaranteed crit (defense ignored)!`, type: 'special' });
+        myEntries.push({
+          text: `💥 ${myName} uses AMBUSH! ${damage} guaranteed crit (defense ignored)!`,
+          type: 'special',
+        });
       } else if (spId === 'barrage') {
-        const r1 = clientRollDamage({ attackStat: myEffStats.attack * 0.65, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
-        const r2 = clientRollDamage({ attackStat: myEffStats.attack * 0.65, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
+        const r1 = clientRollDamage({
+          attackStat: myEffStats.attack * 0.65,
+          defenseStat: dummyEffStats.defense,
+          critChance: myEffStats.crit,
+        });
+        const r2 = clientRollDamage({
+          attackStat: myEffStats.attack * 0.65,
+          defenseStat: dummyEffStats.defense,
+          critChance: myEffStats.crit,
+        });
         const total = r1.damage + r2.damage;
         newDummyHp = Math.max(0, dummyHp - total);
         iHitDummy = true;
         spawnEffects(getSpecialEffects('barrage'), 'me');
-        myEntries.push({ text: `⚡ ${myName} uses BARRAGE! ${r1.damage} + ${r2.damage} = ${total} total!`, type: 'special' });
+        myEntries.push({
+          text: `⚡ ${myName} uses BARRAGE! ${r1.damage} + ${r2.damage} = ${total} total!`,
+          type: 'special',
+        });
       } else if (spId === 'chain_lightning') {
         const base = myEffStats.attack * 1.2;
         const variance = 0.85 + Math.random() * 0.3;
@@ -711,27 +808,46 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         newDummyHp = Math.max(0, dummyHp - damage);
         iHitDummy = true;
         spawnEffects(getSpecialEffects('chain_lightning'), 'me');
-        myEntries.push({ text: `⚡ ${myName} unleashes CHAIN LIGHTNING! ${damage} unblockable magic damage!`, type: 'special' });
+        myEntries.push({
+          text: `⚡ ${myName} unleashes CHAIN LIGHTNING! ${damage} unblockable magic damage!`,
+          type: 'special',
+        });
       } else if (spId === 'lifesteal') {
-        const roll = clientRollDamage({ attackStat: myEffStats.attack, defenseStat: dummyEffStats.defense, critChance: myEffStats.crit });
+        const roll = clientRollDamage({
+          attackStat: myEffStats.attack,
+          defenseStat: dummyEffStats.defense,
+          critChance: myEffStats.crit,
+        });
         const heal = Math.round(roll.damage * 0.3);
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         curMyHp = Math.min(maxHp, curMyHp + heal);
         iHitDummy = true;
         spawnEffects(getSpecialEffects('lifesteal', roll.isCrit), 'me');
-        myEntries.push({ text: `🩸 ${myName} uses LIFESTEAL! ${roll.damage} damage, healed ${heal} HP!`, type: 'special' });
+        myEntries.push({
+          text: `🩸 ${myName} uses LIFESTEAL! ${roll.damage} damage, healed ${heal} HP!`,
+          type: 'special',
+        });
       } else if (spId === 'fortress') {
         newMyEffects.push({ type: 'fortress', turns: 2 });
         spawnEffects(getSpecialEffects('fortress'), 'me');
-        myEntries.push({ text: `🛡️ ${myName} activates FORTRESS! Incoming damage −60% for 2 turns.`, type: 'special' });
+        myEntries.push({
+          text: `🛡️ ${myName} activates FORTRESS! Incoming damage −60% for 2 turns.`,
+          type: 'special',
+        });
       } else {
-        const roll = clientRollDamage({ attackStat: myEffStats.attack * 1.2, defenseStat: 0, critChance: myEffStats.crit });
+        const roll = clientRollDamage({
+          attackStat: myEffStats.attack * 1.2,
+          defenseStat: 0,
+          critChance: myEffStats.crit,
+        });
         newDummyHp = Math.max(0, dummyHp - roll.damage);
         iHitDummy = true;
         spawnEffects([{ effectKey: roll.isCrit ? 'critSlash' : 'slash', side: 'defender' }], 'me');
-        myEntries.push({ text: `✨ ${myName} uses ${sp?.label ?? 'Special'}! ${roll.damage} damage!`, type: 'special' });
+        myEntries.push({
+          text: `✨ ${myName} uses ${sp?.label ?? 'Special'}! ${roll.damage} damage!`,
+          type: 'special',
+        });
       }
-
     } else if (action === 'USE_ITEM' && itemId) {
       newConsumables = consumablesRemaining.filter((id) => id !== itemId);
       const item = consumableItems.find((i) => i.itemId === itemId);
@@ -740,34 +856,57 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
       spawnEffects(getConsumableEffects(effectType), 'me');
       if (effectType === 'heal') {
         curMyHp = Math.min(maxHp, curMyHp + effect.value);
-        myEntries.push({ text: `🍖 ${myName} uses ${item?.name}! Restored ${effect.value} HP.`, type: 'item' });
+        myEntries.push({
+          text: `🍖 ${myName} uses ${item?.name}! Restored ${effect.value} HP.`,
+          type: 'item',
+        });
       } else if (effectType === 'damage') {
         newDummyHp = Math.max(0, dummyHp - effect.value);
         iHitDummy = true;
-        myEntries.push({ text: `💣 ${myName} hurls ${item?.name}! ${effect.value} magic damage (bypasses defense)!`, type: 'item' });
+        myEntries.push({
+          text: `💣 ${myName} hurls ${item?.name}! ${effect.value} magic damage (bypasses defense)!`,
+          type: 'item',
+        });
       } else if (effectType === 'debuff') {
-        newDummyEffects.push({ type: 'debuff', debuffType: effect.debuffType ?? 'blind', value: effect.value ?? 0, turns: effect.duration || 1 });
-        myEntries.push({ text: `✨ ${myName} uses ${item?.name}! ${effect.description}`, type: 'item' });
+        newDummyEffects.push({
+          type: 'debuff',
+          debuffType: effect.debuffType ?? 'blind',
+          value: effect.value ?? 0,
+          turns: effect.duration || 1,
+        });
+        myEntries.push({
+          text: `✨ ${myName} uses ${item?.name}! ${effect.description}`,
+          type: 'item',
+        });
       } else if (effectType.startsWith('buff_')) {
         const stat = effectType.replace('buff_', '');
         newMyEffects.push({ type: 'buff', stat, value: effect.value, turns: effect.duration || 2 });
-        myEntries.push({ text: `⚗️ ${myName} uses ${item?.name}! ${effect.description}`, type: 'item' });
+        myEntries.push({
+          text: `⚗️ ${myName} uses ${item?.name}! ${effect.description}`,
+          type: 'item',
+        });
       }
     }
 
     // Tick dummy's bleed after my action
-    const { remaining: tickedDummyEffects, bleed: dummyBleed } = previewTickEffects(newDummyEffects);
+    const { remaining: tickedDummyEffects, bleed: dummyBleed } =
+      previewTickEffects(newDummyEffects);
     if (dummyBleed > 0) {
       newDummyHp = Math.max(0, newDummyHp - dummyBleed);
       spawnEffects([{ effectKey: 'bleed', side: 'defender' }], 'me');
-      myEntries.push({ text: `🩸 Training Dummy bleeds for ${dummyBleed} damage!`, type: 'attack' });
+      myEntries.push({
+        text: `🩸 Training Dummy bleeds for ${dummyBleed} damage!`,
+        type: 'attack',
+      });
     }
 
     // Tick my buffs (not fortress — that decays at top of my next turn)
-    const tickedMyEffects = newMyEffects.map((e) => {
-      if (e.type === 'fortress') return e;
-      return e.turns > 1 ? { ...e, turns: e.turns - 1 } : null;
-    }).filter(Boolean);
+    const tickedMyEffects = newMyEffects
+      .map((e) => {
+        if (e.type === 'fortress') return e;
+        return e.turns > 1 ? { ...e, turns: e.turns - 1 } : null;
+      })
+      .filter(Boolean);
 
     setLog((prev) => [...prev, ...myEntries]);
     setDummyHp(newDummyHp);
@@ -781,14 +920,19 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     if (iHitDummy) triggerHit('dummy');
 
     if (newDummyHp <= 0) {
-      setLog((prev) => [...prev, { text: `🏆 ${myName} wins! Training Dummy defeated!`, type: 'result' }]);
+      setLog((prev) => [
+        ...prev,
+        { text: `🏆 ${myName} wins! Training Dummy defeated!`, type: 'result' },
+      ]);
       setBattleOver('win');
       return;
     }
 
     // --- Phase 2: dummy counterattacks (delayed) ---
     // Pre-compute now so closure doesn't rely on stale state
-    const dummyIsBlind = tickedDummyEffects.some((e) => e.type === 'debuff' && e.debuffType === 'blind');
+    const dummyIsBlind = tickedDummyEffects.some(
+      (e) => e.type === 'debuff' && e.debuffType === 'blind'
+    );
     const dummyEffStatsP2 = previewGetEffectiveStats(DEMO_DUMMY, tickedDummyEffects);
     const myFortressActive = previewHasFortress(tickedMyEffects);
 
@@ -797,10 +941,12 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
       .map((e) => (e.type === 'fortress' ? { ...e, turns: e.turns - 1 } : e))
       .filter((e) => e.turns > 0);
     // Decay dummy's timed debuffs on dummy's turn
-    const dummyEffectsAfterDummyTurn = tickedDummyEffects.map((e) => {
-      if (e.type === 'fortress' || e.type === 'bleed') return e;
-      return e.turns > 1 ? { ...e, turns: e.turns - 1 } : null;
-    }).filter(Boolean);
+    const dummyEffectsAfterDummyTurn = tickedDummyEffects
+      .map((e) => {
+        if (e.type === 'fortress' || e.type === 'bleed') return e;
+        return e.turns > 1 ? { ...e, turns: e.turns - 1 } : null;
+      })
+      .filter(Boolean);
 
     let dummyDamage = 0;
     let dummyEntry;
@@ -814,11 +960,16 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         isDefending: newMeDefending,
       });
       const fortressMult = myFortressActive ? 0.4 : 1;
-      dummyDamage = fortressMult < 1 ? Math.max(1, Math.round(dummyRoll.damage * fortressMult)) : dummyRoll.damage;
+      dummyDamage =
+        fortressMult < 1
+          ? Math.max(1, Math.round(dummyRoll.damage * fortressMult))
+          : dummyRoll.damage;
       const fortressNote = fortressMult < 1 ? ' (fortress absorbed 60%!)' : '';
       const defendNote = newMeDefending ? ' (reduced by defend!)' : '';
       dummyEntry = {
-        text: `${dummyRoll.isCrit ? '💥 CRIT! ' : ''}Training Dummy attacks for ${dummyDamage} damage!${defendNote}${fortressNote}`,
+        text: `${
+          dummyRoll.isCrit ? '💥 CRIT! ' : ''
+        }Training Dummy attacks for ${dummyDamage} damage!${defendNote}${fortressNote}`,
         type: 'attack',
       };
     }
@@ -831,12 +982,22 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
     setTimeout(() => {
       if (!dummyIsBlind) {
         triggerHit('me');
-        spawnEffects([{ effectKey: dummyEntry.text.includes('CRIT') ? 'critSlash' : 'slash', side: 'defender' }], 'dummy');
+        spawnEffects(
+          [
+            {
+              effectKey: dummyEntry.text.includes('CRIT') ? 'critSlash' : 'slash',
+              side: 'defender',
+            },
+          ],
+          'dummy'
+        );
       }
       setLog((prev) => [
         ...prev,
         dummyEntry,
-        ...(died ? [{ text: `💀 Training Dummy wins! Equip more gear to survive.`, type: 'result' }] : []),
+        ...(died
+          ? [{ text: `💀 Training Dummy wins! Equip more gear to survive.`, type: 'result' }]
+          : []),
       ]);
       setMyHp(finalMyHp);
       setMyActiveEffects(myEffectsAfterDummyTurn);
@@ -852,12 +1013,15 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
 
   const hasSpecial = (myStats?.specials?.length ?? 0) > 0;
   const mySpriteSrc = BASE_SPRITES[displayLoadout?.baseSprite ?? 'baseSprite1'];
-  const myLayers = GEAR_SLOTS.map((slot) => {
-    const id = displayLoadout?.[slot]; if (!id) return null;
+  const resolveLayer = (slot) => {
+    const id = displayLoadout?.[slot];
+    if (!id) return null;
     const item = (items ?? []).find((i) => i.itemId === id);
     const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
     return key ? getLayerSprite(key) : null;
-  }).filter(Boolean);
+  };
+  const myBackLayers = BACK_SLOTS.map(resolveLayer).filter(Boolean);
+  const myLayers = LAYER_ORDER.map(resolveLayer).filter(Boolean);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl" isCentered>
@@ -867,12 +1031,26 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
         <ModalBody p={4}>
           <VStack spacing={3} align="stretch">
             {/* Header */}
-            <Text fontSize="11px" color="gray.500" letterSpacing={2} textTransform="uppercase" textAlign="center">
+            <Text
+              fontSize="11px"
+              color="gray.500"
+              letterSpacing={2}
+              textTransform="uppercase"
+              textAlign="center"
+            >
               Champion Forge · Battle Preview · Turn {turnNumber}
             </Text>
 
             {/* Arena */}
-            <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="xl" p={5} position="relative" overflow="hidden">
+            <Box
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.600"
+              borderRadius="xl"
+              p={5}
+              position="relative"
+              overflow="hidden"
+            >
               {effects.map((e) => (
                 <ActionEffect
                   key={e.id}
@@ -881,38 +1059,71 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                   onDone={() => setEffects((ef) => ef.filter((x) => x.id !== e.id))}
                 />
               ))}
-              <Text textAlign="center" mb={3} fontSize="12px"
-                color={battleOver ? '#c9a84c' : waiting ? '#888' : '#4caf50'}>
-                {battleOver === 'win' ? `🏆 ${myName} wins!`
-                  : battleOver === 'lose' ? `💀 Training Dummy wins!`
-                  : waiting ? `⏳ Training Dummy is responding...`
+              <Text
+                textAlign="center"
+                mb={3}
+                fontSize="12px"
+                color={battleOver ? '#c9a84c' : waiting ? '#888' : '#4caf50'}
+              >
+                {battleOver === 'win'
+                  ? `🏆 ${myName} wins!`
+                  : battleOver === 'lose'
+                  ? `💀 Training Dummy wins!`
+                  : waiting
+                  ? `⏳ Training Dummy is responding...`
                   : '🟢 your turn — pick an action'}
               </Text>
 
               <SimpleGrid columns={3} alignItems="flex-end" gap={3} mb={4}>
                 {/* Left — player */}
                 <VStack spacing={2} align="flex-start">
-                  <Text fontSize="11px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
+                  <Text
+                    fontSize="11px"
+                    color="gray.400"
+                    textTransform="uppercase"
+                    letterSpacing={1}
+                  >
                     {myName}
                   </Text>
                   <DemoHPBar current={myHp} max={maxHp} color="#e05c5c" />
-                  <Text fontSize="11px" color="#e05c5c">{myHp} / {maxHp} hp</Text>
-                  {meDefending && <Badge colorScheme="blue" fontSize="10px">🛡️ defending</Badge>}
+                  <Text fontSize="11px" color="#e05c5c">
+                    {myHp} / {maxHp} hp
+                  </Text>
+                  {meDefending && (
+                    <Badge colorScheme="blue" fontSize="10px">
+                      🛡️ defending
+                    </Badge>
+                  )}
                   <Box pt={2}>
-                    <ChampionSprite facing="right" hasBorder={false} color="#e05c5c"
-                      src={mySpriteSrc} layers={myLayers} isDead={myHp <= 0}
-                      isShaking={myShaking} isFlashing={myFlashing} />
+                    <ChampionSprite
+                      facing="right"
+                      hasBorder={false}
+                      color="#e05c5c"
+                      src={mySpriteSrc}
+                      backLayers={myBackLayers}
+                      layers={myLayers}
+                      isDead={myHp <= 0}
+                      isShaking={myShaking}
+                      isFlashing={myFlashing}
+                    />
                   </Box>
                 </VStack>
 
                 {/* Center */}
                 <VStack align="center" pb={4}>
-                  <Text fontSize="11px" color="gray.600">vs</Text>
+                  <Text fontSize="11px" color="gray.600">
+                    vs
+                  </Text>
                 </VStack>
 
                 {/* Right — dummy */}
                 <VStack spacing={2} align="flex-end">
-                  <Text fontSize="11px" color="gray.400" textTransform="uppercase" letterSpacing={1}>
+                  <Text
+                    fontSize="11px"
+                    color="gray.400"
+                    textTransform="uppercase"
+                    letterSpacing={1}
+                  >
                     Training Dummy
                   </Text>
                   <DemoHPBar current={dummyHp} max={DEMO_DUMMY.maxHp} color="#5c9ee0" />
@@ -920,9 +1131,15 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                     {dummyHp} / {DEMO_DUMMY.maxHp} hp
                   </Text>
                   <Box pt={2} alignSelf="flex-end">
-                    <ChampionSprite facing="left" hasBorder={false} color="#5c9ee0"
-                      src={BASE_SPRITES['baseSprite1']} isDead={dummyHp <= 0}
-                      isShaking={dummyShaking} isFlashing={dummyFlashing} />
+                    <ChampionSprite
+                      facing="left"
+                      hasBorder={false}
+                      color="#5c9ee0"
+                      src={BASE_SPRITES['baseSprite1']}
+                      isDead={dummyHp <= 0}
+                      isShaking={dummyShaking}
+                      isFlashing={dummyFlashing}
+                    />
                   </Box>
                 </VStack>
               </SimpleGrid>
@@ -930,27 +1147,49 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
 
             {/* Action panel */}
             {!battleOver ? (
-              <Box bg="gray.800" border="1px solid"
+              <Box
+                bg="gray.800"
+                border="1px solid"
                 borderColor={waiting ? 'gray.700' : 'gray.600'}
-                borderRadius="lg" p={4}
+                borderRadius="lg"
+                p={4}
                 opacity={waiting ? 0.5 : 1}
-                transition="opacity 0.3s, border-color 0.3s">
+                transition="opacity 0.3s, border-color 0.3s"
+              >
                 <HStack mb={3} spacing={2}>
                   {['attack', 'defend', 'special', 'item'].map((t) => (
-                    <Button key={t} size="xs"
+                    <Button
+                      key={t}
+                      size="xs"
                       variant={activeTab === t ? 'solid' : 'outline'}
                       colorScheme="purple"
                       isDisabled={waiting}
-                      onClick={() => setActiveTab(t)}>
-                      {t === 'attack' ? '⚔️' : t === 'defend' ? '🛡️' : t === 'special' ? '✨' : '🧪'} {t}
+                      onClick={() => setActiveTab(t)}
+                    >
+                      {t === 'attack'
+                        ? '⚔️'
+                        : t === 'defend'
+                        ? '🛡️'
+                        : t === 'special'
+                        ? '✨'
+                        : '🧪'}{' '}
+                      {t}
                     </Button>
                   ))}
                 </HStack>
 
                 {activeTab === 'attack' && (
                   <VStack align="stretch">
-                    <Text fontSize="xs" color="gray.400" mb={1}>Deal damage to the enemy champion.</Text>
-                    <Button colorScheme="red" isDisabled={waiting} onClick={() => doAction('ATTACK')}>⚔️ Attack</Button>
+                    <Text fontSize="xs" color="gray.400" mb={1}>
+                      Deal damage to the enemy champion.
+                    </Text>
+                    <Button
+                      colorScheme="red"
+                      isDisabled={waiting}
+                      onClick={() => doAction('ATTACK')}
+                    >
+                      ⚔️ Attack
+                    </Button>
                   </VStack>
                 )}
                 {activeTab === 'defend' && (
@@ -958,19 +1197,35 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                     <Text fontSize="xs" color="gray.400" mb={1}>
                       Reduce incoming damage by 60% until the next hit lands.
                     </Text>
-                    <Button colorScheme="blue" isDisabled={waiting} onClick={() => doAction('DEFEND')}>🛡️ Defend</Button>
+                    <Button
+                      colorScheme="blue"
+                      isDisabled={waiting}
+                      onClick={() => doAction('DEFEND')}
+                    >
+                      🛡️ Defend
+                    </Button>
                   </VStack>
                 )}
                 {activeTab === 'special' && (
                   <VStack align="stretch">
                     {specialUsed ? (
-                      <Text fontSize="sm" color="gray.500">Special ability already used this battle.</Text>
+                      <Text fontSize="sm" color="gray.500">
+                        Special ability already used this battle.
+                      </Text>
                     ) : !hasSpecial ? (
-                      <Text fontSize="sm" color="gray.500">No special abilities equipped.</Text>
+                      <Text fontSize="sm" color="gray.500">
+                        No special abilities equipped.
+                      </Text>
                     ) : (
                       <>
-                        <Text fontSize="xs" color="gray.400" mb={1}>One-time use — cannot be undone.</Text>
-                        <Button colorScheme="purple" isDisabled={waiting} onClick={() => doAction('SPECIAL')}>
+                        <Text fontSize="xs" color="gray.400" mb={1}>
+                          One-time use — cannot be undone.
+                        </Text>
+                        <Button
+                          colorScheme="purple"
+                          isDisabled={waiting}
+                          onClick={() => doAction('SPECIAL')}
+                        >
                           ✨ {myStats.specials[0]?.label ?? 'Special'}
                         </Button>
                       </>
@@ -980,15 +1235,23 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                 {activeTab === 'item' && (
                   <VStack align="stretch" spacing={1}>
                     {consumablesRemaining.length === 0 ? (
-                      <Text fontSize="xs" color="gray.500">No consumables remaining.</Text>
+                      <Text fontSize="xs" color="gray.500">
+                        No consumables remaining.
+                      </Text>
                     ) : (
                       consumablesRemaining.map((id) => {
                         const item = consumableItems.find((i) => i.itemId === id);
                         if (!item) return null;
                         return (
-                          <Button key={id} size="xs" colorScheme="blue" variant="outline"
-                            justifyContent="flex-start" isDisabled={waiting}
-                            onClick={() => doAction('USE_ITEM', id)}>
+                          <Button
+                            key={id}
+                            size="xs"
+                            colorScheme="blue"
+                            variant="outline"
+                            justifyContent="flex-start"
+                            isDisabled={waiting}
+                            onClick={() => doAction('USE_ITEM', id)}
+                          >
                             🧪 {item.name}
                           </Button>
                         );
@@ -999,32 +1262,54 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
               </Box>
             ) : (
               <Box textAlign="center">
-                <Button size="sm" variant="outline"
+                <Button
+                  size="sm"
+                  variant="outline"
                   colorScheme={battleOver === 'win' ? 'yellow' : 'gray'}
-                  onClick={reset}>
+                  onClick={reset}
+                >
                   ↺ play again
                 </Button>
               </Box>
             )}
 
             {/* Battle log */}
-            <Box ref={logRef} bg="gray.900" border="1px solid" borderColor="gray.700"
-              borderRadius="lg" p={3} h="160px" overflowY="auto" fontFamily="mono" fontSize="12px">
+            <Box
+              ref={logRef}
+              bg="gray.900"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="lg"
+              p={3}
+              h="160px"
+              overflowY="auto"
+              fontFamily="mono"
+              fontSize="12px"
+            >
               {log.map((entry, i) => (
-                <Text key={i} mb={0.5} color={
-                  entry.type === 'special' ? '#ce93d8'
-                  : entry.type === 'item' ? '#ffe082'
-                  : entry.type === 'result' ? '#c9a84c'
-                  : entry.type === 'system' ? '#666'
-                  : '#ccc'
-                }>
+                <Text
+                  key={i}
+                  mb={0.5}
+                  color={
+                    entry.type === 'special'
+                      ? '#ce93d8'
+                      : entry.type === 'item'
+                      ? '#ffe082'
+                      : entry.type === 'result'
+                      ? '#c9a84c'
+                      : entry.type === 'system'
+                      ? '#666'
+                      : '#ccc'
+                  }
+                >
                   {entry.text}
                 </Text>
               ))}
             </Box>
 
             <Text fontSize="xx-small" color="gray.700" textAlign="center">
-              dummy: {DEMO_DUMMY.attack} atk / {DEMO_DUMMY.defense} def / {DEMO_DUMMY.crit}% crit / {DEMO_DUMMY.maxHp} hp
+              dummy: {DEMO_DUMMY.attack} atk / {DEMO_DUMMY.defense} def / {DEMO_DUMMY.crit}% crit /{' '}
+              {DEMO_DUMMY.maxHp} hp
             </Text>
           </VStack>
         </ModalBody>
@@ -1069,9 +1354,12 @@ export function TeamOutfitter({ team, event, isAdmin }) {
   const items = data?.getClanWarsWarChest ?? [];
   const slotItems = items.filter((i) => i.slot === activeSlot);
   const consumableItems = items.filter((i) => i.slot === 'consumable');
-  const activeItems = activeSlot === 'consumable' ? consumableItems : slotItems;
+  const activeItems =
+    activeSlot === 'all' ? items : activeSlot === 'consumable' ? consumableItems : slotItems;
   const activeLabel =
-    activeSlot === 'consumable'
+    activeSlot === 'all'
+      ? 'All Items'
+      : activeSlot === 'consumable'
       ? 'Consumables'
       : activeSlot.charAt(0).toUpperCase() + activeSlot.slice(1);
 
@@ -1096,12 +1384,12 @@ export function TeamOutfitter({ team, event, isAdmin }) {
   const isCaptain = user?.discordUserId === team.captainDiscordId || isAdmin;
 
   const equip = (slot, itemId) => {
-    if (viewingOfficial || (isLocked && !isAdmin)) return;
+    if (viewingOfficial || isLocked) return;
     setDraftLoadout((prev) => ({ ...prev, [slot]: itemId }));
   };
 
   const unequip = (slot) => {
-    if (viewingOfficial || (isLocked && !isAdmin)) return;
+    if (viewingOfficial || isLocked) return;
     setDraftLoadout((prev) => {
       const next = { ...prev };
       delete next[slot];
@@ -1109,8 +1397,18 @@ export function TeamOutfitter({ team, event, isAdmin }) {
     });
   };
 
+  const unequipAll = () => {
+    if (viewingOfficial || isLocked) return;
+    setDraftLoadout((prev) => {
+      const next = { ...prev };
+      GEAR_SLOTS.forEach((slot) => delete next[slot]);
+      return next;
+    });
+    setActiveSlot('weapon');
+  };
+
   const equipConsumable = (itemId) => {
-    if (viewingOfficial || (isLocked && !isAdmin)) return;
+    if (viewingOfficial || isLocked) return;
     setDraftLoadout((prev) => {
       const current = prev.consumables ?? [];
       if (current.includes(itemId)) {
@@ -1139,7 +1437,11 @@ export function TeamOutfitter({ team, event, isAdmin }) {
     const warnings = [];
     const emptySlots = GEAR_SLOTS.filter((slot) => !draftLoadout[slot]);
     if (emptySlots.length > 0) {
-      warnings.push(`${emptySlots.length} gear slot${emptySlots.length !== 1 ? 's' : ''} empty: ${emptySlots.join(', ')}`);
+      warnings.push(
+        `${emptySlots.length} gear slot${
+          emptySlots.length !== 1 ? 's' : ''
+        } empty: ${emptySlots.join(', ')}`
+      );
     }
     const availableSpecials = computeAvailableSpecials(draftLoadout, items);
     if (availableSpecials.length === 0) {
@@ -1199,20 +1501,48 @@ export function TeamOutfitter({ team, event, isAdmin }) {
         </Alert>
       )}
 
-      {/* Top row: gear slots | character sprite | stats */}
-      <Box display="grid" gridTemplateColumns="repeat(3, 1fr)" gap={10} alignItems="flex-start" w="full">
+      {/* Layout: paperdoll | sprite | stats (stats spans 2 rows), inventory spans cols 1+2 below */}
+      <Box
+        display="grid"
+        gridTemplateColumns="repeat(3, 1fr)"
+        gridTemplateRows="auto auto"
+        gap={10}
+        alignItems="flex-start"
+        w="full"
+      >
         {/* Column 1 — Gear slots (paperdoll slot grid) */}
-        <Box display="flex" alignItems="flex-start" justifyContent="center">
+        <Box
+          gridColumn="1"
+          gridRow="1"
+          display="flex"
+          flexDir="column"
+          alignItems="center"
+          justifyContent="flex-start"
+          gap={2}
+        >
           <Paperdoll
             draftLoadout={displayLoadout}
             items={items}
             activeSlot={activeSlot}
             onSlotClick={setActiveSlot}
           />
+          <Button
+            size="xs"
+            variant="ghost"
+            colorScheme="red"
+            isDisabled={
+              viewingOfficial ||
+              (isLocked && !isAdmin) ||
+              GEAR_SLOTS.every((s) => !displayLoadout[s])
+            }
+            onClick={unequipAll}
+          >
+            Unequip All
+          </Button>
         </Box>
 
         {/* Column 2 — Character sprite */}
-        <VStack spacing={2} align="center">
+        <VStack gridColumn="2" gridRow="1" spacing={2} align="center">
           <Center
             w={`${GRID_W}px`}
             h={`${GRID_H}px`}
@@ -1226,7 +1556,14 @@ export function TeamOutfitter({ team, event, isAdmin }) {
               size={180}
               color="#888"
               src={BASE_SPRITES[baseSprite]}
-              layers={GEAR_SLOTS.map((slot) => {
+              backLayers={BACK_SLOTS.map((slot) => {
+                const id = displayLoadout[slot];
+                if (!id) return null;
+                const item = items.find((i) => i.itemId === id);
+                const key = item?.itemSnapshot?.spriteIcon ?? item?.itemSnapshot?.spriteKey;
+                return key ? LAYER_SPRITES[key] : null;
+              }).filter(Boolean)}
+              layers={LAYER_ORDER.map((slot) => {
                 const id = displayLoadout[slot];
                 if (!id) return null;
                 const item = items.find((i) => i.itemId === id);
@@ -1249,14 +1586,24 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                 borderColor={baseSprite === key ? 'yellow.400' : 'gray.600'}
                 borderRadius="sm"
                 cursor="pointer"
-                onClick={() => !viewingOfficial && setDraftLoadout((prev) => ({ ...prev, baseSprite: key }))}
+                onClick={() =>
+                  !viewingOfficial && setDraftLoadout((prev) => ({ ...prev, baseSprite: key }))
+                }
               />
             ))}
           </Box>
         </VStack>
 
-        {/* Column 3 — Stats + actions */}
-        <VStack align="stretch" spacing={0} w="full" px={4}>
+        {/* Column 3 — Stats + actions (spans both rows) */}
+        <VStack
+          gridColumn="3"
+          gridRow="1 / 3"
+          align="stretch"
+          spacing={0}
+          w="full"
+          px={4}
+          alignSelf="flex-start"
+        >
           <ChampionStat loadout={displayLoadout} items={items} />
 
           {isCaptain && !viewingOfficial && (
@@ -1265,10 +1612,12 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                 loadout={draftLoadout}
                 items={items}
                 maxSlots={event.eventConfig?.maxConsumableSlots ?? 4}
-                onRemove={(itemId) => setDraftLoadout((prev) => ({
-                  ...prev,
-                  consumables: (prev.consumables ?? []).filter((id) => id !== itemId),
-                }))}
+                onRemove={(itemId) =>
+                  setDraftLoadout((prev) => ({
+                    ...prev,
+                    consumables: (prev.consumables ?? []).filter((id) => id !== itemId),
+                  }))
+                }
                 onSlotClick={setActiveSlot}
                 activeSlot={activeSlot}
                 isLocked={isLocked && !isAdmin}
@@ -1284,13 +1633,7 @@ export function TeamOutfitter({ team, event, isAdmin }) {
           )}
 
           {/* Utility link row */}
-          <HStack
-            mt={2}
-            spacing={0}
-            borderTop="1px solid"
-            borderColor="gray.700"
-            pt={2}
-          >
+          <HStack mt={2} spacing={0} borderTop="1px solid" borderColor="gray.700" pt={2}>
             <Button
               size="xs"
               variant="ghost"
@@ -1331,7 +1674,9 @@ export function TeamOutfitter({ team, event, isAdmin }) {
               <VStack spacing={2} align="stretch">
                 {STAT_GUIDE.map(({ label, color, desc }) => (
                   <HStack key={label} spacing={2} align="flex-start">
-                    <Text color={color} fontWeight="bold" minW="32px">{label}</Text>
+                    <Text color={color} fontWeight="bold" minW="32px">
+                      {label}
+                    </Text>
                     <Text color="gray.400">{desc}</Text>
                   </HStack>
                 ))}
@@ -1370,13 +1715,27 @@ export function TeamOutfitter({ team, event, isAdmin }) {
               </Text>
             </HStack>
             {viewingOfficial ? (
-              <Button size="xs" variant="ghost" color="gray.500" h="auto" py={0} minW={0}
-                onClick={() => setViewingOfficial(false)}>
+              <Button
+                size="xs"
+                variant="ghost"
+                color="gray.500"
+                h="auto"
+                py={0}
+                minW={0}
+                onClick={() => setViewingOfficial(false)}
+              >
                 ← my draft
               </Button>
             ) : differsFromOfficial ? (
-              <Button size="xs" variant="ghost" color="gray.500" h="auto" py={0} minW={0}
-                onClick={() => setViewingOfficial(true)}>
+              <Button
+                size="xs"
+                variant="ghost"
+                color="gray.500"
+                h="auto"
+                py={0}
+                minW={0}
+                onClick={() => setViewingOfficial(true)}
+              >
                 view team loadout
               </Button>
             ) : null}
@@ -1405,7 +1764,10 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                   flex={1}
                   fontSize="11px"
                   _hover={{ color: 'teal.300' }}
-                  onClick={() => { setImportOpen((o) => !o); setImportCode(''); }}
+                  onClick={() => {
+                    setImportOpen((o) => !o);
+                    setImportCode('');
+                  }}
                 >
                   📥 import
                 </Button>
@@ -1423,67 +1785,176 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                     bg="gray.900"
                     borderColor="gray.600"
                   />
-                  <Button size="xs" colorScheme="teal" isDisabled={!importCode.trim()} onClick={handleImport}>
+                  <Button
+                    size="xs"
+                    colorScheme="teal"
+                    isDisabled={!importCode.trim()}
+                    onClick={handleImport}
+                  >
                     Apply
                   </Button>
                 </VStack>
               </Collapse>
-              {!isLocked && (
-                <Button colorScheme="blue" size="sm" w="full" isLoading={saving} onClick={handleSave}>
-                  Save Loadout
-                </Button>
+              {isLocked ? (
+                <Box
+                  bg="yellow.900"
+                  border="1px solid"
+                  borderColor="yellow.600"
+                  borderRadius="md"
+                  px={3}
+                  py={2}
+                  textAlign="center"
+                >
+                  <Text fontSize="sm" fontWeight="bold" color="yellow.200">
+                    🔒 Loadout is locked
+                  </Text>
+                  <Text fontSize="xs" color="yellow.400" mt={0.5}>
+                    This champion's gear is set for battle.
+                  </Text>
+                </Box>
+              ) : (
+                <VStack spacing={1} align="stretch">
+                  <Button
+                    colorScheme="blue"
+                    size="sm"
+                    w="full"
+                    isLoading={saving}
+                    onClick={handleSave}
+                  >
+                    Save Draft
+                  </Button>
+                  <Text fontSize="xs" color="gray.500" textAlign="center">
+                    Your loadout locks automatically when battle phase begins.
+                  </Text>
+                </VStack>
               )}
             </VStack>
           )}
         </VStack>
-      </Box>
 
-      {/* Inventory — fixed height, always-visible scrollbar to prevent layout shift */}
-      <Box mt={5} h="320px" overflowY="scroll" style={{ scrollbarGutter: 'stable' }}>
-        <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
-          {SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
-          {activeItems.length > 0 && (
-            <Text as="span" fontSize="xs" color="gray.500" ml={2}>
-              {activeItems.length} item{activeItems.length !== 1 ? 's' : ''}
+        {/* Inventory — spans cols 1+2, sits below paperdoll and sprite */}
+        <Box
+          gridColumn="1 / 3"
+          gridRow="2"
+          h="320px"
+          overflowY="scroll"
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          <HStack justify="space-between" mb={3}>
+            <Text fontSize="sm" fontWeight="semibold" color="gray.300">
+              {activeSlot === 'all' ? '🎒' : SLOT_EMOJI[activeSlot] ?? '🧪'} {activeLabel}
+              {activeItems.length > 0 && (
+                <Text as="span" fontSize="xs" color="gray.500" ml={2}>
+                  {activeItems.length} item{activeItems.length !== 1 ? 's' : ''}
+                </Text>
+              )}
             </Text>
+            <Button
+              size="xs"
+              variant={activeSlot === 'all' ? 'solid' : 'outline'}
+              colorScheme={activeSlot === 'all' ? 'gray' : 'whiteAlpha'}
+              onClick={() => setActiveSlot(activeSlot === 'all' ? 'weapon' : 'all')}
+            >
+              {activeSlot === 'all' ? 'Filter by: Slot' : 'Filter by: All'}
+            </Button>
+          </HStack>
+          {activeSlot === 'all' ? (
+            items.length === 0 ? (
+              <Text fontSize="sm" color="gray.500">
+                War chest is empty.
+              </Text>
+            ) : (
+              <VStack spacing={4} align="stretch">
+                {[...GEAR_SLOTS, 'consumable'].map((slot) => {
+                  const slotGroup = items.filter((i) => i.slot === slot);
+                  if (slotGroup.length === 0) return null;
+                  const isConsumableSlot = slot === 'consumable';
+                  return (
+                    <Box key={slot}>
+                      <Text
+                        fontSize="xs"
+                        color="gray.500"
+                        fontWeight="semibold"
+                        textTransform="capitalize"
+                        mb={1}
+                      >
+                        {SLOT_EMOJI[slot]} {slot}
+                      </Text>
+                      <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={2}>
+                        {slotGroup.map((item) => (
+                          <ItemCard
+                            key={item.itemId}
+                            item={item}
+                            isSelected={
+                              isConsumableSlot
+                                ? (displayLoadout.consumables ?? []).includes(item.itemId)
+                                : displayLoadout[slot] === item.itemId
+                            }
+                            isEquipped={
+                              isConsumableSlot
+                                ? (officialLoadout.consumables ?? []).includes(item.itemId)
+                                : officialLoadout[slot] === item.itemId
+                            }
+                            compareItem={
+                              !isConsumableSlot &&
+                              displayLoadout[slot] &&
+                              displayLoadout[slot] !== item.itemId
+                                ? items.find((i) => i.itemId === displayLoadout[slot])
+                                : null
+                            }
+                            onClick={() =>
+                              isConsumableSlot
+                                ? equipConsumable(item.itemId)
+                                : displayLoadout[slot] === item.itemId
+                                ? unequip(slot)
+                                : equip(slot, item.itemId)
+                            }
+                          />
+                        ))}
+                      </SimpleGrid>
+                    </Box>
+                  );
+                })}
+              </VStack>
+            )
+          ) : activeItems.length === 0 ? (
+            <Text fontSize="sm" color="gray.500">
+              No {activeLabel.toLowerCase()} in war chest.
+            </Text>
+          ) : (
+            <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={2}>
+              {activeItems.map((item) => {
+                const isConsumable = item.slot === 'consumable';
+                return isConsumable ? (
+                  <ItemCard
+                    key={item.itemId}
+                    item={item}
+                    isSelected={(displayLoadout.consumables ?? []).includes(item.itemId)}
+                    isEquipped={(officialLoadout.consumables ?? []).includes(item.itemId)}
+                    onClick={() => equipConsumable(item.itemId)}
+                  />
+                ) : (
+                  <ItemCard
+                    key={item.itemId}
+                    item={item}
+                    isSelected={displayLoadout[activeSlot] === item.itemId}
+                    isEquipped={officialLoadout[activeSlot] === item.itemId}
+                    compareItem={
+                      displayLoadout[activeSlot] && displayLoadout[activeSlot] !== item.itemId
+                        ? items.find((i) => i.itemId === displayLoadout[activeSlot])
+                        : null
+                    }
+                    onClick={() =>
+                      displayLoadout[activeSlot] === item.itemId
+                        ? unequip(activeSlot)
+                        : equip(activeSlot, item.itemId)
+                    }
+                  />
+                );
+              })}
+            </SimpleGrid>
           )}
-        </Text>
-        {activeItems.length === 0 ? (
-          <Text fontSize="sm" color="gray.500">
-            No {activeLabel.toLowerCase()} in war chest.
-          </Text>
-        ) : (
-          <SimpleGrid columns={{ base: 2, md: 3, lg: 4 }} spacing={2}>
-            {activeItems.map((item) =>
-              activeSlot === 'consumable' ? (
-                <ItemCard
-                  key={item.itemId}
-                  item={item}
-                  isSelected={(displayLoadout.consumables ?? []).includes(item.itemId)}
-                  isEquipped={(officialLoadout.consumables ?? []).includes(item.itemId)}
-                  onClick={() => equipConsumable(item.itemId)}
-                />
-              ) : (
-                <ItemCard
-                  key={item.itemId}
-                  item={item}
-                  isSelected={displayLoadout[activeSlot] === item.itemId}
-                  isEquipped={officialLoadout[activeSlot] === item.itemId}
-                  compareItem={
-                    displayLoadout[activeSlot] && displayLoadout[activeSlot] !== item.itemId
-                      ? items.find((i) => i.itemId === displayLoadout[activeSlot])
-                      : null
-                  }
-                  onClick={() =>
-                    displayLoadout[activeSlot] === item.itemId
-                      ? unequip(activeSlot)
-                      : equip(activeSlot, item.itemId)
-                  }
-                />
-              )
-            )}
-          </SimpleGrid>
-        )}
+        </Box>
       </Box>
 
       <BattlePreviewModal
@@ -1500,7 +1971,9 @@ export function TeamOutfitter({ team, event, isAdmin }) {
         onClose={() => setSaveConfirmOpen(false)}
         onConfirm={doSave}
         title="Save loadout anyway?"
-        body={`Heads up:\n${saveWarnings.map((w) => `• ${w}`).join('\n')}\n\nYou can still save — just double-checking.`}
+        body={`Heads up:\n${saveWarnings
+          .map((w) => `• ${w}`)
+          .join('\n')}\n\nYou can still save — just double-checking.`}
         confirmLabel="Save anyway"
         colorScheme="blue"
         isLoading={saving}

@@ -15,6 +15,7 @@ if [ "$1" = "undo" ]; then
   npx sequelize-cli db:seed:undo --seed 20260318000007-cw-completed-de-seeder.js
   npx sequelize-cli db:seed:undo --seed 20260318000006-cw-completed-se-seeder.js
   npx sequelize-cli db:seed:undo --seed 20260309000005-cw-battle-seeder.js
+  npx sequelize-cli db:seed:undo --seed 20260325000009-cw-outfitting-full-seeder.js
   npx sequelize-cli db:seed:undo --seed 20260309000004-cw-outfitting-seeder.js
   npx sequelize-cli db:seed:undo --seed 20260309000003-cw-gathering-rich-seeder.js
   npx sequelize-cli db:seed:undo --seed 20260309000002-cw-draft-seeder.js
@@ -29,6 +30,7 @@ else
   npx sequelize-cli db:seed --seed 20260309000002-cw-draft-seeder.js            # draft: setup checklist
   npx sequelize-cli db:seed --seed 20260309000003-cw-gathering-rich-seeder.js   # gathering: rich (submissions + items)
   npx sequelize-cli db:seed --seed 20260309000004-cw-outfitting-seeder.js       # outfitting: full war chests
+  npx sequelize-cli db:seed --seed 20260325000009-cw-outfitting-full-seeder.js  # outfitting: 8 teams, 5 members, full war chests
   npx sequelize-cli db:seed --seed 20260309000005-cw-battle-seeder.js           # battle: locked loadouts, simulate-ready
   npx sequelize-cli db:seed --seed 20260318000006-cw-completed-se-seeder.js     # completed: SE 4-team (Irongate Invitational)
   npx sequelize-cli db:seed --seed 20260318000007-cw-completed-de-seeder.js     # completed: DE 8-team (Grand Forge Championship)

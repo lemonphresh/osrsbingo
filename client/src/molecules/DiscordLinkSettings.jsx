@@ -1,14 +1,21 @@
 import { Button, Input, VStack, Text, useToast } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
 import { LINK_DISCORD_ACCOUNT } from '../graphql/mutations';
+import { useAuth } from '../providers/AuthProvider';
 import { useState } from 'react';
 
 export default function DiscordLinkSettings({ user }) {
   const { showToast } = useToast();
+  const { setUser } = useAuth();
   const [discordId, setDiscordId] = useState(user.discordUserId || '');
 
   const [linkDiscord] = useMutation(LINK_DISCORD_ACCOUNT, {
-    onCompleted: () => {
+    onCompleted: ({ linkDiscordAccount }) => {
+      const { token, user: updatedUser } = linkDiscordAccount;
+      if (token) {
+        localStorage.setItem('authToken', token);
+        setUser(updatedUser);
+      }
       showToast('Discord account linked!', 'success');
     },
   });

@@ -666,6 +666,12 @@ export const DEV_SIMULATE_NEXT_MATCH = gql`
   }
 `;
 
+export const DEV_SEED_CF_EVENT = gql`
+  mutation DevSeedCfEvent {
+    devSeedCfEvent
+  }
+`;
+
 // ============================================================
 // SUBSCRIPTIONS
 // ============================================================

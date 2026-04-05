@@ -18,7 +18,6 @@ import theme from '../theme';
 
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import Toolbar from '../organisms/CalendarToolbar';
-import PasswordGate from '../organisms/PasswordGate';
 import EventFormModal from '../organisms/EventFormModal';
 import {
   GET_CALENDAR_EVENTS,
@@ -26,12 +25,12 @@ import {
   GET_CALENDAR_VERSION,
 } from '../graphql/queries';
 import {
-  AUTHENTICATE_CALENDAR,
   CREATE_CAL_EVENT,
   DELETE_CAL_EVENT,
   UPDATE_CAL_EVENT,
   SAVE_CAL_EVENT,
   RESTORE_CAL_EVENT,
+  PROMOTE_CAL_EVENT,
 } from '../graphql/mutations';
 import CalendarGlobal from '../utils/CalendarGlobalStyles';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
@@ -40,8 +39,6 @@ import CalendarLegend from '../molecules/CalendarLegend';
 import SavedEventsPanel from '../organisms/SavedEventsPanel';
 import RescheduleModal from '../organisms/RescheduleModal';
 import UpdateBanner from '../molecules/UpdateBanner';
-import GemTitle from '../atoms/GemTitle';
-import usePageTitle from '../hooks/usePageTitle';
 
 const locales = { 'en-US': enUS };
 const localizer = dateFnsLocalizer({
@@ -117,11 +114,10 @@ const TYPE_COLOR = {
   JAGEX: '#ffa200ff',
 };
 
-export default function CalendarPage() {
+export default function EGCalendar({ authed, setAuthed }) {
   const toast = useToast();
 
-  const [authed, setAuthed] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [calView, setCalView] = useState('official'); // 'official' | 'draft'
   const [selected, setSelected] = useState(null);
   const [toRestore, setToRestore] = useState(null);
   const [toolbarOpen, setToolbarOpen] = useState(false);
@@ -133,32 +129,11 @@ export default function CalendarPage() {
   const viewModal = useDisclosure();
   const reschedule = useDisclosure();
 
-  // --- AUTH CHECK ---
-  const [checkAuth, { loading: authLoading }] = useLazyQuery(GET_CALENDAR_EVENTS, {
-    variables: { limit: 1, offset: 0 },
-    fetchPolicy: 'network-only',
-    onCompleted: () => {
-      setAuthed(true);
-      setAuthChecked(true);
-    },
-    onError: (e) => {
-      const isUnauthed = e?.graphQLErrors?.some(
-        (err) => err?.extensions?.code === 'UNAUTHENTICATED'
-      );
-      setAuthed(!isUnauthed);
-      setAuthChecked(true);
-    },
-  });
-
-  useEffect(() => {
-    checkAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // --- MAIN EVENTS QUERY ---
   const { data, refetch } = useQuery(GET_CALENDAR_EVENTS, {
     fetchPolicy: 'network-only',
     skip: !authed,
+    variables: { publishStatus: calView === 'official' ? 'OFFICIAL' : undefined },
     onError: (e) => {
       const isUnauthed = e?.graphQLErrors?.some(
         (err) => err?.extensions?.code === 'UNAUTHENTICATED'
@@ -187,7 +162,6 @@ export default function CalendarPage() {
     },
   });
 
-  // Check version once when authed, then again after user actions that mutate data
   useEffect(() => {
     if (authed) checkVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -206,12 +180,12 @@ export default function CalendarPage() {
   });
 
   // --- MUTATIONS ---
-  const [doAuth] = useMutation(AUTHENTICATE_CALENDAR);
   const [createEvent] = useMutation(CREATE_CAL_EVENT);
   const [updateEvent] = useMutation(UPDATE_CAL_EVENT);
   const [deleteEvent] = useMutation(DELETE_CAL_EVENT);
   const [saveEvent] = useMutation(SAVE_CAL_EVENT);
   const [restoreEvent] = useMutation(RESTORE_CAL_EVENT);
+  const [promoteEvent] = useMutation(PROMOTE_CAL_EVENT);
 
   const events = useMemo(() => {
     const items = data?.calendarEvents?.items ?? [];
@@ -225,7 +199,6 @@ export default function CalendarPage() {
 
   const doRefreshLists = async () => {
     await Promise.all([refetch(), refetchSaved()]);
-    // Re-snapshot baseline after manual refresh
     checkVersion();
     setBaseline({ activeUpdatedAt: null, savedUpdatedAt: null });
     setHasDrift(false);
@@ -265,11 +238,24 @@ export default function CalendarPage() {
       if (selected?.id) {
         await updateEvent({ variables: { id: selected.id, input: vals } });
       } else {
-        await createEvent({ variables: { input: vals } });
+        await createEvent({
+          variables: {
+            input: { ...vals, publishStatus: calView === 'official' ? 'OFFICIAL' : 'DRAFT' },
+          },
+        });
       }
       await refetch();
       checkVersion();
       toast({ status: 'success', title: 'Saved' });
+    });
+  };
+
+  const handlePromote = async (id) => {
+    await safeRun(async () => {
+      await promoteEvent({ variables: { id } });
+      await refetch();
+      checkVersion();
+      toast({ status: 'success', title: 'Promoted to Official' });
     });
   };
 
@@ -291,41 +277,6 @@ export default function CalendarPage() {
     });
   };
 
-  const submitPassword = async (pwd) => {
-    await safeRun(async () => {
-      const res = await doAuth({ variables: { password: pwd } });
-      if (res?.data?.authenticateCalendar?.ok) {
-        setAuthed(true);
-        await refetch?.();
-      } else {
-        toast({ status: 'error', title: 'Incorrect password' });
-      }
-    });
-  };
-
-  usePageTitle('EG Events Calendar');
-
-  if (!authChecked || authLoading) {
-    return (
-      <Flex align="center" justify="center" minHeight="60vh">
-        <Spinner />
-      </Flex>
-    );
-  }
-
-  if (!authed) {
-    return (
-      <Flex align="center" justify="center" minHeight="60vh">
-        <div style={{ width: 420 }}>
-          <GemTitle gemColor="purple" size="md" style={{ marginBottom: 16 }}>
-            Eternal Gems Events Calendar
-          </GemTitle>
-          <PasswordGate onAuthed={() => {}} submitOverride={submitPassword} />
-        </div>
-      </Flex>
-    );
-  }
-
   return (
     <>
       <CalendarGlobal />
@@ -337,11 +288,32 @@ export default function CalendarPage() {
         justifyContent="center"
         width="100%"
         paddingX={['16px', '24px', '64px']}
-        paddingY={['72px', '112px']}
+        paddingBottom={['72px', '112px']}
+        paddingTop={['32px', '48px']}
       >
-        <GemTitle gemColor="purple" maxW="1200px" width="100%" paddingBottom="32px">
-          Eternal Gems Events Calendar
-        </GemTitle>
+        {/* Official / Draft toggle */}
+        <Flex width="100%" maxW="1200px" mb={4} align="center" justify="space-between">
+          <ButtonGroup size="sm" isAttached>
+            <Button
+              variant={calView === 'official' ? 'solid' : 'outline'}
+              onClick={() => setCalView('official')}
+              borderColor="whiteAlpha.300"
+              bg={calView !== 'official' ? 'dark.turquoise.light' : undefined}
+              _hover={calView !== 'official' ? { bg: 'dark.turquoise.base' } : undefined}
+            >
+              Official
+            </Button>
+            <Button
+              variant={calView === 'draft' ? 'solid' : 'outline'}
+              onClick={() => setCalView('draft')}
+              borderColor="whiteAlpha.300"
+              bg={calView !== 'draft' ? 'dark.turquoise.light' : undefined}
+              _hover={calView !== 'draft' ? { bg: 'dark.turquoise.base' } : undefined}
+            >
+              Draft
+            </Button>
+          </ButtonGroup>
+        </Flex>
 
         {hasDrift && (
           <div style={{ width: '100%', maxWidth: 1200, marginBottom: 12 }}>
@@ -370,10 +342,27 @@ export default function CalendarPage() {
                       width: 8,
                       height: 8,
                       borderRadius: 9999,
+                      flexShrink: 0,
                       background: TYPE_COLOR[event.eventType] || TYPE_COLOR.MISC,
                     }}
                   />
                   <span style={{ fontWeight: 700 }}>{event.title}</span>
+                  {event.publishStatus === 'DRAFT' && (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: 1,
+                        opacity: 0.8,
+                        border: '1px solid rgba(255,255,255,0.6)',
+                        borderRadius: 3,
+                        padding: '0 3px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      DRAFT
+                    </span>
+                  )}
                 </div>
               ),
             }}
@@ -453,6 +442,14 @@ export default function CalendarPage() {
               await handleDelete(selected.id);
               closeToolbar();
             }}
+            onPromote={
+              calView === 'draft' && selected.publishStatus === 'DRAFT'
+                ? async () => {
+                    await handlePromote(selected.id);
+                    closeToolbar();
+                  }
+                : undefined
+            }
             title={selected.title}
           />
         )}
