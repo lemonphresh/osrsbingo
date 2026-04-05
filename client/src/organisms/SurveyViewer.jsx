@@ -16,6 +16,10 @@ import Papa from 'papaparse';
 // 'Display Name': 'filename.csv'
 const SURVEY_MANIFEST = {
   // 'Example Survey': 'example-survey.csv',
+  'Tile & Error (2025-05-01)': 'EGTileandErrorFeedback.csv',
+  'Battleship (2025-07-01)': 'EGBattleshipFeedback.csv',
+  'Monster Hunter (2025-08-01)': 'EGMH2025.csv',
+  'Gielinor Rush (2026-03-06)': 'EGGielinorRush2026.csv',
   'EG Survey (2026-04-04)': 'EGSurveyApr2026.csv',
 };
 
@@ -31,7 +35,7 @@ const SKIP_COLUMNS = new Set([
 ]);
 
 // Column name fragments that indicate a date/time column
-const DATE_COLUMN_HINTS = ['submission date', 'submitted', 'created at', 'date'];
+const DATE_COLUMN_HINTS = ['submission date', 'submitted', 'created at', 'date', 'timestamp'];
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const TEXT_PAGE_SIZE = 10;
@@ -448,7 +452,7 @@ export default function SurveyViewer() {
 
       {hasData && view === 'summary' && (
         <VStack spacing={6} width="100%" align="center">
-          {questions.map((q) =>
+          {questions.filter((q) => !q.name.toLowerCase().startsWith('optional')).map((q) =>
             q.type === 'choice' ? (
               <MultipleChoiceCard key={q.name} question={q.name} values={q.values} />
             ) : (
