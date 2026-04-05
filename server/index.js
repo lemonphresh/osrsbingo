@@ -76,7 +76,7 @@ app.use(
           'https://media.discordapp.net',
           'https://raw.githubusercontent.com',
         ],
-        connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki'],
+        connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki', 'https://api.wiseoldman.net'],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
         upgradeInsecureRequests: [],
