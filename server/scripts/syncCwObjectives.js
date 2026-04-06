@@ -48,7 +48,7 @@ const EXCLUDED_MINIGAME_IDS = new Set(['castleWars']);
 const PVM_MINIGAME_IDS = new Set(['colosseum', 'fightCaves', 'inferno', 'pestControl']);
 
 const EXCLUDED_BOSS_IDS = new Set([
-  // e.g. 'bryophyta',
+  // i.e. 'bryophyta',
 ]);
 
 // ---------------------------------------------------------------------------
@@ -140,7 +140,14 @@ const QUEST_NAMES = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const DIFF_MAP = { easy: 'initiate', short: 'initiate', medium: 'adept', wilderness: 'adept', hard: 'master', long: 'master' };
+const DIFF_MAP = {
+  easy: 'initiate',
+  short: 'initiate',
+  medium: 'adept',
+  wilderness: 'adept',
+  hard: 'master',
+  long: 'master',
+};
 const QTY_MAP = { easy: 'casual', medium: 'standard', hard: 'hardcore' };
 
 const ALL_BOSSES_BY_ID = {};

@@ -33,7 +33,7 @@ const ALIAS_PREFIXES = [
 const ALIAS_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 /**
- * Generate `count` unique anonymous labels, e.g. ["Raider A", "Raider B", ...].
+ * Generate `count` unique anonymous labels, i.e. ["Raider A", "Raider B", ...].
  * Falls back to "Player A", "Player B", ... for large pools.
  */
 function generateAliases(count) {
@@ -202,7 +202,7 @@ function startPickTimer(roomId, seconds, onTimeout) {
   activeTimers.set(roomId, timer);
 }
 
-/** Cancel the pick timer for a room (e.g. after a pick is made or draft ends). */
+/** Cancel the pick timer for a room (i.e. after a pick is made or draft ends). */
 function clearPickTimer(roomId) {
   if (activeTimers.has(roomId)) {
     clearTimeout(activeTimers.get(roomId));

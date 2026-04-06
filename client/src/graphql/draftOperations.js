@@ -76,6 +76,19 @@ export const FETCH_WOM_STATS = gql`
   }
 `;
 
+export const FETCH_PLAYER_COMP_HISTORY = gql`
+  query FetchPlayerCompHistory($rsns: [String!]!) {
+    fetchPlayerCompHistory(rsns: $rsns) {
+      rsn
+      count
+      recent {
+        id
+        title
+      }
+    }
+  }
+`;
+
 // ---------------------------------------------------------------------------
 // Mutations
 // ---------------------------------------------------------------------------

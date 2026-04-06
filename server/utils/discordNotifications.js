@@ -101,7 +101,7 @@ async function sendSubmissionApprovalNotification({
         components: [
           {
             type: C.TextDisplay,
-            content: `<@${submittedBy}> — your submission has been approved!`,
+            content: `<@${submittedBy}> your submission has been approved!`,
           },
           sep,
           {
@@ -152,7 +152,7 @@ async function sendSubmissionDenialNotification({
         components: [
           {
             type: C.TextDisplay,
-            content: `<@${submittedBy}> — your submission was not approved.`,
+            content: `<@${submittedBy}> your submission was not approved.`,
           },
           sep,
           {
@@ -243,7 +243,7 @@ async function sendNodeCompletionNotification({
                 {
                   type: C.TextDisplay,
                   content: [
-                    `🏆  **${nodeName}** — conquered!`,
+                    `🏆  **${nodeName}** conquered!`,
                     `${diffLabel ? `${diffEmoji} ${diffLabel}` : ''}`,
                     `Team: ${teamName}`,
                   ].join('\n'),
@@ -310,7 +310,7 @@ async function sendAllNodesCompletedNotification({
             components: [
               {
                 type: C.TextDisplay,
-                content: `# 🗺️ ${teamName} — Map Complete!`,
+                content: `# 🗺️ ${teamName}: Map Complete!`,
               },
               sep,
               {
@@ -342,6 +342,69 @@ async function sendAllNodesCompletedNotification({
   return results;
 }
 
+/**
+ * Group goal milestone notification
+ * Sent when a collective goal crosses 25%, 50%, 75%, or 100%.
+ */
+async function sendGroupGoalMilestoneNotification({
+  channelId,
+  groupName,
+  eventName,
+  goal,
+  percent,
+  current,
+  target,
+  dashboardUrl,
+  topContributors = [],
+}) {
+  const isComplete = percent >= 100;
+  const accentColor = isComplete ? 0x43aa8b : percent >= 75 ? 0xf4a732 : 0xf4d35e;
+
+  const filled = Math.round((Math.min(percent, 100) / 100) * 20);
+  const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+
+  const formatValue = (v) =>
+    v >= 1_000_000
+      ? `${(v / 1_000_000).toFixed(1)}M`
+      : v >= 1_000
+      ? `${(v / 1_000).toFixed(1)}K`
+      : v.toLocaleString();
+
+  const milestoneLabel = isComplete ? '🎉 Goal Complete!' : `${Math.round(percent)}% reached`;
+
+  const leaderboardLines = topContributors.slice(0, 5).map((c, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`;
+    return `${medal} **${c.rsn}**: ${formatValue(c.value)} (${c.percent.toFixed(1)}%)`;
+  });
+
+  const innerComponents = [
+    {
+      type: C.TextDisplay,
+      content: `${goal.emoji ?? '🎯'} **${goal.displayName ?? goal.metric}**: ${milestoneLabel}`,
+    },
+    sep,
+    {
+      type: C.TextDisplay,
+      content: [`\`${bar}\` ${Math.round(percent)}%`, `**${formatValue(current)}** / ${formatValue(target)}`].join('\n'),
+    },
+  ];
+
+  if (leaderboardLines.length > 0) {
+    innerComponents.push(sep, { type: C.TextDisplay, content: leaderboardLines.join('\n') });
+  }
+
+  const dashLink = dashboardUrl ? `[View Dashboard](${dashboardUrl})` : null;
+  innerComponents.push(sep, {
+    type: C.TextDisplay,
+    content: `-# ${groupName}  ·  ${eventName}${dashLink ? `  ·  ${dashLink}` : ''}`,
+  });
+
+  return sendDiscordMessage(channelId, {
+    flags: IS_COMPONENTS_V2,
+    components: [{ type: C.Container, accent_color: accentColor, components: innerComponents }],
+  });
+}
+
 function getSubmissionChannelId(event) {
   if (!event.discordConfig) return null;
   return (
@@ -359,6 +422,7 @@ module.exports = {
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
+  sendGroupGoalMilestoneNotification,
   getSubmissionChannelId,
   getChannelFromSubmission,
 };

@@ -4,6 +4,7 @@ import GemTitle from '../atoms/GemTitle';
 import OsrsWikiLogo from '../assets/osrswikilogo.png';
 import ExampleGR from '../assets/exampleGR.png';
 import ExampleBoard from '../assets/ExampleBoard.png';
+import GroupGoalsPreview from '../assets/groupdashboard.webp';
 import OsrsMap from '../assets/osrsmap12112025cropped.webp';
 import { useAuth } from '../providers/AuthProvider';
 import theme from '../theme';
@@ -168,7 +169,7 @@ const Landing = () => {
             </Link>
           </Box>
 
-          {/* Gielinor Rush */}
+          {/* Group Dashboard */}
           <Box
             flex="1"
             display="flex"
@@ -177,44 +178,44 @@ const Landing = () => {
             borderRadius="12px"
             padding={['16px', '20px']}
             borderWidth="2px"
-            borderColor={theme.colors.orange[400]}
+            borderColor={theme.colors.orange[500]}
           >
             <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
               <Text
-                fontSize="xl"
                 fontFamily="Raleway"
+                fontSize="xl"
                 fontWeight="semibold"
                 color={theme.colors.orange[300]}
               >
-                Gielinor Rush
+                Group Goals Dashboard
               </Text>
-              <Text fontSize="xs" bg={theme.colors.orange[600]} px={2} py={1} borderRadius="full">
-                {isGielinorRushEnabled(user) ? 'NEW' : 'SOON'}
+              <Text fontSize="xs" bg={theme.colors.orange[700]} px={2} py={1} borderRadius="full">
+                NEW
               </Text>
             </HStack>
             <Flex justifyContent="center" marginBottom="20px">
               <Image
-                alt="Gielinor Rush treasure hunt map"
+                alt="Group Goals Dashboard showing team progress"
                 backgroundColor={theme.colors.gray[900]}
                 borderRadius="8px"
                 maxHeight="180px"
                 padding="8px"
-                src={ExampleGR}
+                src={GroupGoalsPreview}
                 loading="lazy"
               />
             </Flex>
             <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
-              Team-based treasure hunt competitions with GP prize pools. Generate maps with PvM,
-              skilling, and collection objectives. Discord integration for submissions and
-              guaranteed GP payouts.
+              With the power of Wise Old Man, set specific group goals and track progress on a clear
+              dashboard across any OSRS activity for any duration. Great for clans, GIMs, or any
+              group of friends working towards shared milestones.
             </Text>
-            <Link to="/gielinor-rush" style={{ marginTop: 'auto' }}>
+            <Link to="/group" style={{ marginTop: 'auto' }}>
               <Button
                 width="100%"
-                backgroundColor={theme.colors.orange[500]}
-                _hover={{ backgroundColor: theme.colors.orange[600] }}
+                backgroundColor={theme.colors.orange[600]}
+                _hover={{ backgroundColor: theme.colors.orange[700] }}
               >
-                {isGielinorRushEnabled(user) ? 'Get Started' : 'Learn More'}
+                Track Your Group
               </Button>
             </Link>
           </Box>
@@ -300,7 +301,7 @@ const Landing = () => {
                     : 'rgba(244, 211, 94, 0.1)',
                 }}
               >
-                {isChampionForgeEnabled(user) ? 'Get Started' : 'Learn More'}
+                {isChampionForgeEnabled(user) ? 'Start Forging' : 'Learn More'}
               </Button>
             </Link>
           </Box>
@@ -351,7 +352,7 @@ const Landing = () => {
                   backgroundColor={theme.colors.pink[600]}
                   _hover={{ backgroundColor: theme.colors.pink[700] }}
                 >
-                  Try Blind Draft
+                  Draft Teams
                 </Button>
               </Link>
             </Box>
@@ -404,6 +405,54 @@ const Landing = () => {
                 _hover={{ backgroundColor: theme.colors.green[700] }}
               >
                 Balance Teams
+              </Button>
+            </Link>
+          </Box>
+
+          {/* Gielinor Rush */}
+          <Box
+            flex="1"
+            display="flex"
+            flexDirection="column"
+            backgroundColor={theme.colors.teal[900]}
+            borderRadius="12px"
+            padding={['16px', '20px']}
+            borderWidth="2px"
+            borderColor={theme.colors.yellow[400]}
+          >
+            <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+              <Text
+                fontSize="xl"
+                fontFamily="Raleway"
+                fontWeight="semibold"
+                color={theme.colors.yellow[300]}
+              >
+                Gielinor Rush
+              </Text>
+            </HStack>
+            <Flex justifyContent="center" marginBottom="20px">
+              <Image
+                alt="Gielinor Rush treasure hunt map"
+                backgroundColor={theme.colors.gray[900]}
+                borderRadius="8px"
+                maxHeight="180px"
+                padding="8px"
+                src={ExampleGR}
+                loading="lazy"
+              />
+            </Flex>
+            <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+              Team-based treasure hunt competitions with GP prize pools. Generate maps with PvM,
+              skilling, and collection objectives. Discord integration for submissions and
+              guaranteed GP payouts.
+            </Text>
+            <Link to="/gielinor-rush" style={{ marginTop: 'auto' }}>
+              <Button
+                width="100%"
+                backgroundColor={theme.colors.yellow[500]}
+                _hover={{ backgroundColor: theme.colors.yellow[600] }}
+              >
+                {isGielinorRushEnabled(user) ? 'Feel the Rush' : 'Learn More'}
               </Button>
             </Link>
           </Box>

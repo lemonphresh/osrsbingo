@@ -28,7 +28,7 @@ module.exports = (sequelize) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      // e.g. "Raider A", "Raider B"
+      // i.e. "Raider A", "Raider B"
       alias: {
         type: DataTypes.STRING,
         allowNull: false,

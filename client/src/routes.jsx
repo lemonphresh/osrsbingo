@@ -37,6 +37,12 @@ const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarrac
 const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
 const ChampionForgeGuidePage = lazy(() => import('./pages/ChampionForgeGuidePage'));
 const TeamBalancerPage = lazy(() => import('./pages/TeamBalancerPage'));
+const GroupDashboardPage = lazy(() => import('./pages/GroupDashboardPage'));
+const GroupDashboardManagePage = lazy(() => import('./pages/GroupDashboardManagePage'));
+const GroupDashboardCreatePage = lazy(() => import('./pages/GroupDashboardCreatePage'));
+const GroupDashboardListPage = lazy(() => import('./pages/GroupDashboardListPage'));
+const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboardCompetitionsPage'));
+const GroupDashboardActivityPage = lazy(() => import('./pages/GroupDashboardActivityPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -211,6 +217,36 @@ const routes = [
       {
         path: '/changelog',
         element: withSuspense(ChangelogPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group',
+        element: withSuspense(GroupDashboardListPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/new',
+        element: withSuspense(GroupDashboardCreatePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/:slug',
+        element: withSuspense(GroupDashboardPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/:slug/manage',
+        element: withSuspense(GroupDashboardManagePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/:slug/competitions',
+        element: withSuspense(GroupDashboardCompetitionsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/activity',
+        element: withSuspense(GroupDashboardActivityPage),
         errorElement: <ErrorPage />,
       },
       {

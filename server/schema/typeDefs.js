@@ -508,6 +508,17 @@ const typeDefs = gql`
     pickOrder: Int
   }
 
+  type PlayerCompRecentEntry {
+    id: String!
+    title: String!
+  }
+
+  type PlayerCompHistory {
+    rsn: String!
+    count: Int!
+    recent: [PlayerCompRecentEntry!]!
+  }
+
   type DraftRoom {
     roomId: ID!
     roomName: String!
@@ -638,6 +649,7 @@ const typeDefs = gql`
     getDraftRoom(roomId: ID!): DraftRoom
     getMyDraftRooms: [DraftRoom!]!
     fetchWomStats(rsns: [String!]!): [JSON!]!
+    fetchPlayerCompHistory(rsns: [String!]!): [PlayerCompHistory!]!
 
     # --- Champion Forge ---
     getClanWarsEvent(eventId: ID!): ClanWarsEvent
@@ -652,6 +664,15 @@ const typeDefs = gql`
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
     getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
+
+    # --- Group Goal Dashboard ---
+    getGroupDashboard(slug: String!): GroupDashboard
+    getGroupDashboardProgress(eventId: ID!): [GroupGoalProgress!]!
+    getMyGroupDashboards: [GroupDashboard!]!
+    getGroupCompetitions(slug: String!): [WOMCompetition!]!
+    getMyGroupActivity: [GroupActivityItem!]!
+    getUnreadGroupNotificationCount: Int!
+    getMyGroupAssociations: [GroupAssociation!]!
   }
 
   # ============================================================
@@ -858,6 +879,22 @@ const typeDefs = gql`
     # Dev-only: start the next unstarted bracket match and simulate it to completion
     devSimulateNextMatch(eventId: ID!): ClanWarsBattle!
     sendBattleEmote(battleId: ID!, emote: String!): Boolean!
+
+    # --- Group Goal Dashboard ---
+    createGroupDashboard(input: CreateGroupDashboardInput!): GroupDashboard!
+    updateGroupDashboard(id: ID!, input: UpdateGroupDashboardInput!): GroupDashboard!
+    createGroupGoalEvent(dashboardId: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
+    updateGroupGoalEvent(id: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
+    deleteGroupGoalEvent(id: ID!): Boolean!
+    confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!): GroupDashboard!
+    refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
+    addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
+    removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
+    followGroupDashboard(dashboardId: ID!): Boolean!
+    unfollowGroupDashboard(dashboardId: ID!): Boolean!
+    muteGroupDashboard(dashboardId: ID!): Boolean!
+    unmuteGroupDashboard(dashboardId: ID!): Boolean!
+    markGroupNotificationsRead: Boolean!
   }
 
   # ============================================================
@@ -1118,6 +1155,108 @@ const typeDefs = gql`
     difficulty: String!
     role: String!
     screenshot: String
+  }
+
+  # ============================================================
+  # GROUP GOAL DASHBOARD
+  # ============================================================
+
+  type GroupDashboard {
+    id: ID!
+    slug: String!
+    groupName: String!
+    womGroupId: String!
+    creatorId: ID!
+    adminIds: [ID!]!
+    theme: JSON
+    discordConfig: JSON
+    events: [GroupGoalEvent!]!
+    creator: User
+    admins: [User!]
+    isFollowing: Boolean
+  }
+
+  type GroupAssociation {
+    dashboardId: ID!
+    dashboardName: String!
+    dashboardSlug: String!
+    role: String!
+    isMuted: Boolean!
+  }
+
+  type GroupActivityItem {
+    id: ID!
+    type: String!
+    dashboardId: ID!
+    dashboardSlug: String!
+    dashboardName: String!
+    eventId: ID
+    eventName: String
+    metadata: JSON
+    readAt: DateTime
+    createdAt: DateTime!
+  }
+
+  type GroupGoalEvent {
+    id: ID!
+    dashboardId: ID!
+    eventName: String!
+    startDate: DateTime!
+    endDate: DateTime!
+    goals: [JSON!]!
+    cachedData: JSON
+    lastSyncedAt: DateTime
+    isVisible: Boolean!
+    notificationsSent: JSON
+  }
+
+  type GroupGoalProgress {
+    goalId: ID!
+    metric: String!
+    displayName: String!
+    current: Float!
+    target: Float!
+    percent: Float!
+    topContributors: [GroupGoalContributor!]!
+  }
+
+  type GroupGoalContributor {
+    rsn: String!
+    value: Float!
+    percent: Float!
+    role: String
+  }
+
+  type WOMCompetition {
+    id: ID!
+    title: String!
+    metric: String!
+    type: String!
+    status: String!
+    startsAt: DateTime!
+    endsAt: DateTime!
+    participantCount: Int!
+    groupId: ID
+  }
+
+  input CreateGroupDashboardInput {
+    groupName: String!
+    womGroupId: String!
+    slug: String
+    theme: JSON
+  }
+
+  input UpdateGroupDashboardInput {
+    groupName: String
+    theme: JSON
+    discordConfig: JSON
+  }
+
+  input GroupGoalEventInput {
+    eventName: String!
+    startDate: DateTime!
+    endDate: DateTime!
+    goals: [JSON!]!
   }
 
   # ============================================================

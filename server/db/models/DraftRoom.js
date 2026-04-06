@@ -47,7 +47,7 @@ module.exports = (sequelize) => {
         type: DataTypes.JSONB,
         defaultValue: [],
       },
-      // e.g. ['combatLevel','totalLevel','ehp','ehb','topBossKcs','slayerLevel']
+      // i.e. ['combatLevel','totalLevel','ehp','ehb','topBossKcs','slayerLevel']
       statCategories: {
         type: DataTypes.ARRAY(DataTypes.STRING),
         defaultValue: [],

@@ -5,7 +5,13 @@ const { ApolloError, AuthenticationError, UserInputError } = require('apollo-ser
 const { Op, fn, col, literal } = require('sequelize');
 const logger = require('../../utils/logger');
 const { pubsub } = require('../pubsub');
-const { rollPvmerDrop, rollSkillerDrop, buildChampionStats, rollDamage, processSpecial } = require('../../utils/clanWarsRandomisation');
+const {
+  rollPvmerDrop,
+  rollSkillerDrop,
+  buildChampionStats,
+  rollDamage,
+  processSpecial,
+} = require('../../utils/clanWarsRandomisation');
 const { sampleTasksFromPool, generateId } = require('../../utils/cwTaskSampler');
 const {
   buildSEBracket,
@@ -20,7 +26,10 @@ const {
 // Models are loaded lazily to avoid circular require issues at startup
 const getModels = () => require('../../db/models');
 
-const { sendClanWarsPhaseAnnouncement, sendBattleCompleteAnnouncement } = require('../../utils/clanWarsNotifications');
+const {
+  sendClanWarsPhaseAnnouncement,
+  sendBattleCompleteAnnouncement,
+} = require('../../utils/clanWarsNotifications');
 const { triggerGatheringTransition } = require('../../utils/cwScheduler');
 
 function isAdmin(event, userId, discordId) {
@@ -84,10 +93,10 @@ function getEffectiveStats(snap, effects) {
   for (const e of effects ?? []) {
     if (e.type === 'buff') {
       if (e.stat === 'all') {
-        base.attack  = (base.attack  ?? 0) + e.value;
+        base.attack = (base.attack ?? 0) + e.value;
         base.defense = (base.defense ?? 0) + e.value;
-        base.speed   = (base.speed   ?? 0) + e.value;
-        base.crit    = (base.crit    ?? 0) + e.value;
+        base.speed = (base.speed ?? 0) + e.value;
+        base.crit = (base.crit ?? 0) + e.value;
       } else if (e.stat in base) {
         base[e.stat] = (base[e.stat] ?? 0) + e.value;
       }
@@ -187,12 +196,7 @@ const Query = {
     const { ClanWarsSubmission } = getModels();
     const rows = await ClanWarsSubmission.findAll({
       where: { eventId },
-      attributes: [
-        'taskId',
-        'teamId',
-        'status',
-        [fn('COUNT', col('submissionId')), 'count'],
-      ],
+      attributes: ['taskId', 'teamId', 'status', [fn('COUNT', col('submissionId')), 'count']],
       group: ['taskId', 'teamId', 'status'],
       raw: true,
     });
@@ -200,11 +204,18 @@ const Query = {
     const map = {};
     for (const row of rows) {
       const key = `${row.taskId}_${row.teamId}`;
-      if (!map[key]) map[key] = { taskId: row.taskId, teamId: row.teamId, pendingCount: 0, approvedCount: 0, deniedCount: 0 };
+      if (!map[key])
+        map[key] = {
+          taskId: row.taskId,
+          teamId: row.teamId,
+          pendingCount: 0,
+          approvedCount: 0,
+          deniedCount: 0,
+        };
       const count = parseInt(row.count, 10);
-      if (row.status === 'PENDING')  map[key].pendingCount  = count;
+      if (row.status === 'PENDING') map[key].pendingCount = count;
       if (row.status === 'APPROVED') map[key].approvedCount = count;
-      if (row.status === 'DENIED')   map[key].deniedCount   = count;
+      if (row.status === 'DENIED') map[key].deniedCount = count;
     }
     return Object.values(map);
   },
@@ -226,7 +237,10 @@ const Query = {
     const { ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
     return ClanWarsBattleLog.findAll({
       where: { battleId },
-      order: [['turnNumber', 'ASC'], ['createdAt', 'ASC']],
+      order: [
+        ['turnNumber', 'ASC'],
+        ['createdAt', 'ASC'],
+      ],
     });
   },
 
@@ -298,7 +312,11 @@ const Mutation = {
       );
     }
 
-    logger.info(`[createClanWarsEvent] event=${eventId} created with seed, ${input.teams?.length ?? 0} team(s)`);
+    logger.info(
+      `[createClanWarsEvent] event=${eventId} created with seed, ${
+        input.teams?.length ?? 0
+      } team(s)`
+    );
     return event;
   },
 
@@ -320,7 +338,9 @@ const Mutation = {
     }
 
     if (status === 'GATHERING' && !event.guildId) {
-      throw new UserInputError('A Discord Guild ID must be set before starting the Gathering phase.');
+      throw new UserInputError(
+        'A Discord Guild ID must be set before starting the Gathering phase.'
+      );
     }
 
     const updates = { status };
@@ -331,7 +351,6 @@ const Mutation = {
       logger.info(`[updateClanWarsEventStatus] event=${eventId} transitioned to GATHERING`);
       pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { clanWarsEventUpdated: event });
       return event;
-
     } else if (status === 'OUTFITTING') {
       const hours = event.eventConfig?.outfittingHours ?? 24;
       updates.outfittingEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
@@ -367,8 +386,10 @@ const Mutation = {
 
     const updates = {};
     if (input.guildId !== undefined) updates.guildId = input.guildId ?? null;
-    if (input.announcementsChannelId !== undefined) updates.announcementsChannelId = input.announcementsChannelId ?? null;
-    if (input.scheduledGatheringStart !== undefined) updates.scheduledGatheringStart = input.scheduledGatheringStart ?? null;
+    if (input.announcementsChannelId !== undefined)
+      updates.announcementsChannelId = input.announcementsChannelId ?? null;
+    if (input.scheduledGatheringStart !== undefined)
+      updates.scheduledGatheringStart = input.scheduledGatheringStart ?? null;
 
     await event.update(updates);
     logger.info(`[updateClanWarsEventSettings] event=${eventId} updated by user=${user.id}`);
@@ -378,10 +399,12 @@ const Mutation = {
   joinTaskInProgress: async (_, { eventId, teamId, taskId }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
-    if (event.status !== 'GATHERING') throw new UserInputError('Event is not in the Gathering phase');
+    if (event.status !== 'GATHERING')
+      throw new UserInputError('Event is not in the Gathering phase');
 
     const discordId = user.discordUserId ?? null;
-    if (!discordId) throw new AuthenticationError('Link your Discord account to track task progress');
+    if (!discordId)
+      throw new AuthenticationError('Link your Discord account to track task progress');
 
     const { ClanWarsTeam, ClanWarsTask } = getModels();
     const team = await ClanWarsTeam.findByPk(teamId);
@@ -397,8 +420,8 @@ const Mutation = {
       const task = await ClanWarsTask.findByPk(taskId);
       if (!task || task.eventId !== eventId) throw new UserInputError('Task not found');
 
-      const memberRecord = (team.members ?? []).find((m) =>
-        typeof m !== 'string' && m.discordId === discordId
+      const memberRecord = (team.members ?? []).find(
+        (m) => typeof m !== 'string' && m.discordId === discordId
       );
       const memberRole = memberRecord?.role ?? 'ANY';
       if (task.role !== 'ANY' && memberRole !== 'ANY' && memberRole !== task.role) {
@@ -459,7 +482,8 @@ const Mutation = {
     // Shuffle teams
     const shuffledIds = [...teams].sort(() => Math.random() - 0.5).map((t) => t.teamId);
 
-    const resolvedBracketType = bracketType ?? event.eventConfig?.bracketType ?? 'SINGLE_ELIMINATION';
+    const resolvedBracketType =
+      bracketType ?? event.eventConfig?.bracketType ?? 'SINGLE_ELIMINATION';
     const useDe = resolvedBracketType === 'DOUBLE_ELIMINATION';
     const bracket = useDe ? buildDEBracket(shuffledIds) : buildSEBracket(shuffledIds);
 
@@ -491,8 +515,7 @@ const Mutation = {
   addClanWarsRef: async (_, { eventId, userId }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
-    if (!isAdmin(event, user.id))
-      throw new AuthenticationError('Only admins can add refs');
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Only admins can add refs');
     const newRefIds = [...new Set([...(event.refIds ?? []), String(userId)])];
     await event.update({ refIds: newRefIds });
     return event;
@@ -501,8 +524,7 @@ const Mutation = {
   removeClanWarsRef: async (_, { eventId, userId }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
-    if (!isAdmin(event, user.id))
-      throw new AuthenticationError('Only admins can remove refs');
+    if (!isAdmin(event, user.id)) throw new AuthenticationError('Only admins can remove refs');
     await event.update({ refIds: (event.refIds ?? []).filter((id) => id !== String(userId)) });
     return event;
   },
@@ -533,7 +555,7 @@ const Mutation = {
     const event = await getEventOrThrow(team.eventId);
 
     if (!isAdmin(event, user.id)) {
-      // Non-admins may only update their own member entry (e.g. setting their role)
+      // Non-admins may only update their own member entry (i.e. setting their role)
       const discordId = user.discordUserId ?? null;
       if (!discordId) throw new AuthenticationError('Not an event admin');
 
@@ -672,7 +694,11 @@ const Mutation = {
       let dropResult;
       if (sub.role === 'PVMER') {
         if (!sub.rewardSlot) continue; // slot not stored, skip
-        dropResult = rollPvmerDrop({ slot: sub.rewardSlot, difficulty: sub.difficulty, warChest: warChestData });
+        dropResult = rollPvmerDrop({
+          slot: sub.rewardSlot,
+          difficulty: sub.difficulty,
+          warChest: warChestData,
+        });
       } else {
         // SKILLER: only one reward per task completion
         if (skillerRewarded) continue;
@@ -680,7 +706,9 @@ const Mutation = {
       }
 
       if (!dropResult.success) {
-        logger.warn(`[ClanWars] markTaskComplete drop failed for sub ${sub.submissionId}: ${dropResult.reason}`);
+        logger.warn(
+          `[ClanWars] markTaskComplete drop failed for sub ${sub.submissionId}: ${dropResult.reason}`
+        );
         continue;
       }
 
@@ -778,7 +806,11 @@ const Mutation = {
     return submission;
   },
 
-  reviewClanWarsSubmission: async (_, { submissionId, approved, reviewerId, rewardSlot, denialReason }, { user }) => {
+  reviewClanWarsSubmission: async (
+    _,
+    { submissionId, approved, reviewerId, rewardSlot, denialReason },
+    { user }
+  ) => {
     if (!user) throw new AuthenticationError('Not authenticated');
 
     const { ClanWarsSubmission, ClanWarsItem } = getModels();
@@ -837,8 +869,10 @@ const Mutation = {
     const { ClanWarsSubmission, ClanWarsItem } = getModels();
     const submission = await ClanWarsSubmission.findByPk(submissionId);
     if (!submission) throw new UserInputError('Submission not found');
-    if (submission.status !== 'APPROVED') throw new UserInputError('Can only change reward slot on approved submissions');
-    if (submission.role !== 'PVMER') throw new UserInputError('Reward slot only applies to PVMER submissions');
+    if (submission.status !== 'APPROVED')
+      throw new UserInputError('Can only change reward slot on approved submissions');
+    if (submission.role !== 'PVMER')
+      throw new UserInputError('Reward slot only applies to PVMER submissions');
     const event = await getEventOrThrow(submission.eventId);
     if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
     await submission.update({ rewardSlot });
@@ -864,7 +898,7 @@ const Mutation = {
             itemSnapshot: dropResult.item,
           });
         } else {
-          // Roll failed (e.g. all slots full) — just update the slot label as fallback
+          // Roll failed (i.e. all slots full) — just update the slot label as fallback
           await existingItem.update({ slot: rewardSlot });
         }
       }
@@ -1022,7 +1056,12 @@ const Mutation = {
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
 
-    const { ClanWarsTeam, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
+    const {
+      ClanWarsTeam,
+      ClanWarsItem,
+      ClanWarsBattle,
+      ClanWarsBattleEvent: ClanWarsBattleLog,
+    } = getModels();
 
     const [team1, team2] = await Promise.all([
       ClanWarsTeam.findByPk(team1Id),
@@ -1039,11 +1078,27 @@ const Mutation = {
       ClanWarsItem.findAll({ where: { teamId: team2Id } }),
     ]);
 
-    const stats1 = buildChampionStats(team1.officialLoadout, items1.map((i) => i.toJSON()));
-    const stats2 = buildChampionStats(team2.officialLoadout, items2.map((i) => i.toJSON()));
+    const stats1 = buildChampionStats(
+      team1.officialLoadout,
+      items1.map((i) => i.toJSON())
+    );
+    const stats2 = buildChampionStats(
+      team2.officialLoadout,
+      items2.map((i) => i.toJSON())
+    );
 
-    const champion1 = { teamId: team1Id, teamName: team1.teamName, stats: stats1, loadout: team1.officialLoadout };
-    const champion2 = { teamId: team2Id, teamName: team2.teamName, stats: stats2, loadout: team2.officialLoadout };
+    const champion1 = {
+      teamId: team1Id,
+      teamName: team1.teamName,
+      stats: stats1,
+      loadout: team1.officialLoadout,
+    };
+    const champion2 = {
+      teamId: team2Id,
+      teamName: team2.teamName,
+      stats: stats2,
+      loadout: team2.officialLoadout,
+    };
 
     // Faster team goes first
     const firstTurn = stats1.speed >= stats2.speed ? 'team1' : 'team2';
@@ -1075,7 +1130,9 @@ const Mutation = {
       rollInputs: null,
       damageDealt: null,
       isCrit: null,
-      narrative: `⚔️ Battle begins! ${team1.teamName} vs ${team2.teamName}. ${firstTurn === 'team1' ? team1.teamName : team2.teamName} goes first (higher speed).`,
+      narrative: `⚔️ Battle begins! ${team1.teamName} vs ${team2.teamName}. ${
+        firstTurn === 'team1' ? team1.teamName : team2.teamName
+      } goes first (higher speed).`,
       hpAfter: { team1: initialState.hp.team1, team2: initialState.hp.team2 },
     });
 
@@ -1145,56 +1202,77 @@ const Mutation = {
         narrative = `😵 ${actorSnap.teamName} is blinded and misses their attack!`;
       } else {
         const actorEffStats = getEffectiveStats(actorSnap, newState.activeEffects[actorSide]);
-        const defEffStats   = getEffectiveStats(defSnap,   newState.activeEffects[defSide]);
+        const defEffStats = getEffectiveStats(defSnap, newState.activeEffects[defSide]);
         const roll = rollDamage({
-          attackStat:  actorEffStats.attack,
+          attackStat: actorEffStats.attack,
           defenseStat: defEffStats.defense,
-          critChance:  actorEffStats.crit,
+          critChance: actorEffStats.crit,
           isDefending,
         });
         const fortressMult = hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1;
-        damageDealt = fortressMult < 1 ? Math.max(1, Math.round(roll.damage * fortressMult)) : roll.damage;
+        damageDealt =
+          fortressMult < 1 ? Math.max(1, Math.round(roll.damage * fortressMult)) : roll.damage;
         isCrit = roll.isCrit;
         newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
         newState.defendActive[defSide] = false;
         const fortressNote = fortressMult < 1 ? ' (fortress absorbed 60%!)' : '';
-        narrative = `${isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${damageDealt} damage!${isCrit ? ' (critical hit!)' : ''}${fortressNote}`;
+        narrative = `${isCrit ? '💥 CRIT! ' : ''}${
+          actorSnap.teamName
+        } attacks for ${damageDealt} damage!${isCrit ? ' (critical hit!)' : ''}${fortressNote}`;
       }
-
     } else if (action === 'DEFEND') {
       newState.defendActive[actorSide] = true;
       narrative = `🛡️ ${actorSnap.teamName} takes a defensive stance! (−60% damage until next hit)`;
-
     } else if (action === 'SPECIAL') {
-      if (newState.specialUsed[actorSide]) throw new UserInputError('Special already used this battle');
+      if (newState.specialUsed[actorSide])
+        throw new UserInputError('Special already used this battle');
       const specials = actorSnap.stats.specials ?? [];
       if (!specials.length) throw new UserInputError('No special ability available');
 
       const actorEffStats = getEffectiveStats(actorSnap, newState.activeEffects[actorSide]);
-      const defEffStats   = getEffectiveStats(defSnap,   newState.activeEffects[defSide]);
-      const actorSnapEff  = { ...actorSnap, stats: actorEffStats };
-      const defSnapEff    = { ...defSnap,   stats: defEffStats };
+      const defEffStats = getEffectiveStats(defSnap, newState.activeEffects[defSide]);
+      const actorSnapEff = { ...actorSnap, stats: actorEffStats };
+      const defSnapEff = { ...defSnap, stats: defEffStats };
 
       const specialId = specials[0];
-      const result = processSpecial(specialId, actorSnapEff, defSnapEff, newState, actorSide, defSide);
+      const result = processSpecial(
+        specialId,
+        actorSnapEff,
+        defSnapEff,
+        newState,
+        actorSide,
+        defSide
+      );
 
-      const fortressMult = result.damage > 0 ? (hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1) : 1;
+      const fortressMult =
+        result.damage > 0 ? (hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1) : 1;
       damageDealt = result.damage > 0 ? Math.max(1, Math.round(result.damage * fortressMult)) : 0;
       isCrit = result.isCrit ?? false;
       newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
-      if (result.attackerHeal) newState.hp[actorSide] = Math.min(actorSnap.stats.maxHp, newState.hp[actorSide] + result.attackerHeal);
-      newState.activeEffects[defSide] = [...(newState.activeEffects[defSide] ?? []), ...(result.defenderEffects ?? [])];
-      newState.activeEffects[actorSide] = [...(newState.activeEffects[actorSide] ?? []), ...(result.attackerEffects ?? [])];
+      if (result.attackerHeal)
+        newState.hp[actorSide] = Math.min(
+          actorSnap.stats.maxHp,
+          newState.hp[actorSide] + result.attackerHeal
+        );
+      newState.activeEffects[defSide] = [
+        ...(newState.activeEffects[defSide] ?? []),
+        ...(result.defenderEffects ?? []),
+      ];
+      newState.activeEffects[actorSide] = [
+        ...(newState.activeEffects[actorSide] ?? []),
+        ...(result.attackerEffects ?? []),
+      ];
       newState.specialUsed[actorSide] = true;
       newState.defendActive[defSide] = false;
       effectApplied = specialId;
-      const fortressNote = fortressMult < 1 ? ` (fortress absorbed 60% — actual damage: ${damageDealt})` : '';
+      const fortressNote =
+        fortressMult < 1 ? ` (fortress absorbed 60% — actual damage: ${damageDealt})` : '';
       narrative = result.narrative + fortressNote;
-
     } else if (action === 'USE_ITEM') {
       if (!itemId) throw new UserInputError('itemId required for USE_ITEM action');
       const consumables = newState.consumablesRemaining[actorSide] ?? [];
-      if (!consumables.includes(itemId)) throw new UserInputError('Item not available or already used');
+      if (!consumables.includes(itemId))
+        throw new UserInputError('Item not available or already used');
 
       const item = await ClanWarsItem.findByPk(itemId);
       if (!item) throw new UserInputError('Item not found');
@@ -1215,11 +1293,20 @@ const Mutation = {
         newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
         narrative = `💣 ${actorSnap.teamName} hurls ${item.name}! ${damageDealt} magic damage (bypasses defense)!`;
       } else if (effect.type === 'debuff') {
-        newState.activeEffects[defSide].push({ type: effect.type, debuffType: effect.debuffType ?? 'blind', turns: effect.duration || 1 });
+        newState.activeEffects[defSide].push({
+          type: effect.type,
+          debuffType: effect.debuffType ?? 'blind',
+          turns: effect.duration || 1,
+        });
         narrative = `✨ ${actorSnap.teamName} uses ${item.name}! ${effect.description}`;
       } else {
         // Buff stat effects — store in activeEffects for display; actual stat changes during battle use base + buffs
-        newState.activeEffects[actorSide].push({ type: 'buff', stat: effect.type.replace('buff_', ''), value: effect.value, turns: effect.duration || 2 });
+        newState.activeEffects[actorSide].push({
+          type: 'buff',
+          stat: effect.type.replace('buff_', ''),
+          value: effect.value,
+          turns: effect.duration || 2,
+        });
         narrative = `⚗️ ${actorSnap.teamName} uses ${item.name}! ${effect.description}`;
       }
     }
@@ -1244,8 +1331,11 @@ const Mutation = {
     if (newState.hp.team1 <= 0 || newState.hp.team2 <= 0) {
       battleOver = true;
       winnerId = newState.hp.team1 <= 0 ? battle.team2Id : battle.team1Id;
-      const winnerName = winnerId === battle.team1Id ? snap.champion1.teamName : snap.champion2.teamName;
-      battleEndNarrative = `💀 ${newState.hp.team1 <= 0 ? snap.champion1.teamName : snap.champion2.teamName} has fallen! ${winnerName} wins!`;
+      const winnerName =
+        winnerId === battle.team1Id ? snap.champion1.teamName : snap.champion2.teamName;
+      battleEndNarrative = `💀 ${
+        newState.hp.team1 <= 0 ? snap.champion1.teamName : snap.champion2.teamName
+      } has fallen! ${winnerName} wins!`;
     }
 
     // Log the action
@@ -1255,7 +1345,15 @@ const Mutation = {
       turnNumber: state.turnNumber,
       actorTeamId,
       action,
-      rollInputs: action === 'ATTACK' ? { attackStat: actorSnap.stats.attack, defenseStat: defSnap.stats.defense, critChance: actorSnap.stats.crit, isDefending } : null,
+      rollInputs:
+        action === 'ATTACK'
+          ? {
+              attackStat: actorSnap.stats.attack,
+              defenseStat: defSnap.stats.defense,
+              critChance: actorSnap.stats.crit,
+              isDefending,
+            }
+          : null,
       damageDealt: damageDealt || null,
       isCrit: isCrit || null,
       itemUsedId: itemUsedId ?? null,
@@ -1294,7 +1392,11 @@ const Mutation = {
       const b = eventRecord.bracket;
       if (b) {
         const advancedBracket = advanceBracketAfterBattle(
-          b, battleId, winnerId, battle.team1Id, battle.team2Id
+          b,
+          battleId,
+          winnerId,
+          battle.team1Id,
+          battle.team2Id
         );
         await eventRecord.update({ bracket: advancedBracket });
 
@@ -1304,7 +1406,9 @@ const Mutation = {
           await pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${battle.eventId}`, {
             clanWarsEventUpdated: eventRecord,
           });
-          logger.info(`[ClanWars] Event ${battle.eventId} auto-completed — all bracket matches done`);
+          logger.info(
+            `[ClanWars] Event ${battle.eventId} auto-completed — all bracket matches done`
+          );
         }
       }
 
@@ -1357,7 +1461,10 @@ const Mutation = {
     if (!user) throw new AuthenticationError('Must be logged in');
     if (process.env.NODE_ENV === 'production') throw new ApolloError('Not available in production');
     const { seedAllCfEvents } = require('../../utils/cwDevSeed');
-    await seedAllCfEvents(user.id, { discordId: user.discordUserId, discordUsername: user.discordUsername });
+    await seedAllCfEvents(user.id, {
+      discordId: user.discordUserId,
+      discordUsername: user.discordUsername,
+    });
     return true;
   },
 
@@ -1398,7 +1505,9 @@ const Mutation = {
 
       state.hp[defSide] = Math.max(0, state.hp[defSide] - roll.damage);
       state.defendActive[defSide] = false;
-      const narrative = `${roll.isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${roll.damage} damage!${roll.isCrit ? ' (critical hit!)' : ''}`;
+      const narrative = `${roll.isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${
+        roll.damage
+      } damage!${roll.isCrit ? ' (critical hit!)' : ''}`;
 
       const bleedResult = tickEffects(state, actorSide);
       if (bleedResult.bleedDamage > 0) {
@@ -1415,7 +1524,12 @@ const Mutation = {
         turnNumber: state.turnNumber - 1,
         actorTeamId,
         action: 'ATTACK',
-        rollInputs: { attackStat: actorSnap.stats.attack, defenseStat: defSnap.stats.defense, critChance: actorSnap.stats.crit, isDefending },
+        rollInputs: {
+          attackStat: actorSnap.stats.attack,
+          defenseStat: defSnap.stats.defense,
+          critChance: actorSnap.stats.crit,
+          isDefending,
+        },
         damageDealt: roll.damage,
         isCrit: roll.isCrit,
         itemUsedId: null,
@@ -1427,8 +1541,10 @@ const Mutation = {
 
     // Determine winner
     const winnerId = state.hp.team1 <= 0 ? battle.team2Id : battle.team1Id;
-    const winnerName = winnerId === battle.team1Id ? snap.champion1.teamName : snap.champion2.teamName;
-    const loserName = winnerId === battle.team1Id ? snap.champion2.teamName : snap.champion1.teamName;
+    const winnerName =
+      winnerId === battle.team1Id ? snap.champion1.teamName : snap.champion2.teamName;
+    const loserName =
+      winnerId === battle.team1Id ? snap.champion2.teamName : snap.champion1.teamName;
 
     await ClanWarsBattleLog.create({
       eventLogId: generateId('cwbe'),
@@ -1450,7 +1566,11 @@ const Mutation = {
     const b = eventRecord.bracket;
     if (b) {
       const advancedBracket = advanceBracketAfterBattle(
-        b, battleId, winnerId, battle.team1Id, battle.team2Id
+        b,
+        battleId,
+        winnerId,
+        battle.team1Id,
+        battle.team2Id
       );
       await eventRecord.update({ bracket: advancedBracket });
 
@@ -1469,7 +1589,12 @@ const Mutation = {
   devSimulateNextMatch: async (_, { eventId }, { user }) => {
     if (!user?.admin) throw new AuthenticationError('Admin only');
 
-    const { ClanWarsTeam, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
+    const {
+      ClanWarsTeam,
+      ClanWarsItem,
+      ClanWarsBattle,
+      ClanWarsBattleEvent: ClanWarsBattleLog,
+    } = getModels();
     const event = await getEventOrThrow(eventId);
 
     // Find the next bracket match without a battleId (searches WB, LB, and grand final)
@@ -1486,7 +1611,9 @@ const Mutation = {
       ClanWarsTeam.findByPk(team2Id),
     ]);
     if (!team1?.loadoutLocked || !team2?.loadoutLocked) {
-      throw new UserInputError('Both teams must have locked loadouts before battle can be simulated');
+      throw new UserInputError(
+        'Both teams must have locked loadouts before battle can be simulated'
+      );
     }
 
     const [items1, items2] = await Promise.all([
@@ -1494,11 +1621,27 @@ const Mutation = {
       ClanWarsItem.findAll({ where: { teamId: team2Id } }),
     ]);
 
-    const stats1 = buildChampionStats(team1.officialLoadout, items1.map((i) => i.toJSON()));
-    const stats2 = buildChampionStats(team2.officialLoadout, items2.map((i) => i.toJSON()));
+    const stats1 = buildChampionStats(
+      team1.officialLoadout,
+      items1.map((i) => i.toJSON())
+    );
+    const stats2 = buildChampionStats(
+      team2.officialLoadout,
+      items2.map((i) => i.toJSON())
+    );
 
-    const champion1 = { teamId: team1Id, teamName: team1.teamName, stats: stats1, loadout: team1.officialLoadout };
-    const champion2 = { teamId: team2Id, teamName: team2.teamName, stats: stats2, loadout: team2.officialLoadout };
+    const champion1 = {
+      teamId: team1Id,
+      teamName: team1.teamName,
+      stats: stats1,
+      loadout: team1.officialLoadout,
+    };
+    const champion2 = {
+      teamId: team2Id,
+      teamName: team2.teamName,
+      stats: stats2,
+      loadout: team2.officialLoadout,
+    };
 
     const firstTurn = stats1.speed >= stats2.speed ? 'team1' : 'team2';
     const initialState = { ...initBattleState(champion1, champion2), currentTurn: firstTurn };
@@ -1524,12 +1667,16 @@ const Mutation = {
       rollInputs: null,
       damageDealt: null,
       isCrit: null,
-      narrative: `⚔️ Battle begins! ${team1.teamName} vs ${team2.teamName}. ${firstTurn === 'team1' ? team1.teamName : team2.teamName} goes first (higher speed).`,
+      narrative: `⚔️ Battle begins! ${team1.teamName} vs ${team2.teamName}. ${
+        firstTurn === 'team1' ? team1.teamName : team2.teamName
+      } goes first (higher speed).`,
       hpAfter: { team1: initialState.hp.team1, team2: initialState.hp.team2 },
     });
 
     // Write battleId to bracket (searches all sections for DE brackets)
-    await event.update({ bracket: setBattleIdInBracket(bracket, team1Id, team2Id, battle.battleId) });
+    await event.update({
+      bracket: setBattleIdInBracket(bracket, team1Id, team2Id, battle.battleId),
+    });
 
     // Battle is now IN_PROGRESS — client handles turn-by-turn play
     return battle;
@@ -1547,7 +1694,10 @@ const ClanWarsEvent = {
   },
   submissions: async (event) => {
     const { ClanWarsSubmission } = getModels();
-    return ClanWarsSubmission.findAll({ where: { eventId: event.eventId }, order: [['submittedAt', 'DESC']] });
+    return ClanWarsSubmission.findAll({
+      where: { eventId: event.eventId },
+      order: [['submittedAt', 'DESC']],
+    });
   },
   tasks: async (event) => {
     const { ClanWarsTask } = getModels();
@@ -1566,7 +1716,10 @@ const ClanWarsTeam = {
   },
   submissions: async (team) => {
     const { ClanWarsSubmission } = getModels();
-    return ClanWarsSubmission.findAll({ where: { teamId: team.teamId }, order: [['submittedAt', 'DESC']] });
+    return ClanWarsSubmission.findAll({
+      where: { teamId: team.teamId },
+      order: [['submittedAt', 'DESC']],
+    });
   },
 };
 
@@ -1583,7 +1736,10 @@ const ClanWarsBattle = {
     const { ClanWarsBattleEvent: ClanWarsBattleLog } = getModels();
     return ClanWarsBattleLog.findAll({
       where: { battleId: battle.battleId },
-      order: [['turnNumber', 'ASC'], ['createdAt', 'ASC']],
+      order: [
+        ['turnNumber', 'ASC'],
+        ['createdAt', 'ASC'],
+      ],
     });
   },
 };

@@ -41,7 +41,7 @@ function setCachedStats(rsn, data) {
  * Returns a normalized stat object, or { rsn, notFound: true } on 404.
  * On 429 waits RATE_LIMIT_RETRY_MS before one retry.
  */
-async function fetchPlayerStats(rsn, retries = 1) {
+async function fetchPlayerStats(rsn, retries = 3) {
   const cached = getCachedStats(rsn);
   if (cached) return cached;
 
@@ -158,4 +158,225 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
   };
 }
 
-module.exports = { fetchPlayerStats, fetchAllPlayerStats };
+// ---------------------------------------------------------------------------
+// Player competition history cache
+// ---------------------------------------------------------------------------
+
+const playerCompCache = new Map();
+const PLAYER_COMP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Fetch recent competition participations for a player.
+ * Returns { rsn, count, rankedRate, recent[] } where recent items have
+ * { title, metric, gained, rank, endsAt }.
+ * "rankedRate" = % of competitions where the player received a rank (i.e. showed up in rankings).
+ */
+async function fetchPlayerCompetitions(rsn) {
+  const key = rsn.toLowerCase().trim();
+  const cached = playerCompCache.get(key);
+  if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
+
+  const encoded = encodeURIComponent(rsn.trim());
+  try {
+    const res = await fetch(`${WOM_BASE}/players/${encoded}/competitions?limit=20`);
+    if (!res.ok) {
+      const result = { rsn, count: 0, rankedRate: 0, recent: [] };
+      playerCompCache.set(key, { data: result, ts: Date.now() });
+      return result;
+    }
+    const data = await res.json();
+    const comps = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+    const result = {
+      rsn,
+      count: comps.length,
+      recent: comps.slice(0, 10).map((c) => ({
+        id: String(c.competition?.id ?? ''),
+        title: c.competition?.title ?? 'Unknown',
+      })),
+    };
+    playerCompCache.set(key, { data: result, ts: Date.now() });
+    return result;
+  } catch {
+    const result = { rsn, count: 0, recent: [] };
+    playerCompCache.set(key, { data: result, ts: Date.now() });
+    return result;
+  }
+}
+
+/**
+ * Fetch competition history for multiple players sequentially with a short
+ * delay between uncached calls to avoid WOM rate limits.
+ */
+async function fetchAllPlayerCompetitions(rsns) {
+  const results = [];
+  for (let i = 0; i < rsns.length; i++) {
+    const key = rsns[i].toLowerCase().trim();
+    const cached = playerCompCache.get(key);
+    if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
+      results.push(cached.data);
+    } else {
+      results.push(await fetchPlayerCompetitions(rsns[i]));
+      if (i < rsns.length - 1) await sleep(SEQUENTIAL_DELAY_MS);
+    }
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Group info cache — short TTL since it's lightweight verification data
+// ---------------------------------------------------------------------------
+
+const groupInfoCache = new Map();
+const GROUP_INFO_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Fetch basic info about a WOM group (name, memberCount) for verification.
+ * Returns { id, name, memberCount } or throws on error/not found.
+ */
+async function fetchGroupInfo(womGroupId) {
+  const cached = groupInfoCache.get(String(womGroupId));
+  if (cached && Date.now() - cached.ts < GROUP_INFO_TTL_MS) return cached.data;
+
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}`);
+  if (res.status === 404) throw new Error(`WOM group ${womGroupId} not found`);
+  if (!res.ok) throw new Error(`WOM API error ${res.status} for group ${womGroupId}`);
+
+  const data = await res.json();
+  const result = { id: data.id, name: data.name, memberCount: data.memberships?.length ?? 0 };
+  groupInfoCache.set(String(womGroupId), { data: result, ts: Date.now() });
+  return result;
+}
+
+/**
+ * Fetch per-member gains for a specific metric within a custom date range.
+ * WOM requires one call per metric — this returns the array for that metric:
+ *   [{ player: { displayName }, data: { gained, startValue, endValue } }]
+ *
+ * @param {string|number} womGroupId
+ * @param {string} metric - WOM metric key (i.e. 'vardorvis', 'slayer', 'ehb', 'ehp')
+ * @param {Date|string} startDate
+ * @param {Date|string} endDate
+ */
+async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
+  // Cap endDate to now — WOM rejects future dates for ongoing events
+  const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
+  // WOM accepts startDate+endDate directly — do NOT include period=custom
+  const params = new URLSearchParams({
+    metric,
+    startDate: new Date(startDate).toISOString(),
+    endDate: effectiveEnd,
+  });
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(
+      `WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`
+    );
+    return [];
+  }
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Group members cache — used to look up clan roles for contributors
+// ---------------------------------------------------------------------------
+
+const groupMembersCache = new Map();
+
+/**
+ * Fetch group members from WOM, returning a map of displayName → role.
+ * Roles: 'leader' | 'officers' | 'veteran' | 'member' | 'achiever' | 'trial'
+ * Uses the same TTL as group info (10 min).
+ */
+async function fetchGroupMembers(womGroupId) {
+  const key = String(womGroupId);
+  const cached = groupMembersCache.get(key);
+  if (cached && Date.now() - cached.ts < GROUP_INFO_TTL_MS) return cached.data;
+
+  // Use GET /groups/:id (same as fetchGroupInfo) — it includes `data.memberships`
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}`);
+  if (!res.ok) {
+    logger.warn(`WOM group members ${res.status} for group ${womGroupId}`);
+    return {};
+  }
+  const data = await res.json();
+  const members = data.memberships ?? [];
+  const roleMap = {};
+  members.forEach((m) => {
+    const name = m.player?.displayName;
+    if (name) roleMap[name] = m.role ?? null;
+  });
+  groupMembersCache.set(key, { data: roleMap, ts: Date.now() });
+  return roleMap;
+}
+
+// ---------------------------------------------------------------------------
+// Group competitions cache — 15-min TTL
+// ---------------------------------------------------------------------------
+
+const competitionsCache = new Map();
+const COMPETITIONS_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Derive competition status from dates since WOM doesn't always return it.
+ */
+function deriveCompetitionStatus(startsAt, endsAt) {
+  const now = Date.now();
+  const start = new Date(startsAt).getTime();
+  const end = new Date(endsAt).getTime();
+  if (now < start) return 'upcoming';
+  if (now > end) return 'finished';
+  return 'ongoing';
+}
+
+/**
+ * Fetch all competitions for a WOM group.
+ * Returns normalized array of { id, title, metric, type, status, startsAt, endsAt, participantCount }.
+ * WOM may return [{ competition: {...}, participantCount }] or flat competition objects.
+ */
+async function fetchGroupCompetitions(womGroupId) {
+  const key = String(womGroupId);
+  const cached = competitionsCache.get(key);
+  if (cached && Date.now() - cached.ts < COMPETITIONS_TTL_MS) return cached.data;
+
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/competitions`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM group competitions ${res.status} for group ${womGroupId}: ${body}`);
+    return [];
+  }
+  const data = await res.json();
+  const raw = Array.isArray(data) ? data : data.data ?? [];
+
+  const result = raw.map((item) => {
+    // Handle both { competition: {...}, participantCount } and flat shapes
+    const comp = item.competition ?? item;
+    const participantCount = item.participantCount ?? comp.participantCount ?? 0;
+    return {
+      id: String(comp.id),
+      title: comp.title ?? '',
+      metric: comp.metric ?? '',
+      type: comp.type ?? 'classic',
+      status: comp.status ?? deriveCompetitionStatus(comp.startsAt, comp.endsAt),
+      startsAt: comp.startsAt,
+      endsAt: comp.endsAt,
+      participantCount,
+      groupId: comp.groupId ? String(comp.groupId) : null,
+    };
+  });
+
+  competitionsCache.set(key, { data: result, ts: Date.now() });
+  return result;
+}
+
+module.exports = {
+  fetchPlayerStats,
+  fetchAllPlayerStats,
+  fetchPlayerCompetitions,
+  fetchAllPlayerCompetitions,
+  fetchGroupInfo,
+  fetchGroupGains,
+  fetchGroupMembers,
+  fetchGroupCompetitions,
+};

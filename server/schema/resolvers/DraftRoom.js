@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const models = require('../../db/models');
 const { pubsub } = require('../pubsub');
-const { fetchAllPlayerStats } = require('../../utils/womService');
+const { fetchAllPlayerStats, fetchAllPlayerCompetitions } = require('../../utils/womService');
 const {
   generateRoomId,
   generateCaptainToken,
@@ -220,6 +220,12 @@ const Query = {
     const capped = rsns.slice(0, 50);
     const stats = await fetchAllPlayerStats(capped);
     return stats;
+  },
+
+  async fetchPlayerCompHistory(_, { rsns }) {
+    if (!rsns || rsns.length === 0) return [];
+    const capped = rsns.slice(0, 50);
+    return fetchAllPlayerCompetitions(capped);
   },
 };
 

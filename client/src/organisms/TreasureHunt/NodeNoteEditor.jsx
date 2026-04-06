@@ -25,7 +25,7 @@ const NodeNoteEditor = ({ eventId, teamId, nodeId, initialComments, isAdmin }) =
   const [deletingId, setDeletingId] = useState(null);
   const [comments, setComments] = useState(Array.isArray(initialComments) ? initialComments : []);
 
-  // Keep in sync if parent data changes (e.g. subscription update)
+  // Keep in sync if parent data changes (i.e. subscription update)
   useEffect(() => {
     if (Array.isArray(initialComments)) setComments(initialComments);
   }, [initialComments]);
