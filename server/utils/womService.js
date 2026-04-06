@@ -41,7 +41,7 @@ function setCachedStats(rsn, data) {
  * Returns a normalized stat object, or { rsn, notFound: true } on 404.
  * On 429 waits RATE_LIMIT_RETRY_MS before one retry.
  */
-async function fetchPlayerStats(rsn, retries = 1) {
+async function fetchPlayerStats(rsn, retries = 3) {
   const cached = getCachedStats(rsn);
   if (cached) return cached;
 
@@ -156,6 +156,70 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
       Object.entries(skills).map(([skill, data]) => [skill, data?.level ?? 1])
     ),
   };
+}
+
+// ---------------------------------------------------------------------------
+// Player competition history cache
+// ---------------------------------------------------------------------------
+
+const playerCompCache = new Map();
+const PLAYER_COMP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Fetch recent competition participations for a player.
+ * Returns { rsn, count, rankedRate, recent[] } where recent items have
+ * { title, metric, gained, rank, endsAt }.
+ * "rankedRate" = % of competitions where the player received a rank (i.e. showed up in rankings).
+ */
+async function fetchPlayerCompetitions(rsn) {
+  const key = rsn.toLowerCase().trim();
+  const cached = playerCompCache.get(key);
+  if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
+
+  const encoded = encodeURIComponent(rsn.trim());
+  try {
+    const res = await fetch(`${WOM_BASE}/players/${encoded}/competitions?limit=20`);
+    if (!res.ok) {
+      const result = { rsn, count: 0, rankedRate: 0, recent: [] };
+      playerCompCache.set(key, { data: result, ts: Date.now() });
+      return result;
+    }
+    const data = await res.json();
+    const comps = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+    const result = {
+      rsn,
+      count: comps.length,
+      recent: comps.slice(0, 10).map((c) => ({
+        id: String(c.competition?.id ?? ''),
+        title: c.competition?.title ?? 'Unknown',
+      })),
+    };
+    playerCompCache.set(key, { data: result, ts: Date.now() });
+    return result;
+  } catch {
+    const result = { rsn, count: 0, recent: [] };
+    playerCompCache.set(key, { data: result, ts: Date.now() });
+    return result;
+  }
+}
+
+/**
+ * Fetch competition history for multiple players sequentially with a short
+ * delay between uncached calls to avoid WOM rate limits.
+ */
+async function fetchAllPlayerCompetitions(rsns) {
+  const results = [];
+  for (let i = 0; i < rsns.length; i++) {
+    const key = rsns[i].toLowerCase().trim();
+    const cached = playerCompCache.get(key);
+    if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
+      results.push(cached.data);
+    } else {
+      results.push(await fetchPlayerCompetitions(rsns[i]));
+      if (i < rsns.length - 1) await sleep(SEQUENTIAL_DELAY_MS);
+    }
+  }
+  return results;
 }
 
 // ---------------------------------------------------------------------------
@@ -309,6 +373,8 @@ async function fetchGroupCompetitions(womGroupId) {
 module.exports = {
   fetchPlayerStats,
   fetchAllPlayerStats,
+  fetchPlayerCompetitions,
+  fetchAllPlayerCompetitions,
   fetchGroupInfo,
   fetchGroupGains,
   fetchGroupMembers,

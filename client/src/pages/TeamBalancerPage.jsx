@@ -14,11 +14,25 @@ import {
   Divider,
   Tooltip,
   Progress,
+  Badge,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Slider,
+  SliderTrack,
+  SliderFilledTrack,
+  SliderThumb,
 } from '@chakra-ui/react';
 import { useApolloClient } from '@apollo/client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FETCH_WOM_STATS } from '../graphql/draftOperations';
+import { FETCH_WOM_STATS, FETCH_PLAYER_COMP_HISTORY } from '../graphql/draftOperations';
 import usePageTitle from '../hooks/usePageTitle';
 import { useToastContext } from '../providers/ToastProvider';
 import { useAuth } from '../providers/AuthProvider';
@@ -94,6 +108,19 @@ const TEAM_COLORS = [
 // Delay between per-player fetches to stay under WOM rate limits
 const CLIENT_FETCH_DELAY_MS = 1000;
 
+// Columns shown in the player table (all except name which is sticky)
+const COLUMNS = [
+  { key: 'totalLevel', label: 'Lvl', title: 'Total Level' },
+  { key: 'ehp', label: 'EHP', title: 'Efficient Hours Played (lifetime)' },
+  { key: 'ehpy', label: 'EHP/Y', title: 'EHP gained in the last year' },
+  { key: 'ehb', label: 'EHB', title: 'Efficient Hours Bossed (lifetime)' },
+  { key: 'ehby', label: 'EHB/Y', title: 'EHB gained in the last year' },
+  { key: 'cox', label: 'CoX', title: 'Chambers of Xeric KC (incl. CM)' },
+  { key: 'tob', label: 'ToB', title: 'Theatre of Blood KC (incl. HM)' },
+  { key: 'toa', label: 'ToA', title: 'Tombs of Amascut KC (incl. Expert)' },
+  { key: 'score', label: 'Score', title: 'Weighted balance score' },
+];
+
 function scorePlayer(womData, weights) {
   const normalizedTotalLevel = ((womData.totalLevel ?? 0) / 2376) * 100;
   return (
@@ -111,7 +138,7 @@ function scorePlayer(womData, weights) {
 function balanceTeams(players, numTeams) {
   const n = players.length;
   const baseSize = Math.floor(n / numTeams);
-  const extra = n % numTeams; // this many teams get one extra player
+  const extra = n % numTeams;
 
   const sorted = [...players].sort((a, b) => b.score - a.score);
   const teams = Array.from({ length: numTeams }, (_, i) => ({
@@ -121,15 +148,10 @@ function balanceTeams(players, numTeams) {
   }));
 
   for (const player of sorted) {
-    // Teams already at baseSize+1 count toward the extra quota
     const overflowCount = teams.filter((t) => t.players.length > baseSize).length;
-
-    // A team can accept this player if it's under the base size,
-    // or at the base size and there's still room in the extra quota
     const eligible = teams.filter(
       (t) => t.players.length < baseSize || (t.players.length === baseSize && overflowCount < extra)
     );
-
     const target = eligible.reduce((min, t) => (t.total < min.total ? t : min), eligible[0]);
     target.players.push(player);
     target.total += player.score;
@@ -138,21 +160,31 @@ function balanceTeams(players, numTeams) {
   return teams;
 }
 
+function recalcTotal(team) {
+  return { ...team, total: team.players.reduce((s, p) => s + p.score, 0) };
+}
+
 function fmt(n) {
   return Math.round(n).toLocaleString();
 }
 
 function exportToCsv(teams, preset) {
-  const rows = [['Team', 'RSN', 'EHP', 'EHP/Y', 'EHB', 'EHB/Y', 'Score']];
+  const rows = [
+    ['Team', 'RSN', 'Level', 'EHP', 'EHP/Y', 'EHB', 'EHB/Y', 'CoX', 'ToB', 'ToA', 'Score'],
+  ];
   teams.forEach((team, i) => {
     team.players.forEach((p) => {
       rows.push([
         `Team ${i + 1}`,
         p.rsn,
+        p.totalLevel ?? 0,
         Math.round(p.ehp ?? 0),
         Math.round(p.ehpy ?? 0),
         Math.round(p.ehb ?? 0),
         Math.round(p.ehby ?? 0),
+        Math.round(p.cox ?? 0),
+        Math.round(p.tob ?? 0),
+        Math.round(p.toa ?? 0),
         Math.round(p.score),
       ]);
     });
@@ -178,12 +210,71 @@ export default function TeamBalancerPage() {
   const [preset, setPreset] = useState(DEFAULT_PRESET);
   const [teams, setTeams] = useState(null);
   const [notFoundRsns, setNotFoundRsns] = useState([]);
-  // { fetched, total, current } — null when idle
   const [progress, setProgress] = useState(null);
+
+  // Sort state: applies to all team tables simultaneously
+  const [sortCol, setSortCol] = useState('score');
+  const [sortDir, setSortDir] = useState('desc');
+
+  // Competition history: rsn → { count, participationRate, recent[] }
+  const [compData, setCompData] = useState(null); // null = not loaded
+  const [compLoading, setCompLoading] = useState(false);
+
+  // Drag state
+  const dragInfo = useRef(null); // { rsn, fromTeamIdx }
+  const [dragOverTeam, setDragOverTeam] = useState(null);
+
+  // Refetch state for not-found RSNs
+  const [refetchProgress, setRefetchProgress] = useState(null); // { fetched, total, current } | null
+
+  // Manual edit tracking for rebalance confirmation
+  const [hasManualEdits, setHasManualEdits] = useState(false);
+  const [showRebalanceConfirm, setShowRebalanceConfirm] = useState(false);
+
+  // Custom weights — start from the selected preset, editable in Advanced
+  const [customWeights, setCustomWeights] = useState(null); // null = use preset
+
+  const activeWeights = customWeights ?? PRESETS[preset];
+
+  function setWeight(key, value) {
+    setCustomWeights((prev) => ({ ...(prev ?? PRESETS[preset]), [key]: value }));
+  }
+
+  // Reset custom weights when preset changes (unless user explicitly edited)
+  function handlePresetChange(name) {
+    setPreset(name);
+    setCustomWeights(null);
+  }
+
+  // When weights change: rebalance directly, or prompt if user has manual edits
+  useEffect(() => {
+    if (!teams) return;
+    if (hasManualEdits) {
+      // Re-score in place so numbers reflect new weights, but don't move anyone
+      setTeams((prev) =>
+        prev.map((team) => {
+          const rescored = team.players.map((p) => ({
+            ...p,
+            score: scorePlayer(p, activeWeights),
+          }));
+          return { ...team, players: rescored, total: rescored.reduce((s, p) => s + p.score, 0) };
+        })
+      );
+      setShowRebalanceConfirm(true);
+    } else {
+      setTeams((prev) => {
+        const allPlayers = prev
+          .flatMap((t) => t.players)
+          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) }));
+        return balanceTeams(allPlayers, prev.length);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customWeights, preset]);
 
   if (!user) {
     return (
-      <Box flex="1" my="36px" maxW="1000px" mx="auto" w="100%" px={4} py={8}>
+      <Box flex="1" my="36px" maxW="1100px" mx="auto" w="100%" px={4} py={8}>
         <VStack align="flex-start" spacing={1} mb={6}>
           <GemTitle fontSize="2xl" fontWeight="black">
             Team Balancer
@@ -193,7 +284,6 @@ export default function TeamBalancerPage() {
           </Text>
         </VStack>
 
-        {/* Blurred preview of the form */}
         <Box position="relative">
           <Box
             bg="gray.700"
@@ -208,7 +298,9 @@ export default function TeamBalancerPage() {
           >
             <VStack spacing={5} align="stretch">
               <Box>
-                <Text fontSize="sm" mb={1}>RSNs</Text>
+                <Text fontSize="sm" mb={1}>
+                  RSNs
+                </Text>
                 <Box
                   bg="gray.800"
                   borderRadius="md"
@@ -224,11 +316,22 @@ export default function TeamBalancerPage() {
               </Box>
               <HStack spacing={6}>
                 <Box>
-                  <Text fontSize="sm" mb={1}>Number of Teams</Text>
-                  <Box bg="gray.800" borderRadius="md" border="1px solid" borderColor="gray.600" w="100px" h="40px" />
+                  <Text fontSize="sm" mb={1}>
+                    Number of Teams
+                  </Text>
+                  <Box
+                    bg="gray.800"
+                    borderRadius="md"
+                    border="1px solid"
+                    borderColor="gray.600"
+                    w="100px"
+                    h="40px"
+                  />
                 </Box>
                 <Box flex={1}>
-                  <Text fontSize="sm" mb={1}>Balancing Metric</Text>
+                  <Text fontSize="sm" mb={1}>
+                    Balancing Metric
+                  </Text>
                   <HStack spacing={2}>
                     {Object.keys(PRESETS).map((name) => (
                       <Box key={name} bg="gray.600" borderRadius="md" px={3} py={1}>
@@ -242,7 +345,6 @@ export default function TeamBalancerPage() {
             </VStack>
           </Box>
 
-          {/* Login overlay */}
           <Box
             position="absolute"
             inset={0}
@@ -271,7 +373,14 @@ export default function TeamBalancerPage() {
                   <Button colorScheme="purple">Log In</Button>
                 </Link>
                 <Link to="/signup">
-                  <Button variant="outline" colorScheme="whiteAlpha" borderColor="whiteAlpha.400" color="white">Sign Up Free</Button>
+                  <Button
+                    variant="outline"
+                    colorScheme="whiteAlpha"
+                    borderColor="whiteAlpha.400"
+                    color="white"
+                  >
+                    Sign Up Free
+                  </Button>
                 </Link>
               </HStack>
             </Box>
@@ -295,23 +404,16 @@ export default function TeamBalancerPage() {
     }
 
     const allStats = [];
-
     try {
       for (let i = 0; i < rsns.length; i++) {
         setProgress({ fetched: i, total: rsns.length, current: rsns[i] });
-
         const result = await apolloClient.query({
           query: FETCH_WOM_STATS,
           variables: { rsns: [rsns[i]] },
           fetchPolicy: 'network-only',
         });
         allStats.push(...(result.data?.fetchWomStats ?? []));
-
-        // Throttle between requests — server also delays but client pacing
-        // adds an extra buffer against WOM rate limits
-        if (i < rsns.length - 1) {
-          await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
-        }
+        if (i < rsns.length - 1) await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
       }
     } catch (e) {
       showToast(`Failed to fetch stats: ${e.message}`, 'error');
@@ -319,20 +421,161 @@ export default function TeamBalancerPage() {
       return;
     }
 
-    const weights = PRESETS[preset];
+    const weights = activeWeights;
     const notFound = allStats.filter((s) => s.notFound).map((s) => s.rsn);
     setNotFoundRsns(notFound);
 
     const found = allStats.filter((s) => !s.notFound);
     const scored = found.map((s) => ({ ...s, score: scorePlayer(s, weights) }));
     setTeams(balanceTeams(scored, numTeams));
+    setCompData(null);
     setProgress(null);
+    setHasManualEdits(false);
+    setShowRebalanceConfirm(false);
+  }
+
+  async function handleLoadCompHistory() {
+    if (!teams) return;
+    const allRsns = teams.flatMap((t) => t.players.map((p) => p.rsn));
+    setCompLoading(true);
+    try {
+      const result = await apolloClient.query({
+        query: FETCH_PLAYER_COMP_HISTORY,
+        variables: { rsns: allRsns },
+        fetchPolicy: 'network-only',
+      });
+      const entries = result.data?.fetchPlayerCompHistory ?? [];
+      const map = {};
+      entries.forEach((e) => {
+        map[e.rsn.toLowerCase()] = e;
+      });
+      setCompData(map);
+    } catch (e) {
+      showToast(`Failed to fetch competition history: ${e.message}`, 'error');
+    }
+    setCompLoading(false);
   }
 
   function handleReset() {
     setTeams(null);
     setNotFoundRsns([]);
     setProgress(null);
+    setCompData(null);
+    setRefetchProgress(null);
+    setSortCol('score');
+    setSortDir('desc');
+    setHasManualEdits(false);
+    setShowRebalanceConfirm(false);
+  }
+
+  async function handleRefetchNotFound() {
+    const weights = activeWeights;
+    const allStats = [];
+    try {
+      for (let i = 0; i < notFoundRsns.length; i++) {
+        setRefetchProgress({ fetched: i, total: notFoundRsns.length, current: notFoundRsns[i] });
+        const result = await apolloClient.query({
+          query: FETCH_WOM_STATS,
+          variables: { rsns: [notFoundRsns[i]] },
+          fetchPolicy: 'network-only',
+        });
+        allStats.push(...(result.data?.fetchWomStats ?? []));
+        if (i < notFoundRsns.length - 1)
+          await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
+      }
+    } catch (e) {
+      showToast(`Failed to refetch: ${e.message}`, 'error');
+      setRefetchProgress(null);
+      return;
+    }
+
+    const stillNotFound = allStats.filter((s) => s.notFound).map((s) => s.rsn);
+    const nowFound = allStats.filter((s) => !s.notFound);
+
+    if (nowFound.length === 0) {
+      showToast('Still not found on WOM — check the usernames', 'warning');
+      setRefetchProgress(null);
+      return;
+    }
+
+    // Merge newly found players into the existing pool and rebalance everything
+    const existingPlayers = teams.flatMap((t) => t.players);
+    const allPlayers = [
+      ...existingPlayers,
+      ...nowFound.map((s) => ({ ...s, score: scorePlayer(s, weights) })),
+    ];
+    setTeams(balanceTeams(allPlayers, teams.length));
+    setNotFoundRsns(stillNotFound);
+    setCompData(null);
+    setRefetchProgress(null);
+    setHasManualEdits(false);
+    setShowRebalanceConfirm(false);
+
+    if (stillNotFound.length === 0) {
+      showToast(`Found all players — teams rebalanced!`, 'success');
+    } else {
+      showToast(`Found ${nowFound.length}, still missing ${stillNotFound.length}`, 'warning');
+    }
+  }
+
+  function handleSortCol(col) {
+    if (sortCol === col) {
+      setSortDir((d) => (d === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setSortCol(col);
+      setSortDir('desc');
+    }
+  }
+
+  function getSortedPlayers(players) {
+    return [...players].sort((a, b) => {
+      const av = a[sortCol] ?? 0;
+      const bv = b[sortCol] ?? 0;
+      return sortDir === 'desc' ? bv - av : av - bv;
+    });
+  }
+
+  // Drag & drop handlers
+  function onDragStart(rsn, fromTeamIdx) {
+    dragInfo.current = { rsn, fromTeamIdx };
+  }
+
+  function onDragOver(e, toTeamIdx) {
+    e.preventDefault();
+    setDragOverTeam(toTeamIdx);
+  }
+
+  function onDragLeave() {
+    setDragOverTeam(null);
+  }
+
+  function onDrop(e, toTeamIdx) {
+    e.preventDefault();
+    setDragOverTeam(null);
+    if (!dragInfo.current) return;
+    const { rsn, fromTeamIdx } = dragInfo.current;
+    dragInfo.current = null;
+    if (fromTeamIdx === toTeamIdx) return;
+
+    setHasManualEdits(true);
+    setShowRebalanceConfirm(false);
+    setTeams((prev) => {
+      const next = prev.map((t) => ({ ...t, players: [...t.players] }));
+      const fromTeam = next[fromTeamIdx];
+      const toTeam = next[toTeamIdx];
+      const playerIdx = fromTeam.players.findIndex((p) => p.rsn === rsn);
+      if (playerIdx === -1) return prev;
+      const [player] = fromTeam.players.splice(playerIdx, 1);
+      toTeam.players.push(player);
+      next[fromTeamIdx] = recalcTotal(fromTeam);
+      next[toTeamIdx] = recalcTotal(toTeam);
+      return next;
+    });
+  }
+
+  function onDragEnd() {
+    dragInfo.current = null;
+    setDragOverTeam(null);
   }
 
   const rsns = getRsns();
@@ -344,8 +587,16 @@ export default function TeamBalancerPage() {
       ? Math.min(...teams.map((t) => t.total)) / Math.max(...teams.map((t) => t.total))
       : null;
 
+  // Determine columns to show — add Comps column when data is loaded
+  const visibleColumns = compData
+    ? [
+        ...COLUMNS,
+        { key: '__comps', label: 'Comps', title: 'Competition participations (last 20 on WOM)' },
+      ]
+    : COLUMNS;
+
   return (
-    <Box flex="1" my="36px" maxW="1000px" mx="auto" w="100%" px={4} py={8}>
+    <Box flex="1" my="36px" maxW="1100px" mx="auto" w="100%" px={4} py={8}>
       <VStack align="flex-start" spacing={1} mb={6}>
         <GemTitle fontSize="2xl" fontWeight="black">
           Team Balancer
@@ -409,7 +660,7 @@ export default function TeamBalancerPage() {
                       size="sm"
                       variant={preset === name ? 'solid' : 'outline'}
                       colorScheme="pink"
-                      onClick={() => setPreset(name)}
+                      onClick={() => handlePresetChange(name)}
                       isDisabled={isFetching}
                     >
                       {name}
@@ -421,6 +672,83 @@ export default function TeamBalancerPage() {
                 </Text>
               </Box>
             </HStack>
+
+            <Accordion allowToggle>
+              <AccordionItem border="none">
+                <AccordionButton px={0} _hover={{ bg: 'transparent' }}>
+                  <Text fontSize="sm" color="gray.400" flex={1} textAlign="left">
+                    Advanced: Custom Weights
+                    {customWeights && (
+                      <Text as="span" fontSize="xs" color="purple.400" ml={2}>
+                        (modified)
+                      </Text>
+                    )}
+                  </Text>
+                  <AccordionIcon color="gray.400" />
+                </AccordionButton>
+                <AccordionPanel px={0} pb={2}>
+                  <VStack spacing={3} align="stretch" pt={1}>
+                    <Text fontSize="xs" color="gray.500">
+                      Fine-tune the weight of each stat in the balance score. Higher = more
+                      influence. Changing a value here overrides the selected preset.
+                    </Text>
+                    {[
+                      { key: 'ehpWeight', label: 'EHP (lifetime)' },
+                      { key: 'ehpyWeight', label: 'EHP/Y (past year)' },
+                      { key: 'ehbWeight', label: 'EHB (lifetime)' },
+                      { key: 'ehbyWeight', label: 'EHB/Y (past year)' },
+                      { key: 'totalLevelWeight', label: 'Total Level' },
+                      { key: 'coxWeight', label: 'CoX KC' },
+                      { key: 'tobWeight', label: 'ToB KC' },
+                      { key: 'toaWeight', label: 'ToA KC' },
+                    ].map(({ key, label }) => {
+                      const val = activeWeights[key] ?? 0;
+                      return (
+                        <HStack key={key} spacing={3} align="center">
+                          <Text fontSize="xs" color="gray.300" w="130px" flexShrink={0}>
+                            {label}
+                          </Text>
+                          <Slider
+                            min={0}
+                            max={5}
+                            step={0.05}
+                            value={val}
+                            onChange={(v) => setWeight(key, v)}
+                            flex={1}
+                            isDisabled={isFetching}
+                            focusThumbOnChange={false}
+                          >
+                            <SliderTrack bg="gray.600">
+                              <SliderFilledTrack bg="pink.400" />
+                            </SliderTrack>
+                            <SliderThumb boxSize={3} />
+                          </Slider>
+                          <Text
+                            fontSize="xs"
+                            color="gray.300"
+                            w="30px"
+                            textAlign="right"
+                            flexShrink={0}
+                          >
+                            {val.toFixed(2)}
+                          </Text>
+                        </HStack>
+                      );
+                    })}
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      colorScheme="whiteAlpha"
+                      alignSelf="flex-start"
+                      onClick={() => setCustomWeights(null)}
+                      isDisabled={!customWeights}
+                    >
+                      Reset to preset
+                    </Button>
+                  </VStack>
+                </AccordionPanel>
+              </AccordionItem>
+            </Accordion>
 
             <Divider />
 
@@ -509,7 +837,19 @@ export default function TeamBalancerPage() {
               </Tooltip>
             )}
 
-            <HStack spacing={2} ml="auto">
+            <HStack spacing={2} ml="auto" flexWrap="wrap">
+              {!compData && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  colorScheme="purple"
+                  onClick={handleLoadCompHistory}
+                  isLoading={compLoading}
+                  loadingText="Loading..."
+                >
+                  Load Competition History
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -524,31 +864,184 @@ export default function TeamBalancerPage() {
             </HStack>
           </HStack>
 
-          {/* Disclaimer */}
           <Text fontSize="xs" color="gray.500" px={1}>
             This is not perfect team balancing! You know your players better than any algorithm
-            does. Move folks around if these metrics don't reflect reality.
+            does. Drag players between teams to adjust — scores recalculate automatically.
           </Text>
 
+          {/* Preset + weight controls available in results view too */}
+          <Box bg="gray.700" borderRadius="lg" p={4} border="1px solid" borderColor="gray.600">
+            <VStack spacing={3} align="stretch">
+              <HStack flexWrap="wrap" spacing={2}>
+                {Object.keys(PRESETS).map((name) => (
+                  <Button
+                    key={name}
+                    size="sm"
+                    variant={preset === name && !customWeights ? 'solid' : 'outline'}
+                    colorScheme="pink"
+                    onClick={() => handlePresetChange(name)}
+                  >
+                    {name}
+                  </Button>
+                ))}
+              </HStack>
+              <Text fontSize="xs" color="gray.400">
+                {PRESET_DESCRIPTIONS[preset]}
+              </Text>
+              <Text fontSize="xs" color="gray.500" px={1}>
+                Score = a weighted sum of EHP, EHB, Total Level, EHP/Y, EHB/Y, and raid KCs (CoX,
+                ToB, ToA) based on the selected preset. EHP/Y and EHB/Y (gains over the past year)
+                are weighted heavily since they reflect how active a player has been recently, not
+                just their total lifetime progress.
+              </Text>
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }}>
+                    <Text fontSize="sm" color="gray.400" flex={1} textAlign="left">
+                      Advanced: Custom Weights
+                      {customWeights && (
+                        <Text as="span" fontSize="xs" color="purple.400" ml={2}>
+                          (modified)
+                        </Text>
+                      )}
+                    </Text>
+                    <AccordionIcon color="gray.400" />
+                  </AccordionButton>
+                  <AccordionPanel px={0} pb={2}>
+                    <VStack spacing={3} align="stretch" pt={1}>
+                      {[
+                        { key: 'ehpWeight', label: 'EHP (lifetime)' },
+                        { key: 'ehpyWeight', label: 'EHP/Y (past year)' },
+                        { key: 'ehbWeight', label: 'EHB (lifetime)' },
+                        { key: 'ehbyWeight', label: 'EHB/Y (past year)' },
+                        { key: 'totalLevelWeight', label: 'Total Level' },
+                        { key: 'coxWeight', label: 'CoX KC' },
+                        { key: 'tobWeight', label: 'ToB KC' },
+                        { key: 'toaWeight', label: 'ToA KC' },
+                      ].map(({ key, label }) => {
+                        const val = activeWeights[key] ?? 0;
+                        return (
+                          <HStack key={key} spacing={3} align="center">
+                            <Text fontSize="xs" color="gray.300" w="130px" flexShrink={0}>
+                              {label}
+                            </Text>
+                            <Slider
+                              min={0}
+                              max={5}
+                              step={0.05}
+                              value={val}
+                              onChange={(v) => setWeight(key, v)}
+                              flex={1}
+                              focusThumbOnChange={false}
+                            >
+                              <SliderTrack bg="gray.600">
+                                <SliderFilledTrack bg="pink.400" />
+                              </SliderTrack>
+                              <SliderThumb boxSize={3} />
+                            </Slider>
+                            <Text
+                              fontSize="xs"
+                              color="gray.300"
+                              w="30px"
+                              textAlign="right"
+                              flexShrink={0}
+                            >
+                              {val.toFixed(2)}
+                            </Text>
+                          </HStack>
+                        );
+                      })}
+                      <Button
+                        size="xs"
+                        variant="ghost"
+                        colorScheme="whiteAlpha"
+                        alignSelf="flex-start"
+                        onClick={() => setCustomWeights(null)}
+                        isDisabled={!customWeights}
+                      >
+                        Reset to preset
+                      </Button>
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            </VStack>
+          </Box>
+
+          {/* Rebalance confirmation */}
+          {showRebalanceConfirm && (
+            <Box
+              bg="orange.900"
+              border="1px solid"
+              borderColor="orange.600"
+              borderRadius="lg"
+              px={4}
+              py={3}
+            >
+              <HStack justify="space-between" flexWrap="wrap" gap={2}>
+                <Text fontSize="sm" color="orange.100">
+                  Rebalance teams with the new weights? This will undo your manual player moves.
+                </Text>
+                <HStack spacing={2}>
+                  <Button
+                    size="sm"
+                    colorScheme="orange"
+                    onClick={() => {
+                      setTeams((prev) => {
+                        const allPlayers = prev
+                          .flatMap((t) => t.players)
+                          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) }));
+                        return balanceTeams(allPlayers, prev.length);
+                      });
+                      setHasManualEdits(false);
+                      setShowRebalanceConfirm(false);
+                    }}
+                  >
+                    Rebalance
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    onClick={() => setShowRebalanceConfirm(false)}
+                  >
+                    Keep my changes
+                  </Button>
+                </HStack>
+              </HStack>
+            </Box>
+          )}
+
           {/* Team cards */}
-          <SimpleGrid columns={{ base: 1, sm: 2, md: Math.min(teams.length, 3) }} spacing={4}>
+          <SimpleGrid columns={{ base: 1, lg: Math.min(teams.length, 2) }} spacing={4}>
             {teams.map((team, i) => {
               const color = TEAM_COLORS[i % TEAM_COLORS.length];
+              const isDragTarget = dragOverTeam === i;
+              const sorted = getSortedPlayers(team.players);
+
               return (
                 <Box
                   key={team.index}
                   bg="gray.800"
                   border="2px solid"
-                  borderColor="gray.600"
+                  borderColor={isDragTarget ? color : 'gray.600'}
                   borderRadius="xl"
                   overflow="hidden"
+                  transition="border-color 0.15s"
+                  onDragOver={(e) => onDragOver(e, i)}
+                  onDragLeave={onDragLeave}
+                  onDrop={(e) => onDrop(e, i)}
                 >
+                  {/* Team header */}
                   <Box bg="gray.700" px={4} py={3} borderBottom="1px solid" borderColor="gray.600">
                     <HStack justify="space-between">
                       <HStack spacing={2}>
                         <Box w={3} h={3} borderRadius="full" bg={color} flexShrink={0} />
                         <Text fontWeight="black" fontSize="md">
                           Team {i + 1}
+                        </Text>
+                        <Text fontSize="xs" color="gray.400">
+                          ({team.players.length})
                         </Text>
                       </HStack>
                       <VStack spacing={0} align="flex-end">
@@ -562,70 +1055,239 @@ export default function TeamBalancerPage() {
                     </HStack>
                   </Box>
 
-                  <VStack spacing={0} align="stretch">
-                    {team.players.map((player, pi) => (
-                      <Box
-                        key={player.rsn}
-                        px={4}
-                        py={2.5}
-                        borderBottom={pi < team.players.length - 1 ? '1px solid' : 'none'}
-                        borderColor="gray.700"
-                      >
-                        <HStack justify="space-between" spacing={2}>
-                          <Text fontWeight="semibold" fontSize="sm" noOfLines={1} flex={1} minW={0}>
-                            {player.rsn}
-                          </Text>
-                          <HStack spacing={3} flexShrink={0}>
-                            {[
-                              { label: 'EHP', val: player.ehp },
-                              { label: 'EHP/Y', val: player.ehpy },
-                              { label: 'EHB', val: player.ehb },
-                              { label: 'EHB/Y', val: player.ehby },
-                            ].map(({ label, val }) => (
-                              <VStack key={label} spacing={0} align="center">
-                                <Text fontSize="9px" color="gray.500" lineHeight={1}>
-                                  {label}
-                                </Text>
-                                <Text fontSize="xs" fontWeight="bold" lineHeight={1.3}>
-                                  {fmt(val ?? 0)}
-                                </Text>
-                              </VStack>
-                            ))}
-                            <VStack spacing={0} align="center">
-                              <Text fontSize="9px" color="gray.500" lineHeight={1}>
-                                Score
-                              </Text>
-                              <Text fontSize="xs" fontWeight="bold" lineHeight={1.3} color={color}>
-                                {fmt(player.score)}
-                              </Text>
-                            </VStack>
-                          </HStack>
-                        </HStack>
-                      </Box>
-                    ))}
-                  </VStack>
+                  {/* Scrollable table */}
+                  <Box overflowX="auto">
+                    <Box
+                      as="table"
+                      w="100%"
+                      style={{ borderCollapse: 'collapse', tableLayout: 'auto' }}
+                    >
+                      {/* Column headers */}
+                      <Box as="thead">
+                        <Box as="tr" bg="gray.750">
+                          {/* Sticky name column header */}
+                          <Box
+                            as="th"
+                            position="sticky"
+                            left={0}
+                            zIndex={1}
+                            bg="gray.750"
+                            px={4}
+                            py={1.5}
+                            textAlign="left"
+                            fontSize="9px"
+                            color="gray.400"
+                            fontWeight="semibold"
+                            textTransform="uppercase"
+                            letterSpacing="wide"
+                            borderBottom="1px solid"
+                            borderColor="gray.700"
+                            whiteSpace="nowrap"
+                            minW="120px"
+                          >
+                            Player
+                          </Box>
+                          {visibleColumns.map((col) => (
+                            <Box
+                              as="th"
+                              key={col.key}
+                              px={3}
+                              py={1.5}
+                              textAlign="right"
+                              fontSize="9px"
+                              color={sortCol === col.key ? 'purple.300' : 'gray.400'}
+                              fontWeight="semibold"
+                              textTransform="uppercase"
+                              letterSpacing="wide"
+                              borderBottom="1px solid"
+                              borderColor="gray.700"
+                              cursor="pointer"
+                              whiteSpace="nowrap"
+                              _hover={{ color: 'gray.200' }}
+                              onClick={() => col.key !== '__comps' && handleSortCol(col.key)}
+                              title={col.title}
+                            >
+                              <Tooltip label={col.title} placement="top" openDelay={300}>
+                                <span>
+                                  {col.label}
 
+                                  {sortCol === col.key && col.key !== '__comps' && (
+                                    <Text as="span" ml={0.5}>
+                                      {sortDir === 'desc' ? '↓' : '↑'}
+                                    </Text>
+                                  )}
+                                </span>
+                              </Tooltip>
+                            </Box>
+                          ))}
+                        </Box>
+                      </Box>
+
+                      {/* Rows */}
+                      <Box as="tbody">
+                        {sorted.map((player, pi) => {
+                          const compEntry = compData ? compData[player.rsn.toLowerCase()] : null;
+                          return (
+                            <Box
+                              as="tr"
+                              key={player.rsn}
+                              draggable
+                              onDragStart={() => onDragStart(player.rsn, i)}
+                              onDragEnd={onDragEnd}
+                              bg="gray.800"
+                              _hover={{ bg: 'gray.750' }}
+                              cursor="grab"
+                              borderBottom={pi < sorted.length - 1 ? '1px solid' : 'none'}
+                              borderColor="gray.700"
+                              style={{ transition: 'background 0.1s' }}
+                            >
+                              {/* Sticky name cell */}
+                              <Box
+                                as="td"
+                                position="sticky"
+                                left={0}
+                                zIndex={1}
+                                bg="inherit"
+                                px={4}
+                                py={2}
+                                borderRight="1px solid"
+                                borderColor="gray.700"
+                                whiteSpace="nowrap"
+                              >
+                                <Text fontWeight="semibold" fontSize="sm">
+                                  {player.rsn}
+                                </Text>
+                              </Box>
+
+                              {/* Stat cells */}
+                              {visibleColumns.map((col) => {
+                                if (col.key === '__comps') {
+                                  if (!compEntry) {
+                                    return (
+                                      <Box as="td" key="__comps" px={3} py={2} textAlign="right">
+                                        <Text fontSize="xs" color="gray.600">
+                                          —
+                                        </Text>
+                                      </Box>
+                                    );
+                                  }
+                                  return (
+                                    <Box as="td" key="__comps" px={3} py={2} textAlign="right">
+                                      <Popover
+                                        placement="left"
+                                        trigger="hover"
+                                        openDelay={100}
+                                        closeDelay={200}
+                                      >
+                                        <PopoverTrigger>
+                                          <Badge
+                                            colorScheme={
+                                              compEntry.count >= 15
+                                                ? 'green'
+                                                : compEntry.count >= 5
+                                                ? 'yellow'
+                                                : 'gray'
+                                            }
+                                            fontSize="10px"
+                                            cursor="pointer"
+                                          >
+                                            {compEntry.count}
+                                          </Badge>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                          bg="gray.800"
+                                          border="1px solid"
+                                          borderColor="gray.600"
+                                          boxShadow="lg"
+                                          w="auto"
+                                          minW="240px"
+                                          maxW="320px"
+                                          _focus={{ outline: 'none' }}
+                                        >
+                                          <PopoverBody p={3} textAlign="left">
+                                            <Text fontWeight="bold" mb={2} fontSize="sm">
+                                              {compEntry.count} competition
+                                              {compEntry.count !== 1 ? 's' : ''} on WOM
+                                            </Text>
+                                            <Text fontSize="xs" color="gray.400" mb={2}>
+                                              Most recent competitions:
+                                            </Text>
+                                            {compEntry.recent.length > 0 && (
+                                              <VStack align="stretch" spacing={0.5}>
+                                                {compEntry.recent.map((c, ci) => {
+                                                  return (
+                                                    <Box
+                                                      key={ci}
+                                                      as="a"
+                                                      href={`https://wiseoldman.net/competitions/${c.id}`}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      display="block"
+                                                      borderRadius="sm"
+                                                      px={1.5}
+                                                      py={1}
+                                                      _hover={{
+                                                        bg: 'gray.700',
+                                                        textDecoration: 'none',
+                                                      }}
+                                                    >
+                                                      <Text fontSize="xs" color="gray.300">
+                                                        {c.title}
+                                                      </Text>
+                                                    </Box>
+                                                  );
+                                                })}
+                                              </VStack>
+                                            )}
+                                          </PopoverBody>
+                                        </PopoverContent>
+                                      </Popover>
+                                    </Box>
+                                  );
+                                }
+                                const val = player[col.key] ?? 0;
+                                const isScore = col.key === 'score';
+                                return (
+                                  <Box as="td" key={col.key} px={3} py={2} textAlign="right">
+                                    <Text
+                                      fontSize="xs"
+                                      fontWeight={isScore ? 'bold' : 'normal'}
+                                      color={isScore ? color : 'gray.200'}
+                                    >
+                                      {fmt(val)}
+                                    </Text>
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Footer averages */}
                   {team.players.length > 0 && (
                     <Box px={4} py={2} borderTop="1px solid" borderColor="gray.700" bg="gray.750">
                       {(() => {
-                        const avgEhp =
-                          team.players.reduce((s, p) => s + (p.ehp ?? 0), 0) / team.players.length;
-                        const avgEhb =
-                          team.players.reduce((s, p) => s + (p.ehb ?? 0), 0) / team.players.length;
+                        const avg = (key) =>
+                          team.players.reduce((s, p) => s + (p[key] ?? 0), 0) / team.players.length;
+                        const stats = [
+                          { label: 'avg EHP', val: avg('ehp') },
+                          { label: 'avg EHP/Y', val: avg('ehpy') },
+                          { label: 'avg EHB', val: avg('ehb') },
+                          { label: 'avg EHB/Y', val: avg('ehby') },
+                        ];
                         return (
-                          <HStack spacing={4}>
-                            <Text fontSize="9px" color="gray.500">
-                              avg EHP:{' '}
-                              <Text as="span" color="gray.300">
-                                {fmt(avgEhp)}
+                          <HStack spacing={4} flexWrap="wrap">
+                            {stats.map(({ label, val }) => (
+                              <Text key={label} fontSize="9px" color="gray.500">
+                                {label}:{' '}
+                                <Text as="span" color="gray.300">
+                                  {fmt(val)}
+                                </Text>
                               </Text>
-                            </Text>
-                            <Text fontSize="9px" color="gray.500">
-                              avg EHB:{' '}
-                              <Text as="span" color="gray.300">
-                                {fmt(avgEhb)}
-                              </Text>
-                            </Text>
+                            ))}
                             <Text fontSize="9px" color="gray.500">
                               {team.players.length} player{team.players.length !== 1 ? 's' : ''}
                             </Text>
@@ -639,7 +1301,7 @@ export default function TeamBalancerPage() {
             })}
           </SimpleGrid>
 
-          {/* Not-found players — separate card, not assigned to any team */}
+          {/* Not-found players */}
           {notFoundRsns.length > 0 && (
             <Box
               bg="gray.800"
@@ -673,6 +1335,58 @@ export default function TeamBalancerPage() {
                   </Text>
                 ))}
               </VStack>
+              <Box px={4} py={3} borderTop="1px solid" borderColor="gray.700">
+                {refetchProgress ? (
+                  <Box>
+                    <HStack justify="space-between" mb={1}>
+                      <Text fontSize="xs" color="gray.400">
+                        Retrying{' '}
+                        <Text as="span" color="white" fontWeight="semibold">
+                          {refetchProgress.current}
+                        </Text>
+                        ...
+                      </Text>
+                      <Text fontSize="xs" color="orange.300" fontWeight="bold">
+                        {refetchProgress.fetched} / {refetchProgress.total}
+                      </Text>
+                    </HStack>
+                    <Progress
+                      value={(refetchProgress.fetched / refetchProgress.total) * 100}
+                      colorScheme="orange"
+                      size="xs"
+                      borderRadius="full"
+                    />
+                  </Box>
+                ) : (
+                  <VStack align="stretch" spacing={2}>
+                    <Text fontSize="xs" color="gray.400">
+                      Are these RSNs correct? If so, try refetching — WOM may have been
+                      rate-limited.
+                    </Text>
+                    <HStack spacing={2}>
+                      <Button
+                        size="sm"
+                        colorScheme="orange"
+                        variant="outline"
+                        onClick={handleRefetchNotFound}
+                      >
+                        Retry{' '}
+                        {notFoundRsns.length === 1
+                          ? 'this player'
+                          : `these ${notFoundRsns.length} players`}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        colorScheme="whiteAlpha"
+                        onClick={handleReset}
+                      >
+                        Go back and edit
+                      </Button>
+                    </HStack>
+                  </VStack>
+                )}
+              </Box>
             </Box>
           )}
         </VStack>

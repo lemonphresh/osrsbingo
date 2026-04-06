@@ -21,6 +21,7 @@ import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
+import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOperations';
 import { FaHeart } from 'react-icons/fa';
 import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
@@ -37,7 +38,14 @@ const NavBar = () => {
     skip: !user,
   });
 
+  const { data: unreadData } = useQuery(GET_UNREAD_GROUP_NOTIFICATION_COUNT, {
+    skip: !user || !isGroupDashboardEnabled(user),
+    pollInterval: 10 * 60 * 1000, // 10 min
+  });
+
   const pendingInviteCount = invitationsData?.getPendingInvitations?.length || 0;
+  const unreadGroupCount = unreadData?.getUnreadGroupNotificationCount || 0;
+  const totalBadgeCount = pendingInviteCount + unreadGroupCount;
 
   useEffect(() => {
     const dismissedTime = localStorage.getItem(BANNER_STORAGE_KEY);
@@ -318,7 +326,7 @@ const NavBar = () => {
                   src={GnomeChild}
                   width={['48px', '32px']}
                 />
-                {pendingInviteCount > 0 && (
+                {totalBadgeCount > 0 && (
                   <Badge
                     position="absolute"
                     top="-4px"
@@ -335,7 +343,7 @@ const NavBar = () => {
                     justifyContent="center"
                     boxShadow="0 2px 4px rgba(0,0,0,0.3)"
                   >
-                    {pendingInviteCount > 9 ? '9+' : pendingInviteCount}
+                    {totalBadgeCount > 9 ? '9+' : totalBadgeCount}
                   </Badge>
                 )}
               </Box>
@@ -391,6 +399,15 @@ const NavBar = () => {
                     items: [
                       { label: 'My Account', to: `/user/${user.id}` },
                       { label: 'My Boards', to: '/bingo' },
+                      ...(isGroupDashboardEnabled(user)
+                        ? [
+                            {
+                              label: 'My Group Activity',
+                              to: '/group/activity',
+                              hasNotif: unreadGroupCount > 0,
+                            },
+                          ]
+                        : []),
                     ],
                   },
                   {
@@ -411,7 +428,7 @@ const NavBar = () => {
                         ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
                         : []),
                       ...(isGroupDashboardEnabled(user)
-                        ? [{ label: 'Group Dashboard', to: '/group', isNew: true }]
+                        ? [{ label: 'Group Dashboard Creator', to: '/group', isNew: true }]
                         : []),
                     ],
                   },
@@ -437,9 +454,20 @@ const NavBar = () => {
                           transition="background 0.12s"
                           _hover={{ backgroundColor: 'rgba(255,255,255,0.07)' }}
                         >
-                          <Text color="white" fontSize="sm" fontWeight="medium">
-                            {item.label}
-                          </Text>
+                          <HStack spacing={2}>
+                            <Text color="white" fontSize="sm" fontWeight="medium">
+                              {item.label}
+                            </Text>
+                            {item.hasNotif && (
+                              <Box
+                                w="7px"
+                                h="7px"
+                                borderRadius="full"
+                                bg="red.400"
+                                flexShrink={0}
+                              />
+                            )}
+                          </HStack>
                           {item.isNew && (
                             <Badge colorScheme="yellow" fontSize="xs">
                               New

@@ -130,11 +130,16 @@ const CLUE_METRICS = [
 ];
 
 const GOAL_TYPES = [
-  { value: 'boss_kc', label: 'Boss KC (aggregate)' },
-  { value: 'clue_kc', label: 'Clue Scrolls (aggregate)' },
-  { value: 'skill_xp', label: 'Skill XP (aggregate)' },
-  { value: 'ehb', label: 'EHB (aggregate)' },
-  { value: 'ehp', label: 'EHP (aggregate)' },
+  { value: 'boss_kc', label: 'Boss KC (group total)' },
+  { value: 'clue_kc', label: 'Clue Scrolls (group total)' },
+  { value: 'skill_xp', label: 'Skill XP (group total)' },
+  { value: 'ehb', label: 'EHB (group total)' },
+  { value: 'ehp', label: 'EHP (group total)' },
+  { value: 'individual_boss_kc', label: 'Boss KC (individual target)' },
+  { value: 'individual_clue_kc', label: 'Clue Scrolls (individual target)' },
+  { value: 'individual_skill_xp', label: 'Skill XP (individual target)' },
+  { value: 'individual_ehb', label: 'EHB (individual target)' },
+  { value: 'individual_ehp', label: 'EHP (individual target)' },
 ];
 
 const EMOJI_OPTIONS = [
@@ -196,9 +201,9 @@ const EMOJI_OPTIONS = [
 ];
 
 function getMetricOptions(type) {
-  if (type === 'boss_kc') return BOSS_METRICS;
-  if (type === 'skill_xp') return SKILL_METRICS;
-  if (type === 'clue_kc') return CLUE_METRICS;
+  if (type === 'boss_kc' || type === 'individual_boss_kc') return BOSS_METRICS;
+  if (type === 'skill_xp' || type === 'individual_skill_xp') return SKILL_METRICS;
+  if (type === 'clue_kc' || type === 'individual_clue_kc') return CLUE_METRICS;
   return [];
 }
 
@@ -336,7 +341,7 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
 
         <FormControl size="sm">
           <FormLabel fontSize="xs" color="gray.400" mb={1}>
-            Target
+            {goal.type.startsWith('individual_') ? 'Per-member target' : 'Group target'}
           </FormLabel>
           <NumberInput
             size="sm"

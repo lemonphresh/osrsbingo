@@ -508,6 +508,17 @@ const typeDefs = gql`
     pickOrder: Int
   }
 
+  type PlayerCompRecentEntry {
+    id: String!
+    title: String!
+  }
+
+  type PlayerCompHistory {
+    rsn: String!
+    count: Int!
+    recent: [PlayerCompRecentEntry!]!
+  }
+
   type DraftRoom {
     roomId: ID!
     roomName: String!
@@ -638,6 +649,7 @@ const typeDefs = gql`
     getDraftRoom(roomId: ID!): DraftRoom
     getMyDraftRooms: [DraftRoom!]!
     fetchWomStats(rsns: [String!]!): [JSON!]!
+    fetchPlayerCompHistory(rsns: [String!]!): [PlayerCompHistory!]!
 
     # --- Champion Forge ---
     getClanWarsEvent(eventId: ID!): ClanWarsEvent
@@ -658,6 +670,9 @@ const typeDefs = gql`
     getGroupDashboardProgress(eventId: ID!): [GroupGoalProgress!]!
     getMyGroupDashboards: [GroupDashboard!]!
     getGroupCompetitions(slug: String!): [WOMCompetition!]!
+    getMyGroupActivity: [GroupActivityItem!]!
+    getUnreadGroupNotificationCount: Int!
+    getMyGroupAssociations: [GroupAssociation!]!
   }
 
   # ============================================================
@@ -875,6 +890,11 @@ const typeDefs = gql`
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
+    followGroupDashboard(dashboardId: ID!): Boolean!
+    unfollowGroupDashboard(dashboardId: ID!): Boolean!
+    muteGroupDashboard(dashboardId: ID!): Boolean!
+    unmuteGroupDashboard(dashboardId: ID!): Boolean!
+    markGroupNotificationsRead: Boolean!
   }
 
   # ============================================================
@@ -1153,6 +1173,28 @@ const typeDefs = gql`
     events: [GroupGoalEvent!]!
     creator: User
     admins: [User!]
+    isFollowing: Boolean
+  }
+
+  type GroupAssociation {
+    dashboardId: ID!
+    dashboardName: String!
+    dashboardSlug: String!
+    role: String!
+    isMuted: Boolean!
+  }
+
+  type GroupActivityItem {
+    id: ID!
+    type: String!
+    dashboardId: ID!
+    dashboardSlug: String!
+    dashboardName: String!
+    eventId: ID
+    eventName: String
+    metadata: JSON
+    readAt: DateTime
+    createdAt: DateTime!
   }
 
   type GroupGoalEvent {

@@ -29,6 +29,7 @@ const GROUP_DASHBOARD_FIELDS = gql`
     adminIds
     theme
     discordConfig
+    isFollowing
     events {
       ...GroupGoalEventFields
     }
@@ -83,6 +84,71 @@ export const SEARCH_USERS = gql`
       id
       username
       displayName
+    }
+  }
+`;
+
+export const GET_MY_GROUP_ACTIVITY = gql`
+  query GetMyGroupActivity {
+    getMyGroupActivity {
+      id
+      type
+      dashboardId
+      dashboardSlug
+      dashboardName
+      eventId
+      eventName
+      metadata
+      readAt
+      createdAt
+    }
+  }
+`;
+
+export const GET_UNREAD_GROUP_NOTIFICATION_COUNT = gql`
+  query GetUnreadGroupNotificationCount {
+    getUnreadGroupNotificationCount
+  }
+`;
+
+export const FOLLOW_GROUP_DASHBOARD = gql`
+  mutation FollowGroupDashboard($dashboardId: ID!) {
+    followGroupDashboard(dashboardId: $dashboardId)
+  }
+`;
+
+export const UNFOLLOW_GROUP_DASHBOARD = gql`
+  mutation UnfollowGroupDashboard($dashboardId: ID!) {
+    unfollowGroupDashboard(dashboardId: $dashboardId)
+  }
+`;
+
+export const MUTE_GROUP_DASHBOARD = gql`
+  mutation MuteGroupDashboard($dashboardId: ID!) {
+    muteGroupDashboard(dashboardId: $dashboardId)
+  }
+`;
+
+export const UNMUTE_GROUP_DASHBOARD = gql`
+  mutation UnmuteGroupDashboard($dashboardId: ID!) {
+    unmuteGroupDashboard(dashboardId: $dashboardId)
+  }
+`;
+
+export const MARK_GROUP_NOTIFICATIONS_READ = gql`
+  mutation MarkGroupNotificationsRead {
+    markGroupNotificationsRead
+  }
+`;
+
+export const GET_MY_GROUP_ASSOCIATIONS = gql`
+  query GetMyGroupAssociations {
+    getMyGroupAssociations {
+      dashboardId
+      dashboardName
+      dashboardSlug
+      role
+      isMuted
     }
   }
 `;

@@ -9,7 +9,7 @@ function formatCountdown(endDate) {
   return `${hours}h left`;
 }
 
-export default function GroupDashboardHeader({ dashboard, activeEvent }) {
+export default function GroupDashboardHeader({ dashboard, activeEvent, subtitle }) {
   const theme = dashboard?.theme ?? {};
   const primaryColor = theme.primaryColor ?? '#7D5FFF';
   const accentColor = theme.accentColor ?? '#43AA8B';
@@ -50,22 +50,24 @@ export default function GroupDashboardHeader({ dashboard, activeEvent }) {
           {dashboard.groupName}
         </Text>
 
-        {activeEvent && (
+        {(activeEvent || subtitle) && (
           <HStack spacing={2} align="center">
             <Box w="2px" h="14px" bg={primaryColor} borderRadius="full" flexShrink={0} />
-            <Text fontSize="sm" color="gray.400" noOfLines={1}>{activeEvent.eventName}</Text>
-            <Box
-              px={2} py={0.5}
-              bg={`${statusColor}22`}
-              border="1px solid"
-              borderColor={`${statusColor}66`}
-              borderRadius="md"
-              flexShrink={0}
-            >
-              <Text fontSize="xs" fontWeight="bold" color={statusColor} textTransform="uppercase" letterSpacing="wide">
-                {statusLabel}
-              </Text>
-            </Box>
+            <Text fontSize="sm" color="gray.400" noOfLines={1}>{activeEvent ? activeEvent.eventName : subtitle}</Text>
+            {activeEvent && (
+              <Box
+                px={2} py={0.5}
+                bg={`${statusColor}22`}
+                border="1px solid"
+                borderColor={`${statusColor}66`}
+                borderRadius="md"
+                flexShrink={0}
+              >
+                <Text fontSize="xs" fontWeight="bold" color={statusColor} textTransform="uppercase" letterSpacing="wide">
+                  {statusLabel}
+                </Text>
+              </Box>
+            )}
           </HStack>
         )}
       </VStack>

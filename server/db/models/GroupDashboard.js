@@ -5,6 +5,8 @@ module.exports = (sequelize) => {
   class GroupDashboard extends Model {
     static associate(models) {
       GroupDashboard.hasMany(models.GroupGoalEvent, { foreignKey: 'dashboardId', as: 'events' });
+      GroupDashboard.hasMany(models.GroupDashboardFollower, { foreignKey: 'dashboardId', as: 'followers' });
+      GroupDashboard.hasMany(models.GroupDashboardActivity, { foreignKey: 'dashboardId', as: 'activities' });
     }
   }
 

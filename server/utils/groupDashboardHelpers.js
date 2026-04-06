@@ -6,9 +6,13 @@
  * ehb / ehp use 'ehb' / 'ehp' directly.
  */
 function getWomMetric(goal) {
-  if (goal.type === 'ehb') return 'ehb';
-  if (goal.type === 'ehp') return 'ehp';
+  if (goal.type === 'ehb' || goal.type === 'individual_ehb') return 'ehb';
+  if (goal.type === 'ehp' || goal.type === 'individual_ehp') return 'ehp';
   return goal.metric; // 'vardorvis', 'slayer', etc. — WOM names match 1:1
+}
+
+function isIndividualGoal(goal) {
+  return goal.type.startsWith('individual_');
 }
 
 /**
@@ -36,6 +40,42 @@ function calculateGoalProgress(goals, cachedData, roleMap = {}) {
       const womMetric = getWomMetric(goal);
       const members = cachedData[womMetric] ?? [];
 
+      // ── Individual goal: each member tracked against their own target ──
+      if (isIndividualGoal(goal)) {
+        const individualTarget = goal.target > 0 ? goal.target : 1;
+        const contributors = members
+          .map((entry) => ({
+            rsn: entry.player?.displayName ?? 'Unknown',
+            value: entry.data?.gained ?? 0,
+          }))
+          .filter((c) => c.value >= 1)
+          .sort((a, b) => b.value - a.value)
+          .map((c) => ({
+            rsn: c.rsn,
+            value: c.value,
+            percent: Math.min(100, Math.round((c.value / individualTarget) * 10000) / 100),
+            completed: c.value >= individualTarget,
+            role: roleMap[c.rsn] ?? null,
+          }));
+
+        const completedCount = contributors.filter((c) => c.completed).length;
+
+        return {
+          goalId: goal.goalId,
+          metric: womMetric,
+          displayName: goal.displayName ?? goal.metric ?? 'Goal',
+          isIndividual: true,
+          individualTarget,
+          current: completedCount,
+          target: contributors.length,
+          percent: contributors.length > 0
+            ? Math.round((completedCount / contributors.length) * 100)
+            : 0,
+          topContributors: contributors,
+        };
+      }
+
+      // ── Aggregate goal: sum all members' gains ──
       const contributions = members
         .map((entry) => ({
           rsn: entry.player?.displayName ?? 'Unknown',
@@ -59,6 +99,7 @@ function calculateGoalProgress(goals, cachedData, roleMap = {}) {
         goalId: goal.goalId,
         metric: womMetric,
         displayName: goal.displayName ?? goal.metric ?? 'Goal',
+        isIndividual: false,
         current,
         target: goal.target,
         percent,
@@ -87,4 +128,4 @@ function toSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
-module.exports = { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics };
+module.exports = { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics, isIndividualGoal };

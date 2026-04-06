@@ -1,4 +1,4 @@
-import { Box, Text, HStack, VStack, SimpleGrid } from '@chakra-ui/react';
+import { Box, Text, HStack, VStack, SimpleGrid, Button, useClipboard } from '@chakra-ui/react';
 
 const RANK_COLORS = ['#f5c518', '#c0c0c0', '#cd7f32'];
 
@@ -33,7 +33,136 @@ function KPI({ label, value, sub, valueColor }) {
   );
 }
 
+function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
+  const displayName = progress?.displayName ?? goalConfig.displayName ?? goalConfig.metric ?? 'Goal';
+  const emoji = goalConfig.emoji ?? '🎯';
+  const contributors = progress?.topContributors ?? [];
+  const individualTarget = progress?.individualTarget ?? goalConfig.target ?? 1;
+  const completedCount = progress?.current ?? 0;
+  const activeCount = progress?.target ?? 0;
+
+  const completedRsns = contributors.filter((c) => c.completed).map((c) => c.rsn).join('\n');
+  const { onCopy, hasCopied } = useClipboard(completedRsns);
+
+  return (
+    <Box
+      bg="gray.800"
+      border="2px solid"
+      borderColor={accentColor ?? '#7D5FFF'}
+      borderRadius="lg"
+      overflow="hidden"
+      transition="all 0.15s"
+      _hover={{ transform: 'translateY(-1px)' }}
+    >
+      {/* Header */}
+      <HStack px={5} pt={4} pb={3} justify="space-between" align="center">
+        <HStack spacing={3} minW={0} flex={1}>
+          <Text fontSize="xl" lineHeight="1" flexShrink={0}>{emoji}</Text>
+          <Text fontWeight="bold" color="white" fontSize="lg" noOfLines={1}>{displayName}</Text>
+        </HStack>
+        <Box
+          px={3} py={1}
+          bg="gray.700" border="1px solid" borderColor="gray.600"
+          borderRadius="md" flexShrink={0} ml={3}
+        >
+          <Text fontSize="sm" fontWeight="bold" color="gray.200">
+            Individual · {fmt(individualTarget)} each
+          </Text>
+        </Box>
+      </HStack>
+
+      {/* Summary bar */}
+      <HStack px={5} pb={4} justify="space-between" align="center">
+        <Text fontSize="sm" color="gray.400">
+          <Text as="span" fontWeight="bold" color="green.300">{completedCount}</Text>
+          {' of '}
+          <Text as="span" fontWeight="bold" color="gray.200">{activeCount}</Text>
+          {' members completed'}
+        </Text>
+        {completedCount > 0 && (
+          <Button
+            size="xs"
+            variant="outline"
+            colorScheme="green"
+            onClick={onCopy}
+            flexShrink={0}
+          >
+            {hasCopied ? 'Copied!' : `Copy RSNs (${completedCount})`}
+          </Button>
+        )}
+      </HStack>
+
+      {/* Member leaderboard */}
+      {contributors.length > 0 && (
+        <Box bg="gray.900" borderTop="1px solid" borderColor="gray.700">
+          <HStack px={5} py={2} gap={3} borderBottom="1px solid" borderColor="gray.800">
+            <Box w="32px" flexShrink={0} />
+            <Text flex="1" fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+              Player
+            </Text>
+            <Text w="100px" textAlign="right" fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+              Progress
+            </Text>
+          </HStack>
+
+          {contributors.map((c, i) => (
+            <HStack
+              key={c.rsn}
+              px={5} py={2.5} gap={3}
+              borderTop="1px solid" borderColor="gray.800"
+              bg={c.completed ? 'rgba(72,187,120,0.06)' : undefined}
+              _hover={{ bg: c.completed ? 'rgba(72,187,120,0.1)' : 'gray.800' }}
+              transition="background 0.15s"
+            >
+              <Text w="32px" fontSize="xs" fontWeight="bold" color={i < 3 ? RANK_COLORS[i] : 'gray.500'} flexShrink={0}>
+                #{i + 1}
+              </Text>
+              <HStack flex="1" spacing={2} minW={0}>
+                <Text
+                  fontSize="sm"
+                  fontWeight={c.completed ? 'semibold' : 'normal'}
+                  color={c.completed ? 'green.300' : 'gray.300'}
+                  noOfLines={1} minW={0}
+                >
+                  {c.completed && '✓ '}{c.rsn}
+                </Text>
+                {c.role && (
+                  <Text fontSize="10px" color="gray.400" border="1px solid" borderColor="gray.600"
+                    px={1.5} borderRadius="sm" flexShrink={0} textTransform="capitalize"
+                    lineHeight="1.7" whiteSpace="nowrap">
+                    {c.role.replace(/_/g, ' ')}
+                  </Text>
+                )}
+              </HStack>
+              <VStack w="100px" align="flex-end" spacing={1} flexShrink={0}>
+                <Text fontSize="xs" color={c.completed ? 'green.300' : 'gray.400'} whiteSpace="nowrap">
+                  {fmt(c.value)} / {fmt(individualTarget)}
+                </Text>
+                <Box w="100%" bg="gray.700" borderRadius={3} h="4px" overflow="hidden">
+                  <Box
+                    h="full" borderRadius={3}
+                    w={`${Math.min(100, c.percent)}%`}
+                    bg={c.completed ? '#43aa8b' : accentColor ?? '#7D5FFF'}
+                    transition="width 0.4s ease"
+                  />
+                </Box>
+              </VStack>
+            </HStack>
+          ))}
+        </Box>
+      )}
+
+      {!progress && (
+        <Text fontSize="xs" color="gray.400" px={5} py={3}>Fetching data...</Text>
+      )}
+    </Box>
+  );
+}
+
 export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, eventStartDate }) {
+  if (progress?.isIndividual || goalConfig.type?.startsWith('individual_')) {
+    return <IndividualGoalCard goalConfig={goalConfig} progress={progress} accentColor={accentColor} />;
+  }
   const displayName =
     progress?.displayName ?? goalConfig.displayName ?? goalConfig.metric ?? 'Goal';
   const emoji = goalConfig.emoji ?? '🎯';

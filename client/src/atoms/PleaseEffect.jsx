@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box } from '@chakra-ui/react';
 
-const PleaseEffect = ({ children }) => {
+const PleaseEffect = ({ children, direction = 'up' }) => {
   const [pleases, setPleases] = useState([]);
   const [hovered, setHovered] = useState(false);
   const intervalRef = useRef(null);
@@ -36,7 +36,7 @@ const PleaseEffect = ({ children }) => {
         <Box
           key={id}
           position="absolute"
-          bottom="100%"
+          {...(direction === 'down' ? { top: '100%' } : { bottom: '100%' })}
           left={`${x}%`}
           transform="translateX(-50%)"
           fontSize="11px"
@@ -44,11 +44,15 @@ const PleaseEffect = ({ children }) => {
           color="yellow.300"
           pointerEvents="none"
           userSelect="none"
-          animation="pleaseFloat 1s ease-out forwards"
+          animation={`pleaseFloat${direction === 'down' ? 'Down' : 'Up'} 1s ease-out forwards`}
           sx={{
-            '@keyframes pleaseFloat': {
+            '@keyframes pleaseFloatUp': {
               '0%': { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
               '100%': { opacity: 0, transform: 'translateX(-50%) translateY(-28px)' },
+            },
+            '@keyframes pleaseFloatDown': {
+              '0%': { opacity: 1, transform: 'translateX(-50%) translateY(0)' },
+              '100%': { opacity: 0, transform: 'translateX(-50%) translateY(28px)' },
             },
           }}
         >

@@ -1,9 +1,10 @@
 'use strict';
 
 const { AuthenticationError, UserInputError, ForbiddenError } = require('apollo-server-express');
+const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
 const { fetchGroupInfo, fetchGroupGains, fetchGroupMembers, fetchGroupCompetitions } = require('../../utils/womService');
-const { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics } = require('../../utils/groupDashboardHelpers');
+const { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics, isIndividualGoal } = require('../../utils/groupDashboardHelpers');
 const { sendGroupGoalMilestoneNotification } = require('../../utils/discordNotifications');
 const { verifyGuild } = require('../../../bot/utils/verify');
 
@@ -13,6 +14,62 @@ const APP_BASE_URL = process.env.APP_BASE_URL || 'https://osrsbingo.com';
 
 // Cache freshness threshold (ms) — skip WOM re-fetch if data is newer than this
 const SYNC_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+// ---------------------------------------------------------------------------
+// Notification helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Record a group-level activity entry. No per-user fan-out needed —
+ * the feed query pulls activity for all groups a user is associated with.
+ */
+async function createGroupActivity(dashboardId, eventId, type, metadata, timestamp) {
+  try {
+    const { GroupDashboardActivity } = getModels();
+    await GroupDashboardActivity.create({
+      dashboardId,
+      eventId: eventId ?? null,
+      type,
+      metadata: metadata ?? null,
+      createdAt: timestamp ?? new Date(),
+    });
+  } catch (err) {
+    logger.error(`Failed to create group activity (type=${type}):`, err.message);
+  }
+}
+
+/**
+ * Return all dashboardIds the user is associated with:
+ * groups they created, are an admin of, or explicitly follow.
+ */
+async function getUserDashboardIds(userId) {
+  const { GroupDashboard, GroupDashboardFollower } = getModels();
+
+  const [managed, followed] = await Promise.all([
+    GroupDashboard.findAll({
+      where: {
+        [Op.or]: [
+          { creatorId: userId },
+          { adminIds: { [Op.contains]: [userId] } },
+        ],
+      },
+      attributes: ['id'],
+    }),
+    GroupDashboardFollower.findAll({ where: { userId }, attributes: ['dashboardId'] }),
+  ]);
+
+  const ids = new Set([
+    ...managed.map((d) => d.id),
+    ...followed.map((f) => f.dashboardId),
+  ]);
+  return [...ids];
+}
+
+async function getMutedDashboardIds(userId) {
+  const { GroupDashboardMute } = getModels();
+  const mutes = await GroupDashboardMute.findAll({ where: { userId }, attributes: ['dashboardId'] });
+  return new Set(mutes.map((m) => m.dashboardId));
+}
 
 // ---------------------------------------------------------------------------
 // Permission helpers
@@ -78,7 +135,6 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
     event.lastSyncedAt &&
     now - new Date(event.lastSyncedAt).getTime() < SYNC_TTL_MS;
 
-  // cachedData shape: { [womMetric]: [{ player, data: { gained } }] }
   let womData = event.cachedData;
 
   if (!isFresh) {
@@ -104,7 +160,6 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
         } catch (err) {
           logger.error({ err }, `Failed to fetch WOM gains for event ${event.id} metric "${metric}"`);
           anyFailed = true;
-          // Keep stale cached data for this metric if available
           if (womData?.[metric]) newData[metric] = womData[metric];
         }
       })
@@ -114,53 +169,123 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
     if (!anyFailed || !event.cachedData) {
       await event.update({ cachedData: womData, lastSyncedAt: new Date() });
     }
-  }
 
-  // Fetch member roles in parallel (best-effort — falls back to null on failure)
-  const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+    // Run milestone checks only on a fresh WOM fetch — cached data can't have new crossings.
+    const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+    const progress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
 
-  const progress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
-
-  // Fire Discord milestone notifications if configured
-  const discord = event.dashboard.discordConfig;
-  if (discord?.confirmed && discord?.channelId) {
-    const thresholds = discord.notifyThresholds ?? [25, 50, 75, 100];
+    const discord = event.dashboard.discordConfig;
+    const thresholds = [25, 50, 75, 100];
     const notificationsSent = { ...(event.notificationsSent || {}) };
     let dirty = false;
+    const eventEnded = new Date(event.endDate) < new Date();
+    // Event was added to the dashboard after it already ended — treat as purely historical, no notifications.
+    const isBackdated = new Date(event.createdAt) > new Date(event.endDate);
+    // First sync ever: notificationsSent is empty. Establish a baseline without firing anything —
+    // we don't know how long the event has been running, so we can't treat crossed milestones as "new".
+    const isFirstSync = Object.keys(notificationsSent).length === 0;
 
-    for (const goalProgress of progress) {
-      const { goalId, percent } = goalProgress;
-      const alreadySent = notificationsSent[goalId] ?? [];
-      const newMilestones = checkNewMilestones(percent, alreadySent, thresholds);
+    if (isBackdated || isFirstSync || eventEnded) {
+      // Silently mark all currently-crossed (or all, if ended/backdated) milestones as sent.
+      for (const goalProgress of progress) {
+        const crossed = (eventEnded || isBackdated)
+          ? thresholds
+          : thresholds.filter((t) => goalProgress.percent >= t);
+        if (crossed.length) {
+          notificationsSent[goalProgress.goalId] = crossed;
+          dirty = true;
+        }
+      }
+      // Backdated events: also silence event_ended so it never fires
+      if (isBackdated && !notificationsSent.__event_ended) {
+        notificationsSent.__event_ended = true;
+        dirty = true;
+      }
+    } else {
+      for (const goalProgress of progress) {
+        const goalConfig = (event.goals || []).find((g) => g.goalId === goalProgress.goalId);
 
-      for (const milestone of newMilestones) {
-        try {
-          const goalConfig = (event.goals || []).find((g) => g.goalId === goalId);
-          await sendGroupGoalMilestoneNotification({
-            channelId: discord.channelId,
-            groupName: event.dashboard.groupName,
-            eventName: event.eventName,
-            goal: goalConfig ?? { displayName: goalProgress.displayName },
+        // Individual goals don't use milestone notifications — skip them here
+        if (isIndividualGoal(goalConfig ?? {})) continue;
+
+        const { goalId, percent } = goalProgress;
+        const alreadySent = notificationsSent[goalId] ?? [];
+        const newMilestones = checkNewMilestones(percent, alreadySent, thresholds);
+
+        for (const milestone of newMilestones) {
+          if (discord?.confirmed && discord?.channelId) {
+            try {
+              await sendGroupGoalMilestoneNotification({
+                channelId: discord.channelId,
+                groupName: event.dashboard.groupName,
+                eventName: event.eventName,
+                goal: goalConfig ?? { displayName: goalProgress.displayName },
+                percent: milestone,
+                current: goalProgress.current,
+                target: goalProgress.target,
+                dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+                topContributors: goalProgress.topContributors ?? [],
+              });
+            } catch (err) {
+              logger.error(`Failed to send Discord milestone for goal ${goalId}:`, err.message);
+            }
+          }
+
+          await createGroupActivity(event.dashboard.id, event.id, `milestone_${milestone}`, {
+            goalName: goalConfig?.displayName ?? goalProgress.displayName ?? goalProgress.metric,
+            goalEmoji: goalConfig?.emoji ?? '🎯',
             percent: milestone,
             current: goalProgress.current,
             target: goalProgress.target,
-            dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
-            topContributors: goalProgress.topContributors ?? [],
+            groupName: event.dashboard.groupName,
+            slug: event.dashboard.slug,
+            eventName: event.eventName,
           });
+
           notificationsSent[goalId] = [...alreadySent, milestone];
           dirty = true;
-        } catch (err) {
-          logger.error(`Failed to send milestone notification for goal ${goalId}:`, err.message);
         }
       }
+    }
+
+    // event_ended activity fires once on the first sync after the event ends, never for backdated events
+    if (eventEnded && !isBackdated && !notificationsSent.__event_ended) {
+      // For individual goals, include a completion summary per goal
+      const individualSummaries = progress
+        .filter((p) => p.isIndividual)
+        .map((p) => {
+          const goalConfig = (event.goals || []).find((g) => g.goalId === p.goalId);
+          return {
+            goalId: p.goalId,
+            goalName: goalConfig?.displayName ?? p.displayName,
+            goalEmoji: goalConfig?.emoji ?? '🎯',
+            completedCount: p.current,
+            totalActive: p.target,
+            completedRsns: (p.topContributors ?? []).filter((c) => c.completed).map((c) => c.rsn),
+          };
+        });
+
+      await createGroupActivity(event.dashboard.id, event.id, 'event_ended', {
+        groupName: event.dashboard.groupName,
+        slug: event.dashboard.slug,
+        eventName: event.eventName,
+        endDate: event.endDate,
+        individualSummaries: individualSummaries.length ? individualSummaries : undefined,
+      }, new Date(event.endDate));
+      notificationsSent.__event_ended = true;
+      dirty = true;
     }
 
     if (dirty) {
       await event.update({ notificationsSent });
     }
+
+    return progress;
   }
 
-  return progress;
+  // Cached path — just return current progress without any side effects
+  const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+  return calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
 }
 
 // ---------------------------------------------------------------------------
@@ -173,7 +298,7 @@ const GroupDashboardResolvers = {
       const { GroupDashboard, GroupGoalEvent } = getModels();
       const dashboard = await GroupDashboard.findOne({
         where: { slug },
-        include: [{ model: GroupGoalEvent, as: 'events', order: [['createdAt', 'ASC']] }],
+        include: [{ model: GroupGoalEvent, as: 'events', separate: true, order: [['createdAt', 'ASC']] }],
       });
       return dashboard ?? null;
     },
@@ -186,12 +311,11 @@ const GroupDashboardResolvers = {
     getMyGroupDashboards: async (_, __, { user }) => {
       if (!user) throw new AuthenticationError('Login required');
       const { GroupDashboard, GroupGoalEvent } = getModels();
-      const { Op } = require('sequelize');
       return GroupDashboard.findAll({
         where: {
           [Op.or]: [{ creatorId: user.id }, { adminIds: { [Op.contains]: [user.id] } }],
         },
-        include: [{ model: GroupGoalEvent, as: 'events', order: [['createdAt', 'ASC']] }],
+        include: [{ model: GroupGoalEvent, as: 'events', separate: true, order: [['createdAt', 'ASC']] }],
         order: [['createdAt', 'DESC']],
       });
     },
@@ -201,6 +325,154 @@ const GroupDashboardResolvers = {
       const dashboard = await GroupDashboard.findOne({ where: { slug } });
       if (!dashboard) throw new UserInputError(`Group dashboard not found`);
       return fetchGroupCompetitions(dashboard.womGroupId);
+    },
+
+    getMyGroupAssociations: async (_, __, { user }) => {
+      if (!user) return [];
+      const { GroupDashboard, GroupDashboardFollower, GroupDashboardMute } = getModels();
+
+      const [managed, followed, mutes] = await Promise.all([
+        GroupDashboard.findAll({
+          where: { [Op.or]: [{ creatorId: user.id }, { adminIds: { [Op.contains]: [user.id] } }] },
+          attributes: ['id', 'slug', 'groupName', 'creatorId'],
+        }),
+        GroupDashboardFollower.findAll({ where: { userId: user.id }, attributes: ['dashboardId'] }),
+        GroupDashboardMute.findAll({ where: { userId: user.id }, attributes: ['dashboardId'] }),
+      ]);
+
+      const mutedIds = new Set(mutes.map((m) => m.dashboardId));
+      const followedIds = new Set(followed.map((f) => f.dashboardId));
+      const results = [];
+
+      for (const d of managed) {
+        results.push({
+          dashboardId: String(d.id),
+          dashboardName: d.groupName,
+          dashboardSlug: d.slug,
+          role: d.creatorId === user.id ? 'creator' : 'admin',
+          isMuted: mutedIds.has(d.id),
+        });
+      }
+
+      const managedIds = new Set(managed.map((d) => d.id));
+      for (const f of followed) {
+        if (managedIds.has(f.dashboardId)) continue; // already listed above
+        const d = await GroupDashboard.findByPk(f.dashboardId, { attributes: ['id', 'slug', 'groupName'] });
+        if (!d) continue;
+        results.push({
+          dashboardId: String(d.id),
+          dashboardName: d.groupName,
+          dashboardSlug: d.slug,
+          role: 'follower',
+          isMuted: mutedIds.has(d.id),
+        });
+      }
+
+      // Include followed dashboards that aren't already in results
+      const listedIds = new Set(results.map((r) => r.dashboardId));
+      for (const id of followedIds) {
+        if (listedIds.has(String(id))) continue;
+        const d = await GroupDashboard.findByPk(id, { attributes: ['id', 'slug', 'groupName'] });
+        if (!d) continue;
+        results.push({
+          dashboardId: String(d.id),
+          dashboardName: d.groupName,
+          dashboardSlug: d.slug,
+          role: 'follower',
+          isMuted: mutedIds.has(d.id),
+        });
+      }
+
+      return results;
+    },
+
+    getMyGroupActivity: async (_, __, { user }) => {
+      if (!user) return [];
+      const { GroupDashboardActivity, GroupDashboard, GroupGoalEvent } = getModels();
+      const [dashboardIds, mutedIds] = await Promise.all([
+        getUserDashboardIds(user.id),
+        getMutedDashboardIds(user.id),
+      ]);
+      if (!dashboardIds.length) return [];
+      const activeDashboardIds = dashboardIds.filter((id) => !mutedIds.has(id));
+      if (!activeDashboardIds.length) return [];
+
+      // Backfill event_ended activities for any past events that don't have one yet
+      // (backfill across all associated dashboards, not just unmuted ones)
+      const endedEvents = await GroupGoalEvent.findAll({
+        where: {
+          dashboardId: dashboardIds,
+          endDate: { [Op.lt]: new Date() },
+        },
+        attributes: ['id', 'dashboardId', 'eventName', 'endDate'],
+        include: [{ model: GroupDashboard, as: 'dashboard', attributes: ['id', 'slug', 'groupName'] }],
+      });
+      if (endedEvents.length) {
+        const existingEnded = await GroupDashboardActivity.findAll({
+          where: { dashboardId: dashboardIds, type: 'event_ended' },
+          attributes: ['eventId'],
+        });
+        const alreadyEndedEventIds = new Set(existingEnded.map((a) => a.eventId));
+        const toCreate = endedEvents.filter((e) => !alreadyEndedEventIds.has(e.id));
+        if (toCreate.length) {
+          await GroupDashboardActivity.bulkCreate(
+            toCreate.map((e) => ({
+              dashboardId: e.dashboardId,
+              eventId: e.id,
+              type: 'event_ended',
+              metadata: {
+                eventName: e.eventName,
+                groupName: e.dashboard?.groupName ?? '',
+                slug: e.dashboard?.slug ?? '',
+                endDate: e.endDate,
+              },
+              createdAt: e.endDate,
+            })),
+            { fields: ['dashboardId', 'eventId', 'type', 'metadata', 'createdAt'] }
+          );
+        }
+      }
+
+      const items = await GroupDashboardActivity.findAll({
+        where: { dashboardId: activeDashboardIds },
+        include: [
+          { model: GroupDashboard, as: 'dashboard', attributes: ['id', 'slug', 'groupName'] },
+          { model: GroupGoalEvent, as: 'event', attributes: ['id', 'eventName'] },
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: 100,
+      });
+      const { GroupDashboardActivityRead } = getModels();
+      const readRow = await GroupDashboardActivityRead.findOne({ where: { userId: user.id } });
+      const lastReadAt = readRow?.lastReadAt ?? null;
+      return items.map((a) => ({
+        id: String(a.id),
+        type: a.type,
+        dashboardId: String(a.dashboardId),
+        dashboardSlug: a.dashboard?.slug ?? '',
+        dashboardName: a.dashboard?.groupName ?? '',
+        eventId: a.eventId ? String(a.eventId) : null,
+        eventName: a.event?.eventName ?? null,
+        metadata: a.metadata,
+        readAt: lastReadAt && new Date(a.createdAt) <= new Date(lastReadAt) ? lastReadAt : null,
+        createdAt: a.createdAt,
+      }));
+    },
+
+    getUnreadGroupNotificationCount: async (_, __, { user }) => {
+      if (!user) return 0;
+      const [dashboardIds, mutedIds] = await Promise.all([
+        getUserDashboardIds(user.id),
+        getMutedDashboardIds(user.id),
+      ]);
+      const activeDashboardIds = dashboardIds.filter((id) => !mutedIds.has(id));
+      if (!activeDashboardIds.length) return 0;
+      const { GroupDashboardActivity, GroupDashboardActivityRead } = getModels();
+      const readRow = await GroupDashboardActivityRead.findOne({ where: { userId: user.id } });
+      const lastReadAt = readRow?.lastReadAt ?? null;
+      const where = { dashboardId: activeDashboardIds };
+      if (lastReadAt) where.createdAt = { [Op.gt]: lastReadAt };
+      return GroupDashboardActivity.count({ where });
     },
   },
 
@@ -259,7 +531,7 @@ const GroupDashboardResolvers = {
       if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
 
       const { GroupGoalEvent } = getModels();
-      return GroupGoalEvent.create({
+      const event = await GroupGoalEvent.create({
         dashboardId: dashboard.id,
         eventName: input.eventName,
         startDate: input.startDate,
@@ -267,6 +539,19 @@ const GroupDashboardResolvers = {
         goals: input.goals ?? [],
         notificationsSent: {},
       });
+
+      // Only fire event_started if the event hasn't already ended by the time it's created
+      if (new Date(input.endDate) > new Date()) {
+        await createGroupActivity(dashboard.id, event.id, 'event_started', {
+          eventName: input.eventName,
+          groupName: dashboard.groupName,
+          slug: dashboard.slug,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        }, new Date(input.startDate));
+      }
+
+      return event;
     },
 
     updateGroupGoalEvent: async (_, { id, input }, { user }) => {
@@ -345,10 +630,62 @@ const GroupDashboardResolvers = {
       await dashboard.update({ adminIds: dashboard.adminIds.filter((a) => a !== uid) });
       return dashboard.reload();
     },
+
+    followGroupDashboard: async (_, { dashboardId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const { GroupDashboardFollower } = getModels();
+      await GroupDashboardFollower.findOrCreate({
+        where: { userId: user.id, dashboardId: parseInt(dashboardId, 10) },
+      });
+      return true;
+    },
+
+    unfollowGroupDashboard: async (_, { dashboardId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const { GroupDashboardFollower } = getModels();
+      await GroupDashboardFollower.destroy({
+        where: { userId: user.id, dashboardId: parseInt(dashboardId, 10) },
+      });
+      return true;
+    },
+
+    muteGroupDashboard: async (_, { dashboardId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const { GroupDashboardMute } = getModels();
+      await GroupDashboardMute.findOrCreate({
+        where: { userId: user.id, dashboardId: parseInt(dashboardId, 10) },
+        defaults: { createdAt: new Date() },
+      });
+      return true;
+    },
+
+    unmuteGroupDashboard: async (_, { dashboardId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const { GroupDashboardMute } = getModels();
+      await GroupDashboardMute.destroy({
+        where: { userId: user.id, dashboardId: parseInt(dashboardId, 10) },
+      });
+      return true;
+    },
+
+    markGroupNotificationsRead: async (_, __, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const { GroupDashboardActivityRead } = getModels();
+      await GroupDashboardActivityRead.upsert({ userId: user.id, lastReadAt: new Date() });
+      return true;
+    },
   },
 
   // Field resolvers for GroupDashboard
   GroupDashboard: {
+    isFollowing: async (dashboard, _, { user }) => {
+      if (!user) return false;
+      const { GroupDashboardFollower } = getModels();
+      const row = await GroupDashboardFollower.findOne({
+        where: { userId: user.id, dashboardId: dashboard.id },
+      });
+      return !!row;
+    },
     creator: async (dashboard) => {
       const { User } = getModels();
       return User.findByPk(dashboard.creatorId);

@@ -12,7 +12,7 @@ import {
   Skeleton,
   SimpleGrid,
 } from '@chakra-ui/react';
-import { useParams, Link as RouterLink, useSearchParams } from 'react-router-dom';
+import { useParams, Link as RouterLink, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import { useState, useEffect } from 'react';
 import { ExternalLinkIcon } from '@chakra-ui/icons';
@@ -22,10 +22,13 @@ import {
   GET_GROUP_DASHBOARD_PROGRESS,
   REFRESH_GROUP_GOAL_DATA,
   GET_GROUP_COMPETITIONS,
+  FOLLOW_GROUP_DASHBOARD,
+  UNFOLLOW_GROUP_DASHBOARD,
 } from '../graphql/groupDashboardOperations';
 import GroupDashboardHeader from '../organisms/GroupDashboard/GroupDashboardHeader';
 import GroupGoalCard from '../organisms/GroupDashboard/GroupGoalCard';
 import usePageTitle from '../hooks/usePageTitle';
+import PleaseEffect from '../atoms/PleaseEffect';
 
 const SYNC_TTL_MS = 60 * 60 * 1000; // 1 hour — must match server
 
@@ -43,7 +46,7 @@ function formatRelativeTime(dateStr) {
 function formatNextSync(dateStr) {
   if (!dateStr) return null;
   const msLeft = SYNC_TTL_MS - (Date.now() - new Date(dateStr).getTime());
-  if (msLeft <= 0) return 'now';
+  if (msLeft <= 0) return null;
   const mins = Math.ceil(msLeft / 60000);
   if (mins < 60) return `${mins}m`;
   return `${Math.ceil(mins / 60)}h`;
@@ -141,26 +144,31 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
 
   return (
     <VStack spacing={4} align="stretch">
-      {event.lastSyncedAt && (
-        <HStack justify="flex-end" spacing={2}>
-          <Text fontSize="xs" color="gray.400">
-            Synced {formatRelativeTime(event.lastSyncedAt)}
-            {formatNextSync(event.lastSyncedAt) &&
-              ` · next in ${formatNextSync(event.lastSyncedAt)}`}
-          </Text>
-          {isAdmin && (
-            <Button
-              size="xs"
-              variant="ghost"
-              colorScheme="purple"
-              onClick={forceRefresh}
-              isLoading={isRefreshing}
-            >
-              Refresh
-            </Button>
-          )}
-        </HStack>
-      )}
+      {event.lastSyncedAt &&
+        (() => {
+          const nextIn = formatNextSync(event.lastSyncedAt);
+          const isOverdue = !nextIn;
+          return (
+            <HStack justify="flex-end" spacing={2}>
+              <Text fontSize="xs" color={isOverdue ? 'yellow.500' : 'gray.400'}>
+                Synced {formatRelativeTime(event.lastSyncedAt)}
+                {nextIn && ` · next in ${nextIn}`}
+                {isOverdue && ' · data may be outdated, refresh the page.'}
+              </Text>
+              {isAdmin && (
+                <Button
+                  size="xs"
+                  variant={isOverdue ? 'solid' : 'ghost'}
+                  colorScheme="purple"
+                  onClick={forceRefresh}
+                  isLoading={isRefreshing}
+                >
+                  Refresh
+                </Button>
+              )}
+            </HStack>
+          );
+        })()}
 
       {!loading && enabledGoals.length === 0 && (
         <Text color="gray.500" textAlign="center" py={8}>
@@ -315,7 +323,7 @@ function EventTabBar({
   onSelectEvent,
 }) {
   return (
-    <Box borderBottom="1px solid" borderColor="gray.700" mb={4}>
+    <Box borderBottom="1px solid" borderColor="gray.700">
       <HStack spacing={0} overflowX="auto">
         <Button
           size="sm"
@@ -349,7 +357,7 @@ function EventTabBar({
               borderRadius={0}
               flexShrink={0}
               _hover={{ color: 'gray.200' }}
-              onClick={() => onSelectEvent(i)}
+              onClick={() => onSelectEvent(e)}
             >
               {e.eventName}
             </Button>
@@ -390,16 +398,30 @@ export default function GroupDashboardPage() {
   const tabParam = searchParams.get('tab');
   const defaultToOverview = !tabParam && visibleEvents.length > 1;
   const showOverview = tabParam === 'overview' || defaultToOverview;
-  const activeTabIdx = tabParam && tabParam !== 'overview' ? parseInt(tabParam, 10) || 0 : 0;
-  const activeEvent = visibleEvents[activeTabIdx] ?? null;
+  const activeEvent =
+    tabParam && tabParam !== 'overview'
+      ? visibleEvents.find((e) => String(e.id) === tabParam) ?? visibleEvents[0] ?? null
+      : visibleEvents[0] ?? null;
+  const activeTabIdx = activeEvent ? visibleEvents.indexOf(activeEvent) : 0;
 
   const selectOverview = () => setSearchParams({ tab: 'overview' }, { replace: true });
-  const selectTab = (i) => setSearchParams({ tab: String(i) }, { replace: true });
+  const selectTab = (e) => setSearchParams({ tab: String(e.id) }, { replace: true });
 
   const isAdmin =
     user &&
     dashboard &&
     (dashboard.creatorId === user.id || (dashboard.adminIds ?? []).includes(user.id));
+
+  const [follow, { loading: following }] = useMutation(FOLLOW_GROUP_DASHBOARD, {
+    variables: { dashboardId: dashboard?.id },
+    refetchQueries: ['GetGroupDashboard'],
+  });
+  const [unfollow, { loading: unfollowing }] = useMutation(UNFOLLOW_GROUP_DASHBOARD, {
+    variables: { dashboardId: dashboard?.id },
+    refetchQueries: ['GetGroupDashboard'],
+  });
+  const isFollowing = dashboard?.isFollowing ?? false;
+  const showFollowButton = user && !isAdmin;
 
   if (loading) {
     return (
@@ -440,7 +462,23 @@ export default function GroupDashboardPage() {
 
           {/* Header */}
           <HStack justify="space-between" align="flex-start">
-            <GroupDashboardHeader dashboard={dashboard} activeEvent={activeEvent} />
+            <GroupDashboardHeader
+              dashboard={dashboard}
+              activeEvent={showOverview ? null : activeEvent}
+              subtitle={showOverview ? 'Overview' : null}
+            />
+            {showFollowButton && (
+              <Button
+                size="sm"
+                variant={isFollowing ? 'solid' : 'outline'}
+                colorScheme="purple"
+                onClick={() => (isFollowing ? unfollow() : follow())}
+                isLoading={following || unfollowing}
+                flexShrink={0}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </Button>
+            )}
             {isAdmin && (
               <Tooltip label="Manage dashboard">
                 <Button
@@ -521,10 +559,25 @@ export default function GroupDashboardPage() {
             textAlign="center"
           >
             <Text fontSize="sm" fontWeight="semibold" color="gray.200" mb={1}>
-              Have you and your group found this useful?
+              Have you and your group found this dashboard useful?
             </Text>
             <Text fontSize="sm" color="gray.400">
-              This is built and maintained by a solo dev. If you want to support the site, there's a link in the footer.
+              This is built and maintained by a solo dev. If you want to{' '}
+              <PleaseEffect direction="down">
+                <Link
+                  to="/support"
+                  style={{
+                    color: '#b794f4',
+                    fontWeight: '600',
+                    textDecoration: 'underline',
+                    textDecorationColor: 'rgba(183,148,244,0.4)',
+                    textUnderlineOffset: '3px',
+                  }}
+                >
+                  support the site
+                </Link>
+              </PleaseEffect>
+              , they would really appreciate that.
             </Text>
           </Box>
         )}
