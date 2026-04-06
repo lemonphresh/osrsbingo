@@ -1059,6 +1059,17 @@ const AdminQuickActionsPanel = ({
                   Ref Tools
                 </MenuButton>
                 <MenuList bg="gray.700" borderColor="gray.600">
+                  <MenuItem
+                    as="a"
+                    href="/gielinor-rush/guide"
+                    target="_blank"
+                    icon={<FaBook />}
+                    color="white"
+                    bg="gray.700"
+                    _hover={{ bg: 'gray.600' }}
+                  >
+                    Event Guide
+                  </MenuItem>
                   {onOpenLaunchFAQ && (
                     <MenuItem
                       icon={<FaQuestionCircle />}

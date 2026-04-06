@@ -36,6 +36,7 @@ const ChampionForgeEventPage = lazy(() => import('./pages/ChampionForgeEventPage
 const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarracksPage'));
 const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
 const ChampionForgeGuidePage = lazy(() => import('./pages/ChampionForgeGuidePage'));
+const GielinorRushGuidePage = lazy(() => import('./pages/GielinorRushGuidePage'));
 const TeamBalancerPage = lazy(() => import('./pages/TeamBalancerPage'));
 const GroupDashboardPage = lazy(() => import('./pages/GroupDashboardPage'));
 const GroupDashboardManagePage = lazy(() => import('./pages/GroupDashboardManagePage'));
@@ -127,6 +128,11 @@ const routes = [
       {
         path: '/gielinor-rush/active',
         element: withSuspense(TreasureHuntActiveEventsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/gielinor-rush/guide',
+        element: withSuspense(GielinorRushGuidePage),
         errorElement: <ErrorPage />,
       },
       {

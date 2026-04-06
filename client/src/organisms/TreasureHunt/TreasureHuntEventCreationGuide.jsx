@@ -200,7 +200,7 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       </ListItem>
                       <ListItem>
                         <ListIcon as={CheckCircleIcon} color="green.400" />
-                        Average teams typically earn around <strong>~67%</strong> of max potential
+                        Teams rarely reach their full maximum allocation
                       </ListItem>
                     </List>
                   </Box>
@@ -237,8 +237,8 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                       💰 What To Do With Leftover GP:
                     </Text>
                     <Text fontSize="xs" color={currentColors.textColor} mb={2}>
-                      Since average teams earn ~67% of their max budget, you'll likely have GP left
-                      over. Here are some ideas:
+                      Teams rarely reach their full maximum allocation, so you'll likely have GP
+                      left over. Here are some ideas:
                     </Text>
                     <List spacing={1} fontSize="xs">
                       <ListItem>
@@ -526,12 +526,6 @@ const EventCreationGuide = ({ colorMode, currentColors }) => {
                         <Text color={currentColors.textColor}>→ Max per team:</Text>
                         <Text fontWeight="semibold" color="green.400">
                           1,000M GP (1B)
-                        </Text>
-                      </HStack>
-                      <HStack justify="space-between">
-                        <Text color={currentColors.textColor}>→ Average team earnings:</Text>
-                        <Text fontWeight="semibold" color="blue.400">
-                          ~670M GP
                         </Text>
                       </HStack>
                       <HStack justify="space-between">
