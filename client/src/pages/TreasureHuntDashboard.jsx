@@ -24,7 +24,6 @@ import {
   InputLeftElement,
   Select,
   Box,
-  Collapse,
   Tooltip,
   useBreakpointValue,
 } from '@chakra-ui/react';
@@ -42,7 +41,6 @@ import AuthRequiredModal from '../molecules/AuthRequiredModal';
 import usePageTitle from '../hooks/usePageTitle';
 import { isGielinorRushEnabled } from '../config/featureFlags';
 import TreasureHuntSummary from '../molecules/TreasureHunt/TreasureHuntSummary';
-import EventCreationGuide from '../organisms/TreasureHunt/TreasureHuntEventCreationGuide';
 import EventCard from '../organisms/TreasureHunt/EventCard';
 import DashboardEmptyState from '../organisms/TreasureHunt/DashboardEmptyState';
 
@@ -85,7 +83,6 @@ const TreasureHuntDashboard = () => {
   const [deleteEventId, setDeleteEventId] = useState(null);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [clickedEventId, setClickedEventId] = useState(null);
-  const [guideOpen, setGuideOpen] = useState(false);
   const cancelRef = useRef();
   const { showToast } = useToastContext();
 
@@ -278,29 +275,19 @@ const TreasureHuntDashboard = () => {
             >
               New Event
             </Button>{' '}
-            <Tooltip label="Setup guide" hasArrow>
+            <Tooltip label="Event guide" hasArrow>
               <IconButton
+                as="a"
+                href="/gielinor-rush/guide"
+                target="_blank"
                 icon={<QuestionIcon />}
                 size="sm"
                 variant="solid"
-                aria-label="Toggle setup guide"
-                onClick={() => setGuideOpen((o) => !o)}
+                aria-label="Event guide"
               />
             </Tooltip>
           </HStack>
         </HStack>
-
-        {/* Collapsible guide */}
-        <Collapse in={guideOpen} animateOpacity>
-          <Box
-            borderWidth="1px"
-            borderColor={colorMode === 'dark' ? 'gray.600' : 'gray.200'}
-            borderRadius="8px"
-            p={4}
-          >
-            <EventCreationGuide colorMode={colorMode} currentColors={c} />
-          </Box>
-        </Collapse>
 
         {/* Inline filter bar */}
         <HStack spacing={3} flexWrap="wrap">
