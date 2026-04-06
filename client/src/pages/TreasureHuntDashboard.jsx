@@ -194,8 +194,6 @@ const TreasureHuntDashboard = () => {
         colorMode={colorMode}
         user={user}
         navigate={navigate}
-        guideOpen={guideOpen}
-        onGuideToggle={() => setGuideOpen((o) => !o)}
         onCreateEventClick={handleCreateEventClick}
         isOpen={isOpen}
         onClose={onClose}
