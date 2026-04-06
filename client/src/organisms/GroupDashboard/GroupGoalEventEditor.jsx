@@ -71,7 +71,7 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
         <Input
           value={eventName}
           onChange={(e) => setEventName(e.target.value)}
-          placeholder="i.e. April Grind"
+          placeholder="i.e. Springtime Skilling Showdown"
           bg="gray.800"
           borderColor="gray.600"
         />
@@ -128,7 +128,7 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
           mt={3}
           onClick={addGoal}
         >
-          Add Goal
+          Add Another Goal
         </Button>
       </Box>
 

@@ -247,10 +247,70 @@ async function fetchGroupMembers(womGroupId) {
   return roleMap;
 }
 
+// ---------------------------------------------------------------------------
+// Group competitions cache — 15-min TTL
+// ---------------------------------------------------------------------------
+
+const competitionsCache = new Map();
+const COMPETITIONS_TTL_MS = 15 * 60 * 1000;
+
+/**
+ * Derive competition status from dates since WOM doesn't always return it.
+ */
+function deriveCompetitionStatus(startsAt, endsAt) {
+  const now = Date.now();
+  const start = new Date(startsAt).getTime();
+  const end = new Date(endsAt).getTime();
+  if (now < start) return 'upcoming';
+  if (now > end) return 'finished';
+  return 'ongoing';
+}
+
+/**
+ * Fetch all competitions for a WOM group.
+ * Returns normalized array of { id, title, metric, type, status, startsAt, endsAt, participantCount }.
+ * WOM may return [{ competition: {...}, participantCount }] or flat competition objects.
+ */
+async function fetchGroupCompetitions(womGroupId) {
+  const key = String(womGroupId);
+  const cached = competitionsCache.get(key);
+  if (cached && Date.now() - cached.ts < COMPETITIONS_TTL_MS) return cached.data;
+
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/competitions`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM group competitions ${res.status} for group ${womGroupId}: ${body}`);
+    return [];
+  }
+  const data = await res.json();
+  const raw = Array.isArray(data) ? data : data.data ?? [];
+
+  const result = raw.map((item) => {
+    // Handle both { competition: {...}, participantCount } and flat shapes
+    const comp = item.competition ?? item;
+    const participantCount = item.participantCount ?? comp.participantCount ?? 0;
+    return {
+      id: String(comp.id),
+      title: comp.title ?? '',
+      metric: comp.metric ?? '',
+      type: comp.type ?? 'classic',
+      status: comp.status ?? deriveCompetitionStatus(comp.startsAt, comp.endsAt),
+      startsAt: comp.startsAt,
+      endsAt: comp.endsAt,
+      participantCount,
+      groupId: comp.groupId ? String(comp.groupId) : null,
+    };
+  });
+
+  competitionsCache.set(key, { data: result, ts: Date.now() });
+  return result;
+}
+
 module.exports = {
   fetchPlayerStats,
   fetchAllPlayerStats,
   fetchGroupInfo,
   fetchGroupGains,
   fetchGroupMembers,
+  fetchGroupCompetitions,
 };

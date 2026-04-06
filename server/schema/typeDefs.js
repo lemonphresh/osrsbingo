@@ -657,6 +657,7 @@ const typeDefs = gql`
     getGroupDashboard(slug: String!): GroupDashboard
     getGroupDashboardProgress(eventId: ID!): [GroupGoalProgress!]!
     getMyGroupDashboards: [GroupDashboard!]!
+    getGroupCompetitions(slug: String!): [WOMCompetition!]!
   }
 
   # ============================================================
@@ -1182,6 +1183,18 @@ const typeDefs = gql`
     value: Float!
     percent: Float!
     role: String
+  }
+
+  type WOMCompetition {
+    id: ID!
+    title: String!
+    metric: String!
+    type: String!
+    status: String!
+    startsAt: DateTime!
+    endsAt: DateTime!
+    participantCount: Int!
+    groupId: ID
   }
 
   input CreateGroupDashboardInput {

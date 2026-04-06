@@ -16,11 +16,81 @@ import theme from '../theme';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled, isChampionForgeEnabled } from '../config/featureFlags';
+import {
+  isGielinorRushEnabled,
+  isChampionForgeEnabled,
+  isBlindDraftEnabled,
+} from '../config/featureFlags';
 import { useAuth } from '../providers/AuthProvider';
 
 const FAQ_SECTIONS = (user) =>
   [
+    {
+      title: '📊 Group Goals Dashboard',
+      colorKey: 'orange',
+      items: [
+        {
+          q: 'What is the Group Goals Dashboard?',
+          a: 'A shared dashboard that tracks collective XP, boss KC, clue scrolls, minigame scores, and more for any Wise Old Man group. Set timed events with specific targets and get a live leaderboard of top contributors, all on a shareable public page.',
+        },
+        {
+          q: 'Do I need a Wise Old Man account?',
+          a: "No. You just need your WOM group ID (the number in your group's WOM URL). The dashboard pulls progress data directly from WOM's public API.",
+        },
+        {
+          q: 'How often does the data refresh?',
+          a: 'Data is cached for 1 hour and shared across all visitors, so everyone sees the same snapshot.',
+        },
+        {
+          q: 'Can I set up Discord notifications?',
+          a: 'Yes! Connect your Discord server in Manage → Discord. The bot will ping your chosen channel at 25%, 50%, 75%, and 100% milestones, including a live top-contributors leaderboard and a direct link to the dashboard.',
+        },
+        {
+          q: 'Who can manage a dashboard?',
+          a: 'The creator is always the owner. You can add extra editors in Manage > Editors. Editors can create and modify events, update the theme, and configure Discord.',
+        },
+        {
+          q: 'What goal types are supported?',
+          a: 'Boss KC, Skill XP, Clue Scrolls (any tier), Minigames (LMS, Soul Wars, etc.), EHB, and EHP. All track WOM group gains over your chosen date range.',
+        },
+      ],
+    },
+    {
+      title: '⚖️ Team Balancer',
+      colorKey: 'green',
+      items: [
+        {
+          q: 'What is the Team Balancer?',
+          a: 'Paste a list of RSNs and the Team Balancer automatically splits them into fair teams using Wise Old Man stats. Pick a preset (All-Rounder, PvM, Skilling, or Raid) and get balanced teams sorted by EHB/Y, EHP/Y, raid KCs, and more.',
+        },
+        {
+          q: 'How does it balance the teams?',
+          a: 'Each player gets a score based on the chosen preset (i.e. EHB/Y for PvM). Players are distributed so the total score per team is as close as possible. The algorithm does a greedy sort-and-assign pass, so large skill gaps between players are smoothed out across teams.',
+        },
+      ],
+    },
+    isBlindDraftEnabled(user) && {
+      title: '🎲 Blind Draft',
+      colorKey: 'pink',
+      items: [
+        {
+          q: 'What is Blind Draft?',
+          a: 'A fair team-drafting tool where captains pick players by stats alone, with no names visible until after the draft is over. Great for clans that want to remove bias from team selection.',
+        },
+        {
+          q: 'What draft formats are supported?',
+          a: 'Snake (alternating picks), Linear (same pick order every round), and Auction (captains bid with a budget). All formats support a real-time pick timer.',
+        },
+        {
+          q: 'Who can see the player names during the draft?',
+          a: 'Nobody. Players are shown as anonymized cards with stats and a tier badge. Names are revealed automatically once the draft completes using the Reveal Names action.',
+        },
+        {
+          q: 'Do players need an account to participate?',
+          a: 'Captains join with a pin given by the room organizer. Players listed in the draft do not need accounts. Only the organizer needs to be logged in to create the room.',
+        },
+      ],
+    },
     {
       title: '📋 Bingo Boards',
       colorKey: 'pink',

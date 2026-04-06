@@ -2,7 +2,7 @@
 
 const { AuthenticationError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const logger = require('../../utils/logger');
-const { fetchGroupInfo, fetchGroupGains, fetchGroupMembers } = require('../../utils/womService');
+const { fetchGroupInfo, fetchGroupGains, fetchGroupMembers, fetchGroupCompetitions } = require('../../utils/womService');
 const { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics } = require('../../utils/groupDashboardHelpers');
 const { sendGroupGoalMilestoneNotification } = require('../../utils/discordNotifications');
 const { verifyGuild } = require('../../../bot/utils/verify');
@@ -12,7 +12,7 @@ const getModels = () => require('../../db/models');
 const APP_BASE_URL = process.env.APP_BASE_URL || 'https://osrsbingo.com';
 
 // Cache freshness threshold (ms) — skip WOM re-fetch if data is newer than this
-const SYNC_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const SYNC_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 // ---------------------------------------------------------------------------
 // Permission helpers
@@ -145,6 +145,7 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
             current: goalProgress.current,
             target: goalProgress.target,
             dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+            topContributors: goalProgress.topContributors ?? [],
           });
           notificationsSent[goalId] = [...alreadySent, milestone];
           dirty = true;
@@ -172,7 +173,7 @@ const GroupDashboardResolvers = {
       const { GroupDashboard, GroupGoalEvent } = getModels();
       const dashboard = await GroupDashboard.findOne({
         where: { slug },
-        include: [{ model: GroupGoalEvent, as: 'events', order: [['startDate', 'DESC']] }],
+        include: [{ model: GroupGoalEvent, as: 'events', order: [['createdAt', 'ASC']] }],
       });
       return dashboard ?? null;
     },
@@ -190,9 +191,16 @@ const GroupDashboardResolvers = {
         where: {
           [Op.or]: [{ creatorId: user.id }, { adminIds: { [Op.contains]: [user.id] } }],
         },
-        include: [{ model: GroupGoalEvent, as: 'events', order: [['startDate', 'DESC']] }],
+        include: [{ model: GroupGoalEvent, as: 'events', order: [['createdAt', 'ASC']] }],
         order: [['createdAt', 'DESC']],
       });
+    },
+
+    getGroupCompetitions: async (_, { slug }) => {
+      const { GroupDashboard } = getModels();
+      const dashboard = await GroupDashboard.findOne({ where: { slug } });
+      if (!dashboard) throw new UserInputError(`Group dashboard not found`);
+      return fetchGroupCompetitions(dashboard.womGroupId);
     },
   },
 
@@ -355,7 +363,7 @@ const GroupDashboardResolvers = {
       const { GroupGoalEvent } = getModels();
       return GroupGoalEvent.findAll({
         where: { dashboardId: dashboard.id },
-        order: [['startDate', 'DESC']],
+        order: [['createdAt', 'ASC']],
       });
     },
   },

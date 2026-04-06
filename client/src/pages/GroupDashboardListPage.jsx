@@ -67,16 +67,6 @@ function DashboardCard({ dashboard }) {
           <Text fontSize="xs" color="gray.500">
             {events.length} {events.length === 1 ? 'event' : 'events'}
           </Text>
-          {events.length > 0 && (
-            <Text fontSize="xs" color="gray.600" noOfLines={1}>
-              {events
-                .slice()
-                .sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
-                .slice(0, 2)
-                .map((e) => e.eventName)
-                .join(', ')}
-            </Text>
-          )}
         </HStack>
       </Box>
 
@@ -113,8 +103,43 @@ export default function GroupDashboardListPage() {
 
   if (!user) {
     return (
-      <Center h="60vh">
-        <Text color="gray.400">You need to be logged in to view your dashboards.</Text>
+      <Center h="80vh" px={4}>
+        <VStack spacing={6} align="center" maxW="420px" textAlign="center">
+          <Text fontSize="4xl">📊</Text>
+          <VStack spacing={2}>
+            <Heading size="lg" color="gray.100">
+              Group Goals Dashboard
+            </Heading>
+            <Text color="gray.400" lineHeight="1.7">
+              Track collective XP, boss KC, clue scrolls, and more for your WOM group, with live
+              leaderboards, Discord milestone pings, and shareable public pages.
+            </Text>
+          </VStack>
+          <VStack spacing={3} w="100%">
+            <Button
+              as={RouterLink}
+              to="/login"
+              colorScheme="purple"
+              size="md"
+              w="100%"
+            >
+              Log In
+            </Button>
+            <Button
+              as={RouterLink}
+              to="/signup"
+              variant="outline"
+              colorScheme="purple"
+              size="md"
+              w="100%"
+            >
+              Create a Free Account
+            </Button>
+          </VStack>
+          <Text fontSize="xs" color="gray.600">
+            Already have a dashboard? Log in to manage it.
+          </Text>
+        </VStack>
       </Center>
     );
   }

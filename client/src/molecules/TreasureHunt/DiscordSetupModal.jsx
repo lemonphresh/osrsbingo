@@ -263,7 +263,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                       {verifyState === 'error' && (
                         <Alert status="error" borderRadius="md" bg="red.900" fontSize="sm">
                           <AlertIcon color="red.400" />
-                          {errorMsg} — double check the ID and that the bot was added.
+                          {errorMsg}. Double check the ID and that the bot was added.
                         </Alert>
                       )}
                     </Box>

@@ -269,7 +269,7 @@ export default function GroupDashboardCreatePage() {
                     Set a <Strong>target</Strong> (i.e. 5,000 Vardorvis KC) and an emoji
                   </GuidePoint>
                   <GuidePoint>
-                    Save! Progress updates automatically every 5 minutes from WOM data
+                    Save! Progress updates automatically every hour from WOM data
                   </GuidePoint>
                 </VStack>
               </GuideStep>

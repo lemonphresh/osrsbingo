@@ -26,6 +26,7 @@ const BOSS_METRICS = [
   { value: 'araxxor', label: 'Araxxor' },
   { value: 'artio', label: 'Artio' },
   { value: 'barrows_chests', label: 'Barrows Chests' },
+  { value: 'brutus', label: 'Brutus' },
   { value: 'bryophyta', label: 'Bryophyta' },
   { value: 'callisto', label: 'Callisto' },
   { value: 'calvarion', label: "Calvar'ion" },
@@ -36,20 +37,19 @@ const BOSS_METRICS = [
   { value: 'chaos_fanatic', label: 'Chaos Fanatic' },
   { value: 'commander_zilyana', label: 'Commander Zilyana (Sara)' },
   { value: 'corporeal_beast', label: 'Corporeal Beast' },
-  { value: 'corrupted_gauntlet', label: 'Corrupted Gauntlet' },
+  { value: 'the_corrupted_gauntlet', label: 'Corrupted Gauntlet' },
   { value: 'crazy_archaeologist', label: 'Crazy Archaeologist' },
   { value: 'dagannoth_prime', label: 'Dagannoth Prime' },
   { value: 'dagannoth_rex', label: 'Dagannoth Rex' },
   { value: 'dagannoth_supreme', label: 'Dagannoth Supreme' },
-  { value: 'demonic_gorillas', label: 'Demonic Gorillas' },
   { value: 'deranged_archaeologist', label: 'Deranged Archaeologist' },
+  { value: 'doom_of_mokhaiotl', label: 'Doom of Mokhaiotl' },
   { value: 'duke_sucellus', label: 'Duke Sucellus' },
   { value: 'general_graardor', label: 'General Graardor (Bandos)' },
   { value: 'giant_mole', label: 'Giant Mole' },
   { value: 'grotesque_guardians', label: 'Grotesque Guardians' },
-  { value: 'guardians_of_the_rift', label: 'Guardians of the Rift' },
   { value: 'hespori', label: 'Hespori' },
-  { value: 'hueycoatl', label: 'Hueycoatl' },
+  { value: 'the_hueycoatl', label: 'The Hueycoatl' },
   { value: 'kalphite_queen', label: 'Kalphite Queen' },
   { value: 'king_black_dragon', label: 'King Black Dragon' },
   { value: 'kraken', label: 'Kraken' },
@@ -65,12 +65,14 @@ const BOSS_METRICS = [
   { value: 'sarachnis', label: 'Sarachnis' },
   { value: 'scorpia', label: 'Scorpia' },
   { value: 'scurrius', label: 'Scurrius' },
+  { value: 'shellbane_gryphon', label: 'Shellbane Gryphon' },
   { value: 'skotizo', label: 'Skotizo' },
   { value: 'sol_heredit', label: 'Sol Heredit' },
   { value: 'spindel', label: 'Spindel' },
   { value: 'tempoross', label: 'Tempoross' },
-  { value: 'gauntlet', label: 'The Gauntlet' },
+  { value: 'the_gauntlet', label: 'The Gauntlet' },
   { value: 'the_leviathan', label: 'The Leviathan' },
+  { value: 'the_royal_titans', label: 'The Royal Titans' },
   { value: 'the_whisperer', label: 'The Whisperer' },
   { value: 'theatre_of_blood', label: 'Theatre of Blood' },
   { value: 'theatre_of_blood_hard_mode', label: 'Theatre of Blood (HM)' },
@@ -86,40 +88,50 @@ const BOSS_METRICS = [
   { value: 'wintertodt', label: 'Wintertodt' },
   { value: 'yama', label: 'Yama' },
   { value: 'zalcano', label: 'Zalcano' },
-  { value: 'zebak', label: 'Zebak' },
   { value: 'zulrah', label: 'Zulrah' },
 ];
 
 const SKILL_METRICS = [
   'overall',
-  'attack',
-  'defence',
-  'strength',
-  'hitpoints',
-  'ranged',
-  'prayer',
-  'magic',
-  'cooking',
-  'woodcutting',
-  'fletching',
-  'fishing',
-  'firemaking',
-  'crafting',
-  'smithing',
-  'mining',
-  'herblore',
   'agility',
-  'thieving',
-  'slayer',
-  'farming',
-  'runecrafting',
-  'hunter',
+  'attack',
   'construction',
+  'cooking',
+  'crafting',
+  'defence',
+  'farming',
+  'firemaking',
+  'fishing',
+  'fletching',
+  'herblore',
+  'hitpoints',
+  'hunter',
+  'magic',
+  'mining',
+  'prayer',
+  'ranged',
+  'runecrafting',
   'sailing',
+  'slayer',
+  'smithing',
+  'strength',
+  'thieving',
+  'woodcutting',
 ].map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
+
+const CLUE_METRICS = [
+  { value: 'clue_scrolls_all', label: 'All Clues' },
+  { value: 'clue_scrolls_beginner', label: 'Beginner' },
+  { value: 'clue_scrolls_easy', label: 'Easy' },
+  { value: 'clue_scrolls_medium', label: 'Medium' },
+  { value: 'clue_scrolls_hard', label: 'Hard' },
+  { value: 'clue_scrolls_elite', label: 'Elite' },
+  { value: 'clue_scrolls_master', label: 'Master' },
+];
 
 const GOAL_TYPES = [
   { value: 'boss_kc', label: 'Boss KC (aggregate)' },
+  { value: 'clue_kc', label: 'Clue Scrolls (aggregate)' },
   { value: 'skill_xp', label: 'Skill XP (aggregate)' },
   { value: 'ehb', label: 'EHB (aggregate)' },
   { value: 'ehp', label: 'EHP (aggregate)' },
@@ -186,6 +198,7 @@ const EMOJI_OPTIONS = [
 function getMetricOptions(type) {
   if (type === 'boss_kc') return BOSS_METRICS;
   if (type === 'skill_xp') return SKILL_METRICS;
+  if (type === 'clue_kc') return CLUE_METRICS;
   return [];
 }
 
@@ -260,7 +273,11 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
             <Select
               size="sm"
               value={goal.type}
-              onChange={(e) => update('type', e.target.value)}
+              onChange={(e) => {
+                const newType = e.target.value;
+                const opts = getMetricOptions(newType);
+                onChange({ ...goal, type: newType, metric: opts[0]?.value ?? '' });
+              }}
               bg="gray.800"
               borderColor="gray.600"
             >
@@ -297,7 +314,7 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
         <HStack spacing={2} align="flex-end">
           <FormControl size="sm" flex={1}>
             <FormLabel fontSize="xs" color="gray.400" mb={1}>
-              Display Name
+              Goal Display Name
             </FormLabel>
             <Input
               size="sm"

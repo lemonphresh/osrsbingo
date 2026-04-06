@@ -28,7 +28,7 @@ import {
   ModalCloseButton,
 } from '@chakra-ui/react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import { useState } from 'react';
 import {
   AddIcon,
@@ -48,6 +48,9 @@ import {
   CREATE_GROUP_GOAL_EVENT,
   UPDATE_GROUP_GOAL_EVENT,
   DELETE_GROUP_GOAL_EVENT,
+  ADD_GROUP_DASHBOARD_ADMIN,
+  REMOVE_GROUP_DASHBOARD_ADMIN,
+  SEARCH_USERS,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
@@ -182,7 +185,7 @@ function ArchivedEventModal({ event, isOpen, onClose }) {
             {event?.eventName}
           </Text>
           <Text fontSize="xs" color="gray.500" fontWeight="normal" mt={0.5}>
-            {startStr} — {endStr} · Final results
+            {startStr} to {endStr} · Final results
           </Text>
         </ModalHeader>
         <ModalCloseButton color="gray.400" />
@@ -366,6 +369,179 @@ function ArchivedEventModal({ event, isOpen, onClose }) {
   );
 }
 
+// ── Editors panel ────────────────────────────────────────────────────────────
+
+function EditorsPanel({ dashboard, onRefetch }) {
+  const toast = useToast();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+
+  const [searchUsers, { loading: searching }] = useLazyQuery(SEARCH_USERS, {
+    onCompleted: (d) => setSearchResults(d?.searchUsers ?? []),
+  });
+
+  const [addAdmin, { loading: adding }] = useMutation(ADD_GROUP_DASHBOARD_ADMIN, {
+    onCompleted: () => {
+      onRefetch();
+      toast({ title: 'Editor added', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  const [removeAdmin, { loading: removing }] = useMutation(REMOVE_GROUP_DASHBOARD_ADMIN, {
+    onCompleted: () => {
+      onRefetch();
+      toast({ title: 'Editor removed', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  const creator = dashboard.creator;
+  const admins = dashboard.admins ?? [];
+  const adminIdSet = new Set(admins.map((a) => String(a.id)));
+
+  function handleSearch() {
+    if (!searchQuery.trim()) return;
+    setSearchResults([]);
+    searchUsers({ variables: { search: searchQuery.trim() } });
+  }
+
+  return (
+    <VStack spacing={6} align="stretch">
+      {/* Current editors */}
+      <Box>
+        <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
+          Current Editors
+        </Text>
+        <VStack spacing={2} align="stretch">
+          {creator && (
+            <HStack
+              px={3}
+              py={2}
+              bg="gray.700"
+              borderRadius="md"
+              justify="space-between"
+              border="1px solid"
+              borderColor="gray.600"
+            >
+              <HStack spacing={2}>
+                <Text fontSize="sm" color="yellow.300" fontWeight="semibold">
+                  {creator.displayName || creator.username}
+                </Text>
+                <Badge colorScheme="yellow" fontSize="xs">
+                  owner
+                </Badge>
+              </HStack>
+            </HStack>
+          )}
+          {admins.map((admin) => (
+            <HStack
+              key={admin.id}
+              px={3}
+              py={2}
+              bg="gray.700"
+              borderRadius="md"
+              justify="space-between"
+              border="1px solid"
+              borderColor="gray.600"
+            >
+              <Text fontSize="sm" color="gray.200">
+                {admin.displayName || admin.username}
+              </Text>
+              <Button
+                size="xs"
+                colorScheme="red"
+                variant="ghost"
+                isLoading={removing}
+                onClick={() => removeAdmin({ variables: { id: dashboard.id, userId: admin.id } })}
+              >
+                Remove
+              </Button>
+            </HStack>
+          ))}
+          {admins.length === 0 && (
+            <Text fontSize="sm" color="gray.500">
+              No other editors yet.
+            </Text>
+          )}
+        </VStack>
+      </Box>
+
+      {/* Add editor */}
+      <Box>
+        <Text fontSize="sm" fontWeight="semibold" color="gray.300" mb={3}>
+          Add Editor
+        </Text>
+        <HStack spacing={2}>
+          <Input
+            size="sm"
+            placeholder="Search by username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            bg="gray.700"
+            borderColor="gray.600"
+          />
+          <Button
+            size="sm"
+            colorScheme="purple"
+            isLoading={searching}
+            isDisabled={!searchQuery.trim()}
+            onClick={handleSearch}
+            flexShrink={0}
+          >
+            Search
+          </Button>
+        </HStack>
+
+        {searchResults.length > 0 && (
+          <VStack spacing={1} align="stretch" mt={3}>
+            {searchResults
+              .filter((u) => String(u.id) !== String(dashboard.creatorId))
+              .map((u) => {
+                const alreadyEditor = adminIdSet.has(String(u.id));
+                return (
+                  <HStack
+                    key={u.id}
+                    px={3}
+                    py={2}
+                    bg="gray.700"
+                    borderRadius="md"
+                    justify="space-between"
+                    border="1px solid"
+                    borderColor="gray.600"
+                  >
+                    <Text fontSize="sm" color="gray.200">
+                      {u.displayName || u.username}
+                    </Text>
+                    <Button
+                      size="xs"
+                      colorScheme={alreadyEditor ? 'gray' : 'green'}
+                      variant={alreadyEditor ? 'ghost' : 'solid'}
+                      isDisabled={alreadyEditor}
+                      isLoading={adding}
+                      onClick={() => {
+                        addAdmin({ variables: { id: dashboard.id, userId: u.id } });
+                        setSearchResults([]);
+                        setSearchQuery('');
+                      }}
+                    >
+                      {alreadyEditor ? 'Already editor' : 'Add'}
+                    </Button>
+                  </HStack>
+                );
+              })}
+          </VStack>
+        )}
+
+        {searchResults.length === 0 && searchQuery && !searching && (
+          <Text fontSize="xs" color="gray.500" mt={2}>
+            No results yet — hit Search or press Enter.
+          </Text>
+        )}
+      </Box>
+    </VStack>
+  );
+}
+
 // ── Event row ────────────────────────────────────────────────────────────────
 
 function EventRow({
@@ -445,7 +621,7 @@ function EventRow({
             )}
           </HStack>
           <Text fontSize="xs" color="gray.500">
-            {startStr} — {endStr}
+            {startStr} to {endStr}
           </Text>
         </VStack>
 
@@ -485,7 +661,12 @@ function EventRow({
                   >
                     Confirm
                   </Button>
-                  <Button size="xs" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={() => setConfirmDelete(false)}
+                  >
                     Cancel
                   </Button>
                 </HStack>
@@ -526,7 +707,12 @@ function EventRow({
                   >
                     Confirm
                   </Button>
-                  <Button size="xs" variant="ghost" onClick={() => setConfirmDelete(false)}>
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    colorScheme="blue"
+                    onClick={() => setConfirmDelete(false)}
+                  >
                     Cancel
                   </Button>
                 </HStack>
@@ -777,6 +963,7 @@ export default function GroupDashboardManagePage() {
                 <Tab fontSize="sm">Events</Tab>
                 <Tab fontSize="sm">Theme</Tab>
                 <Tab fontSize="sm">Discord</Tab>
+                <Tab fontSize="sm">Editors</Tab>
               </TabList>
 
               <TabPanels>
@@ -886,6 +1073,17 @@ export default function GroupDashboardManagePage() {
                 <TabPanel px={0} pt={5}>
                   <Box bg="gray.800" borderRadius="xl" p={5}>
                     <GroupDiscordSetup dashboard={dashboard} />
+                  </Box>
+                </TabPanel>
+
+                {/* ── Editors tab ── */}
+                <TabPanel px={0} pt={5}>
+                  <Box bg="gray.800" borderRadius="xl" p={5}>
+                    <Text fontSize="sm" color="gray.400" mb={5} lineHeight="1.6">
+                      Editors can create, edit, and delete events and manage settings for this
+                      dashboard.
+                    </Text>
+                    <EditorsPanel dashboard={dashboard} onRefetch={refetch} />
                   </Box>
                 </TabPanel>
               </TabPanels>

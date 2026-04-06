@@ -41,6 +41,7 @@ const GroupDashboardPage = lazy(() => import('./pages/GroupDashboardPage'));
 const GroupDashboardManagePage = lazy(() => import('./pages/GroupDashboardManagePage'));
 const GroupDashboardCreatePage = lazy(() => import('./pages/GroupDashboardCreatePage'));
 const GroupDashboardListPage = lazy(() => import('./pages/GroupDashboardListPage'));
+const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboardCompetitionsPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -235,6 +236,11 @@ const routes = [
       {
         path: '/group/:slug/manage',
         element: withSuspense(GroupDashboardManagePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/group/:slug/competitions',
+        element: withSuspense(GroupDashboardCompetitionsPage),
         errorElement: <ErrorPage />,
       },
       {

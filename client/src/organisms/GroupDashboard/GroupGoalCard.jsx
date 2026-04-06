@@ -64,6 +64,7 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
   const unitLabel =
     goalConfig.type === 'skill_xp' ? 'xp/day'
     : goalConfig.type === 'boss_kc' ? 'kc/day'
+    : goalConfig.type === 'clue_kc' ? 'clues/day'
     : goalConfig.type === 'ehb' ? 'ehb/day'
     : goalConfig.type === 'ehp' ? 'ehp/day'
     : '/day';

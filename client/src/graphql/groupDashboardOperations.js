@@ -32,6 +32,16 @@ const GROUP_DASHBOARD_FIELDS = gql`
     events {
       ...GroupGoalEventFields
     }
+    creator {
+      id
+      username
+      displayName
+    }
+    admins {
+      id
+      username
+      displayName
+    }
   }
 `;
 
@@ -63,6 +73,31 @@ export const GET_GROUP_DASHBOARD_PROGRESS = gql`
         percent
         role
       }
+    }
+  }
+`;
+
+export const SEARCH_USERS = gql`
+  query SearchUsers($search: String!) {
+    searchUsers(search: $search) {
+      id
+      username
+      displayName
+    }
+  }
+`;
+
+export const GET_GROUP_COMPETITIONS = gql`
+  query GetGroupCompetitions($slug: String!) {
+    getGroupCompetitions(slug: $slug) {
+      id
+      title
+      metric
+      type
+      status
+      startsAt
+      endsAt
+      participantCount
     }
   }
 `;
