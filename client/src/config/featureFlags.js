@@ -21,3 +21,11 @@ export const isChampionForgeEnabled = (user) => {
     user?.admin === true
   );
 };
+
+export const isGroupDashboardEnabled = (user) => {
+  return (
+    process.env.REACT_APP_GROUP_ENABLED === true ||
+    process.env.REACT_APP_GROUP_ENABLED === 'true' ||
+    user?.admin === true
+  );
+};

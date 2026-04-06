@@ -31,7 +31,7 @@ import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
-import { isBlindDraftEnabled } from '../config/featureFlags';
+import { isBlindDraftEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -332,12 +332,12 @@ const UserDetails = () => {
                 bg={theme.colors.teal[800]}
                 borderRadius="lg"
                 border="2px solid"
-                borderColor={theme.colors.orange[500]}
+                borderColor={theme.colors.yellow[500]}
                 p={5}
-                _hover={{ borderColor: theme.colors.orange[300], transform: 'translateY(-2px)' }}
+                _hover={{ borderColor: theme.colors.yellow[300], transform: 'translateY(-2px)' }}
                 transition="all 0.15s"
               >
-                <Text fontWeight="bold" color={theme.colors.orange[300]} mb={1}>
+                <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
                   Gielinor Rush
                 </Text>
                 <Text fontSize="sm" color="gray.400">
@@ -381,24 +381,44 @@ const UserDetails = () => {
                 </Text>
               </Box>
               {isBlindDraftEnabled(user) && (
-              <Box
-                as={Link}
-                to="/blind-draft"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.pink[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
-                  Blind Draft
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Anonymous player draft rooms for fair team selection
-                </Text>
-              </Box>
+                <Box
+                  as={Link}
+                  to="/blind-draft"
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="2px solid"
+                  borderColor={theme.colors.pink[500]}
+                  p={5}
+                  _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
+                    Blind Draft
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Anonymous player draft rooms for fair team selection
+                  </Text>
+                </Box>
+              )}
+              {isGroupDashboardEnabled(user) && (
+                <Box
+                  as={Link}
+                  to="/group"
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="2px solid"
+                  borderColor={theme.colors.orange[500]}
+                  p={5}
+                  _hover={{ borderColor: theme.colors.orange[300], transform: 'translateY(-2px)' }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="bold" color={theme.colors.orange[300]} mb={1}>
+                    Group Goals Dashboard
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Create shared goals and track group progress over time with the help of WOM
+                  </Text>
+                </Box>
               )}
             </SimpleGrid>
           </Section>

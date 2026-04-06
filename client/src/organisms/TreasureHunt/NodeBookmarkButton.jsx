@@ -32,7 +32,7 @@ const NodeBookmarkButton = ({ eventId, teamId, nodeId, isBookmarked, onFirstHove
     }
   };
 
-  // Sync if parent prop changes (e.g. subscription update)
+  // Sync if parent prop changes (i.e. subscription update)
   React.useEffect(() => {
     setOptimistic(isBookmarked);
   }, [isBookmarked]);
@@ -65,7 +65,11 @@ const NodeBookmarkButton = ({ eventId, teamId, nodeId, isBookmarked, onFirstHove
         aria-label={optimistic ? 'Remove bookmark' : 'Mark as in progress'}
         role="button"
       >
-        <Box as={FaBookmark} boxSize="9px" color={optimistic ? 'white' : 'rgba(255,255,255,0.85)'} />
+        <Box
+          as={FaBookmark}
+          boxSize="9px"
+          color={optimistic ? 'white' : 'rgba(255,255,255,0.85)'}
+        />
       </Box>
     </Tooltip>
   );

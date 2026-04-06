@@ -9,6 +9,7 @@ const DraftRoomResolvers = require('./resolvers/DraftRoom');
 const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
 const ClanWarsResolvers = require('./resolvers/ClanWars');
 const ClanWarsSubscriptions = require('./resolvers/ClanWarsSubscriptions');
+const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 
@@ -27,6 +28,7 @@ const resolvers = {
     ...SiteStats.Query,
     ...DraftRoomResolvers.Query,
     ...ClanWarsResolvers.Query,
+    ...GroupDashboardResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -38,6 +40,7 @@ const resolvers = {
     ...SiteStats.Mutation,
     ...DraftRoomResolvers.Mutation,
     ...ClanWarsResolvers.Mutation,
+    ...GroupDashboardResolvers.Mutation,
   },
   Subscription: {
     ...TreasureHuntSubscriptions.Subscription,
@@ -74,6 +77,12 @@ const resolvers = {
   },
   ClanWarsBattle: {
     ...ClanWarsResolvers.ClanWarsBattle,
+  },
+  GroupDashboard: {
+    ...GroupDashboardResolvers.GroupDashboard,
+  },
+  GroupGoalEvent: {
+    ...GroupDashboardResolvers.GroupGoalEvent,
   },
 };
 

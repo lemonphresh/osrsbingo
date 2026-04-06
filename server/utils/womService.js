@@ -158,4 +158,99 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
   };
 }
 
-module.exports = { fetchPlayerStats, fetchAllPlayerStats };
+// ---------------------------------------------------------------------------
+// Group info cache — short TTL since it's lightweight verification data
+// ---------------------------------------------------------------------------
+
+const groupInfoCache = new Map();
+const GROUP_INFO_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+/**
+ * Fetch basic info about a WOM group (name, memberCount) for verification.
+ * Returns { id, name, memberCount } or throws on error/not found.
+ */
+async function fetchGroupInfo(womGroupId) {
+  const cached = groupInfoCache.get(String(womGroupId));
+  if (cached && Date.now() - cached.ts < GROUP_INFO_TTL_MS) return cached.data;
+
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}`);
+  if (res.status === 404) throw new Error(`WOM group ${womGroupId} not found`);
+  if (!res.ok) throw new Error(`WOM API error ${res.status} for group ${womGroupId}`);
+
+  const data = await res.json();
+  const result = { id: data.id, name: data.name, memberCount: data.memberships?.length ?? 0 };
+  groupInfoCache.set(String(womGroupId), { data: result, ts: Date.now() });
+  return result;
+}
+
+/**
+ * Fetch per-member gains for a specific metric within a custom date range.
+ * WOM requires one call per metric — this returns the array for that metric:
+ *   [{ player: { displayName }, data: { gained, startValue, endValue } }]
+ *
+ * @param {string|number} womGroupId
+ * @param {string} metric - WOM metric key (i.e. 'vardorvis', 'slayer', 'ehb', 'ehp')
+ * @param {Date|string} startDate
+ * @param {Date|string} endDate
+ */
+async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
+  // Cap endDate to now — WOM rejects future dates for ongoing events
+  const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
+  // WOM accepts startDate+endDate directly — do NOT include period=custom
+  const params = new URLSearchParams({
+    metric,
+    startDate: new Date(startDate).toISOString(),
+    endDate: effectiveEnd,
+  });
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(
+      `WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`
+    );
+    return [];
+  }
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
+}
+
+// ---------------------------------------------------------------------------
+// Group members cache — used to look up clan roles for contributors
+// ---------------------------------------------------------------------------
+
+const groupMembersCache = new Map();
+
+/**
+ * Fetch group members from WOM, returning a map of displayName → role.
+ * Roles: 'leader' | 'officers' | 'veteran' | 'member' | 'achiever' | 'trial'
+ * Uses the same TTL as group info (10 min).
+ */
+async function fetchGroupMembers(womGroupId) {
+  const key = String(womGroupId);
+  const cached = groupMembersCache.get(key);
+  if (cached && Date.now() - cached.ts < GROUP_INFO_TTL_MS) return cached.data;
+
+  // Use GET /groups/:id (same as fetchGroupInfo) — it includes `data.memberships`
+  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}`);
+  if (!res.ok) {
+    logger.warn(`WOM group members ${res.status} for group ${womGroupId}`);
+    return {};
+  }
+  const data = await res.json();
+  const members = data.memberships ?? [];
+  const roleMap = {};
+  members.forEach((m) => {
+    const name = m.player?.displayName;
+    if (name) roleMap[name] = m.role ?? null;
+  });
+  groupMembersCache.set(key, { data: roleMap, ts: Date.now() });
+  return roleMap;
+}
+
+module.exports = {
+  fetchPlayerStats,
+  fetchAllPlayerStats,
+  fetchGroupInfo,
+  fetchGroupGains,
+  fetchGroupMembers,
+};

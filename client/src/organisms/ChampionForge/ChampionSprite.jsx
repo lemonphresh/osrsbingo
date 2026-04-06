@@ -5,7 +5,7 @@ import { Box, Text, VStack } from '@chakra-ui/react';
  * The sprite faces RIGHT by default. Pass side="left" to mirror for the left-side battle slot.
  *
  * Layered pixel art:
- *   - All sprite PNGs (base + equipment) must be the SAME canvas size (e.g. 32×64 or 48×96).
+ *   - All sprite PNGs (base + equipment) must be the SAME canvas size (i.e. 32×64 or 48×96).
  *   - Equipment PNGs are fully transparent except where the item appears on the body.
  *   - Pass `layers` as an ordered array of src strings: base first, then equipment in draw order.
  *   - Recommended layer order: base → cape → boots → legs → chest → gloves → shield → helm → weapon

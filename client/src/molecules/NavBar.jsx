@@ -22,7 +22,7 @@ import { css } from '@emotion/react';
 import { MdContactSupport, MdClose } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { FaHeart } from 'react-icons/fa';
-import { isChampionForgeEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
@@ -409,6 +409,9 @@ const NavBar = () => {
                       { label: 'Gielinor Rush', to: '/gielinor-rush' },
                       ...(isChampionForgeEnabled(user)
                         ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
+                        : []),
+                      ...(isGroupDashboardEnabled(user)
+                        ? [{ label: 'Group Dashboard', to: '/group', isNew: true }]
                         : []),
                     ],
                   },

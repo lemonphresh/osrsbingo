@@ -342,6 +342,60 @@ async function sendAllNodesCompletedNotification({
   return results;
 }
 
+/**
+ * Group goal milestone notification
+ * Sent when a collective goal crosses 25%, 50%, 75%, or 100%.
+ */
+async function sendGroupGoalMilestoneNotification({
+  channelId,
+  groupName,
+  eventName,
+  goal,
+  percent,
+  current,
+  target,
+  dashboardUrl,
+}) {
+  const isComplete = percent >= 100;
+  const accentColor = isComplete ? 0x43aa8b : percent >= 75 ? 0xf4a732 : 0xf4d35e;
+
+  // Text progress bar: 20 chars wide
+  const filled = Math.round((Math.min(percent, 100) / 100) * 20);
+  const bar = '█'.repeat(filled) + '░'.repeat(20 - filled);
+
+  const formatValue = (v) => (v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M` : v.toLocaleString());
+  const milestoneLabel = isComplete ? '🎉 Goal Complete!' : `${Math.round(percent)}% reached`;
+
+  return sendDiscordMessage(channelId, {
+    flags: IS_COMPONENTS_V2,
+    components: [
+      {
+        type: C.Container,
+        accent_color: accentColor,
+        components: [
+          {
+            type: C.TextDisplay,
+            content: `${goal.emoji ?? '🎯'} **${goal.displayName ?? goal.metric}** — ${milestoneLabel}`,
+          },
+          sep,
+          {
+            type: C.TextDisplay,
+            content: [
+              `\`${bar}\` ${Math.round(percent)}%`,
+              `**${formatValue(current)}** / ${formatValue(target)}`,
+            ].join('\n'),
+          },
+          sep,
+          {
+            type: C.TextDisplay,
+            content: `-# ${groupName}  ·  ${eventName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}`,
+          },
+        ],
+      },
+    ],
+  });
+}
+
 function getSubmissionChannelId(event) {
   if (!event.discordConfig) return null;
   return (
@@ -359,6 +413,7 @@ module.exports = {
   sendSubmissionDenialNotification,
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
+  sendGroupGoalMilestoneNotification,
   getSubmissionChannelId,
   getChannelFromSubmission,
 };

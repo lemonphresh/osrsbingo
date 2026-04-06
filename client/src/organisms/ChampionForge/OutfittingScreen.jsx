@@ -560,7 +560,7 @@ const STAT_GUIDE = [
   {
     label: 'DEF',
     color: 'blue.300',
-    desc: 'Reduces incoming hits. Each point cancels 0.3 ATK from the enemy roll (e.g. 100 DEF negates 30 ATK).',
+    desc: 'Reduces incoming hits. Each point cancels 0.3 ATK from the enemy roll (i.e. 100 DEF negates 30 ATK).',
   },
   {
     label: 'SPD',

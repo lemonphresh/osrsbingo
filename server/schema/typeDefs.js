@@ -652,6 +652,11 @@ const typeDefs = gql`
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
     getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
+
+    # --- Group Goal Dashboard ---
+    getGroupDashboard(slug: String!): GroupDashboard
+    getGroupDashboardProgress(eventId: ID!): [GroupGoalProgress!]!
+    getMyGroupDashboards: [GroupDashboard!]!
   }
 
   # ============================================================
@@ -858,6 +863,17 @@ const typeDefs = gql`
     # Dev-only: start the next unstarted bracket match and simulate it to completion
     devSimulateNextMatch(eventId: ID!): ClanWarsBattle!
     sendBattleEmote(battleId: ID!, emote: String!): Boolean!
+
+    # --- Group Goal Dashboard ---
+    createGroupDashboard(input: CreateGroupDashboardInput!): GroupDashboard!
+    updateGroupDashboard(id: ID!, input: UpdateGroupDashboardInput!): GroupDashboard!
+    createGroupGoalEvent(dashboardId: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
+    updateGroupGoalEvent(id: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
+    deleteGroupGoalEvent(id: ID!): Boolean!
+    confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!): GroupDashboard!
+    refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
+    addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
+    removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
   }
 
   # ============================================================
@@ -1118,6 +1134,74 @@ const typeDefs = gql`
     difficulty: String!
     role: String!
     screenshot: String
+  }
+
+  # ============================================================
+  # GROUP GOAL DASHBOARD
+  # ============================================================
+
+  type GroupDashboard {
+    id: ID!
+    slug: String!
+    groupName: String!
+    womGroupId: String!
+    creatorId: ID!
+    adminIds: [ID!]!
+    theme: JSON
+    discordConfig: JSON
+    events: [GroupGoalEvent!]!
+    creator: User
+    admins: [User!]
+  }
+
+  type GroupGoalEvent {
+    id: ID!
+    dashboardId: ID!
+    eventName: String!
+    startDate: DateTime!
+    endDate: DateTime!
+    goals: [JSON!]!
+    cachedData: JSON
+    lastSyncedAt: DateTime
+    isVisible: Boolean!
+    notificationsSent: JSON
+  }
+
+  type GroupGoalProgress {
+    goalId: ID!
+    metric: String!
+    displayName: String!
+    current: Float!
+    target: Float!
+    percent: Float!
+    topContributors: [GroupGoalContributor!]!
+  }
+
+  type GroupGoalContributor {
+    rsn: String!
+    value: Float!
+    percent: Float!
+    role: String
+  }
+
+  input CreateGroupDashboardInput {
+    groupName: String!
+    womGroupId: String!
+    slug: String
+    theme: JSON
+  }
+
+  input UpdateGroupDashboardInput {
+    groupName: String
+    theme: JSON
+    discordConfig: JSON
+  }
+
+  input GroupGoalEventInput {
+    eventName: String!
+    startDate: DateTime!
+    endDate: DateTime!
+    goals: [JSON!]!
   }
 
   # ============================================================
