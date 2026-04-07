@@ -108,6 +108,7 @@ const TEAM_COLORS = [
 // Delay between per-player fetches to stay under WOM rate limits
 const CLIENT_FETCH_DELAY_MS = 1000;
 
+
 // Columns shown in the player table (all except name which is sticky)
 const COLUMNS = [
   { key: 'totalLevel', label: 'Lvl', title: 'Total Level' },
@@ -169,8 +170,22 @@ function fmt(n) {
 }
 
 function exportToCsv(teams, preset) {
+  const anyHours = teams.some((t) => t.players.some((p) => p.hoursPerDay !== null));
   const rows = [
-    ['Team', 'RSN', 'Level', 'EHP', 'EHP/Y', 'EHB', 'EHB/Y', 'CoX', 'ToB', 'ToA', 'Score'],
+    [
+      'Team',
+      'RSN',
+      'Level',
+      'EHP',
+      'EHP/Y',
+      'EHB',
+      'EHB/Y',
+      'CoX',
+      'ToB',
+      'ToA',
+      ...(anyHours ? ['Hrs/Day'] : []),
+      'Score',
+    ],
   ];
   teams.forEach((team, i) => {
     team.players.forEach((p) => {
@@ -185,6 +200,7 @@ function exportToCsv(teams, preset) {
         Math.round(p.cox ?? 0),
         Math.round(p.tob ?? 0),
         Math.round(p.toa ?? 0),
+        ...(anyHours ? [p.hoursPerDay ?? ''] : []),
         Math.round(p.score),
       ]);
     });
@@ -231,6 +247,9 @@ export default function TeamBalancerPage() {
   const [hasManualEdits, setHasManualEdits] = useState(false);
   const [showRebalanceConfirm, setShowRebalanceConfirm] = useState(false);
 
+  // Hours/day baseline for score multiplier (8h = 1.0×)
+  const [hoursBaseline, setHoursBaseline] = useState(8);
+
   // Custom weights — start from the selected preset, editable in Advanced
   const [customWeights, setCustomWeights] = useState(null); // null = use preset
 
@@ -255,7 +274,7 @@ export default function TeamBalancerPage() {
         prev.map((team) => {
           const rescored = team.players.map((p) => ({
             ...p,
-            score: scorePlayer(p, activeWeights),
+            score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
           }));
           return { ...team, players: rescored, total: rescored.reduce((s, p) => s + p.score, 0) };
         })
@@ -265,12 +284,12 @@ export default function TeamBalancerPage() {
       setTeams((prev) => {
         const allPlayers = prev
           .flatMap((t) => t.players)
-          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) }));
+          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1) }));
         return balanceTeams(allPlayers, prev.length);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customWeights, preset]);
+  }, [customWeights, preset, hoursBaseline]);
 
   if (!user) {
     return (
@@ -390,30 +409,39 @@ export default function TeamBalancerPage() {
     );
   }
 
-  function getRsns() {
+  function parseRsnInput() {
     return rsnText
       .split(/[\n,]+/)
-      .map((r) => r.trim())
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+        const match = trimmed.match(/^(.+?)\s*-\s*(\d+(?:\.\d+)?)\s*$/);
+        if (match) {
+          return { rsn: match[1].trim(), hoursPerDay: parseFloat(match[2]) };
+        }
+        return { rsn: trimmed, hoursPerDay: null };
+      })
       .filter(Boolean);
   }
 
   async function handleBalance() {
-    const rsns = getRsns();
-    if (rsns.length < numTeams) {
+    const parsed = parseRsnInput();
+    if (parsed.length < numTeams) {
       return showToast(`Need at least ${numTeams} RSNs for ${numTeams} teams`, 'warning');
     }
 
     const allStats = [];
     try {
-      for (let i = 0; i < rsns.length; i++) {
-        setProgress({ fetched: i, total: rsns.length, current: rsns[i] });
+      for (let i = 0; i < parsed.length; i++) {
+        setProgress({ fetched: i, total: parsed.length, current: parsed[i].rsn });
         const result = await apolloClient.query({
           query: FETCH_WOM_STATS,
-          variables: { rsns: [rsns[i]] },
+          variables: { rsns: [parsed[i].rsn] },
           fetchPolicy: 'network-only',
         });
         allStats.push(...(result.data?.fetchWomStats ?? []));
-        if (i < rsns.length - 1) await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
+        if (i < parsed.length - 1)
+          await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
       }
     } catch (e) {
       showToast(`Failed to fetch stats: ${e.message}`, 'error');
@@ -422,11 +450,20 @@ export default function TeamBalancerPage() {
     }
 
     const weights = activeWeights;
-    const notFound = allStats.filter((s) => s.notFound).map((s) => s.rsn);
+    const parsedByRsn = Object.fromEntries(parsed.map((p) => [p.rsn.toLowerCase(), p]));
+    const notFound = allStats
+      .filter((s) => s.notFound)
+      .map((s) => ({
+        rsn: s.rsn,
+        hoursPerDay: parsedByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null,
+      }));
     setNotFoundRsns(notFound);
 
     const found = allStats.filter((s) => !s.notFound);
-    const scored = found.map((s) => ({ ...s, score: scorePlayer(s, weights) }));
+    const scored = found.map((s) => {
+      const hoursPerDay = parsedByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
+      return { ...s, hoursPerDay, score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1) };
+    });
     setTeams(balanceTeams(scored, numTeams));
     setCompData(null);
     setProgress(null);
@@ -473,10 +510,14 @@ export default function TeamBalancerPage() {
     const allStats = [];
     try {
       for (let i = 0; i < notFoundRsns.length; i++) {
-        setRefetchProgress({ fetched: i, total: notFoundRsns.length, current: notFoundRsns[i] });
+        setRefetchProgress({
+          fetched: i,
+          total: notFoundRsns.length,
+          current: notFoundRsns[i].rsn,
+        });
         const result = await apolloClient.query({
           query: FETCH_WOM_STATS,
-          variables: { rsns: [notFoundRsns[i]] },
+          variables: { rsns: [notFoundRsns[i].rsn] },
           fetchPolicy: 'network-only',
         });
         allStats.push(...(result.data?.fetchWomStats ?? []));
@@ -489,7 +530,13 @@ export default function TeamBalancerPage() {
       return;
     }
 
-    const stillNotFound = allStats.filter((s) => s.notFound).map((s) => s.rsn);
+    const notFoundByRsn = Object.fromEntries(notFoundRsns.map((p) => [p.rsn.toLowerCase(), p]));
+    const stillNotFound = allStats
+      .filter((s) => s.notFound)
+      .map((s) => ({
+        rsn: s.rsn,
+        hoursPerDay: notFoundByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null,
+      }));
     const nowFound = allStats.filter((s) => !s.notFound);
 
     if (nowFound.length === 0) {
@@ -502,7 +549,10 @@ export default function TeamBalancerPage() {
     const existingPlayers = teams.flatMap((t) => t.players);
     const allPlayers = [
       ...existingPlayers,
-      ...nowFound.map((s) => ({ ...s, score: scorePlayer(s, weights) })),
+      ...nowFound.map((s) => {
+        const hoursPerDay = notFoundByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
+        return { ...s, hoursPerDay, score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1) };
+      }),
     ];
     setTeams(balanceTeams(allPlayers, teams.length));
     setNotFoundRsns(stillNotFound);
@@ -578,8 +628,8 @@ export default function TeamBalancerPage() {
     setDragOverTeam(null);
   }
 
-  const rsns = getRsns();
-  const hasEnough = rsns.length >= numTeams;
+  const parsed = parseRsnInput();
+  const hasEnough = parsed.length >= numTeams;
   const isFetching = progress !== null;
 
   const balanceRatio =
@@ -587,13 +637,20 @@ export default function TeamBalancerPage() {
       ? Math.min(...teams.map((t) => t.total)) / Math.max(...teams.map((t) => t.total))
       : null;
 
-  // Determine columns to show — add Comps column when data is loaded
-  const visibleColumns = compData
-    ? [
-        ...COLUMNS,
-        { key: '__comps', label: 'Comps', title: 'Competition participations (last 20 on WOM)' },
-      ]
-    : COLUMNS;
+  // Show Hrs/D column only when at least one player has hours specified
+  const hasHoursData = teams?.some((t) => t.players.some((p) => p.hoursPerDay !== null)) ?? false;
+
+  // Determine columns to show — add Hrs/D and Comps when applicable
+  const visibleColumns = [
+    ...COLUMNS.filter((c) => c.key !== 'score'),
+    ...(hasHoursData
+      ? [{ key: 'hoursPerDay', label: 'Hrs/D', title: 'Estimated hours played per day' }]
+      : []),
+    COLUMNS.find((c) => c.key === 'score'),
+    ...(compData
+      ? [{ key: '__comps', label: 'Comps', title: 'Competition participations (last 20 on WOM)' }]
+      : []),
+  ];
 
   return (
     <Box flex="1" my="36px" maxW="1100px" mx="auto" w="100%" px={4} py={8}>
@@ -613,20 +670,54 @@ export default function TeamBalancerPage() {
               <HStack justify="space-between" mb={1}>
                 <Text fontSize="sm">RSNs</Text>
                 <Text fontSize="xs" color={hasEnough ? 'green.300' : 'orange.300'}>
-                  {rsns.length} player{rsns.length !== 1 ? 's' : ''}
-                  {!hasEnough && rsns.length > 0 ? ` (need at least ${numTeams})` : ''}
+                  {parsed.length} player{parsed.length !== 1 ? 's' : ''}
+                  {!hasEnough && parsed.length > 0 ? ` (need at least ${numTeams})` : ''}
                 </Text>
               </HStack>
               <Textarea
                 value={rsnText}
                 onChange={(e) => setRsnText(e.target.value)}
-                placeholder={'Zezima\nWoox\nB0aty\nPvM King\n...'}
+                placeholder={
+                  'Zezima\nWoox - 8\nB0aty - 4\nPvM King\n...\n\nOptionally add " - N" after a name where N = estimated hours of play/day to take that into consideration as well'
+                }
                 minH="160px"
                 fontFamily="mono"
                 fontSize="sm"
                 isDisabled={isFetching}
               />
             </Box>
+
+            {parsed.some((p) => p.hoursPerDay !== null) && (
+              <Box>
+                <HStack justify="space-between" mb={1}>
+                  <Text fontSize="sm">Hours/day baseline</Text>
+                  <Text fontSize="xs" color="cyan.300" fontWeight="semibold">
+                    {hoursBaseline}h = 1.0×&nbsp;&nbsp;
+                    <Text as="span" color="gray.400" fontWeight="normal">
+                      (players at this threshold are weighted normally)
+                    </Text>
+                  </Text>
+                </HStack>
+                <Slider
+                  min={1}
+                  max={16}
+                  step={1}
+                  value={hoursBaseline}
+                  onChange={setHoursBaseline}
+                  isDisabled={isFetching}
+                  focusThumbOnChange={false}
+                >
+                  <SliderTrack bg="gray.600">
+                    <SliderFilledTrack bg="cyan.500" />
+                  </SliderTrack>
+                  <SliderThumb boxSize={3} />
+                </Slider>
+                <HStack justify="space-between" mt={0.5}>
+                  <Text fontSize="10px" color="gray.500">1h</Text>
+                  <Text fontSize="10px" color="gray.500">16h</Text>
+                </HStack>
+              </Box>
+            )}
 
             <HStack spacing={6} flexWrap="wrap">
               <Box>
@@ -892,8 +983,36 @@ export default function TeamBalancerPage() {
                 Score = a weighted sum of EHP, EHB, Total Level, EHP/Y, EHB/Y, and raid KCs (CoX,
                 ToB, ToA) based on the selected preset. EHP/Y and EHB/Y (gains over the past year)
                 are weighted heavily since they reflect how active a player has been recently, not
-                just their total lifetime progress.
+                just their total lifetime progress. If hours/day are specified (e.g. "RSN - 8"), the
+                score is multiplied by that number to factor in availability.
               </Text>
+              {hasHoursData && (
+                <Box>
+                  <HStack justify="space-between" mb={1}>
+                    <Text fontSize="xs" color="gray.300">Hours/day baseline</Text>
+                    <Text fontSize="xs" color="cyan.300" fontWeight="semibold">
+                      {hoursBaseline}h = 1.0×
+                    </Text>
+                  </HStack>
+                  <Slider
+                    min={1}
+                    max={16}
+                    step={1}
+                    value={hoursBaseline}
+                    onChange={setHoursBaseline}
+                    focusThumbOnChange={false}
+                  >
+                    <SliderTrack bg="gray.600">
+                      <SliderFilledTrack bg="cyan.500" />
+                    </SliderTrack>
+                    <SliderThumb boxSize={3} />
+                  </Slider>
+                  <HStack justify="space-between" mt={0.5}>
+                    <Text fontSize="10px" color="gray.500">1h</Text>
+                    <Text fontSize="10px" color="gray.500">16h</Text>
+                  </HStack>
+                </Box>
+              )}
               <Accordion allowToggle>
                 <AccordionItem border="none">
                   <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }}>
@@ -990,7 +1109,10 @@ export default function TeamBalancerPage() {
                       setTeams((prev) => {
                         const allPlayers = prev
                           .flatMap((t) => t.players)
-                          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) }));
+                          .map((p) => ({
+                            ...p,
+                            score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
+                          }));
                         return balanceTeams(allPlayers, prev.length);
                       });
                       setHasManualEdits(false);
@@ -1245,6 +1367,20 @@ export default function TeamBalancerPage() {
                                     </Box>
                                   );
                                 }
+                                if (col.key === 'hoursPerDay') {
+                                  return (
+                                    <Box as="td" key="hoursPerDay" px={3} py={2} textAlign="right">
+                                      <Text
+                                        fontSize="xs"
+                                        color={
+                                          player.hoursPerDay !== null ? 'cyan.300' : 'gray.600'
+                                        }
+                                      >
+                                        {player.hoursPerDay !== null ? player.hoursPerDay : '—'}
+                                      </Text>
+                                    </Box>
+                                  );
+                                }
                                 const val = player[col.key] ?? 0;
                                 const isScore = col.key === 'score';
                                 return (
@@ -1322,7 +1458,7 @@ export default function TeamBalancerPage() {
                 </HStack>
               </Box>
               <VStack spacing={0} align="stretch" px={4} py={2}>
-                {notFoundRsns.map((rsn, i) => (
+                {notFoundRsns.map(({ rsn }, i) => (
                   <Text
                     key={rsn}
                     fontSize="sm"

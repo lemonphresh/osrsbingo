@@ -241,6 +241,21 @@ function EventSummaryCard({ event, accentColor }) {
         </Text>
       </HStack>
       <VStack spacing={2} align="stretch">
+        {loading && !data && (
+          <Box
+            bg="gray.750"
+            border="1px solid"
+            borderColor="gray.700"
+            borderRadius="md"
+            px={4}
+            py={2.5}
+            textAlign="center"
+          >
+            <Text fontSize="xs" color="gray.400">
+              WOM queries can take a moment, so please don't spam refresh!
+            </Text>
+          </Box>
+        )}
         {loading && !data
           ? enabledGoals.map((g) => (
               <Skeleton

@@ -142,7 +142,7 @@ function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
                   <Box
                     h="full" borderRadius={3}
                     w={`${Math.min(100, c.percent)}%`}
-                    bg={c.completed ? '#43aa8b' : accentColor ?? '#7D5FFF'}
+                    bg={c.completed ? '#f5c518' : accentColor ?? '#7D5FFF'}
                     transition="width 0.4s ease"
                   />
                 </Box>

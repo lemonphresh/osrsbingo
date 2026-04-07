@@ -210,7 +210,7 @@ const TreasureHuntDashboard = () => {
         {/* Header row */}
         <HStack justify="space-between" flexWrap="wrap" gap={3}>
           <GemTitle size="xl" gemColor="yellow">
-            Your Events
+            Your Gielinor Rush Events
           </GemTitle>
           <HStack>
             {isGielinorRushEnabled(user) && (
