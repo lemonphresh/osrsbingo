@@ -1225,6 +1225,7 @@ const typeDefs = gql`
     value: Float!
     percent: Float!
     role: String
+    completed: Boolean
   }
 
   type WOMCompetition {

@@ -73,6 +73,7 @@ export const GET_GROUP_DASHBOARD_PROGRESS = gql`
         value
         percent
         role
+        completed
       }
     }
   }

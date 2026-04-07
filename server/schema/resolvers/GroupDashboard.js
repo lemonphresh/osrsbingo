@@ -15,6 +15,10 @@ const APP_BASE_URL = process.env.APP_BASE_URL || 'https://osrsbingo.com';
 // Cache freshness threshold (ms) — skip WOM re-fetch if data is newer than this
 const SYNC_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Per-event in-memory lock — prevents concurrent syncs from both running milestone
+// checks and firing duplicate Discord notifications when the cache expires.
+const syncInProgress = new Set();
+
 // ---------------------------------------------------------------------------
 // Notification helpers
 // ---------------------------------------------------------------------------
@@ -138,149 +142,161 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
   let womData = event.cachedData;
 
   if (!isFresh) {
-    const goals = event.goals ?? [];
-    const metrics = getRequiredMetrics(goals);
-
-    if (metrics.length === 0) {
-      return [];
+    // If another request is already syncing this event, skip the WOM fetch and
+    // milestone checks entirely — just fall through to serve existing cached data.
+    if (syncInProgress.has(event.id)) {
+      const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+      return calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
     }
 
-    const newData = {};
-    let anyFailed = false;
+    syncInProgress.add(event.id);
+    try {
+      const goals = event.goals ?? [];
+      const metrics = getRequiredMetrics(goals);
 
-    await Promise.all(
-      metrics.map(async (metric) => {
-        try {
-          newData[metric] = await fetchGroupGains(
-            event.dashboard.womGroupId,
-            metric,
-            event.startDate,
-            event.endDate
-          );
-        } catch (err) {
-          logger.error({ err }, `Failed to fetch WOM gains for event ${event.id} metric "${metric}"`);
-          anyFailed = true;
-          if (womData?.[metric]) newData[metric] = womData[metric];
+      if (metrics.length === 0) {
+        return [];
+      }
+
+      const newData = {};
+      let anyFailed = false;
+
+      await Promise.all(
+        metrics.map(async (metric) => {
+          try {
+            newData[metric] = await fetchGroupGains(
+              event.dashboard.womGroupId,
+              metric,
+              event.startDate,
+              event.endDate
+            );
+          } catch (err) {
+            logger.error({ err }, `Failed to fetch WOM gains for event ${event.id} metric "${metric}"`);
+            anyFailed = true;
+            if (womData?.[metric]) newData[metric] = womData[metric];
+          }
+        })
+      );
+
+      womData = newData;
+      if (!anyFailed || !event.cachedData) {
+        await event.update({ cachedData: womData, lastSyncedAt: new Date() });
+      }
+
+      // Run milestone checks only on a fresh WOM fetch — cached data can't have new crossings.
+      const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+      const progress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
+
+      const discord = event.dashboard.discordConfig;
+      const thresholds = [25, 50, 75, 100];
+      const notificationsSent = { ...(event.notificationsSent || {}) };
+      let dirty = false;
+      const eventEnded = new Date(event.endDate) < new Date();
+      // Event was added to the dashboard after it already ended — treat as purely historical, no notifications.
+      const isBackdated = new Date(event.createdAt) > new Date(event.endDate);
+      // First sync ever: notificationsSent is empty. Establish a baseline without firing anything —
+      // we don't know how long the event has been running, so we can't treat crossed milestones as "new".
+      const isFirstSync = Object.keys(notificationsSent).length === 0;
+
+      if (isBackdated || isFirstSync || eventEnded) {
+        // Silently mark all currently-crossed (or all, if ended/backdated) milestones as sent.
+        for (const goalProgress of progress) {
+          const crossed = (eventEnded || isBackdated)
+            ? thresholds
+            : thresholds.filter((t) => goalProgress.percent >= t);
+          if (crossed.length) {
+            notificationsSent[goalProgress.goalId] = crossed;
+            dirty = true;
+          }
         }
-      })
-    );
-
-    womData = newData;
-    if (!anyFailed || !event.cachedData) {
-      await event.update({ cachedData: womData, lastSyncedAt: new Date() });
-    }
-
-    // Run milestone checks only on a fresh WOM fetch — cached data can't have new crossings.
-    const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
-    const progress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
-
-    const discord = event.dashboard.discordConfig;
-    const thresholds = [25, 50, 75, 100];
-    const notificationsSent = { ...(event.notificationsSent || {}) };
-    let dirty = false;
-    const eventEnded = new Date(event.endDate) < new Date();
-    // Event was added to the dashboard after it already ended — treat as purely historical, no notifications.
-    const isBackdated = new Date(event.createdAt) > new Date(event.endDate);
-    // First sync ever: notificationsSent is empty. Establish a baseline without firing anything —
-    // we don't know how long the event has been running, so we can't treat crossed milestones as "new".
-    const isFirstSync = Object.keys(notificationsSent).length === 0;
-
-    if (isBackdated || isFirstSync || eventEnded) {
-      // Silently mark all currently-crossed (or all, if ended/backdated) milestones as sent.
-      for (const goalProgress of progress) {
-        const crossed = (eventEnded || isBackdated)
-          ? thresholds
-          : thresholds.filter((t) => goalProgress.percent >= t);
-        if (crossed.length) {
-          notificationsSent[goalProgress.goalId] = crossed;
+        // Backdated events: also silence event_ended so it never fires
+        if (isBackdated && !notificationsSent.__event_ended) {
+          notificationsSent.__event_ended = true;
           dirty = true;
         }
+      } else {
+        for (const goalProgress of progress) {
+          const goalConfig = (event.goals || []).find((g) => g.goalId === goalProgress.goalId);
+
+          // Individual goals don't use milestone notifications — skip them here
+          if (isIndividualGoal(goalConfig ?? {})) continue;
+
+          const { goalId, percent } = goalProgress;
+          const alreadySent = notificationsSent[goalId] ?? [];
+          const newMilestones = checkNewMilestones(percent, alreadySent, thresholds);
+
+          for (const milestone of newMilestones) {
+            if (discord?.confirmed && discord?.channelId) {
+              try {
+                await sendGroupGoalMilestoneNotification({
+                  channelId: discord.channelId,
+                  groupName: event.dashboard.groupName,
+                  eventName: event.eventName,
+                  goal: goalConfig ?? { displayName: goalProgress.displayName },
+                  percent: milestone,
+                  current: goalProgress.current,
+                  target: goalProgress.target,
+                  dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+                  topContributors: goalProgress.topContributors ?? [],
+                });
+              } catch (err) {
+                logger.error(`Failed to send Discord milestone for goal ${goalId}:`, err.message);
+              }
+            }
+
+            await createGroupActivity(event.dashboard.id, event.id, `milestone_${milestone}`, {
+              goalName: goalConfig?.displayName ?? goalProgress.displayName ?? goalProgress.metric,
+              goalEmoji: goalConfig?.emoji ?? '🎯',
+              percent: milestone,
+              current: goalProgress.current,
+              target: goalProgress.target,
+              groupName: event.dashboard.groupName,
+              slug: event.dashboard.slug,
+              eventName: event.eventName,
+            });
+
+            notificationsSent[goalId] = [...(notificationsSent[goalId] ?? []), milestone];
+            dirty = true;
+          }
+        }
       }
-      // Backdated events: also silence event_ended so it never fires
-      if (isBackdated && !notificationsSent.__event_ended) {
+
+      // event_ended activity fires once on the first sync after the event ends, never for backdated events
+      if (eventEnded && !isBackdated && !notificationsSent.__event_ended) {
+        // For individual goals, include a completion summary per goal
+        const individualSummaries = progress
+          .filter((p) => p.isIndividual)
+          .map((p) => {
+            const goalConfig = (event.goals || []).find((g) => g.goalId === p.goalId);
+            return {
+              goalId: p.goalId,
+              goalName: goalConfig?.displayName ?? p.displayName,
+              goalEmoji: goalConfig?.emoji ?? '🎯',
+              completedCount: p.current,
+              totalActive: p.target,
+              completedRsns: (p.topContributors ?? []).filter((c) => c.completed).map((c) => c.rsn),
+            };
+          });
+
+        await createGroupActivity(event.dashboard.id, event.id, 'event_ended', {
+          groupName: event.dashboard.groupName,
+          slug: event.dashboard.slug,
+          eventName: event.eventName,
+          endDate: event.endDate,
+          individualSummaries: individualSummaries.length ? individualSummaries : undefined,
+        }, new Date(event.endDate));
         notificationsSent.__event_ended = true;
         dirty = true;
       }
-    } else {
-      for (const goalProgress of progress) {
-        const goalConfig = (event.goals || []).find((g) => g.goalId === goalProgress.goalId);
 
-        // Individual goals don't use milestone notifications — skip them here
-        if (isIndividualGoal(goalConfig ?? {})) continue;
-
-        const { goalId, percent } = goalProgress;
-        const alreadySent = notificationsSent[goalId] ?? [];
-        const newMilestones = checkNewMilestones(percent, alreadySent, thresholds);
-
-        for (const milestone of newMilestones) {
-          if (discord?.confirmed && discord?.channelId) {
-            try {
-              await sendGroupGoalMilestoneNotification({
-                channelId: discord.channelId,
-                groupName: event.dashboard.groupName,
-                eventName: event.eventName,
-                goal: goalConfig ?? { displayName: goalProgress.displayName },
-                percent: milestone,
-                current: goalProgress.current,
-                target: goalProgress.target,
-                dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
-                topContributors: goalProgress.topContributors ?? [],
-              });
-            } catch (err) {
-              logger.error(`Failed to send Discord milestone for goal ${goalId}:`, err.message);
-            }
-          }
-
-          await createGroupActivity(event.dashboard.id, event.id, `milestone_${milestone}`, {
-            goalName: goalConfig?.displayName ?? goalProgress.displayName ?? goalProgress.metric,
-            goalEmoji: goalConfig?.emoji ?? '🎯',
-            percent: milestone,
-            current: goalProgress.current,
-            target: goalProgress.target,
-            groupName: event.dashboard.groupName,
-            slug: event.dashboard.slug,
-            eventName: event.eventName,
-          });
-
-          notificationsSent[goalId] = [...alreadySent, milestone];
-          dirty = true;
-        }
+      if (dirty) {
+        await event.update({ notificationsSent });
       }
+
+      return progress;
+    } finally {
+      syncInProgress.delete(event.id);
     }
-
-    // event_ended activity fires once on the first sync after the event ends, never for backdated events
-    if (eventEnded && !isBackdated && !notificationsSent.__event_ended) {
-      // For individual goals, include a completion summary per goal
-      const individualSummaries = progress
-        .filter((p) => p.isIndividual)
-        .map((p) => {
-          const goalConfig = (event.goals || []).find((g) => g.goalId === p.goalId);
-          return {
-            goalId: p.goalId,
-            goalName: goalConfig?.displayName ?? p.displayName,
-            goalEmoji: goalConfig?.emoji ?? '🎯',
-            completedCount: p.current,
-            totalActive: p.target,
-            completedRsns: (p.topContributors ?? []).filter((c) => c.completed).map((c) => c.rsn),
-          };
-        });
-
-      await createGroupActivity(event.dashboard.id, event.id, 'event_ended', {
-        groupName: event.dashboard.groupName,
-        slug: event.dashboard.slug,
-        eventName: event.eventName,
-        endDate: event.endDate,
-        individualSummaries: individualSummaries.length ? individualSummaries : undefined,
-      }, new Date(event.endDate));
-      notificationsSent.__event_ended = true;
-      dirty = true;
-    }
-
-    if (dirty) {
-      await event.update({ notificationsSent });
-    }
-
-    return progress;
   }
 
   // Cached path — just return current progress without any side effects
