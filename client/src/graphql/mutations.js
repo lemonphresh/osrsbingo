@@ -1014,3 +1014,9 @@ export const INCREMENT_VISIT = gql`
     incrementVisit
   }
 `;
+
+export const INCREMENT_TEAM_BALANCE = gql`
+  mutation IncrementTeamBalance {
+    incrementTeamBalance
+  }
+`;

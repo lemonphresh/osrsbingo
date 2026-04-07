@@ -25,8 +25,13 @@ import {
   FaGlobe,
   FaRandom,
   FaCoins,
+  FaBalanceScale,
+  FaChartBar,
+  FaTrophy,
 } from 'react-icons/fa';
 import { formatGP } from '../utils/treasureHuntHelpers';
+import { useAuth } from '../providers/AuthProvider';
+import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 
 const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue }) => {
   const displayValue = formatValue ? formatValue(value) : value?.toLocaleString();
@@ -61,9 +66,12 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue 
 
 const StatsPage = () => {
   usePageTitle('Site Stats');
+  const { user } = useAuth();
   const { data, loading, error } = useQuery(GET_SITE_STATS);
 
   const stats = data?.getSiteStats;
+  const showGroupStats = isGroupDashboardEnabled(user);
+  const showForgeStats = isChampionForgeEnabled(user);
 
   return (
     <Flex
@@ -139,6 +147,9 @@ const StatsPage = () => {
               color: 'yellow.400',
               formatValue: (v) => formatGP(v ?? 0),
             },
+            { label: 'Teams Balanced', value: stats?.teamsBalanced, icon: FaBalanceScale, color: 'cyan.300' },
+            ...(showGroupStats ? [{ label: 'Groups Tracked', value: stats?.groupsTracked, icon: FaChartBar, color: 'orange.300' }] : []),
+            ...(showForgeStats ? [{ label: 'Champions Forged', value: stats?.championsForged, icon: FaTrophy, color: 'yellow.300' }] : []),
           ].map((card) => (
             <Box
               key={card.label}

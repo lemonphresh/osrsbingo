@@ -6,6 +6,8 @@ const {
   TreasureEvent,
   TreasureTeam,
   DraftRoom,
+  GroupDashboard,
+  ClanWarsEvent,
 } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -48,6 +50,8 @@ const resolvers = {
           visitStats,
           totalBlindDrafts,
           gpResult,
+          groupsTracked,
+          championsForged,
         ] = await Promise.all([
           BingoBoard.count(),
           User.count(),
@@ -74,6 +78,8 @@ const resolvers = {
             where: { status: 'COMPLETED' },
             raw: true,
           }),
+          GroupDashboard.count(),
+          ClanWarsEvent.count({ where: { status: 'COMPLETED' } }),
         ]);
 
         const stats = {
@@ -88,6 +94,9 @@ const resolvers = {
           completionRate: totalTiles > 0 ? Math.round((completedTiles / totalTiles) * 100) : 0,
           totalBlindDrafts,
           totalGpWon: parseInt(gpResult?.total) || 0,
+          teamsBalanced: parseInt(visitStats?.teamsBalanced) || 0,
+          groupsTracked,
+          championsForged,
         };
 
         // Cache it
@@ -110,6 +119,7 @@ const resolvers = {
           defaults: {
             id: 1,
             visitCount: 0,
+            teamsBalanced: 0,
           },
         });
 
@@ -124,6 +134,23 @@ const resolvers = {
         logger.error('[incrementVisit] Error:', error);
         logger.error('[incrementVisit] Stack:', error.stack);
         return 1;
+      }
+    },
+
+    incrementTeamBalance: async () => {
+      try {
+        const [stats] = await SiteStats.findOrCreate({
+          where: { id: 1 },
+          defaults: { id: 1, visitCount: 0, teamsBalanced: 0 },
+        });
+        const next = (parseInt(stats.teamsBalanced) || 0) + 1;
+        stats.teamsBalanced = next;
+        await stats.save();
+        statsCache = null; // invalidate cache
+        return next;
+      } catch (error) {
+        logger.error('[incrementTeamBalance] Error:', error);
+        return 0;
       }
     },
   },

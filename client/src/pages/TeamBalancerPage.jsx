@@ -29,10 +29,11 @@ import {
   SliderFilledTrack,
   SliderThumb,
 } from '@chakra-ui/react';
-import { useApolloClient } from '@apollo/client';
+import { useApolloClient, useMutation } from '@apollo/client';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FETCH_WOM_STATS, FETCH_PLAYER_COMP_HISTORY } from '../graphql/draftOperations';
+import { INCREMENT_TEAM_BALANCE } from '../graphql/mutations';
 import usePageTitle from '../hooks/usePageTitle';
 import { useToastContext } from '../providers/ToastProvider';
 import { useAuth } from '../providers/AuthProvider';
@@ -219,6 +220,7 @@ export default function TeamBalancerPage() {
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const apolloClient = useApolloClient();
+  const [incrementTeamBalance] = useMutation(INCREMENT_TEAM_BALANCE);
 
   const [rsnText, setRsnText] = useState('');
   const [numTeams, setNumTeams] = useState(2);
@@ -475,6 +477,7 @@ export default function TeamBalancerPage() {
       };
     });
     setTeams(balanceTeams(scored, numTeams));
+    incrementTeamBalance().catch(() => {});
     setCompData(null);
     setProgress(null);
     setHasManualEdits(false);

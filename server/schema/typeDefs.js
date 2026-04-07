@@ -581,6 +581,9 @@ const typeDefs = gql`
     completionRate: Int!
     totalBlindDrafts: Int!
     totalGpWon: Float!
+    teamsBalanced: Int!
+    groupsTracked: Int!
+    championsForged: Int!
   }
 
   # ============================================================
@@ -682,6 +685,7 @@ const typeDefs = gql`
   type Mutation {
     # --- Analytics ---
     incrementVisit: Int!
+    incrementTeamBalance: Int!
 
     # --- User Management ---
     createUser(
@@ -890,6 +894,7 @@ const typeDefs = gql`
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
+    transferGroupDashboard(id: ID!, newOwnerId: ID!): GroupDashboard!
     followGroupDashboard(dashboardId: ID!): Boolean!
     unfollowGroupDashboard(dashboardId: ID!): Boolean!
     muteGroupDashboard(dashboardId: ID!): Boolean!
