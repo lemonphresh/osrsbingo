@@ -21,6 +21,7 @@ import {
   isGielinorRushEnabled,
   isBlindDraftEnabled,
   isChampionForgeEnabled,
+  isGroupDashboardEnabled,
 } from '../config/featureFlags';
 
 const Landing = () => {
@@ -170,55 +171,57 @@ const Landing = () => {
           </Box>
 
           {/* Group Dashboard */}
-          <Box
-            flex="1"
-            display="flex"
-            flexDirection="column"
-            backgroundColor={theme.colors.teal[900]}
-            borderRadius="12px"
-            padding={['16px', '20px']}
-            borderWidth="2px"
-            borderColor={theme.colors.orange[500]}
-          >
-            <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
-              <Text
-                fontFamily="Raleway"
-                fontSize="xl"
-                fontWeight="semibold"
-                color={theme.colors.orange[300]}
-              >
-                Group Goals Dashboard
+          {isGroupDashboardEnabled(user) && (
+            <Box
+              flex="1"
+              display="flex"
+              flexDirection="column"
+              backgroundColor={theme.colors.teal[900]}
+              borderRadius="12px"
+              padding={['16px', '20px']}
+              borderWidth="2px"
+              borderColor={theme.colors.orange[500]}
+            >
+              <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+                <Text
+                  fontFamily="Raleway"
+                  fontSize="xl"
+                  fontWeight="semibold"
+                  color={theme.colors.orange[300]}
+                >
+                  Group Goals Dashboard
+                </Text>
+                <Text fontSize="xs" bg={theme.colors.orange[700]} px={2} py={1} borderRadius="full">
+                  NEW
+                </Text>
+              </HStack>
+              <Flex justifyContent="center" marginBottom="20px">
+                <Image
+                  alt="Group Goals Dashboard showing team progress"
+                  backgroundColor={theme.colors.gray[900]}
+                  borderRadius="8px"
+                  maxHeight="180px"
+                  padding="8px"
+                  src={GroupGoalsPreview}
+                  loading="lazy"
+                />
+              </Flex>
+              <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+                With the power of Wise Old Man, set specific group goals and track progress on a
+                clear dashboard across any OSRS activity for any duration. Great for clans, GIMs, or
+                any group of friends working towards shared milestones.
               </Text>
-              <Text fontSize="xs" bg={theme.colors.orange[700]} px={2} py={1} borderRadius="full">
-                NEW
-              </Text>
-            </HStack>
-            <Flex justifyContent="center" marginBottom="20px">
-              <Image
-                alt="Group Goals Dashboard showing team progress"
-                backgroundColor={theme.colors.gray[900]}
-                borderRadius="8px"
-                maxHeight="180px"
-                padding="8px"
-                src={GroupGoalsPreview}
-                loading="lazy"
-              />
-            </Flex>
-            <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
-              With the power of Wise Old Man, set specific group goals and track progress on a clear
-              dashboard across any OSRS activity for any duration. Great for clans, GIMs, or any
-              group of friends working towards shared milestones.
-            </Text>
-            <Link to="/group" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={theme.colors.orange[600]}
-                _hover={{ backgroundColor: theme.colors.orange[700] }}
-              >
-                Track Your Group
-              </Button>
-            </Link>
-          </Box>
+              <Link to="/group" style={{ marginTop: 'auto' }}>
+                <Button
+                  width="100%"
+                  backgroundColor={theme.colors.orange[600]}
+                  _hover={{ backgroundColor: theme.colors.orange[700] }}
+                >
+                  Track Your Group
+                </Button>
+              </Link>
+            </Box>
+          )}
 
           {/* Champion Forge */}
           <Box

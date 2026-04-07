@@ -9,6 +9,7 @@ import {
   VStack,
   HStack,
   Badge,
+  Button,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -19,7 +20,7 @@ import GnomeChild from '../assets/gnomechild-small.webp';
 import Lemon from '../assets/selfie.webp';
 import { useAuth } from '../providers/AuthProvider';
 import { css } from '@emotion/react';
-import { MdContactSupport, MdClose } from 'react-icons/md';
+import { MdContactSupport, MdClose, MdDoorBack } from 'react-icons/md';
 import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOperations';
 import { FaHeart } from 'react-icons/fa';
@@ -30,7 +31,7 @@ const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
 
 const NavBar = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
 
@@ -481,7 +482,12 @@ const NavBar = () => {
               </Box>
 
               {/* Support button */}
-              <Box padding="16px" borderTop="1px solid rgba(255,255,255,0.08)" margin="0 auto">
+              <VStack
+                alignItems="center"
+                padding="16px"
+                borderTop="1px solid rgba(255,255,255,0.08)"
+                margin="0 auto"
+              >
                 <PleaseEffect>
                   <Link to="/support" onClick={() => setIsNavMenuOpen(false)}>
                     <HStack
@@ -501,7 +507,22 @@ const NavBar = () => {
                     </HStack>
                   </Link>
                 </PleaseEffect>
-              </Box>
+                <Button
+                  variant="ghost"
+                  leftIcon={<Icon as={MdDoorBack} />}
+                  _hover={{
+                    backgroundColor: 'gray.600',
+                  }}
+                  onClick={logout}
+                  as={Link}
+                  to="/"
+                  color="white"
+                  fontSize="14px"
+                  fontWeight="normal"
+                >
+                  Logout
+                </Button>
+              </VStack>
             </Box>
           </>
         ) : (
