@@ -37,11 +37,13 @@ const GROUP_DASHBOARD_FIELDS = gql`
       id
       username
       displayName
+      rsn
     }
     admins {
       id
       username
       displayName
+      rsn
     }
   }
 `;
@@ -85,6 +87,7 @@ export const SEARCH_USERS = gql`
       id
       username
       displayName
+      rsn
     }
   }
 `;

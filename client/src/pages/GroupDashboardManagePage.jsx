@@ -424,7 +424,7 @@ function EditorsPanel({ dashboard, onRefetch }) {
             >
               <HStack spacing={2}>
                 <Text fontSize="sm" color="yellow.300" fontWeight="semibold">
-                  {creator.displayName || creator.username}
+                  {creator.displayName || creator.username} - RSN: {creator.rsn}
                 </Text>
                 <Badge colorScheme="yellow" fontSize="xs">
                   owner
@@ -443,9 +443,14 @@ function EditorsPanel({ dashboard, onRefetch }) {
               border="1px solid"
               borderColor="gray.600"
             >
-              <Text fontSize="sm" color="gray.200">
-                {admin.displayName || admin.username}
-              </Text>
+              <HStack spacing={1}>
+                <Text fontSize="sm" color="gray.200">
+                  {admin.displayName || admin.username}
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  - RSN: {admin.rsn}
+                </Text>
+              </HStack>
               <Button
                 size="xs"
                 colorScheme="red"
@@ -509,9 +514,14 @@ function EditorsPanel({ dashboard, onRefetch }) {
                     border="1px solid"
                     borderColor="gray.600"
                   >
-                    <Text fontSize="sm" color="gray.200">
-                      {u.displayName || u.username}
-                    </Text>
+                    <HStack spacing={1}>
+                      <Text fontSize="sm" color="gray.200">
+                        {u.displayName || u.username}
+                      </Text>
+                      <Text fontSize="sm" color="gray.400">
+                        - RSN: {u.rsn}
+                      </Text>
+                    </HStack>
                     <Button
                       size="xs"
                       colorScheme={alreadyEditor ? 'gray' : 'green'}
