@@ -364,8 +364,9 @@ const BingoTileDetails = ({ isEditor, isOpen, onClose, tile }) => {
                       min={0}
                       max={tileState.progressMax}
                       value={tileState.progress || 0}
-                      onChange={(val) => setTileState((s) => ({ ...s, progress: val }))}
-                      onChangeEnd={(val) => {
+                      isReadOnly={!isEditor}
+                      onChange={(val) => { if (isEditor) setTileState((s) => ({ ...s, progress: val })); }}
+                      onChangeEnd={(val) => { if (!isEditor) return;
                         const input = { progress: val };
                         if (val >= tileState.progressMax) {
                           input.isComplete = true;

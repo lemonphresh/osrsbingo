@@ -1,4 +1,4 @@
-import { Box, Text, HStack, VStack, SimpleGrid, Button, useClipboard } from '@chakra-ui/react';
+import { Box, Text, HStack, VStack, Button, useClipboard } from '@chakra-ui/react';
 
 const RANK_COLORS = ['#f5c518', '#c0c0c0', '#cd7f32'];
 
@@ -17,7 +17,7 @@ function fmtEta(days) {
 
 function KPI({ label, value, sub, valueColor }) {
   return (
-    <VStack align="flex-start" spacing={0} flex={1}>
+    <VStack align="center" spacing={0} flex={1} textAlign="center">
       <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={0.5}>
         {label}
       </Text>
@@ -33,7 +33,7 @@ function KPI({ label, value, sub, valueColor }) {
   );
 }
 
-function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
+function IndividualGoalCard({ goalConfig = {}, progress, accentColor, userRsn }) {
   const displayName = progress?.displayName ?? goalConfig.displayName ?? goalConfig.metric ?? 'Goal';
   const emoji = goalConfig.emoji ?? '🎯';
   const contributors = progress?.topContributors ?? [];
@@ -105,13 +105,15 @@ function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
             </Text>
           </HStack>
 
-          {contributors.map((c, i) => (
+          {contributors.map((c, i) => {
+            const isMe = userRsn && c.rsn.toLowerCase() === userRsn.toLowerCase();
+            return (
             <HStack
               key={c.rsn}
               px={5} py={2.5} gap={3}
               borderTop="1px solid" borderColor="gray.800"
-              bg={c.completed ? 'rgba(72,187,120,0.06)' : undefined}
-              _hover={{ bg: c.completed ? 'rgba(72,187,120,0.1)' : 'gray.800' }}
+              bg={isMe ? `${accentColor}18` : c.completed ? 'rgba(72,187,120,0.06)' : undefined}
+              _hover={{ bg: isMe ? `${accentColor}28` : c.completed ? 'rgba(72,187,120,0.1)' : 'gray.800' }}
               transition="background 0.15s"
             >
               <Text w="32px" fontSize="xs" fontWeight="bold" color={i < 3 ? RANK_COLORS[i] : 'gray.500'} flexShrink={0}>
@@ -148,7 +150,8 @@ function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
                 </Box>
               </VStack>
             </HStack>
-          ))}
+            );
+          })}
         </Box>
       )}
 
@@ -159,9 +162,9 @@ function IndividualGoalCard({ goalConfig = {}, progress, accentColor }) {
   );
 }
 
-export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, eventStartDate }) {
+export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, eventStartDate, userRsn }) {
   if (progress?.isIndividual || goalConfig.type?.startsWith('individual_')) {
-    return <IndividualGoalCard goalConfig={goalConfig} progress={progress} accentColor={accentColor} />;
+    return <IndividualGoalCard goalConfig={goalConfig} progress={progress} accentColor={accentColor} userRsn={userRsn} />;
   }
   const displayName =
     progress?.displayName ?? goalConfig.displayName ?? goalConfig.metric ?? 'Goal';
@@ -257,14 +260,14 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
       </Box>
 
       {/* ── KPI GRID ── */}
-      <SimpleGrid
-        columns={3}
+      <HStack
         bg="gray.700"
         borderTop="1px solid"
         borderColor="gray.600"
         px={5}
         py={4}
-        gap={6}
+        justify="space-between"
+        align="center"
       >
         <KPI label="Total Gained" value={fmt(current)} valueColor="white" />
         <KPI
@@ -278,7 +281,7 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
           value={isDone ? '🎉 Done' : etaDays != null ? fmtEta(etaDays) : '—'}
           valueColor={isDone ? '#43aa8b' : 'gray.100'}
         />
-      </SimpleGrid>
+      </HStack>
 
       {/* ── TOP GRINDER ── */}
       {topGrinder && (
@@ -326,6 +329,7 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
               color="gray.500"
               textTransform="uppercase"
               letterSpacing="wider"
+              textAlign="left"
             >
               Player
             </Text>
@@ -367,6 +371,7 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
             const isTop3 = i < 3;
             const nameColor = i === 0 ? 'yellow.300' : i === 1 ? 'gray.100' : 'gray.300';
             const rate = daysElapsed ? fmt(Math.round(c.value / daysElapsed)) : null;
+            const isMe = userRsn && c.rsn.toLowerCase() === userRsn.toLowerCase();
             return (
               <HStack
                 key={c.rsn}
@@ -375,7 +380,8 @@ export default function GroupGoalCard({ goalConfig = {}, progress, accentColor, 
                 gap={3}
                 borderTop="1px solid"
                 borderColor="gray.800"
-                _hover={{ bg: 'gray.800' }}
+                bg={isMe ? `${barColor}18` : undefined}
+                _hover={{ bg: isMe ? `${barColor}28` : 'gray.800' }}
                 transition="background 0.15s"
               >
                 {/* Rank — fixed width matches header spacer */}

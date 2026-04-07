@@ -323,7 +323,8 @@ const UserDetails = () => {
                   Bingo Boards
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  Create and manage your custom bingo boards
+                  Create and manage your custom bingo boards. Track your progress and share with
+                  friends for some friendly competition.
                 </Text>
               </Box>
               <Box
@@ -341,7 +342,8 @@ const UserDetails = () => {
                   Gielinor Rush
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  Host team treasure hunt events with GP prize pools
+                  Host live treasure hunt competitions with your friends and clanmates, complete
+                  with an auto-generated map and submission support.
                 </Text>
               </Box>
               <Box
@@ -359,7 +361,8 @@ const UserDetails = () => {
                   Champion Forge
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  Build a champion and battle rival clans
+                  It takes a village to build a champion. Group up, earn gear, and battle for glory
+                  in this competitive clan event. Good for short term events.
                 </Text>
               </Box>
               <Box
@@ -377,7 +380,8 @@ const UserDetails = () => {
                   Team Balancer
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  Auto-balance a list of RSNs into fair teams using WOM stats
+                  Auto-balance a list of RSNs into fair and balanced teams using WOM stats. Perfect
+                  to use before planning an event on here!
                 </Text>
               </Box>
               {isBlindDraftEnabled(user) && (
@@ -396,7 +400,8 @@ const UserDetails = () => {
                     Blind Draft
                   </Text>
                   <Text fontSize="sm" color="gray.400">
-                    Anonymous player draft rooms for fair team selection
+                    Anonymous player draft rooms for fair team selection. Both captains can pick
+                    their teams live based off of anonymous cards.
                   </Text>
                 </Box>
               )}
@@ -416,7 +421,8 @@ const UserDetails = () => {
                     Group Goals Dashboard
                   </Text>
                   <Text fontSize="sm" color="gray.400">
-                    Create shared goals and track group progress over time with the help of WOM
+                    Create shared goals and track group progress over time with this dashboard built
+                    for clans, GIMs, and pals. Great for long term projects and goals!
                   </Text>
                 </Box>
               )}

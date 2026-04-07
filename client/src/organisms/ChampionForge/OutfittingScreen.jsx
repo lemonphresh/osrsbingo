@@ -23,10 +23,8 @@ import {
   Modal,
   ModalOverlay,
   ModalContent,
-  ModalHeader,
   ModalBody,
   ModalCloseButton,
-  Progress,
 } from '@chakra-ui/react';
 import {
   GET_CLAN_WARS_WAR_CHEST,
@@ -47,7 +45,6 @@ import { getSpecialEffects, getConsumableEffects, resolveSide } from './battleAn
 import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
-const RARITY_LABELS = { common: 'gray', uncommon: 'green', rare: 'blue', epic: 'purple' };
 
 const GEAR_SLOTS = [
   'weapon',

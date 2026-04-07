@@ -357,7 +357,6 @@ const GroupDashboardResolvers = {
       ]);
 
       const mutedIds = new Set(mutes.map((m) => m.dashboardId));
-      const followedIds = new Set(followed.map((f) => f.dashboardId));
       const results = [];
 
       for (const d of managed) {
@@ -371,25 +370,16 @@ const GroupDashboardResolvers = {
       }
 
       const managedIds = new Set(managed.map((d) => d.id));
-      for (const f of followed) {
-        if (managedIds.has(f.dashboardId)) continue; // already listed above
-        const d = await GroupDashboard.findByPk(f.dashboardId, { attributes: ['id', 'slug', 'groupName'] });
-        if (!d) continue;
-        results.push({
-          dashboardId: String(d.id),
-          dashboardName: d.groupName,
-          dashboardSlug: d.slug,
-          role: 'follower',
-          isMuted: mutedIds.has(d.id),
-        });
-      }
+      const unfollowedIds = followed.map((f) => f.dashboardId).filter((id) => !managedIds.has(id));
 
-      // Include followed dashboards that aren't already in results
-      const listedIds = new Set(results.map((r) => r.dashboardId));
-      for (const id of followedIds) {
-        if (listedIds.has(String(id))) continue;
-        const d = await GroupDashboard.findByPk(id, { attributes: ['id', 'slug', 'groupName'] });
-        if (!d) continue;
+      const followedDashboards = unfollowedIds.length
+        ? await GroupDashboard.findAll({
+            where: { id: unfollowedIds },
+            attributes: ['id', 'slug', 'groupName'],
+          })
+        : [];
+
+      for (const d of followedDashboards) {
         results.push({
           dashboardId: String(d.id),
           dashboardName: d.groupName,

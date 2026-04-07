@@ -109,10 +109,14 @@ function ActivityItem({ item }) {
     }
   }
 
+  const linkTo = item.eventId
+    ? `/group/${item.dashboardSlug}?tab=${item.eventId}`
+    : `/group/${item.dashboardSlug}`;
+
   return (
     <Box
       as={RouterLink}
-      to={`/group/${item.dashboardSlug}`}
+      to={linkTo}
       display="block"
       bg={isUnread ? 'gray.750' : 'gray.800'}
       border="1px solid"
