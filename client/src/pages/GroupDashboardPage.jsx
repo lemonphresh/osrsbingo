@@ -88,9 +88,18 @@ function EventCountdown({ event, accentColor }) {
   const mins = Math.floor((msCountdown % 3600000) / 60000);
   const secs = Math.floor((msCountdown % 60000) / 1000);
 
-  const units = days > 0
-    ? [{ label: 'days', value: days }, { label: 'hrs', value: hours }, { label: 'min', value: mins }]
-    : [{ label: 'hrs', value: hours }, { label: 'min', value: mins }, { label: 'sec', value: secs }];
+  const units =
+    days > 0
+      ? [
+          { label: 'days', value: days },
+          { label: 'hrs', value: hours },
+          { label: 'min', value: mins },
+        ]
+      : [
+          { label: 'hrs', value: hours },
+          { label: 'min', value: mins },
+          { label: 'sec', value: secs },
+        ];
 
   return (
     <Box
@@ -113,10 +122,22 @@ function EventCountdown({ event, accentColor }) {
       <HStack spacing={4} mb={3} justify="center">
         {units.map(({ label, value }) => (
           <VStack key={label} spacing={0} align="center" minW="52px">
-            <Text fontSize="3xl" fontWeight="black" color="white" lineHeight="1" fontVariantNumeric="tabular-nums">
+            <Text
+              fontSize="3xl"
+              fontWeight="black"
+              color="white"
+              lineHeight="1"
+              fontVariantNumeric="tabular-nums"
+            >
               {String(value).padStart(2, '0')}
             </Text>
-            <Text fontSize="10px" color="gray.500" textTransform="uppercase" letterSpacing="wider" mt={1}>
+            <Text
+              fontSize="10px"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mt={1}
+            >
               {label}
             </Text>
           </VStack>
@@ -279,7 +300,7 @@ function EventProgressPanel({ event, accentColor, isAdmin, userRsn }) {
             </HStack>
           );
         })()}
-
+      {/* 
       <HStack justify="flex-end">
         <Button
           size="xs"
@@ -292,7 +313,7 @@ function EventProgressPanel({ event, accentColor, isAdmin, userRsn }) {
         >
           Share image
         </Button>
-      </HStack>
+      </HStack> */}
 
       {!loading && enabledGoals.length === 0 && (
         <Text color="gray.500" textAlign="center" py={8}>
@@ -444,7 +465,8 @@ function EventSummaryCard({ event, accentColor }) {
 
 function PastEventsArchive({ events, accentColor, userRsn }) {
   const [open, setOpen] = useState(false);
-  const fmtDate = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const fmtDate = (d) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   return (
     <Box mt={4}>
@@ -454,19 +476,45 @@ function PastEventsArchive({ events, accentColor, userRsn }) {
         color="gray.500"
         _hover={{ color: 'gray.300' }}
         onClick={() => setOpen((o) => !o)}
-        rightIcon={<Text as="span" fontSize="10px">{open ? '▲' : '▼'}</Text>}
+        rightIcon={
+          <Text as="span" fontSize="10px">
+            {open ? '▲' : '▼'}
+          </Text>
+        }
       >
         Past Events ({events.length})
       </Button>
       <Collapse in={open} animateOpacity>
         <VStack spacing={3} align="stretch" mt={3}>
           {events.map((e) => (
-            <Box key={e.id} bg="gray.800" border="1px solid" borderColor="gray.700" borderRadius="lg" overflow="hidden">
-              <HStack px={4} py={3} borderBottom="1px solid" borderColor="gray.700" justify="space-between">
-                <Text fontWeight="semibold" color="gray.300" fontSize="sm">{e.eventName}</Text>
-                <Text fontSize="xs" color="gray.500">{fmtDate(e.startDate)} – {fmtDate(e.endDate)}</Text>
+            <Box
+              key={e.id}
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="lg"
+              overflow="hidden"
+            >
+              <HStack
+                px={4}
+                py={3}
+                borderBottom="1px solid"
+                borderColor="gray.700"
+                justify="space-between"
+              >
+                <Text fontWeight="semibold" color="gray.300" fontSize="sm">
+                  {e.eventName}
+                </Text>
+                <Text fontSize="xs" color="gray.500">
+                  {fmtDate(e.startDate)} – {fmtDate(e.endDate)}
+                </Text>
               </HStack>
-              <EventProgressPanel event={e} accentColor={accentColor} isAdmin={false} userRsn={userRsn} />
+              <EventProgressPanel
+                event={e}
+                accentColor={accentColor}
+                isAdmin={false}
+                userRsn={userRsn}
+              />
             </Box>
           ))}
         </VStack>
