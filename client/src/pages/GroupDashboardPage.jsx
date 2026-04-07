@@ -11,10 +11,11 @@ import {
   Tooltip,
   Skeleton,
   SimpleGrid,
+  Collapse,
 } from '@chakra-ui/react';
 import { useParams, Link as RouterLink, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ExternalLinkIcon } from '@chakra-ui/icons';
 import { useAuth } from '../providers/AuthProvider';
 import {
@@ -58,6 +59,103 @@ function useTicker(intervalMs = 60000) {
     const id = setInterval(() => setTick((t) => t + 1), intervalMs);
     return () => clearInterval(id);
   }, [intervalMs]);
+}
+
+function EventCountdown({ event, accentColor }) {
+  // Tick every second for the countdown
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const now = Date.now();
+  const start = new Date(event.startDate).getTime();
+  const end = new Date(event.endDate).getTime();
+  const msLeft = end - now;
+  const totalMs = end - start;
+  const elapsed = now - start;
+  const eventPct = Math.min(100, Math.max(0, (elapsed / totalMs) * 100));
+
+  const isUpcoming = now < start;
+  const isEnded = now > end;
+
+  if (isEnded) return null;
+
+  const msCountdown = isUpcoming ? start - now : msLeft;
+  const days = Math.floor(msCountdown / 86400000);
+  const hours = Math.floor((msCountdown % 86400000) / 3600000);
+  const mins = Math.floor((msCountdown % 3600000) / 60000);
+  const secs = Math.floor((msCountdown % 60000) / 1000);
+
+  const units =
+    days > 0
+      ? [
+          { label: 'days', value: days },
+          { label: 'hrs', value: hours },
+          { label: 'min', value: mins },
+        ]
+      : [
+          { label: 'hrs', value: hours },
+          { label: 'min', value: mins },
+          { label: 'sec', value: secs },
+        ];
+
+  return (
+    <Box
+      bg="gray.800"
+      border="1px solid"
+      borderColor="gray.700"
+      borderRadius="lg"
+      px={5}
+      py={4}
+      mb={2}
+    >
+      <HStack justify="space-between" align="center" mb={3}>
+        <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+          {isUpcoming ? 'Starts in' : 'Time remaining'}
+        </Text>
+        <Text fontSize="xs" color="gray.500">
+          {Math.round(eventPct)}% of event elapsed
+        </Text>
+      </HStack>
+      <HStack spacing={4} mb={3} justify="center">
+        {units.map(({ label, value }) => (
+          <VStack key={label} spacing={0} align="center" minW="52px">
+            <Text
+              fontSize="3xl"
+              fontWeight="black"
+              color="white"
+              lineHeight="1"
+              fontVariantNumeric="tabular-nums"
+            >
+              {String(value).padStart(2, '0')}
+            </Text>
+            <Text
+              fontSize="10px"
+              color="gray.500"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mt={1}
+            >
+              {label}
+            </Text>
+          </VStack>
+        ))}
+      </HStack>
+      {!isUpcoming && (
+        <Box bg="gray.700" borderRadius="full" h="4px" overflow="hidden">
+          <Box
+            h="full"
+            borderRadius="full"
+            w={`${eventPct}%`}
+            bg={accentColor ?? '#7D5FFF'}
+            transition="width 1s linear"
+          />
+        </Box>
+      )}
+    </Box>
+  );
 }
 
 function GoalCardSkeleton() {
@@ -121,7 +219,7 @@ function GoalCardSkeleton() {
   );
 }
 
-function EventProgressPanel({ event, accentColor, isAdmin }) {
+function EventProgressPanel({ event, accentColor, isAdmin, userRsn }) {
   const { data, loading, refetch } = useQuery(GET_GROUP_DASHBOARD_PROGRESS, {
     variables: { eventId: event.id },
     pollInterval: 3_600_000,
@@ -133,6 +231,8 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
   });
 
   const isRefreshing = loading || refreshing;
+  const [sharing, setSharing] = useState(false);
+  const shareRef = useRef(null);
   useTicker();
 
   const progressMap = {};
@@ -142,8 +242,39 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
 
   const enabledGoals = (event.goals ?? []).filter((g) => g.enabled !== false);
 
+  async function handleShare() {
+    if (!shareRef.current) return;
+    setSharing(true);
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(shareRef.current, {
+        backgroundColor: '#1a202c',
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      canvas.toBlob(async (blob) => {
+        try {
+          await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        } catch {
+          // Fallback: download
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${event.eventName.replace(/\s+/g, '-')}.png`;
+          a.click();
+          URL.revokeObjectURL(url);
+        }
+        setSharing(false);
+      });
+    } catch {
+      setSharing(false);
+    }
+  }
+
   return (
     <VStack spacing={4} align="stretch">
+      <EventCountdown event={event} accentColor={accentColor} />
       {event.lastSyncedAt &&
         (() => {
           const nextIn = formatNextSync(event.lastSyncedAt);
@@ -169,6 +300,20 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
             </HStack>
           );
         })()}
+      {/* 
+      <HStack justify="flex-end">
+        <Button
+          size="xs"
+          variant="ghost"
+          color="gray.500"
+          _hover={{ color: 'gray.300' }}
+          onClick={handleShare}
+          isLoading={sharing}
+          loadingText="Copying..."
+        >
+          Share image
+        </Button>
+      </HStack> */}
 
       {!loading && enabledGoals.length === 0 && (
         <Text color="gray.500" textAlign="center" py={8}>
@@ -176,7 +321,7 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
         </Text>
       )}
 
-      <VStack spacing={4} align="stretch">
+      <VStack spacing={4} align="stretch" ref={shareRef}>
         {loading && !data && (
           <Box
             bg="gray.750"
@@ -201,6 +346,7 @@ function EventProgressPanel({ event, accentColor, isAdmin }) {
                 progress={progressMap[goal.goalId]}
                 accentColor={accentColor}
                 eventStartDate={event.startDate}
+                userRsn={userRsn}
               />
             ))}
       </VStack>
@@ -232,12 +378,12 @@ function EventSummaryCard({ event, accentColor }) {
 
   return (
     <Box>
-      <HStack mb={3} spacing={3}>
+      <HStack mb={3} justify="space-between" align="baseline">
         <Text fontWeight="semibold" color="gray.100" fontSize="md">
           {event.eventName}
         </Text>
-        <Text fontSize="xs" color="gray.500">
-          {startStr} to {endStr}
+        <Text fontSize="xs" color="gray.500" flexShrink={0}>
+          {startStr} – {endStr}
         </Text>
       </HStack>
       <VStack spacing={2} align="stretch">
@@ -313,6 +459,66 @@ function EventSummaryCard({ event, accentColor }) {
               );
             })}
       </VStack>
+    </Box>
+  );
+}
+
+function PastEventsArchive({ events, accentColor, userRsn }) {
+  const [open, setOpen] = useState(false);
+  const fmtDate = (d) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  return (
+    <Box mt={4}>
+      <Button
+        size="sm"
+        variant="ghost"
+        color="gray.500"
+        _hover={{ color: 'gray.300' }}
+        onClick={() => setOpen((o) => !o)}
+        rightIcon={
+          <Text as="span" fontSize="10px">
+            {open ? '▲' : '▼'}
+          </Text>
+        }
+      >
+        Past Events ({events.length})
+      </Button>
+      <Collapse in={open} animateOpacity>
+        <VStack spacing={3} align="stretch" mt={3}>
+          {events.map((e) => (
+            <Box
+              key={e.id}
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="lg"
+              overflow="hidden"
+            >
+              <HStack
+                px={4}
+                py={3}
+                borderBottom="1px solid"
+                borderColor="gray.700"
+                justify="space-between"
+              >
+                <Text fontWeight="semibold" color="gray.300" fontSize="sm">
+                  {e.eventName}
+                </Text>
+                <Text fontSize="xs" color="gray.500">
+                  {fmtDate(e.startDate)} – {fmtDate(e.endDate)}
+                </Text>
+              </HStack>
+              <EventProgressPanel
+                event={e}
+                accentColor={accentColor}
+                isAdmin={false}
+                userRsn={userRsn}
+              />
+            </Box>
+          ))}
+        </VStack>
+      </Collapse>
     </Box>
   );
 }
@@ -408,7 +614,11 @@ export default function GroupDashboardPage() {
   const accentColor = theme.accentColor ?? '#43AA8B';
 
   const [searchParams, setSearchParams] = useSearchParams();
-  const visibleEvents = (dashboard?.events ?? []).filter((e) => e.isVisible);
+  const allEvents = dashboard?.events ?? [];
+  const visibleEvents = allEvents.filter((e) => e.isVisible);
+  const pastEvents = allEvents
+    .filter((e) => !e.isVisible && new Date(e.endDate) < new Date())
+    .sort((a, b) => new Date(b.endDate) - new Date(a.endDate));
 
   const tabParam = searchParams.get('tab');
   const defaultToOverview = !tabParam && visibleEvents.length > 1;
@@ -557,10 +767,16 @@ export default function GroupDashboardPage() {
                     event={activeEvent}
                     accentColor={accentColor}
                     isAdmin={isAdmin}
+                    userRsn={user?.rsn}
                   />
                 )
               )}
             </>
+          )}
+
+          {/* Past events archive */}
+          {pastEvents.length > 0 && (
+            <PastEventsArchive events={pastEvents} accentColor={accentColor} userRsn={user?.rsn} />
           )}
         </VStack>
         {!showOverview && (

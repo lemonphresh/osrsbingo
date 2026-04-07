@@ -52,8 +52,10 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
     setGoals((prev) => [...prev, { ...makeBlankGoal(), order: prev.length }]);
   }
 
+  const dateRangeInvalid = startDate && endDate && new Date(endDate) <= new Date(startDate);
+
   function handleSave() {
-    if (!eventName.trim() || !startDate || !endDate) return;
+    if (!eventName.trim() || !startDate || !endDate || dateRangeInvalid) return;
     onSave({
       eventName: eventName.trim(),
       startDate: new Date(startDate).toISOString(),
@@ -138,12 +140,15 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
             Cancel
           </Button>
         )}
+        {dateRangeInvalid && (
+          <Text fontSize="xs" color="red.400">End date must be after start date.</Text>
+        )}
         <Button
           size="sm"
           colorScheme="purple"
           onClick={handleSave}
           isLoading={loading}
-          isDisabled={!eventName.trim() || !startDate || !endDate}
+          isDisabled={!eventName.trim() || !startDate || !endDate || dateRangeInvalid}
         >
           Save Event
         </Button>

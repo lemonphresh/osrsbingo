@@ -1,28 +1,15 @@
 import { Box, HStack, VStack, Text, Image } from '@chakra-ui/react';
 
-function formatCountdown(endDate) {
-  const ms = new Date(endDate) - Date.now();
-  if (ms <= 0) return null;
-  const days = Math.floor(ms / 86400000);
-  const hours = Math.floor((ms % 86400000) / 3600000);
-  if (days > 0) return `${days}d ${hours}h left`;
-  return `${hours}h left`;
-}
-
 export default function GroupDashboardHeader({ dashboard, activeEvent, subtitle }) {
   const theme = dashboard?.theme ?? {};
   const primaryColor = theme.primaryColor ?? '#7D5FFF';
   const accentColor = theme.accentColor ?? '#43AA8B';
-  const countdown = activeEvent ? formatCountdown(activeEvent.endDate) : null;
   const now = new Date();
-  const isActive =
-    activeEvent &&
-    now >= new Date(activeEvent.startDate) &&
-    now <= new Date(activeEvent.endDate);
   const isUpcoming = activeEvent && now < new Date(activeEvent.startDate);
+  const isEnded = activeEvent && now > new Date(activeEvent.endDate);
 
-  const statusColor = isUpcoming ? '#7D5FFF' : isActive ? accentColor : '#666';
-  const statusLabel = isUpcoming ? 'Upcoming' : isActive && countdown ? countdown : 'Ended';
+  const statusColor = isUpcoming ? '#7D5FFF' : !isEnded ? accentColor : '#666';
+  const statusLabel = isUpcoming ? 'Upcoming' : isEnded ? 'Ended' : 'Active';
 
   return (
     <HStack spacing={4} align="center" minW={0}>

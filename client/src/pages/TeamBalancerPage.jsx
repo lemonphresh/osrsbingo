@@ -108,7 +108,6 @@ const TEAM_COLORS = [
 // Delay between per-player fetches to stay under WOM rate limits
 const CLIENT_FETCH_DELAY_MS = 1000;
 
-
 // Columns shown in the player table (all except name which is sticky)
 const COLUMNS = [
   { key: 'totalLevel', label: 'Lvl', title: 'Total Level' },
@@ -274,7 +273,9 @@ export default function TeamBalancerPage() {
         prev.map((team) => {
           const rescored = team.players.map((p) => ({
             ...p,
-            score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
+            score:
+              scorePlayer(p, activeWeights) *
+              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
           }));
           return { ...team, players: rescored, total: rescored.reduce((s, p) => s + p.score, 0) };
         })
@@ -284,7 +285,12 @@ export default function TeamBalancerPage() {
       setTeams((prev) => {
         const allPlayers = prev
           .flatMap((t) => t.players)
-          .map((p) => ({ ...p, score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1) }));
+          .map((p) => ({
+            ...p,
+            score:
+              scorePlayer(p, activeWeights) *
+              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
+          }));
         return balanceTeams(allPlayers, prev.length);
       });
     }
@@ -462,7 +468,11 @@ export default function TeamBalancerPage() {
     const found = allStats.filter((s) => !s.notFound);
     const scored = found.map((s) => {
       const hoursPerDay = parsedByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
-      return { ...s, hoursPerDay, score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1) };
+      return {
+        ...s,
+        hoursPerDay,
+        score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1),
+      };
     });
     setTeams(balanceTeams(scored, numTeams));
     setCompData(null);
@@ -551,7 +561,11 @@ export default function TeamBalancerPage() {
       ...existingPlayers,
       ...nowFound.map((s) => {
         const hoursPerDay = notFoundByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
-        return { ...s, hoursPerDay, score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1) };
+        return {
+          ...s,
+          hoursPerDay,
+          score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1),
+        };
       }),
     ];
     setTeams(balanceTeams(allPlayers, teams.length));
@@ -713,8 +727,12 @@ export default function TeamBalancerPage() {
                   <SliderThumb boxSize={3} />
                 </Slider>
                 <HStack justify="space-between" mt={0.5}>
-                  <Text fontSize="10px" color="gray.500">1h</Text>
-                  <Text fontSize="10px" color="gray.500">16h</Text>
+                  <Text fontSize="10px" color="gray.500">
+                    1h
+                  </Text>
+                  <Text fontSize="10px" color="gray.500">
+                    16h
+                  </Text>
                 </HStack>
               </Box>
             )}
@@ -866,8 +884,11 @@ export default function TeamBalancerPage() {
                   isAnimated
                 />
                 <Text fontSize="xs" color="gray.500" mt={2}>
-                  This might take a few minutes, as I need to throttle the WOM API calls and not
-                  completely barrage their servers with queries. &lt;3 Lemon the Dev
+                  This might take a few minutes 'cause I throttle the speed of my requests to WOM. I
+                  don't want to ice barrage their servers! Hang tight!
+                </Text>
+                <Text fontSize="xs" color="gray.500" ml={2} mt={2}>
+                  &lt;3 Lemon the Dev
                 </Text>
               </Box>
             ) : (
@@ -933,7 +954,7 @@ export default function TeamBalancerPage() {
                 <Button
                   size="sm"
                   variant="outline"
-                  colorScheme="purple"
+                  colorScheme="blue"
                   onClick={handleLoadCompHistory}
                   isLoading={compLoading}
                   loadingText="Loading..."
@@ -957,7 +978,7 @@ export default function TeamBalancerPage() {
 
           <Text fontSize="xs" color="gray.500" px={1}>
             This is not perfect team balancing! You know your players better than any algorithm
-            does. Drag players between teams to adjust — scores recalculate automatically.
+            does. Drag players between teams to adjust, scores recalculate automatically.
           </Text>
 
           {/* Preset + weight controls available in results view too */}
@@ -989,7 +1010,9 @@ export default function TeamBalancerPage() {
               {hasHoursData && (
                 <Box>
                   <HStack justify="space-between" mb={1}>
-                    <Text fontSize="xs" color="gray.300">Hours/day baseline</Text>
+                    <Text fontSize="xs" color="gray.300">
+                      Hours/day baseline
+                    </Text>
                     <Text fontSize="xs" color="cyan.300" fontWeight="semibold">
                       {hoursBaseline}h = 1.0×
                     </Text>
@@ -1008,8 +1031,12 @@ export default function TeamBalancerPage() {
                     <SliderThumb boxSize={3} />
                   </Slider>
                   <HStack justify="space-between" mt={0.5}>
-                    <Text fontSize="10px" color="gray.500">1h</Text>
-                    <Text fontSize="10px" color="gray.500">16h</Text>
+                    <Text fontSize="10px" color="gray.500">
+                      1h
+                    </Text>
+                    <Text fontSize="10px" color="gray.500">
+                      16h
+                    </Text>
                   </HStack>
                 </Box>
               )}
@@ -1111,7 +1138,9 @@ export default function TeamBalancerPage() {
                           .flatMap((t) => t.players)
                           .map((p) => ({
                             ...p,
-                            score: scorePlayer(p, activeWeights) * (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
+                            score:
+                              scorePlayer(p, activeWeights) *
+                              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
                           }));
                         return balanceTeams(allPlayers, prev.length);
                       });

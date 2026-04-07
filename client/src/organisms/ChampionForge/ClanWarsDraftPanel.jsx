@@ -44,7 +44,7 @@ import {
   ExternalLinkIcon,
 } from '@chakra-ui/icons';
 import { Link } from '@chakra-ui/react';
-import { FaDiscord, FaUsers, FaScroll, FaCrown } from 'react-icons/fa';
+import { FaDiscord, FaUsers, FaCrown } from 'react-icons/fa';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useAuth } from '../../providers/AuthProvider';
 import ClanWarsStaffManager from './ClanWarsStaffManager';

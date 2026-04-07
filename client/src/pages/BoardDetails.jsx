@@ -52,7 +52,7 @@ const removeTypename = (obj) => {
 };
 
 const BoardDetails = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const params = useParams();
   const location = useLocation();
   const { data, loading } = useQuery(GET_BOARD, {
@@ -216,13 +216,21 @@ const BoardDetails = () => {
 
   useEffect(() => {
     if (!board || board === 'Not Found') return;
+    if (isCheckingAuth) return;
 
-    if (board?.editors?.some((editor) => editor.id === user?.id) || user?.admin) {
+    const isPrivate = data?.getBingoBoard?.isPublic === false;
+    const isCreator = String(user?.id) === String(board?.userId);
+    const isEditorMember = board?.editors?.some((editor) => editor.id === user?.id);
+    const canAccess = !isPrivate || isCreator || isEditorMember || user?.admin;
+
+    if (isCreator || isEditorMember || user?.admin) {
       setIsEditor(true);
-    } else if (user && data?.getBingoBoard?.isPublic === false) {
+    }
+
+    if (!canAccess) {
       navigate('/');
     }
-  }, [board, data?.getBingoBoard?.isPublic, navigate, user]);
+  }, [board, data?.getBingoBoard?.isPublic, isCheckingAuth, navigate, user]);
 
   useEffect(() => {
     if (location.state?.isEditMode) {

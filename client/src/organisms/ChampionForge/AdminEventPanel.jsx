@@ -32,13 +32,10 @@ import {
   UPDATE_CLAN_WARS_TEAM_MEMBERS,
   CREATE_CLAN_WARS_TEAM,
   DELETE_CLAN_WARS_TEAM,
-  ADD_CLAN_WARS_TASK,
-  DELETE_CLAN_WARS_TASK,
   SET_CLAN_WARS_CAPTAIN,
   GENERATE_CLAN_WARS_BRACKET,
 } from '../../graphql/clanWarsOperations';
 
-const DIFFICULTY_COLORS = { initiate: 'green', adept: 'yellow', master: 'red' };
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 
 // ---------------------------------------------------------------------------
@@ -56,7 +53,12 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
   const canEditMembers = !['BATTLE', 'COMPLETED'].includes(eventStatus);
 
   const memberInputs = (members) =>
-    members.map((m) => ({ discordId: m.discordId, username: m.username ?? null, avatar: m.avatar ?? null, role: m.role ?? null }));
+    members.map((m) => ({
+      discordId: m.discordId,
+      username: m.username ?? null,
+      avatar: m.avatar ?? null,
+      role: m.role ?? null,
+    }));
 
   const handleRemoveMember = async (discordId) => {
     const updated = (team.members ?? []).filter((m) => m.discordId !== discordId);
@@ -77,7 +79,10 @@ function TeamCard({ team, eventId, eventStatus, refetch }) {
     }
     setAddLoading(true);
     try {
-      const updated = [...(team.members ?? []), { discordId: id, username: null, avatar: null, role: null }];
+      const updated = [
+        ...(team.members ?? []),
+        { discordId: id, username: null, avatar: null, role: null },
+      ];
       await updateMembers({ variables: { teamId: team.teamId, members: memberInputs(updated) } });
       showToast('Member added', 'success');
       setNewDiscordId('');
@@ -282,183 +287,6 @@ function AddTeamForm({ eventId, refetch }) {
         Add Team
       </Button>
     </HStack>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Task pool manager
-// ---------------------------------------------------------------------------
-function TaskPool({ event, refetch }) {
-  const { showToast } = useToastContext();
-  const [label, setLabel] = useState('');
-  const [description, setDescription] = useState('');
-  const [difficulty, setDifficulty] = useState('adept');
-  const [role, setRole] = useState('PVMER');
-  const [addTask] = useMutation(ADD_CLAN_WARS_TASK, { onCompleted: refetch });
-  const [deleteTask] = useMutation(DELETE_CLAN_WARS_TASK, { onCompleted: refetch });
-
-  const handleAdd = async () => {
-    if (!label.trim()) return;
-    try {
-      await addTask({
-        variables: {
-          eventId: event.eventId,
-          input: { label: label.trim(), description: description.trim() || null, difficulty, role },
-        },
-      });
-      showToast('Task added', 'success');
-      setLabel('');
-      setDescription('');
-    } catch {
-      showToast('Failed to add task', 'error');
-    }
-  };
-
-  const handleDelete = async (taskId) => {
-    try {
-      await deleteTask({ variables: { taskId } });
-      showToast('Task removed', 'success');
-    } catch {
-      showToast('Failed to remove task', 'error');
-    }
-  };
-
-  const tasks = event.tasks ?? [];
-  const pvmerTasks = tasks.filter((t) => t.role === 'PVMER');
-  const skillerTasks = tasks.filter((t) => t.role === 'SKILLER');
-
-  return (
-    <Box>
-      <HStack mb={3} justify="space-between">
-        <Text fontWeight="semibold" color="white">
-          Task Pool ({tasks.length})
-        </Text>
-        <HStack spacing={2}>
-          <Badge colorScheme="orange" fontSize="xs">
-            {pvmerTasks.length} PvM
-          </Badge>
-          <Badge colorScheme="teal" fontSize="xs">
-            {skillerTasks.length} Skill
-          </Badge>
-        </HStack>
-      </HStack>
-
-      <VStack
-        align="stretch"
-        spacing={1}
-        mb={4}
-        maxH="320px"
-        overflowY="auto"
-        css={{
-          '&::-webkit-scrollbar': { width: '4px' },
-          '&::-webkit-scrollbar-thumb': { background: '#4A5568', borderRadius: '4px' },
-        }}
-      >
-        {tasks.length === 0 && (
-          <Text fontSize="sm" color="gray.500">
-            No tasks yet.
-          </Text>
-        )}
-        {tasks.map((task) => (
-          <HStack key={task.taskId} justify="space-between" p={2} bg="gray.700" borderRadius="md">
-            <VStack align="flex-start" spacing={0}>
-              <HStack flexWrap="wrap" gap={1}>
-                <Badge colorScheme={DIFFICULTY_COLORS[task.difficulty]} fontSize="xs">
-                  {task.difficulty}
-                </Badge>
-                <Badge colorScheme={ROLE_COLORS[task.role]} fontSize="xs">
-                  {task.role}
-                </Badge>
-                <Text fontSize="sm" fontWeight="medium" color="white">
-                  {task.label}
-                </Text>
-              </HStack>
-              {task.description && (
-                <Text fontSize="xs" color="gray.400">
-                  {task.description}
-                </Text>
-              )}
-            </VStack>
-            <Button
-              size="xs"
-              colorScheme="red"
-              variant="ghost"
-              onClick={() => handleDelete(task.taskId)}
-            >
-              ×
-            </Button>
-          </HStack>
-        ))}
-      </VStack>
-
-      {/* Add task form */}
-      <VStack align="stretch" spacing={2} p={3} bg="gray.700" borderRadius="md">
-        <Text
-          fontSize="xs"
-          color="gray.400"
-          fontWeight="semibold"
-          textTransform="uppercase"
-          letterSpacing="wider"
-        >
-          Add custom task
-        </Text>
-        <HStack spacing={2} flexWrap="wrap">
-          <Input
-            size="sm"
-            placeholder="Task label"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-            color="white"
-            _placeholder={{ color: 'gray.500' }}
-            minW="120px"
-          />
-          <Select
-            size="sm"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-            color="white"
-            w="110px"
-            flexShrink={0}
-          >
-            <option value="initiate">Initiate</option>
-            <option value="adept">Adept</option>
-            <option value="master">Master</option>
-          </Select>
-          <Select
-            size="sm"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-            color="white"
-            w="110px"
-            flexShrink={0}
-          >
-            <option value="PVMER">PvMer</option>
-            <option value="SKILLER">Skiller</option>
-          </Select>
-        </HStack>
-        <HStack>
-          <Input
-            size="sm"
-            placeholder="Description (optional)"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-            color="white"
-            _placeholder={{ color: 'gray.500' }}
-          />
-          <Button size="sm" colorScheme="purple" onClick={handleAdd} flexShrink={0}>
-            Add
-          </Button>
-        </HStack>
-      </VStack>
-    </Box>
   );
 }
 

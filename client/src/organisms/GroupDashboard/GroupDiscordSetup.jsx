@@ -8,8 +8,9 @@ import {
   Text,
   Badge,
   Box,
+  Link,
 } from '@chakra-ui/react';
-import { CheckIcon } from '@chakra-ui/icons';
+import { CheckIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { CONFIRM_GROUP_DASHBOARD_DISCORD } from '../../graphql/groupDashboardOperations';
@@ -77,6 +78,8 @@ export default function GroupDiscordSetup({ dashboard }) {
     await confirmDiscord({ variables: { id: dashboard.id, guildId, channelId } });
   }
 
+  const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
+
   const isConfirmed =
     discordConfig.confirmed &&
     discordConfig.guildId === guildId &&
@@ -94,34 +97,80 @@ export default function GroupDiscordSetup({ dashboard }) {
       )}
 
       <Box bg="gray.750" border="1px solid" borderColor="gray.600" borderRadius="md" p={4}>
-        <Text fontSize="xs" fontWeight="semibold" color="gray.300" mb={3} textTransform="uppercase" letterSpacing="wider">
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color="gray.300"
+          mb={3}
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
           What gets posted
         </Text>
         <VStack spacing={2} align="stretch">
           {[
             { emoji: '🏁', label: 'Event started', desc: 'Posted when a new event goes live.' },
-            { emoji: '📊', label: '25% / 50% reached', desc: 'Group total goals only. Posted as your group crosses each threshold.' },
+            {
+              emoji: '📊',
+              label: '25% / 50% reached',
+              desc: 'Group total goals only. Posted as your group crosses each threshold.',
+            },
             { emoji: '🔥', label: '75% reached', desc: 'Group total goals only.' },
-            { emoji: '🎉', label: 'Goal complete (100%)', desc: 'Group total goals only. Includes a top contributors list.' },
-            { emoji: '🏆', label: 'Event ended', desc: 'Posted when the event window closes. If the event had individual target goals, includes a summary of how many members completed each one.' },
+            {
+              emoji: '🎉',
+              label: 'Goal complete (100%)',
+              desc: 'Group total goals only. Includes a top contributors list.',
+            },
+            {
+              emoji: '🏆',
+              label: 'Event ended',
+              desc: 'Posted when the event window closes. If the event had individual target goals, includes a summary of how many members completed each one.',
+            },
           ].map(({ emoji, label, desc }) => (
             <HStack key={label} spacing={3} align="flex-start">
-              <Text fontSize="md" lineHeight="1" mt="1px" flexShrink={0}>{emoji}</Text>
+              <Text fontSize="md" lineHeight="1" mt="1px" flexShrink={0}>
+                {emoji}
+              </Text>
               <Box>
-                <Text fontSize="sm" color="gray.200" fontWeight="medium">{label}</Text>
-                <Text fontSize="xs" color="gray.500">{desc}</Text>
+                <Text fontSize="sm" color="gray.200" fontWeight="medium">
+                  {label}
+                </Text>
+                <Text fontSize="xs" color="gray.500">
+                  {desc}
+                </Text>
               </Box>
             </HStack>
           ))}
         </VStack>
-        <Text fontSize="xs" color="gray.500" mt={3} pt={3} borderTop="1px solid" borderColor="gray.700">
-          Individual target goals don't get mid-event milestone posts. Progress is tracked per member on the dashboard, with a completion summary when the event ends.
+        <Text
+          fontSize="xs"
+          color="gray.500"
+          mt={3}
+          pt={3}
+          borderTop="1px solid"
+          borderColor="gray.700"
+        >
+          Individual target goals don't get mid-event milestone posts. Progress is tracked per
+          member on the dashboard, with a completion summary when the event ends.
         </Text>
       </Box>
 
       <Text fontSize="sm" color="gray.400">
         Make sure the OSRS Bingo Hub bot is in your server before confirming.
       </Text>
+
+      <Button
+        as={Link}
+        href={botInstallUrl}
+        isExternal
+        colorScheme={process.env.NODE_ENV === 'production' ? 'green' : 'yellow'}
+        size="sm"
+        rightIcon={<ExternalLinkIcon />}
+        _hover={{ textDecoration: 'none' }}
+        w="100%"
+      >
+        Add Bot to Discord Server
+      </Button>
 
       <FormControl>
         <FormLabel fontSize="sm" color="gray.300">
@@ -215,7 +264,7 @@ export default function GroupDiscordSetup({ dashboard }) {
           size="sm"
           onClick={handleConfirm}
           isLoading={confirming}
-          isDisabled={!guildName || !channelId}
+          isDisabled={!guildName || !channelName}
         >
           {isConfirmed ? 'Update Discord Setup' : 'Confirm Discord Setup'}
         </Button>
