@@ -637,6 +637,27 @@ const GroupDashboardResolvers = {
       return dashboard.reload();
     },
 
+    transferGroupDashboard: async (_, { id, newOwnerId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      // Only the creator can transfer ownership
+      if (String(dashboard.creatorId) !== String(user.id)) throw new ForbiddenError('Only the owner can transfer this dashboard');
+
+      const newOwnerInt = parseInt(newOwnerId, 10);
+      if (newOwnerInt === parseInt(user.id, 10)) throw new UserInputError('New owner must be a different user');
+
+      // Make the old owner an admin, remove the new owner from adminIds (they become creator)
+      const prevAdmins = dashboard.adminIds ?? [];
+      const oldOwnerId = parseInt(user.id, 10);
+      const newAdminIds = [
+        ...prevAdmins.filter((a) => a !== newOwnerInt),
+        ...(prevAdmins.includes(oldOwnerId) ? [] : [oldOwnerId]),
+      ];
+
+      await dashboard.update({ creatorId: newOwnerInt, adminIds: newAdminIds });
+      return dashboard.reload();
+    },
+
     followGroupDashboard: async (_, { dashboardId }, { user }) => {
       if (!user) throw new AuthenticationError('Login required');
       const { GroupDashboardFollower } = getModels();

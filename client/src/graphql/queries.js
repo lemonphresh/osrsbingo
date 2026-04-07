@@ -826,6 +826,9 @@ export const GET_SITE_STATS = gql`
       completionRate
       totalBlindDrafts
       totalGpWon
+      teamsBalanced
+      groupsTracked
+      championsForged
     }
   }
 `;

@@ -220,6 +220,36 @@ const NavBar = () => {
             faq
           </Text>
         </Link>
+        {/* Arc text around the bottom of the gem circle — desktop only */}
+        <Box
+          display={['none', 'block']}
+          position="absolute"
+          left="50%"
+          top="50%"
+          transform="translate(-50%, -50%)"
+          marginTop="25px"
+          pointerEvents="none"
+          zIndex={6}
+        >
+          {/* SVG is 120×120; the 100px circle maps to center=(60,60) r=50.
+              Arc radius 56 places text just outside the circle's bottom rim. */}
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <defs>
+              <path id="navBottomArc" d="M 4,60 A 56,56 0 0,0 116,60" />
+            </defs>
+            <text
+              fill={theme.colors.teal[100]}
+              fontSize="8"
+              fontWeight="800"
+              letterSpacing="3"
+              textAnchor="middle"
+              fontFamily="sans-serif"
+            >
+              <textPath href="#navBottomArc" startOffset="50%">OSRS BINGO HUB</textPath>
+            </text>
+          </svg>
+        </Box>
+
         <Flex
           alignItems="center"
           backgroundColor={theme.colors.gray[400]}

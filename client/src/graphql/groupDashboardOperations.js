@@ -262,3 +262,12 @@ export const REMOVE_GROUP_DASHBOARD_ADMIN = gql`
     }
   }
 `;
+
+export const TRANSFER_GROUP_DASHBOARD = gql`
+  ${GROUP_DASHBOARD_FIELDS}
+  mutation TransferGroupDashboard($id: ID!, $newOwnerId: ID!) {
+    transferGroupDashboard(id: $id, newOwnerId: $newOwnerId) {
+      ...GroupDashboardFields
+    }
+  }
+`;

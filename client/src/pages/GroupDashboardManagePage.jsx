@@ -26,6 +26,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
+  Select,
 } from '@chakra-ui/react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
@@ -50,6 +51,7 @@ import {
   DELETE_GROUP_GOAL_EVENT,
   ADD_GROUP_DASHBOARD_ADMIN,
   REMOVE_GROUP_DASHBOARD_ADMIN,
+  TRANSFER_GROUP_DASHBOARD,
   SEARCH_USERS,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
@@ -59,6 +61,19 @@ import usePageTitle from '../hooks/usePageTitle';
 
 // Events become archived 2 days after their end date
 const ARCHIVE_GRACE_DAYS = 2;
+
+const GOAL_TYPE_LABELS = {
+  boss_kc: 'Aggregate Boss KC',
+  clue_kc: 'Aggregate Clue Scrolls',
+  skill_xp: 'Aggregate Skill XP',
+  ehb: 'Aggregate EHB',
+  ehp: 'Aggregate EHP',
+  individual_boss_kc: 'Individual Boss KC',
+  individual_clue_kc: 'Individual Clue Scrolls',
+  individual_skill_xp: 'Individual Skill XP',
+  individual_ehb: 'Individual EHB',
+  individual_ehp: 'Individual EHP',
+};
 
 function isArchivedEvent(event) {
   const grace = new Date(event.endDate);
@@ -770,6 +785,11 @@ function EventRow({
                 >
                   {g.displayName || g.metric || 'Goal'}
                 </Text>
+                {g.type && (
+                  <Text fontSize="10px" color="gray.500" flexShrink={0} border="1px solid" borderColor="gray.600" px={1.5} borderRadius="sm" lineHeight="1.7" whiteSpace="nowrap">
+                    {GOAL_TYPE_LABELS[g.type] ?? g.type}
+                  </Text>
+                )}
                 <Text fontSize="xs" color="gray.500" flexShrink={0} fontFamily="mono">
                   target: {fmt(g.target)}
                 </Text>
@@ -842,6 +862,10 @@ export default function GroupDashboardManagePage() {
   const [showCreate, setShowCreate] = useState(false);
   const [showArchived, setShowArchived] = useState(false);
   const [leaderboardEventId, setLeaderboardEventId] = useState(null);
+  const [eventSortKey, setEventSortKey] = useState('startDate');
+  const [eventSortDir, setEventSortDir] = useState('desc');
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [confirmTransferTo, setConfirmTransferTo] = useState(null); // { id, displayName }
 
   const [createEvent, { loading: creating }] = useMutation(CREATE_GROUP_GOAL_EVENT, {
     onCompleted: () => {
@@ -862,6 +886,17 @@ export default function GroupDashboardManagePage() {
     onCompleted: () => {
       refetch();
       toast({ title: 'Event deleted', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  const [transferDashboard, { loading: transferring }] = useMutation(TRANSFER_GROUP_DASHBOARD, {
+    onCompleted: () => {
+      refetch();
+      setShowTransfer(false);
+      toast({ title: 'Ownership transferred', status: 'success', duration: 3000, isClosable: true });
+    },
+    onError: (err) => {
+      toast({ title: err.message, status: 'error', duration: 4000, isClosable: true });
     },
   });
 
@@ -893,12 +928,14 @@ export default function GroupDashboardManagePage() {
     );
   }
 
-  const allEvents = [...(dashboard.events ?? [])].sort(
-    (a, b) => new Date(b.startDate) - new Date(a.startDate)
-  );
+  const sortedEvents = [...(dashboard.events ?? [])].sort((a, b) => {
+    const aVal = new Date(a[eventSortKey]);
+    const bVal = new Date(b[eventSortKey]);
+    return eventSortDir === 'asc' ? aVal - bVal : bVal - aVal;
+  });
 
-  const activeEvents = allEvents.filter((e) => !isArchivedEvent(e));
-  const archivedEvents = allEvents.filter((e) => isArchivedEvent(e));
+  const activeEvents = sortedEvents.filter((e) => !isArchivedEvent(e));
+  const archivedEvents = sortedEvents.filter((e) => isArchivedEvent(e));
   const leaderboardEvent = archivedEvents.find((e) => e.id === leaderboardEventId) ?? null;
 
   const theme = dashboard.theme ?? {};
@@ -980,6 +1017,33 @@ export default function GroupDashboardManagePage() {
                 {/* ── Events tab ── */}
                 <TabPanel px={0} pt={5}>
                   <VStack spacing={3} align="stretch">
+                    {/* Sort controls */}
+                    <HStack spacing={2} justify="flex-end">
+                      <Select
+                        size="xs"
+                        value={eventSortKey}
+                        onChange={(e) => setEventSortKey(e.target.value)}
+                        bg="gray.800"
+                        borderColor="gray.600"
+                        w="auto"
+                      >
+                        <option value="startDate">Start Date</option>
+                        <option value="endDate">End Date</option>
+                        <option value="createdAt">Created</option>
+                      </Select>
+                      <Select
+                        size="xs"
+                        value={eventSortDir}
+                        onChange={(e) => setEventSortDir(e.target.value)}
+                        bg="gray.800"
+                        borderColor="gray.600"
+                        w="auto"
+                      >
+                        <option value="desc">Newest first</option>
+                        <option value="asc">Oldest first</option>
+                      </Select>
+                    </HStack>
+
                     {activeEvents.length === 0 && !showCreate && (
                       <Box bg="gray.800" borderRadius="xl" p={8} textAlign="center">
                         <Text color="gray.400" mb={1}>
@@ -1088,13 +1152,85 @@ export default function GroupDashboardManagePage() {
 
                 {/* ── Editors tab ── */}
                 <TabPanel px={0} pt={5}>
-                  <Box bg="gray.800" borderRadius="xl" p={5}>
-                    <Text fontSize="sm" color="gray.400" mb={5} lineHeight="1.6">
-                      Editors can create, edit, and delete events and manage settings for this
-                      dashboard.
-                    </Text>
-                    <EditorsPanel dashboard={dashboard} onRefetch={refetch} />
-                  </Box>
+                  <VStack spacing={4} align="stretch">
+                    <Box bg="gray.800" borderRadius="xl" p={5}>
+                      <Text fontSize="sm" color="gray.400" mb={5} lineHeight="1.6">
+                        Editors can create, edit, and delete events and manage settings for this
+                        dashboard.
+                      </Text>
+                      <EditorsPanel dashboard={dashboard} onRefetch={refetch} />
+                    </Box>
+
+                    {/* Transfer ownership — creator only */}
+                    {String(dashboard.creatorId) === String(user.id) && (
+                      <Box bg="gray.800" borderRadius="xl" p={5} border="1px solid" borderColor="red.900">
+                        <Text fontSize="sm" fontWeight="semibold" color="red.300" mb={1}>
+                          Transfer Ownership
+                        </Text>
+                        <Text fontSize="xs" color="gray.500" mb={3}>
+                          Transfer full ownership to another editor. You will become an editor yourself.
+                        </Text>
+                        {!showTransfer ? (
+                          <Button size="sm" colorScheme="red" variant="outline" onClick={() => { setShowTransfer(true); setConfirmTransferTo(null); }}>
+                            Transfer Ownership
+                          </Button>
+                        ) : confirmTransferTo ? (
+                          <VStack spacing={3} align="stretch">
+                            <Box bg="red.900" border="1px solid" borderColor="red.600" borderRadius="md" p={3}>
+                              <Text fontSize="sm" color="red.200" fontWeight="semibold" mb={1}>Are you sure?</Text>
+                              <Text fontSize="xs" color="gray.300">
+                                <Text as="span" fontWeight="bold">{confirmTransferTo.label}</Text> will become the new owner. You cannot undo this without their cooperation.
+                              </Text>
+                            </Box>
+                            <HStack spacing={2}>
+                              <Button
+                                size="sm"
+                                colorScheme="red"
+                                isLoading={transferring}
+                                onClick={() => transferDashboard({ variables: { id: dashboard.id, newOwnerId: confirmTransferTo.id } })}
+                              >
+                                Yes, Transfer Ownership
+                              </Button>
+                              <Button size="sm" variant="outline" colorScheme="gray" color="gray.300" borderColor="gray.500" onClick={() => setConfirmTransferTo(null)}>
+                                Go Back
+                              </Button>
+                            </HStack>
+                          </VStack>
+                        ) : (
+                          <VStack spacing={3} align="stretch">
+                            <Text fontSize="xs" color="red.400">
+                              Choose an existing editor to become the new owner:
+                            </Text>
+                            {(dashboard.admins ?? []).length === 0 ? (
+                              <Text fontSize="xs" color="gray.500">Add at least one editor above before transferring.</Text>
+                            ) : (
+                              <VStack spacing={2} align="stretch">
+                                {(dashboard.admins ?? []).map((admin) => (
+                                  <HStack key={admin.id} px={3} py={2} bg="gray.700" borderRadius="md" justify="space-between" border="1px solid" borderColor="gray.600">
+                                    <Text fontSize="sm" color="gray.200">
+                                      {admin.displayName || admin.username}
+                                      <Text as="span" color="gray.500"> · {admin.rsn}</Text>
+                                    </Text>
+                                    <Button
+                                      size="xs"
+                                      colorScheme="red"
+                                      variant="outline"
+                                      onClick={() => setConfirmTransferTo({ id: admin.id, label: admin.displayName || admin.username })}
+                                    >
+                                      Select
+                                    </Button>
+                                  </HStack>
+                                ))}
+                              </VStack>
+                            )}
+                            <Button size="xs" variant="outline" colorScheme="gray" color="gray.300" borderColor="gray.500" alignSelf="flex-start" onClick={() => setShowTransfer(false)}>
+                              Cancel
+                            </Button>
+                          </VStack>
+                        )}
+                      </Box>
+                    )}
+                  </VStack>
                 </TabPanel>
               </TabPanels>
             </Tabs>
