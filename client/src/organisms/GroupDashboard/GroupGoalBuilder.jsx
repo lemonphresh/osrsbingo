@@ -284,10 +284,11 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
                 onChange({ ...goal, type: newType, metric: opts[0]?.value ?? '' });
               }}
               bg="gray.800"
+              color="gray.100"
               borderColor="gray.600"
             >
               {GOAL_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
+                <option key={t.value} value={t.value} style={{ background: '#1A202C', color: '#E2E8F0' }}>
                   {t.label}
                 </option>
               ))}
@@ -304,10 +305,11 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
                 value={goal.metric}
                 onChange={(e) => update('metric', e.target.value)}
                 bg="gray.800"
+                color="gray.100"
                 borderColor="gray.600"
               >
                 {metricOptions.map((m) => (
-                  <option key={m.value} value={m.value}>
+                  <option key={m.value} value={m.value} style={{ background: '#1A202C', color: '#E2E8F0' }}>
                     {m.label}
                   </option>
                 ))}

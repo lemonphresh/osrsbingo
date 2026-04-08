@@ -1024,23 +1024,25 @@ export default function GroupDashboardManagePage() {
                         value={eventSortKey}
                         onChange={(e) => setEventSortKey(e.target.value)}
                         bg="gray.800"
+                        color="gray.100"
                         borderColor="gray.600"
                         w="auto"
                       >
-                        <option value="startDate">Start Date</option>
-                        <option value="endDate">End Date</option>
-                        <option value="createdAt">Created</option>
+                        <option value="startDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>Start Date</option>
+                        <option value="endDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>End Date</option>
+                        <option value="createdAt" style={{ background: '#1A202C', color: '#E2E8F0' }}>Created</option>
                       </Select>
                       <Select
                         size="xs"
                         value={eventSortDir}
                         onChange={(e) => setEventSortDir(e.target.value)}
                         bg="gray.800"
+                        color="gray.100"
                         borderColor="gray.600"
                         w="auto"
                       >
-                        <option value="desc">Newest first</option>
-                        <option value="asc">Oldest first</option>
+                        <option value="desc" style={{ background: '#1A202C', color: '#E2E8F0' }}>Newest first</option>
+                        <option value="asc" style={{ background: '#1A202C', color: '#E2E8F0' }}>Oldest first</option>
                       </Select>
                     </HStack>
 

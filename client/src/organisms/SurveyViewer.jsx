@@ -405,9 +405,12 @@ export default function SurveyViewer() {
           onChange={(e) => setSelected(e.target.value)}
           size="md"
           maxW="340px"
+          bg="gray.800"
+          color="gray.100"
+          borderColor="gray.600"
         >
           {surveyEntries.map(([name, file]) => (
-            <option key={file} value={file}>
+            <option key={file} value={file} style={{ background: '#1A202C', color: '#E2E8F0' }}>
               {name}
             </option>
           ))}

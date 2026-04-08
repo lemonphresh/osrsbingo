@@ -16,8 +16,8 @@ const ColorScheme = ({ board, canEdit, onChange }) =>
         Color Scheme:
       </Text>
       <Select
-        backgroundColor={theme.colors.gray[300]}
-        color={theme.colors.gray[700]}
+        bg="gray.700"
+        color="gray.100"
         margin="0 auto"
         maxWidth="196px"
         name="category"

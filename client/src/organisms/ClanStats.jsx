@@ -149,10 +149,12 @@ function TopGainers() {
             value={period}
             onChange={(e) => setPeriod(e.target.value)}
             maxW="120px"
+            bg="gray.700"
+            color="gray.100"
             borderColor="whiteAlpha.300"
           >
             {PERIOD_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
+              <option key={o.value} value={o.value} style={{ background: '#2D3748', color: '#E2E8F0' }}>
                 {o.label}
               </option>
             ))}
@@ -162,10 +164,12 @@ function TopGainers() {
             value={metric}
             onChange={(e) => setMetric(e.target.value)}
             maxW="200px"
+            bg="gray.700"
+            color="gray.100"
             borderColor="whiteAlpha.300"
           >
             {METRIC_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
+              <option key={o.value} value={o.value} style={{ background: '#2D3748', color: '#E2E8F0' }}>
                 {o.label}
               </option>
             ))}
