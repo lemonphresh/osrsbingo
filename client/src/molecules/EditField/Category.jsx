@@ -17,8 +17,8 @@ const Category = ({ board, canEdit, fieldActive, onChange, onClickEdit, user }) 
     </Text>
     {canEdit && fieldActive ? (
       <Select
-        backgroundColor={theme.colors.gray[300]}
-        color={theme.colors.gray[700]}
+        bg="gray.700"
+        color="gray.100"
         margin="0 auto"
         marginTop="8px"
         maxWidth="196px"

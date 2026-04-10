@@ -75,8 +75,8 @@ const BoardCreationForm = ({ onSubmit }) => {
         <FormControl isRequired>
           <FormLabel fontWeight="semibold">Name: </FormLabel>
           <Input
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
+            bg="gray.700"
+            color="gray.100"
             maxLength={25}
             name="name"
             onChange={handleChange}
@@ -102,8 +102,8 @@ const BoardCreationForm = ({ onSubmit }) => {
             !
           </Text>
           <Textarea
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
+            bg="gray.700"
+            color="gray.100"
             name="description"
             onChange={handleChange}
             placeholder="Enter a brief description"
@@ -114,53 +114,53 @@ const BoardCreationForm = ({ onSubmit }) => {
         <FormControl isRequired>
           <FormLabel fontWeight="semibold">Category:</FormLabel>
           <Select
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
+            bg="gray.700"
+            color="gray.100"
             name="category"
             onChange={handleChange}
             value={formData.category}
           >
-            <option value="PvM">PvM</option>
-            <option value="PvP">PvP</option>
-            <option value="Skilling">Skilling</option>
-            <option value="Social">Social</option>
-            <option value="Other">Other</option>
+            <option value="PvM" style={{ background: '#2D3748', color: '#E2E8F0' }}>PvM</option>
+            <option value="PvP" style={{ background: '#2D3748', color: '#E2E8F0' }}>PvP</option>
+            <option value="Skilling" style={{ background: '#2D3748', color: '#E2E8F0' }}>Skilling</option>
+            <option value="Social" style={{ background: '#2D3748', color: '#E2E8F0' }}>Social</option>
+            <option value="Other" style={{ background: '#2D3748', color: '#E2E8F0' }}>Other</option>
           </Select>
         </FormControl>
 
         <FormControl isRequired>
           <FormLabel fontWeight="semibold">Color Scheme:</FormLabel>
           <Select
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
+            bg="gray.700"
+            color="gray.100"
             name="theme"
             onChange={handleChange}
             value={formData.theme}
           >
-            <option value="DEFAULT">Default</option>
-            <option value="purple">Purple</option>
-            <option value="blue">Blue</option>
-            <option value="cyan">Cyan</option>
-            <option value="green">Green</option>
-            <option value="yellow">Yellow</option>
-            <option value="orange">Orange</option>
-            <option value="pink">Pink</option>
-            <option value="red">Red</option>
-            <option value="gray">Gray</option>
+            <option value="DEFAULT" style={{ background: '#2D3748', color: '#E2E8F0' }}>Default</option>
+            <option value="purple" style={{ background: '#2D3748', color: '#E2E8F0' }}>Purple</option>
+            <option value="blue" style={{ background: '#2D3748', color: '#E2E8F0' }}>Blue</option>
+            <option value="cyan" style={{ background: '#2D3748', color: '#E2E8F0' }}>Cyan</option>
+            <option value="green" style={{ background: '#2D3748', color: '#E2E8F0' }}>Green</option>
+            <option value="yellow" style={{ background: '#2D3748', color: '#E2E8F0' }}>Yellow</option>
+            <option value="orange" style={{ background: '#2D3748', color: '#E2E8F0' }}>Orange</option>
+            <option value="pink" style={{ background: '#2D3748', color: '#E2E8F0' }}>Pink</option>
+            <option value="red" style={{ background: '#2D3748', color: '#E2E8F0' }}>Red</option>
+            <option value="gray" style={{ background: '#2D3748', color: '#E2E8F0' }}>Gray</option>
           </Select>
         </FormControl>
 
         <FormControl isRequired>
           <FormLabel fontWeight="semibold">Board Type:</FormLabel>
           <Select
-            backgroundColor={theme.colors.gray[300]}
-            color={theme.colors.gray[700]}
+            bg="gray.700"
+            color="gray.100"
             name="type"
             onChange={handleChange}
             value={formData.type}
           >
-            <option value="FIVE">5x5</option>
-            <option value="SEVEN">7x7</option>
+            <option value="FIVE" style={{ background: '#2D3748', color: '#E2E8F0' }}>5x5</option>
+            <option value="SEVEN" style={{ background: '#2D3748', color: '#E2E8F0' }}>7x7</option>
           </Select>
         </FormControl>
 
@@ -171,7 +171,7 @@ const BoardCreationForm = ({ onSubmit }) => {
             later!
           </Text>
           <NumberInput
-            color={theme.colors.gray[700]}
+            color="gray.100"
             colorScheme="purple"
             max={100}
             maxWidth="80px"
@@ -188,7 +188,7 @@ const BoardCreationForm = ({ onSubmit }) => {
           >
             <NumberInputField
               autoComplete="off"
-              backgroundColor={theme.colors.gray[300]}
+              bg="gray.700"
               placeholder={formData.baseTileValue || 0}
               value={formData.baseTileValue || 0}
             />

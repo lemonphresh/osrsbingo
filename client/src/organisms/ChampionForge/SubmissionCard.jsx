@@ -209,7 +209,7 @@ export default function SubmissionCard({
                     color="white"
                   >
                     {PVMER_SLOTS.map((s) => (
-                      <option key={s} value={s}>
+                      <option key={s} value={s} style={{ background: '#2D3748', color: '#E2E8F0' }}>
                         {PVMER_SLOT_LABELS[s] ?? s}
                       </option>
                     ))}
@@ -310,7 +310,7 @@ export default function SubmissionCard({
                     color="white"
                   >
                     {PVMER_SLOTS.map((s) => (
-                      <option key={s} value={s}>
+                      <option key={s} value={s} style={{ background: '#2D3748', color: '#E2E8F0' }}>
                         {s}
                       </option>
                     ))}

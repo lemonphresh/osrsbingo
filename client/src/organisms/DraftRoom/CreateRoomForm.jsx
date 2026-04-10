@@ -272,10 +272,10 @@ export default function CreateRoomForm() {
               <Text fontSize="sm" mb={1}>
                 Draft Format
               </Text>
-              <Select value={format} onChange={(e) => setFormat(e.target.value)} mb={2}>
-                <option value="SNAKE">Snake</option>
-                <option value="LINEAR">Linear</option>
-                <option value="AUCTION">Auction</option>
+              <Select value={format} onChange={(e) => setFormat(e.target.value)} mb={2} bg="gray.700" color="gray.100" borderColor="gray.600">
+                <option value="SNAKE" style={{ background: '#2D3748', color: '#E2E8F0' }}>Snake</option>
+                <option value="LINEAR" style={{ background: '#2D3748', color: '#E2E8F0' }}>Linear</option>
+                <option value="AUCTION" style={{ background: '#2D3748', color: '#E2E8F0' }}>Auction</option>
               </Select>
               {FORMAT_INFO[format] && (
                 <Box

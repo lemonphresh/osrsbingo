@@ -309,14 +309,14 @@ const TreasureHuntDashboard = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             bg={c.cardBg}
             borderColor="gray.600"
-            color="gray.600"
+            color="gray.200"
             _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
           >
-            <option value="ALL">All Status</option>
-            <option value="PUBLIC">Public</option>
-            <option value="DRAFT">Draft</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="ARCHIVED">Archived</option>
+            <option value="ALL" style={{ background: '#1A202C', color: '#E2E8F0' }}>All Status</option>
+            <option value="PUBLIC" style={{ background: '#1A202C', color: '#E2E8F0' }}>Public</option>
+            <option value="DRAFT" style={{ background: '#1A202C', color: '#E2E8F0' }}>Draft</option>
+            <option value="COMPLETED" style={{ background: '#1A202C', color: '#E2E8F0' }}>Completed</option>
+            <option value="ARCHIVED" style={{ background: '#1A202C', color: '#E2E8F0' }}>Archived</option>
           </Select>
           <Select
             flex={1}
@@ -324,14 +324,14 @@ const TreasureHuntDashboard = () => {
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
             bg={c.cardBg}
-            color="gray.600"
+            color="gray.200"
             borderColor="gray.600"
             _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
           >
-            <option value="name">Sort: Name</option>
-            <option value="startDate">Sort: Start Date</option>
-            <option value="endDate">Sort: End Date</option>
-            <option value="teams">Sort: Teams</option>
+            <option value="name" style={{ background: '#1A202C', color: '#E2E8F0' }}>Sort: Name</option>
+            <option value="startDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>Sort: Start Date</option>
+            <option value="endDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>Sort: End Date</option>
+            <option value="teams" style={{ background: '#1A202C', color: '#E2E8F0' }}>Sort: Teams</option>
           </Select>
         </HStack>
 

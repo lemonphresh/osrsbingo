@@ -472,24 +472,24 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 onChange={(e) => handleInputChange('status', e.target.value)}
                 {...inputStyles}
               >
-                <option value="DRAFT" style={{ background: '#2D3748' }}>
+                <option value="DRAFT" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Draft
                 </option>
                 <option
                   value="PUBLIC"
                   disabled={shouldBeLockedOut}
-                  style={{ background: '#2D3748' }}
+                  style={{ background: '#2D3748', color: '#E2E8F0' }}
                 >
                   Public{shouldBeLockedOut ? ' (requirements not met)' : ''}
                 </option>
                 <option
                   value="COMPLETED"
                   disabled={shouldBeLockedOut}
-                  style={{ background: '#2D3748' }}
+                  style={{ background: '#2D3748', color: '#E2E8F0' }}
                 >
                   Completed{shouldBeLockedOut ? ' (requirements not met)' : ''}
                 </option>
-                <option value="ARCHIVED" style={{ background: '#2D3748' }}>
+                <option value="ARCHIVED" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Archived
                 </option>
               </Select>
@@ -559,16 +559,16 @@ export default function EditEventModal({ isOpen, onClose, event, onSuccess }) {
                 isDisabled={!isEditable}
                 {...inputStyles}
               >
-                <option value="easy" style={{ background: '#2D3748' }}>
+                <option value="easy" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Easy (0.8x objectives)
                 </option>
-                <option value="normal" style={{ background: '#2D3748' }}>
+                <option value="normal" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Normal (1.0x objectives)
                 </option>
-                <option value="hard" style={{ background: '#2D3748' }}>
+                <option value="hard" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Hard (1.4x objectives)
                 </option>
-                <option value="sweatlord" style={{ background: '#2D3748' }}>
+                <option value="sweatlord" style={{ background: '#2D3748', color: '#E2E8F0' }}>
                   Sweatlord (2.0x objectives)
                 </option>
               </Select>

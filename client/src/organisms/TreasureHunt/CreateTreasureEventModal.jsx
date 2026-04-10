@@ -350,16 +350,16 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 onChange={(e) => handleInputChange('difficulty', e.target.value)}
                 {...inputStyles}
               >
-                <option value="easy" style={{ backgroundColor: '#2D3748' }}>
+                <option value="easy" style={{ backgroundColor: '#2D3748', color: '#E2E8F0' }}>
                   Easy (0.8x objectives) — Casual fun
                 </option>
-                <option value="normal" style={{ backgroundColor: '#2D3748' }}>
+                <option value="normal" style={{ backgroundColor: '#2D3748', color: '#E2E8F0' }}>
                   Normal (1.0x objectives) — Balanced
                 </option>
-                <option value="hard" style={{ backgroundColor: '#2D3748' }}>
+                <option value="hard" style={{ backgroundColor: '#2D3748', color: '#E2E8F0' }}>
                   Hard (1.4x objectives) — Challenging
                 </option>
-                <option value="sweatlord" style={{ backgroundColor: '#2D3748' }}>
+                <option value="sweatlord" style={{ backgroundColor: '#2D3748', color: '#E2E8F0' }}>
                   Sweatlord (2.0x objectives) — Extreme
                 </option>
               </Select>

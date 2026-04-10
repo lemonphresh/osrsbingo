@@ -147,13 +147,16 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
               <Select
                 value={v.eventType}
                 onChange={(e) => setV((s) => ({ ...s, eventType: e.target.value }))}
+                bg="gray.700"
+                color="gray.100"
+                borderColor="gray.600"
               >
-                <option value="PVM">PvM</option>
-                <option value="MASS">Mass</option>
-                <option value="SKILLING">Skilling</option>
-                <option value="MISC">Misc</option>
-                <option value="MIXED_CONTENT">Mixed Content</option>
-                <option value="JAGEX">Official Jagex Event</option>
+                <option value="PVM" style={{ background: '#2D3748', color: '#E2E8F0' }}>PvM</option>
+                <option value="MASS" style={{ background: '#2D3748', color: '#E2E8F0' }}>Mass</option>
+                <option value="SKILLING" style={{ background: '#2D3748', color: '#E2E8F0' }}>Skilling</option>
+                <option value="MISC" style={{ background: '#2D3748', color: '#E2E8F0' }}>Misc</option>
+                <option value="MIXED_CONTENT" style={{ background: '#2D3748', color: '#E2E8F0' }}>Mixed Content</option>
+                <option value="JAGEX" style={{ background: '#2D3748', color: '#E2E8F0' }}>Official Jagex Event</option>
               </Select>
             </FormControl>
           </VStack>
