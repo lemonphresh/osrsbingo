@@ -10,6 +10,7 @@ import {
   HStack,
   Badge,
   Button,
+  Switch,
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
@@ -26,6 +27,7 @@ import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOp
 import { FaHeart } from 'react-icons/fa';
 import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
+import HolidayEmojiFall, { HOLIDAY_PREF_KEY, HOLIDAY_PREF_EVENT, isHolidayActive } from '../atoms/HolidayEmojiFall';
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -34,6 +36,7 @@ const NavBar = () => {
   const { user, logout } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
+  const [holidayEmojisOn, setHolidayEmojisOn] = useState(() => !localStorage.getItem(HOLIDAY_PREF_KEY));
 
   const { data: invitationsData } = useQuery(GET_PENDING_INVITATIONS, {
     skip: !user,
@@ -196,6 +199,7 @@ const NavBar = () => {
       </Collapse>
 
       {/* Main Navigation Bar */}
+      <Box position="relative">
       <Flex
         alignItems="center"
         backgroundColor={`rgba(50, 104, 107, 1)`}
@@ -422,6 +426,34 @@ const NavBar = () => {
                 />
               </Box>
 
+              {/* Holiday toggle */}
+              {isHolidayActive() && (
+                <Box
+                  paddingX="20px"
+                  paddingY="10px"
+                  borderBottom="1px solid rgba(255,255,255,0.08)"
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="space-between"
+                >
+                  <Text fontSize="xs" color="rgba(255,255,255,0.5)">
+                    Holiday emojis
+                  </Text>
+                  <Switch
+                    size="sm"
+                    colorScheme="teal"
+                    isChecked={holidayEmojisOn}
+                    onChange={() => {
+                      const next = !holidayEmojisOn;
+                      setHolidayEmojisOn(next);
+                      if (next) localStorage.removeItem(HOLIDAY_PREF_KEY);
+                      else localStorage.setItem(HOLIDAY_PREF_KEY, '1');
+                      window.dispatchEvent(new Event(HOLIDAY_PREF_EVENT));
+                    }}
+                  />
+                </Box>
+              )}
+
               {/* Drawer items */}
               <Box overflowY="auto" flex={1} paddingBottom="16px">
                 {[
@@ -569,6 +601,8 @@ const NavBar = () => {
           </Link>
         )}
       </Flex>
+      <HolidayEmojiFall />
+      </Box>
     </>
   );
 };

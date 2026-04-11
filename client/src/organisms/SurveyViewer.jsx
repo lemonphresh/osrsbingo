@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Text,
@@ -20,7 +20,7 @@ const SURVEY_MANIFEST = {
   'Battleship (2025-07-01)': 'EGBattleshipFeedback.csv',
   'Monster Hunter (2025-08-01)': 'EGMH2025.csv',
   'Gielinor Rush (2026-03-06)': 'EGGielinorRush2026.csv',
-  'EG Survey (2026-04-04)': 'EGSurveyApr2026.csv',
+  'EG Survey (2026-04-04)': 'EGSurveyApr2026Final.csv',
 };
 
 // Tally metadata columns to skip (not actual questions)
@@ -340,6 +340,7 @@ export default function SurveyViewer() {
   const [questions, setQuestions] = useState([]);
   const [dateColValues, setDateColValues] = useState(null);
   const [view, setView] = useState('summary'); // 'summary' | 'responses'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = newest first, 'asc' = oldest first
 
   const surveyEntries = Object.entries(SURVEY_MANIFEST);
   const hasManifest = surveyEntries.length > 0;
@@ -387,6 +388,31 @@ export default function SurveyViewer() {
 
   const hasData = !loading && !error && questions.length > 0;
 
+  const sortedIndices = useMemo(() => {
+    if (!dateColValues) return null;
+    const indices = dateColValues.map((_, i) => i);
+    indices.sort((a, b) => {
+      const da = new Date(dateColValues[a]);
+      const db = new Date(dateColValues[b]);
+      return sortOrder === 'desc' ? db - da : da - db;
+    });
+    return indices;
+  }, [dateColValues, sortOrder]);
+
+  const sortedDateColValues = useMemo(() => {
+    if (!sortedIndices || !dateColValues) return dateColValues;
+    return sortedIndices.map((i) => dateColValues[i]);
+  }, [sortedIndices, dateColValues]);
+
+  const sortedQuestions = useMemo(() => {
+    if (!sortedIndices) return questions;
+    return questions.map((q) => ({
+      ...q,
+      values: sortedIndices.map((i) => q.values[i]),
+      dateValues: q.dateValues ? sortedIndices.map((i) => q.dateValues[i]) : q.dateValues,
+    }));
+  }, [sortedIndices, questions]);
+
   return (
     <Flex
       direction="column"
@@ -417,26 +443,50 @@ export default function SurveyViewer() {
         </Select>
 
         {hasData && (
-          <ButtonGroup size="sm" isAttached>
-            <Button
-              variant={view === 'summary' ? 'solid' : 'outline'}
-              onClick={() => setView('summary')}
-              borderColor="whiteAlpha.300"
-              bg={view !== 'summary' ? 'dark.turquoise.light' : undefined}
-              _hover={view !== 'summary' ? { bg: 'dark.turquoise.base' } : undefined}
-            >
-              Summary
-            </Button>
-            <Button
-              variant={view === 'responses' ? 'solid' : 'outline'}
-              onClick={() => setView('responses')}
-              borderColor="whiteAlpha.300"
-              bg={view !== 'responses' ? 'dark.turquoise.light' : undefined}
-              _hover={view !== 'responses' ? { bg: 'dark.turquoise.base' } : undefined}
-            >
-              Responses
-            </Button>
-          </ButtonGroup>
+          <Flex gap={2} align="center" wrap="wrap">
+            {dateColValues && (
+              <ButtonGroup size="sm" isAttached>
+                <Button
+                  variant={sortOrder === 'desc' ? 'solid' : 'outline'}
+                  onClick={() => setSortOrder('desc')}
+                  borderColor="whiteAlpha.300"
+                  bg={sortOrder !== 'desc' ? 'dark.turquoise.dark' : undefined}
+                  _hover={sortOrder !== 'desc' ? { bg: 'dark.turquoise.logoDark' } : undefined}
+                >
+                  Newest
+                </Button>
+                <Button
+                  variant={sortOrder === 'asc' ? 'solid' : 'outline'}
+                  onClick={() => setSortOrder('asc')}
+                  borderColor="whiteAlpha.300"
+                  bg={sortOrder !== 'asc' ? 'dark.turquoise.dark' : undefined}
+                  _hover={sortOrder !== 'asc' ? { bg: 'dark.turquoise.logoDark' } : undefined}
+                >
+                  Oldest
+                </Button>
+              </ButtonGroup>
+            )}
+            <ButtonGroup size="sm" isAttached>
+              <Button
+                variant={view === 'summary' ? 'solid' : 'outline'}
+                onClick={() => setView('summary')}
+                borderColor="whiteAlpha.300"
+                bg={view !== 'summary' ? 'dark.turquoise.dark' : undefined}
+                _hover={view !== 'summary' ? { bg: 'dark.turquoise.logoDark' } : undefined}
+              >
+                Summary
+              </Button>
+              <Button
+                variant={view === 'responses' ? 'solid' : 'outline'}
+                onClick={() => setView('responses')}
+                borderColor="whiteAlpha.300"
+                bg={view !== 'responses' ? 'dark.turquoise.dark' : undefined}
+                _hover={view !== 'responses' ? { bg: 'dark.turquoise.logoDark' } : undefined}
+              >
+                Responses
+              </Button>
+            </ButtonGroup>
+          </Flex>
         )}
       </Flex>
 
@@ -455,23 +505,26 @@ export default function SurveyViewer() {
 
       {hasData && view === 'summary' && (
         <VStack spacing={6} width="100%" align="center">
-          {questions.filter((q) => !q.name.toLowerCase().startsWith('optional')).map((q) =>
-            q.type === 'choice' ? (
-              <MultipleChoiceCard key={q.name} question={q.name} values={q.values} />
-            ) : (
-              <TextResponseCard
-                key={q.name}
-                question={q.name}
-                values={q.values}
-                dateValues={q.dateValues}
-              />
-            )
-          )}
+          {questions
+            .filter((q) => !q.name.toLowerCase().startsWith('optional'))
+            .map((q) => {
+              const sorted = sortedQuestions.find((sq) => sq.name === q.name);
+              return q.type === 'choice' ? (
+                <MultipleChoiceCard key={q.name} question={q.name} values={q.values} />
+              ) : (
+                <TextResponseCard
+                  key={q.name}
+                  question={q.name}
+                  values={sorted.values}
+                  dateValues={sorted.dateValues}
+                />
+              );
+            })}
         </VStack>
       )}
 
       {hasData && view === 'responses' && (
-        <ResponsesView questions={questions} dateColValues={dateColValues} />
+        <ResponsesView questions={sortedQuestions} dateColValues={sortedDateColValues} />
       )}
 
       {!loading && !error && selected && questions.length === 0 && (
