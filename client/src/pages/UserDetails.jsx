@@ -32,6 +32,8 @@ import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 import { isBlindDraftEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
+import { Switch, Select } from '@chakra-ui/react';
+import { HOLIDAY_PREF_KEY, HOLIDAY_PREF_EVENT, HOLIDAY_TEST_EVENT, HOLIDAYS, isHolidayActive } from '../atoms/HolidayEmojiFall';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -52,6 +54,9 @@ const UserDetails = () => {
     rsn: false,
     username: false,
   });
+  const [holidayEmojisOn, setHolidayEmojisOn] = useState(
+    () => !localStorage.getItem(HOLIDAY_PREF_KEY)
+  );
   const [shownUser, setShownUser] = useState(null);
   usePageTitle(shownUser ? `User Details - ${shownUser.username}` : 'User Details');
 
@@ -286,6 +291,60 @@ const UserDetails = () => {
                 }}
                 value={user.rsn}
               />
+            )}
+
+            {/* HOLIDAY EMOJIS TOGGLE */}
+            {isCurrentUser && isHolidayActive() && (
+              <Flex alignItems="center" minHeight="40px" justifyContent="space-between" width="100%">
+                <Text>
+                  <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold" marginRight="4px">
+                    Holiday Emojis:
+                  </Text>
+                  {holidayEmojisOn ? 'On' : 'Off'}
+                </Text>
+                <Switch
+                  isChecked={holidayEmojisOn}
+                  onChange={() => {
+                    const next = !holidayEmojisOn;
+                    setHolidayEmojisOn(next);
+                    if (next) {
+                      localStorage.removeItem(HOLIDAY_PREF_KEY);
+                    } else {
+                      localStorage.setItem(HOLIDAY_PREF_KEY, '1');
+                    }
+                    window.dispatchEvent(new Event(HOLIDAY_PREF_EVENT));
+                  }}
+                  colorScheme="teal"
+                  marginLeft="16px"
+                />
+              </Flex>
+            )}
+
+            {/* ADMIN: TEST HOLIDAY EFFECTS */}
+            {isCurrentUser && user?.admin && (
+              <Flex alignItems="center" minHeight="40px" justifyContent="space-between" width="100%" gap={2}>
+                <Text flexShrink={0}>
+                  <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold" marginRight="4px">
+                    Test Holiday:
+                  </Text>
+                </Text>
+                <Select
+                  size="sm"
+                  bg="gray.800"
+                  borderColor="gray.600"
+                  color="gray.100"
+                  placeholder="Pick a holiday..."
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    window.dispatchEvent(new CustomEvent(HOLIDAY_TEST_EVENT, { detail: HOLIDAYS[e.target.value] }));
+                    e.target.value = '';
+                  }}
+                >
+                  {Object.keys(HOLIDAYS).map((name) => (
+                    <option key={name} value={name} style={{ background: '#1A202C' }}>{name}</option>
+                  ))}
+                </Select>
+              </Flex>
             )}
 
             {/* DISCORD INTEGRATION SECTION */}
