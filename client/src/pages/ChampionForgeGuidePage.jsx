@@ -402,39 +402,10 @@ function EventCreatorSection() {
           </VStack>
         </StepCard>
 
-        <StepCard number="7" title="Create Gathering Tasks">
-          In the Admin Controls, open the <strong style={{ color: 'white' }}>Tasks</strong> section
-          to add the objectives players will complete during gathering. Each task needs:
-          <VStack spacing={1} mt={3} alignItems="flex-start" pl={2}>
-            <Text fontSize="sm" color={theme.colors.gray[300]}>
-              <strong style={{ color: 'white' }}>Name and description</strong> visible to players in
-              barracks
-            </Text>
-            <Text fontSize="sm" color={theme.colors.gray[300]}>
-              <strong style={{ color: 'white' }}>Type:</strong> PvM (boss kills and combat drops) or
-              Skilling (XP milestones and minigames)
-            </Text>
-            <Text fontSize="sm" color={theme.colors.gray[300]}>
-              <strong style={{ color: 'white' }}>Difficulty:</strong> Initiate, Adept, or Master.
-              Higher difficulty weights toward rarer item drops.
-            </Text>
-            <Text fontSize="sm" color={theme.colors.gray[300]}>
-              <strong style={{ color: 'white' }}>Valid drop categories:</strong> the gear slot
-              categories a completion can reward. PvM tasks typically yield weapons and armor;
-              skilling tasks typically yield consumables, rings, amulets, capes, and shields.
-            </Text>
-            <Text fontSize="sm" color={theme.colors.gray[300]}>
-              <strong style={{ color: 'white' }}>Progress target:</strong> for quantified tasks like
-              "gain 50,000 Slayer XP." Players use !cfpresubmit to record their starting
-              XP/KC/whatever, then !cfsubmit after reaching the goal.
-            </Text>
-          </VStack>
-        </StepCard>
-
-        <StepCard number="8" title="Launch Gathering">
-          When teams are populated with captains and tasks are ready, click{' '}
-          <strong style={{ color: 'white' }}>Start Gathering</strong> in the Admin Controls header.
-          The gathering timer begins, and team barracks become accessible to all members. Share the
+        <StepCard number="7" title="Launch Gathering">
+          When teams are populated with captains, click{' '}
+          <strong style={{ color: 'white' }}>Launch Event</strong> in the Event Setup header. The
+          gathering timer begins, and team barracks become accessible to all members. Share the
           event URL with your participants and remind them to link their Discord accounts before
           trying to enter barracks.
         </StepCard>
@@ -728,8 +699,8 @@ function BattleSection() {
         >
           <BulletItem number="1">
             Before starting battle phase, coordinate with all team captains to agree on match
-            scheduling. Battles are live events and both captains must be present and online when
-            a match starts. Announce times in your event Discord so there are no surprises.
+            scheduling. Battles are live events and both captains must be present and online when a
+            match starts. Announce times in your event Discord so there are no surprises.
           </BulletItem>
           <BulletItem number="2">
             Go to the battle page from any team's barracks "Watch the Battle" button or via the
@@ -785,8 +756,8 @@ function BattleSection() {
             follow the momentum of the fight.
           </BulletItem>
           <BulletItem number="4">
-            Spectators can send emoji reacts during a live battle to hype up their team. Use them
-            to cheer on your captain when they land a big hit or make a clutch play.
+            Spectators can send emoji reacts during a live battle to hype up their team. Use them to
+            cheer on your captain when they land a big hit or make a clutch play.
           </BulletItem>
           <BulletItem number="5">
             After your match ends you can view the complete battle log replay at any time by
@@ -795,11 +766,11 @@ function BattleSection() {
           </BulletItem>
           <CaptainNote>
             <strong>You must be present and actively playing during your match.</strong> When the
-            battle starts, you will see action buttons each turn: attack, defend, use a special,
-            or use a consumable. You choose one per turn. The turn timer runs down and if you
-            miss it the game picks for you, so stay focused. Coordinate your match time with the
-            opposing captain and your admin in advance. Do not go offline during Battle phase
-            without letting your admin know.
+            battle starts, you will see action buttons each turn: attack, defend, use a special, or
+            use a consumable. You choose one per turn. The turn timer runs down and if you miss it
+            the game picks for you, so stay focused. Coordinate your match time with the opposing
+            captain and your admin in advance. Do not go offline during Battle phase without letting
+            your admin know.
           </CaptainNote>
         </Column>
       </SimpleGrid>

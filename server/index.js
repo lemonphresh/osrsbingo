@@ -24,6 +24,7 @@ const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
+const { startWomSyncScheduler } = require('./utils/womSync');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -525,6 +526,7 @@ server.start().then(async () => {
   server.applyMiddleware({ app, path: '/graphql', cors: false });
 
   await itemsService.warmCache();
+  startWomSyncScheduler();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

@@ -554,7 +554,7 @@ const Mutation = {
     const team = await getTeamOrThrow(teamId);
     const event = await getEventOrThrow(team.eventId);
 
-    if (!isAdmin(event, user.id)) {
+    if (!user.admin && !isAdmin(event, user.id)) {
       // Non-admins may only update their own member entry (i.e. setting their role)
       const discordId = user.discordUserId ?? null;
       if (!discordId) throw new AuthenticationError('Not an event admin');
