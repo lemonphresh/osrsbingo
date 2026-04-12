@@ -206,6 +206,7 @@ const typeDefs = gql`
     id: ID!
     title: String!
     description: String
+    threadUrl: String
     start: DateTime!
     end: DateTime!
     allDay: Boolean!
@@ -233,6 +234,7 @@ const typeDefs = gql`
   input CreateCalendarEventInput {
     title: String!
     description: String
+    threadUrl: String
     start: DateTime!
     end: DateTime!
     allDay: Boolean = false
@@ -243,6 +245,7 @@ const typeDefs = gql`
   input UpdateCalendarEventInput {
     title: String
     description: String
+    threadUrl: String
     start: DateTime
     end: DateTime
     allDay: Boolean

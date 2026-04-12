@@ -75,10 +75,32 @@ export default function EventViewModal({ isOpen, onClose, event }) {
               <Text fontWeight="semibold" mb={1}>
                 Description
               </Text>
-              <Text whiteSpace="pre-wrap" color="gray.200">
+              <Text whiteSpace="pre-wrap" wordBreak="break-word">
                 {event.description || '—'}
               </Text>
             </Box>
+
+            {event.threadUrl && (
+              <>
+                <Divider />
+                <Box>
+                  <Text fontWeight="semibold" mb={1}>
+                    Event Thread
+                  </Text>
+                  <Text
+                    as="a"
+                    href={event.threadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    color="blue.300"
+                    wordBreak="break-all"
+                    _hover={{ textDecoration: 'underline' }}
+                  >
+                    {event.threadUrl}
+                  </Text>
+                </Box>
+              </>
+            )}
           </VStack>
         </ModalBody>
       </ModalContent>

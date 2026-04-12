@@ -6,6 +6,17 @@ import {
   IconButton,
   Text,
   Flex,
+  Input,
+  Textarea,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalCloseButton,
+  ModalBody,
+  ModalFooter,
+  FormControl,
+  FormLabel,
   useDisclosure,
   useToast,
 } from '@chakra-ui/react';
@@ -123,6 +134,18 @@ export default function EGCalendar({ authed, setAuthed }) {
   const [toolbarPos, setToolbarPos] = useState({ x: 0, y: 0 });
   const [hasDrift, setHasDrift] = useState(false);
   const [, setBaseline] = useState({ activeUpdatedAt: null, savedUpdatedAt: null });
+  const [discordChannelId, setDiscordChannelId] = useState('');
+  const [savedDiscordChannelId, setSavedDiscordChannelId] = useState('');
+  const [channelIdSaved, setChannelIdSaved] = useState(false);
+  const [editingChannelId, setEditingChannelId] = useState(false);
+  const [discordRoleId, setDiscordRoleId] = useState('');
+  const [savedDiscordRoleId, setSavedDiscordRoleId] = useState('');
+  const [roleIdSaved, setRoleIdSaved] = useState(false);
+  const [editingRoleId, setEditingRoleId] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [calDate, setCalDate] = useState(new Date());
+  const [customMessage, setCustomMessage] = useState('');
+  const discordModal = useDisclosure();
 
   const form = useDisclosure();
   const viewModal = useDisclosure();
@@ -165,6 +188,101 @@ export default function EGCalendar({ authed, setAuthed }) {
     if (authed) checkVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
+
+  useEffect(() => {
+    if (!authed) return;
+    fetch('/api/calendar/settings', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((d) => {
+        setDiscordChannelId(d.discordChannelId || '');
+        setSavedDiscordChannelId(d.discordChannelId || '');
+        setDiscordRoleId(d.discordRoleId || '');
+        setSavedDiscordRoleId(d.discordRoleId || '');
+      })
+      .catch(() => {});
+  }, [authed]);
+
+  // Pre-populate custom message when month changes
+  useEffect(() => {
+    if (!authed) return;
+    fetch(
+      `/api/calendar/monthly-message?year=${calDate.getFullYear()}&month=${calDate.getMonth()}`,
+      { credentials: 'include' }
+    )
+      .then((r) => r.json())
+      .then((d) => setCustomMessage(d.message || ''))
+      .catch(() => {});
+  }, [authed, calDate]);
+
+  const openDiscordModal = () => discordModal.onOpen();
+
+  const postToDiscord = async () => {
+    setPosting(true);
+    discordModal.onClose();
+    try {
+      const r = await fetch('/api/calendar/post-to-discord', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          year: calDate.getFullYear(),
+          month: calDate.getMonth(),
+          customMessage,
+        }),
+      });
+      const text = await r.text();
+      const data = (() => {
+        try {
+          return JSON.parse(text);
+        } catch {
+          return {};
+        }
+      })();
+      if (!r.ok) throw new Error(data.error || text || 'Failed');
+      toast({
+        status: 'success',
+        title: `${data.action === 'edited' ? 'Updated' : 'Posted'} ${data.eventCount} event${
+          data.eventCount !== 1 ? 's' : ''
+        } to Discord`,
+      });
+    } catch (e) {
+      toast({ status: 'error', title: e.message || 'Failed to post to Discord' });
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const saveChannelId = async () => {
+    try {
+      await fetch('/api/calendar/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discordChannelId: discordChannelId || null }),
+      });
+      setSavedDiscordChannelId(discordChannelId);
+      setChannelIdSaved(true);
+      setTimeout(() => setChannelIdSaved(false), 2000);
+    } catch {
+      toast({ status: 'error', title: 'Failed to save channel ID' });
+    }
+  };
+
+  const saveRoleId = async () => {
+    try {
+      await fetch('/api/calendar/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ discordRoleId: discordRoleId || null }),
+      });
+      setSavedDiscordRoleId(discordRoleId);
+      setRoleIdSaved(true);
+      setTimeout(() => setRoleIdSaved(false), 2000);
+    } catch {
+      toast({ status: 'error', title: 'Failed to save role ID' });
+    }
+  };
 
   // --- SAVED EVENTS ---
   const { data: savedData, refetch: refetchSaved } = useQuery(GET_SAVED_CALENDAR_EVENTS, {
@@ -290,8 +408,16 @@ export default function EGCalendar({ authed, setAuthed }) {
         paddingBottom={['72px', '112px']}
         paddingTop={['32px', '48px']}
       >
-        {/* Official / Draft toggle */}
-        <Flex width="100%" maxW="1200px" mb={4} align="center" justify="space-between">
+        {/* Official / Draft toggle + Discord channel setting */}
+        <Flex
+          width="100%"
+          maxW="1200px"
+          mb={4}
+          align="center"
+          justify="space-between"
+          gap={3}
+          wrap="wrap"
+        >
           <ButtonGroup size="sm" isAttached>
             <Button
               variant={calView === 'official' ? 'solid' : 'outline'}
@@ -312,6 +438,120 @@ export default function EGCalendar({ authed, setAuthed }) {
               Draft
             </Button>
           </ButtonGroup>
+
+          <HStack spacing={2}>
+            {savedDiscordChannelId && !editingChannelId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="gray.600"
+                color="gray.400"
+                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                onClick={() => setEditingChannelId(true)}
+                flexShrink={0}
+              >
+                Channel: {discordChannelId}
+              </Button>
+            ) : (
+              <>
+                <Input
+                  size="sm"
+                  placeholder="Discord channel ID"
+                  value={discordChannelId}
+                  onChange={(e) => setDiscordChannelId(e.target.value)}
+                  bg="gray.800"
+                  borderColor="gray.600"
+                  color="gray.100"
+                  width="200px"
+                  borderRadius="md"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    saveChannelId();
+                    setEditingChannelId(false);
+                  }}
+                  bg={channelIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
+                  _hover={{ bg: 'dark.turquoise.logoDark' }}
+                  color="white"
+                  flexShrink={0}
+                >
+                  {channelIdSaved ? 'Saved!' : 'Save'}
+                </Button>
+              </>
+            )}
+            {savedDiscordRoleId && !editingRoleId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="gray.600"
+                color="gray.400"
+                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                onClick={() => setEditingRoleId(true)}
+                flexShrink={0}
+              >
+                Role: {discordRoleId}
+              </Button>
+            ) : (
+              <>
+                <Input
+                  size="sm"
+                  placeholder="CC Events role ID"
+                  value={discordRoleId}
+                  onChange={(e) => setDiscordRoleId(e.target.value)}
+                  bg="gray.800"
+                  borderColor="gray.600"
+                  color="gray.100"
+                  width="200px"
+                  borderRadius="md"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    saveRoleId();
+                    setEditingRoleId(false);
+                  }}
+                  bg={roleIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
+                  _hover={{ bg: 'dark.turquoise.logoDark' }}
+                  color="white"
+                  flexShrink={0}
+                >
+                  {roleIdSaved ? 'Saved!' : 'Save'}
+                </Button>
+              </>
+            )}
+            <Button
+              size="sm"
+              onClick={openDiscordModal}
+              isLoading={posting}
+              isDisabled={!discordChannelId}
+              bg="dark.sapphire.base"
+              _hover={{ bg: 'dark.sapphire.light' }}
+              color="white"
+              flexShrink={0}
+            >
+              Post to Discord
+            </Button>
+            <Button
+                size="sm"
+                variant="ghost"
+                color="gray.500"
+                _hover={{ color: 'gray.300' }}
+                flexShrink={0}
+                onClick={async () => {
+                  const r = await fetch('/api/calendar/reset-message-id', { method: 'POST', credentials: 'include' });
+                  const text = await r.text();
+                  const data = (() => { try { return JSON.parse(text); } catch { return {}; } })();
+                  if (!r.ok) {
+                    toast({ status: 'error', title: data.error || text || 'Reset failed' });
+                  } else {
+                    toast({ status: 'info', title: 'Reset — next post will ping the role' });
+                  }
+                }}
+              >
+                [dev] reset month
+            </Button>
+          </HStack>
         </Flex>
 
         {hasDrift && (
@@ -367,6 +607,8 @@ export default function EGCalendar({ authed, setAuthed }) {
             }}
             startAccessor="start"
             endAccessor="end"
+            date={calDate}
+            onNavigate={(date) => setCalDate(date)}
             selectable
             onSelectSlot={onSelectSlot}
             onSelectEvent={onSelectEvent}
@@ -403,6 +645,7 @@ export default function EGCalendar({ authed, setAuthed }) {
                   id: selected.id,
                   title: selected.title,
                   description: selected.description,
+                  threadUrl: selected.threadUrl,
                   start: selected.start,
                   end: selected.end,
                   allDay: !!selected.allDay,
@@ -487,6 +730,40 @@ export default function EGCalendar({ authed, setAuthed }) {
           }
         }}
       />
+
+      <Modal isOpen={discordModal.isOpen} onClose={discordModal.onClose} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Post to Discord</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <FormControl>
+              <FormLabel>Custom message (optional)</FormLabel>
+              <Textarea
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Add a message to precede the event list..."
+                rows={4}
+                resize="vertical"
+              />
+            </FormControl>
+          </ModalBody>
+          <ModalFooter>
+            <Button mr={3} variant="ghost" onClick={discordModal.onClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={postToDiscord}
+              isLoading={posting}
+              bg="dark.sapphire.base"
+              _hover={{ bg: 'dark.sapphire.light' }}
+              color="white"
+            >
+              Post
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </>
   );
 }

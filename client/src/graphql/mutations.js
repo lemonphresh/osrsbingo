@@ -395,6 +395,7 @@ export const CREATE_CAL_EVENT = gql`
       id
       title
       description
+      threadUrl
       start
       end
       allDay
@@ -409,6 +410,7 @@ export const UPDATE_CAL_EVENT = gql`
       id
       title
       description
+      threadUrl
       start
       end
       allDay
