@@ -209,6 +209,7 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
 
 // --- dev only: reset stored message ID so next post treats it as first of month ---
 router.post('/reset-message-id', requireCalendarAuth, async (_req, res) => {
+  if (process.env.NODE_ENV === 'production') return res.status(403).json({ error: 'Not available in production' });
   const settings = await CalendarSettings.findOne();
   if (settings) await settings.update({ discordMessageId: null, discordMessageMonth: null });
   res.json({ ok: true });

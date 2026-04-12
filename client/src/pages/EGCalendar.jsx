@@ -532,7 +532,8 @@ export default function EGCalendar({ authed, setAuthed }) {
             >
               Post to Discord
             </Button>
-            <Button
+            {process.env.NODE_ENV !== 'production' && (
+              <Button
                 size="sm"
                 variant="ghost"
                 color="gray.500"
@@ -550,7 +551,8 @@ export default function EGCalendar({ authed, setAuthed }) {
                 }}
               >
                 [dev] reset month
-            </Button>
+              </Button>
+            )}
           </HStack>
         </Flex>
 
