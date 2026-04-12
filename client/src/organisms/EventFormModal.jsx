@@ -26,6 +26,7 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
   const [v, setV] = useState({
     title: '',
     description: '',
+    threadUrl: '',
     start: '',
     end: '',
     allDay: false,
@@ -40,13 +41,22 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
       setV({
         title: initial.title || '',
         description: initial.description || '',
+        threadUrl: initial.threadUrl || '',
         start: initial.start ? toInput(initial.start) : '',
         end: initial.end ? toInput(initial.end) : '',
         allDay: !!initial.allDay,
         eventType: initial.eventType || 'MISC',
       });
     } else {
-      setV({ title: '', description: '', start: '', end: '', allDay: false, eventType: 'MISC' });
+      setV({
+        title: '',
+        description: '',
+        threadUrl: '',
+        start: '',
+        end: '',
+        allDay: false,
+        eventType: 'MISC',
+      });
     }
   }, [initial]);
 
@@ -75,7 +85,7 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
               />
             </FormControl>
 
-            <FormControl>
+            <FormControl isRequired>
               <FormLabel>Description</FormLabel>
               <Textarea
                 value={v.description}
@@ -83,6 +93,15 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
                 placeholder="Add any notes, requirements, links to Discord threads, who is running the event, etc."
                 resize="vertical"
                 rows={5}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel>Event Thread (Staff Eyes Only)</FormLabel>
+              <Input
+                value={v.threadUrl}
+                onChange={(e) => setV((s) => ({ ...s, threadUrl: e.target.value }))}
+                placeholder="Discord event planning thread link"
               />
             </FormControl>
 
@@ -151,12 +170,24 @@ export default function EventFormModal({ isOpen, onClose, initial, onSubmit }) {
                 color="gray.100"
                 borderColor="gray.600"
               >
-                <option value="PVM" style={{ background: '#2D3748', color: '#E2E8F0' }}>PvM</option>
-                <option value="MASS" style={{ background: '#2D3748', color: '#E2E8F0' }}>Mass</option>
-                <option value="SKILLING" style={{ background: '#2D3748', color: '#E2E8F0' }}>Skilling</option>
-                <option value="MISC" style={{ background: '#2D3748', color: '#E2E8F0' }}>Misc</option>
-                <option value="MIXED_CONTENT" style={{ background: '#2D3748', color: '#E2E8F0' }}>Mixed Content</option>
-                <option value="JAGEX" style={{ background: '#2D3748', color: '#E2E8F0' }}>Official Jagex Event</option>
+                <option value="PVM" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  PvM
+                </option>
+                <option value="MASS" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  Mass
+                </option>
+                <option value="SKILLING" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  Skilling
+                </option>
+                <option value="MISC" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  Misc
+                </option>
+                <option value="MIXED_CONTENT" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  Mixed Content
+                </option>
+                <option value="JAGEX" style={{ background: '#2D3748', color: '#E2E8F0' }}>
+                  Official Jagex Event
+                </option>
               </Select>
             </FormControl>
           </VStack>

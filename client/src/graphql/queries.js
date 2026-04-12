@@ -416,6 +416,7 @@ export const GET_CALENDAR_EVENTS = gql`
         id
         title
         description
+        threadUrl
         start
         end
         allDay
