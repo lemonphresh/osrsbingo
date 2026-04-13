@@ -434,6 +434,15 @@ const Mutation = {
     }
 
     const progress = { ...(team.taskProgress ?? {}) };
+
+    // Enforce one active task at a time per member
+    const currentTaskId = Object.entries(progress).find(
+      ([tid, ids]) => tid !== taskId && Array.isArray(ids) && ids.includes(discordId)
+    )?.[0];
+    if (currentTaskId) {
+      throw new UserInputError('You are already working on a task. Leave it before joining another.');
+    }
+
     const current = progress[taskId] ?? [];
     if (!current.includes(discordId)) {
       progress[taskId] = [...current, discordId];

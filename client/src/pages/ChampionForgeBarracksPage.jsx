@@ -654,14 +654,15 @@ function TaskRow({
   const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
   const roleUnset = !userMemberRole || userMemberRole === 'UNSET';
+  const isOnAnotherTask = !!currentUserDiscordId && Object.entries(taskProgress ?? {}).some(
+    ([tid, ids]) => tid !== task.taskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)
+  );
   const canJoin =
     !isCompleted &&
     !isMeInProgress &&
     !roleUnset &&
-    (task.role === 'ANY' ||
-      userMemberRole === 'ANY' ||
-      userMemberRole === 'FLEX' ||
-      userMemberRole === task.role);
+    !isOnAnotherTask &&
+    (userMemberRole === 'FLEX' || userMemberRole === task.role);
 
   const getMemberName = (discordId) => {
     const m = (teamMembers ?? []).find((tm) => tm.discordId === discordId);
@@ -1615,7 +1616,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             !completedTaskIds.includes(selectedQuestTaskId) &&
             !(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId)) &&
             !!effectiveRole && effectiveRole !== 'UNSET' &&
-            (selectedQuestTask.role === 'ANY' || effectiveRole === 'ANY' || effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
+            !Object.entries(taskProgress).some(([tid, ids]) => tid !== selectedQuestTaskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)) &&
+            (effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
           }
           othersInProgress={(taskProgress[selectedQuestTaskId] ?? []).filter((id) => id !== currentUserDiscordId)}
           inProgressIds={taskProgress[selectedQuestTaskId] ?? []}
