@@ -27,6 +27,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import theme from '../theme';
 
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
+import { useAuth } from '../providers/AuthProvider';
 import Toolbar from '../organisms/CalendarToolbar';
 import EventFormModal from '../organisms/EventFormModal';
 import {
@@ -126,6 +127,7 @@ const TYPE_COLOR = {
 
 export default function EGCalendar({ authed, setAuthed }) {
   const toast = useToast();
+  const { user } = useAuth();
 
   const [calView, setCalView] = useState('official'); // 'official' | 'draft'
   const [selected, setSelected] = useState(null);
@@ -439,6 +441,7 @@ export default function EGCalendar({ authed, setAuthed }) {
             </Button>
           </ButtonGroup>
 
+          {user?.admin && (
           <HStack spacing={2}>
             {savedDiscordChannelId && !editingChannelId ? (
               <Button
@@ -554,6 +557,7 @@ export default function EGCalendar({ authed, setAuthed }) {
               </Button>
             )}
           </HStack>
+          )}
         </Flex>
 
         {hasDrift && (

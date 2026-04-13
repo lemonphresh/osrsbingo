@@ -70,9 +70,12 @@ module.exports = {
 
     // Check the member's role in the team (SKILLER/PVMER/FLEX)
     const member = (team.members ?? []).find((m) => m.discordId === message.author.id);
-    const memberRole = member?.role ?? 'FLEX';
+    const memberRole = (!member?.role || member.role === 'UNSET') ? null : member.role;
 
     // Validate role vs task
+    if (!memberRole) {
+      return message.reply('❌ You haven\'t set your role yet. Go to the barracks page and choose PVMER, SKILLER, or FLEX before submitting.');
+    }
     if (memberRole !== 'FLEX' && task.role !== memberRole) {
       return message.reply(
         `❌ This task is for **${task.role}s** only. You are assigned as a **${memberRole}**.`,

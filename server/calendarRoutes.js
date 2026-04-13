@@ -2,6 +2,7 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { CalendarEvent, CalendarSettings, sequelize } = require('./db/models');
+const { syncEventsToNotion } = require('./utils/notionSync');
 const { Op } = sequelize.Sequelize;
 
 const router = express.Router();
@@ -195,6 +196,7 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
       }
       const fallbackData = await fallback.json();
       await settings.update({ discordMessageId: fallbackData.id, discordMessageMonth: monthKey });
+      syncEventsToNotion(events).catch(() => {});
       return res.json({ ok: true, eventCount: events.length, action: 'posted' });
     }
     const err = await discordRes.json().catch(() => ({}));
@@ -203,6 +205,9 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
 
   const responseData = await discordRes.json();
   await settings.update({ discordMessageId: responseData.id, discordMessageMonth: monthKey });
+
+  // Sync to Notion in the background — don't block the response
+  syncEventsToNotion(events).catch(() => {});
 
   res.json({ ok: true, eventCount: events.length, action: existingMessageId ? 'edited' : 'posted' });
 });

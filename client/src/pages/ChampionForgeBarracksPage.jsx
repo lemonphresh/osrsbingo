@@ -215,6 +215,7 @@ function TaskDetailModal({
 }) {
   const { utc } = useTimezone();
   const { showToast } = useToastContext();
+  const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   const isDropTask = task?.acceptableItems?.length > 0;
   const isXpTask = !isDropTask && task?.quantity > 0;
@@ -448,18 +449,44 @@ function TaskDetailModal({
                     <Text fontSize="xs" color="teal.400" mb={3}>
                       Attach your screenshot in Discord when you run the command.
                     </Text>
-                    <Button
-                      size="sm"
-                      colorScheme="red"
-                      variant="ghost"
-                      onClick={() => {
-                        onLeave();
-                        onClose();
-                      }}
-                      w="full"
-                    >
-                      Leave quest
-                    </Button>
+                    {confirmingLeave ? (
+                      <Box p={2} bg="red.900" borderRadius="md" border="1px solid" borderColor="red.700">
+                        <Text fontSize="xs" color="red.200" mb={2}>Are you sure you want to leave this quest?</Text>
+                        <HStack spacing={2}>
+                          <Button
+                            size="xs"
+                            colorScheme="red"
+                            onClick={() => {
+                              setConfirmingLeave(false);
+                              onLeave();
+                              onClose();
+                            }}
+                            flex={1}
+                          >
+                            Leave
+                          </Button>
+                          <Button
+                            size="xs"
+                            variant="ghost"
+                            color="gray.400"
+                            onClick={() => setConfirmingLeave(false)}
+                            flex={1}
+                          >
+                            Cancel
+                          </Button>
+                        </HStack>
+                      </Box>
+                    ) : (
+                      <Button
+                        size="sm"
+                        colorScheme="red"
+                        variant="ghost"
+                        onClick={() => setConfirmingLeave(true)}
+                        w="full"
+                      >
+                        Leave quest
+                      </Button>
+                    )}
                   </Box>
                 ) : canJoin ? (
                   <Button
@@ -627,14 +654,15 @@ function TaskRow({
   const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
   const roleUnset = !userMemberRole || userMemberRole === 'UNSET';
+  const isOnAnotherTask = !!currentUserDiscordId && Object.entries(taskProgress ?? {}).some(
+    ([tid, ids]) => tid !== task.taskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)
+  );
   const canJoin =
     !isCompleted &&
     !isMeInProgress &&
     !roleUnset &&
-    (task.role === 'ANY' ||
-      userMemberRole === 'ANY' ||
-      userMemberRole === 'FLEX' ||
-      userMemberRole === task.role);
+    !isOnAnotherTask &&
+    (userMemberRole === 'FLEX' || userMemberRole === task.role);
 
   const getMemberName = (discordId) => {
     const m = (teamMembers ?? []).find((tm) => tm.discordId === discordId);
@@ -1588,14 +1616,15 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             !completedTaskIds.includes(selectedQuestTaskId) &&
             !(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId)) &&
             !!effectiveRole && effectiveRole !== 'UNSET' &&
-            (selectedQuestTask.role === 'ANY' || effectiveRole === 'ANY' || effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
+            !Object.entries(taskProgress).some(([tid, ids]) => tid !== selectedQuestTaskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)) &&
+            (effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
           }
           othersInProgress={(taskProgress[selectedQuestTaskId] ?? []).filter((id) => id !== currentUserDiscordId)}
           inProgressIds={taskProgress[selectedQuestTaskId] ?? []}
           getMemberName={getMemberName}
           numericTaskProgress={numericTaskProgress}
           onJoin={handleJoin}
-          onLeave={handleLeave}
+          onLeave={() => handleLeave(selectedQuestTaskId)}
           handleCopyCommand={handleQuestCopyCommand}
           gatheringStart={event.gatheringStart}
           gatheringEnd={event.gatheringEnd}
