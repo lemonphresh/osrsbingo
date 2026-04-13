@@ -91,6 +91,10 @@ async function syncEventsToNotion(events) {
     const key = `${event.title}|${dateKey}`;
     const existingId = existingMap[key];
 
+    const children = event.description
+      ? [{ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: event.description } }] } }]
+      : [];
+
     try {
       if (existingId) {
         await axios.patch(
@@ -98,11 +102,19 @@ async function syncEventsToNotion(events) {
           { properties },
           { headers: notionHeaders() }
         );
+        // Replace existing page content with updated description
+        const blocksRes = await axios.get(`${NOTION_API}/blocks/${existingId}/children`, { headers: notionHeaders() });
+        for (const block of blocksRes.data.results ?? []) {
+          await axios.delete(`${NOTION_API}/blocks/${block.id}`, { headers: notionHeaders() });
+        }
+        if (children.length) {
+          await axios.patch(`${NOTION_API}/blocks/${existingId}/children`, { children }, { headers: notionHeaders() });
+        }
         updated++;
       } else {
         await axios.post(
           `${NOTION_API}/pages`,
-          { parent: { database_id: dbId }, properties },
+          { parent: { database_id: dbId }, properties, children },
           { headers: notionHeaders() }
         );
         created++;
