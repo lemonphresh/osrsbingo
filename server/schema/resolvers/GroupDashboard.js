@@ -132,7 +132,7 @@ async function generateUniqueSlug(base) {
 // Progress fetch + notification trigger
 // ---------------------------------------------------------------------------
 
-async function fetchAndCacheProgress(event, forceRefresh = false) {
+async function fetchAndCacheProgress(event, forceRefresh = false, fireNotifications = false) {
   const now = Date.now();
   const isFresh =
     !forceRefresh &&
@@ -226,34 +226,37 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
           const newMilestones = checkNewMilestones(percent, alreadySent, thresholds);
 
           for (const milestone of newMilestones) {
-            if (discord?.confirmed && discord?.channelId) {
-              try {
-                await sendGroupGoalMilestoneNotification({
-                  channelId: discord.channelId,
-                  groupName: event.dashboard.groupName,
-                  eventName: event.eventName,
-                  goal: goalConfig ?? { displayName: goalProgress.displayName },
-                  percent: milestone,
-                  current: goalProgress.current,
-                  target: goalProgress.target,
-                  dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
-                  topContributors: goalProgress.topContributors ?? [],
-                });
-              } catch (err) {
-                logger.error(`Failed to send Discord milestone for goal ${goalId}:`, err.message);
+            if (fireNotifications) {
+              if (discord?.confirmed && discord?.channelId) {
+                try {
+                  await sendGroupGoalMilestoneNotification({
+                    channelId: discord.channelId,
+                    roleId: discord.roleId ?? null,
+                    groupName: event.dashboard.groupName,
+                    eventName: event.eventName,
+                    goal: goalConfig ?? { displayName: goalProgress.displayName },
+                    percent: milestone,
+                    current: goalProgress.current,
+                    target: goalProgress.target,
+                    dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+                    topContributors: goalProgress.topContributors ?? [],
+                  });
+                } catch (err) {
+                  logger.error(`Failed to send Discord milestone for goal ${goalId}:`, err.message);
+                }
               }
-            }
 
-            await createGroupActivity(event.dashboard.id, event.id, `milestone_${milestone}`, {
-              goalName: goalConfig?.displayName ?? goalProgress.displayName ?? goalProgress.metric,
-              goalEmoji: goalConfig?.emoji ?? '🎯',
-              percent: milestone,
-              current: goalProgress.current,
-              target: goalProgress.target,
-              groupName: event.dashboard.groupName,
-              slug: event.dashboard.slug,
-              eventName: event.eventName,
-            });
+              await createGroupActivity(event.dashboard.id, event.id, `milestone_${milestone}`, {
+                goalName: goalConfig?.displayName ?? goalProgress.displayName ?? goalProgress.metric,
+                goalEmoji: goalConfig?.emoji ?? '🎯',
+                percent: milestone,
+                current: goalProgress.current,
+                target: goalProgress.target,
+                groupName: event.dashboard.groupName,
+                slug: event.dashboard.slug,
+                eventName: event.eventName,
+              });
+            }
 
             notificationsSent[goalId] = [...(notificationsSent[goalId] ?? []), milestone];
             dirty = true;
@@ -261,8 +264,8 @@ async function fetchAndCacheProgress(event, forceRefresh = false) {
         }
       }
 
-      // event_ended activity fires once on the first sync after the event ends, never for backdated events
-      if (eventEnded && !isBackdated && !notificationsSent.__event_ended) {
+      // event_ended activity fires once on the first scheduled sync after the event ends, never for backdated events
+      if (fireNotifications && eventEnded && !isBackdated && !notificationsSent.__event_ended) {
         // For individual goals, include a completion summary per goal
         const individualSummaries = progress
           .filter((p) => p.isIndividual)
@@ -586,7 +589,7 @@ const GroupDashboardResolvers = {
       return true;
     },
 
-    confirmGroupDashboardDiscord: async (_, { id, guildId, channelId }, { user }) => {
+    confirmGroupDashboardDiscord: async (_, { id, guildId, channelId, roleId }, { user }) => {
       if (!user) throw new AuthenticationError('Login required');
       const dashboard = await getDashboardOrThrow(id);
       if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
@@ -599,6 +602,7 @@ const GroupDashboardResolvers = {
           ...(dashboard.discordConfig ?? {}),
           guildId,
           channelId,
+          roleId: roleId || null,
           confirmed: true,
           notifyThresholds: dashboard.discordConfig?.notifyThresholds ?? [25, 50, 75, 100],
         },
@@ -739,3 +743,4 @@ const GroupDashboardResolvers = {
 };
 
 module.exports = GroupDashboardResolvers;
+module.exports.fetchAndCacheProgress = fetchAndCacheProgress;
