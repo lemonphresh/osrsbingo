@@ -348,6 +348,7 @@ async function sendAllNodesCompletedNotification({
  */
 async function sendGroupGoalMilestoneNotification({
   channelId,
+  roleId,
   groupName,
   eventName,
   goal,
@@ -400,6 +401,7 @@ async function sendGroupGoalMilestoneNotification({
   });
 
   return sendDiscordMessage(channelId, {
+    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
     components: [{ type: C.Container, accent_color: accentColor, components: innerComponents }],
   });

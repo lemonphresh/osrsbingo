@@ -18,6 +18,7 @@ export default function GroupDiscordSetup({ dashboard }) {
   const discordConfig = dashboard?.discordConfig ?? {};
   const [guildId, setGuildId] = useState(discordConfig.guildId ?? '');
   const [channelId, setChannelId] = useState(discordConfig.channelId ?? '');
+  const [roleId, setRoleId] = useState(discordConfig.roleId ?? '');
   const [guildName, setGuildName] = useState(null);
   const [channelName, setChannelName] = useState(null);
   const [verifyingGuild, setVerifyingGuild] = useState(false);
@@ -74,7 +75,7 @@ export default function GroupDiscordSetup({ dashboard }) {
   }
 
   async function handleConfirm() {
-    await confirmDiscord({ variables: { id: dashboard.id, guildId, channelId } });
+    await confirmDiscord({ variables: { id: dashboard.id, guildId, channelId, roleId: roleId || null } });
   }
 
   const botInstallUrl = process.env.REACT_APP_DISCORD_BOT_INSTALLATION_URL;
@@ -82,7 +83,8 @@ export default function GroupDiscordSetup({ dashboard }) {
   const isConfirmed =
     discordConfig.confirmed &&
     discordConfig.guildId === guildId &&
-    discordConfig.channelId === channelId;
+    discordConfig.channelId === channelId &&
+    (discordConfig.roleId ?? '') === roleId;
 
   return (
     <VStack spacing={5} align="stretch">
@@ -255,6 +257,23 @@ export default function GroupDiscordSetup({ dashboard }) {
             {channelError}
           </Text>
         )}
+      </FormControl>
+
+      <FormControl>
+        <FormLabel fontSize="sm" color="gray.300">
+          Role to Tag <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">(optional)</Text>
+        </FormLabel>
+        <Input
+          value={roleId}
+          onChange={(e) => setRoleId(e.target.value)}
+          placeholder="i.e. 123456789012345678"
+          bg="gray.800"
+          borderColor="gray.600"
+          fontFamily="mono"
+        />
+        <Text fontSize="xs" color="gray.500" mt={1}>
+          If set, this role will be mentioned with every milestone post.
+        </Text>
       </FormControl>
 
       <Box>

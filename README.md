@@ -50,6 +50,29 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 - **Big reveal** — all picks are revealed simultaneously when the draft completes
 - **Stat categories & tier formulas** — weight players by any custom stat
 
+### ⚖️ Team Balancer
+
+- **Paste any list of RSNs** — stats are fetched automatically via Wise Old Man
+- **Weighted scoring** across EHP, EHB, EHP/year, EHB/year, total level, and raid KCs (CoX, ToB, ToA)
+- **Presets** for common event types: All-Rounder, PvM Focused, Skilling Focused, Raid Specialist
+- **Fully adjustable weights** — fine-tune each stat's contribution with sliders
+- **Hours-per-day slider** per player for balancing around availability
+- **Auto-balance** assigns players to teams using a greedy score-equalization algorithm
+- **Drag-and-drop** to manually move players between teams after auto-balancing
+- **CSV export** for sharing team assignments
+
+### 🏆 Group Dashboard
+
+- **WOM-powered group tracking** — connect any Wise Old Man group and display live goal progress
+- **Custom goals** — admins define skill/boss targets with start snapshots and deadlines
+- **WOM competitions** — surface active and upcoming competitions with live countdowns and progress bars
+- **Follow system** — any user can follow a group dashboard to keep it accessible
+- **Auto-sync** — group data refreshes from WOM automatically (1-hour TTL, manual refresh available)
+- **Custom themes** — per-group accent colors and branding
+- **Admin management** — transfer ownership, add/remove co-admins
+- **Activity feed** — per-group log of recent member events
+- **Discord integration** — optional webhook for posting goal completions
+
 ---
 
 ## 🛠️ Tech Stack
@@ -98,6 +121,25 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 | **3. Invite**   | Share room links with team captains; they join with PIN |
 | **4. Draft**    | Each captain picks in turn — other teams can't see      |
 | **5. Reveal**   | All picks revealed at once when the draft completes     |
+
+### Using the Team Balancer
+
+| Step              | Action                                                          |
+| ----------------- | --------------------------------------------------------------- |
+| **1. Paste RSNs** | Enter one username per line — stats are fetched from WOM        |
+| **2. Pick preset**| Choose All-Rounder, PvM Focused, Skilling Focused, or Raid Specialist |
+| **3. Tune**       | Adjust stat weights and optional hours-per-day per player       |
+| **4. Balance**    | Auto-assign teams or drag players between teams manually        |
+| **5. Export**     | Download a CSV of final team assignments                        |
+
+### Setting Up a Group Dashboard
+
+| Step             | Action                                                             |
+| ---------------- | ------------------------------------------------------------------ |
+| **1. Create**    | Link your Wise Old Man group ID and give the dashboard a name      |
+| **2. Add goals** | Define skill or boss targets with deadlines                        |
+| **3. Share**     | Share the dashboard link — anyone can view and follow it           |
+| **4. Monitor**   | Track goal progress, competition countdowns, and the activity feed |
 
 ---
 
@@ -405,6 +447,54 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 
 ---
 
+## ⚖️ Team Balancer: How It Works
+
+### Scoring
+
+Each player is scored by a weighted sum of their WOM stats:
+
+| Stat        | Description                                              |
+| ----------- | -------------------------------------------------------- |
+| **EHP**     | Efficient Hours Played (lifetime)                        |
+| **EHB**     | Efficient Hours Bossed (lifetime)                        |
+| **EHP/Y**   | EHP gained in the last year — measures recent activity   |
+| **EHB/Y**   | EHB gained in the last year — measures recent bossing    |
+| **Lvl**     | Total level, normalized to 2376                          |
+| **CoX**     | Chambers of Xeric KC (including CM)                      |
+| **ToB**     | Theatre of Blood KC (including HM)                       |
+| **ToA**     | Tombs of Amascut KC (including Expert)                   |
+
+### Presets
+
+| Preset             | Best for                                               |
+| ------------------ | ------------------------------------------------------ |
+| **All-Rounder**    | Mixed-content events where overall versatility matters |
+| **PvM Focused**    | Bossing events — weights recent EHB/Y and raid KCs     |
+| **Skilling Focused** | XP races or skilling events — ignores bossing stats  |
+| **Raid Specialist** | Raid events — weights CoX, ToB, ToA, and EHB/Y heavily |
+
+### Auto-Balance Algorithm
+
+Players are sorted by score descending and assigned one at a time to whichever team currently has the lowest total score — producing near-equal team strength without manual effort.
+
+---
+
+## 🏆 Group Dashboard: How It Works
+
+### Goals
+
+Admins define goals with a **metric** (skill XP, boss KC, etc.), a **target value**, and an optional deadline. The dashboard captures a WOM snapshot at goal creation as the baseline and shows progress toward the target in real time.
+
+### Competitions
+
+Any active or upcoming WOM competition for the group is automatically surfaced with a live countdown timer and per-player progress bars.
+
+### Sync
+
+Group data is synced from Wise Old Man automatically with a 1-hour TTL. Admins can force a manual refresh at any time. The dashboard shows when the last sync occurred and when the next one is due.
+
+---
+
 ## 🤖 Discord Bot
 
 Integrate your Gielinor Rush event directly into Discord for seamless team coordination.
@@ -470,6 +560,33 @@ npx sequelize-cli db:migrate:undo
 ---
 
 ## 🧪 Development
+
+### Test Database Setup
+
+Integration tests (e.g. Champion Forge) run against a local `database_test` Postgres database. One-time setup:
+
+```bash
+# 1. Create the test database
+createdb database_test
+
+# 2. Run migrations against it (run from the server/ directory)
+cd server
+npx sequelize-cli db:migrate \
+  --config db/config/config.json \
+  --migrations-path db/migrations \
+  --env test
+```
+
+The `test` config in `server/db/config/config.json` connects as your local Mac username (no password) on `127.0.0.1:5432`. If your local Postgres superuser is different, update the `username` field in that config.
+
+To run the integration tests:
+
+```bash
+cd server
+npx jest __tests__/championForge.test.js
+```
+
+> Each test suite cleans up its own data in `afterAll`, so repeated runs are safe.
 
 ### Dev Mode with Hot Reload
 

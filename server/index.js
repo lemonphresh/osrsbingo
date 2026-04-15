@@ -25,6 +25,7 @@ const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
 const { startWomSyncScheduler } = require('./utils/womSync');
+const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -527,6 +528,7 @@ server.start().then(async () => {
 
   await itemsService.warmCache();
   startWomSyncScheduler();
+  startGroupGoalScheduler();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

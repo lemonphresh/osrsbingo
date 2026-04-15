@@ -229,8 +229,8 @@ export const DELETE_GROUP_GOAL_EVENT = gql`
 
 export const CONFIRM_GROUP_DASHBOARD_DISCORD = gql`
   ${GROUP_DASHBOARD_FIELDS}
-  mutation ConfirmGroupDashboardDiscord($id: ID!, $guildId: String!, $channelId: String!) {
-    confirmGroupDashboardDiscord(id: $id, guildId: $guildId, channelId: $channelId) {
+  mutation ConfirmGroupDashboardDiscord($id: ID!, $guildId: String!, $channelId: String!, $roleId: String) {
+    confirmGroupDashboardDiscord(id: $id, guildId: $guildId, channelId: $channelId, roleId: $roleId) {
       ...GroupDashboardFields
     }
   }

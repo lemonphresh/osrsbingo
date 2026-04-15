@@ -893,7 +893,7 @@ const typeDefs = gql`
     createGroupGoalEvent(dashboardId: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
     updateGroupGoalEvent(id: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
     deleteGroupGoalEvent(id: ID!): Boolean!
-    confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!): GroupDashboard!
+    confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!, roleId: String): GroupDashboard!
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
