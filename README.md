@@ -104,13 +104,13 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 
 ### Running a Champion Forge
 
-| Step               | Action                                                                    |
-| ------------------ | ------------------------------------------------------------------------- |
-| **1. Draft**       | Configure teams, members, tasks, and phase durations                      |
-| **2. Gathering**   | Players complete OSRS tasks and submit proof via Discord bot               |
-| **3. Review**      | Admins approve or deny submissions; items land in each team's war chest    |
-| **4. Outfitting**  | Teams equip their champion from their war chest before the timer runs out  |
-| **5. Battle**      | Champions fight in a live turn-based bracket — last team standing wins!   |
+| Step              | Action                                                                    |
+| ----------------- | ------------------------------------------------------------------------- |
+| **1. Draft**      | Configure teams, members, tasks, and phase durations                      |
+| **2. Gathering**  | Players complete OSRS tasks and submit proof via Discord bot              |
+| **3. Review**     | Admins approve or deny submissions; items land in each team's war chest   |
+| **4. Outfitting** | Teams equip their champion from their war chest before the timer runs out |
+| **5. Battle**     | Champions fight in a live turn-based bracket — last team standing wins!   |
 
 ### Running a Blind Draft
 
@@ -124,13 +124,13 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 
 ### Using the Team Balancer
 
-| Step              | Action                                                          |
-| ----------------- | --------------------------------------------------------------- |
-| **1. Paste RSNs** | Enter one username per line — stats are fetched from WOM        |
-| **2. Pick preset**| Choose All-Rounder, PvM Focused, Skilling Focused, or Raid Specialist |
-| **3. Tune**       | Adjust stat weights and optional hours-per-day per player       |
-| **4. Balance**    | Auto-assign teams or drag players between teams manually        |
-| **5. Export**     | Download a CSV of final team assignments                        |
+| Step               | Action                                                                |
+| ------------------ | --------------------------------------------------------------------- |
+| **1. Paste RSNs**  | Enter one username per line — stats are fetched from WOM              |
+| **2. Pick preset** | Choose All-Rounder, PvM Focused, Skilling Focused, or Raid Specialist |
+| **3. Tune**        | Adjust stat weights and optional hours-per-day per player             |
+| **4. Balance**     | Auto-assign teams or drag players between teams manually              |
+| **5. Export**      | Download a CSV of final team assignments                              |
 
 ### Setting Up a Group Dashboard
 
@@ -328,34 +328,34 @@ This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3
 
 ### Map Structure
 
-| Element             | Description                                                                        |
-| ------------------- | ---------------------------------------------------------------------------------- |
-| **Location Groups** | Each map location offers 3 difficulty variants                                     |
-| **One Choice Rule** | Teams can only complete ONE difficulty per location                                |
-| **Paths**           | Mountain (🔴), Trade Route (🔵), Coastal (🟢) — each grants different colored keys |
+| Element             | Description                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| **Location Groups** | Each map location offers 3 difficulty variants                                                   |
+| **One Choice Rule** | Teams can only complete ONE difficulty per location                                              |
+| **Paths**           | Mountain (🔴), Trade Route (🔵), Coastal (🟢) — each grants different colored keys               |
 | **Inns**            | Checkpoints where teams trade keys for GP bonuses — completing an Inn requires making a purchase |
 
 ### Objective Types
 
-| Type                | Description                                      |
-| ------------------- | ------------------------------------------------ |
-| **Boss KC**         | Kill a boss N times                              |
-| **XP Gain**         | Gain N XP in a skill                             |
-| **Item Collection** | Obtain N drops from a boss or raid               |
-| **Minigame**        | Complete N runs of a minigame                    |
-| **Clue Scrolls**    | Complete N clue scrolls of a given tier          |
+| Type                | Description                             |
+| ------------------- | --------------------------------------- |
+| **Boss KC**         | Kill a boss N times                     |
+| **XP Gain**         | Gain N XP in a skill                    |
+| **Item Collection** | Obtain N drops from a boss or raid      |
+| **Minigame**        | Complete N runs of a minigame           |
+| **Clue Scrolls**    | Complete N clue scrolls of a given tier |
 
 ### Buffs
 
 Buffs are earned from nodes and Inn purchases. They reduce objective requirements when applied.
 
-| Category    | Options                             |
-| ----------- | ----------------------------------- |
-| **Kill**    | 25%, 50%, or 75% KC reduction       |
-| **XP**      | 25%, 50%, or 75% XP reduction       |
-| **Items**   | 25% drop count reduction            |
-| **Universal** | 50% reduction on any objective    |
-| **Multi-use** | 25% reduction on two objectives   |
+| Category      | Options                         |
+| ------------- | ------------------------------- |
+| **Kill**      | 25%, 50%, or 75% KC reduction   |
+| **XP**        | 25%, 50%, or 75% XP reduction   |
+| **Items**     | 25% drop count reduction        |
+| **Universal** | 50% reduction on any objective  |
+| **Multi-use** | 25% reduction on two objectives |
 
 > Item buffs require the objective to have more than 2 drops.
 
@@ -370,21 +370,21 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 #### Node Rewards by Difficulty
 
-| Difficulty  | GP Value      | Keys Earned |
-| ----------- | ------------- | ----------- |
-| 🟢 Short    | 20% of max    | 1 key       |
-| 🟡 Medium   | 70% of max    | 1 key       |
-| 🔴 Long     | 100% of max   | 2 keys      |
+| Difficulty | GP Value    | Keys Earned |
+| ---------- | ----------- | ----------- |
+| 🟢 Short   | 20% of max  | 1 key       |
+| 🟡 Medium  | 70% of max  | 1 key       |
+| 🔴 Long    | 100% of max | 2 keys      |
 
 > Long nodes pay **5× more** than Short nodes. Each path's max GP is calibrated to the total node budget.
 
 #### Inn Trade Options
 
-| Option     | Key Cost        | Payout    |
-| ---------- | --------------- | --------- |
-| **Quick**  | 2 any           | 80% base  |
-| **Standard** | 4 any         | 100% base |
-| **Combo**  | 2🔴 + 2🔵 + 2🟢 | 120% base |
+| Option       | Key Cost        | Payout    |
+| ------------ | --------------- | --------- |
+| **Quick**    | 2 any           | 80% base  |
+| **Standard** | 4 any           | 100% base |
+| **Combo**    | 2🔴 + 2🔵 + 2🟢 | 120% base |
 
 ---
 
@@ -392,21 +392,21 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 ### The Four Phases
 
-| Phase          | What Happens                                                                 |
-| -------------- | ---------------------------------------------------------------------------- |
-| **Draft**      | Admin configures teams, assigns members, sets task list and phase timings    |
-| **Gathering**  | Players complete OSRS tasks and submit proof via Discord bot                 |
-| **Outfitting** | Teams equip their champion with war chest items before the deadline          |
-| **Battle**     | Turn-based bracket combat — champions fight until one team is left standing  |
+| Phase          | What Happens                                                                |
+| -------------- | --------------------------------------------------------------------------- |
+| **Draft**      | Admin configures teams, assigns members, sets task list and phase timings   |
+| **Gathering**  | Players complete OSRS tasks and submit proof via Discord bot                |
+| **Outfitting** | Teams equip their champion with war chest items before the deadline         |
+| **Battle**     | Turn-based bracket combat — champions fight until one team is left standing |
 
 ### Battle Mechanics
 
-| Action      | Description                                                                  |
-| ----------- | ---------------------------------------------------------------------------- |
-| **Attack**  | Deal damage based on weapon stats vs. opponent's defense                     |
-| **Defend**  | Reduce incoming damage for the next hit                                      |
+| Action      | Description                                                                    |
+| ----------- | ------------------------------------------------------------------------------ |
+| **Attack**  | Deal damage based on weapon stats vs. opponent's defense                       |
+| **Defend**  | Reduce incoming damage for the next hit                                        |
 | **Special** | Unique ability tied to your equipped weapon (cleave, barrage, lifesteal, etc.) |
-| **Item**    | Use a consumable from your war chest (heal, damage, debuff, buff, etc.)      |
+| **Item**    | Use a consumable from your war chest (heal, damage, debuff, buff, etc.)        |
 
 ### Stats & Items
 
@@ -414,10 +414,10 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 
 ### Discord Bot Commands (Champion Forge)
 
-| Command                          | Description                                      |
-| -------------------------------- | ------------------------------------------------ |
-| `!cfsubmit <task_id>` + img      | Submit a task completion for review              |
-| `!cfpresubmit`                   | Record a pre-screenshot baseline for XP tasks    |
+| Command                     | Description                                   |
+| --------------------------- | --------------------------------------------- |
+| `!cfsubmit <task_id>` + img | Submit a task completion for review           |
+| `!cfpresubmit`              | Record a pre-screenshot baseline for XP tasks |
 
 ---
 
@@ -425,11 +425,11 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 
 ### Formats
 
-| Format      | Description                                                           |
-| ----------- | --------------------------------------------------------------------- |
-| **Snake**   | Teams pick in order, reversing each round (1-2-3-3-2-1...)           |
-| **Linear**  | Teams always pick in the same order (1-2-3-1-2-3...)                 |
-| **Auction** | Each team bids on players using a budget                              |
+| Format      | Description                                                |
+| ----------- | ---------------------------------------------------------- |
+| **Snake**   | Teams pick in order, reversing each round (1-2-3-3-2-1...) |
+| **Linear**  | Teams always pick in the same order (1-2-3-1-2-3...)       |
+| **Auction** | Each team bids on players using a budget                   |
 
 ### Draft Flow
 
@@ -453,25 +453,25 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 
 Each player is scored by a weighted sum of their WOM stats:
 
-| Stat        | Description                                              |
-| ----------- | -------------------------------------------------------- |
-| **EHP**     | Efficient Hours Played (lifetime)                        |
-| **EHB**     | Efficient Hours Bossed (lifetime)                        |
-| **EHP/Y**   | EHP gained in the last year — measures recent activity   |
-| **EHB/Y**   | EHB gained in the last year — measures recent bossing    |
-| **Lvl**     | Total level, normalized to 2376                          |
-| **CoX**     | Chambers of Xeric KC (including CM)                      |
-| **ToB**     | Theatre of Blood KC (including HM)                       |
-| **ToA**     | Tombs of Amascut KC (including Expert)                   |
+| Stat      | Description                                            |
+| --------- | ------------------------------------------------------ |
+| **EHP**   | Efficient Hours Played (lifetime)                      |
+| **EHB**   | Efficient Hours Bossed (lifetime)                      |
+| **EHP/Y** | EHP gained in the last year — measures recent activity |
+| **EHB/Y** | EHB gained in the last year — measures recent bossing  |
+| **Lvl**   | Total level, normalized to 2376                        |
+| **CoX**   | Chambers of Xeric KC (including CM)                    |
+| **ToB**   | Theatre of Blood KC (including HM)                     |
+| **ToA**   | Tombs of Amascut KC (including Expert)                 |
 
 ### Presets
 
-| Preset             | Best for                                               |
-| ------------------ | ------------------------------------------------------ |
-| **All-Rounder**    | Mixed-content events where overall versatility matters |
-| **PvM Focused**    | Bossing events — weights recent EHB/Y and raid KCs     |
-| **Skilling Focused** | XP races or skilling events — ignores bossing stats  |
-| **Raid Specialist** | Raid events — weights CoX, ToB, ToA, and EHB/Y heavily |
+| Preset               | Best for                                               |
+| -------------------- | ------------------------------------------------------ |
+| **All-Rounder**      | Mixed-content events where overall versatility matters |
+| **PvM Focused**      | Bossing events — weights recent EHB/Y and raid KCs     |
+| **Skilling Focused** | XP races or skilling events — ignores bossing stats    |
+| **Raid Specialist**  | Raid events — weights CoX, ToB, ToA, and EHB/Y heavily |
 
 ### Auto-Balance Algorithm
 
@@ -521,26 +521,26 @@ Integrate your Gielinor Rush event directly into Discord for seamless team coord
 
 ### Core Tables
 
-| Table                 | Purpose                          |
-| --------------------- | -------------------------------- |
-| `Users`               | Accounts & authentication        |
-| `BingoBoards`         | Bingo board configurations       |
-| `BingoTiles`          | Individual tile objectives       |
-| `TreasureEvents`      | Gielinor Rush event config       |
-| `TreasureTeams`       | Competing teams                  |
-| `TreasureNodes`       | Map objectives                   |
-| `TreasureSubmissions` | Proof submissions                |
-| `TreasureActivity`    | Live activity feed               |
-| `DraftRooms`          | Blind Draft room config          |
-| `DraftPlayers`        | Player pool entries per room     |
-| `ClanWarsEvents`      | Champion Forge event config      |
-| `ClanWarsTeams`       | Competing teams and war chests   |
-| `ClanWarsTasks`       | Gathering phase task definitions |
-| `ClanWarsSubmissions` | Proof submissions with review    |
-| `ClanWarsItems`       | Equippable item definitions      |
-| `ClanWarsTeamItems`   | Items earned per team            |
-| `ClanWarsBattles`     | Battle instances and state       |
-| `ClanWarsBattleEvents`| Turn-by-turn battle log          |
+| Table                  | Purpose                          |
+| ---------------------- | -------------------------------- |
+| `Users`                | Accounts & authentication        |
+| `BingoBoards`          | Bingo board configurations       |
+| `BingoTiles`           | Individual tile objectives       |
+| `TreasureEvents`       | Gielinor Rush event config       |
+| `TreasureTeams`        | Competing teams                  |
+| `TreasureNodes`        | Map objectives                   |
+| `TreasureSubmissions`  | Proof submissions                |
+| `TreasureActivity`     | Live activity feed               |
+| `DraftRooms`           | Blind Draft room config          |
+| `DraftPlayers`         | Player pool entries per room     |
+| `ClanWarsEvents`       | Champion Forge event config      |
+| `ClanWarsTeams`        | Competing teams and war chests   |
+| `ClanWarsTasks`        | Gathering phase task definitions |
+| `ClanWarsSubmissions`  | Proof submissions with review    |
+| `ClanWarsItems`        | Equippable item definitions      |
+| `ClanWarsTeamItems`    | Items earned per team            |
+| `ClanWarsBattles`      | Battle instances and state       |
+| `ClanWarsBattleEvents` | Turn-by-turn battle log          |
 
 ### Migration Commands
 
@@ -563,7 +563,7 @@ npx sequelize-cli db:migrate:undo
 
 ### Test Database Setup
 
-Integration tests (e.g. Champion Forge) run against a local `database_test` Postgres database. One-time setup:
+Integration tests (i.e. Champion Forge) run against a local `database_test` Postgres database. One-time setup:
 
 ```bash
 # 1. Create the test database

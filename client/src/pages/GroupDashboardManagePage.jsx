@@ -606,7 +606,8 @@ function TemplatesPanel({ dashboard, onRefetch }) {
                 {t.name}
               </Text>
               <Text fontSize="xs" color="gray.500">
-                {(t.goals ?? []).filter((g) => g.enabled !== false).length} goal{(t.goals ?? []).filter((g) => g.enabled !== false).length !== 1 ? 's' : ''}
+                {(t.goals ?? []).filter((g) => g.enabled !== false).length} goal
+                {(t.goals ?? []).filter((g) => g.enabled !== false).length !== 1 ? 's' : ''}
               </Text>
             </VStack>
             <IconButton
@@ -617,7 +618,9 @@ function TemplatesPanel({ dashboard, onRefetch }) {
               color="gray.500"
               _hover={{ color: 'red.400' }}
               isLoading={deleting}
-              onClick={() => deleteTemplate({ variables: { id: dashboard.id, templateName: t.name } })}
+              onClick={() =>
+                deleteTemplate({ variables: { id: dashboard.id, templateName: t.name } })
+              }
             />
           </HStack>
         ))}
@@ -771,7 +774,10 @@ function EventRow({
                   variant="ghost"
                   color="gray.500"
                   _hover={{ color: 'gray.200' }}
-                  onClick={() => { setTemplateName(event.eventName); setSavingTemplate(true); }}
+                  onClick={() => {
+                    setTemplateName(event.eventName);
+                    setSavingTemplate(true);
+                  }}
                 >
                   Save as template
                 </Button>
@@ -879,7 +885,10 @@ function EventRow({
                   variant="ghost"
                   color="gray.500"
                   _hover={{ color: 'gray.200' }}
-                  onClick={() => { setTemplateName(event.eventName); setSavingTemplate(true); }}
+                  onClick={() => {
+                    setTemplateName(event.eventName);
+                    setSavingTemplate(true);
+                  }}
                 >
                   Save as template
                 </Button>
@@ -948,7 +957,17 @@ function EventRow({
                   {g.displayName || g.metric || 'Goal'}
                 </Text>
                 {g.type && (
-                  <Text fontSize="10px" color="gray.500" flexShrink={0} border="1px solid" borderColor="gray.600" px={1.5} borderRadius="sm" lineHeight="1.7" whiteSpace="nowrap">
+                  <Text
+                    fontSize="10px"
+                    color="gray.500"
+                    flexShrink={0}
+                    border="1px solid"
+                    borderColor="gray.600"
+                    px={1.5}
+                    borderRadius="sm"
+                    lineHeight="1.7"
+                    whiteSpace="nowrap"
+                  >
                     {GOAL_TYPE_LABELS[g.type] ?? g.type}
                   </Text>
                 )}
@@ -1063,7 +1082,12 @@ export default function GroupDashboardManagePage() {
     onCompleted: () => {
       refetch();
       setShowTransfer(false);
-      toast({ title: 'Ownership transferred', status: 'success', duration: 3000, isClosable: true });
+      toast({
+        title: 'Ownership transferred',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
     },
     onError: (err) => {
       toast({ title: err.message, status: 'error', duration: 4000, isClosable: true });
@@ -1181,6 +1205,7 @@ export default function GroupDashboardManagePage() {
                 <Tab fontSize="sm">Theme</Tab>
                 <Tab fontSize="sm">Discord</Tab>
                 <Tab fontSize="sm">Editors</Tab>
+                <Tab fontSize="sm">Embed</Tab>
               </TabList>
 
               <TabPanels>
@@ -1198,9 +1223,21 @@ export default function GroupDashboardManagePage() {
                         borderColor="gray.600"
                         w="auto"
                       >
-                        <option value="startDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>Start Date</option>
-                        <option value="endDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>End Date</option>
-                        <option value="createdAt" style={{ background: '#1A202C', color: '#E2E8F0' }}>Created</option>
+                        <option
+                          value="startDate"
+                          style={{ background: '#1A202C', color: '#E2E8F0' }}
+                        >
+                          Start Date
+                        </option>
+                        <option value="endDate" style={{ background: '#1A202C', color: '#E2E8F0' }}>
+                          End Date
+                        </option>
+                        <option
+                          value="createdAt"
+                          style={{ background: '#1A202C', color: '#E2E8F0' }}
+                        >
+                          Created
+                        </option>
                       </Select>
                       <Select
                         size="xs"
@@ -1211,8 +1248,12 @@ export default function GroupDashboardManagePage() {
                         borderColor="gray.600"
                         w="auto"
                       >
-                        <option value="desc" style={{ background: '#1A202C', color: '#E2E8F0' }}>Newest first</option>
-                        <option value="asc" style={{ background: '#1A202C', color: '#E2E8F0' }}>Oldest first</option>
+                        <option value="desc" style={{ background: '#1A202C', color: '#E2E8F0' }}>
+                          Newest first
+                        </option>
+                        <option value="asc" style={{ background: '#1A202C', color: '#E2E8F0' }}>
+                          Oldest first
+                        </option>
                       </Select>
                     </HStack>
 
@@ -1270,7 +1311,11 @@ export default function GroupDashboardManagePage() {
                         deleting={deleting}
                         onRerun={handleRerun}
                         rerunLoading={creating}
-                        onSaveTemplate={(name) => saveTemplate({ variables: { id: dashboard.id, name, goals: e.goals ?? [] } })}
+                        onSaveTemplate={(name) =>
+                          saveTemplate({
+                            variables: { id: dashboard.id, name, goals: e.goals ?? [] },
+                          })
+                        }
                       />
                     ))}
 
@@ -1301,7 +1346,11 @@ export default function GroupDashboardManagePage() {
                                 onRerun={handleRerun}
                                 rerunLoading={creating}
                                 onViewLeaderboard={() => setLeaderboardEventId(e.id)}
-                                onSaveTemplate={(name) => saveTemplate({ variables: { id: dashboard.id, name, goals: e.goals ?? [] } })}
+                                onSaveTemplate={(name) =>
+                                  saveTemplate({
+                                    variables: { id: dashboard.id, name, goals: e.goals ?? [] },
+                                  })
+                                }
                                 archived
                               />
                             ))}
@@ -1339,23 +1388,50 @@ export default function GroupDashboardManagePage() {
 
                     {/* Transfer ownership — creator only */}
                     {String(dashboard.creatorId) === String(user.id) && (
-                      <Box bg="gray.800" borderRadius="xl" p={5} border="1px solid" borderColor="red.900">
+                      <Box
+                        bg="gray.800"
+                        borderRadius="xl"
+                        p={5}
+                        border="1px solid"
+                        borderColor="red.900"
+                      >
                         <Text fontSize="sm" fontWeight="semibold" color="red.300" mb={1}>
                           Transfer Ownership
                         </Text>
                         <Text fontSize="xs" color="gray.500" mb={3}>
-                          Transfer full ownership to another editor. You will become an editor yourself.
+                          Transfer full ownership to another editor. You will become an editor
+                          yourself.
                         </Text>
                         {!showTransfer ? (
-                          <Button size="sm" colorScheme="red" variant="outline" onClick={() => { setShowTransfer(true); setConfirmTransferTo(null); }}>
+                          <Button
+                            size="sm"
+                            colorScheme="red"
+                            variant="outline"
+                            onClick={() => {
+                              setShowTransfer(true);
+                              setConfirmTransferTo(null);
+                            }}
+                          >
                             Transfer Ownership
                           </Button>
                         ) : confirmTransferTo ? (
                           <VStack spacing={3} align="stretch">
-                            <Box bg="red.900" border="1px solid" borderColor="red.600" borderRadius="md" p={3}>
-                              <Text fontSize="sm" color="red.200" fontWeight="semibold" mb={1}>Are you sure?</Text>
+                            <Box
+                              bg="red.900"
+                              border="1px solid"
+                              borderColor="red.600"
+                              borderRadius="md"
+                              p={3}
+                            >
+                              <Text fontSize="sm" color="red.200" fontWeight="semibold" mb={1}>
+                                Are you sure?
+                              </Text>
                               <Text fontSize="xs" color="gray.300">
-                                <Text as="span" fontWeight="bold">{confirmTransferTo.label}</Text> will become the new owner. You cannot undo this without their cooperation.
+                                <Text as="span" fontWeight="bold">
+                                  {confirmTransferTo.label}
+                                </Text>{' '}
+                                will become the new owner. You cannot undo this without their
+                                cooperation.
                               </Text>
                             </Box>
                             <HStack spacing={2}>
@@ -1363,11 +1439,25 @@ export default function GroupDashboardManagePage() {
                                 size="sm"
                                 colorScheme="red"
                                 isLoading={transferring}
-                                onClick={() => transferDashboard({ variables: { id: dashboard.id, newOwnerId: confirmTransferTo.id } })}
+                                onClick={() =>
+                                  transferDashboard({
+                                    variables: {
+                                      id: dashboard.id,
+                                      newOwnerId: confirmTransferTo.id,
+                                    },
+                                  })
+                                }
                               >
                                 Yes, Transfer Ownership
                               </Button>
-                              <Button size="sm" variant="outline" colorScheme="gray" color="gray.300" borderColor="gray.500" onClick={() => setConfirmTransferTo(null)}>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                colorScheme="gray"
+                                color="gray.300"
+                                borderColor="gray.500"
+                                onClick={() => setConfirmTransferTo(null)}
+                              >
                                 Go Back
                               </Button>
                             </HStack>
@@ -1378,20 +1468,39 @@ export default function GroupDashboardManagePage() {
                               Choose an existing editor to become the new owner:
                             </Text>
                             {(dashboard.admins ?? []).length === 0 ? (
-                              <Text fontSize="xs" color="gray.500">Add at least one editor above before transferring.</Text>
+                              <Text fontSize="xs" color="gray.500">
+                                Add at least one editor above before transferring.
+                              </Text>
                             ) : (
                               <VStack spacing={2} align="stretch">
                                 {(dashboard.admins ?? []).map((admin) => (
-                                  <HStack key={admin.id} px={3} py={2} bg="gray.700" borderRadius="md" justify="space-between" border="1px solid" borderColor="gray.600">
+                                  <HStack
+                                    key={admin.id}
+                                    px={3}
+                                    py={2}
+                                    bg="gray.700"
+                                    borderRadius="md"
+                                    justify="space-between"
+                                    border="1px solid"
+                                    borderColor="gray.600"
+                                  >
                                     <Text fontSize="sm" color="gray.200">
                                       {admin.displayName || admin.username}
-                                      <Text as="span" color="gray.500"> · {admin.rsn}</Text>
+                                      <Text as="span" color="gray.500">
+                                        {' '}
+                                        · {admin.rsn}
+                                      </Text>
                                     </Text>
                                     <Button
                                       size="xs"
                                       colorScheme="red"
                                       variant="outline"
-                                      onClick={() => setConfirmTransferTo({ id: admin.id, label: admin.displayName || admin.username })}
+                                      onClick={() =>
+                                        setConfirmTransferTo({
+                                          id: admin.id,
+                                          label: admin.displayName || admin.username,
+                                        })
+                                      }
                                     >
                                       Select
                                     </Button>
@@ -1399,13 +1508,186 @@ export default function GroupDashboardManagePage() {
                                 ))}
                               </VStack>
                             )}
-                            <Button size="xs" variant="outline" colorScheme="gray" color="gray.300" borderColor="gray.500" alignSelf="flex-start" onClick={() => setShowTransfer(false)}>
+                            <Button
+                              size="xs"
+                              variant="outline"
+                              colorScheme="gray"
+                              color="gray.300"
+                              borderColor="gray.500"
+                              alignSelf="flex-start"
+                              onClick={() => setShowTransfer(false)}
+                            >
                               Cancel
                             </Button>
                           </VStack>
                         )}
                       </Box>
                     )}
+                  </VStack>
+                </TabPanel>
+
+                {/* ── Embed tab ── */}
+                <TabPanel px={0} pt={5}>
+                  <VStack spacing={4} align="stretch">
+                    <Box bg="gray.800" borderRadius="xl" p={5}>
+                      <Text fontWeight="semibold" color="gray.100" mb={1}>
+                        Widget embed
+                      </Text>
+                      <Text fontSize="sm" color="gray.400" mb={2} lineHeight="1.6">
+                        Drop this iframe into any website or Notion page to show live goal progress.
+                        It displays the current active event for this dashboard.
+                      </Text>
+                      <Text fontSize="sm" color="gray.400" mb={5} lineHeight="1.6">
+                        To pin the widget to a specific event, add{' '}
+                        <Text
+                          as="span"
+                          fontFamily="mono"
+                          fontSize="xs"
+                          bg="gray.700"
+                          px={1}
+                          py={0.5}
+                          borderRadius="sm"
+                          color="gray.200"
+                        >
+                          ?event=EVENT_ID
+                        </Text>{' '}
+                        to the widget URL. The event ID is the number after{' '}
+                        <Text
+                          as="span"
+                          fontFamily="mono"
+                          fontSize="xs"
+                          bg="gray.700"
+                          px={1}
+                          py={0.5}
+                          borderRadius="sm"
+                          color="gray.200"
+                        >
+                          ?tab=
+                        </Text>{' '}
+                        in your browser's address bar when viewing the dashboard (i.e.{' '}
+                        <Text
+                          as="span"
+                          fontFamily="mono"
+                          fontSize="xs"
+                          bg="gray.700"
+                          px={1}
+                          py={0.5}
+                          borderRadius="sm"
+                          color="gray.200"
+                        >
+                          ?tab=7
+                        </Text>{' '}
+                        → event ID is 7).
+                      </Text>
+
+                      {(dashboard.events ?? []).filter((e) => e.isVisible).length === 0 && (
+                        <Box
+                          bg="gray.750"
+                          border="1px solid"
+                          borderColor="gray.600"
+                          borderRadius="md"
+                          p={4}
+                          mb={4}
+                        >
+                          <Text fontSize="sm" color="gray.400">
+                            No active events right now — the widget will show a placeholder until an
+                            event goes live.
+                          </Text>
+                        </Box>
+                      )}
+
+                      <VStack spacing={4} align="stretch">
+                        {/* Preview */}
+                        <Box>
+                          <Text
+                            fontSize="xs"
+                            color="gray.500"
+                            mb={2}
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                          >
+                            Preview
+                          </Text>
+                          <Box
+                            borderRadius="lg"
+                            overflow="hidden"
+                            border="1px solid"
+                            borderColor="gray.600"
+                            h="300px"
+                          >
+                            <iframe
+                              src={`${window.location.origin}/group/${slug}/widget`}
+                              title="Dashboard widget preview"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none',
+                                display: 'block',
+                              }}
+                            />
+                          </Box>
+                        </Box>
+
+                        {/* Snippet */}
+                        {[
+                          {
+                            label: 'Default (400px wide)',
+                            code: `<iframe\n  src="${window.location.origin}/group/${slug}/widget"\n  width="400"\n  height="600"\n  style="border:none;border-radius:12px;"\n  title="${dashboard.groupName} goal progress"\n></iframe>`,
+                          },
+                          {
+                            label: 'Full width',
+                            code: `<iframe\n  src="${window.location.origin}/group/${slug}/widget"\n  width="100%"\n  height="600"\n  style="border:none;border-radius:12px;"\n  title="${dashboard.groupName} goal progress"\n></iframe>`,
+                          },
+                        ].map(({ label, code }) => (
+                          <Box key={label}>
+                            <Text
+                              fontSize="xs"
+                              color="gray.500"
+                              mb={2}
+                              textTransform="uppercase"
+                              letterSpacing="wider"
+                            >
+                              {label}
+                            </Text>
+                            <Box
+                              bg="gray.900"
+                              border="1px solid"
+                              borderColor="gray.700"
+                              borderRadius="md"
+                              p={3}
+                              fontFamily="mono"
+                              fontSize="xs"
+                              color="gray.300"
+                              whiteSpace="pre"
+                              overflowX="auto"
+                              lineHeight="1.6"
+                            >
+                              {code}
+                            </Box>
+                            <Button
+                              size="xs"
+                              colorScheme="purple"
+                              mt={2}
+                              onClick={() => {
+                                navigator.clipboard.writeText(code);
+                                toast({
+                                  title: 'Copied!',
+                                  status: 'success',
+                                  duration: 1500,
+                                  isClosable: true,
+                                });
+                              }}
+                            >
+                              Copy
+                            </Button>
+                          </Box>
+                        ))}
+
+                        <Text fontSize="xs" color="gray.600">
+                          Widget URL: {window.location.origin}/group/{slug}/widget
+                        </Text>
+                      </VStack>
+                    </Box>
                   </VStack>
                 </TabPanel>
               </TabPanels>

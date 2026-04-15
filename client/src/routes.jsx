@@ -44,6 +44,7 @@ const GroupDashboardCreatePage = lazy(() => import('./pages/GroupDashboardCreate
 const GroupDashboardListPage = lazy(() => import('./pages/GroupDashboardListPage'));
 const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboardCompetitionsPage'));
 const GroupDashboardActivityPage = lazy(() => import('./pages/GroupDashboardActivityPage'));
+const GroupDashboardWidgetPage = lazy(() => import('./pages/GroupDashboardWidgetPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -60,6 +61,15 @@ const withSuspense = (Component) => (
 );
 
 const routes = [
+  {
+    path: '/group/:slug/widget',
+    element: (
+      <Suspense fallback={<PageLoader />}>
+        <GroupDashboardWidgetPage />
+      </Suspense>
+    ),
+    errorElement: <ErrorPage />,
+  },
   {
     path: '/',
     element: <Root />,
