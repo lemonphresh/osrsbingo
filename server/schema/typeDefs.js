@@ -894,10 +894,13 @@ const typeDefs = gql`
     updateGroupGoalEvent(id: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
     deleteGroupGoalEvent(id: ID!): Boolean!
     confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!, roleId: String): GroupDashboard!
+    updateGroupDiscordNotifications(id: ID!, notifications: JSON!): GroupDashboard!
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     transferGroupDashboard(id: ID!, newOwnerId: ID!): GroupDashboard!
+    saveGoalTemplate(id: ID!, name: String!, goals: JSON!): GroupDashboard!
+    deleteGoalTemplate(id: ID!, templateName: String!): GroupDashboard!
     followGroupDashboard(dashboardId: ID!): Boolean!
     unfollowGroupDashboard(dashboardId: ID!): Boolean!
     muteGroupDashboard(dashboardId: ID!): Boolean!
@@ -1178,6 +1181,7 @@ const typeDefs = gql`
     adminIds: [ID!]!
     theme: JSON
     discordConfig: JSON
+    goalTemplates: JSON
     events: [GroupGoalEvent!]!
     creator: User
     admins: [User!]

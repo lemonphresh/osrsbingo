@@ -53,6 +53,8 @@ import {
   REMOVE_GROUP_DASHBOARD_ADMIN,
   TRANSFER_GROUP_DASHBOARD,
   SEARCH_USERS,
+  SAVE_GOAL_TEMPLATE,
+  DELETE_GOAL_TEMPLATE,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
@@ -567,6 +569,63 @@ function EditorsPanel({ dashboard, onRefetch }) {
   );
 }
 
+// ── Templates panel ──────────────────────────────────────────────────────────
+
+function TemplatesPanel({ dashboard, onRefetch }) {
+  const toast = useToast();
+  const templates = dashboard.goalTemplates ?? [];
+
+  const [deleteTemplate, { loading: deleting }] = useMutation(DELETE_GOAL_TEMPLATE, {
+    onCompleted: () => {
+      onRefetch();
+      toast({ title: 'Template deleted', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  if (templates.length === 0) return null;
+
+  return (
+    <Box>
+      <Text fontSize="xs" color="gray.500" textTransform="uppercase" letterSpacing="wider" mb={2}>
+        Templates
+      </Text>
+      <VStack spacing={2} align="stretch">
+        {templates.map((t) => (
+          <HStack
+            key={t.name}
+            px={4}
+            py={2.5}
+            bg="gray.800"
+            borderRadius="md"
+            border="1px solid"
+            borderColor="gray.700"
+            justify="space-between"
+          >
+            <VStack align="flex-start" spacing={0.5} minW={0} flex={1}>
+              <Text fontSize="sm" color="gray.200" fontWeight="medium" noOfLines={1}>
+                {t.name}
+              </Text>
+              <Text fontSize="xs" color="gray.500">
+                {(t.goals ?? []).filter((g) => g.enabled !== false).length} goal{(t.goals ?? []).filter((g) => g.enabled !== false).length !== 1 ? 's' : ''}
+              </Text>
+            </VStack>
+            <IconButton
+              size="xs"
+              variant="ghost"
+              icon={<DeleteIcon />}
+              aria-label="Delete template"
+              color="gray.500"
+              _hover={{ color: 'red.400' }}
+              isLoading={deleting}
+              onClick={() => deleteTemplate({ variables: { id: dashboard.id, templateName: t.name } })}
+            />
+          </HStack>
+        ))}
+      </VStack>
+    </Box>
+  );
+}
+
 // ── Event row ────────────────────────────────────────────────────────────────
 
 function EventRow({
@@ -577,11 +636,14 @@ function EventRow({
   onRerun,
   rerunLoading,
   onViewLeaderboard,
+  onSaveTemplate,
   archived,
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [rerunning, setRerunning] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [templateName, setTemplateName] = useState(event.eventName);
   const now = new Date();
   const isActive = now >= new Date(event.startDate) && now <= new Date(event.endDate);
   const isPast = now > new Date(event.endDate);
@@ -664,6 +726,56 @@ function EventRow({
               >
                 Results
               </Button>
+              {savingTemplate ? (
+                <HStack spacing={1}>
+                  <Input
+                    size="xs"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    bg="gray.700"
+                    borderColor="gray.600"
+                    w="140px"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && templateName.trim()) {
+                        onSaveTemplate(templateName.trim());
+                        setSavingTemplate(false);
+                      }
+                      if (e.key === 'Escape') setSavingTemplate(false);
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="gray.300"
+                    isDisabled={!templateName.trim()}
+                    onClick={() => {
+                      onSaveTemplate(templateName.trim());
+                      setSavingTemplate(false);
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="gray.500"
+                    onClick={() => setSavingTemplate(false)}
+                  >
+                    ✕
+                  </Button>
+                </HStack>
+              ) : (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="gray.500"
+                  _hover={{ color: 'gray.200' }}
+                  onClick={() => { setTemplateName(event.eventName); setSavingTemplate(true); }}
+                >
+                  Save as template
+                </Button>
+              )}
               <Button
                 size="xs"
                 colorScheme="purple"
@@ -722,6 +834,56 @@ function EventRow({
                   setConfirmDelete(false);
                 }}
               />
+              {savingTemplate ? (
+                <HStack spacing={1}>
+                  <Input
+                    size="xs"
+                    value={templateName}
+                    onChange={(e) => setTemplateName(e.target.value)}
+                    bg="gray.700"
+                    borderColor="gray.600"
+                    w="140px"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && templateName.trim()) {
+                        onSaveTemplate(templateName.trim());
+                        setSavingTemplate(false);
+                      }
+                      if (e.key === 'Escape') setSavingTemplate(false);
+                    }}
+                    autoFocus
+                  />
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="gray.300"
+                    isDisabled={!templateName.trim()}
+                    onClick={() => {
+                      onSaveTemplate(templateName.trim());
+                      setSavingTemplate(false);
+                    }}
+                  >
+                    Save
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    color="gray.500"
+                    onClick={() => setSavingTemplate(false)}
+                  >
+                    ✕
+                  </Button>
+                </HStack>
+              ) : (
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="gray.500"
+                  _hover={{ color: 'gray.200' }}
+                  onClick={() => { setTemplateName(event.eventName); setSavingTemplate(true); }}
+                >
+                  Save as template
+                </Button>
+              )}
               {confirmDelete ? (
                 <HStack spacing={1}>
                   <Button
@@ -820,6 +982,7 @@ function EventRow({
               setEditing(false);
             }}
             onCancel={() => setEditing(false)}
+            templates={[]}
           />
         </Box>
       </Collapse>
@@ -886,6 +1049,13 @@ export default function GroupDashboardManagePage() {
     onCompleted: () => {
       refetch();
       toast({ title: 'Event deleted', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  const [saveTemplate] = useMutation(SAVE_GOAL_TEMPLATE, {
+    onCompleted: () => {
+      refetch();
+      toast({ title: 'Template saved', status: 'success', duration: 2000, isClosable: true });
     },
   });
 
@@ -1046,6 +1216,40 @@ export default function GroupDashboardManagePage() {
                       </Select>
                     </HStack>
 
+                    <TemplatesPanel dashboard={dashboard} onRefetch={refetch} />
+
+                    {showCreate ? (
+                      <Box
+                        bg="gray.800"
+                        border="2px solid"
+                        borderColor="purple.600"
+                        borderRadius="lg"
+                        p={5}
+                      >
+                        <Text fontWeight="bold" color="gray.100" mb={4}>
+                          New Event
+                        </Text>
+                        <GroupGoalEventEditor
+                          onSave={(input) =>
+                            createEvent({ variables: { dashboardId: dashboard.id, input } })
+                          }
+                          onCancel={() => setShowCreate(false)}
+                          loading={creating}
+                          templates={dashboard.goalTemplates ?? []}
+                        />
+                      </Box>
+                    ) : (
+                      <Button
+                        leftIcon={<AddIcon />}
+                        colorScheme="purple"
+                        size="sm"
+                        alignSelf="flex-start"
+                        onClick={() => setShowCreate(true)}
+                      >
+                        Add Event
+                      </Button>
+                    )}
+
                     {activeEvents.length === 0 && !showCreate && (
                       <Box bg="gray.800" borderRadius="xl" p={8} textAlign="center">
                         <Text color="gray.400" mb={1}>
@@ -1066,40 +1270,9 @@ export default function GroupDashboardManagePage() {
                         deleting={deleting}
                         onRerun={handleRerun}
                         rerunLoading={creating}
+                        onSaveTemplate={(name) => saveTemplate({ variables: { id: dashboard.id, name, goals: e.goals ?? [] } })}
                       />
                     ))}
-
-                    {showCreate ? (
-                      <Box
-                        bg="gray.800"
-                        border="2px solid"
-                        borderColor="purple.600"
-                        borderRadius="lg"
-                        p={5}
-                      >
-                        <Text fontWeight="bold" color="gray.100" mb={4}>
-                          New Event
-                        </Text>
-                        <GroupGoalEventEditor
-                          onSave={(input) =>
-                            createEvent({ variables: { dashboardId: dashboard.id, input } })
-                          }
-                          onCancel={() => setShowCreate(false)}
-                          loading={creating}
-                        />
-                      </Box>
-                    ) : (
-                      <Button
-                        leftIcon={<AddIcon />}
-                        variant="outline"
-                        colorScheme="purple"
-                        size="sm"
-                        alignSelf="flex-start"
-                        onClick={() => setShowCreate(true)}
-                      >
-                        Add Event
-                      </Button>
-                    )}
 
                     {/* ── Archived section ── */}
                     {archivedEvents.length > 0 && (
@@ -1128,6 +1301,7 @@ export default function GroupDashboardManagePage() {
                                 onRerun={handleRerun}
                                 rerunLoading={creating}
                                 onViewLeaderboard={() => setLeaderboardEventId(e.id)}
+                                onSaveTemplate={(name) => saveTemplate({ variables: { id: dashboard.id, name, goals: e.goals ?? [] } })}
                                 archived
                               />
                             ))}

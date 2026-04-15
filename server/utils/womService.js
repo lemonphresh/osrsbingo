@@ -260,22 +260,35 @@ async function fetchGroupInfo(womGroupId) {
 async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
   // Cap endDate to now — WOM rejects future dates for ongoing events
   const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
-  // WOM accepts startDate+endDate directly — do NOT include period=custom
-  const params = new URLSearchParams({
-    metric,
-    startDate: new Date(startDate).toISOString(),
-    endDate: effectiveEnd,
-  });
-  const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    logger.warn(
-      `WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`
-    );
-    return [];
+
+  const allResults = [];
+  const PAGE_SIZE = 50;
+  let offset = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      metric,
+      startDate: new Date(startDate).toISOString(),
+      endDate: effectiveEnd,
+      limit: PAGE_SIZE,
+      offset,
+    });
+    const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      logger.warn(
+        `WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`
+      );
+      break;
+    }
+    const data = await res.json();
+    const page = Array.isArray(data) ? data : data.data ?? [];
+    allResults.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
-  const data = await res.json();
-  return Array.isArray(data) ? data : data.data ?? [];
+
+  return allResults;
 }
 
 // ---------------------------------------------------------------------------

@@ -5,7 +5,7 @@ const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
 const { fetchGroupInfo, fetchGroupGains, fetchGroupMembers, fetchGroupCompetitions } = require('../../utils/womService');
 const { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics, isIndividualGoal } = require('../../utils/groupDashboardHelpers');
-const { sendGroupGoalMilestoneNotification } = require('../../utils/discordNotifications');
+const { sendGroupGoalMilestoneNotification, sendGroupEventStartedNotification, sendGroupEventEndedNotification } = require('../../utils/discordNotifications');
 const { verifyGuild } = require('../../../bot/utils/verify');
 
 const getModels = () => require('../../db/models');
@@ -227,11 +227,16 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
 
           for (const milestone of newMilestones) {
             if (fireNotifications) {
-              if (discord?.confirmed && discord?.channelId) {
+              const notifKey = `milestone_${milestone}`;
+              const notifSettings = discord?.notifications?.[notifKey];
+              const sendDiscord = notifSettings?.enabled !== false;
+              const sendPing = notifSettings?.ping !== false;
+
+              if (sendDiscord && discord?.confirmed && discord?.channelId) {
                 try {
                   await sendGroupGoalMilestoneNotification({
                     channelId: discord.channelId,
-                    roleId: discord.roleId ?? null,
+                    roleId: sendPing ? (discord.roleId ?? null) : null,
                     groupName: event.dashboard.groupName,
                     eventName: event.eventName,
                     goal: goalConfig ?? { displayName: goalProgress.displayName },
@@ -288,12 +293,30 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
           endDate: event.endDate,
           individualSummaries: individualSummaries.length ? individualSummaries : undefined,
         }, new Date(event.endDate));
+
+        const endedNotifSettings = discord?.notifications?.event_ended;
+        if (discord?.confirmed && discord?.channelId && endedNotifSettings?.enabled !== false) {
+          sendGroupEventEndedNotification({
+            channelId: discord.channelId,
+            roleId: endedNotifSettings?.ping !== false ? (discord.roleId ?? null) : null,
+            groupName: event.dashboard.groupName,
+            eventName: event.eventName,
+            dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+            individualSummaries,
+          }).catch((err) => logger.error('Failed to send event_ended Discord notification:', err.message));
+        }
+
         notificationsSent.__event_ended = true;
         dirty = true;
       }
 
       if (dirty) {
         await event.update({ notificationsSent });
+      }
+
+      // Freeze a snapshot for ended events
+      if (eventEnded && !event.finalSnapshot) {
+        await event.update({ finalSnapshot: progress });
       }
 
       return progress;
@@ -304,7 +327,12 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
 
   // Cached path — just return current progress without any side effects
   const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
-  return calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
+  const cachedProgress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
+  // Write snapshot for ended events that don't have one yet
+  if (new Date(event.endDate) < new Date() && !event.finalSnapshot && womData) {
+    await event.update({ finalSnapshot: cachedProgress });
+  }
+  return cachedProgress;
 }
 
 // ---------------------------------------------------------------------------
@@ -324,7 +352,11 @@ const GroupDashboardResolvers = {
 
     getGroupDashboardProgress: async (_, { eventId }) => {
       const event = await getEventOrThrow(eventId);
-      return fetchAndCacheProgress(event, false);
+      const isEnded = new Date(event.endDate) < new Date();
+      if (isEnded && event.finalSnapshot) {
+        return event.finalSnapshot;
+      }
+      return fetchAndCacheProgress(event, false, false);
     },
 
     getMyGroupDashboards: async (_, __, { user }) => {
@@ -558,6 +590,20 @@ const GroupDashboardResolvers = {
           startDate: input.startDate,
           endDate: input.endDate,
         }, new Date(input.startDate));
+
+        const discord = dashboard.discordConfig;
+        const notifSettings = discord?.notifications?.event_started;
+        if (discord?.confirmed && discord?.channelId && notifSettings?.enabled !== false) {
+          sendGroupEventStartedNotification({
+            channelId: discord.channelId,
+            roleId: notifSettings?.ping !== false ? (discord.roleId ?? null) : null,
+            groupName: dashboard.groupName,
+            eventName: input.eventName,
+            startDate: input.startDate,
+            endDate: input.endDate,
+            dashboardUrl: `${APP_BASE_URL}/group/${dashboard.slug}`,
+          }).catch((err) => logger.error('Failed to send event_started Discord notification:', err.message));
+        }
       }
 
       return event;
@@ -606,6 +652,16 @@ const GroupDashboardResolvers = {
           confirmed: true,
           notifyThresholds: dashboard.discordConfig?.notifyThresholds ?? [25, 50, 75, 100],
         },
+      });
+      return dashboard.reload();
+    },
+
+    updateGroupDiscordNotifications: async (_, { id, notifications }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
+      await dashboard.update({
+        discordConfig: { ...(dashboard.discordConfig ?? {}), notifications },
       });
       return dashboard.reload();
     },
@@ -659,6 +715,25 @@ const GroupDashboardResolvers = {
       ];
 
       await dashboard.update({ creatorId: newOwnerInt, adminIds: newAdminIds });
+      return dashboard.reload();
+    },
+
+    saveGoalTemplate: async (_, { id, name, goals }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
+      const existing = (dashboard.goalTemplates ?? []).filter((t) => t.name !== name);
+      await dashboard.update({ goalTemplates: [...existing, { name, goals }] });
+      return dashboard.reload();
+    },
+
+    deleteGoalTemplate: async (_, { id, templateName }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
+      await dashboard.update({
+        goalTemplates: (dashboard.goalTemplates ?? []).filter((t) => t.name !== templateName),
+      });
       return dashboard.reload();
     },
 

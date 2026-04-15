@@ -7,12 +7,37 @@ import {
   Button,
   Text,
   Box,
+  Checkbox,
   Link,
+  Divider,
 } from '@chakra-ui/react';
 import { CheckIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { CONFIRM_GROUP_DASHBOARD_DISCORD } from '../../graphql/groupDashboardOperations';
+import {
+  CONFIRM_GROUP_DASHBOARD_DISCORD,
+  UPDATE_GROUP_DISCORD_NOTIFICATIONS,
+} from '../../graphql/groupDashboardOperations';
+
+const NOTIFICATION_ROWS = [
+  { key: 'event_started', label: 'Event started' },
+  { key: 'milestone_25', label: '25% reached' },
+  { key: 'milestone_50', label: '50% reached' },
+  { key: 'milestone_75', label: '75% reached' },
+  { key: 'milestone_100', label: 'Goal complete (100%)' },
+  { key: 'event_ended', label: 'Event ended' },
+];
+
+function initNotifState(saved) {
+  const result = {};
+  for (const { key } of NOTIFICATION_ROWS) {
+    result[key] = {
+      enabled: saved?.[key]?.enabled !== false,
+      ping: saved?.[key]?.ping !== false,
+    };
+  }
+  return result;
+}
 
 export default function GroupDiscordSetup({ dashboard }) {
   const discordConfig = dashboard?.discordConfig ?? {};
@@ -26,7 +51,28 @@ export default function GroupDiscordSetup({ dashboard }) {
   const [guildError, setGuildError] = useState(null);
   const [channelError, setChannelError] = useState(null);
 
+  const [notifSettings, setNotifSettings] = useState(() =>
+    initNotifState(discordConfig.notifications)
+  );
+  const [notifSaved, setNotifSaved] = useState(false);
+
   const [confirmDiscord, { loading: confirming }] = useMutation(CONFIRM_GROUP_DASHBOARD_DISCORD);
+  const [updateNotifications, { loading: savingNotif }] = useMutation(
+    UPDATE_GROUP_DISCORD_NOTIFICATIONS
+  );
+
+  function setNotif(key, field, value) {
+    setNotifSaved(false);
+    setNotifSettings((prev) => ({
+      ...prev,
+      [key]: { ...prev[key], [field]: value },
+    }));
+  }
+
+  async function handleSaveNotifications() {
+    await updateNotifications({ variables: { id: dashboard.id, notifications: notifSettings } });
+    setNotifSaved(true);
+  }
 
   async function verifyGuild() {
     setGuildError(null);
@@ -289,6 +335,100 @@ export default function GroupDiscordSetup({ dashboard }) {
         <Text fontSize="xs" color="gray.500" mt={2}>
           You must verify the server before confirming.
         </Text>
+      </Box>
+
+      <Divider borderColor="gray.700" />
+
+      <Box>
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color="gray.300"
+          mb={1}
+          textTransform="uppercase"
+          letterSpacing="wider"
+        >
+          Notification settings
+        </Text>
+        <Text fontSize="xs" color="gray.500" mb={4}>
+          Control which events post to Discord and whether they ping the role.
+        </Text>
+
+        <Box
+          bg="gray.750"
+          border="1px solid"
+          borderColor="gray.600"
+          borderRadius="md"
+          overflow="hidden"
+        >
+          <HStack
+            px={4}
+            py={2}
+            bg="gray.700"
+            spacing={0}
+            borderBottom="1px solid"
+            borderColor="gray.600"
+          >
+            <Text fontSize="xs" color="gray.400" flex="1">
+              Notification
+            </Text>
+            <Text fontSize="xs" color="gray.400" w="60px" textAlign="center">
+              Send
+            </Text>
+            <Text fontSize="xs" color="gray.400" w="80px" textAlign="center">
+              Ping role
+            </Text>
+          </HStack>
+          {NOTIFICATION_ROWS.map(({ key, label }, i) => {
+            const s = notifSettings[key];
+            return (
+              <HStack
+                key={key}
+                px={4}
+                py={3}
+                spacing={0}
+                borderTop={i === 0 ? undefined : '1px solid'}
+                borderColor="gray.700"
+              >
+                <Text fontSize="sm" color="gray.200" flex="1">
+                  {label}
+                </Text>
+                <Box w="60px" display="flex" justifyContent="center">
+                  <Checkbox
+                    isChecked={s.enabled}
+                    onChange={(e) => setNotif(key, 'enabled', e.target.checked)}
+                  />
+                </Box>
+                <Box w="80px" display="flex" justifyContent="center">
+                  <Checkbox
+                    isChecked={s.ping}
+                    isDisabled={!s.enabled}
+                    onChange={(e) => setNotif(key, 'ping', e.target.checked)}
+                  />
+                </Box>
+              </HStack>
+            );
+          })}
+        </Box>
+
+        <HStack mt={3} spacing={3} align="center">
+          <Button
+            size="sm"
+            colorScheme="purple"
+            onClick={handleSaveNotifications}
+            isLoading={savingNotif}
+          >
+            Save notification settings
+          </Button>
+          {notifSaved && (
+            <HStack spacing={1}>
+              <CheckIcon color="green.400" boxSize={3} />
+              <Text fontSize="xs" color="green.400">
+                Saved
+              </Text>
+            </HStack>
+          )}
+        </HStack>
       </Box>
     </VStack>
   );

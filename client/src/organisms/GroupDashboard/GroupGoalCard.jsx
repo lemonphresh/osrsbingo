@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Box, Text, HStack, VStack, Button, useClipboard } from '@chakra-ui/react';
 
 const RANK_COLORS = ['#f5c518', '#c0c0c0', '#cd7f32'];
@@ -222,7 +223,12 @@ export default function GroupGoalCard({
   eventStartDate,
   userRsn,
 }) {
-  if (progress?.isIndividual || goalConfig.type?.startsWith('individual_')) {
+  const [showAllContributors, setShowAllContributors] = useState(false);
+
+  const isIndividual =
+    progress?.isIndividual || goalConfig.type?.startsWith('individual_');
+
+  if (isIndividual) {
     return (
       <IndividualGoalCard
         goalConfig={goalConfig}
@@ -232,6 +238,7 @@ export default function GroupGoalCard({
       />
     );
   }
+
   const displayName =
     progress?.displayName ?? goalConfig.displayName ?? goalConfig.metric ?? 'Goal';
   const emoji = goalConfig.emoji ?? '🎯';
@@ -239,6 +246,10 @@ export default function GroupGoalCard({
   const target = progress?.target ?? goalConfig.target ?? 1;
   const percent = progress?.percent ?? 0;
   const contributors = progress?.topContributors ?? [];
+
+  const COLLAPSED_COUNT = 10;
+  const visibleContributors = showAllContributors ? contributors : contributors.slice(0, COLLAPSED_COUNT);
+  const hasMore = contributors.length > COLLAPSED_COUNT;
 
   const pct = Math.min(100, percent);
   const barColor =
@@ -438,7 +449,7 @@ export default function GroupGoalCard({
             </Text>
           </HStack>
 
-          {contributors.map((c, i) => {
+          {visibleContributors.map((c, i) => {
             const isTop3 = i < 3;
             const nameColor = i === 0 ? 'yellow.300' : i === 1 ? 'gray.100' : 'gray.300';
             const rate = daysElapsed ? fmt(Math.round(c.value / daysElapsed)) : null;
@@ -508,6 +519,24 @@ export default function GroupGoalCard({
               </HStack>
             );
           })}
+          {hasMore && (
+            <Box
+              px={5}
+              py={2.5}
+              borderTop="1px solid"
+              borderColor="gray.800"
+              cursor="pointer"
+              onClick={() => setShowAllContributors((v) => !v)}
+              _hover={{ bg: 'gray.800' }}
+              transition="background 0.1s"
+            >
+              <Text fontSize="xs" color="gray.500" textAlign="center">
+                {showAllContributors
+                  ? 'Show less'
+                  : `Show all ${contributors.length} players`}
+              </Text>
+            </Box>
+          )}
         </Box>
       )}
 

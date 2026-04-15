@@ -26,6 +26,7 @@ module.exports = (sequelize) => {
       cachedData: { type: DataTypes.JSONB, allowNull: true },
       lastSyncedAt: { type: DataTypes.DATE, allowNull: true },
       notificationsSent: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
+      finalSnapshot: { type: DataTypes.JSONB, allowNull: true },
     },
     {
       sequelize,

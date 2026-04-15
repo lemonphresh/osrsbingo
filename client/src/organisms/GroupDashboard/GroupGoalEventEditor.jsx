@@ -4,6 +4,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Select,
   Button,
   Text,
   Divider,
@@ -32,13 +33,14 @@ function toInputDate(dateStr) {
   return new Date(dateStr).toISOString().slice(0, 10);
 }
 
-export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, loading }) {
+export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, loading, templates = [] }) {
   const [eventName, setEventName] = useState(initialValues?.eventName ?? '');
   const [startDate, setStartDate] = useState(toInputDate(initialValues?.startDate));
   const [endDate, setEndDate] = useState(toInputDate(initialValues?.endDate));
   const [goals, setGoals] = useState(
     initialValues?.goals?.length ? initialValues.goals : [makeBlankGoal()]
   );
+  const [selectedTemplate, setSelectedTemplate] = useState('');
 
   function updateGoal(idx, updated) {
     setGoals((prev) => prev.map((g, i) => (i === idx ? updated : g)));
@@ -66,6 +68,35 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
 
   return (
     <VStack spacing={4} align="stretch">
+      {templates.length > 0 && (
+        <HStack spacing={2} pb={1}>
+          <Text fontSize="xs" color="gray.500" flexShrink={0}>
+            Load template:
+          </Text>
+          <Select
+            size="sm"
+            flex={1}
+            value={selectedTemplate}
+            onChange={(e) => {
+              setSelectedTemplate(e.target.value);
+              if (e.target.value) {
+                const tpl = templates.find((t) => t.name === e.target.value);
+                if (tpl) setGoals(tpl.goals.map((g, i) => ({ ...g, order: i })));
+              }
+            }}
+            bg="gray.800"
+            color="gray.100"
+            borderColor="gray.600"
+          >
+            <option value="" style={{ background: '#1A202C', color: '#E2E8F0' }}>— select —</option>
+            {templates.map((t) => (
+              <option key={t.name} value={t.name} style={{ background: '#1A202C', color: '#E2E8F0' }}>
+                {t.name}
+              </option>
+            ))}
+          </Select>
+        </HStack>
+      )}
       <FormControl isRequired>
         <FormLabel fontSize="sm" color="gray.300">
           Event Name
@@ -136,7 +167,7 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
 
       <HStack justify="flex-end" spacing={3}>
         {onCancel && (
-          <Button size="sm" variant="ghost" onClick={onCancel} isDisabled={loading}>
+          <Button size="sm" variant="ghost" colorScheme="gray" color="gray.300" onClick={onCancel} isDisabled={loading}>
             Cancel
           </Button>
         )}

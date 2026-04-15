@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       },
       theme: { type: DataTypes.JSONB, allowNull: true },
       discordConfig: { type: DataTypes.JSONB, allowNull: true },
+      goalTemplates: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
     },
     {
       sequelize,

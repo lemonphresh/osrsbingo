@@ -407,6 +407,55 @@ async function sendGroupGoalMilestoneNotification({
   });
 }
 
+/**
+ * Event started notification
+ */
+async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, startDate, endDate, dashboardUrl }) {
+  const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return sendDiscordMessage(channelId, {
+    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
+    flags: IS_COMPONENTS_V2,
+    components: [{
+      type: C.Container,
+      accent_color: 0x7d5fff,
+      components: [
+        { type: C.TextDisplay, content: `🏁 **${eventName}** has started!` },
+        sep,
+        { type: C.TextDisplay, content: `**${fmt(startDate)}** → **${fmt(endDate)}**` },
+        sep,
+        { type: C.TextDisplay, content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}` },
+      ],
+    }],
+  });
+}
+
+/**
+ * Event ended notification
+ */
+async function sendGroupEventEndedNotification({ channelId, roleId, groupName, eventName, dashboardUrl, individualSummaries = [] }) {
+  const innerComponents = [
+    { type: C.TextDisplay, content: `🏆 **${eventName}** has ended!` },
+  ];
+
+  if (individualSummaries.length > 0) {
+    const lines = individualSummaries.map((s) =>
+      `${s.goalEmoji ?? '🎯'} **${s.goalName}**: ${s.completedCount} / ${s.totalActive} members completed`
+    );
+    innerComponents.push(sep, { type: C.TextDisplay, content: lines.join('\n') });
+  }
+
+  innerComponents.push(sep, {
+    type: C.TextDisplay,
+    content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}`,
+  });
+
+  return sendDiscordMessage(channelId, {
+    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
+    flags: IS_COMPONENTS_V2,
+    components: [{ type: C.Container, accent_color: 0x43aa8b, components: innerComponents }],
+  });
+}
+
 function getSubmissionChannelId(event) {
   if (!event.discordConfig) return null;
   return (
@@ -425,6 +474,8 @@ module.exports = {
   sendNodeCompletionNotification,
   sendAllNodesCompletedNotification,
   sendGroupGoalMilestoneNotification,
+  sendGroupEventStartedNotification,
+  sendGroupEventEndedNotification,
   getSubmissionChannelId,
   getChannelFromSubmission,
 };
