@@ -1007,7 +1007,7 @@ export default function TeamBalancerPage() {
                 Score = a weighted sum of EHP, EHB, Total Level, EHP/Y, EHB/Y, and raid KCs (CoX,
                 ToB, ToA) based on the selected preset. EHP/Y and EHB/Y (gains over the past year)
                 are weighted heavily since they reflect how active a player has been recently, not
-                just their total lifetime progress. If hours/day are specified (e.g. "RSN - 8"), the
+                just their total lifetime progress. If hours/day are specified (i.e. "RSN - 8"), the
                 score is multiplied by that number to factor in availability.
               </Text>
               {hasHoursData && (

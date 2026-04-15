@@ -7,7 +7,7 @@ async function syncAllActiveGroupGoals() {
   const now = new Date();
 
   const events = await GroupGoalEvent.findAll({
-    where: { endDate: { [require('sequelize').Op.gt]: now } },
+    where: { endDate: { [require('sequelize').Op.gt]: new Date(Date.now() - 2 * 60 * 60 * 1000) } },
     include: [{ model: GroupDashboard, as: 'dashboard' }],
   });
 

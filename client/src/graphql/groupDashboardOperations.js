@@ -29,6 +29,7 @@ const GROUP_DASHBOARD_FIELDS = gql`
     adminIds
     theme
     discordConfig
+    goalTemplates
     isFollowing
     events {
       ...GroupGoalEventFields
@@ -236,6 +237,15 @@ export const CONFIRM_GROUP_DASHBOARD_DISCORD = gql`
   }
 `;
 
+export const UPDATE_GROUP_DISCORD_NOTIFICATIONS = gql`
+  ${GROUP_DASHBOARD_FIELDS}
+  mutation UpdateGroupDiscordNotifications($id: ID!, $notifications: JSON!) {
+    updateGroupDiscordNotifications(id: $id, notifications: $notifications) {
+      ...GroupDashboardFields
+    }
+  }
+`;
+
 export const REFRESH_GROUP_GOAL_DATA = gql`
   ${GROUP_GOAL_EVENT_FIELDS}
   mutation RefreshGroupGoalData($eventId: ID!) {
@@ -267,6 +277,24 @@ export const TRANSFER_GROUP_DASHBOARD = gql`
   ${GROUP_DASHBOARD_FIELDS}
   mutation TransferGroupDashboard($id: ID!, $newOwnerId: ID!) {
     transferGroupDashboard(id: $id, newOwnerId: $newOwnerId) {
+      ...GroupDashboardFields
+    }
+  }
+`;
+
+export const SAVE_GOAL_TEMPLATE = gql`
+  ${GROUP_DASHBOARD_FIELDS}
+  mutation SaveGoalTemplate($id: ID!, $name: String!, $goals: JSON!) {
+    saveGoalTemplate(id: $id, name: $name, goals: $goals) {
+      ...GroupDashboardFields
+    }
+  }
+`;
+
+export const DELETE_GOAL_TEMPLATE = gql`
+  ${GROUP_DASHBOARD_FIELDS}
+  mutation DeleteGoalTemplate($id: ID!, $templateName: String!) {
+    deleteGoalTemplate(id: $id, templateName: $templateName) {
       ...GroupDashboardFields
     }
   }

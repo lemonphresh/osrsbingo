@@ -88,7 +88,7 @@ function calculateGoalProgress(goals, cachedData, roleMap = {}) {
       const safeTarget = goal.target > 0 ? goal.target : 1;
       const percent = Math.min(100, Math.round((current / safeTarget) * 10000) / 100);
 
-      const topContributors = contributions.slice(0, 10).map((c) => ({
+      const topContributors = contributions.map((c) => ({
         rsn: c.rsn,
         value: c.value,
         percent: current > 0 ? Math.round((c.value / current) * 10000) / 100 : 0,
