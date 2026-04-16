@@ -901,6 +901,7 @@ const typeDefs = gql`
     transferGroupDashboard(id: ID!, newOwnerId: ID!): GroupDashboard!
     saveGoalTemplate(id: ID!, name: String!, goals: JSON!): GroupDashboard!
     deleteGoalTemplate(id: ID!, templateName: String!): GroupDashboard!
+    setLeaguesWomGroupId(id: ID!, leaguesWomGroupId: String): GroupDashboard!
     followGroupDashboard(dashboardId: ID!): Boolean!
     unfollowGroupDashboard(dashboardId: ID!): Boolean!
     muteGroupDashboard(dashboardId: ID!): Boolean!
@@ -1177,6 +1178,7 @@ const typeDefs = gql`
     slug: String!
     groupName: String!
     womGroupId: String!
+    leaguesWomGroupId: String
     creatorId: ID!
     adminIds: [ID!]!
     theme: JSON
@@ -1250,6 +1252,7 @@ const typeDefs = gql`
     endsAt: DateTime!
     participantCount: Int!
     groupId: ID
+    isLeagues: Boolean
   }
 
   input CreateGroupDashboardInput {

@@ -135,11 +135,13 @@ const GOAL_TYPES = [
   { value: 'skill_xp', label: 'Skill XP (group total)' },
   { value: 'ehb', label: 'EHB (group total)' },
   { value: 'ehp', label: 'EHP (group total)' },
+  { value: 'leagues_points', label: 'Leagues Points (group total)' },
   { value: 'individual_boss_kc', label: 'Boss KC (individual target)' },
   { value: 'individual_clue_kc', label: 'Clue Scrolls (individual target)' },
   { value: 'individual_skill_xp', label: 'Skill XP (individual target)' },
   { value: 'individual_ehb', label: 'EHB (individual target)' },
   { value: 'individual_ehp', label: 'EHP (individual target)' },
+  { value: 'individual_leagues_points', label: 'Leagues Points (individual target)' },
 ];
 
 const EMOJI_OPTIONS = [
@@ -204,7 +206,12 @@ function getMetricOptions(type) {
   if (type === 'boss_kc' || type === 'individual_boss_kc') return BOSS_METRICS;
   if (type === 'skill_xp' || type === 'individual_skill_xp') return SKILL_METRICS;
   if (type === 'clue_kc' || type === 'individual_clue_kc') return CLUE_METRICS;
-  return [];
+  return []; // ehb, ehp, leagues_points have no sub-metric
+}
+
+function getDefaultMetric(type) {
+  if (type === 'leagues_points' || type === 'individual_leagues_points') return 'league_points';
+  return getMetricOptions(type)[0]?.value ?? '';
 }
 
 function EmojiPicker({ value, onChange }) {
@@ -280,8 +287,7 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
               value={goal.type}
               onChange={(e) => {
                 const newType = e.target.value;
-                const opts = getMetricOptions(newType);
-                onChange({ ...goal, type: newType, metric: opts[0]?.value ?? '' });
+                onChange({ ...goal, type: newType, metric: getDefaultMetric(newType) });
               }}
               bg="gray.800"
               color="gray.100"

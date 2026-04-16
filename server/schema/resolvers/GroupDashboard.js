@@ -6,8 +6,10 @@ const logger = require('../../utils/logger');
 const {
   fetchGroupInfo,
   fetchGroupGains,
+  fetchLeaguesGroupGains,
   fetchGroupMembers,
   fetchGroupCompetitions,
+  fetchLeaguesGroupCompetitions,
 } = require('../../utils/womService');
 const {
   calculateGoalProgress,
@@ -15,6 +17,7 @@ const {
   toSlug,
   getRequiredMetrics,
   isIndividualGoal,
+  isLeaguesGoal,
 } = require('../../utils/groupDashboardHelpers');
 const {
   sendGroupGoalMilestoneNotification,
@@ -173,15 +176,30 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
       const newData = {};
       let anyFailed = false;
 
+      // Determine which metrics come from the leagues API vs regular WOM
+      const leaguesMetrics = new Set(
+        goals.filter(isLeaguesGoal).map((g) => getRequiredMetrics([g])[0]).filter(Boolean)
+      );
+
       await Promise.all(
         metrics.map(async (metric) => {
           try {
-            newData[metric] = await fetchGroupGains(
-              event.dashboard.womGroupId,
-              metric,
-              event.startDate,
-              event.endDate
-            );
+            const isLeagues = leaguesMetrics.has(metric);
+            if (isLeagues && event.dashboard.leaguesWomGroupId) {
+              newData[metric] = await fetchLeaguesGroupGains(
+                event.dashboard.leaguesWomGroupId,
+                metric,
+                event.startDate,
+                event.endDate
+              );
+            } else {
+              newData[metric] = await fetchGroupGains(
+                event.dashboard.womGroupId,
+                metric,
+                event.startDate,
+                event.endDate
+              );
+            }
           } catch (err) {
             logger.error(
               { err },
@@ -404,7 +422,20 @@ const GroupDashboardResolvers = {
       const { GroupDashboard } = getModels();
       const dashboard = await GroupDashboard.findOne({ where: { slug } });
       if (!dashboard) throw new UserInputError(`Group dashboard not found`);
-      return fetchGroupCompetitions(dashboard.womGroupId);
+
+      const [regular, leagues] = await Promise.all([
+        fetchGroupCompetitions(dashboard.womGroupId),
+        dashboard.leaguesWomGroupId
+          ? fetchLeaguesGroupCompetitions(dashboard.leaguesWomGroupId)
+          : Promise.resolve([]),
+      ]);
+
+      const regularMapped = regular.map((c) => ({ ...c, isLeagues: false }));
+      const leaguesMapped = leagues.map((c) => ({ ...c, isLeagues: true }));
+
+      return [...regularMapped, ...leaguesMapped].sort(
+        (a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime()
+      );
     },
 
     getMyGroupAssociations: async (_, __, { user }) => {
@@ -758,6 +789,21 @@ const GroupDashboardResolvers = {
       ];
 
       await dashboard.update({ creatorId: newOwnerInt, adminIds: newAdminIds });
+      return dashboard.reload();
+    },
+
+    setLeaguesWomGroupId: async (_, { id, leaguesWomGroupId }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
+      // Accept full URLs like https://league.wiseoldman.net/groups/211 — extract just the ID
+      let sanitized = leaguesWomGroupId || null;
+      if (sanitized) {
+        const match = sanitized.match(/\/groups\/(\d+)/);
+        if (match) sanitized = match[1];
+        else sanitized = sanitized.replace(/\D/g, '') || null;
+      }
+      await dashboard.update({ leaguesWomGroupId: sanitized });
       return dashboard.reload();
     },
 

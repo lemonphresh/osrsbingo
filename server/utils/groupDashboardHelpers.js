@@ -8,11 +8,16 @@
 function getWomMetric(goal) {
   if (goal.type === 'ehb' || goal.type === 'individual_ehb') return 'ehb';
   if (goal.type === 'ehp' || goal.type === 'individual_ehp') return 'ehp';
+  if (goal.type === 'leagues_points' || goal.type === 'individual_leagues_points') return 'league_points';
   return goal.metric; // 'vardorvis', 'slayer', etc. — WOM names match 1:1
 }
 
 function isIndividualGoal(goal) {
   return goal.type.startsWith('individual_');
+}
+
+function isLeaguesGoal(goal) {
+  return goal.type === 'leagues_points' || goal.type === 'individual_leagues_points';
 }
 
 /**
@@ -128,4 +133,4 @@ function toSlug(name) {
     .replace(/^-|-$/g, '');
 }
 
-module.exports = { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics, isIndividualGoal };
+module.exports = { calculateGoalProgress, checkNewMilestones, toSlug, getRequiredMetrics, isIndividualGoal, isLeaguesGoal };
