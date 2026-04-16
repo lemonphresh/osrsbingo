@@ -55,6 +55,7 @@ import {
   SEARCH_USERS,
   SAVE_GOAL_TEMPLATE,
   DELETE_GOAL_TEMPLATE,
+  SET_LEAGUES_WOM_GROUP_ID,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
@@ -570,6 +571,74 @@ function EditorsPanel({ dashboard, onRefetch }) {
 }
 
 // ── Templates panel ──────────────────────────────────────────────────────────
+
+function LeaguesGroupPanel({ dashboard, onRefetch }) {
+  const toast = useToast();
+  const [leaguesId, setLeaguesId] = useState(dashboard.leaguesWomGroupId ?? '');
+
+  const [setLeaguesWomGroupId, { loading: saving }] = useMutation(SET_LEAGUES_WOM_GROUP_ID, {
+    onCompleted: () => {
+      onRefetch();
+      toast({ title: 'Saved', status: 'success', duration: 2000, isClosable: true });
+    },
+  });
+
+  const isDirty = leaguesId !== (dashboard.leaguesWomGroupId ?? '');
+
+  return (
+    <Box bg="gray.800" borderRadius="xl" p={5}>
+      <Text fontWeight="semibold" color="gray.100" mb={1}>
+        Leagues WOM Group
+      </Text>
+      <Text fontSize="sm" color="gray.400" mb={4} lineHeight="1.6">
+        Link a{' '}
+        <Text as="a" href="https://league.wiseoldman.net" target="_blank" rel="noopener noreferrer" color="purple.300" textDecoration="underline">
+          league.wiseoldman.net
+        </Text>{' '}
+        group to show its competitions on this dashboard's competitions page.
+      </Text>
+      <HStack spacing={3}>
+        <Input
+          value={leaguesId}
+          onChange={(e) => setLeaguesId(e.target.value)}
+          placeholder="Group ID or URL (e.g. 211 or league.wiseoldman.net/groups/211)"
+          bg="gray.900"
+          borderColor="gray.600"
+          fontFamily="mono"
+          size="sm"
+        />
+        <Button
+          size="sm"
+          colorScheme="purple"
+          isLoading={saving}
+          isDisabled={!isDirty}
+          onClick={() =>
+            setLeaguesWomGroupId({ variables: { id: dashboard.id, leaguesWomGroupId: leaguesId || null } })
+          }
+          flexShrink={0}
+        >
+          Save
+        </Button>
+        {dashboard.leaguesWomGroupId && (
+          <Button
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+            color="gray.400"
+            isDisabled={saving}
+            onClick={() => {
+              setLeaguesId('');
+              setLeaguesWomGroupId({ variables: { id: dashboard.id, leaguesWomGroupId: null } });
+            }}
+            flexShrink={0}
+          >
+            Remove
+          </Button>
+        )}
+      </HStack>
+    </Box>
+  );
+}
 
 function TemplatesPanel({ dashboard, onRefetch }) {
   const toast = useToast();
@@ -1205,6 +1274,7 @@ export default function GroupDashboardManagePage() {
                 <Tab fontSize="sm">Theme</Tab>
                 <Tab fontSize="sm">Discord</Tab>
                 <Tab fontSize="sm">Editors</Tab>
+                <Tab fontSize="sm">Leagues / DMM</Tab>
                 <Tab fontSize="sm">Embed</Tab>
               </TabList>
 
@@ -1523,6 +1593,21 @@ export default function GroupDashboardManagePage() {
                         )}
                       </Box>
                     )}
+                  </VStack>
+                </TabPanel>
+
+                {/* ── Leagues / DMM tab ── */}
+                <TabPanel px={0} pt={5}>
+                  <VStack spacing={4} align="stretch">
+                    <LeaguesGroupPanel dashboard={dashboard} onRefetch={refetch} />
+                    <Box bg="gray.800" borderRadius="xl" p={5} borderLeft="3px solid" borderColor="yellow.600">
+                      <Text fontWeight="semibold" color="gray.100" mb={1}>
+                        DMM (Deadman Mode)
+                      </Text>
+                      <Text fontSize="sm" color="gray.400" lineHeight="1.6">
+                        We don't have a DMM endpoint yet to use, but when that comes available I'll make sure it's supported. 🤍 — lemon the dev
+                      </Text>
+                    </Box>
                   </VStack>
                 </TabPanel>
 

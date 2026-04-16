@@ -25,6 +25,7 @@ const GROUP_DASHBOARD_FIELDS = gql`
     slug
     groupName
     womGroupId
+    leaguesWomGroupId
     creatorId
     adminIds
     theme
@@ -169,6 +170,16 @@ export const GET_GROUP_COMPETITIONS = gql`
       startsAt
       endsAt
       participantCount
+      isLeagues
+    }
+  }
+`;
+
+export const SET_LEAGUES_WOM_GROUP_ID = gql`
+  ${GROUP_DASHBOARD_FIELDS}
+  mutation SetLeaguesWomGroupId($id: ID!, $leaguesWomGroupId: String) {
+    setLeaguesWomGroupId(id: $id, leaguesWomGroupId: $leaguesWomGroupId) {
+      ...GroupDashboardFields
     }
   }
 `;

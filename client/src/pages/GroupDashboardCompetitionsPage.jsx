@@ -44,14 +44,17 @@ function formatMetric(metric) {
     .join(' ');
 }
 
-function CompetitionRow({ comp, accentColor }) {
+function CompetitionRow({ comp, accentColor, isLeagues = false }) {
   const statusColor = STATUS_COLOR[comp.status] ?? 'gray';
   const isOngoing = comp.status === 'ongoing';
+  const href = isLeagues
+    ? `https://league.wiseoldman.net/competitions/${comp.id}`
+    : `https://wiseoldman.net/competitions/${comp.id}`;
 
   return (
     <Box
       as="a"
-      href={`https://wiseoldman.net/competitions/${comp.id}`}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       display="block"
@@ -104,10 +107,11 @@ export default function GroupDashboardCompetitionsPage() {
 
   const { data, loading } = useQuery(GET_GROUP_COMPETITIONS, {
     variables: { slug },
-    pollInterval: 900_000, // 15 min
+    pollInterval: 900_000,
   });
 
   const dashboard = dashData?.getGroupDashboard;
+
   usePageTitle(dashboard ? `${dashboard.groupName} — Competitions` : 'Competitions');
 
   const accentColor = dashboard?.theme?.accentColor ?? '#43AA8B';
@@ -180,7 +184,12 @@ export default function GroupDashboardCompetitionsPage() {
           {pageItems.length > 0 && (
             <VStack spacing={3} align="stretch">
               {pageItems.map((comp) => (
-                <CompetitionRow key={comp.id} comp={comp} accentColor={accentColor} />
+                <CompetitionRow
+                  key={`${comp.isLeagues ? 'leagues' : 'wom'}-${comp.id}`}
+                  comp={comp}
+                  accentColor={accentColor}
+                  isLeagues={comp.isLeagues ?? false}
+                />
               ))}
             </VStack>
           )}

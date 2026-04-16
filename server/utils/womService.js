@@ -1,6 +1,7 @@
 const logger = require('./logger');
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
+const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
 
 // When rate-limited, wait this long before retrying (needs to outlast WOM's window)
 const RATE_LIMIT_RETRY_MS = 20000;
@@ -291,6 +292,42 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
   return allResults;
 }
 
+/**
+ * Same as fetchGroupGains but hits the leagues WOM API.
+ */
+async function fetchLeaguesGroupGains(leaguesWomGroupId, metric, startDate, endDate) {
+  const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
+
+  const allResults = [];
+  const PAGE_SIZE = 50;
+  let offset = 0;
+
+  while (true) {
+    const params = new URLSearchParams({
+      metric,
+      startDate: new Date(startDate).toISOString(),
+      endDate: effectiveEnd,
+      limit: PAGE_SIZE,
+      offset,
+    });
+    const res = await fetch(`${LEAGUES_WOM_BASE}/groups/${leaguesWomGroupId}/gained?${params}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      logger.warn(
+        `Leagues WOM group gains ${res.status} for group ${leaguesWomGroupId} metric "${metric}": ${body}`
+      );
+      break;
+    }
+    const data = await res.json();
+    const page = Array.isArray(data) ? data : data.data ?? [];
+    allResults.push(...page);
+    if (page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return allResults;
+}
+
 // ---------------------------------------------------------------------------
 // Group members cache — used to look up clan roles for contributors
 // ---------------------------------------------------------------------------
@@ -383,6 +420,42 @@ async function fetchGroupCompetitions(womGroupId) {
   return result;
 }
 
+const leaguesCompetitionsCache = new Map();
+
+async function fetchLeaguesGroupCompetitions(leaguesWomGroupId) {
+  const key = String(leaguesWomGroupId);
+  const cached = leaguesCompetitionsCache.get(key);
+  if (cached && Date.now() - cached.ts < COMPETITIONS_TTL_MS) return cached.data;
+
+  const res = await fetch(`${LEAGUES_WOM_BASE}/groups/${leaguesWomGroupId}/competitions`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`Leagues WOM group competitions ${res.status} for group ${leaguesWomGroupId}: ${body}`);
+    return [];
+  }
+  const data = await res.json();
+  const raw = Array.isArray(data) ? data : data.data ?? [];
+
+  const result = raw.map((item) => {
+    const comp = item.competition ?? item;
+    const participantCount = item.participantCount ?? comp.participantCount ?? 0;
+    return {
+      id: String(comp.id),
+      title: comp.title ?? '',
+      metric: comp.metric ?? '',
+      type: comp.type ?? 'classic',
+      status: comp.status ?? deriveCompetitionStatus(comp.startsAt, comp.endsAt),
+      startsAt: comp.startsAt,
+      endsAt: comp.endsAt,
+      participantCount,
+      groupId: comp.groupId ? String(comp.groupId) : null,
+    };
+  });
+
+  leaguesCompetitionsCache.set(key, { data: result, ts: Date.now() });
+  return result;
+}
+
 module.exports = {
   fetchPlayerStats,
   fetchAllPlayerStats,
@@ -390,6 +463,8 @@ module.exports = {
   fetchAllPlayerCompetitions,
   fetchGroupInfo,
   fetchGroupGains,
+  fetchLeaguesGroupGains,
   fetchGroupMembers,
   fetchGroupCompetitions,
+  fetchLeaguesGroupCompetitions,
 };
