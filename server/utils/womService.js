@@ -3,8 +3,9 @@ const logger = require('./logger');
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
 
-// When rate-limited, wait this long before retrying (needs to outlast WOM's window)
-const RATE_LIMIT_RETRY_MS = 20000;
+// When rate-limited, wait this long before retrying.
+// Kept under 10s so a single retry still completes within Heroku's 30s timeout.
+const RATE_LIMIT_RETRY_MS = 8000;
 
 // Delay between players when processing a list (avoids WOM rate limits)
 const SEQUENTIAL_DELAY_MS = 500;
@@ -42,7 +43,7 @@ function setCachedStats(rsn, data) {
  * Returns a normalized stat object, or { rsn, notFound: true } on 404.
  * On 429 waits RATE_LIMIT_RETRY_MS before one retry.
  */
-async function fetchPlayerStats(rsn, retries = 3) {
+async function fetchPlayerStats(rsn, retries = 1) {
   const cached = getCachedStats(rsn);
   if (cached) return cached;
 

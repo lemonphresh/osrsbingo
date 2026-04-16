@@ -577,6 +577,8 @@ export default function TeamBalancerPage() {
     setRefetchProgress(null);
     setHasManualEdits(false);
     setShowRebalanceConfirm(false);
+    setSortCol('score');
+    setSortDir('desc');
 
     if (stillNotFound.length === 0) {
       showToast(`Found all players — teams rebalanced!`, 'success');
