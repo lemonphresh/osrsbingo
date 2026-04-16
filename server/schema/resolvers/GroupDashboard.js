@@ -306,10 +306,12 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
         }
       }
 
-      // event_started fires on the first scheduled sync after startDate for future-created events.
-      // Already-live events have __event_started pre-marked at creation time.
+      // event_started fires on the first scheduled sync after startDate, but only if the event
+      // was created before its startDate. Events created with a past startDate are treated as
+      // historical and never get an event_started notification.
       const eventStarted = new Date(event.startDate) <= new Date();
-      if (fireNotifications && eventStarted && !eventEnded && !isBackdated && !notificationsSent.__event_started) {
+      const createdBeforeStart = new Date(event.createdAt) < new Date(event.startDate);
+      if (fireNotifications && eventStarted && !eventEnded && !isBackdated && !notificationsSent.__event_started && createdBeforeStart) {
         await createGroupActivity(
           event.dashboard.id,
           event.id,
@@ -679,53 +681,17 @@ const GroupDashboardResolvers = {
       if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
 
       const { GroupGoalEvent } = getModels();
-      const now = new Date();
-      const alreadyStarted = new Date(input.startDate) <= now;
-      const notEnded = new Date(input.endDate) > now;
 
-      // Pre-mark __event_started if we're about to fire it so the scheduler doesn't double-fire
+      // Always start with empty notificationsSent — the scheduler fires event_started
+      // on its first sync after startDate (only if the event was created before startDate).
       const event = await GroupGoalEvent.create({
         dashboardId: dashboard.id,
         eventName: input.eventName,
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? [],
-        notificationsSent: alreadyStarted && notEnded ? { __event_started: true } : {},
+        notificationsSent: {},
       });
-
-      // Only fire event_started if the event is currently live (started but not ended).
-      // Future events are handled by the scheduler on its first sync after startDate.
-      if (alreadyStarted && notEnded) {
-        await createGroupActivity(
-          dashboard.id,
-          event.id,
-          'event_started',
-          {
-            eventName: input.eventName,
-            groupName: dashboard.groupName,
-            slug: dashboard.slug,
-            startDate: input.startDate,
-            endDate: input.endDate,
-          },
-          new Date(input.startDate)
-        );
-
-        const discord = dashboard.discordConfig;
-        const notifSettings = discord?.notifications?.event_started;
-        if (discord?.confirmed && discord?.channelId && notifSettings?.enabled !== false) {
-          sendGroupEventStartedNotification({
-            channelId: discord.channelId,
-            roleId: notifSettings?.ping !== false ? discord.roleId ?? null : null,
-            groupName: dashboard.groupName,
-            eventName: input.eventName,
-            startDate: input.startDate,
-            endDate: input.endDate,
-            dashboardUrl: `${APP_BASE_URL}/group/${dashboard.slug}`,
-          }).catch((err) =>
-            logger.error('Failed to send event_started Discord notification:', err.message)
-          );
-        }
-      }
 
       return event;
     },

@@ -109,16 +109,18 @@ function makeEvent(overrides = {}) {
 // ─── Scenarios ────────────────────────────────────────────────────────────────
 
 async function runScenarios() {
-  // ── 1. First sync: baselines already-crossed milestones silently, fires event_started ──
-  console.log('\nScenario 1: First sync on a live event (50% reached)');
+  // ── 1. Event created with past startDate — event_started should never fire ─
+  console.log('\nScenario 1: Event created with already-past startDate (treated as historical)');
   fired.length = 0;
-  const e1 = makeEvent({ notificationsSent: {} });
+  const e1 = makeEvent({
+    startDate: new Date(Date.now() - 7 * 86400000).toISOString(), // started a week ago
+    createdAt: new Date().toISOString(), // but created right now
+    notificationsSent: {},
+  });
   await fetchAndCacheProgress(e1, false, true);
-  assert('event_started fires', fired.some((f) => f.type === 'event_started'));
-  assert('milestones silently baselined — NOT fired on first sync (by design)', !fired.some((f) => f.type === 'milestone'));
-  assert('__event_started marked', !!e1.notificationsSent?.__event_started);
+  assert('event_started does NOT fire (past startDate at creation)', !fired.some((f) => f.type === 'event_started'));
+  assert('milestones silently baselined', !fired.some((f) => f.type === 'milestone'));
   assert('milestone 25 recorded in notificationsSent', e1.notificationsSent?.['goal-1']?.includes(25));
-  assert('milestone 50 recorded in notificationsSent', e1.notificationsSent?.['goal-1']?.includes(50));
 
   // ── 2. Second sync: new milestone crossed → fires; already-seen ones don't ─
   console.log('\nScenario 2: Second sync — progress jumps to 80%, milestone 75 fires');
