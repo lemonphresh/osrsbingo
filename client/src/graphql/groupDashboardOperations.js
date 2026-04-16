@@ -257,6 +257,12 @@ export const UPDATE_GROUP_DISCORD_NOTIFICATIONS = gql`
   }
 `;
 
+export const SEND_TEST_GROUP_DISCORD_MESSAGE = gql`
+  mutation SendTestGroupDiscordMessage($id: ID!) {
+    sendTestGroupDiscordMessage(id: $id)
+  }
+`;
+
 export const REFRESH_GROUP_GOAL_DATA = gql`
   ${GROUP_GOAL_EVENT_FIELDS}
   mutation RefreshGroupGoalData($eventId: ID!) {

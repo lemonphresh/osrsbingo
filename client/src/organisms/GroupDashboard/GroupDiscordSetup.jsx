@@ -17,6 +17,7 @@ import { useMutation } from '@apollo/client';
 import {
   CONFIRM_GROUP_DASHBOARD_DISCORD,
   UPDATE_GROUP_DISCORD_NOTIFICATIONS,
+  SEND_TEST_GROUP_DISCORD_MESSAGE,
 } from '../../graphql/groupDashboardOperations';
 
 const NOTIFICATION_ROWS = [
@@ -56,10 +57,14 @@ export default function GroupDiscordSetup({ dashboard }) {
   );
   const [notifSaved, setNotifSaved] = useState(false);
 
+  const [testMessageSent, setTestMessageSent] = useState(false);
+  const [testMessageError, setTestMessageError] = useState(null);
+
   const [confirmDiscord, { loading: confirming }] = useMutation(CONFIRM_GROUP_DASHBOARD_DISCORD);
   const [updateNotifications, { loading: savingNotif }] = useMutation(
     UPDATE_GROUP_DISCORD_NOTIFICATIONS
   );
+  const [sendTestMessage, { loading: sendingTest }] = useMutation(SEND_TEST_GROUP_DISCORD_MESSAGE);
 
   function setNotif(key, field, value) {
     setNotifSaved(false);
@@ -67,6 +72,21 @@ export default function GroupDiscordSetup({ dashboard }) {
       ...prev,
       [key]: { ...prev[key], [field]: value },
     }));
+  }
+
+  async function handleSendTestMessage() {
+    setTestMessageSent(false);
+    setTestMessageError(null);
+    try {
+      const { data } = await sendTestMessage({ variables: { id: dashboard.id } });
+      if (data?.sendTestGroupDiscordMessage) {
+        setTestMessageSent(true);
+      } else {
+        setTestMessageError('Message failed to send.');
+      }
+    } catch (e) {
+      setTestMessageError(e.message ?? 'Something went wrong.');
+    }
   }
 
   async function handleSaveNotifications() {
@@ -135,12 +155,35 @@ export default function GroupDiscordSetup({ dashboard }) {
   return (
     <VStack spacing={5} align="stretch">
       {isConfirmed && (
-        <HStack bg="green.900" borderRadius="md" p={3} spacing={2}>
-          <CheckIcon color="green.300" />
-          <Text fontSize="sm" color="green.300">
-            Discord notifications are active
-          </Text>
-        </HStack>
+        <Box bg="green.900" borderRadius="md" p={3}>
+          <HStack spacing={2} justify="space-between">
+            <HStack spacing={2}>
+              <CheckIcon color="green.300" />
+              <Text fontSize="sm" color="green.300">
+                Discord notifications are active
+              </Text>
+            </HStack>
+            <Button
+              size="xs"
+              colorScheme="green"
+              variant="outline"
+              onClick={handleSendTestMessage}
+              isLoading={sendingTest}
+            >
+              Send test message
+            </Button>
+          </HStack>
+          {testMessageSent && (
+            <Text fontSize="xs" color="green.300" mt={2}>
+              Test message sent — check your channel!
+            </Text>
+          )}
+          {testMessageError && (
+            <Text fontSize="xs" color="red.300" mt={2}>
+              {testMessageError}
+            </Text>
+          )}
+        </Box>
       )}
 
       <Box bg="gray.750" border="1px solid" borderColor="gray.600" borderRadius="md" p={4}>
