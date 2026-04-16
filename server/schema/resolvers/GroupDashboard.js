@@ -227,9 +227,11 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
       const eventEnded = new Date(event.endDate) < new Date();
       // Event was added to the dashboard after it already ended — treat as purely historical, no notifications.
       const isBackdated = new Date(event.createdAt) > new Date(event.endDate);
-      // First sync ever: notificationsSent is empty. Establish a baseline without firing anything —
-      // we don't know how long the event has been running, so we can't treat crossed milestones as "new".
-      const isFirstSync = Object.keys(notificationsSent).length === 0;
+      // First sync ever: notificationsSent has no milestone data. Establish a baseline without firing
+      // anything — we don't know how long the event has been running, so crossed milestones aren't "new".
+      // __event_started is a bookkeeping key, not a milestone — exclude it from this check.
+      const milestoneKeys = Object.keys(notificationsSent).filter((k) => !k.startsWith('__'));
+      const isFirstSync = milestoneKeys.length === 0;
 
       if (isBackdated || isFirstSync || eventEnded) {
         // Silently mark all currently-crossed (or all, if ended/backdated) milestones as sent.
@@ -302,6 +304,43 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
             dirty = true;
           }
         }
+      }
+
+      // event_started fires on the first scheduled sync after startDate for future-created events.
+      // Already-live events have __event_started pre-marked at creation time.
+      const eventStarted = new Date(event.startDate) <= new Date();
+      if (fireNotifications && eventStarted && !eventEnded && !isBackdated && !notificationsSent.__event_started) {
+        await createGroupActivity(
+          event.dashboard.id,
+          event.id,
+          'event_started',
+          {
+            eventName: event.eventName,
+            groupName: event.dashboard.groupName,
+            slug: event.dashboard.slug,
+            startDate: event.startDate,
+            endDate: event.endDate,
+          },
+          new Date(event.startDate)
+        );
+
+        const startedNotifSettings = discord?.notifications?.event_started;
+        if (discord?.confirmed && discord?.channelId && startedNotifSettings?.enabled !== false) {
+          sendGroupEventStartedNotification({
+            channelId: discord.channelId,
+            roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
+            groupName: event.dashboard.groupName,
+            eventName: event.eventName,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+          }).catch((err) =>
+            logger.error('Failed to send event_started Discord notification:', err.message)
+          );
+        }
+
+        notificationsSent.__event_started = true;
+        dirty = true;
       }
 
       // event_ended activity fires once on the first scheduled sync after the event ends, never for backdated events
@@ -548,7 +587,7 @@ const GroupDashboardResolvers = {
       const { GroupDashboardActivityRead } = getModels();
       const readRow = await GroupDashboardActivityRead.findOne({ where: { userId: user.id } });
       const lastReadAt = readRow?.lastReadAt ?? null;
-      return items.map((a) => ({
+      return items.filter((a) => !a.eventId || a.event).map((a) => ({
         id: String(a.id),
         type: a.type,
         dashboardId: String(a.dashboardId),
@@ -570,12 +609,16 @@ const GroupDashboardResolvers = {
       ]);
       const activeDashboardIds = dashboardIds.filter((id) => !mutedIds.has(id));
       if (!activeDashboardIds.length) return 0;
-      const { GroupDashboardActivity, GroupDashboardActivityRead } = getModels();
+      const { GroupDashboardActivity, GroupDashboardActivityRead, GroupGoalEvent } = getModels();
       const readRow = await GroupDashboardActivityRead.findOne({ where: { userId: user.id } });
       const lastReadAt = readRow?.lastReadAt ?? null;
       const where = { dashboardId: activeDashboardIds };
       if (lastReadAt) where.createdAt = { [Op.gt]: lastReadAt };
-      return GroupDashboardActivity.count({ where });
+      const items = await GroupDashboardActivity.findAll({
+        where,
+        include: [{ model: GroupGoalEvent, as: 'event', attributes: ['id'], required: false }],
+      });
+      return items.filter((a) => !a.eventId || a.event).length;
     },
   },
 
@@ -636,17 +679,23 @@ const GroupDashboardResolvers = {
       if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
 
       const { GroupGoalEvent } = getModels();
+      const now = new Date();
+      const alreadyStarted = new Date(input.startDate) <= now;
+      const notEnded = new Date(input.endDate) > now;
+
+      // Pre-mark __event_started if we're about to fire it so the scheduler doesn't double-fire
       const event = await GroupGoalEvent.create({
         dashboardId: dashboard.id,
         eventName: input.eventName,
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? [],
-        notificationsSent: {},
+        notificationsSent: alreadyStarted && notEnded ? { __event_started: true } : {},
       });
 
-      // Only fire event_started if the event hasn't already ended by the time it's created
-      if (new Date(input.endDate) > new Date()) {
+      // Only fire event_started if the event is currently live (started but not ended).
+      // Future events are handled by the scheduler on its first sync after startDate.
+      if (alreadyStarted && notEnded) {
         await createGroupActivity(
           dashboard.id,
           event.id,
