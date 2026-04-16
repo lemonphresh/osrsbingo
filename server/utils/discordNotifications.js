@@ -456,6 +456,54 @@ async function sendGroupEventEndedNotification({ channelId, roleId, groupName, e
   });
 }
 
+/**
+ * Test message — no role ping, self-deletes after 15 seconds.
+ */
+async function sendGroupDiscordTestMessage({ channelId, groupName, dashboardUrl }) {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  if (!botToken) return { success: false, reason: 'no_bot_token' };
+
+  const body = {
+    flags: IS_COMPONENTS_V2,
+    components: [{
+      type: C.Container,
+      accent_color: 0x7d5fff,
+      components: [
+        { type: C.TextDisplay, content: `👋 **Discord notifications are working!**` },
+        sep,
+        { type: C.TextDisplay, content: `This is a test message from OSRS Bingo Hub. No role was pinged.\n-# 🗑️ This message will self-delete in 15 seconds.` },
+        sep,
+        { type: C.TextDisplay, content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}` },
+      ],
+    }],
+  };
+
+  try {
+    const res = await axios.post(
+      `https://discord.com/api/v10/channels/${channelId}/messages`,
+      body,
+      { headers: { Authorization: `Bot ${botToken}` } }
+    );
+    const messageId = res.data?.id;
+    if (messageId) {
+      setTimeout(async () => {
+        try {
+          await axios.delete(
+            `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`,
+            { headers: { Authorization: `Bot ${botToken}` } }
+          );
+        } catch (err) {
+          logger.warn('Failed to auto-delete test Discord message:', err.message);
+        }
+      }, 15_000);
+    }
+    return { success: true };
+  } catch (error) {
+    logger.error('Error sending test Discord message:', error.response?.data || error.message);
+    return { success: false, error: error.message };
+  }
+}
+
 function getSubmissionChannelId(event) {
   if (!event.discordConfig) return null;
   return (
@@ -476,6 +524,7 @@ module.exports = {
   sendGroupGoalMilestoneNotification,
   sendGroupEventStartedNotification,
   sendGroupEventEndedNotification,
+  sendGroupDiscordTestMessage,
   getSubmissionChannelId,
   getChannelFromSubmission,
 };

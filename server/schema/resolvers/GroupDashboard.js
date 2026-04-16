@@ -23,6 +23,7 @@ const {
   sendGroupGoalMilestoneNotification,
   sendGroupEventStartedNotification,
   sendGroupEventEndedNotification,
+  sendGroupDiscordTestMessage,
 } = require('../../utils/discordNotifications');
 const { verifyGuild } = require('../../../bot/utils/verify');
 
@@ -751,6 +752,23 @@ const GroupDashboardResolvers = {
         discordConfig: { ...(dashboard.discordConfig ?? {}), notifications },
       });
       return dashboard.reload();
+    },
+
+    sendTestGroupDiscordMessage: async (_, { id }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (!isDashboardAdmin(dashboard, user.id)) throw new ForbiddenError('Not authorized');
+
+      const channelId = dashboard.discordConfig?.channelId;
+      if (!channelId) throw new UserInputError('No Discord channel configured');
+
+      const dashboardUrl = `${process.env.APP_BASE_URL}/group/${dashboard.slug}`;
+      const result = await sendGroupDiscordTestMessage({
+        channelId,
+        groupName: dashboard.groupName,
+        dashboardUrl,
+      });
+      return result.success === true;
     },
 
     refreshGroupGoalData: async (_, { eventId }, { user }) => {

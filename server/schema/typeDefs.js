@@ -895,6 +895,7 @@ const typeDefs = gql`
     deleteGroupGoalEvent(id: ID!): Boolean!
     confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!, roleId: String): GroupDashboard!
     updateGroupDiscordNotifications(id: ID!, notifications: JSON!): GroupDashboard!
+    sendTestGroupDiscordMessage(id: ID!): Boolean!
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
