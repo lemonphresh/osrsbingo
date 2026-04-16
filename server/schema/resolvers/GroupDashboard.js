@@ -719,6 +719,8 @@ const GroupDashboardResolvers = {
       if (!user) throw new AuthenticationError('Login required');
       const event = await getEventOrThrow(id);
       if (!isDashboardAdmin(event.dashboard, user.id)) throw new ForbiddenError('Not authorized');
+      const { GroupDashboardActivity } = getModels();
+      await GroupDashboardActivity.destroy({ where: { eventId: event.id } });
       await event.destroy();
       return true;
     },
