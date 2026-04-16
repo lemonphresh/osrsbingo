@@ -597,7 +597,7 @@ const GroupDashboardResolvers = {
         dashboardSlug: a.dashboard?.slug ?? '',
         dashboardName: a.dashboard?.groupName ?? '',
         eventId: a.eventId ? String(a.eventId) : null,
-        eventName: a.event?.eventName ?? null,
+        eventName: a.event?.eventName ?? a.metadata?.eventName ?? null,
         metadata: a.metadata,
         readAt: lastReadAt && new Date(a.createdAt) <= new Date(lastReadAt) ? lastReadAt : null,
         createdAt: a.createdAt,
