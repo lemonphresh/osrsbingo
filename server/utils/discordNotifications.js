@@ -411,23 +411,51 @@ async function sendGroupGoalMilestoneNotification({
 /**
  * Event started notification
  */
-async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, startDate, endDate, dashboardUrl }) {
+async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, startDate, endDate, dashboardUrl, goals = [] }) {
   const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+  const fmtTarget = (v) =>
+    v >= 1_000_000 ? `${(v / 1_000_000).toFixed(1)}M`
+    : v >= 1_000 ? `${(v / 1_000).toFixed(0)}K`
+    : v?.toLocaleString() ?? '?';
+
+  const typeLabel = (type) => {
+    if (type.startsWith('individual_')) return 'individual target';
+    if (type === 'ehb') return 'group EHB';
+    if (type === 'ehp') return 'group EHP';
+    if (type === 'leagues_points') return 'group leagues pts';
+    return 'group total';
+  };
+
+  const enabledGoals = goals.filter((g) => g.enabled !== false);
+  const goalLines = enabledGoals.map((g) => {
+    const name = g.displayName || g.metric || g.type;
+    const emoji = g.emoji || '🎯';
+    return `${emoji} **${name}**: ${fmtTarget(g.target)} (${typeLabel(g.type)})`;
+  });
+
+  const innerComponents = [
+    ...(roleId ? [{ type: C.TextDisplay, content: `<@&${roleId}>` }] : []),
+    { type: C.TextDisplay, content: `🏁 **${eventName}** has started!` },
+    sep,
+    { type: C.TextDisplay, content: `**${fmt(startDate)}** → **${fmt(endDate)}**` },
+  ];
+
+  if (goalLines.length > 0) {
+    innerComponents.push(sep, { type: C.TextDisplay, content: goalLines.join('\n') });
+  }
+
+  innerComponents.push(sep, { type: C.TextDisplay, content: `Let's get to grinding! ⚔️` });
+
+  innerComponents.push(sep, {
+    type: C.TextDisplay,
+    content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}`,
+  });
+
   return sendDiscordMessage(channelId, {
     ...(roleId ? { allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
-    components: [{
-      type: C.Container,
-      accent_color: 0x7d5fff,
-      components: [
-        ...(roleId ? [{ type: C.TextDisplay, content: `<@&${roleId}>` }] : []),
-        { type: C.TextDisplay, content: `🏁 **${eventName}** has started!` },
-        sep,
-        { type: C.TextDisplay, content: `**${fmt(startDate)}** → **${fmt(endDate)}**` },
-        sep,
-        { type: C.TextDisplay, content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}` },
-      ],
-    }],
+    components: [{ type: C.Container, accent_color: 0x7d5fff, components: innerComponents }],
   });
 }
 
