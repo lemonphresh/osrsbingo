@@ -133,8 +133,8 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
       const emoji = TYPE_EMOJI[e.eventType] || '📌';
       const start = Math.floor(new Date(e.start).getTime() / 1000);
       const end = Math.floor(new Date(e.end).getTime() / 1000);
-      const desc = e.description ? `\n> ${e.description}` : '';
-      return `\n${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
+      const desc = e.description ? `\n${e.description.split('\n').map((l) => `> ${l}`).join('\n')}` : '';
+      return `${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
     });
     return { name: `📆 ${dayLabel}`, value: lines.join('\n\n'), inline: false };
   });
