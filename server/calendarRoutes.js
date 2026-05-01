@@ -117,23 +117,24 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
     order: [['start', 'ASC']],
   });
 
-  // Group events by day-of-month
+  // Group events by day in the configured timezone (defaults to America/New_York)
+  const tz = process.env.CALENDAR_TIMEZONE || 'America/New_York';
   const byDay = {};
   for (const e of events) {
-    const d = new Date(e.start).getDate();
-    if (!byDay[d]) byDay[d] = [];
-    byDay[d].push(e);
+    // en-CA gives YYYY-MM-DD which sorts correctly and avoids UTC date shifting
+    const dateKey = new Date(e.start).toLocaleDateString('en-CA', { timeZone: tz });
+    if (!byDay[dateKey]) byDay[dateKey] = [];
+    byDay[dateKey].push(e);
   }
 
-  const fields = Object.entries(byDay).map(([day, dayEvents]) => {
-    const date = new Date(year, month, parseInt(day));
-    const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  const fields = Object.entries(byDay).sort(([a], [b]) => a.localeCompare(b)).map(([dateKey, dayEvents]) => {
+    const dayLabel = new Date(dateKey + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const lines = dayEvents.map((e) => {
       const emoji = TYPE_EMOJI[e.eventType] || '📌';
       const start = Math.floor(new Date(e.start).getTime() / 1000);
       const end = Math.floor(new Date(e.end).getTime() / 1000);
       const desc = e.description ? `\n> ${e.description}` : '';
-      return `${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
+      return `\n${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
     });
     return { name: `📆 ${dayLabel}`, value: lines.join('\n\n'), inline: false };
   });
