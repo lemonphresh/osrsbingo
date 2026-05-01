@@ -4,7 +4,6 @@ const { fetchAndCacheProgress } = require('../schema/resolvers/GroupDashboard');
 
 async function syncAllActiveGroupGoals() {
   const { GroupDashboard, GroupGoalEvent } = require('../db/models');
-  const now = new Date();
 
   const events = await GroupGoalEvent.findAll({
     where: { endDate: { [require('sequelize').Op.gt]: new Date(Date.now() - 2 * 60 * 60 * 1000) } },
@@ -24,9 +23,11 @@ async function syncAllActiveGroupGoals() {
 }
 
 function startGroupGoalScheduler() {
-  // Run every 30 minutes — this is the only place milestone notifications fire
-  cron.schedule('*/30 * * * *', syncAllActiveGroupGoals);
-  logger.info('[groupGoalScheduler] Scheduler started — syncing every 30 minutes');
+  // Run every 5 minutes — WOM data re-fetches are gated by a 1-hour cache TTL,
+  // so this only hits WOM at most once per hour per event. The frequent ticks
+  // ensure event_started / event_ended notifications fire within ~5 min of the actual time.
+  cron.schedule('*/5 * * * *', syncAllActiveGroupGoals);
+  logger.info('[groupGoalScheduler] Scheduler started — syncing every 5 minutes');
 }
 
-module.exports = { startGroupGoalScheduler };
+module.exports = { startGroupGoalScheduler, syncAllActiveGroupGoals };

@@ -393,8 +393,11 @@ export default function GroupDiscordSetup({ dashboard }) {
         >
           Notification settings
         </Text>
-        <Text fontSize="xs" color="gray.500" mb={4}>
+        <Text fontSize="xs" color="gray.500" mb={1}>
           Control which events post to Discord and whether they ping the role.
+        </Text>
+        <Text fontSize="xs" color="gray.600" mb={4}>
+          Notifications are checked every 5 minutes, so start and end announcements may be up to 5 minutes late — this is expected.
         </Text>
 
         <Box
