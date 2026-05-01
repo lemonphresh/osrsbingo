@@ -379,6 +379,7 @@ async function sendGroupGoalMilestoneNotification({
   });
 
   const innerComponents = [
+    ...(roleId ? [{ type: C.TextDisplay, content: `<@&${roleId}>` }] : []),
     {
       type: C.TextDisplay,
       content: `${goal.emoji ?? '🎯'} **${goal.displayName ?? goal.metric}**: ${milestoneLabel}`,
@@ -401,7 +402,7 @@ async function sendGroupGoalMilestoneNotification({
   });
 
   return sendDiscordMessage(channelId, {
-    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
+    ...(roleId ? { allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
     components: [{ type: C.Container, accent_color: accentColor, components: innerComponents }],
   });
@@ -413,12 +414,13 @@ async function sendGroupGoalMilestoneNotification({
 async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, startDate, endDate, dashboardUrl }) {
   const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   return sendDiscordMessage(channelId, {
-    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
+    ...(roleId ? { allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
     components: [{
       type: C.Container,
       accent_color: 0x7d5fff,
       components: [
+        ...(roleId ? [{ type: C.TextDisplay, content: `<@&${roleId}>` }] : []),
         { type: C.TextDisplay, content: `🏁 **${eventName}** has started!` },
         sep,
         { type: C.TextDisplay, content: `**${fmt(startDate)}** → **${fmt(endDate)}**` },
@@ -434,6 +436,7 @@ async function sendGroupEventStartedNotification({ channelId, roleId, groupName,
  */
 async function sendGroupEventEndedNotification({ channelId, roleId, groupName, eventName, dashboardUrl, individualSummaries = [] }) {
   const innerComponents = [
+    ...(roleId ? [{ type: C.TextDisplay, content: `<@&${roleId}>` }] : []),
     { type: C.TextDisplay, content: `🏆 **${eventName}** has ended!` },
   ];
 
@@ -450,7 +453,7 @@ async function sendGroupEventEndedNotification({ channelId, roleId, groupName, e
   });
 
   return sendDiscordMessage(channelId, {
-    ...(roleId ? { content: `<@&${roleId}>`, allowed_mentions: { roles: [roleId] } } : {}),
+    ...(roleId ? { allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
     components: [{ type: C.Container, accent_color: 0x43aa8b, components: innerComponents }],
   });
