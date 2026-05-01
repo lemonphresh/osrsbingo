@@ -337,6 +337,7 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
             startDate: event.startDate,
             endDate: event.endDate,
             dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+            goals: event.goals ?? [],
           }).catch((err) =>
             logger.error('Failed to send event_started Discord notification:', err.message)
           );
