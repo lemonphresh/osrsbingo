@@ -56,7 +56,7 @@ async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
 
     return { success: true };
   } catch (error) {
-    logger.error('Error sending Discord message:', error.response?.data || error.message);
+    logger.error({ discordError: error.response?.data ?? error.message }, 'Error sending Discord message');
     return { success: false, error: error.message };
   }
 }
