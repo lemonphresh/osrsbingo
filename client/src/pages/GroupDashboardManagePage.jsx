@@ -61,6 +61,8 @@ import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEdit
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
 import GroupThemeEditor from '../organisms/GroupDashboard/GroupThemeEditor';
 import usePageTitle from '../hooks/usePageTitle';
+import { useTimezone, fmtTs } from '../hooks/useTimezone';
+import TimezoneToggle from '../atoms/TimezoneToggle';
 
 // Events become archived 2 days after their end date
 const ARCHIVE_GRACE_DAYS = 2;
@@ -101,8 +103,8 @@ function RerunForm({ event, onSave, onCancel, loading }) {
     if (!eventName.trim() || !startDate || !endDate) return;
     onSave({
       eventName: eventName.trim(),
-      startDate: new Date(startDate + 'T00:00:00').toISOString(),
-      endDate: new Date(endDate + 'T00:00:00').toISOString(),
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
       goals: (event.goals ?? []).map((g, i) => ({ ...g, order: i })),
     });
   }
@@ -128,7 +130,7 @@ function RerunForm({ event, onSave, onCancel, loading }) {
           </FormLabel>
           <Input
             size="sm"
-            type="date"
+            type="datetime-local"
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             bg="gray.700"
@@ -141,7 +143,7 @@ function RerunForm({ event, onSave, onCancel, loading }) {
           </FormLabel>
           <Input
             size="sm"
-            type="date"
+            type="datetime-local"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             bg="gray.700"
@@ -716,6 +718,7 @@ function EventRow({
   const [rerunning, setRerunning] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState(event.eventName);
+  const { utc } = useTimezone();
   const now = new Date();
   const isActive = now >= new Date(event.startDate) && now <= new Date(event.endDate);
   const isPast = now > new Date(event.endDate);
@@ -730,16 +733,8 @@ function EventRow({
     : '#4A5568';
   const enabledGoals = (event.goals ?? []).filter((g) => g.enabled !== false);
 
-  const startStr = new Date(event.startDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  const endStr = new Date(event.endDate).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
+  const startStr = fmtTs(event.startDate, utc);
+  const endStr = fmtTs(event.endDate, utc);
 
   async function handleRerun(input) {
     await onRerun(input);
@@ -1283,7 +1278,8 @@ export default function GroupDashboardManagePage() {
                 <TabPanel px={0} pt={5}>
                   <VStack spacing={3} align="stretch">
                     {/* Sort controls */}
-                    <HStack spacing={2} justify="flex-end">
+                    <HStack spacing={2} justify="flex-end" align="center">
+                      <TimezoneToggle />
                       <Select
                         size="xs"
                         value={eventSortKey}
