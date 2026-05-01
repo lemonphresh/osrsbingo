@@ -410,9 +410,79 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
     }
   }
 
-  // Cached path — just return current progress without any side effects
+  // Cached path — return current progress, but still check lifecycle notifications.
+  // event_started / event_ended must fire on schedule even when WOM data is fresh.
   const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
   const cachedProgress = calculateGoalProgress(event.goals || [], womData ?? {}, roleMap);
+
+  if (fireNotifications) {
+    const discord = event.dashboard.discordConfig;
+    const notificationsSent = { ...(event.notificationsSent || {}) };
+    let dirty = false;
+    const eventEnded = new Date(event.endDate) < new Date();
+    const isBackdated = new Date(event.createdAt) > new Date(event.endDate);
+    const eventStarted = new Date(event.startDate) <= new Date();
+    const createdBeforeStart = new Date(event.createdAt) < new Date(event.startDate);
+
+    if (eventStarted && !eventEnded && !isBackdated && !notificationsSent.__event_started && createdBeforeStart) {
+      await createGroupActivity(
+        event.dashboard.id,
+        event.id,
+        'event_started',
+        {
+          eventName: event.eventName,
+          groupName: event.dashboard.groupName,
+          slug: event.dashboard.slug,
+          startDate: event.startDate,
+          endDate: event.endDate,
+        },
+        new Date(event.startDate)
+      );
+
+      const startedNotifSettings = discord?.notifications?.event_started;
+      if (discord?.confirmed && discord?.channelId && startedNotifSettings?.enabled !== false) {
+        sendGroupEventStartedNotification({
+          channelId: discord.channelId,
+          roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
+          groupName: event.dashboard.groupName,
+          eventName: event.eventName,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+        }).catch((err) =>
+          logger.error('Failed to send event_started Discord notification (cached path):', err.message)
+        );
+      }
+
+      notificationsSent.__event_started = true;
+      dirty = true;
+    }
+
+    if (eventEnded && !isBackdated && !notificationsSent.__event_ended) {
+      const endedNotifSettings = discord?.notifications?.event_ended;
+      if (discord?.confirmed && discord?.channelId && endedNotifSettings?.enabled !== false) {
+        sendGroupEventEndedNotification({
+          channelId: discord.channelId,
+          roleId: endedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
+          groupName: event.dashboard.groupName,
+          eventName: event.eventName,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+        }).catch((err) =>
+          logger.error('Failed to send event_ended Discord notification (cached path):', err.message)
+        );
+      }
+
+      notificationsSent.__event_ended = true;
+      dirty = true;
+    }
+
+    if (dirty) {
+      await event.update({ notificationsSent });
+    }
+  }
+
   // Write snapshot for ended events that don't have one yet
   if (new Date(event.endDate) < new Date() && !event.finalSnapshot && womData) {
     await event.update({ finalSnapshot: cachedProgress });
