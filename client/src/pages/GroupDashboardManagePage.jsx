@@ -101,8 +101,8 @@ function RerunForm({ event, onSave, onCancel, loading }) {
     if (!eventName.trim() || !startDate || !endDate) return;
     onSave({
       eventName: eventName.trim(),
-      startDate: new Date(startDate).toISOString(),
-      endDate: new Date(endDate).toISOString(),
+      startDate: new Date(startDate + 'T00:00:00').toISOString(),
+      endDate: new Date(endDate + 'T00:00:00').toISOString(),
       goals: (event.goals ?? []).map((g, i) => ({ ...g, order: i })),
     });
   }
