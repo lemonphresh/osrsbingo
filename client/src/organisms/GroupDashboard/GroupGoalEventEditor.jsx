@@ -14,6 +14,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import GroupGoalBuilder from './GroupGoalBuilder';
+import TimezoneToggle from '../../atoms/TimezoneToggle';
 
 function makeBlankGoal() {
   return {
@@ -28,15 +29,28 @@ function makeBlankGoal() {
   };
 }
 
-function toInputDate(dateStr) {
+// Convert a stored UTC ISO string → local datetime-local input value (YYYY-MM-DDTHH:MM)
+function toInputDatetime(dateStr) {
   if (!dateStr) return '';
-  return new Date(dateStr).toISOString().slice(0, 10);
+  const d = new Date(dateStr);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Get local UTC offset label e.g. "UTC-7" or "UTC+5:30"
+function localUtcLabel() {
+  const offset = -new Date().getTimezoneOffset();
+  const sign = offset >= 0 ? '+' : '-';
+  const abs = Math.abs(offset);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return m ? `UTC${sign}${h}:${String(m).padStart(2, '0')}` : `UTC${sign}${h}`;
 }
 
 export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, loading, templates = [] }) {
   const [eventName, setEventName] = useState(initialValues?.eventName ?? '');
-  const [startDate, setStartDate] = useState(toInputDate(initialValues?.startDate));
-  const [endDate, setEndDate] = useState(toInputDate(initialValues?.endDate));
+  const [startDate, setStartDate] = useState(toInputDatetime(initialValues?.startDate));
+  const [endDate, setEndDate] = useState(toInputDatetime(initialValues?.endDate));
   const [goals, setGoals] = useState(
     initialValues?.goals?.length ? initialValues.goals : [makeBlankGoal()]
   );
@@ -54,6 +68,7 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
     setGoals((prev) => [...prev, { ...makeBlankGoal(), order: prev.length }]);
   }
 
+  // datetime-local strings are parsed as local time (no Z), so .toISOString() gives correct UTC
   const dateRangeInvalid = startDate && endDate && new Date(endDate) <= new Date(startDate);
 
   function handleSave() {
@@ -110,32 +125,46 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
         />
       </FormControl>
 
-      <HStack spacing={3}>
-        <FormControl isRequired>
-          <FormLabel fontSize="sm" color="gray.300">
-            Start Date
-          </FormLabel>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-          />
-        </FormControl>
-        <FormControl isRequired>
-          <FormLabel fontSize="sm" color="gray.300">
-            End Date
-          </FormLabel>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            bg="gray.800"
-            borderColor="gray.600"
-          />
-        </FormControl>
-      </HStack>
+      <Box>
+        <HStack justify="space-between" align="center" mb={2}>
+          <Text fontSize="sm" color="gray.300" fontWeight="medium">
+            Event Dates
+          </Text>
+          <HStack spacing={2}>
+            <Text fontSize="xs" color="gray.500">{localUtcLabel()}</Text>
+            <TimezoneToggle />
+          </HStack>
+        </HStack>
+        <Text fontSize="xs" color="gray.500" mb={3}>
+          Times are in your local timezone. Use the toggle above to display dates in UTC.
+        </Text>
+        <HStack spacing={3}>
+          <FormControl isRequired>
+            <FormLabel fontSize="xs" color="gray.400">
+              Start
+            </FormLabel>
+            <Input
+              type="datetime-local"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              bg="gray.800"
+              borderColor="gray.600"
+            />
+          </FormControl>
+          <FormControl isRequired>
+            <FormLabel fontSize="xs" color="gray.400">
+              End
+            </FormLabel>
+            <Input
+              type="datetime-local"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              bg="gray.800"
+              borderColor="gray.600"
+            />
+          </FormControl>
+        </HStack>
+      </Box>
 
       <Divider borderColor="gray.600" />
 
