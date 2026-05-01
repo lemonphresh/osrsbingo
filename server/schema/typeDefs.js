@@ -1217,6 +1217,7 @@ const typeDefs = gql`
     id: ID!
     dashboardId: ID!
     eventName: String!
+    description: String
     startDate: DateTime!
     endDate: DateTime!
     goals: [JSON!]!
@@ -1272,6 +1273,7 @@ const typeDefs = gql`
 
   input GroupGoalEventInput {
     eventName: String!
+    description: String
     startDate: DateTime!
     endDate: DateTime!
     goals: [JSON!]!

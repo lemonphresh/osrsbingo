@@ -334,6 +334,7 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
             roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
             groupName: event.dashboard.groupName,
             eventName: event.eventName,
+            description: event.description ?? null,
             startDate: event.startDate,
             endDate: event.endDate,
             dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
@@ -759,6 +760,7 @@ const GroupDashboardResolvers = {
       const event = await GroupGoalEvent.create({
         dashboardId: dashboard.id,
         eventName: input.eventName,
+        description: input.description ?? null,
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? [],
@@ -775,6 +777,7 @@ const GroupDashboardResolvers = {
 
       await event.update({
         eventName: input.eventName,
+        description: input.description ?? null,
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? event.goals,

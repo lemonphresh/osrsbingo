@@ -9,6 +9,7 @@ const GROUP_GOAL_EVENT_FIELDS = gql`
     id
     dashboardId
     eventName
+    description
     startDate
     endDate
     goals

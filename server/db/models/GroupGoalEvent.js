@@ -20,6 +20,7 @@ module.exports = (sequelize) => {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       dashboardId: { type: DataTypes.INTEGER, allowNull: false },
       eventName: { type: DataTypes.STRING, allowNull: false },
+      description: { type: DataTypes.TEXT, allowNull: true },
       startDate: { type: DataTypes.DATE, allowNull: false },
       endDate: { type: DataTypes.DATE, allowNull: false },
       goals: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
