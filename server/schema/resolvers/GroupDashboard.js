@@ -834,7 +834,7 @@ const GroupDashboardResolvers = {
       const channelId = dashboard.discordConfig?.channelId;
       if (!channelId) throw new UserInputError('No Discord channel configured');
 
-      const dashboardUrl = `${process.env.APP_BASE_URL}/group/${dashboard.slug}`;
+      const dashboardUrl = `${APP_BASE_URL}/group/${dashboard.slug}`;
       const result = await sendGroupDiscordTestMessage({
         channelId,
         groupName: dashboard.groupName,
