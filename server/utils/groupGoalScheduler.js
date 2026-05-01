@@ -10,7 +10,7 @@ async function syncAllActiveGroupGoals() {
     include: [{ model: GroupDashboard, as: 'dashboard' }],
   });
 
-  logger.info(`[groupGoalScheduler] Syncing ${events.length} active group goal event(s)`);
+  logger.debug(`[groupGoalScheduler] Syncing ${events.length} active group goal event(s)`);
 
   for (const event of events) {
     try {

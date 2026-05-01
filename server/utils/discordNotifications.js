@@ -38,8 +38,8 @@ async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
     }
 
     if (webhookUrl.includes('discord.com/api/webhooks/')) {
-      await axios.post(webhookUrl, requestData);
-      return { success: true };
+      const res = await axios.post(webhookUrl, requestData);
+      return { success: true, messageId: res.data?.id ?? null };
     }
 
     const botToken = process.env.DISCORD_BOT_TOKEN;
@@ -48,13 +48,13 @@ async function sendDiscordMessage(webhookUrl, messageData, filePath = null) {
       return { success: false, reason: 'no_bot_token' };
     }
 
-    await axios.post(`https://discord.com/api/v10/channels/${webhookUrl}/messages`, requestData, {
+    const res = await axios.post(`https://discord.com/api/v10/channels/${webhookUrl}/messages`, requestData, {
       headers: {
         Authorization: `Bot ${botToken}`,
       },
     });
 
-    return { success: true };
+    return { success: true, messageId: res.data?.id ?? null };
   } catch (error) {
     logger.error({ discordError: error.response?.data ?? error.message }, 'Error sending Discord message');
     return { success: false, error: error.message };
@@ -411,7 +411,7 @@ async function sendGroupGoalMilestoneNotification({
 /**
  * Event started notification
  */
-async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, description, startDate, endDate, dashboardUrl, goals = [] }) {
+function buildEventStartedBody({ roleId, groupName, eventName, description, startDate, endDate, dashboardUrl, goals = [] }) {
   const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const fmtTarget = (v) =>
@@ -456,11 +456,31 @@ async function sendGroupEventStartedNotification({ channelId, roleId, groupName,
     content: `-# ${groupName}${dashboardUrl ? `  ·  [View Dashboard](${dashboardUrl})` : ''}`,
   });
 
-  return sendDiscordMessage(channelId, {
+  return {
     ...(roleId ? { allowed_mentions: { roles: [roleId] } } : {}),
     flags: IS_COMPONENTS_V2,
     components: [{ type: C.Container, accent_color: 0x7d5fff, components: innerComponents }],
-  });
+  };
+}
+
+async function sendGroupEventStartedNotification(params) {
+  return sendDiscordMessage(params.channelId, buildEventStartedBody(params));
+}
+
+async function editGroupEventStartedNotification({ channelId, messageId, ...params }) {
+  const botToken = process.env.DISCORD_BOT_TOKEN;
+  if (!botToken || !messageId) return { success: false };
+  try {
+    await axios.patch(
+      `https://discord.com/api/v10/channels/${channelId}/messages/${messageId}`,
+      buildEventStartedBody(params),
+      { headers: { Authorization: `Bot ${botToken}` } }
+    );
+    return { success: true };
+  } catch (error) {
+    logger.error({ discordError: error.response?.data ?? error.message }, 'Error editing event started Discord message');
+    return { success: false };
+  }
 }
 
 /**
@@ -558,6 +578,7 @@ module.exports = {
   sendAllNodesCompletedNotification,
   sendGroupGoalMilestoneNotification,
   sendGroupEventStartedNotification,
+  editGroupEventStartedNotification,
   sendGroupEventEndedNotification,
   sendGroupDiscordTestMessage,
   getSubmissionChannelId,

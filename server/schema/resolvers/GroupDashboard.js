@@ -22,6 +22,7 @@ const {
 const {
   sendGroupGoalMilestoneNotification,
   sendGroupEventStartedNotification,
+  editGroupEventStartedNotification,
   sendGroupEventEndedNotification,
   sendGroupDiscordTestMessage,
 } = require('../../utils/discordNotifications');
@@ -329,19 +330,22 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
 
         const startedNotifSettings = discord?.notifications?.event_started;
         if (discord?.confirmed && discord?.channelId && startedNotifSettings?.enabled !== false) {
-          sendGroupEventStartedNotification({
-            channelId: discord.channelId,
-            roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
-            groupName: event.dashboard.groupName,
-            eventName: event.eventName,
-            description: event.description ?? null,
-            startDate: event.startDate,
-            endDate: event.endDate,
-            dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
-            goals: event.goals ?? [],
-          }).catch((err) =>
-            logger.error('Failed to send event_started Discord notification:', err.message)
-          );
+          try {
+            const result = await sendGroupEventStartedNotification({
+              channelId: discord.channelId,
+              roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
+              groupName: event.dashboard.groupName,
+              eventName: event.eventName,
+              description: event.description ?? null,
+              startDate: event.startDate,
+              endDate: event.endDate,
+              dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+              goals: event.goals ?? [],
+            });
+            if (result.messageId) notificationsSent.__event_started_message_id = result.messageId;
+          } catch (err) {
+            logger.error('Failed to send event_started Discord notification:', err.message);
+          }
         }
 
         notificationsSent.__event_started = true;
@@ -443,17 +447,22 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
 
       const startedNotifSettings = discord?.notifications?.event_started;
       if (discord?.confirmed && discord?.channelId && startedNotifSettings?.enabled !== false) {
-        sendGroupEventStartedNotification({
-          channelId: discord.channelId,
-          roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
-          groupName: event.dashboard.groupName,
-          eventName: event.eventName,
-          startDate: event.startDate,
-          endDate: event.endDate,
-          dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
-        }).catch((err) =>
-          logger.error('Failed to send event_started Discord notification (cached path):', err.message)
-        );
+        try {
+          const result = await sendGroupEventStartedNotification({
+            channelId: discord.channelId,
+            roleId: startedNotifSettings?.ping !== false ? discord.roleId ?? null : null,
+            groupName: event.dashboard.groupName,
+            eventName: event.eventName,
+            description: event.description ?? null,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+            goals: event.goals ?? [],
+          });
+          if (result.messageId) notificationsSent.__event_started_message_id = result.messageId;
+        } catch (err) {
+          logger.error('Failed to send event_started Discord notification (cached path):', err.message);
+        }
       }
 
       notificationsSent.__event_started = true;
@@ -775,17 +784,44 @@ const GroupDashboardResolvers = {
       const event = await getEventOrThrow(id);
       if (!isDashboardAdmin(event.dashboard, user.id)) throw new ForbiddenError('Not authorized');
 
+      const existingMessageId = event.notificationsSent?.__event_started_message_id ?? null;
+
       await event.update({
         eventName: input.eventName,
         description: input.description ?? null,
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? event.goals,
-        // Reset cached data + notifications when event config changes
+        // Reset cached data + notifications when event config changes, but preserve the message ID
         cachedData: null,
         lastSyncedAt: null,
-        notificationsSent: {},
+        notificationsSent: existingMessageId
+          ? { __event_started_message_id: existingMessageId }
+          : {},
       });
+
+      // If the event started notification was already sent, edit it in place
+      const discord = event.dashboard.discordConfig;
+      const now = new Date();
+      const isActive = new Date(input.startDate) <= now && new Date(input.endDate) >= now;
+      if (existingMessageId && isActive && discord?.confirmed && discord?.channelId) {
+        const notifSettings = discord?.notifications?.event_started;
+        editGroupEventStartedNotification({
+          channelId: discord.channelId,
+          messageId: existingMessageId,
+          roleId: notifSettings?.ping !== false ? discord.roleId ?? null : null,
+          groupName: event.dashboard.groupName,
+          eventName: input.eventName,
+          description: input.description ?? null,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          dashboardUrl: `${APP_BASE_URL}/group/${event.dashboard.slug}`,
+          goals: input.goals ?? event.goals ?? [],
+        }).catch((err) =>
+          logger.error('Failed to edit event_started Discord message:', err.message)
+        );
+      }
+
       return event.reload();
     },
 
