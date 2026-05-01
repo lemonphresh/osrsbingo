@@ -127,13 +127,19 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
     byDay[dateKey].push(e);
   }
 
+  const NOTION_URL = 'https://eternalgems.notion.site/Community-Event-Calendar-1b16f0e73e81803e83f8dbc6b2f9d11a?pvs=74';
+  const DESC_LIMIT = 150;
+
   const fields = Object.entries(byDay).sort(([a], [b]) => a.localeCompare(b)).map(([dateKey, dayEvents]) => {
     const dayLabel = new Date(dateKey + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const lines = dayEvents.map((e) => {
       const emoji = TYPE_EMOJI[e.eventType] || '📌';
       const start = Math.floor(new Date(e.start).getTime() / 1000);
       const end = Math.floor(new Date(e.end).getTime() / 1000);
-      const desc = e.description ? `\n${e.description.split('\n').map((l) => `> ${l}`).join('\n')}` : '';
+      let rawDesc = e.description ?? '';
+      const truncated = rawDesc.length > DESC_LIMIT;
+      if (truncated) rawDesc = rawDesc.slice(0, DESC_LIMIT).trimEnd() + `… [see more](${NOTION_URL})`;
+      const desc = rawDesc ? `\n${rawDesc.split('\n').map((l) => `> ${l}`).join('\n')}\n─────────────────────` : '';
       return `${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
     });
     return { name: `📆 ${dayLabel}`, value: lines.join('\n\n'), inline: false };
@@ -150,10 +156,14 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
   }
   const savedMessage = monthlyMessages[monthKey] || null;
 
+  const baseDescription = savedMessage || (fields.length ? null : `*No events scheduled for ${monthLabel}.*`);
   const embed = {
     title: `📅  Eternal Gems — ${monthLabel}`,
+    url: NOTION_URL,
     color: 0x28afb0,
-    description: savedMessage || (fields.length ? null : `*No events scheduled for ${monthLabel}.*`),
+    description: baseDescription
+      ? `${baseDescription}\n\n[View Full Calendar →](${NOTION_URL})`
+      : `[View Full Calendar →](${NOTION_URL})`,
     fields: fields.length ? fields : undefined,
     footer: { text: `${events.length} event${events.length !== 1 ? 's' : ''} this month` },
     timestamp: new Date().toISOString(),
