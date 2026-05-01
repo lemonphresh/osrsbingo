@@ -139,7 +139,7 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
       let rawDesc = e.description ?? '';
       const truncated = rawDesc.length > DESC_LIMIT;
       if (truncated) rawDesc = rawDesc.slice(0, DESC_LIMIT).trimEnd() + `… [see more](${NOTION_URL})`;
-      const desc = rawDesc ? `\n${rawDesc.split('\n').map((l) => `> ${l}`).join('\n')}\n─────────────────────` : '';
+      const desc = rawDesc ? `\n${rawDesc.split('\n').map((l) => `> ${l}`).join('\n')}` : '';
       return `${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
     });
     return { name: `📆 ${dayLabel}`, value: lines.join('\n\n'), inline: false };
@@ -156,7 +156,9 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
   }
   const savedMessage = monthlyMessages[monthKey] || null;
 
-  const baseDescription = savedMessage || (fields.length ? null : `*No events scheduled for ${monthLabel}.*`);
+  const baseDescription = savedMessage
+    ? `${savedMessage}\n─────────────────────`
+    : (fields.length ? null : `*No events scheduled for ${monthLabel}.*`);
   const embed = {
     title: `📅  Eternal Gems — ${monthLabel}`,
     url: NOTION_URL,
