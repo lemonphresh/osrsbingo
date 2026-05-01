@@ -796,6 +796,20 @@ const GroupDashboardResolvers = {
       return true;
     },
 
+    deleteGroupDashboard: async (_, { id }, { user }) => {
+      if (!user) throw new AuthenticationError('Login required');
+      const dashboard = await getDashboardOrThrow(id);
+      if (String(dashboard.creatorId) !== String(user.id)) throw new ForbiddenError('Only the group owner can delete this dashboard');
+      const { GroupGoalEvent, GroupDashboardActivity, GroupDashboardFollower, GroupDashboardMute } = getModels();
+      // Cascade: activities (includes per-event), events, followers, mutes
+      await GroupDashboardActivity.destroy({ where: { dashboardId: dashboard.id } });
+      await GroupGoalEvent.destroy({ where: { dashboardId: dashboard.id } });
+      await GroupDashboardFollower.destroy({ where: { dashboardId: dashboard.id } });
+      await GroupDashboardMute.destroy({ where: { dashboardId: dashboard.id } });
+      await dashboard.destroy();
+      return true;
+    },
+
     confirmGroupDashboardDiscord: async (_, { id, guildId, channelId, roleId }, { user }) => {
       if (!user) throw new AuthenticationError('Login required');
       const dashboard = await getDashboardOrThrow(id);

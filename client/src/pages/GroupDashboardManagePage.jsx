@@ -28,7 +28,7 @@ import {
   ModalCloseButton,
   Select,
 } from '@chakra-ui/react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useParams, Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import { useState } from 'react';
 import {
@@ -49,6 +49,7 @@ import {
   CREATE_GROUP_GOAL_EVENT,
   UPDATE_GROUP_GOAL_EVENT,
   DELETE_GROUP_GOAL_EVENT,
+  UPDATE_GROUP_DASHBOARD,
   ADD_GROUP_DASHBOARD_ADMIN,
   REMOVE_GROUP_DASHBOARD_ADMIN,
   TRANSFER_GROUP_DASHBOARD,
@@ -56,6 +57,7 @@ import {
   SAVE_GOAL_TEMPLATE,
   DELETE_GOAL_TEMPLATE,
   SET_LEAGUES_WOM_GROUP_ID,
+  DELETE_GROUP_DASHBOARD,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
@@ -1091,6 +1093,173 @@ function EventRow({
   );
 }
 
+// ── Settings panel ───────────────────────────────────────────────────────────
+
+function SettingsPanel({ dashboard, isOwner, onRefetch }) {
+  const toast = useToast();
+  const navigate = useNavigate();
+
+  // Rename
+  const [groupName, setGroupName] = useState(dashboard.groupName);
+  const [updateDashboard, { loading: renaming }] = useMutation(UPDATE_GROUP_DASHBOARD, {
+    onCompleted: () => {
+      onRefetch();
+      toast({ title: 'Group name updated', status: 'success', duration: 2000, isClosable: true });
+    },
+    onError: (err) => {
+      toast({ title: err.message, status: 'error', duration: 4000, isClosable: true });
+    },
+  });
+
+  // Delete — two-step: show warning, then type name to confirm
+  const [deleteStep, setDeleteStep] = useState(0); // 0=idle, 1=warning, 2=confirm
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteGroupDashboard, { loading: deleting }] = useMutation(DELETE_GROUP_DASHBOARD, {
+    onCompleted: () => {
+      toast({ title: 'Group deleted', status: 'success', duration: 3000, isClosable: true });
+      navigate('/group');
+    },
+    onError: (err) => {
+      toast({ title: err.message, status: 'error', duration: 4000, isClosable: true });
+    },
+  });
+
+  const nameIsDirty = groupName.trim() !== dashboard.groupName;
+  const deleteNameMatches = deleteConfirmName.trim() === dashboard.groupName;
+
+  return (
+    <VStack spacing={5} align="stretch">
+      {/* Rename */}
+      <Box bg="gray.800" borderRadius="xl" p={5}>
+        <Text fontWeight="semibold" color="gray.100" mb={1}>
+          Group Name
+        </Text>
+        <Text fontSize="sm" color="gray.400" mb={4}>
+          This name appears on the public dashboard page and in Discord notifications.
+        </Text>
+        <HStack spacing={3}>
+          <Input
+            value={groupName}
+            onChange={(e) => setGroupName(e.target.value)}
+            bg="gray.900"
+            borderColor="gray.600"
+            size="sm"
+          />
+          <Button
+            size="sm"
+            colorScheme="purple"
+            isLoading={renaming}
+            isDisabled={!nameIsDirty || !groupName.trim()}
+            onClick={() =>
+              updateDashboard({ variables: { id: dashboard.id, input: { groupName: groupName.trim() } } })
+            }
+            flexShrink={0}
+          >
+            Save
+          </Button>
+        </HStack>
+      </Box>
+
+      {/* Delete — owner only */}
+      {isOwner && (
+        <Box
+          bg="gray.800"
+          borderRadius="xl"
+          p={5}
+          border="1px solid"
+          borderColor="red.900"
+        >
+          <Text fontSize="sm" fontWeight="semibold" color="red.300" mb={1}>
+            Delete Group
+          </Text>
+          <Text fontSize="xs" color="gray.500" mb={4}>
+            Permanently deletes this dashboard and all of its events. This cannot be undone.
+          </Text>
+
+          {deleteStep === 0 && (
+            <Button size="sm" colorScheme="red" variant="outline" onClick={() => setDeleteStep(1)}>
+              Delete Group
+            </Button>
+          )}
+
+          {deleteStep === 1 && (
+            <VStack spacing={3} align="stretch">
+              <Box bg="red.900" border="1px solid" borderColor="red.600" borderRadius="md" p={3}>
+                <Text fontSize="sm" color="red.200" fontWeight="semibold" mb={1}>
+                  Are you sure?
+                </Text>
+                <Text fontSize="xs" color="gray.300">
+                  This will delete <Text as="span" fontWeight="bold">{dashboard.groupName}</Text> and all
+                  associated events and activity. Followers will lose access. There is no going back.
+                </Text>
+              </Box>
+              <HStack spacing={2}>
+                <Button size="sm" colorScheme="red" onClick={() => setDeleteStep(2)}>
+                  Yes, I want to delete this group
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="gray"
+                  color="gray.400"
+                  onClick={() => setDeleteStep(0)}
+                >
+                  Cancel
+                </Button>
+              </HStack>
+            </VStack>
+          )}
+
+          {deleteStep === 2 && (
+            <VStack spacing={3} align="stretch">
+              <Box bg="red.900" border="1px solid" borderColor="red.600" borderRadius="md" p={3}>
+                <Text fontSize="sm" color="red.200" fontWeight="semibold" mb={2}>
+                  Are you really sure?
+                </Text>
+                <Text fontSize="xs" color="gray.300" mb={3}>
+                  Type the group name to confirm:{' '}
+                  <Text as="span" fontWeight="bold" fontFamily="mono">
+                    {dashboard.groupName}
+                  </Text>
+                </Text>
+                <Input
+                  size="sm"
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder={dashboard.groupName}
+                  bg="gray.900"
+                  borderColor="red.700"
+                  _focus={{ borderColor: 'red.400' }}
+                />
+              </Box>
+              <HStack spacing={2}>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  isLoading={deleting}
+                  isDisabled={!deleteNameMatches}
+                  onClick={() => deleteGroupDashboard({ variables: { id: dashboard.id } })}
+                >
+                  Delete Forever
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  colorScheme="gray"
+                  color="gray.400"
+                  onClick={() => { setDeleteStep(0); setDeleteConfirmName(''); }}
+                >
+                  Cancel
+                </Button>
+              </HStack>
+            </VStack>
+          )}
+        </Box>
+      )}
+    </VStack>
+  );
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function GroupDashboardManagePage() {
@@ -1271,6 +1440,7 @@ export default function GroupDashboardManagePage() {
                 <Tab fontSize="sm">Editors</Tab>
                 <Tab fontSize="sm">Leagues / DMM</Tab>
                 <Tab fontSize="sm">Embed</Tab>
+                <Tab fontSize="sm">Settings</Tab>
               </TabList>
 
               <TabPanels>
@@ -1770,6 +1940,15 @@ export default function GroupDashboardManagePage() {
                       </VStack>
                     </Box>
                   </VStack>
+                </TabPanel>
+
+                {/* ── Settings tab ── */}
+                <TabPanel px={0} pt={5}>
+                  <SettingsPanel
+                    dashboard={dashboard}
+                    isOwner={String(dashboard.creatorId) === String(user.id)}
+                    onRefetch={refetch}
+                  />
                 </TabPanel>
               </TabPanels>
             </Tabs>

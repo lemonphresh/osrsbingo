@@ -316,3 +316,9 @@ export const DELETE_GOAL_TEMPLATE = gql`
     }
   }
 `;
+
+export const DELETE_GROUP_DASHBOARD = gql`
+  mutation DeleteGroupDashboard($id: ID!) {
+    deleteGroupDashboard(id: $id)
+  }
+`;
