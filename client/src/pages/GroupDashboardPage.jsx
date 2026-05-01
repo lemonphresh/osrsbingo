@@ -274,6 +274,20 @@ function EventProgressPanel({ event, accentColor, isAdmin, userRsn }) {
 
   return (
     <VStack spacing={4} align="stretch">
+      {event.description && (
+        <Box
+          bg="gray.800"
+          border="1px solid"
+          borderColor="gray.700"
+          borderRadius="lg"
+          px={5}
+          py={4}
+        >
+          <Text fontSize="sm" color="gray.300" whiteSpace="pre-wrap">
+            {event.description}
+          </Text>
+        </Box>
+      )}
       <EventCountdown event={event} accentColor={accentColor} />
       {event.lastSyncedAt &&
         (() => {

@@ -4,6 +4,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Textarea,
   Select,
   Button,
   Text,
@@ -49,6 +50,7 @@ function localUtcLabel() {
 
 export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, loading, templates = [] }) {
   const [eventName, setEventName] = useState(initialValues?.eventName ?? '');
+  const [description, setDescription] = useState(initialValues?.description ?? '');
   const [startDate, setStartDate] = useState(toInputDatetime(initialValues?.startDate));
   const [endDate, setEndDate] = useState(toInputDatetime(initialValues?.endDate));
   const [goals, setGoals] = useState(
@@ -75,6 +77,7 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
     if (!eventName.trim() || !startDate || !endDate || dateRangeInvalid) return;
     onSave({
       eventName: eventName.trim(),
+      description: description.trim() || null,
       startDate: new Date(startDate).toISOString(),
       endDate: new Date(endDate).toISOString(),
       goals: goals.map((g, i) => ({ ...g, order: i })),
@@ -122,6 +125,21 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
           placeholder="i.e. Springtime Skilling Showdown"
           bg="gray.800"
           borderColor="gray.600"
+        />
+      </FormControl>
+
+      <FormControl>
+        <FormLabel fontSize="sm" color="gray.300">
+          Description <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">(optional)</Text>
+        </FormLabel>
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Rules, prizes, context — anything useful for participants."
+          bg="gray.800"
+          borderColor="gray.600"
+          rows={3}
+          resize="vertical"
         />
       </FormControl>
 

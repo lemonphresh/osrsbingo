@@ -411,7 +411,7 @@ async function sendGroupGoalMilestoneNotification({
 /**
  * Event started notification
  */
-async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, startDate, endDate, dashboardUrl, goals = [] }) {
+async function sendGroupEventStartedNotification({ channelId, roleId, groupName, eventName, description, startDate, endDate, dashboardUrl, goals = [] }) {
   const fmt = (d) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   const fmtTarget = (v) =>
@@ -443,6 +443,10 @@ async function sendGroupEventStartedNotification({ channelId, roleId, groupName,
 
   if (goalLines.length > 0) {
     innerComponents.push(sep, { type: C.TextDisplay, content: goalLines.join('\n') });
+  }
+
+  if (description) {
+    innerComponents.push(sep, { type: C.TextDisplay, content: description });
   }
 
   innerComponents.push(sep, { type: C.TextDisplay, content: `Let's get to grinding! ⚔️` });
