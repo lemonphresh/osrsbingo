@@ -12,7 +12,7 @@ import {
   HStack,
   Divider,
 } from '@chakra-ui/react';
-import { format, isValid as isValidDate } from 'date-fns';
+import { format, isValid as isValidDate, subDays, isSameDay } from 'date-fns';
 
 const TYPE_LABEL = {
   PVM: 'PvM',
@@ -56,7 +56,14 @@ export default function EventViewModal({ isOpen, onClose, event }) {
               {hasStart ? (
                 <Text>
                   {event.allDay
-                    ? `${format(start, 'EEE, MMM d, yyyy')} (all day)`
+                    ? (() => {
+                        // FullCalendar all-day end is exclusive, subtract 1 day for display
+                        const endInclusive = hasEnd ? subDays(end, 1) : null;
+                        const isMultiDay = endInclusive && !isSameDay(start, endInclusive);
+                        return isMultiDay
+                          ? `${format(start, 'EEE, MMM d')} – ${format(endInclusive, 'EEE, MMM d, yyyy')} (all day)`
+                          : `${format(start, 'EEE, MMM d, yyyy')} (all day)`;
+                      })()
                     : `${format(start, 'EEE, MMM d, yyyy • p')}${
                         hasEnd ? ` – ${format(end, 'p')}` : ''
                       }`}

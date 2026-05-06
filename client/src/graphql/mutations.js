@@ -454,6 +454,15 @@ export const PROMOTE_CAL_EVENT = gql`
   }
 `;
 
+export const DEMOTE_CAL_EVENT = gql`
+  mutation DemoteCalendarEvent($id: ID!) {
+    demoteCalendarEvent(id: $id) {
+      id
+      publishStatus
+    }
+  }
+`;
+
 // Calendar Query (keeping here since it was in original file)
 export const LIST_SAVED_CAL_EVENTS = gql`
   query SavedCalendarEvents($offset: Int, $limit: Int) {

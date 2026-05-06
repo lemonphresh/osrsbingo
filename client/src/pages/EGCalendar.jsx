@@ -42,6 +42,7 @@ import {
   SAVE_CAL_EVENT,
   RESTORE_CAL_EVENT,
   PROMOTE_CAL_EVENT,
+  DEMOTE_CAL_EVENT,
 } from '../graphql/mutations';
 import CalendarGlobal from '../utils/CalendarGlobalStyles';
 import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
@@ -305,6 +306,7 @@ export default function EGCalendar({ authed, setAuthed }) {
   const [saveEvent] = useMutation(SAVE_CAL_EVENT);
   const [restoreEvent] = useMutation(RESTORE_CAL_EVENT);
   const [promoteEvent] = useMutation(PROMOTE_CAL_EVENT);
+  const [demoteEvent] = useMutation(DEMOTE_CAL_EVENT);
 
   const events = useMemo(() => {
     const items = data?.calendarEvents?.items ?? [];
@@ -375,6 +377,15 @@ export default function EGCalendar({ authed, setAuthed }) {
       await refetch();
       checkVersion();
       toast({ status: 'success', title: 'Promoted to Official' });
+    });
+  };
+
+  const handleDemote = async (id) => {
+    await safeRun(async () => {
+      await demoteEvent({ variables: { id } });
+      await refetch();
+      checkVersion();
+      toast({ status: 'success', title: 'Demoted to Draft' });
     });
   };
 
@@ -694,6 +705,14 @@ export default function EGCalendar({ authed, setAuthed }) {
               calView === 'draft' && selected.publishStatus === 'DRAFT'
                 ? async () => {
                     await handlePromote(selected.id);
+                    closeToolbar();
+                  }
+                : undefined
+            }
+            onDemote={
+              calView === 'official' && selected.publishStatus === 'OFFICIAL'
+                ? async () => {
+                    await handleDemote(selected.id);
                     closeToolbar();
                   }
                 : undefined

@@ -359,13 +359,14 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
           .filter((p) => p.isIndividual)
           .map((p) => {
             const goalConfig = (event.goals || []).find((g) => g.goalId === p.goalId);
+            const contributors = p.topContributors ?? [];
             return {
               goalId: p.goalId,
               goalName: goalConfig?.displayName ?? p.displayName,
               goalEmoji: goalConfig?.emoji ?? '🎯',
-              completedCount: p.current,
-              totalActive: p.target,
-              completedRsns: (p.topContributors ?? []).filter((c) => c.completed).map((c) => c.rsn),
+              completedCount: contributors.filter((c) => c.completed).length,
+              totalActive: contributors.length,
+              completedRsns: contributors.filter((c) => c.completed).map((c) => c.rsn),
             };
           });
 

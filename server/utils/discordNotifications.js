@@ -449,7 +449,7 @@ function buildEventStartedBody({ roleId, groupName, eventName, description, star
     innerComponents.push(sep, { type: C.TextDisplay, content: description });
   }
 
-  innerComponents.push(sep, { type: C.TextDisplay, content: `Let's get to grinding! ⚔️` });
+  innerComponents.push(sep, { type: C.TextDisplay, content: `Let's get to grinding! ⚔️\n-# 💡 Make sure to log out and update yourself on WOM before setting off — otherwise your contributions might not be counted correctly.` });
 
   innerComponents.push(sep, {
     type: C.TextDisplay,

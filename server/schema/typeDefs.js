@@ -732,6 +732,7 @@ const typeDefs = gql`
     saveCalendarEvent(id: ID!): CalendarEvent!
     restoreCalendarEvent(id: ID!, start: DateTime!, end: DateTime!): CalendarEvent!
     promoteCalendarEvent(id: ID!): CalendarEvent!
+    demoteCalendarEvent(id: ID!): CalendarEvent!
 
     # --- Gielinor Rush: Events ---
     createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!
