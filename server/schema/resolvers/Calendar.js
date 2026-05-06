@@ -174,6 +174,14 @@ const calendarResolvers = {
       return e;
     },
 
+    async demoteCalendarEvent(_, { id }, ctx) {
+      requireCalendarAuth(ctx);
+      const e = await CalendarEvent.findByPk(id);
+      if (!e) throw new UserInputError('Not found');
+      await e.update({ publishStatus: 'DRAFT' });
+      return e;
+    },
+
     async restoreCalendarEvent(_, { id, start, end }, ctx) {
       requireCalendarAuth(ctx);
       if (!start || !end) throw new UserInputError('Missing start/end');
