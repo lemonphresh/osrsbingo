@@ -9,6 +9,7 @@ module.exports = (sequelize, DataTypes) => {
       discordMessageId: { type: DataTypes.STRING, allowNull: true },
       discordMessageMonth: { type: DataTypes.STRING, allowNull: true },
       monthlyMessages: { type: DataTypes.JSONB, allowNull: true, defaultValue: {} },
+      trackscapeChannelId: { type: DataTypes.STRING, allowNull: true },
     },
     { tableName: 'CalendarSettings' }
   );

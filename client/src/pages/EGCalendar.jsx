@@ -145,6 +145,10 @@ export default function EGCalendar({ authed, setAuthed }) {
   const [savedDiscordRoleId, setSavedDiscordRoleId] = useState('');
   const [roleIdSaved, setRoleIdSaved] = useState(false);
   const [editingRoleId, setEditingRoleId] = useState(false);
+  const [trackscapeChannelId, setTrackscapeChannelId] = useState('');
+  const [savedTrackscapeChannelId, setSavedTrackscapeChannelId] = useState('');
+  const [trackscapeIdSaved, setTrackscapeIdSaved] = useState(false);
+  const [editingTrackscapeId, setEditingTrackscapeId] = useState(false);
   const [posting, setPosting] = useState(false);
   const [calDate, setCalDate] = useState(new Date());
   const [customMessage, setCustomMessage] = useState('');
@@ -201,6 +205,8 @@ export default function EGCalendar({ authed, setAuthed }) {
         setSavedDiscordChannelId(d.discordChannelId || '');
         setDiscordRoleId(d.discordRoleId || '');
         setSavedDiscordRoleId(d.discordRoleId || '');
+        setTrackscapeChannelId(d.trackscapeChannelId || '');
+        setSavedTrackscapeChannelId(d.trackscapeChannelId || '');
       })
       .catch(() => {});
   }, [authed]);
@@ -284,6 +290,22 @@ export default function EGCalendar({ authed, setAuthed }) {
       setTimeout(() => setRoleIdSaved(false), 2000);
     } catch {
       toast({ status: 'error', title: 'Failed to save role ID' });
+    }
+  };
+
+  const saveTrackscapeId = async () => {
+    try {
+      await fetch('/api/calendar/settings', {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackscapeChannelId: trackscapeChannelId || null }),
+      });
+      setSavedTrackscapeChannelId(trackscapeChannelId);
+      setTrackscapeIdSaved(true);
+      setTimeout(() => setTrackscapeIdSaved(false), 2000);
+    } catch {
+      toast({ status: 'error', title: 'Failed to save TrackScape channel ID' });
     }
   };
 
@@ -531,6 +553,46 @@ export default function EGCalendar({ authed, setAuthed }) {
                   flexShrink={0}
                 >
                   {roleIdSaved ? 'Saved!' : 'Save'}
+                </Button>
+              </>
+            )}
+            {savedTrackscapeChannelId && !editingTrackscapeId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                borderColor="gray.600"
+                color="gray.400"
+                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                onClick={() => setEditingTrackscapeId(true)}
+                flexShrink={0}
+              >
+                TrackScape: {trackscapeChannelId}
+              </Button>
+            ) : (
+              <>
+                <Input
+                  size="sm"
+                  placeholder="TrackScape channel ID"
+                  value={trackscapeChannelId}
+                  onChange={(e) => setTrackscapeChannelId(e.target.value)}
+                  bg="gray.800"
+                  borderColor="gray.600"
+                  color="gray.100"
+                  width="200px"
+                  borderRadius="md"
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    saveTrackscapeId();
+                    setEditingTrackscapeId(false);
+                  }}
+                  bg={trackscapeIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
+                  _hover={{ bg: 'dark.turquoise.logoDark' }}
+                  color="white"
+                  flexShrink={0}
+                >
+                  {trackscapeIdSaved ? 'Saved!' : 'Save'}
                 </Button>
               </>
             )}

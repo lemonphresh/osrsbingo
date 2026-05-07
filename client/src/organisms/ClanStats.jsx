@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton } from '@chakra-ui/react';
+import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const GROUP_ID = 9738;
@@ -512,6 +513,150 @@ function NameChanges({ data, loading, error }) {
   );
 }
 
+// --- TrackScape Drop Feed ---
+function formatValue(v) {
+  if (v == null) return null;
+  const n = Number(v);
+  if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(0) + 'K';
+  return String(Math.round(n));
+}
+
+export function DropsFeed({ mockDrops } = {}) {
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1); // 1-indexed
+  const [drops, setDrops] = useState(mockDrops ?? []);
+  const [loading, setLoading] = useState(!mockDrops);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (mockDrops) return;
+    setLoading(true);
+    setError(null);
+    fetch(`/api/calendar/trackscape/drops?year=${year}&month=${month}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => setDrops(Array.isArray(data) ? data : []))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [year, month, mockDrops]);
+
+  const prevMonth = () => {
+    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
+    else setMonth((m) => m - 1);
+  };
+  const nextMonth = () => {
+    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
+    else setMonth((m) => m + 1);
+  };
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
+
+  const highValueDrops = drops.filter((d) => d.type === 'drop');
+  const petDrops = drops.filter((d) => d.type === 'pet');
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+  return (
+    <Box bg="dark.cardBg" borderRadius="12px" p={6} width="100%">
+      <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2}>
+        <Text fontWeight="bold" fontSize="lg">TrackScape Drops</Text>
+        <HStack spacing={1}>
+          <IconButton
+            aria-label="Previous month"
+            icon={<ChevronLeftIcon />}
+            size="xs"
+            variant="ghost"
+            onClick={prevMonth}
+          />
+          <Text fontSize="sm" color="whiteAlpha.700" minW="130px" textAlign="center">
+            {monthLabel}
+          </Text>
+          <IconButton
+            aria-label="Next month"
+            icon={<ChevronRightIcon />}
+            size="xs"
+            variant="ghost"
+            onClick={nextMonth}
+            isDisabled={isCurrentMonth}
+          />
+        </HStack>
+      </Flex>
+
+      {loading && <Center py={6}><Spinner size="sm" /></Center>}
+      {error && <Text color="dark.red.base" fontSize="sm">{error}</Text>}
+
+      {!loading && !error && drops.length === 0 && (
+        <Text fontSize="sm" color="whiteAlpha.500">No drops recorded for this month.</Text>
+      )}
+
+      {!loading && !error && drops.length > 0 && (
+        <Flex gap={6} direction={['column', 'column', 'row']} align="flex-start">
+          {/* Summary */}
+          <Box flexShrink={0}>
+            <Flex gap={4} mb={4} wrap="wrap">
+              <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
+                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={1}>High Value</Text>
+                <Text fontSize="xl" fontWeight="bold">{highValueDrops.length}</Text>
+              </Box>
+              <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
+                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={1}>Pets</Text>
+                <Text fontSize="xl" fontWeight="bold">{petDrops.length}</Text>
+              </Box>
+            </Flex>
+          </Box>
+
+          {/* Drop lists */}
+          <Flex gap={6} flex="1" direction={['column', 'row']} align="flex-start" width="100%">
+            {highValueDrops.length > 0 && (
+              <Box flex="1" minW="200px">
+                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+                  High Value Drops
+                </Text>
+                <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
+                  {highValueDrops.map((d) => (
+                    <Flex key={d.id} py={2} gap={2} borderBottom="1px solid" borderColor="whiteAlpha.50" align="center">
+                      <Box flex="1" overflow="hidden">
+                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>{d.player}</Text>
+                        <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>{d.item}</Text>
+                      </Box>
+                      {d.value != null && (
+                        <Text fontSize="sm" color="dark.turquoise.base" fontWeight="bold" flexShrink={0}>
+                          {formatValue(d.value)}
+                        </Text>
+                      )}
+                    </Flex>
+                  ))}
+                </VStack>
+              </Box>
+            )}
+
+            {petDrops.length > 0 && (
+              <Box flex="1" minW="180px">
+                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+                  Pets
+                </Text>
+                <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
+                  {petDrops.map((d) => (
+                    <Flex key={d.id} py={2} gap={2} borderBottom="1px solid" borderColor="whiteAlpha.50" align="center">
+                      <Text fontSize="sm" flex="1" noOfLines={1}>{d.player}</Text>
+                      <Text fontSize="xs" color="whiteAlpha.400" flexShrink={0}>
+                        {new Date(d.droppedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </Text>
+                    </Flex>
+                  ))}
+                </VStack>
+              </Box>
+            )}
+          </Flex>
+        </Flex>
+      )}
+    </Box>
+  );
+}
+
 // --- Main ClanStats ---
 export default function ClanStats() {
   const [statsData, setStatsData] = useState(null);
@@ -639,6 +784,11 @@ export default function ClanStats() {
           <NameChanges data={nameChanges} loading={ncLoading} error={ncError} />
         </Box>
       </Flex>
+
+      {/* TrackScape drops */}
+      <Box width="100%" maxW="1200px">
+        <DropsFeed />
+      </Box>
     </Flex>
   );
 }

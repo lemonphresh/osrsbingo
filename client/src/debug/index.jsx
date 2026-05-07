@@ -17,6 +17,7 @@ import EventPasswordReminderStories from './stories/EventPasswordReminder.storie
 import AdminQuickActionsStories from './stories/AdminQuickActions.stories';
 import NodeProgressEditorStories from './stories/NodeProgressEditor.stories';
 import SubmissionsTabStories from './stories/SubmissionsTab.stories';
+import DropsFeedStories from './stories/DropsFeed.stories';
 
 // ============================================================
 // STORY REGISTRY
@@ -128,6 +129,13 @@ const STORIES = [
     category: 'Treasure Hunt',
     scenarioCount: 5,
     component: SubmissionsTabStories,
+  },
+  {
+    id: 'drops-feed',
+    label: 'DropsFeed',
+    category: 'Clan Stats',
+    scenarioCount: 4,
+    component: DropsFeedStories,
   },
 ];
 

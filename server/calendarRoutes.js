@@ -1,8 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { CalendarEvent, CalendarSettings, sequelize } = require('./db/models');
+const { CalendarEvent, CalendarSettings, TrackScapeDrop, sequelize } = require('./db/models');
 const { syncEventsToNotion } = require('./utils/notionSync');
+const { syncTrackScapeDrops } = require('./utils/trackScapeScraper');
 const { Op } = sequelize.Sequelize;
 
 const router = express.Router();
@@ -247,14 +248,33 @@ router.get('/monthly-message', requireCalendarAuth, async (req, res) => {
 });
 
 router.put('/settings', requireCalendarAuth, async (req, res) => {
-  const { discordChannelId, discordRoleId } = req.body || {};
+  const { discordChannelId, discordRoleId, trackscapeChannelId } = req.body || {};
   let settings = await CalendarSettings.findOne();
   if (!settings) settings = await CalendarSettings.create({ discordChannelId: null });
   const update = {};
   if (discordChannelId !== undefined) update.discordChannelId = discordChannelId || null;
   if (discordRoleId !== undefined) update.discordRoleId = discordRoleId || null;
+  if (trackscapeChannelId !== undefined) update.trackscapeChannelId = trackscapeChannelId || null;
   await settings.update(update);
   res.json(settings);
+});
+
+// --- trackscape drops ---
+router.get('/trackscape/drops', async (req, res) => {
+  const now = new Date();
+  const year = parseInt(req.query.year) || now.getFullYear();
+  const month = parseInt(req.query.month) || now.getMonth() + 1;
+  const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+  const drops = await TrackScapeDrop.findAll({
+    where: { month: monthKey },
+    order: [['droppedAt', 'DESC']],
+  });
+  res.json(drops);
+});
+
+router.post('/trackscape/sync', requireCalendarAuth, async (_req, res) => {
+  const result = await syncTrackScapeDrops();
+  res.json(result);
 });
 
 module.exports = router;
