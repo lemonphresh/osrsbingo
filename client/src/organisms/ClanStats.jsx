@@ -591,6 +591,7 @@ export function DropsFeed({ mockDrops } = {}) {
             icon={<ChevronLeftIcon />}
             size="xs"
             variant="ghost"
+            color="white"
             onClick={prevMonth}
           />
           <Text fontSize="sm" color="whiteAlpha.700" minW="130px" textAlign="center">
@@ -601,6 +602,7 @@ export function DropsFeed({ mockDrops } = {}) {
             icon={<ChevronRightIcon />}
             size="xs"
             variant="ghost"
+            color="white"
             onClick={nextMonth}
             isDisabled={isCurrentMonth}
           />

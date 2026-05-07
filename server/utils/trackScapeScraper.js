@@ -79,14 +79,10 @@ async function syncTrackScapeDrops() {
     return { inserted: 0 };
   }
 
-  // Fetch the most recent message we have so we only pull new ones
-  const newest = await TrackScapeDrop.findOne({ order: [['droppedAt', 'DESC']] });
-
   let inserted = 0;
   let before = null;
-  // We fetch up to 10 pages of 100 messages (1000 total) per sync.
-  // On first run this fills history; subsequent runs stop early once
-  // we hit already-seen messages.
+  // Fetch up to 10 pages (1000 messages). Stop early when a full page
+  // yields zero new inserts — means we've caught up with existing records.
   for (let page = 0; page < 10; page++) {
     const url = new URL(`https://discord.com/api/v10/channels/${channelId}/messages`);
     url.searchParams.set('limit', '100');
@@ -105,19 +101,15 @@ async function syncTrackScapeDrops() {
     const messages = await res.json();
     if (!Array.isArray(messages) || messages.length === 0) break;
 
-    let hitExisting = false;
+    let pageInserted = 0;
     for (const msg of messages) {
-      if (newest && msg.id === newest.discordMessageId) {
-        hitExisting = true;
-        break;
-      }
-
       const parsed = parseMessage(msg);
       if (!parsed) continue;
 
       try {
         await TrackScapeDrop.create(parsed);
         inserted++;
+        pageInserted++;
       } catch (e) {
         // unique constraint = already exists, skip
         if (e.name !== 'SequelizeUniqueConstraintError') {
@@ -126,7 +118,8 @@ async function syncTrackScapeDrops() {
       }
     }
 
-    if (hitExisting || messages.length < 100) break;
+    // Full page with nothing new = we've caught up
+    if (messages.length < 100 || pageInserted === 0) break;
     before = messages[messages.length - 1].id;
     // small delay to avoid rate limiting
     await new Promise((r) => setTimeout(r, 250));
