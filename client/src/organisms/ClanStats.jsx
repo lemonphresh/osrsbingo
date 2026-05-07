@@ -675,7 +675,10 @@ export function DropsFeed({ mockDrops } = {}) {
                 <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
                   {petDrops.map((d) => (
                     <Flex key={d.id} py={2} gap={2} borderBottom="1px solid" borderColor="whiteAlpha.50" align="center">
-                      <Text fontSize="sm" flex="1" noOfLines={1}>{d.player}</Text>
+                      <Box flex="1" overflow="hidden">
+                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>{d.player}</Text>
+                        {d.item && <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>{d.item}</Text>}
+                      </Box>
                       <Text fontSize="xs" color="whiteAlpha.400" flexShrink={0}>
                         {new Date(d.droppedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </Text>
