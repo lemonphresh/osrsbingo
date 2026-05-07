@@ -4,7 +4,7 @@ const logger = require('./logger');
 // High value drop — embed description: "{player} received a drop: {item} ({value} coins)."
 // Pet drop        — embed description: "{player} has a funny feeling..."
 const DROP_RE = /^(.+?) (?:received a drop|received special loot from a raid): (.+?) \(([\d,]+) coins\)\.?/i;
-const PET_RE = /^(.+?) has a funny feeling[^:]*:\s*(.+?)\s+at\s+[\d,]+\s+(?:XP|levels)/i;
+const PET_RE = /^(.+?) has a funny feeling[^:]*:\s*(.+?)\s+at\s+[\d,]+\s+(?:XP|levels|killcount)/i;
 const PET_FALLBACK_RE = /^(.+?) (?:has a funny feeling|received a pet drop)/i;
 
 function clean(str) {
@@ -32,7 +32,7 @@ function parseMessage(msg) {
   if (msg.content) texts.push(msg.content);
 
   for (const text of texts) {
-    const dropMatch = text.match(DROP_RE);
+    const dropMatch = clean(text).match(DROP_RE);
     if (dropMatch) {
       return {
         discordMessageId: msg.id,
@@ -45,7 +45,8 @@ function parseMessage(msg) {
         rawText: text.slice(0, 500),
       };
     }
-    const petMatch = text.match(PET_RE) || text.match(PET_FALLBACK_RE);
+    const cleanedText = clean(text);
+    const petMatch = cleanedText.match(PET_RE) || cleanedText.match(PET_FALLBACK_RE);
     if (petMatch) {
       return {
         discordMessageId: msg.id,
