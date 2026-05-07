@@ -15,12 +15,12 @@ const makeDrop = (id, player, item, value, daysAgo = 0) => ({
   month: '2026-05',
 });
 
-const makePet = (id, player, daysAgo = 0) => ({
+const makePet = (id, player, pet, daysAgo = 0) => ({
   id,
   discordMessageId: `msg_pet_${id}`,
   player,
   type: 'pet',
-  item: null,
+  item: pet,
   value: null,
   droppedAt: new Date(Date.now() - daysAgo * 86400000).toISOString(),
   month: '2026-05',
@@ -37,20 +37,20 @@ const DROPS_ONLY = [
 ];
 
 const PETS_ONLY = [
-  makePet(1, 'Zezima', 0),
-  makePet(2, 'Woox', 2),
-  makePet(3, 'CasualScaper', 10),
+  makePet(1, 'Zezima', 'Tangleroot', 0),
+  makePet(2, 'Woox', 'Olmlet', 2),
+  makePet(3, 'CasualScaper', 'Baby mole', 10),
 ];
 
 const MIXED = [
   makeDrop(1, 'Zezima', 'Twisted bow', 1_800_000_000, 0),
-  makePet(2, 'Woox', 1),
+  makePet(2, 'Woox', 'Olmlet', 1),
   makeDrop(3, 'B0aty', 'Scythe of vitur (uncharged)', 650_000_000, 2),
-  makePet(4, 'CasualScaper', 3),
+  makePet(4, 'CasualScaper', 'Tangleroot', 3),
   makeDrop(5, 'Settled', 'Tumeken\'s shadow (uncharged)', 850_000_000, 4),
   makeDrop(6, 'PureEssence', 'Elysian spirit shield', 400_000_000, 6),
-  makePet(5, 'IronGoat', 8),
-  makeDrop(7, 'Nooblet99', 'Bandos chestplate', 18_500_000, 10),
+  makePet(7, 'IronGoat', 'Lil\' Zik', 8),
+  makeDrop(8, 'Nooblet99', 'Bandos chestplate', 18_500_000, 10),
 ];
 
 // ── Stories ────────────────────────────────────────────────────────────────────

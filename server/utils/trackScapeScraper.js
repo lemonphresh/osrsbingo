@@ -3,8 +3,13 @@ const logger = require('./logger');
 // TrackScape bot embed formats:
 // High value drop — embed description: "{player} received a drop: {item} ({value} coins)."
 // Pet drop        — embed description: "{player} has a funny feeling..."
-const DROP_RE = /^(.+?) received a drop: (.+?) \(([\d,]+) coins\)\.?/i;
-const PET_RE = /^(.+?) (?:has a funny feeling|received a pet drop)/i;
+const DROP_RE = /^(.+?) (?:received a drop|received special loot from a raid): (.+?) \(([\d,]+) coins\)\.?/i;
+const PET_RE = /^(.+?) has a funny feeling[^:]*:\s*(.+?)\s+at\s+[\d,]+\s+(?:XP|levels)/i;
+const PET_FALLBACK_RE = /^(.+?) (?:has a funny feeling|received a pet drop)/i;
+
+function clean(str) {
+  return str.replace(/<img=\d+>/gi, '').trim();
+}
 
 function parseMessage(msg) {
   const ts = msg.timestamp ? new Date(msg.timestamp) : new Date();
@@ -31,22 +36,22 @@ function parseMessage(msg) {
     if (dropMatch) {
       return {
         discordMessageId: msg.id,
-        player: dropMatch[1].trim(),
+        player: clean(dropMatch[1]),
         type: 'drop',
-        item: dropMatch[2].trim(),
+        item: clean(dropMatch[2]),
         value: parseInt(dropMatch[3].replace(/,/g, ''), 10) || null,
         droppedAt: ts,
         month: monthStr,
         rawText: text.slice(0, 500),
       };
     }
-    const petMatch = text.match(PET_RE);
+    const petMatch = text.match(PET_RE) || text.match(PET_FALLBACK_RE);
     if (petMatch) {
       return {
         discordMessageId: msg.id,
-        player: petMatch[1].trim(),
+        player: clean(petMatch[1]),
         type: 'pet',
-        item: null,
+        item: petMatch[2] ? clean(petMatch[2]) : null,
         value: null,
         droppedAt: ts,
         month: monthStr,
