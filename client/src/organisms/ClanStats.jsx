@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton } from '@chakra-ui/react';
-import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
+import { useState, useEffect, useCallback } from 'react';
+import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton, useToast } from '@chakra-ui/react';
+import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const GROUP_ID = 9738;
@@ -525,13 +525,15 @@ function formatValue(v) {
 
 export function DropsFeed({ mockDrops } = {}) {
   const now = new Date();
+  const toast = useToast();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1); // 1-indexed
   const [drops, setDrops] = useState(mockDrops ?? []);
   const [loading, setLoading] = useState(!mockDrops);
   const [error, setError] = useState(null);
+  const [syncing, setSyncing] = useState(false);
 
-  useEffect(() => {
+  const fetchDrops = useCallback(() => {
     if (mockDrops) return;
     setLoading(true);
     setError(null);
@@ -544,6 +546,26 @@ export function DropsFeed({ mockDrops } = {}) {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [year, month, mockDrops]);
+
+  useEffect(() => { fetchDrops(); }, [fetchDrops]);
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const r = await fetch('/api/calendar/trackscape/sync', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+      toast({ status: 'success', title: `Synced — ${data.inserted} new drop${data.inserted !== 1 ? 's' : ''} added`, duration: 3000 });
+      fetchDrops();
+    } catch (e) {
+      toast({ status: 'error', title: e.message || 'Sync failed', duration: 4000 });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const prevMonth = () => {
     if (month === 1) { setYear((y) => y - 1); setMonth(12); }
@@ -563,7 +585,7 @@ export function DropsFeed({ mockDrops } = {}) {
     <Box bg="dark.cardBg" borderRadius="12px" p={6} width="100%">
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2}>
         <Text fontWeight="bold" fontSize="lg">TrackScape Drops</Text>
-        <HStack spacing={1}>
+        <HStack spacing={2}>
           <IconButton
             aria-label="Previous month"
             icon={<ChevronLeftIcon />}
@@ -582,6 +604,18 @@ export function DropsFeed({ mockDrops } = {}) {
             onClick={nextMonth}
             isDisabled={isCurrentMonth}
           />
+          {!mockDrops && (
+            <IconButton
+              aria-label="Sync drops"
+              icon={<RepeatIcon />}
+              size="xs"
+              variant="ghost"
+              color="whiteAlpha.500"
+              _hover={{ color: 'whiteAlpha.800' }}
+              isLoading={syncing}
+              onClick={handleSync}
+            />
+          )}
         </HStack>
       </Flex>
 
