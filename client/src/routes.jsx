@@ -45,6 +45,7 @@ const GroupDashboardListPage = lazy(() => import('./pages/GroupDashboardListPage
 const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboardCompetitionsPage'));
 const GroupDashboardActivityPage = lazy(() => import('./pages/GroupDashboardActivityPage'));
 const GroupDashboardWidgetPage = lazy(() => import('./pages/GroupDashboardWidgetPage'));
+const WallOfShame = lazy(() => import('./pages/WallOfShame'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -273,6 +274,11 @@ const routes = [
       {
         path: '/stats',
         element: withSuspense(StatsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/wall-of-shame',
+        element: withSuspense(WallOfShame),
         errorElement: <ErrorPage />,
       },
       {

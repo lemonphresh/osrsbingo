@@ -82,4 +82,4 @@ const calculateCompletion = (layout, tiles, bonusSettings) => {
   return { completedPatterns, score: totalScore };
 };
 
-module.exports = { calculateCompletion };
+export { calculateCompletion };

@@ -412,7 +412,7 @@ function getDefaultContentSelections() {
   };
 }
 
-module.exports = {
+export {
   buildFormattedObjectives,
   getDefaultContentSelections,
   groupItemsBySource,

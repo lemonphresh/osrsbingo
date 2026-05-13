@@ -1,5 +1,12 @@
 const { v4: uuidv4 } = require('uuid');
-const { OBJECTIVE_TYPES } = require('../../client/src/utils/treasureHuntHelpers');
+
+const OBJECTIVE_TYPES = {
+  boss_kc: 'Boss Kill Count',
+  xp_gain: 'XP Gain',
+  minigame: 'Mini Game',
+  item_collection: 'Item Collection',
+  clue_scrolls: 'Clue Scrolls',
+};
 
 const BUFF_CONFIGS = {
   kill_reduction_minor: {
