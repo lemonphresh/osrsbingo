@@ -5112,7 +5112,7 @@ function parseItemSources(item, contentSelections) {
   });
 }
 
-module.exports = {
+export {
   SOLO_BOSSES,
   RAIDS,
   SKILLS,

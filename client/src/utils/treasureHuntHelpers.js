@@ -630,7 +630,7 @@ function userHasNeverSubmitted(team, currentUser) {
   );
 }
 
-module.exports = {
+export {
   OBJECTIVE_TYPES,
   SOLO_BOSSES,
   RAIDS,
