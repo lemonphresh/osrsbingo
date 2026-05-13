@@ -21,7 +21,13 @@ const { pubsub } = require('../pubsub');
 const { invalidateEventNodes } = require('../../utils/nodeCache');
 const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
-const { OBJECTIVE_TYPES } = require('../../../client/src/utils/treasureHuntHelpers');
+const OBJECTIVE_TYPES = {
+  boss_kc: 'Boss Kill Count',
+  xp_gain: 'XP Gain',
+  minigame: 'Mini Game',
+  item_collection: 'Item Collection',
+  clue_scrolls: 'Clue Scrolls',
+};
 const logger = require('../../utils/logger');
 
 // ============================================================
