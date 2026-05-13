@@ -29,7 +29,7 @@ const Footer = () => {
         flexDirection={['column', 'row']}
         gridGap={['16px', '32px']}
         justifyContent="space-between"
-        maxW="600px"
+        maxW="640px"
         w="100%"
         mb="24px"
       >
@@ -39,6 +39,7 @@ const Footer = () => {
         <Link to="/terms">terms</Link>
         <Link to="/changelog">changelog</Link>
         <Link to="/stats">site stats</Link>
+        <Link to="/wall-of-shame">wall of shame</Link>
       </Flex>
       <Flex
         alignItems="center"
