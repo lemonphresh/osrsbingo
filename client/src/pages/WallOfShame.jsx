@@ -41,7 +41,7 @@ const CSS = `
 
   .wos-marquee-inner {
     display: inline-block;
-    animation: marquee 18s linear infinite;
+    animation: marquee 35s linear infinite;
   }
 
   @keyframes marquee {
