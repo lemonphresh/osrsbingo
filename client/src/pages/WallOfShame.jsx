@@ -268,7 +268,10 @@ export default function WallOfShame() {
     el.textContent = CSS;
     document.head.appendChild(el);
     styleRef.current = el;
-    return () => el.remove();
+    return () => {
+      el.remove();
+      document.querySelectorAll('.wos-cursor-spark').forEach((s) => s.remove());
+    };
   }, []);
 
   useEffect(() => {
