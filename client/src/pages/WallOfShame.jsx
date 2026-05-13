@@ -4,7 +4,7 @@ import badgeFuckIce from '../assets/fuck_ice_badge.png';
 import badgeProImmigrants from '../assets/pro-immigrants-badge.png';
 import badgeAcab from '../assets/acabbadge.png';
 
-const OFFENDERS = [
+export const OFFENDERS = [
   // add names here as they roll in
   {
     name: 'jb1361 (hcimbutidied)',

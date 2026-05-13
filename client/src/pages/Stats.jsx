@@ -28,12 +28,15 @@ import {
   FaBalanceScale,
   FaChartBar,
   FaTrophy,
+  FaFire,
 } from 'react-icons/fa';
+import { Link } from 'react-router-dom';
+import { OFFENDERS } from './WallOfShame';
 import { formatGP } from '../utils/treasureHuntHelpers';
 import { useAuth } from '../providers/AuthProvider';
 import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 
-const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue }) => {
+const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue, footer }) => {
   const displayValue = formatValue ? formatValue(value) : value?.toLocaleString();
   return (
     <Box
@@ -45,8 +48,10 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue 
       transition="all 0.2s"
       h="100%"
       _hover={{ transform: 'translateY(-2px)', shadow: 'lg' }}
+      display="flex"
+      flexDirection="column"
     >
-      <Stat>
+      <Stat flex="1">
         <HStack spacing={3} mb={2}>
           <Icon as={icon} color={color} boxSize={5} />
           <StatLabel color={'gray.400'}>{label}</StatLabel>
@@ -60,6 +65,7 @@ const StatCard = ({ label, value, icon, helpText, color, isLoading, formatValue 
         )}
         {helpText && <StatHelpText color={'gray.500'}>{helpText}</StatHelpText>}
       </Stat>
+      {footer && <Box mt={3}>{footer}</Box>}
     </Box>
   );
 };
@@ -150,6 +156,17 @@ const StatsPage = () => {
             { label: 'Teams Balanced', value: stats?.teamsBalanced, icon: FaBalanceScale, color: 'cyan.300' },
             ...(showGroupStats ? [{ label: 'Groups Tracked', value: stats?.groupsTracked, icon: FaChartBar, color: 'orange.300' }] : []),
             ...(showForgeStats ? [{ label: 'Champions Forged', value: stats?.championsForged, icon: FaTrophy, color: 'yellow.300' }] : []),
+            {
+              label: 'Dorks Added to Wall of Shame',
+              value: OFFENDERS.length,
+              icon: FaFire,
+              color: 'red.400',
+              footer: (
+                <Link to="/wall-of-shame" style={{ color: '#fc8181', fontSize: '13px' }}>
+                  lol look →
+                </Link>
+              ),
+            },
           ].map((card) => (
             <Box
               key={card.label}
