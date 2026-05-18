@@ -5,6 +5,8 @@ import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons'
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const GROUP_ID = 9738;
 const INACTIVITY_DAYS = 30;
+const REFRESH_COOLDOWN_MS = 60_000;
+const AUTO_REFRESH_MS = 5 * 60_000;
 
 const METRIC_OPTIONS = [
   { value: 'ehp', label: 'EHP (Efficient Hours Played)' },
@@ -296,7 +298,7 @@ function AchievementsFeed({ data, loading, error }) {
 }
 
 // --- Inactivity Tracker ---
-function InactivityTracker({ data, loading, error }) {
+function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldownRemaining }) {
   const inactive = data
     .filter((m) => {
       const lc = m.player?.lastChangedAt;
@@ -324,10 +326,30 @@ function InactivityTracker({ data, loading, error }) {
         <Text fontWeight="bold" fontSize="lg">
           Inactive Members
         </Text>
-        <Text fontSize="sm" color="whiteAlpha.500">
-          {loading ? '…' : `${inactive.length} inactive (${INACTIVITY_DAYS}+ days)`}
-        </Text>
+        <HStack spacing={2}>
+          <Text fontSize="sm" color="whiteAlpha.500">
+            {loading ? '…' : `${inactive.length} inactive (${INACTIVITY_DAYS}+ days)`}
+          </Text>
+          {cooldownRemaining > 0 && (
+            <Text fontSize="xs" color="whiteAlpha.300">{cooldownRemaining}s</Text>
+          )}
+          <IconButton
+            icon={<RepeatIcon />}
+            size="xs"
+            variant="ghost"
+            colorScheme="whiteAlpha"
+            aria-label="Refresh"
+            isLoading={loading}
+            isDisabled={cooldownRemaining > 0}
+            onClick={onRefresh}
+          />
+        </HStack>
       </Flex>
+      {fetchedAt && (
+        <Text fontSize="xs" color="whiteAlpha.300" mb={1} flexShrink={0}>
+          Fetched {fetchedAt.toLocaleTimeString()}
+        </Text>
+      )}
       <Text fontSize="xs" color="whiteAlpha.400" mb={4} flexShrink={0}>
         Based on WOM data freshness, so dates only update when WOM syncs a player.{' '}
         <a
@@ -709,20 +731,27 @@ export default function ClanStats() {
   const [members, setMembers] = useState([]);
   const [membersLoading, setMembersLoading] = useState(true);
   const [membersError, setMembersError] = useState(null);
+  const [membersFetchedAt, setMembersFetchedAt] = useState(null);
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   const [nameChanges, setNameChanges] = useState([]);
   const [ncLoading, setNcLoading] = useState(true);
   const [ncError, setNcError] = useState(null);
 
-  useEffect(() => {
-    // Group endpoint includes memberships inline — fetch once, use for both stats and inactivity
+  const fetchGroupData = useCallback(() => {
+    setMembersLoading(true);
+    setStatsLoading(true);
+    // cache: 'no-store' prevents the browser from serving a stale cached response
+    const nc = { cache: 'no-store' };
     Promise.all([
-      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics`).then((r) => r.json()),
-      fetch(`${WOM_BASE}/groups/${GROUP_ID}`).then((r) => r.json()),
+      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics`, nc).then((r) => r.json()),
+      fetch(`${WOM_BASE}/groups/${GROUP_ID}`, nc).then((r) => r.json()),
     ])
       .then(([stats, group]) => {
         setStatsData({ stats, memberCount: group.memberCount });
         setMembers(Array.isArray(group.memberships) ? group.memberships : []);
+        setMembersFetchedAt(new Date());
         setMembersLoading(false);
       })
       .catch((e) => {
@@ -731,21 +760,44 @@ export default function ClanStats() {
         setMembersLoading(false);
       })
       .finally(() => setStatsLoading(false));
+  }, []);
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50`)
+  const handleRefresh = useCallback(() => {
+    fetchGroupData();
+    setCooldownUntil(Date.now() + REFRESH_COOLDOWN_MS);
+  }, [fetchGroupData]);
+
+  // Countdown tick — updates cooldownRemaining every second while cooldown is active
+  useEffect(() => {
+    const id = setInterval(() => {
+      setCooldownRemaining(Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000)));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
+
+  // Auto-refresh every 5 minutes
+  useEffect(() => {
+    const id = setInterval(handleRefresh, AUTO_REFRESH_MS);
+    return () => clearInterval(id);
+  }, [handleRefresh]);
+
+  useEffect(() => {
+    fetchGroupData();
+
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((json) => setAchievements(Array.isArray(json) ? json : []))
       .catch((e) => setAchError(e.message))
       .finally(() => setAchLoading(false));
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50`)
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((json) =>
         setNameChanges(Array.isArray(json) ? json.filter((nc) => nc.status === 'approved') : [])
       )
       .catch((e) => setNcError(e.message))
       .finally(() => setNcLoading(false));
-  }, []);
+  }, [fetchGroupData]);
 
   const stats = statsData?.stats;
   const memberCount = statsData?.memberCount;
@@ -817,7 +869,7 @@ export default function ClanStats() {
         direction={['column', 'column', 'row']}
       >
         <Box flex="1" width="100%">
-          <InactivityTracker data={members} loading={membersLoading} error={membersError} />
+          <InactivityTracker data={members} loading={membersLoading} error={membersError} fetchedAt={membersFetchedAt} onRefresh={handleRefresh} cooldownRemaining={cooldownRemaining} />
         </Box>
         <Box flex="1" width="100%">
           <NameChanges data={nameChanges} loading={ncLoading} error={ncError} />
