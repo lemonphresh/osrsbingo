@@ -753,7 +753,7 @@ export default function ClanStats() {
     const t = Date.now();
     const nc = { cache: 'no-store' };
     Promise.all([
-      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics?_=${t}`, nc).then((r) => r.json()),
+      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics`).then((r) => r.json()),
       fetch(`${WOM_BASE}/groups/${GROUP_ID}?_=${t}`, nc).then((r) => r.json()),
       fetch(`${LEAGUES_WOM_BASE}/groups/${LEAGUES_GROUP_ID}?_=${t}`, nc).then((r) => r.json()).catch(() => null),
     ])
@@ -816,13 +816,13 @@ export default function ClanStats() {
   useEffect(() => {
     fetchGroupData();
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50&_=${Date.now()}`, { cache: 'no-store' })
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50`)
       .then((r) => r.json())
       .then((json) => setAchievements(Array.isArray(json) ? json : []))
       .catch((e) => setAchError(e.message))
       .finally(() => setAchLoading(false));
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50&_=${Date.now()}`, { cache: 'no-store' })
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50`)
       .then((r) => r.json())
       .then((json) =>
         setNameChanges(Array.isArray(json) ? json.filter((nc) => nc.status === 'approved') : [])
