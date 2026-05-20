@@ -3,7 +3,9 @@ import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton, u
 import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
+const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
 const GROUP_ID = 9738;
+const LEAGUES_GROUP_ID = 211;
 const INACTIVITY_DAYS = 30;
 const REFRESH_COOLDOWN_MS = 60_000;
 const AUTO_REFRESH_MS = 60 * 60_000;
@@ -753,10 +755,34 @@ export default function ClanStats() {
     Promise.all([
       fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics?_=${t}`, nc).then((r) => r.json()),
       fetch(`${WOM_BASE}/groups/${GROUP_ID}?_=${t}`, nc).then((r) => r.json()),
+      fetch(`${LEAGUES_WOM_BASE}/groups/${LEAGUES_GROUP_ID}?_=${t}`, nc).then((r) => r.json()).catch(() => null),
     ])
-      .then(([stats, group]) => {
+      .then(([stats, group, leaguesGroup]) => {
         setStatsData({ stats, memberCount: group.memberCount });
-        setMembers(Array.isArray(group.memberships) ? group.memberships : []);
+
+        const regularMembers = Array.isArray(group.memberships) ? group.memberships : [];
+
+        // Build a map of username -> lastChangedAt from leagues WOM
+        const leaguesLastChanged = {};
+        if (leaguesGroup?.memberships) {
+          for (const m of leaguesGroup.memberships) {
+            if (m.player?.username && m.player?.lastChangedAt) {
+              leaguesLastChanged[m.player.username] = m.player.lastChangedAt;
+            }
+          }
+        }
+
+        // Merge: use whichever lastChangedAt is more recent
+        const merged = regularMembers.map((m) => {
+          const leaguesDate = leaguesLastChanged[m.player?.username];
+          if (!leaguesDate) return m;
+          const regular = m.player?.lastChangedAt ? new Date(m.player.lastChangedAt).getTime() : 0;
+          const leagues = new Date(leaguesDate).getTime();
+          if (leagues <= regular) return m;
+          return { ...m, player: { ...m.player, lastChangedAt: leaguesDate } };
+        });
+
+        setMembers(merged);
         setMembersFetchedAt(new Date());
         setMembersLoading(false);
       })
