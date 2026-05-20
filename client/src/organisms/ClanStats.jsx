@@ -6,7 +6,7 @@ const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const GROUP_ID = 9738;
 const INACTIVITY_DAYS = 30;
 const REFRESH_COOLDOWN_MS = 60_000;
-const AUTO_REFRESH_MS = 5 * 60_000;
+const AUTO_REFRESH_MS = 60 * 60_000;
 
 const METRIC_OPTIONS = [
   { value: 'ehp', label: 'EHP (Efficient Hours Played)' },
@@ -432,9 +432,14 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
                   borderColor="whiteAlpha.50"
                 >
                   <Flex flex="1" align="center" gap={2} overflow="hidden">
-                    <Text fontSize="sm" noOfLines={1}>
+                    <a
+                      href={`https://wiseoldman.net/players/${encodeURIComponent(player?.username || player?.displayName)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: '14px', color: 'inherit', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                    >
                       {player?.displayName || player?.username}
-                    </Text>
+                    </a>
                     {tag && (
                       <Text fontSize="9px" color="whiteAlpha.500" fontWeight="bold" flexShrink={0}>
                         {tag}
@@ -742,11 +747,12 @@ export default function ClanStats() {
   const fetchGroupData = useCallback(() => {
     setMembersLoading(true);
     setStatsLoading(true);
-    // cache: 'no-store' prevents the browser from serving a stale cached response
+    // Timestamp busts Cloudflare's edge cache — cache: 'no-store' alone doesn't reach the origin
+    const t = Date.now();
     const nc = { cache: 'no-store' };
     Promise.all([
-      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics`, nc).then((r) => r.json()),
-      fetch(`${WOM_BASE}/groups/${GROUP_ID}`, nc).then((r) => r.json()),
+      fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics?_=${t}`, nc).then((r) => r.json()),
+      fetch(`${WOM_BASE}/groups/${GROUP_ID}?_=${t}`, nc).then((r) => r.json()),
     ])
       .then(([stats, group]) => {
         setStatsData({ stats, memberCount: group.memberCount });
@@ -784,13 +790,13 @@ export default function ClanStats() {
   useEffect(() => {
     fetchGroupData();
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50`, { cache: 'no-store' })
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/achievements?limit=50&_=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((json) => setAchievements(Array.isArray(json) ? json : []))
       .catch((e) => setAchError(e.message))
       .finally(() => setAchLoading(false));
 
-    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50`, { cache: 'no-store' })
+    fetch(`${WOM_BASE}/groups/${GROUP_ID}/name-changes?limit=50&_=${Date.now()}`, { cache: 'no-store' })
       .then((r) => r.json())
       .then((json) =>
         setNameChanges(Array.isArray(json) ? json.filter((nc) => nc.status === 'approved') : [])

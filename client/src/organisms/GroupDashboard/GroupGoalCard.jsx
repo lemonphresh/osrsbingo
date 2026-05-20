@@ -273,7 +273,7 @@ export default function GroupGoalCard({
   const unitLabel =
     goalConfig.type === 'skill_xp'
       ? 'xp/day'
-      : goalConfig.type === 'boss_kc'
+      : goalConfig.type === 'boss_kc' || goalConfig.type === 'minigame_kc'
       ? 'kc/day'
       : goalConfig.type === 'clue_kc'
       ? 'clues/day'
