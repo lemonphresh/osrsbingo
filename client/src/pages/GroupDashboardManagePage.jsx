@@ -71,11 +71,13 @@ const ARCHIVE_GRACE_DAYS = 2;
 
 const GOAL_TYPE_LABELS = {
   boss_kc: 'Aggregate Boss KC',
+  minigame_kc: 'Aggregate Minigame KC',
   clue_kc: 'Aggregate Clue Scrolls',
   skill_xp: 'Aggregate Skill XP',
   ehb: 'Aggregate EHB',
   ehp: 'Aggregate EHP',
   individual_boss_kc: 'Individual Boss KC',
+  individual_minigame_kc: 'Individual Minigame KC',
   individual_clue_kc: 'Individual Clue Scrolls',
   individual_skill_xp: 'Individual Skill XP',
   individual_ehb: 'Individual EHB',

@@ -129,14 +129,26 @@ const CLUE_METRICS = [
   { value: 'clue_scrolls_master', label: 'Master' },
 ];
 
+const MINIGAME_METRICS = [
+  { value: 'bounty_hunter_hunter', label: 'Bounty Hunter (Hunter)' },
+  { value: 'bounty_hunter_rogue', label: 'Bounty Hunter (Rogue)' },
+  { value: 'colosseum_glory', label: 'Colosseum Glory' },
+  { value: 'guardians_of_the_rift', label: 'Guardians of the Rift' },
+  { value: 'last_man_standing', label: 'Last Man Standing' },
+  { value: 'pvp_arena', label: 'PvP Arena' },
+  { value: 'soul_wars_zeal', label: 'Soul Wars (Zeal)' },
+];
+
 const GOAL_TYPES = [
   { value: 'boss_kc', label: 'Boss KC (group total)' },
+  { value: 'minigame_kc', label: 'Minigame KC (group total)' },
   { value: 'clue_kc', label: 'Clue Scrolls (group total)' },
   { value: 'skill_xp', label: 'Skill XP (group total)' },
   { value: 'ehb', label: 'EHB (group total)' },
   { value: 'ehp', label: 'EHP (group total)' },
   { value: 'leagues_points', label: 'Leagues Points (group total)' },
   { value: 'individual_boss_kc', label: 'Boss KC (individual target)' },
+  { value: 'individual_minigame_kc', label: 'Minigame KC (individual target)' },
   { value: 'individual_clue_kc', label: 'Clue Scrolls (individual target)' },
   { value: 'individual_skill_xp', label: 'Skill XP (individual target)' },
   { value: 'individual_ehb', label: 'EHB (individual target)' },
@@ -204,6 +216,7 @@ const EMOJI_OPTIONS = [
 
 function getMetricOptions(type) {
   if (type === 'boss_kc' || type === 'individual_boss_kc') return BOSS_METRICS;
+  if (type === 'minigame_kc' || type === 'individual_minigame_kc') return MINIGAME_METRICS;
   if (type === 'skill_xp' || type === 'individual_skill_xp') return SKILL_METRICS;
   if (type === 'clue_kc' || type === 'individual_clue_kc') return CLUE_METRICS;
   return []; // ehb, ehp, leagues_points have no sub-metric
