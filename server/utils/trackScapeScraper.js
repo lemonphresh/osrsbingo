@@ -4,7 +4,7 @@ const logger = require('./logger');
 // High value drop — embed description: "{player} received a drop: {item} ({value} coins)."
 // Pet drop        — embed description: "{player} has a funny feeling..."
 const DROP_RE = /^(.+?) (?:received a drop|received special loot from a raid): (.+?) \(([\d,]+) coins\)\.?/i;
-const PET_RE = /^(.+?) has a funny feeling[^:]*:\s*(.+?)\s+at\s+[\d,]+\s+(?:XP|levels|killcount)/i;
+const PET_RE = /^(.+?) has a funny feeling[^:]*:\s*(.+?)\s+at\s+[\d,]+\s+(?:XP|levels|killcount|kills|completions)/i;
 const PET_FALLBACK_RE = /^(.+?) (?:has a funny feeling|received a pet drop)/i;
 
 function clean(str) {
