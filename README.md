@@ -183,7 +183,8 @@ DATABASE_URL=postgres://user:pass@localhost:5432/osrsbingo
 PORT=4000
 JWT_SECRET=your-secret-key
 SESSION_SECRET=your-session-secret
-DISCORD_BOT_TOKEN=your-bot-token  # optional
+DISCORD_BOT_TOKEN=your-bot-token       # optional
+WOM_VERIFICATION_CODE=xxx-xxx-xxx      # optional — found in your WOM group settings. enables a daily update-all cron so the clan stats inactivity tracker stays accurate
 ```
 
 **Client** (`/client/.env`):
