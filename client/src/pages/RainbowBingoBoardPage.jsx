@@ -659,7 +659,7 @@ export default function RainbowBingoBoardPage() {
           )}
         </VStack>
 
-        {isSiteAdmin && (
+        {isSiteAdmin && process.env.REACT_APP_SHOW_DEV_TOOLS === 'true' && (
           <Box
             position="fixed"
             bottom={4}

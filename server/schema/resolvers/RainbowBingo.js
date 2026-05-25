@@ -58,7 +58,7 @@ async function postDiscordMessage(channelId, content) {
   }
 }
 
-async function postDiscordEmbed(channelId, embed) {
+async function postDiscordEmbed(channelId, embed, { ping = false } = {}) {
   if (!process.env.DISCORD_BOT_TOKEN) {
     console.warn('[rainbowbingo] DISCORD_BOT_TOKEN is not set — skipping embed');
     return;
@@ -75,7 +75,7 @@ async function postDiscordEmbed(channelId, embed) {
         Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ content: ping ? '@here' : undefined, embeds: [embed] }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -131,7 +131,7 @@ async function sendRainbowDiscordNotification({
         title: `✨ Capstone ${tileCode} complete!`,
         description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
-      });
+      }, { ping: true });
     } else {
       const unlockedLines = newlyUnlocked.length
         ? newlyUnlocked
@@ -158,7 +158,7 @@ async function sendRainbowDiscordNotification({
         title: `🎉 ${tileCode} complete!`,
         description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
-      });
+      }, { ping: true });
     }
   } else if (type === 'BOARD_COMPLETE') {
     await postDiscordEmbed(team.discordChannelId, {
@@ -166,7 +166,7 @@ async function sendRainbowDiscordNotification({
       title: '🌈 The board is complete!',
       description: `${team.teamName} has completed every tile on the Rainbow Bingo board. All seven colors, all seven capstones.\n\nThank you for playing, and for everything the rainbow stands for. We love you so much.`,
       timestamp: new Date().toISOString(),
-    });
+    }, { ping: true });
   } else if (type === 'DENIED') {
     await postDiscordEmbed(team.discordChannelId, {
       color: 0xe74c3c,
@@ -324,7 +324,7 @@ const Mutation = {
               `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
             ].join('\n\n'),
             timestamp: new Date().toISOString(),
-          });
+          }, { ping: true });
         }
       }
     }
@@ -340,7 +340,7 @@ const Mutation = {
               `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
             ].join('\n\n'),
             timestamp: new Date().toISOString(),
-          });
+          }, { ping: true });
         }
       }
     }

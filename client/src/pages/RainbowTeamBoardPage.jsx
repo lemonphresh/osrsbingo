@@ -429,7 +429,7 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
         </Box>
         <CopyCommand cmd={`!rbpre ${tileCode}`} />
         {pre.length > 0 && (
-          <VStack align="stretch" gap={2} mt={3}>
+          <VStack align="stretch" gap={2} mt={3} maxH="240px" overflowY="auto">
             {pre.map((s) => (
               <SubmissionRow key={s.submissionId} sub={s} />
             ))}
@@ -477,7 +477,7 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
         </Box>
         <CopyCommand cmd={`!rbsubmit ${tileCode}`} />
         {final.length > 0 && (
-          <VStack align="stretch" gap={2} mt={3}>
+          <VStack align="stretch" gap={2} mt={3} maxH="240px" overflowY="auto">
             {final.map((s) => (
               <SubmissionRow key={s.submissionId} sub={s} />
             ))}
