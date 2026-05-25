@@ -1,0 +1,164 @@
+'use strict';
+
+const TILES = [
+  { tileCode: 'R1', color: 'red',     colorIndex: 1, bossOrSkill: 'Woodcutting',               metricType: 'xp',      metricTarget: 5,    metricUnit: 'M xp',   metricLabel: '5M xp',                    hoursEstimate: 23,  theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R2', color: 'red',     colorIndex: 2, bossOrSkill: 'Grotesque Guardians',        metricType: 'kc',      metricTarget: 300,  metricUnit: 'kc',     metricLabel: '300 kc',                   hoursEstimate: 10,  theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R3', color: 'red',     colorIndex: 3, bossOrSkill: 'Commander Zilyana',          metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 4,   theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R4', color: 'red',     colorIndex: 4, bossOrSkill: 'Moons of Peril',             metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 4,   theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R5', color: 'red',     colorIndex: 5, bossOrSkill: 'Abyssal Sire',               metricType: 'kc',      metricTarget: 400,  metricUnit: 'kc',     metricLabel: '400 kc',                   hoursEstimate: 10,  theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R6', color: 'red',     colorIndex: 6, bossOrSkill: 'Araxxor',                    metricType: 'kc',      metricTarget: 300,  metricUnit: 'kc',     metricLabel: '300 kc',                   hoursEstimate: 9,   theme: 'Life',          funName: null, notes: null },
+  { tileCode: 'R7', color: 'red',     colorIndex: 7, bossOrSkill: 'Fortis Colosseum',           metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 4,   theme: 'Life',          funName: null, notes: null },
+
+  { tileCode: 'O1', color: 'orange',  colorIndex: 1, bossOrSkill: 'Cooking',                    metricType: 'xp',      metricTarget: 5,    metricUnit: 'M xp',   metricLabel: '5M xp',                    hoursEstimate: 11,  theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O2', color: 'orange',  colorIndex: 2, bossOrSkill: 'Doom of Mokhaiotl',          metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 12,  theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O3', color: 'orange',  colorIndex: 3, bossOrSkill: 'Zulrah',                     metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 9,   theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O4', color: 'orange',  colorIndex: 4, bossOrSkill: 'Sarachnis',                  metricType: 'unique',  metricTarget: 6,    metricUnit: 'uniques',metricLabel: '6 uniques',                hoursEstimate: 6,   theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O5', color: 'orange',  colorIndex: 5, bossOrSkill: 'Dagannoth Kings',            metricType: 'unique',  metricTarget: 5,    metricUnit: 'uniques',metricLabel: '5 uniques',                hoursEstimate: 5,   theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O6', color: 'orange',  colorIndex: 6, bossOrSkill: 'General Graardor',           metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 6.5, theme: 'Healing',       funName: null, notes: null },
+  { tileCode: 'O7', color: 'orange',  colorIndex: 7, bossOrSkill: 'Jad / Zuk',                  metricType: 'special', metricTarget: null, metricUnit: null,     metricLabel: '3 inferno OR 12 fire cape',hoursEstimate: 3,   theme: 'Healing',       funName: null, notes: null },
+
+  { tileCode: 'Y1', color: 'yellow',  colorIndex: 1, bossOrSkill: 'Agility',                    metricType: 'xp',      metricTarget: 1.5,  metricUnit: 'M xp',   metricLabel: '1.5M xp',                  hoursEstimate: 15,  theme: 'Sunlight',      funName: null, notes: null },
+  { tileCode: 'Y2', color: 'yellow',  colorIndex: 2, bossOrSkill: 'Fletching',                  metricType: 'xp',      metricTarget: 5,    metricUnit: 'M xp',   metricLabel: '5M xp',                    hoursEstimate: 0,   theme: 'Sunlight',      funName: null, notes: 'Can be done concurrently with Y1' },
+  { tileCode: 'Y3', color: 'yellow',  colorIndex: 3, bossOrSkill: 'The Leviathan',              metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 7,   theme: 'Sunlight',      funName: null, notes: null },
+  { tileCode: 'Y4', color: 'yellow',  colorIndex: 4, bossOrSkill: 'Wintertodt',                 metricType: 'unique',  metricTarget: 4,    metricUnit: 'uniques',metricLabel: '4 uniques',                hoursEstimate: 4,   theme: 'Sunlight',      funName: null, notes: null },
+  { tileCode: 'Y5', color: 'yellow',  colorIndex: 5, bossOrSkill: 'Scurrius',                   metricType: 'kc',      metricTarget: 500,  metricUnit: 'kc',     metricLabel: '500 kc',                   hoursEstimate: 5,   theme: 'Sunlight',      funName: null, notes: null },
+  { tileCode: 'Y6', color: 'yellow',  colorIndex: 6, bossOrSkill: "K'ril Tsutsaroth",           metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 4.5, theme: 'Sunlight',      funName: null, notes: null },
+  { tileCode: 'Y7', color: 'yellow',  colorIndex: 7, bossOrSkill: 'Tombs of Amascut',           metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 6,   theme: 'Sunlight',      funName: null, notes: null },
+
+  { tileCode: 'G1', color: 'green',   colorIndex: 1, bossOrSkill: 'Fishing',                    metricType: 'xp',      metricTarget: 2.5,  metricUnit: 'M xp',   metricLabel: '2.5M xp',                  hoursEstimate: 20,  theme: 'Nature',        funName: null, notes: 'Interplay with G3 (Tempoross)' },
+  { tileCode: 'G2', color: 'green',   colorIndex: 2, bossOrSkill: 'Sailing',                    metricType: 'xp',      metricTarget: 6.5,  metricUnit: 'M xp',   metricLabel: '6.5M xp',                  hoursEstimate: 29,  theme: 'Nature',        funName: null, notes: null },
+  { tileCode: 'G3', color: 'green',   colorIndex: 3, bossOrSkill: 'Tempoross',                  metricType: 'unique',  metricTarget: 1,    metricUnit: 'unique', metricLabel: '1 unique',                  hoursEstimate: 3,   theme: 'Nature',        funName: null, notes: null },
+  { tileCode: 'G4', color: 'green',   colorIndex: 4, bossOrSkill: 'Kalphite Queen',             metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 4,   theme: 'Nature',        funName: null, notes: null },
+  { tileCode: 'G5', color: 'green',   colorIndex: 5, bossOrSkill: 'Kraken',                     metricType: 'kc',      metricTarget: 500,  metricUnit: 'kc',     metricLabel: '500 kc',                   hoursEstimate: 5,   theme: 'Nature',        funName: null, notes: null },
+  { tileCode: 'G6', color: 'green',   colorIndex: 6, bossOrSkill: 'Vorkath',                    metricType: 'unique',  metricTarget: 4,    metricUnit: 'uniques',metricLabel: '4 uniques',                hoursEstimate: 5,   theme: 'Nature',        funName: null, notes: null },
+  { tileCode: 'G7', color: 'green',   colorIndex: 7, bossOrSkill: 'Amoxliatl',                  metricType: 'unique',  metricTarget: 5,    metricUnit: 'uniques',metricLabel: '5 uniques',                hoursEstimate: 7,   theme: 'Nature',        funName: null, notes: null },
+
+  { tileCode: 'B1', color: 'blue',    colorIndex: 1, bossOrSkill: 'Crafting',                   metricType: 'xp',      metricTarget: 5,    metricUnit: 'M xp',   metricLabel: '5M xp',                    hoursEstimate: 18,  theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B2', color: 'blue',    colorIndex: 2, bossOrSkill: 'GOTR Dyes',                  metricType: 'unique',  metricTarget: 1,    metricUnit: 'unique', metricLabel: '1 unique',                  hoursEstimate: 9,   theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B3', color: 'blue',    colorIndex: 3, bossOrSkill: 'Smithing',                   metricType: 'xp',      metricTarget: 3,    metricUnit: 'M xp',   metricLabel: '3M xp',                    hoursEstimate: 7,   theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B4', color: 'blue',    colorIndex: 4, bossOrSkill: 'Corrupted Gauntlet',         metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 10,  theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B5', color: 'blue',    colorIndex: 5, bossOrSkill: 'Zalcano',                    metricType: 'unique',  metricTarget: 1,    metricUnit: 'unique', metricLabel: '1 unique',                  hoursEstimate: 40,  theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B6', color: 'blue',    colorIndex: 6, bossOrSkill: 'Thermonuclear Smoke Devil',  metricType: 'kc',      metricTarget: 500,  metricUnit: 'kc',     metricLabel: '500 kc',                   hoursEstimate: 5,   theme: 'Magic and Art', funName: null, notes: null },
+  { tileCode: 'B7', color: 'blue',    colorIndex: 7, bossOrSkill: 'Yama',                       metricType: 'unique',  metricTarget: 1,    metricUnit: 'unique', metricLabel: '1 unique',                  hoursEstimate: 13,  theme: 'Magic and Art', funName: null, notes: null },
+
+  { tileCode: 'I1', color: 'indigo',  colorIndex: 1, bossOrSkill: 'Mining',                     metricType: 'xp',      metricTarget: 2,    metricUnit: 'M xp',   metricLabel: '2M xp',                    hoursEstimate: 10,  theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I2', color: 'indigo',  colorIndex: 2, bossOrSkill: "Kree'arra",                  metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 7,   theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I3', color: 'indigo',  colorIndex: 3, bossOrSkill: "Calvar'ion",                 metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 6,   theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I4', color: 'indigo',  colorIndex: 4, bossOrSkill: 'Spindel',                    metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 6,   theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I5', color: 'indigo',  colorIndex: 5, bossOrSkill: 'Duke Sucellus',              metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 7,   theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I6', color: 'indigo',  colorIndex: 6, bossOrSkill: 'Alchemical Hydra',           metricType: 'kc',      metricTarget: 300,  metricUnit: 'kc',     metricLabel: '300 kc',                   hoursEstimate: 10,  theme: 'Serenity',      funName: null, notes: null },
+  { tileCode: 'I7', color: 'indigo',  colorIndex: 7, bossOrSkill: 'Giant Mole',                 metricType: 'unique',  metricTarget: 10,   metricUnit: 'uniques',metricLabel: '10 uniques',               hoursEstimate: 5,   theme: 'Serenity',      funName: null, notes: null },
+
+  { tileCode: 'V1', color: 'violet',  colorIndex: 1, bossOrSkill: 'Slayer',                     metricType: 'xp',      metricTarget: 4,    metricUnit: 'M xp',   metricLabel: '4M xp',                    hoursEstimate: 40,  theme: 'Spirit',        funName: null, notes: 'Interplay with many tiles' },
+  { tileCode: 'V2', color: 'violet',  colorIndex: 2, bossOrSkill: 'Barrows',                    metricType: 'special', metricTarget: null, metricUnit: null,     metricLabel: 'mismatched set',           hoursEstimate: 6,   theme: 'Spirit',        funName: null, notes: null },
+  { tileCode: 'V3', color: 'violet',  colorIndex: 3, bossOrSkill: 'Corporeal Beast',            metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 9,   theme: 'Spirit',        funName: null, notes: null },
+  { tileCode: 'V4', color: 'violet',  colorIndex: 4, bossOrSkill: 'Phantom Muspah',             metricType: 'unique',  metricTarget: 4,    metricUnit: 'uniques',metricLabel: '4 uniques',                hoursEstimate: 5,   theme: 'Spirit',        funName: null, notes: null },
+  { tileCode: 'V5', color: 'violet',  colorIndex: 5, bossOrSkill: 'The Whisperer',              metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 9,   theme: 'Spirit',        funName: null, notes: null },
+  { tileCode: 'V6', color: 'violet',  colorIndex: 6, bossOrSkill: 'Cerberus',                   metricType: 'kc',      metricTarget: 500,  metricUnit: 'kc',     metricLabel: '500 kc',                   hoursEstimate: 10,  theme: 'Spirit',        funName: null, notes: null },
+  { tileCode: 'V7', color: 'violet',  colorIndex: 7, bossOrSkill: 'Chambers of Xeric',         metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 6,   theme: 'Spirit',        funName: null, notes: 'Assume decent trio CMs' },
+
+  { tileCode: 'C1', color: 'capstone', colorIndex: 1, bossOrSkill: 'Thieving',                  metricType: 'xp',      metricTarget: 4,    metricUnit: 'M xp',   metricLabel: '4M xp',                    hoursEstimate: 18,  theme: null, funName: 'be gay do crime',           notes: null },
+  { tileCode: 'C2', color: 'capstone', colorIndex: 2, bossOrSkill: 'Slayer Heads',              metricType: 'unique',  metricTarget: null, metricUnit: 'heads',  metricLabel: 'unique head count',        hoursEstimate: 0,   theme: null, funName: 'grindr',                    notes: 'Done during V1. Requires separate submission.' },
+  { tileCode: 'C3', color: 'capstone', colorIndex: 3, bossOrSkill: 'Vardorvis',                 metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 7,   theme: null, funName: 'scissor me timbers',        notes: null },
+  { tileCode: 'C4', color: 'capstone', colorIndex: 4, bossOrSkill: 'Callisto / Artio',          metricType: 'unique',  metricTarget: 3,    metricUnit: 'uniques',metricLabel: '3 uniques',                hoursEstimate: 6,   theme: null, funName: 'bears',                     notes: null },
+  { tileCode: 'C5', color: 'capstone', colorIndex: 5, bossOrSkill: 'Nightmare / PNM',           metricType: 'unique',  metricTarget: 1,    metricUnit: 'unique', metricLabel: 'the egg',                  hoursEstimate: 12,  theme: null, funName: 'trans inclusive (name TBD)',notes: null },
+  { tileCode: 'C6', color: 'capstone', colorIndex: 6, bossOrSkill: 'Hunter Rumors (Pitri)',     metricType: 'kc',      metricTarget: 200,  metricUnit: 'rumors', metricLabel: '200 rumors',               hoursEstimate: 13,  theme: null, funName: 'nb tile',                   notes: 'Pitri is canonically nb' },
+  { tileCode: 'C7', color: 'capstone', colorIndex: 7, bossOrSkill: 'Royal Titans',              metricType: 'unique',  metricTarget: 2,    metricUnit: 'uniques',metricLabel: '2 uniques',                hoursEstimate: 6,   theme: null, funName: 'bi tile',                   notes: null },
+];
+
+// Prerequisite map: tileCode → array of tile codes that must be COMPLETE before this tile unlocks.
+// Tiles not listed here have no prerequisites and are UNLOCKED on team creation.
+// Capstone prerequisites are TBD — fill in once path connections are decided.
+const DEFAULT_TILE_GRAPH = {
+  R2: ['R1'], R4: ['R1'],
+  R3: ['R2'], R5: ['R4'],
+  R6: ['R3', 'R5'],
+  R7: ['R6'],
+
+  O2: ['O1'], O4: ['O1'],
+  O3: ['O2'], O5: ['O4'],
+  O6: ['O3', 'O5'],
+  O7: ['O6'],
+
+  Y2: ['Y1'], Y4: ['Y1'],
+  Y3: ['Y2'], Y5: ['Y4'],
+  Y6: ['Y3', 'Y5'],
+  Y7: ['Y6'],
+
+  G2: ['G1'], G4: ['G1'],
+  G3: ['G2'], G5: ['G4'],
+  G6: ['G3', 'G5'],
+  G7: ['G6'],
+
+  B2: ['B1'], B4: ['B1'],
+  B3: ['B2'], B5: ['B4'],
+  B6: ['B3', 'B5'],
+  B7: ['B6'],
+
+  I2: ['I1'], I4: ['I1'],
+  I3: ['I2'], I5: ['I4'],
+  I6: ['I3', 'I5'],
+  I7: ['I6'],
+
+  V2: ['V1'], V4: ['V1'],
+  V3: ['V2'], V5: ['V4'],
+  V6: ['V3', 'V5'],
+  V7: ['V6'],
+
+  // Capstones — each unlocks after completing its color's final tile
+  C1: ['R7'],
+  C2: ['O7'],
+  C3: ['Y7'],
+  C4: ['G7'],
+  C5: ['B7'],
+  C6: ['I7'],
+  C7: ['V7'],
+};
+
+const TILE_MAP = Object.fromEntries(TILES.map((t) => [t.tileCode, t]));
+
+// Returns tile codes with no prerequisites — UNLOCKED on team creation.
+function getStartTiles(tileGraph = DEFAULT_TILE_GRAPH) {
+  return TILES
+    .filter((t) => !tileGraph[t.tileCode] || tileGraph[t.tileCode].length === 0)
+    .map((t) => t.tileCode);
+}
+
+// Given the set of already-completed tile codes and the tile just completed,
+// returns the tile codes that should now transition from LOCKED → UNLOCKED.
+function getNewlyUnlockedTiles(completedTileCodes, justCompletedTileCode, tileGraph = DEFAULT_TILE_GRAPH) {
+  const completedSet = new Set(completedTileCodes);
+  return Object.entries(tileGraph)
+    .filter(([tileCode, prereqs]) => {
+      if (completedSet.has(tileCode)) return false;
+      if (!prereqs.includes(justCompletedTileCode)) return false;
+      return prereqs.every((p) => completedSet.has(p));
+    })
+    .map(([tileCode]) => tileCode);
+}
+
+// Given a tile being un-completed, returns all non-COMPLETE tiles that should
+// be re-locked because their prerequisites are no longer fully met.
+// Uses iterative expansion so chains (R7 un-done → C1 re-locks → etc.) are handled.
+function getCascadeLockTiles(uncompletedCode, allTiles, tileGraph = DEFAULT_TILE_GRAPH) {
+  const statusMap = Object.fromEntries(allTiles.map((t) => [t.tileCode, t.status]));
+  const toLock = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [tileCode, prereqs] of Object.entries(tileGraph)) {
+      if (toLock.has(tileCode)) continue;
+      if (statusMap[tileCode] === 'COMPLETE') continue;
+      if (statusMap[tileCode] === 'LOCKED') continue;
+      const effectivelyIncomplete = (code) =>
+        code === uncompletedCode || toLock.has(code) || statusMap[code] !== 'COMPLETE';
+      if (prereqs.some(effectivelyIncomplete)) {
+        toLock.add(tileCode);
+        changed = true;
+      }
+    }
+  }
+  return [...toLock];
+}
+
+module.exports = { TILES, TILE_MAP, DEFAULT_TILE_GRAPH, getStartTiles, getNewlyUnlockedTiles, getCascadeLockTiles };
