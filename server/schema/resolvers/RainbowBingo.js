@@ -109,9 +109,7 @@ async function sendRainbowDiscordNotification({
   );
 
   const FRONTEND_URL = process.env.FRONTEND_URL || 'https://osrsbingo.com';
-  const teamBoardUrl = team.teamToken
-    ? `${FRONTEND_URL}/eg-rainbow/team/${team.teamToken}`
-    : null;
+  const teamBoardUrl = team.teamToken ? `${FRONTEND_URL}/eg-rainbow/team/${team.teamToken}` : null;
 
   if (type === 'TILE_COMPLETE') {
     const isCapstone = tileDef?.color === 'capstone';
@@ -120,9 +118,13 @@ async function sendRainbowDiscordNotification({
     if (isCapstone) {
       const parts = [`**${tileDef?.bossOrSkill}** — ${tileDef?.metricLabel}`];
       if (funFact) {
-        parts.push(`🏳️‍🌈 **The color behind the tiles**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`);
+        parts.push(
+          `🏳️‍🌈 **The color behind the tiles**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`
+        );
       }
-      parts.push(`🩷 **Keep going**\nKeep pushing on those other color branches! Complete the rainbow!`);
+      parts.push(
+        `🩷 **Keep going**\nKeep pushing on those other color branches! Complete the rainbow!`
+      );
       if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
       await postDiscordEmbed(team.discordChannelId, {
         color: 0xffd700,
@@ -145,7 +147,9 @@ async function sendRainbowDiscordNotification({
         `🔓 **Newly unlocked**\n${unlockedLines}`,
       ];
       if (funFact) {
-        parts.push(`🌈 **Did you know?**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`);
+        parts.push(
+          `🌈 **Did you know?**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`
+        );
       }
       if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
 
@@ -304,19 +308,37 @@ const Mutation = {
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
     await event.update({ status });
 
+    const { RainbowTeam } = getModels();
+    const teams = await RainbowTeam.findAll({ where: { eventId } });
+    const siteUrl = process.env.SITE_URL ?? 'https://www.osrsbingohub.com';
+
     if (status === 'ACTIVE') {
-      const { RainbowTeam } = getModels();
-      const teams = await RainbowTeam.findAll({ where: { eventId } });
-      const siteUrl = process.env.SITE_URL ?? 'https://www.osrsbingohub.com';
       for (const team of teams) {
         if (team.discordChannelId && team.teamToken) {
           await postDiscordEmbed(team.discordChannelId, {
             color: 0x9b59b6,
-            title: `🌈 ${event.eventName} has started!`,
-            description: `Your team board is live. Bookmark your unique link below, it's your team's home base for tracking progress and submitting tiles.`,
-            fields: [
-              { name: '🔗 Your Board', value: `${siteUrl}/eg-rainbow/team/${team.teamToken}` },
-            ],
+            title: `🌈 Rainbow Bingo has started!`,
+            description: [
+              `**Event password:** \`${event.eventName}\``,
+              `Include this password visibly in every screenshot you submit, like by utilizing the Wise Old Man RuneLite plugin.`,
+              `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
+            ].join('\n\n'),
+            timestamp: new Date().toISOString(),
+          });
+        }
+      }
+    }
+
+    if (status === 'COMPLETE') {
+      for (const team of teams) {
+        if (team.discordChannelId) {
+          await postDiscordEmbed(team.discordChannelId, {
+            color: 0xffd700,
+            title: `🏳️‍🌈 Rainbow Bingo has ended!`,
+            description: [
+              `That's a wrap! Thank you so much for playing, you all made this event something special.`,
+              `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
+            ].join('\n\n'),
             timestamp: new Date().toISOString(),
           });
         }
@@ -658,7 +680,9 @@ const createSubscription = (topicFn) => ({
     console.log(`[rainbow] client subscribed to ${topic}`);
     const iterator = pubsub.asyncIterableIterator(topic);
     return {
-      [Symbol.asyncIterator]() { return iterator; },
+      [Symbol.asyncIterator]() {
+        return iterator;
+      },
       return() {
         if (iterator.return) iterator.return();
         return Promise.resolve({ done: true });
@@ -668,10 +692,16 @@ const createSubscription = (topicFn) => ({
 });
 
 const Subscription = {
-  rainbowSubmissionAdded:   createSubscription(({ eventId }) => `RAINBOW_SUBMISSION_ADDED_${eventId}`),
-  rainbowSubmissionReviewed: createSubscription(({ eventId }) => `RAINBOW_SUBMISSION_REVIEWED_${eventId}`),
-  rainbowTeamBoardUpdated:  createSubscription(({ teamId })  => `RAINBOW_BOARD_UPDATED_${teamId}`),
-  rainbowEventBoardUpdated: createSubscription(({ eventId }) => `RAINBOW_EVENT_BOARD_UPDATED_${eventId}`),
+  rainbowSubmissionAdded: createSubscription(
+    ({ eventId }) => `RAINBOW_SUBMISSION_ADDED_${eventId}`
+  ),
+  rainbowSubmissionReviewed: createSubscription(
+    ({ eventId }) => `RAINBOW_SUBMISSION_REVIEWED_${eventId}`
+  ),
+  rainbowTeamBoardUpdated: createSubscription(({ teamId }) => `RAINBOW_BOARD_UPDATED_${teamId}`),
+  rainbowEventBoardUpdated: createSubscription(
+    ({ eventId }) => `RAINBOW_EVENT_BOARD_UPDATED_${eventId}`
+  ),
 };
 
 // ── Field resolvers ────────────────────────────────────────────────────────
@@ -703,4 +733,12 @@ const RainbowTeam = {
   },
 };
 
-module.exports = { Query, Mutation, Subscription, RainbowSubmission, RainbowEvent, RainbowTeam, getFullBoard };
+module.exports = {
+  Query,
+  Mutation,
+  Subscription,
+  RainbowSubmission,
+  RainbowEvent,
+  RainbowTeam,
+  getFullBoard,
+};
