@@ -20,6 +20,7 @@ import {
   COLOR_TEXT,
   TEAM_PALETTE,
 } from '../utils/rainbowBoard';
+import { TILE_FUN_FACTS } from '../utils/rainbowFunFacts';
 
 const STATUS_RANK = { LOCKED: 0, UNLOCKED: 1, SUBMITTED: 2, COMPLETE: 3 };
 
@@ -123,6 +124,129 @@ function TeamRainbowCard({ team, teamIndex }) {
           </Box>
         );
       })}
+    </Box>
+  );
+}
+
+const ALL_FACTS = Object.values(TILE_FUN_FACTS);
+
+function RotatingFunFact() {
+  const [index, setIndex] = useState(() => Math.floor(Math.random() * ALL_FACTS.length));
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIndex((i) => (i + 1) % ALL_FACTS.length);
+        setVisible(true);
+      }, 500);
+    }, 12000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fact = ALL_FACTS[index];
+
+  return (
+    <Box
+      bg="whiteAlpha.50"
+      border="1px solid"
+      borderColor="whiteAlpha.100"
+      borderRadius="xl"
+      px={6}
+      py={5}
+      maxW="720px"
+      mx="auto"
+      textAlign="center"
+      minH="220px"
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+    >
+      <Text
+        fontSize="xs"
+        fontWeight="bold"
+        textTransform="uppercase"
+        letterSpacing="wider"
+        bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+        bgClip="text"
+        mb={3}
+      >
+        Did you know?
+      </Text>
+      <Box transition="opacity 0.5s ease" opacity={visible ? 1 : 0}>
+        <Text fontSize="sm" color="gray.200" lineHeight="1.8" mb={3}>
+          {fact.fact}
+        </Text>
+        <Text fontSize="xs" color="gray.500">
+          Source:{' '}
+          <Text
+            as="a"
+            href={fact.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            color="blue.400"
+            _hover={{ textDecoration: 'underline' }}
+          >
+            {fact.source}
+          </Text>
+        </Text>
+      </Box>
+    </Box>
+  );
+}
+
+function TrevorProjectBanner() {
+  return (
+    <Box
+      maxW="720px"
+      mx="auto"
+      bg="rgba(0, 180, 140, 0.07)"
+      border="1px solid"
+      borderColor="teal.800"
+      borderRadius="xl"
+      px={6}
+      py={4}
+      textAlign="center"
+    >
+      <Text
+        fontSize="xs"
+        color="teal.400"
+        fontWeight="bold"
+        textTransform="uppercase"
+        letterSpacing="wider"
+        mb={2}
+      >
+        Supporting a good cause
+      </Text>
+      <Text fontSize="sm" color="gray.300" lineHeight="1.7">
+        Support to this site during this event goes to{' '}
+        <Text
+          as="a"
+          href="https://www.thetrevorproject.org"
+          target="_blank"
+          rel="noopener noreferrer"
+          color="teal.300"
+          fontWeight="semibold"
+          _hover={{ textDecoration: 'underline' }}
+        >
+          The Trevor Project
+        </Text>
+        , the world's largest suicide prevention organization for LGBTQIA+ youth.
+      </Text>
+      <Text mt={2} fontSize="xs" color="gray.500">
+        Want to donate directly?{' '}
+        <Text
+          as="a"
+          href="https://www.thetrevorproject.org/donate/"
+          target="_blank"
+          rel="noopener noreferrer"
+          color="teal.400"
+          _hover={{ textDecoration: 'underline' }}
+        >
+          thetrevorproject.org/donate
+        </Text>
+      </Text>
     </Box>
   );
 }
@@ -283,7 +407,7 @@ function SpectatorTile({ tileCode, tileDef, teamStatuses, isNewlyCompleted }) {
 export default function RainbowBingoBoardPage() {
   const { user } = useAuth();
   const isSiteAdmin = !!user?.admin;
-  const [showLocked, setShowLocked] = useState(false);
+  const showLocked = false;
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_ACTIVE_RAINBOW_EVENT, {
     fetchPolicy: 'cache-and-network',
@@ -357,10 +481,12 @@ export default function RainbowBingoBoardPage() {
 
   useEffect(() => {
     const prev = prevMergedRef.current;
+    const isInitialLoad = Object.keys(prev).length === 0 && Object.keys(mergedBoardMap).length > 0;
+    prevMergedRef.current = { ...mergedBoardMap };
+    if (isInitialLoad) return;
     const newlyDone = Object.keys(mergedBoardMap).filter(
       (code) => mergedBoardMap[code] === 'COMPLETE' && prev[code] !== 'COMPLETE'
     );
-    prevMergedRef.current = { ...mergedBoardMap };
     if (newlyDone.length === 0) return;
     setRecentlyCompleted((s) => {
       const n = new Set(s);
@@ -406,11 +532,6 @@ export default function RainbowBingoBoardPage() {
             >
               Rainbow Bingo
             </Heading>
-            {event && (
-              <Text color="gray.400" fontSize="sm">
-                {event.eventName}
-              </Text>
-            )}
           </VStack>
 
           {!event && !eventLoading && (
@@ -421,27 +542,38 @@ export default function RainbowBingoBoardPage() {
 
           {event && (
             <>
-              <Text color="gray.300" textAlign="center" fontSize="sm" maxW="600px" mx="auto">
-                Welcome to Eternal Gems' Rainbow Bingo! We have{' '}
-                <Text as="span" color="white" fontWeight="semibold">
-                  {teams.length} {teams.length === 1 ? 'team' : 'teams'}
-                </Text>{' '}
-                competing to fill out their rainbows. Whoever either completes the board first or
-                has the most points by the end of the event will win! (Yes, there can be a tie. :-)
-                )
-              </Text>
-
-              {isSiteAdmin && (
-                <HStack justify="flex-end">
-                  <Button
-                    size="xs"
-                    variant={showLocked ? 'solid' : 'outline'}
-                    colorScheme="purple"
-                    onClick={() => setShowLocked((v) => !v)}
-                  >
-                    {showLocked ? 'Admin: Hide locked' : 'Admin: Show locked'}
-                  </Button>
-                </HStack>
+              {event.status === 'COMPLETE' ? (
+                <Box
+                  bg="rgba(255,215,0,0.05)"
+                  border="1px solid"
+                  borderColor="yellow.700"
+                  borderRadius="xl"
+                  px={6}
+                  py={5}
+                  maxW="680px"
+                  mx="auto"
+                  textAlign="center"
+                >
+                  <Text fontSize="xl" mb={2}>
+                    🏳️‍🌈
+                  </Text>
+                  <Text fontWeight="bold" color="yellow.300" fontSize="lg" mb={2}>
+                    This event has ended!
+                  </Text>
+                  <Text fontSize="sm" color="gray.300" lineHeight="1.7">
+                    Thanks to everyone who participated — players, refs, and spectators alike. You
+                    all made it something special. Here are the final standings.
+                  </Text>
+                </Box>
+              ) : (
+                <Text color="gray.300" textAlign="center" fontSize="sm" maxW="600px" mx="auto">
+                  Welcome to Eternal Gems' Rainbow Bingo! We have{' '}
+                  <Text as="span" color="white" fontWeight="semibold">
+                    {teams.length} {teams.length === 1 ? 'team' : 'teams'}
+                  </Text>{' '}
+                  competing to fill out their rainbows. Whichever team completes the board first OR
+                  whichever team(s) has the most points by the end of the event will win!
+                </Text>
               )}
 
               {/* Team progress — primary visual */}
@@ -492,7 +624,10 @@ export default function RainbowBingoBoardPage() {
                       display="inline-block"
                       flexShrink={0}
                     >
-                      <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+                      <Box
+                        position="relative"
+                        style={{ width: BOARD_W, height: BOARD_H, zoom: 0.75 }}
+                      >
                         <SpectatorEdges mergedBoardMap={mergedBoardMap} showLocked={showLocked} />
                         <SpectatorTile tileCode="START" tileDef={null} teamStatuses={[]} />
                         {Object.keys(BOARD_LAYOUT)
@@ -517,6 +652,9 @@ export default function RainbowBingoBoardPage() {
                   </Box>
                 </Box>
               </Box>
+
+              <RotatingFunFact />
+              <TrevorProjectBanner />
             </>
           )}
         </VStack>

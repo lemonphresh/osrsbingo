@@ -70,12 +70,12 @@ function CreateEventForm({ onCreate }) {
       <VStack align="stretch" gap={3}>
         <Box>
           <Text fontSize="sm" color="gray.400" mb={1}>
-            Event Name
+            Event Password
           </Text>
           <Input
             value={form.eventName}
             onChange={set('eventName')}
-            placeholder="EG Rainbow Bingo 2026"
+            placeholder="rainbowbingo2026"
             bg="gray.700"
             borderColor="gray.600"
             color="white"
@@ -132,6 +132,7 @@ function EventInfoPanel({ event, refetch }) {
       <HStack justify="space-between" wrap="wrap" gap={3}>
         <VStack align="flex-start" gap={1}>
           <HStack gap={2}>
+            <Text color="gray.400" fontSize="sm">Password:</Text>
             <Text color="white" fontWeight="semibold">
               {event.eventName}
             </Text>
@@ -297,15 +298,13 @@ function AddTeamForm({ eventId, onAdded }) {
   const [form, setForm] = useState({
     teamName: '',
     discordChannelId: '',
-    captainDiscordId: '',
-    notes: '',
   });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const [createTeam, { loading }] = useMutation(CREATE_RAINBOW_TEAM, {
     onCompleted: () => {
       showToast('Team added!', 'success');
-      setForm({ teamName: '', discordChannelId: '', captainDiscordId: '', notes: '' });
+      setForm({ teamName: '', discordChannelId: '' });
       onAdded?.();
     },
     onError: (e) => showToast(e.message, 'error'),
@@ -319,8 +318,6 @@ function AddTeamForm({ eventId, onAdded }) {
         input: {
           teamName: form.teamName.trim(),
           discordChannelId: form.discordChannelId.trim(),
-          captainDiscordId: form.captainDiscordId.trim() || null,
-          notes: form.notes.trim() || null,
         },
       },
     });
@@ -360,43 +357,6 @@ function AddTeamForm({ eventId, onAdded }) {
               borderColor="gray.600"
               color="white"
               fontFamily="mono"
-            />
-          </Box>
-        </HStack>
-        <HStack gap={2}>
-          <Box flex={1}>
-            <Text fontSize="xs" color="gray.500" mb={1}>
-              Captain Discord ID{' '}
-              <Text as="span" color="gray.600">
-                (optional)
-              </Text>
-            </Text>
-            <Input
-              size="sm"
-              value={form.captainDiscordId}
-              onChange={set('captainDiscordId')}
-              placeholder="Discord user ID"
-              bg="gray.700"
-              borderColor="gray.600"
-              color="white"
-              fontFamily="mono"
-            />
-          </Box>
-          <Box flex={1}>
-            <Text fontSize="xs" color="gray.500" mb={1}>
-              Notes{' '}
-              <Text as="span" color="gray.600">
-                (optional)
-              </Text>
-            </Text>
-            <Input
-              size="sm"
-              value={form.notes}
-              onChange={set('notes')}
-              placeholder="Any notes"
-              bg="gray.700"
-              borderColor="gray.600"
-              color="white"
             />
           </Box>
         </HStack>
@@ -642,7 +602,7 @@ export default function RainbowAdminPage() {
             </Heading>
             {event && (
               <Text color="gray.400" fontSize="sm">
-                {event.eventName}
+                pw: {event.eventName}
               </Text>
             )}
           </VStack>

@@ -33,6 +33,7 @@ import {
   RAINBOW_TEAM_BOARD_UPDATED,
   GET_RAINBOW_TILE_SUBMISSIONS,
   TEST_RAINBOW_NOTIFICATION,
+  GET_ACTIVE_RAINBOW_EVENT,
 } from '../graphql/rainbowBingoOperations';
 import {
   BOARD_LAYOUT,
@@ -494,7 +495,41 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
 
 const RULES_KEY = 'rainbowBingo_rulesAcknowledged';
 
-function HowToPlayModal({ isOpen, onClose }) {
+function EventPasswordBadge({ password }) {
+  const { onCopy, hasCopied } = useClipboard(password);
+  return (
+    <HStack
+      gap={2}
+      bg="whiteAlpha.50"
+      border="1px solid"
+      borderColor="whiteAlpha.100"
+      borderRadius="md"
+      px={3}
+      py={1.5}
+    >
+      <Text fontSize="xs" color="gray.500">
+        Event password:
+      </Text>
+      <Text fontSize="xs" fontFamily="mono" color="gray.200" fontWeight="semibold">
+        {password}
+      </Text>
+      <Button
+        size="xs"
+        variant="ghost"
+        colorScheme="purple"
+        onClick={onCopy}
+        h="auto"
+        minW="auto"
+        px={1}
+        py={0.5}
+      >
+        {hasCopied ? 'Copied!' : 'Copy'}
+      </Button>
+    </HStack>
+  );
+}
+
+function HowToPlayModal({ isOpen, onClose, eventPassword }) {
   const [checked, setChecked] = useState(false);
   const handleConfirm = () => {
     localStorage.setItem(RULES_KEY, 'true');
@@ -558,7 +593,24 @@ function HowToPlayModal({ isOpen, onClose }) {
                   !rbpre [tile]
                 </Text>{' '}
                 in your team Discord channel with a screenshot attached. Include the event password
-                in the screenshot.
+                {eventPassword ? (
+                  <>
+                    {' '}
+                    (
+                    <Text
+                      as="span"
+                      fontFamily="mono"
+                      bg="blue.900"
+                      px={1}
+                      borderRadius="sm"
+                      color="blue.200"
+                    >
+                      {eventPassword}
+                    </Text>
+                    )
+                  </>
+                ) : null}{' '}
+                visibly in the screenshot.
               </Text>
             </Box>
             <Box
@@ -580,20 +632,58 @@ function HowToPlayModal({ isOpen, onClose }) {
                 ref will review and approve before marking the tile complete.
               </Text>
             </Box>
+            <VStack align="stretch" spacing={3}>
+              <Box p={3} bg="pink.700" borderRadius="md">
+                <Text fontSize="xs" fontWeight="semibold" color="pink.200" mb={2}>
+                  * Required for all submissions
+                </Text>
+                <VStack align="stretch" spacing={1}>
+                  <Text fontSize="xs" color="pink.100">
+                    • Full game client visible (not cropped)
+                  </Text>
+                  <Text fontSize="xs" color="pink.100">
+                    • Event password{' '}
+                    {eventPassword ? (
+                      <>
+                        {' '}
+                        (
+                        <Text
+                          as="span"
+                          fontFamily="mono"
+                          bg="whiteAlpha.100"
+                          px={1}
+                          borderRadius="sm"
+                        >
+                          {eventPassword}
+                        </Text>
+                        )
+                      </>
+                    ) : null}{' '}
+                    visible via Wise Old Man or Clan Events plugin
+                  </Text>
+
+                  <Text fontSize="xs" color="pink.100">
+                    • The drop visible in your chatbox
+                  </Text>
+                  <Text fontSize="xs" color="pink.100">
+                    • Boss kill count visible in chatbox or adventure log
+                  </Text>
+                </VStack>
+              </Box>
+            </VStack>
+
             <Box bg="whiteAlpha.50" borderRadius="md" p={4}>
               <Text fontWeight="bold" color="white" mb={2}>
                 📋 Rules
               </Text>
               <VStack align="stretch" gap={1.5} color="gray.300">
                 <Text>
-                  • All submissions must include the event password visibly in the screenshot.
-                </Text>
-                <Text>
                   • Pre-screenshots must be taken{' '}
                   <Text as="span" color="white" fontWeight="semibold">
                     before
                   </Text>{' '}
-                  you begin working on a tile.
+                  you begin working on a tile. Log out and back in to log accurate XP and KC to WOM
+                  before taking any screenshots.
                 </Text>
                 <Text>
                   • Tiles must be completed by the same team. No borrowing progress from other
@@ -830,6 +920,12 @@ export default function RainbowTeamBoardPage() {
 
   const team = tokenData?.getRainbowTeamByToken;
 
+  const { data: eventData } = useQuery(GET_ACTIVE_RAINBOW_EVENT, {
+    skip: !team,
+    fetchPolicy: 'cache-and-network',
+  });
+  const eventPassword = eventData?.getActiveRainbowEvent?.eventName ?? null;
+
   const { data, loading: boardLoading } = useQuery(GET_RAINBOW_TEAM_BOARD, {
     variables: { teamId: team?.teamId },
     skip: !team?.teamId,
@@ -926,6 +1022,7 @@ export default function RainbowTeamBoardPage() {
             <Text color="white" fontWeight="semibold" fontSize="lg">
               {team.teamName}
             </Text>
+            {eventPassword && <EventPasswordBadge password={eventPassword} />}
           </VStack>
 
           <HStack gap={6} wrap="wrap" justify="center">
@@ -1064,7 +1161,11 @@ export default function RainbowTeamBoardPage() {
         )}
       </Box>
       {celebrationOverlay}
-      <HowToPlayModal isOpen={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
+      <HowToPlayModal
+        isOpen={showHowToPlay}
+        onClose={() => setShowHowToPlay(false)}
+        eventPassword={eventPassword}
+      />
     </>
   );
 }

@@ -32,13 +32,13 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.nps.gov/ston',
   },
   R7: {
-    fact: 'In 2016, President Obama designated the Stonewall Inn and Christopher Park as the Stonewall National Monument. It was the first US national monument dedicated to LGBTQ+ history, and the Stonewall Inn still operates as a bar today in the same building where the uprising began.',
+    fact: 'In 2016, President Obama designated the Stonewall Inn and Christopher Park as the Stonewall National Monument. It was the first US national monument dedicated to LGBTQIA+ history, and the Stonewall Inn still operates as a bar today in the same building where the uprising began.',
     source: 'National Park Service',
     sourceUrl: 'https://www.nps.gov/ston',
   },
 
   O1: {
-    fact: 'Sylvia Rivera and Marsha P. Johnson founded STAR (Street Transvestite Action Revolutionaries) in New York City in 1970 to house and support homeless LGBTQ+ youth. No other organizations were doing it. Rivera put it plainly: "I was a revolutionary."',
+    fact: 'Sylvia Rivera and Marsha P. Johnson founded STAR (Street Transvestite Action Revolutionaries) in New York City in 1970 to house and support homeless LGBTQIA+ youth. No other organizations were doing it. Rivera put it plainly: "I was a revolutionary."',
     source: 'Sylvia Rivera Law Project',
     sourceUrl: 'https://srlp.org',
   },
@@ -53,7 +53,7 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.glaad.org',
   },
   O4: {
-    fact: "The American Psychiatric Association removed homosexuality from the DSM in 1973. That change didn't come quietly: LGBTQ+ activists had spent years disrupting APA conferences, presenting research, and forcing the conversation until the organization had to take a real look at its own assumptions.",
+    fact: "The American Psychiatric Association removed homosexuality from the DSM in 1973. That change didn't come quietly: LGBTQIA+ activists had spent years disrupting APA conferences, presenting research, and forcing the conversation until the organization had to take a real look at its own assumptions.",
     source: 'American Psychiatric Association',
     sourceUrl: 'https://www.psychiatry.org',
   },
@@ -84,7 +84,7 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.womenshistory.org',
   },
   Y3: {
-    fact: 'The Trevor Project launched in 1998 as the first 24-hour crisis line for LGBTQ+ youth in the US and is now the largest suicide prevention organization for that community in the world. One of their key findings: LGBTQ+ youth with at least one accepting adult in their life are 40% less likely to attempt suicide.',
+    fact: 'The Trevor Project launched in 1998 as the first 24-hour crisis line for LGBTQIA+ youth in the US and is now the largest suicide prevention organization for that community in the world. One of their key findings: LGBTQIA+ youth with at least one accepting adult in their life are 40% less likely to attempt suicide.',
     source: 'The Trevor Project',
     sourceUrl: 'https://www.thetrevorproject.org',
   },
@@ -120,7 +120,7 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.glbthistory.org',
   },
   G3: {
-    fact: "Georgina Beyer was elected to New Zealand's Parliament in 1999, becoming the world's first openly transgender member of a national legislature. She served until 2007 and used her platform to advocate for LGBTQ+ rights and the decriminalization of sex work.",
+    fact: "Georgina Beyer was elected to New Zealand's Parliament in 1999, becoming the world's first openly transgender member of a national legislature. She served until 2007 and used her platform to advocate for LGBTQIA+ rights and the decriminalization of sex work.",
     source: 'New Zealand Parliament',
     sourceUrl: 'https://www.parliament.nz',
   },
@@ -140,8 +140,8 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.glbthistory.org',
   },
   G7: {
-    fact: 'The National LGBTQ Task Force was founded in 1973 and is one of the oldest LGBTQ+ civil rights organizations in the US. It co-organized the first National March on Washington for Lesbian and Gay Rights in 1979, which drew over 100,000 people at a time when that was a genuinely dangerous thing to do publicly.',
-    source: 'National LGBTQ Task Force',
+    fact: 'The National LGBTQIA Task Force was founded in 1973 and is one of the oldest LGBTQIA+ civil rights organizations in the US. It co-organized the first National March on Washington for Lesbian and Gay Rights in 1979, which drew over 100,000 people at a time when that was a genuinely dangerous thing to do publicly.',
+    source: 'National LGBTQIA Task Force',
     sourceUrl: 'https://www.thetaskforce.org',
   },
 
@@ -161,8 +161,8 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.glaad.org',
   },
   B4: {
-    fact: "Tammy Baldwin was the first openly gay candidate elected to the US House in 1998 and the first elected to the Senate in 2012, both from Wisconsin. She's been reelected multiple times and has one of the longest continuous records of open LGBTQ+ service in Congress.",
-    source: 'LGBTQ+ Victory Fund',
+    fact: "Tammy Baldwin was the first openly gay candidate elected to the US House in 1998 and the first elected to the Senate in 2012, both from Wisconsin. She's been reelected multiple times and has one of the longest continuous records of open LGBTQIA+ service in Congress.",
+    source: 'LGBTQIA+ Victory Fund',
     sourceUrl: 'https://victoryfund.org',
   },
   B5: {
@@ -187,7 +187,7 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.nps.gov/ston',
   },
   I2: {
-    fact: "The Compton's Cafeteria Riot happened in San Francisco's Tenderloin in August 1966, three years before Stonewall. Transgender women, drag queens, and sex workers fought back against a police sweep. It's the first known instance of organized LGBTQ+ resistance to police harassment in the United States.",
+    fact: "The Compton's Cafeteria Riot happened in San Francisco's Tenderloin in August 1966, three years before Stonewall. Transgender women, drag queens, and sex workers fought back against a police sweep. It's the first known instance of organized LGBTQIA+ resistance to police harassment in the United States.",
     source: 'GLBT Historical Society',
     sourceUrl: 'https://www.glbthistory.org',
   },
@@ -202,7 +202,7 @@ const TILE_FUN_FACTS = {
     sourceUrl: 'https://www.kinseyinstitute.org',
   },
   I5: {
-    fact: 'Barbara Gittings founded the New York Daughters of Bilitis in 1958 and was one of the first people organizing public LGBTQ+ demonstrations in the US, including pickets at the White House and Pentagon in the 1960s. She later spent years inside the American Library Association pushing them to build actual LGBTQ+ collections.',
+    fact: 'Barbara Gittings founded the New York Daughters of Bilitis in 1958 and was one of the first people organizing public LGBTQIA+ demonstrations in the US, including pickets at the White House and Pentagon in the 1960s. She later spent years inside the American Library Association pushing them to build actual LGBTQIA+ collections.',
     source: 'American Library Association',
     sourceUrl: 'https://www.ala.org',
   },
@@ -218,7 +218,7 @@ const TILE_FUN_FACTS = {
   },
 
   V1: {
-    fact: 'The pink triangle was used by the Nazis to mark gay men in concentration camps. An estimated 10,000 to 15,000 gay men were imprisoned. LGBTQ+ activists reclaimed the symbol in the 1970s, and ACT UP adopted it in the 1980s alongside the slogan "Silence = Death." The act of reclaiming it was itself a political statement.',
+    fact: 'The pink triangle was used by the Nazis to mark gay men in concentration camps. An estimated 10,000 to 15,000 gay men were imprisoned. LGBTQIA+ activists reclaimed the symbol in the 1970s, and ACT UP adopted it in the 1980s alongside the slogan "Silence = Death." The act of reclaiming it was itself a political statement.',
     source: 'US Holocaust Memorial Museum',
     sourceUrl: 'https://www.ushmm.org',
   },
@@ -229,21 +229,21 @@ const TILE_FUN_FACTS = {
   },
   V3: {
     fact: 'Queer Nation was founded in New York City in 1990 and actively reclaimed the word "queer" from a slur. Their pamphlet "Queers Read This," distributed at NYC Pride that year, became a landmark piece of activist writing. The opening line: "Being queer means leading a different sort of life."',
-    source: 'LGBTQ+ Victory Fund',
+    source: 'LGBTQIA+ Victory Fund',
     sourceUrl: 'https://victoryfund.org',
   },
   V4: {
-    fact: 'The UN Human Rights Council passed its first resolution on LGBTQ+ rights in 2011, sponsored by South Africa. The report that followed documented state-sanctioned violence and discrimination across the globe. It was the first time the UN formally acknowledged that LGBTQ+ people needed human rights protections.',
+    fact: 'The UN Human Rights Council passed its first resolution on LGBTQIA+ rights in 2011, sponsored by South Africa. The report that followed documented state-sanctioned violence and discrimination across the globe. It was the first time the UN formally acknowledged that LGBTQIA+ people needed human rights protections.',
     source: 'United Nations',
     sourceUrl: 'https://www.un.org',
   },
   V5: {
-    fact: "Magnus Hirschfeld opened the Institut für Sexualwissenschaft in Berlin in 1919, the world's first institute dedicated to sexual research and LGBTQ+ advocacy. It offered gender-affirming care and housed a massive archive. The Nazis burned it in 1933 in one of the most famous book burnings in history.",
+    fact: "Magnus Hirschfeld opened the Institut für Sexualwissenschaft in Berlin in 1919, the world's first institute dedicated to sexual research and LGBTQIA+ advocacy. It offered gender-affirming care and housed a massive archive. The Nazis burned it in 1933 in one of the most famous book burnings in history.",
     source: 'Magnus Hirschfeld Society',
     sourceUrl: 'https://www.hirschfeld-gesellschaft.de',
   },
   V6: {
-    fact: 'PFLAG started in 1973 when Jeanne Manford marched at NYC Pride with her gay son Morty and was approached by so many LGBTQ+ people begging her to talk to their parents that she started hosting meetings. What began in a church basement now has over 400 chapters and is the largest family LGBTQ+ support organization in the world.',
+    fact: 'PFLAG started in 1973 when Jeanne Manford marched at NYC Pride with her gay son Morty and was approached by so many LGBTQIA+ people begging her to talk to their parents that she started hosting meetings. What began in a church basement now has over 400 chapters and is the largest family LGBTQIA+ support organization in the world.',
     source: 'PFLAG',
     sourceUrl: 'https://pflag.org',
   },
@@ -254,12 +254,12 @@ const TILE_FUN_FACTS = {
   },
 
   C1: {
-    fact: 'Red stands for Life on the original pride flag. Gilbert Baker, who designed the original pride flag in 1978, chose it deliberately — queer people had just lived through years of loss and erasure, and claiming life as something worth celebrating was a statement. The red stripe is a reminder that survival itself is an act of resistance.',
+    fact: 'Red stands for Life on the original pride flag. Gilbert Baker, who designed the original pride flag in 1978, chose it deliberately. Queer people had just lived through years of loss and erasure, and claiming life as something worth celebrating was a statement. The red stripe is a reminder that survival itself is an act of resistance.',
     source: 'GLBT Historical Society',
     sourceUrl: 'https://www.glbthistory.org',
   },
   C2: {
-    fact: 'Orange stands for Healing on the original pride flag. Gilbert Baker, who designed the original pride flag in 1978, included it as an acknowledgment that the community was, and always would be, in the process of recovering — from violence, from grief, from the ongoing weight of living in a world that had not yet made space for them.',
+    fact: 'Orange stands for Healing on the original pride flag. Gilbert Baker, who designed the original pride flag in 1978, included it as an acknowledgment that the community was, and always would be, in the process of recovering, from violence, from grief, from the ongoing weight of living in a world that had not yet made space for them.',
     source: 'GLBT Historical Society',
     sourceUrl: 'https://www.glbthistory.org',
   },
