@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import { useAuth } from '../providers/AuthProvider';
@@ -18,7 +18,9 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
+  ModalFooter,
   ModalCloseButton,
+  Checkbox,
   useClipboard,
   useToast,
   Button,
@@ -95,10 +97,20 @@ function BoardEdges({ boardMap, showLocked }) {
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke={active ? '#ffffff55' : '#ffffff18'}
+            stroke="#ffffff"
+            strokeOpacity={active ? 0.45 : 0.12}
             strokeWidth={active ? 2 : 1}
             strokeDasharray={active ? undefined : '4 4'}
-          />
+          >
+            {active && (
+              <animate
+                attributeName="stroke-opacity"
+                values="0.2;0.65;0.2"
+                dur="2.5s"
+                repeatCount="indefinite"
+              />
+            )}
+          </line>
         );
       })}
     </svg>
@@ -124,7 +136,6 @@ function TileOverlay({ col, row, progress, status }) {
   const dotX = OC + dotR * Math.sin(dotAngle);
   const dotY = OC - dotR * Math.cos(dotAngle);
 
-
   return (
     <svg
       style={{
@@ -140,9 +151,12 @@ function TileOverlay({ col, row, progress, status }) {
     >
       {showRing && (
         <g transform={`rotate(-90, ${OC}, ${OC})`}>
-          <circle cx={OC} cy={OC} r={r} fill="none"
-            stroke="rgba(0,0,0,0.35)" strokeWidth={5} />
-          <circle cx={OC} cy={OC} r={r} fill="none"
+          <circle cx={OC} cy={OC} r={r} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth={5} />
+          <circle
+            cx={OC}
+            cy={OC}
+            r={r}
+            fill="none"
             stroke={progress >= 100 ? '#ffd700' : 'rgba(255,255,255,0.85)'}
             strokeWidth={5}
             strokeDasharray={`${filled} ${circumference - filled}`}
@@ -161,8 +175,14 @@ function TileOverlay({ col, row, progress, status }) {
           <circle cx={dotX} cy={dotY} r={10} fill="rgba(0,0,0,0.65)" />
           <circle cx={dotX} cy={dotY} r={9} fill="#68D391" />
           <path
-            d={`M ${dotX - 4.5} ${dotY + 0.5} L ${dotX - 1} ${dotY + 4} L ${dotX + 5} ${dotY - 3.5}`}
-            stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" fill="none"
+            d={`M ${dotX - 4.5} ${dotY + 0.5} L ${dotX - 1} ${dotY + 4} L ${dotX + 5} ${
+              dotY - 3.5
+            }`}
+            stroke="white"
+            strokeWidth={2.2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
           />
         </>
       )}
@@ -195,6 +215,7 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
   if (!pos) return null;
 
   const { status, tileDef } = tile;
+  const isCapstone = tileCode.startsWith('C');
   const color = tileDef?.color ?? 'capstone';
   const palette = COLOR_BG[color] ?? COLOR_BG.capstone;
   const textCol = COLOR_TEXT[color] ?? '#fff';
@@ -214,10 +235,16 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
       style={{
         ...tileStyle(pos.col, pos.row),
         borderRadius: '50%',
+        ...(isCapstone && { transform: 'scale(1.18)', zIndex: 2 }),
+        ...(isCapstone && isComplete && { boxShadow: '0 0 14px 4px #ffd70055' }),
         ...(isNewlyCompleted && { animation: 'tileComplete 2.5s ease-out', zIndex: 10 }),
       }}
       bg={bgColor}
-      border={`2px solid ${isComplete ? '#ffd700' : isLocked ? '#33333388' : '#ffffff33'}`}
+      border={
+        isCapstone
+          ? `2.5px solid ${isComplete ? '#ffd700' : '#ffd70055'}`
+          : `2px solid ${isComplete ? '#ffd700' : isLocked ? '#33333388' : '#ffffff33'}`
+      }
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -465,6 +492,144 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
   );
 }
 
+const RULES_KEY = 'rainbowBingo_rulesAcknowledged';
+
+function HowToPlayModal({ isOpen, onClose }) {
+  const [checked, setChecked] = useState(false);
+  const handleConfirm = () => {
+    localStorage.setItem(RULES_KEY, 'true');
+    onClose();
+  };
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={() => {}}
+      closeOnOverlayClick={false}
+      isCentered
+      size="lg"
+      scrollBehavior="inside"
+    >
+      <ModalOverlay bg="blackAlpha.900" backdropFilter="blur(4px)" />
+      <ModalContent
+        border="1px solid"
+        borderColor="gray.700"
+        color="white"
+        style={{ background: '#12121f' }}
+      >
+        <ModalHeader>
+          <Text
+            bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+            bgClip="text"
+            fontSize="xl"
+            fontWeight="bold"
+          >
+            How to play Rainbow Bingo
+          </Text>
+        </ModalHeader>
+        <ModalBody pb={2}>
+          <VStack align="stretch" gap={4} fontSize="sm" color="gray.200">
+            <Box bg="whiteAlpha.50" borderRadius="md" p={4}>
+              <Text fontWeight="bold" color="white" mb={2}>
+                The board
+              </Text>
+              <Text lineHeight="1.7">
+                Your team has a Rainbow Bingo board with tiles across 7 colors: red, orange, yellow,
+                green, blue, indigo, and violet, plus capstone tiles for each color. Completing
+                tiles unlocks new ones along the path. Capstones are worth{' '}
+                <Text as="span" color="yellow.300" fontWeight="bold">
+                  3 points
+                </Text>
+                ; regular tiles are worth{' '}
+                <Text as="span" color="white" fontWeight="bold">
+                  1 point
+                </Text>
+                . Select the tile you'd like more information about, including the Discord commands
+                you'll need to submit your progress.
+              </Text>
+            </Box>
+            <Box bg="blue.950" border="1px solid" borderColor="blue.800" borderRadius="md" p={4}>
+              <Text fontWeight="bold" color="blue.200" mb={2}>
+                📸 Pre-screenshots
+              </Text>
+              <Text lineHeight="1.7" color="blue.100">
+                Before starting a tile, submit a pre-screenshot showing your current state (kc, xp,
+                etc.) using{' '}
+                <Text as="span" fontFamily="mono" bg="blue.900" px={1} borderRadius="sm">
+                  !rbpre [tile]
+                </Text>{' '}
+                in your team Discord channel with a screenshot attached. Include the event password
+                in the screenshot.
+              </Text>
+            </Box>
+            <Box
+              bg="purple.950"
+              border="1px solid"
+              borderColor="purple.800"
+              borderRadius="md"
+              p={4}
+            >
+              <Text fontWeight="bold" color="purple.200" mb={2}>
+                🏆 Final submissions
+              </Text>
+              <Text lineHeight="1.7" color="purple.100">
+                When your tile is done, submit your completion proof using{' '}
+                <Text as="span" fontFamily="mono" bg="purple.900" px={1} borderRadius="sm">
+                  !rbsubmit [tile]
+                </Text>{' '}
+                in your Discord channel with a screenshot attached. Multiple members can submit. A
+                ref will review and approve before marking the tile complete.
+              </Text>
+            </Box>
+            <Box bg="whiteAlpha.50" borderRadius="md" p={4}>
+              <Text fontWeight="bold" color="white" mb={2}>
+                📋 Rules
+              </Text>
+              <VStack align="stretch" gap={1.5} color="gray.300">
+                <Text>
+                  • All submissions must include the event password visibly in the screenshot.
+                </Text>
+                <Text>
+                  • Pre-screenshots must be taken{' '}
+                  <Text as="span" color="white" fontWeight="semibold">
+                    before
+                  </Text>{' '}
+                  you begin working on a tile.
+                </Text>
+                <Text>
+                  • Tiles must be completed by the same team. No borrowing progress from other
+                  accounts outside your team.
+                </Text>
+                <Text>
+                  • Refs have final say on approvals. If denied, check the reason and resubmit.
+                </Text>
+                <Text>
+                  • Be respectful and have fun! This event celebrates the LGBTQIA+ community. 🏳️‍🌈
+                </Text>
+              </VStack>
+            </Box>
+          </VStack>
+        </ModalBody>
+        <ModalFooter flexDir="column" gap={4} pt={4}>
+          <Checkbox
+            isChecked={checked}
+            onChange={(e) => setChecked(e.target.checked)}
+            colorScheme="purple"
+            alignItems="flex-start"
+            w="100%"
+          >
+            <Text fontSize="sm" color="gray.200" lineHeight="1.5">
+              I have read and understand the rules
+            </Text>
+          </Checkbox>
+          <Button colorScheme="purple" w="100%" isDisabled={!checked} onClick={handleConfirm}>
+            Let's go! 🌈
+          </Button>
+        </ModalFooter>
+      </ModalContent>
+    </Modal>
+  );
+}
+
 function TileModal({ tile, onClose }) {
   if (!tile) return null;
   const { tileCode, status, tileDef, unlockedAt, completedAt, teamId, eventId } = tile;
@@ -602,25 +767,55 @@ export default function RainbowTeamBoardPage() {
   const toast = useToast();
   const [selectedTile, setSelectedTile] = useState(null);
   const [showLocked, setShowLocked] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
+  useEffect(() => {
+    if (!localStorage.getItem(RULES_KEY)) setShowHowToPlay(true);
+  }, []);
   const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
   const prevBoardRef = useRef({});
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
 
   const [testNotify] = useMutation(TEST_RAINBOW_NOTIFICATION, {
-    onError: (e) => toast({ title: 'Discord test failed', description: e.message, status: 'error', duration: 5000, isClosable: true }),
+    onError: (e) =>
+      toast({
+        title: 'Discord test failed',
+        description: e.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      }),
   });
 
   const triggerTest = (type) => {
     const CAPSTONES = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'];
     const codes = type === 'board' ? CAPSTONES : type === 'capstone' ? ['C1'] : ['R1'];
-    setRecentlyCompleted((s) => { const n = new Set(s); codes.forEach((c) => n.add(c)); return n; });
+    setRecentlyCompleted((s) => {
+      const n = new Set(s);
+      codes.forEach((c) => n.add(c));
+      return n;
+    });
     setTimeout(() => {
-      setRecentlyCompleted((s) => { const n = new Set(s); codes.forEach((c) => n.delete(c)); return n; });
+      setRecentlyCompleted((s) => {
+        const n = new Set(s);
+        codes.forEach((c) => n.delete(c));
+        return n;
+      });
     }, 2500);
-    if (type === 'board') { playBoardComplete(); triggerCelebration('board'); toast({ title: 'Board complete fired', status: 'success', duration: 2000 }); }
-    else if (type === 'capstone') { playCapstoneComplete(); triggerCelebration('capstone'); toast({ title: 'Capstone complete fired', status: 'success', duration: 2000 }); }
-    else { playTileComplete(); triggerCelebration('tile'); toast({ title: 'Tile complete fired', status: 'success', duration: 2000 }); }
+    if (type === 'board') {
+      playBoardComplete();
+      triggerCelebration('board');
+      toast({ title: 'Board complete fired', status: 'success', duration: 2000 });
+    } else if (type === 'capstone') {
+      playCapstoneComplete();
+      triggerCelebration('capstone');
+      toast({ title: 'Capstone complete fired', status: 'success', duration: 2000 });
+    } else {
+      playTileComplete();
+      triggerCelebration('tile');
+      toast({ title: 'Tile complete fired', status: 'success', duration: 2000 });
+    }
     const teamId = tokenData?.getRainbowTeamByToken?.teamId;
     if (teamId) {
       const discordType = type === 'board' ? 'BOARD' : type === 'capstone' ? 'CAPSTONE' : 'TILE';
@@ -653,13 +848,26 @@ export default function RainbowTeamBoardPage() {
         .map((t) => t.tileCode);
       prevBoardRef.current = Object.fromEntries(updated.map((t) => [t.tileCode, t]));
       if (newlyDone.length > 0) {
-        setRecentlyCompleted((s) => { const n = new Set(s); newlyDone.forEach((c) => n.add(c)); return n; });
+        setRecentlyCompleted((s) => {
+          const n = new Set(s);
+          newlyDone.forEach((c) => n.add(c));
+          return n;
+        });
         setTimeout(() => {
-          setRecentlyCompleted((s) => { const n = new Set(s); newlyDone.forEach((c) => n.delete(c)); return n; });
+          setRecentlyCompleted((s) => {
+            const n = new Set(s);
+            newlyDone.forEach((c) => n.delete(c));
+            return n;
+          });
         }, 2500);
         const isCapstone = newlyDone.some((c) => c.startsWith('C'));
-        if (isCapstone) { playCapstoneComplete(); triggerCelebration('capstone'); }
-        else { playTileComplete(); triggerCelebration('tile'); }
+        if (isCapstone) {
+          playCapstoneComplete();
+          triggerCelebration('capstone');
+        } else {
+          playTileComplete();
+          triggerCelebration('tile');
+        }
       }
       client.writeQuery({
         query: GET_RAINBOW_TEAM_BOARD,
@@ -705,133 +913,158 @@ export default function RainbowTeamBoardPage() {
 
   return (
     <>
-    <Box minH="100vh" color="white" pt="56px" pb={6} px={{ base: 3, md: 6 }}>
-      <VStack align="stretch" gap={3} maxW="1200px" mx="auto">
-        <VStack align="center" gap={1}>
-          <Heading
-            size="lg"
-            bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
-            bgClip="text"
-          >
-            Rainbow Bingo
-          </Heading>
-          <Text color="white" fontWeight="semibold" fontSize="lg">
-            {team.teamName}
-          </Text>
-        </VStack>
-
-        <HStack gap={6} wrap="wrap" justify="center">
-          <HStack>
-            <Box w="10px" h="10px" bg="green.400" borderRadius="full" />
-            <Text fontSize="sm" color="gray.300">
-              Complete ({stats.complete})
-            </Text>
-          </HStack>
-          <HStack>
-            <Box w="10px" h="10px" bg="orange.400" borderRadius="full" />
-            <Text fontSize="sm" color="gray.300">
-              Pending review ({stats.submitted})
-            </Text>
-          </HStack>
-          <HStack>
-            <Box w="10px" h="10px" bg="blue.400" borderRadius="full" />
-            <Text fontSize="sm" color="gray.300">
-              Unlocked ({stats.unlocked})
-            </Text>
-          </HStack>
-          <HStack>
-            <Box w="10px" h="10px" bg="gray.600" borderRadius="full" />
-            <Text fontSize="sm" color="gray.300">
-              Locked ({stats.total - stats.complete - stats.submitted - stats.unlocked})
-            </Text>
-          </HStack>
-          {isSiteAdmin && (
-            <Button
-              size="xs"
-              variant={showLocked ? 'solid' : 'outline'}
-              colorScheme="purple"
-              onClick={() => setShowLocked((v) => !v)}
+      <Box minH="100vh" color="white" pt="56px" pb="64px" px={{ base: 3, md: 6 }}>
+        <VStack align="stretch" gap={3} maxW="1200px" mx="auto">
+          <VStack align="center" gap={1}>
+            <Heading
+              size="lg"
+              bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+              bgClip="text"
             >
-              {showLocked ? 'Admin: Hide locked' : 'Admin: Show locked'}
-            </Button>
-          )}
-        </HStack>
+              Rainbow Bingo
+            </Heading>
+            <Text color="white" fontWeight="semibold" fontSize="lg">
+              {team.teamName}
+            </Text>
+          </VStack>
 
-        {boardLoading && !data ? (
-          <Center py={10}>
-            <Spinner size="xl" color="purple.400" />
-          </Center>
-        ) : (
-          <Box overflowX="auto">
-            <style>{`@keyframes tileComplete { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.9); } 50% { box-shadow: 0 0 0 16px rgba(255,215,0,0.35); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } }`}</style>
-            <Box display="flex" justifyContent="center">
-              <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }} flexShrink={0}>
-                <BoardEdges boardMap={boardMap} showLocked={showLocked} />
-                <TileCard tileCode="START" tile={null} isStart onClick={null} />
-                {Object.keys(BOARD_LAYOUT)
-                  .filter((k) => k !== 'START')
-                  .map((code) => {
-                    const pos = BOARD_LAYOUT[code];
-                    const tile = boardMap[code];
-                    if (tile?.status === 'LOCKED' && !showLocked) return null;
-                    return (
-                      <React.Fragment key={code}>
-                        <TileCard
-                          tileCode={code}
-                          tile={tile}
-                          isStart={false}
-                          isNewlyCompleted={recentlyCompleted.has(code)}
-                          onClick={
-                            tile?.status !== 'LOCKED'
-                              ? () => setSelectedTile(tile)
-                              : null
-                          }
-                        />
-                        {pos && (tile?.progress > 0 || tile?.status === 'SUBMITTED' || tile?.status === 'COMPLETE') && (
-                          <TileOverlay col={pos.col} row={pos.row} progress={tile.progress ?? 0} status={tile.status} />
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+          <HStack gap={6} wrap="wrap" justify="center">
+            <HStack>
+              <Box w="10px" h="10px" bg="green.400" borderRadius="full" />
+              <Text fontSize="sm" color="gray.300">
+                Complete ({stats.complete})
+              </Text>
+            </HStack>
+            <HStack>
+              <Box w="10px" h="10px" bg="orange.400" borderRadius="full" />
+              <Text fontSize="sm" color="gray.300">
+                Pending review ({stats.submitted})
+              </Text>
+            </HStack>
+            {isSiteAdmin && (
+              <Button
+                size="xs"
+                variant={showLocked ? 'solid' : 'outline'}
+                colorScheme="purple"
+                onClick={() => setShowLocked((v) => !v)}
+              >
+                {showLocked ? 'Admin: Hide locked' : 'Admin: Show locked'}
+              </Button>
+            )}
+          </HStack>
+
+          {boardLoading && !data ? (
+            <Center py={10}>
+              <Spinner size="xl" color="purple.400" />
+            </Center>
+          ) : (
+            <Box overflowX="auto">
+              <style>{`@keyframes tileComplete { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.9); } 50% { box-shadow: 0 0 0 16px rgba(255,215,0,0.35); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } }`}</style>
+              <Box display="flex" justifyContent="center">
+                <Box
+                  bg="rgba(255,255,255,0.03)"
+                  borderRadius="xl"
+                  p="12px"
+                  display="inline-block"
+                  flexShrink={0}
+                >
+                  <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+                    <BoardEdges boardMap={boardMap} showLocked={showLocked} />
+                    <TileCard tileCode="START" tile={null} isStart onClick={null} />
+                    {Object.keys(BOARD_LAYOUT)
+                      .filter((k) => k !== 'START')
+                      .map((code) => {
+                        const pos = BOARD_LAYOUT[code];
+                        const tile = boardMap[code];
+                        if (tile?.status === 'LOCKED' && !showLocked) return null;
+                        return (
+                          <React.Fragment key={code}>
+                            <TileCard
+                              tileCode={code}
+                              tile={tile}
+                              isStart={false}
+                              isNewlyCompleted={recentlyCompleted.has(code)}
+                              onClick={
+                                tile?.status !== 'LOCKED' ? () => setSelectedTile(tile) : null
+                              }
+                            />
+                            {pos &&
+                              (tile?.progress > 0 ||
+                                tile?.status === 'SUBMITTED' ||
+                                tile?.status === 'COMPLETE') && (
+                                <TileOverlay
+                                  col={pos.col}
+                                  row={pos.row}
+                                  progress={tile.progress ?? 0}
+                                  status={tile.status}
+                                />
+                              )}
+                          </React.Fragment>
+                        );
+                      })}
+                  </Box>
+                </Box>
               </Box>
             </Box>
+          )}
+
+          <TileModal tile={selectedTile} onClose={() => setSelectedTile(null)} />
+        </VStack>
+
+        {isSiteAdmin && (
+          <Box
+            position="fixed"
+            bottom={4}
+            right={4}
+            bg="gray.900"
+            border="1px solid"
+            borderColor="gray.600"
+            borderRadius="lg"
+            p={3}
+            zIndex={100}
+            minW="160px"
+          >
+            <Text
+              fontSize="10px"
+              color="gray.500"
+              fontWeight="bold"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={2}
+            >
+              Dev tools
+            </Text>
+            <VStack gap={2} align="stretch">
+              <Button
+                size="xs"
+                colorScheme="blue"
+                variant="outline"
+                onClick={() => triggerTest('tile')}
+              >
+                Test tile complete
+              </Button>
+              <Button
+                size="xs"
+                colorScheme="yellow"
+                variant="outline"
+                onClick={() => triggerTest('capstone')}
+              >
+                Test capstone
+              </Button>
+              <Button
+                size="xs"
+                colorScheme="purple"
+                variant="outline"
+                onClick={() => triggerTest('board')}
+              >
+                Test board complete
+              </Button>
+            </VStack>
           </Box>
         )}
-
-        <TileModal tile={selectedTile} onClose={() => setSelectedTile(null)} />
-      </VStack>
-
-      {isSiteAdmin && (
-        <Box
-          position="fixed"
-          bottom={4}
-          right={4}
-          bg="gray.900"
-          border="1px solid"
-          borderColor="gray.600"
-          borderRadius="lg"
-          p={3}
-          zIndex={100}
-          minW="160px"
-        >
-          <Text fontSize="10px" color="gray.500" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" mb={2}>
-            Dev tools
-          </Text>
-          <VStack gap={2} align="stretch">
-            <Button size="xs" colorScheme="blue" variant="outline" onClick={() => triggerTest('tile')}>
-              Test tile complete
-            </Button>
-            <Button size="xs" colorScheme="yellow" variant="outline" onClick={() => triggerTest('capstone')}>
-              Test capstone
-            </Button>
-            <Button size="xs" colorScheme="purple" variant="outline" onClick={() => triggerTest('board')}>
-              Test board complete
-            </Button>
-          </VStack>
-        </Box>
-      )}
-    </Box>
-    {celebrationOverlay}
+      </Box>
+      {celebrationOverlay}
+      <HowToPlayModal isOpen={showHowToPlay} onClose={() => setShowHowToPlay(false)} />
     </>
   );
 }

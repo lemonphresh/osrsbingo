@@ -19,6 +19,7 @@ const calendarRoutes = require('./calendarRoutes');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
+const { execute, subscribe } = require('graphql');
 const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
@@ -351,6 +352,8 @@ const wsServer = new WebSocketServer({
 const serverCleanup = useServer(
   {
     schema,
+    execute,
+    subscribe,
     context: async (ctx, msg, args) => {
       // Get auth from connection params
       const token = ctx.connectionParams?.authorization?.replace('Bearer ', '');
@@ -367,6 +370,9 @@ const serverCleanup = useServer(
       }
 
       return { user, jwtSecret: SECRET };
+    },
+    onError: (ctx, msg, errors) => {
+      console.error('[ws] subscription execution error:', JSON.stringify(errors));
     },
   },
   wsServer

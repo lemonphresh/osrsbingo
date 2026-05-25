@@ -12,8 +12,6 @@ import {
 import {
   BOARD_LAYOUT,
   EDGES,
-  CELL_PX,
-  TILE_SIZE,
   BOARD_W,
   BOARD_H,
   tileStyle,
@@ -24,6 +22,110 @@ import {
 } from '../utils/rainbowBoard';
 
 const STATUS_RANK = { LOCKED: 0, UNLOCKED: 1, SUBMITTED: 2, COMPLETE: 3 };
+
+const COLOR_ORDER = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
+const COLOR_META = {
+  red: { label: 'Red', fill: '#e74c3c', track: '#3d1010', prefix: 'R', capstone: 'C1' },
+  orange: { label: 'Orange', fill: '#e67e22', track: '#3d2510', prefix: 'O', capstone: 'C2' },
+  yellow: { label: 'Yellow', fill: '#f1c40f', track: '#3d380a', prefix: 'Y', capstone: 'C3' },
+  green: { label: 'Green', fill: '#2ecc71', track: '#0a2d1a', prefix: 'G', capstone: 'C4' },
+  blue: { label: 'Blue', fill: '#3498db', track: '#0a1e30', prefix: 'B', capstone: 'C5' },
+  indigo: { label: 'Indigo', fill: '#7766dd', track: '#1e1a40', prefix: 'I', capstone: 'C6' },
+  violet: { label: 'Violet', fill: '#cc44cc', track: '#300a30', prefix: 'V', capstone: 'C7' },
+};
+
+function TeamRainbowCard({ team, teamIndex }) {
+  const tileByCode = useMemo(
+    () => Object.fromEntries((team.tiles ?? []).map((t) => [t.tileCode, t])),
+    [team.tiles]
+  );
+  const totalComplete = (team.tiles ?? []).filter((t) => t.status === 'COMPLETE').length;
+  const points = (team.tiles ?? []).reduce((sum, t) => {
+    if (t.status !== 'COMPLETE') return sum;
+    return sum + (t.tileCode.startsWith('C') ? 3 : 1);
+  }, 0);
+
+  return (
+    <Box border="1px solid rgba(255,255,255,0.08)" borderRadius="xl" overflow="hidden">
+      <HStack justify="space-between" px={4} py={3} bg="rgba(255,255,255,0.04)">
+        <HStack gap={2}>
+          <Box
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              background: TEAM_PALETTE[teamIndex % TEAM_PALETTE.length],
+            }}
+          />
+          <Text fontWeight="bold" fontSize="sm" color="white">
+            {team.teamName}
+          </Text>
+        </HStack>
+        <HStack gap={3}>
+          <Text fontSize="xs" color="yellow.400" fontWeight="semibold">
+            {points} pts
+          </Text>
+          <Text fontSize="xs" color="gray.500">
+            {Math.round((totalComplete / 56) * 100)}%
+          </Text>
+        </HStack>
+      </HStack>
+      {COLOR_ORDER.map((color) => {
+        const meta = COLOR_META[color];
+        const completed = [1, 2, 3, 4, 5, 6, 7].filter(
+          (n) => tileByCode[`${meta.prefix}${n}`]?.status === 'COMPLETE'
+        ).length;
+        const capDone = tileByCode[meta.capstone]?.status === 'COMPLETE';
+        const pct = (completed / 7) * 100;
+
+        return (
+          <Box key={color} position="relative" h="22px" bg={meta.track}>
+            <Box
+              position="absolute"
+              top={0}
+              left={0}
+              h="100%"
+              w={`${pct}%`}
+              bg={meta.fill}
+              transition="width 0.8s ease"
+              style={{ boxShadow: pct > 0 ? `2px 0 10px ${meta.fill}55` : 'none' }}
+            />
+            <HStack
+              position="absolute"
+              top="50%"
+              left="8px"
+              transform="translateY(-50%)"
+              gap={1}
+              pointerEvents="none"
+            >
+              <Text
+                fontSize="9px"
+                fontWeight="bold"
+                color="white"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                lineHeight="1"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+              >
+                {meta.label}
+              </Text>
+              {capDone && (
+                <Text
+                  fontSize="10px"
+                  lineHeight="1"
+                  color="#ffd700"
+                  style={{ textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}
+                >
+                  ★
+                </Text>
+              )}
+            </HStack>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
 
 function SpectatorEdges({ mergedBoardMap, showLocked }) {
   return (
@@ -54,10 +156,20 @@ function SpectatorEdges({ mergedBoardMap, showLocked }) {
             y1={a.y}
             x2={b.x}
             y2={b.y}
-            stroke={active ? '#ffffff55' : '#ffffff18'}
+            stroke="#ffffff"
+            strokeOpacity={active ? 0.45 : 0.12}
             strokeWidth={active ? 2 : 1}
             strokeDasharray={active ? undefined : '4 4'}
-          />
+          >
+            {active && (
+              <animate
+                attributeName="stroke-opacity"
+                values="0.2;0.65;0.2"
+                dur="2.5s"
+                repeatCount="indefinite"
+              />
+            )}
+          </line>
         );
       })}
     </svg>
@@ -87,6 +199,7 @@ function SpectatorTile({ tileCode, tileDef, teamStatuses, isNewlyCompleted }) {
   const pos = BOARD_LAYOUT[tileCode];
   if (!pos) return null;
 
+  const isCapstone = tileCode.startsWith('C');
   const color = tileDef?.color ?? 'capstone';
   const palette = COLOR_BG[color] ?? COLOR_BG.capstone;
   const textCol = COLOR_TEXT[color] ?? '#fff';
@@ -114,10 +227,18 @@ function SpectatorTile({ tileCode, tileDef, teamStatuses, isNewlyCompleted }) {
       style={{
         ...tileStyle(pos.col, pos.row),
         borderRadius: '50%',
+        ...(isCapstone && { transform: 'scale(1.18)', zIndex: 2 }),
+        ...(isCapstone && hasComplete && { boxShadow: '0 0 14px 4px #ffd70055' }),
         ...(isNewlyCompleted && { animation: 'tileComplete 2.5s ease-out', zIndex: 10 }),
       }}
       bg={bgColor}
-      border={allLocked ? '2px solid #33333388' : '2px solid #ffffff22'}
+      border={
+        isCapstone
+          ? `2.5px solid ${hasComplete ? '#ffd700' : '#ffd70055'}`
+          : allLocked
+          ? '2px solid #33333388'
+          : '2px solid #ffffff22'
+      }
       display="flex"
       alignItems="center"
       justifyContent="center"
@@ -190,13 +311,28 @@ export default function RainbowBingoBoardPage() {
   const triggerTest = (type) => {
     const CAPSTONES = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'];
     const codes = type === 'board' ? CAPSTONES : type === 'capstone' ? ['C1'] : ['R1'];
-    setRecentlyCompleted((s) => { const n = new Set(s); codes.forEach((c) => n.add(c)); return n; });
+    setRecentlyCompleted((s) => {
+      const n = new Set(s);
+      codes.forEach((c) => n.add(c));
+      return n;
+    });
     setTimeout(() => {
-      setRecentlyCompleted((s) => { const n = new Set(s); codes.forEach((c) => n.delete(c)); return n; });
+      setRecentlyCompleted((s) => {
+        const n = new Set(s);
+        codes.forEach((c) => n.delete(c));
+        return n;
+      });
     }, 2500);
-    if (type === 'board') { playBoardComplete(); triggerCelebration('board'); }
-    else if (type === 'capstone') { playCapstoneComplete(); triggerCelebration('capstone'); }
-    else { playTileComplete(); triggerCelebration('tile'); }
+    if (type === 'board') {
+      playBoardComplete();
+      triggerCelebration('board');
+    } else if (type === 'capstone') {
+      playCapstoneComplete();
+      triggerCelebration('capstone');
+    } else {
+      playTileComplete();
+      triggerCelebration('tile');
+    }
   };
 
   const teams = useMemo(() => boardsData?.getRainbowTeams ?? [], [boardsData]);
@@ -226,12 +362,25 @@ export default function RainbowBingoBoardPage() {
     );
     prevMergedRef.current = { ...mergedBoardMap };
     if (newlyDone.length === 0) return;
-    setRecentlyCompleted((s) => { const n = new Set(s); newlyDone.forEach((c) => n.add(c)); return n; });
+    setRecentlyCompleted((s) => {
+      const n = new Set(s);
+      newlyDone.forEach((c) => n.add(c));
+      return n;
+    });
     const isCapstone = newlyDone.some((c) => c.startsWith('C'));
-    if (isCapstone) { playCapstoneComplete(); triggerCelebration('capstone'); }
-    else { playTileComplete(); triggerCelebration('tile'); }
+    if (isCapstone) {
+      playCapstoneComplete();
+      triggerCelebration('capstone');
+    } else {
+      playTileComplete();
+      triggerCelebration('tile');
+    }
     const timer = setTimeout(() => {
-      setRecentlyCompleted((s) => { const n = new Set(s); newlyDone.forEach((c) => n.delete(c)); return n; });
+      setRecentlyCompleted((s) => {
+        const n = new Set(s);
+        newlyDone.forEach((c) => n.delete(c));
+        return n;
+      });
     }, 2500);
     return () => clearTimeout(timer);
   }, [mergedBoardMap, playTileComplete, playCapstoneComplete, triggerCelebration]);
@@ -246,120 +395,185 @@ export default function RainbowBingoBoardPage() {
 
   return (
     <>
-    <Box minH="100vh" color="white" pt="56px" pb={6} px={{ base: 3, md: 6 }}>
-      <style>{`@keyframes tileComplete { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.9); } 50% { box-shadow: 0 0 0 16px rgba(255,215,0,0.35); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } }`}</style>
-      <VStack align="stretch" gap={3} maxW="1200px" mx="auto">
-        <VStack align="center" gap={1}>
-          <Heading
-            size="lg"
-            bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
-            bgClip="text"
-          >
-            Rainbow Bingo
-          </Heading>
+      <Box minH="100vh" color="white" py="72px" px={{ base: 3, md: 6 }}>
+        <style>{`@keyframes tileComplete { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.9); } 50% { box-shadow: 0 0 0 16px rgba(255,215,0,0.35); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } }`}</style>
+        <VStack align="stretch" gap={5} maxW="1200px" mx="auto">
+          <VStack align="center" gap={1}>
+            <Heading
+              size="lg"
+              bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+              bgClip="text"
+            >
+              Rainbow Bingo
+            </Heading>
+            {event && (
+              <Text color="gray.400" fontSize="sm">
+                {event.eventName}
+              </Text>
+            )}
+          </VStack>
+
+          {!event && !eventLoading && (
+            <Center py={10}>
+              <Text color="gray.500">No active Rainbow Bingo event.</Text>
+            </Center>
+          )}
+
           {event && (
-            <Text color="gray.400" fontSize="sm">
-              {event.eventName}
-            </Text>
+            <>
+              <Text color="gray.300" textAlign="center" fontSize="sm" maxW="600px" mx="auto">
+                Welcome to Eternal Gems' Rainbow Bingo! We have{' '}
+                <Text as="span" color="white" fontWeight="semibold">
+                  {teams.length} {teams.length === 1 ? 'team' : 'teams'}
+                </Text>{' '}
+                competing to fill out their rainbows. Whoever either completes the board first or
+                has the most points by the end of the event will win! (Yes, there can be a tie. :-)
+                )
+              </Text>
+
+              {isSiteAdmin && (
+                <HStack justify="flex-end">
+                  <Button
+                    size="xs"
+                    variant={showLocked ? 'solid' : 'outline'}
+                    colorScheme="purple"
+                    onClick={() => setShowLocked((v) => !v)}
+                  >
+                    {showLocked ? 'Admin: Hide locked' : 'Admin: Show locked'}
+                  </Button>
+                </HStack>
+              )}
+
+              {/* Team progress — primary visual */}
+              {teams.length > 0 && (
+                <Box>
+                  <Text
+                    fontSize="xs"
+                    color="gray.600"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                    mb={3}
+                  >
+                    Team Progress
+                  </Text>
+                  <Box
+                    display="grid"
+                    gridTemplateColumns={{
+                      base: '1fr',
+                      sm: 'repeat(2, 1fr)',
+                      lg: 'repeat(3, 1fr)',
+                    }}
+                    gap={4}
+                  >
+                    {teams.map((team, i) => (
+                      <TeamRainbowCard key={team.teamId} team={team} teamIndex={i} />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Board map — secondary visual */}
+              <Box>
+                <Text
+                  fontSize="xs"
+                  color="gray.600"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={3}
+                >
+                  Board Map
+                </Text>
+                <Box overflowX="auto">
+                  <Box display="flex" justifyContent="center">
+                    <Box
+                      bg="rgba(255,255,255,0.03)"
+                      borderRadius="xl"
+                      p="12px"
+                      display="inline-block"
+                      flexShrink={0}
+                    >
+                      <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+                        <SpectatorEdges mergedBoardMap={mergedBoardMap} showLocked={showLocked} />
+                        <SpectatorTile tileCode="START" tileDef={null} teamStatuses={[]} />
+                        {Object.keys(BOARD_LAYOUT)
+                          .filter((k) => k !== 'START')
+                          .map((code) => {
+                            const status = mergedBoardMap[code];
+                            if (!showLocked && (!status || status === 'LOCKED')) return null;
+                            const tileDef =
+                              teams[0]?.tiles?.find((t) => t.tileCode === code)?.tileDef ?? null;
+                            return (
+                              <SpectatorTile
+                                key={code}
+                                tileCode={code}
+                                tileDef={tileDef}
+                                teamStatuses={tileTeamStatuses[code] ?? []}
+                                isNewlyCompleted={recentlyCompleted.has(code)}
+                              />
+                            );
+                          })}
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
+            </>
           )}
         </VStack>
 
-        {!event && !eventLoading && (
-          <Center py={10}>
-            <Text color="gray.500">No active Rainbow Bingo event.</Text>
-          </Center>
+        {isSiteAdmin && (
+          <Box
+            position="fixed"
+            bottom={4}
+            right={4}
+            bg="gray.900"
+            border="1px solid"
+            borderColor="gray.600"
+            borderRadius="lg"
+            p={3}
+            zIndex={100}
+            minW="160px"
+          >
+            <Text
+              fontSize="10px"
+              color="gray.500"
+              fontWeight="bold"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={2}
+            >
+              Dev tools
+            </Text>
+            <VStack gap={2} align="stretch">
+              <Button
+                size="xs"
+                colorScheme="blue"
+                variant="outline"
+                onClick={() => triggerTest('tile')}
+              >
+                Test tile complete
+              </Button>
+              <Button
+                size="xs"
+                colorScheme="yellow"
+                variant="outline"
+                onClick={() => triggerTest('capstone')}
+              >
+                Test capstone
+              </Button>
+              <Button
+                size="xs"
+                colorScheme="purple"
+                variant="outline"
+                onClick={() => triggerTest('board')}
+              >
+                Test board complete
+              </Button>
+            </VStack>
+          </Box>
         )}
-
-        {event && (
-          <>
-            <HStack justify="center" gap={5} wrap="wrap">
-              {teams.map((team, i) => (
-                <HStack key={team.teamId} gap={2}>
-                  <Box
-                    style={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: '50%',
-                      background: TEAM_PALETTE[i % TEAM_PALETTE.length],
-                    }}
-                  />
-                  <Text fontSize="sm" color="gray.300">
-                    {team.teamName}
-                  </Text>
-                </HStack>
-              ))}
-              {isSiteAdmin && (
-                <Button
-                  size="xs"
-                  variant={showLocked ? 'solid' : 'outline'}
-                  colorScheme="purple"
-                  onClick={() => setShowLocked((v) => !v)}
-                >
-                  {showLocked ? 'Admin: Hide locked' : 'Admin: Show locked'}
-                </Button>
-              )}
-            </HStack>
-
-            <Box overflowX="auto">
-              <Box display="flex" justifyContent="center">
-                <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }} flexShrink={0}>
-                  <SpectatorEdges mergedBoardMap={mergedBoardMap} showLocked={showLocked} />
-                  <SpectatorTile tileCode="START" tileDef={null} teamStatuses={[]} />
-                  {Object.keys(BOARD_LAYOUT)
-                    .filter((k) => k !== 'START')
-                    .map((code) => {
-                      const status = mergedBoardMap[code];
-                      if (!showLocked && (!status || status === 'LOCKED')) return null;
-                      const tileDef =
-                        teams[0]?.tiles?.find((t) => t.tileCode === code)?.tileDef ?? null;
-                      return (
-                        <SpectatorTile
-                          key={code}
-                          tileCode={code}
-                          tileDef={tileDef}
-                          teamStatuses={tileTeamStatuses[code] ?? []}
-                          isNewlyCompleted={recentlyCompleted.has(code)}
-                        />
-                      );
-                    })}
-                </Box>
-              </Box>
-            </Box>
-          </>
-        )}
-      </VStack>
-
-      {isSiteAdmin && (
-        <Box
-          position="fixed"
-          bottom={4}
-          right={4}
-          bg="gray.900"
-          border="1px solid"
-          borderColor="gray.600"
-          borderRadius="lg"
-          p={3}
-          zIndex={100}
-          minW="160px"
-        >
-          <Text fontSize="10px" color="gray.500" fontWeight="bold" textTransform="uppercase" letterSpacing="wider" mb={2}>
-            Dev tools
-          </Text>
-          <VStack gap={2} align="stretch">
-            <Button size="xs" colorScheme="blue" variant="outline" onClick={() => triggerTest('tile')}>
-              Test tile complete
-            </Button>
-            <Button size="xs" colorScheme="yellow" variant="outline" onClick={() => triggerTest('capstone')}>
-              Test capstone
-            </Button>
-            <Button size="xs" colorScheme="purple" variant="outline" onClick={() => triggerTest('board')}>
-              Test board complete
-            </Button>
-          </VStack>
-        </Box>
-      )}
-    </Box>
-    {celebrationOverlay}
+      </Box>
+      {celebrationOverlay}
     </>
   );
 }

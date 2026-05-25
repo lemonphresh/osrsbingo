@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
@@ -25,6 +25,9 @@ import {
   SliderTrack,
   SliderFilledTrack,
   SliderThumb,
+  Switch,
+  FormLabel,
+  FormControl,
   Accordion,
   AccordionItem,
   AccordionButton,
@@ -39,6 +42,7 @@ import {
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
+import { useCompletionSound } from '../hooks/useCompletionSound';
 import {
   GET_ACTIVE_RAINBOW_EVENT,
   GET_RAINBOW_TILE_DEFS,
@@ -46,6 +50,7 @@ import {
   GET_RAINBOW_EVENT_BOARDS,
   RAINBOW_SUBMISSION_ADDED,
   RAINBOW_SUBMISSION_REVIEWED,
+  RAINBOW_EVENT_BOARD_UPDATED,
   REVIEW_RAINBOW_SUBMISSION,
   COMPLETE_RAINBOW_TILE,
   SET_RAINBOW_TILE_PROGRESS,
@@ -409,7 +414,11 @@ function TileGroup({
   const [confirming, setConfirming] = useState(false);
   const STATUS_ORDER = { PENDING: 0, APPROVED: 1, DENIED: 2 };
   const sortSubs = (arr) =>
-    [...arr].sort((a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3));
+    [...arr].sort((a, b) => {
+      const statusDiff = (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
+      if (statusDiff !== 0) return statusDiff;
+      return new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime();
+    });
   const pre = sortSubs(subs.filter((s) => s.type === 'PRE'));
   const final = sortSubs(subs.filter((s) => s.type === 'FINAL'));
   const pendingCount = subs.filter((s) => s.status === 'PENDING').length;
@@ -499,6 +508,22 @@ function TileGroup({
 
       <AccordionPanel px={4} pb={4}>
         <VStack align="stretch" gap={4}>
+          {tileDef?.metricLabel && (
+            <Box bg="whiteAlpha.50" borderRadius="md" px={3} py={2}>
+              <Text
+                fontSize="xs"
+                color="gray.400"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={0.5}
+              >
+                Goal
+              </Text>
+              <Text fontSize="sm" color="white" fontWeight="semibold">
+                {tileDef.metricLabel}
+              </Text>
+            </Box>
+          )}
           <TileProgressEditor
             teamId={teamId}
             tileCode={tileCode}
@@ -538,7 +563,67 @@ function TileGroup({
 export default function RainbowRefsPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { showToast } = useToastContext();
+  const { playSubmissionReceived } = useCompletionSound();
   const [loadingId, setLoadingId] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const audioUnlockedRef = useRef(false);
+  const [notifEnabled, setNotifEnabled] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== 'undefined' ? Notification.permission : 'default',
+  );
+
+  useEffect(() => {
+    if (localStorage.getItem('rainbowRefs_sound_enabled') === 'true') setSoundEnabled(true);
+    if (
+      localStorage.getItem('rainbowRefs_notif_enabled') === 'true' &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      setNotifEnabled(true);
+    }
+  }, []);
+
+  const handleEnableSound = useCallback(() => {
+    audioUnlockedRef.current = true;
+    setSoundEnabled(true);
+    localStorage.setItem('rainbowRefs_sound_enabled', 'true');
+    playSubmissionReceived();
+  }, [playSubmissionReceived]);
+
+  const handleDisableSound = useCallback(() => {
+    setSoundEnabled(false);
+    localStorage.setItem('rainbowRefs_sound_enabled', 'false');
+  }, []);
+
+  const handleToggleNotif = useCallback(async () => {
+    if (notifEnabled) {
+      setNotifEnabled(false);
+      localStorage.setItem('rainbowRefs_notif_enabled', 'false');
+      return;
+    }
+    if (typeof Notification === 'undefined') return;
+    let perm = notifPermission;
+    if (perm === 'default') {
+      perm = await Notification.requestPermission();
+      setNotifPermission(perm);
+    }
+    if (perm === 'granted') {
+      setNotifEnabled(true);
+      localStorage.setItem('rainbowRefs_notif_enabled', 'true');
+      new Notification('Rainbow Bingo Refs', { body: 'Desktop notifications enabled', icon: '/favicon.ico' });
+    }
+  }, [notifEnabled, notifPermission]);
+
+  const fireNotif = useCallback((title, body) => {
+    if (!notifEnabled || notifPermission !== 'granted') return;
+    try {
+      const n = new Notification(title, { body, icon: '/favicon.ico', tag: 'rainbow-submission' });
+      n.onclick = () => { window.focus(); n.close(); };
+    } catch (_) {}
+  }, [notifEnabled, notifPermission]);
+
+  // Track pending count across tab visibility changes so we can play sound on return
+  const prevPendingRef = useRef(0);
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_ACTIVE_RAINBOW_EVENT, {
     skip: !isAuthenticated,
@@ -557,12 +642,14 @@ export default function RainbowRefsPage() {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
     fetchPolicy: 'cache-and-network',
+    pollInterval: 5 * 60 * 1000,
   });
 
   const { data: boardsData, refetch: refetchBoards } = useQuery(GET_RAINBOW_EVENT_BOARDS, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
     fetchPolicy: 'cache-and-network',
+    pollInterval: 5 * 60 * 1000,
   });
 
   const { tileStatusMap, tileProgressMap, completedTilesList } = useMemo(() => {
@@ -594,13 +681,28 @@ export default function RainbowRefsPage() {
   useSubscription(RAINBOW_SUBMISSION_ADDED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
-    onData: () => refetchSubs(),
+    onData: ({ data: subData }) => {
+      refetchSubs();
+      const sub = subData?.data?.rainbowSubmissionAdded;
+      const label = sub
+        ? `${sub.team?.teamName ?? 'A team'} — ${sub.tileCode} (${sub.type === 'PRE' ? 'pre-screenshot' : 'final'})`
+        : 'New submission';
+      showToast(label, 'info');
+      if (soundEnabled) playSubmissionReceived();
+      fireNotif('New Rainbow Bingo submission', label);
+    },
   });
 
   useSubscription(RAINBOW_SUBMISSION_REVIEWED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
     onData: () => refetchSubs(),
+  });
+
+  useSubscription(RAINBOW_EVENT_BOARD_UPDATED, {
+    variables: { eventId: event?.eventId },
+    skip: !event?.eventId || !isAdmin,
+    onData: () => refetchBoards(),
   });
 
   const [reviewSubmission] = useMutation(REVIEW_RAINBOW_SUBMISSION, {
@@ -663,12 +765,50 @@ export default function RainbowRefsPage() {
     return Object.values(map)
       .filter((g) => tileStatusMap[`${g.tileCode}_${g.teamId}`] !== 'COMPLETE')
       .sort((a, b) => {
-        const aPending = a.subs.filter((s) => s.status === 'PENDING').length;
-        const bPending = b.subs.filter((s) => s.status === 'PENDING').length;
-        if (bPending !== aPending) return bPending - aPending;
+        const latestPending = (g) =>
+          g.subs
+            .filter((s) => s.status === 'PENDING')
+            .reduce((max, s) => Math.max(max, new Date(s.submittedAt).getTime()), 0);
+        const diff = latestPending(b) - latestPending(a);
+        if (diff !== 0) return diff;
         return a.tileCode.localeCompare(b.tileCode);
       });
   }, [subsData, tileStatusMap]);
+
+  const pendingCount = useMemo(
+    () => groups.reduce((sum, g) => sum + g.subs.filter((s) => s.status === 'PENDING').length, 0),
+    [groups],
+  );
+
+  useEffect(() => {
+    document.title = pendingCount > 0 ? `(${pendingCount}) Rainbow Bingo Refs` : 'Rainbow Bingo Refs';
+    return () => { document.title = 'OSRS Bingo Hub'; };
+  }, [pendingCount]);
+
+  // Refetch on tab focus/visibility; play sound if new pending items arrived while away
+  useEffect(() => {
+    if (!isAdmin) return;
+    const refetchAll = () => { refetchSubs(); refetchBoards(); };
+    const onFocus = () => refetchAll();
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        refetchAll();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [isAdmin, refetchSubs, refetchBoards]);
+
+  useEffect(() => {
+    if (soundEnabled && pendingCount > prevPendingRef.current) {
+      playSubmissionReceived();
+    }
+    prevPendingRef.current = pendingCount;
+  }, [pendingCount, soundEnabled, playSubmissionReceived]);
 
   const handleApprove = (submissionId) => {
     setLoadingId(submissionId + '-approve');
@@ -721,22 +861,61 @@ export default function RainbowRefsPage() {
       <VStack align="stretch" gap={6} maxW="1100px" mx="auto">
         <HStack justify="space-between" align="flex-start" wrap="wrap" gap={3}>
           <VStack align="flex-start" gap={1}>
-            <Heading
-              size="lg"
-              bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
-              bgClip="text"
-            >
-              Rainbow Bingo: Refs
-            </Heading>
+            <HStack gap={3} align="center">
+              <Heading
+                size="lg"
+                bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+                bgClip="text"
+              >
+                Rainbow Bingo: Refs
+              </Heading>
+              {pendingCount > 0 && (
+                <Badge colorScheme="yellow" borderRadius="full" fontSize="sm" px={2} py={0.5}>
+                  {pendingCount} pending
+                </Badge>
+              )}
+            </HStack>
             {event && (
               <Text color="gray.400" fontSize="sm">
                 {event.eventName}
               </Text>
             )}
           </VStack>
-          <Button as={RouterLink} to="/eg-rainbow" size="sm" colorScheme="purple" variant="ghost">
-            Main Bingo Page
-          </Button>
+          <HStack gap={2}>
+            <FormControl display="flex" alignItems="center" gap={2} w="auto">
+              <Switch
+                id="sound-toggle"
+                colorScheme="green"
+                isChecked={soundEnabled}
+                onChange={soundEnabled ? handleDisableSound : handleEnableSound}
+              />
+              <FormLabel htmlFor="sound-toggle" mb={0} fontSize="sm" color="gray.300" cursor="pointer">
+                Sound
+              </FormLabel>
+            </FormControl>
+            <FormControl display="flex" alignItems="center" gap={2} w="auto">
+              <Switch
+                id="notif-toggle"
+                colorScheme="blue"
+                isChecked={notifEnabled}
+                isDisabled={notifPermission === 'denied'}
+                onChange={handleToggleNotif}
+              />
+              <FormLabel
+                htmlFor="notif-toggle"
+                mb={0}
+                fontSize="sm"
+                color={notifPermission === 'denied' ? 'gray.600' : 'gray.300'}
+                cursor={notifPermission === 'denied' ? 'not-allowed' : 'pointer'}
+                title={notifPermission === 'denied' ? 'Notifications blocked in browser settings' : undefined}
+              >
+                Notify
+              </FormLabel>
+            </FormControl>
+            <Button as={RouterLink} to="/eg-rainbow" size="sm" colorScheme="purple" variant="ghost">
+              Main Bingo Page
+            </Button>
+          </HStack>
         </HStack>
 
         {/* Submission groups */}
@@ -751,6 +930,55 @@ export default function RainbowRefsPage() {
               </Badge>
             )}
           </HStack>
+
+          <Box
+            bg="whiteAlpha.50"
+            border="1px solid"
+            borderColor="whiteAlpha.100"
+            borderRadius="lg"
+            p={4}
+            mb={4}
+            fontSize="sm"
+            color="gray.300"
+          >
+            <Text fontWeight="semibold" color="white" mb={2}>
+              How reffing works
+            </Text>
+            <VStack align="stretch" gap={2}>
+              <Text>
+                Submissions come in automatically from Discord. Open a tile to see what the team
+                submitted and check it against the tile's{' '}
+                <Text as="span" color="white" fontWeight="semibold">
+                  Goal
+                </Text>
+                .
+              </Text>
+              <Text>
+                <Text as="span" color="blue.300" fontWeight="semibold">
+                  Pre-screenshots
+                </Text>{' '}
+                are submitted before a tile is started, they prove the team's starting state (i.e.
+                kc or xp before training). Approve them as long as they show a reasonable baseline
+                and the event password.
+              </Text>
+              <Text>
+                <Text as="span" color="purple.300" fontWeight="semibold">
+                  Final submissions
+                </Text>{' '}
+                are the completion proof. Review these carefully against the goal, ensure the event
+                password and proof is in the screenshot. At least one approved final submission is
+                required before you can mark a tile complete.
+              </Text>
+              <Text>
+                Before marking complete, make sure the{' '}
+                <Text as="span" color="white" fontWeight="semibold">
+                  progress bar is at 100%
+                </Text>
+                , use the slider to set it. The Complete Tile button will be locked until progress
+                is full and a final submission is approved.
+              </Text>
+            </VStack>
+          </Box>
 
           {!event && (
             <Text color="gray.500" fontSize="sm">

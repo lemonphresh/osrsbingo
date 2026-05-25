@@ -42,7 +42,7 @@ import {
 
 function CreateEventForm({ onCreate }) {
   const { showToast } = useToastContext();
-  const [form, setForm] = useState({ eventName: '', staffChannelId: '' });
+  const [form, setForm] = useState({ eventName: '' });
   const [createEvent, { loading }] = useMutation(CREATE_RAINBOW_EVENT, {
     onCompleted: () => showToast('Event created!', 'success'),
     onError: (e) => showToast(e.message, 'error'),
@@ -57,7 +57,6 @@ function CreateEventForm({ onCreate }) {
       variables: {
         input: {
           eventName: form.eventName.trim(),
-          staffChannelId: form.staffChannelId.trim() || null,
         },
       },
     });
@@ -80,23 +79,6 @@ function CreateEventForm({ onCreate }) {
             bg="gray.700"
             borderColor="gray.600"
             color="white"
-          />
-        </Box>
-        <Box>
-          <Text fontSize="sm" color="gray.400" mb={1}>
-            Staff Channel ID{' '}
-            <Text as="span" color="gray.600">
-              (optional)
-            </Text>
-          </Text>
-          <Input
-            value={form.staffChannelId}
-            onChange={set('staffChannelId')}
-            placeholder="Discord channel ID"
-            bg="gray.700"
-            borderColor="gray.600"
-            color="white"
-            fontFamily="mono"
           />
         </Box>
         <Button
@@ -164,11 +146,6 @@ function EventInfoPanel({ event, refetch }) {
           <Text color="gray.500" fontSize="xs">
             eventId: {event.eventId}
           </Text>
-          {event.staffChannelId && (
-            <Text color="gray.500" fontSize="xs">
-              Staff channel: {event.staffChannelId}
-            </Text>
-          )}
         </VStack>
         <HStack gap={2} wrap="wrap">
           {actions.map(({ label, next, scheme }) => (

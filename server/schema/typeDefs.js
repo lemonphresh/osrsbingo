@@ -692,6 +692,8 @@ const typeDefs = gql`
     discordMessageId: String
     channelId:        String!
     submittedAt:      DateTime
+    discordUsername:  String
+    discordUserId:    String
   }
 
   # ============================================================

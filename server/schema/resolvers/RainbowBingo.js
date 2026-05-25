@@ -108,27 +108,26 @@ async function sendRainbowDiscordNotification({
     }`
   );
 
+  const FRONTEND_URL = process.env.FRONTEND_URL || 'https://osrsbingo.com';
+  const teamBoardUrl = team.teamToken
+    ? `${FRONTEND_URL}/eg-rainbow/team/${team.teamToken}`
+    : null;
+
   if (type === 'TILE_COMPLETE') {
     const isCapstone = tileDef?.color === 'capstone';
     const funFact = TILE_FUN_FACTS[tileCode];
 
     if (isCapstone) {
-      const fields = [];
+      const parts = [`**${tileDef?.bossOrSkill}** — ${tileDef?.metricLabel}`];
       if (funFact) {
-        fields.push({
-          name: '🏳️‍🌈 The color behind the tiles',
-          value: `${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`,
-        });
+        parts.push(`🏳️‍🌈 **The color behind the tiles**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`);
       }
-      fields.push({
-        name: '🩷 Keep going',
-        value: 'Keep pushing on those other color branches! Complete the rainbow!.',
-      });
+      parts.push(`🩷 **Keep going**\nKeep pushing on those other color branches! Complete the rainbow!`);
+      if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
       await postDiscordEmbed(team.discordChannelId, {
         color: 0xffd700,
         title: `✨ Capstone ${tileCode} complete!`,
-        description: `**${tileDef?.bossOrSkill}** — ${tileDef?.metricLabel}`,
-        fields,
+        description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
       });
     } else {
@@ -141,19 +140,19 @@ async function sendRainbowDiscordNotification({
             .join('\n')
         : 'No new tiles unlocked yet.';
 
-      const fields = [{ name: '🔓 Newly unlocked', value: unlockedLines }];
+      const parts = [
+        `**${tileDef?.bossOrSkill}** — ${tileDef?.metricLabel}`,
+        `🔓 **Newly unlocked**\n${unlockedLines}`,
+      ];
       if (funFact) {
-        fields.push({
-          name: '🌈 Did you know?',
-          value: `${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`,
-        });
+        parts.push(`🌈 **Did you know?**\n${funFact.fact}\n\n*Source: [${funFact.source}](${funFact.sourceUrl})*`);
       }
+      if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
 
       await postDiscordEmbed(team.discordChannelId, {
         color: COLOR_HEX[tileDef?.color] ?? 0x95a5a6,
         title: `🎉 ${tileCode} complete!`,
-        description: `**${tileDef?.bossOrSkill}** — ${tileDef?.metricLabel}`,
-        fields,
+        description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
       });
     }
@@ -446,6 +445,8 @@ const Mutation = {
       channelId: input.channelId,
       status: 'PENDING',
       submittedAt: input.submittedAt ?? new Date(),
+      discordUsername: input.discordUsername ?? null,
+      discordUserId: input.discordUserId ?? null,
     });
 
     // Move tile to SUBMITTED on the first FINAL submission so admins can see it's in-progress.
@@ -454,6 +455,7 @@ const Mutation = {
       await teamTile.update({ status: 'SUBMITTED' });
     }
 
+    console.log(`[rainbow] publishing RAINBOW_SUBMISSION_ADDED_${event.eventId}`);
     await pubsub.publish(`RAINBOW_SUBMISSION_ADDED_${event.eventId}`, {
       rainbowSubmissionAdded: submission,
     });
@@ -650,19 +652,26 @@ const Mutation = {
 
 // ── Subscriptions ──────────────────────────────────────────────────────────
 
+const createSubscription = (topicFn) => ({
+  subscribe: (_, args) => {
+    const topic = topicFn(args);
+    console.log(`[rainbow] client subscribed to ${topic}`);
+    const iterator = pubsub.asyncIterableIterator(topic);
+    return {
+      [Symbol.asyncIterator]() { return iterator; },
+      return() {
+        if (iterator.return) iterator.return();
+        return Promise.resolve({ done: true });
+      },
+    };
+  },
+});
+
 const Subscription = {
-  rainbowSubmissionAdded: {
-    subscribe: (_, { eventId }) => pubsub.asyncIterator(`RAINBOW_SUBMISSION_ADDED_${eventId}`),
-  },
-  rainbowSubmissionReviewed: {
-    subscribe: (_, { eventId }) => pubsub.asyncIterator(`RAINBOW_SUBMISSION_REVIEWED_${eventId}`),
-  },
-  rainbowTeamBoardUpdated: {
-    subscribe: (_, { teamId }) => pubsub.asyncIterator(`RAINBOW_BOARD_UPDATED_${teamId}`),
-  },
-  rainbowEventBoardUpdated: {
-    subscribe: (_, { eventId }) => pubsub.asyncIterator(`RAINBOW_EVENT_BOARD_UPDATED_${eventId}`),
-  },
+  rainbowSubmissionAdded:   createSubscription(({ eventId }) => `RAINBOW_SUBMISSION_ADDED_${eventId}`),
+  rainbowSubmissionReviewed: createSubscription(({ eventId }) => `RAINBOW_SUBMISSION_REVIEWED_${eventId}`),
+  rainbowTeamBoardUpdated:  createSubscription(({ teamId })  => `RAINBOW_BOARD_UPDATED_${teamId}`),
+  rainbowEventBoardUpdated: createSubscription(({ eventId }) => `RAINBOW_EVENT_BOARD_UPDATED_${eventId}`),
 };
 
 // ── Field resolvers ────────────────────────────────────────────────────────
@@ -694,4 +703,4 @@ const RainbowTeam = {
   },
 };
 
-module.exports = { Query, Mutation, Subscription, RainbowSubmission, RainbowEvent, RainbowTeam };
+module.exports = { Query, Mutation, Subscription, RainbowSubmission, RainbowEvent, RainbowTeam, getFullBoard };

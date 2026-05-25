@@ -4,7 +4,7 @@ export const BOARD_LAYOUT = {
   R4: { col: 14, row: 6  }, R5: { col: 16, row: 4  }, R6: { col: 10, row: 6  },
   R7: { col: 8,  row: 4  },
   O1: { col: 14, row: 10 }, O2: { col: 16, row: 8  }, O3: { col: 18, row: 6  },
-  O4: { col: 20, row: 4  }, O5: { col: 20, row: 9  }, O6: { col: 22, row: 7  },
+  O4: { col: 21, row: 5  }, O5: { col: 20, row: 9  }, O6: { col: 22, row: 7  },
   O7: { col: 22, row: 11 },
   Y1: { col: 15, row: 12 }, Y2: { col: 17, row: 12 }, Y3: { col: 19, row: 12 },
   Y4: { col: 17, row: 14 }, Y5: { col: 19, row: 14 }, Y6: { col: 22, row: 13 },

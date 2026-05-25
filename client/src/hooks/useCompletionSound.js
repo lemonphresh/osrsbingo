@@ -64,5 +64,17 @@ export function useCompletionSound() {
     } catch (_) {}
   }, []);
 
-  return { playTileComplete, playCapstoneComplete, playBoardComplete };
+  const playSubmissionReceived = useCallback(() => {
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+      // Three-note ascending alert: E5 → G5 → C6
+      playNote(ctx, 659.25, t,        0.12, 0.35);
+      playNote(ctx, 783.99, t + 0.10, 0.12, 0.35);
+      playNote(ctx, 1046.5, t + 0.20, 0.40, 0.40);
+      setTimeout(() => ctx.close(), 1200);
+    } catch (_) {}
+  }, []);
+
+  return { playTileComplete, playCapstoneComplete, playBoardComplete, playSubmissionReceived };
 }
