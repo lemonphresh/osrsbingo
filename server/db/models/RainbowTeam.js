@@ -18,6 +18,7 @@ module.exports = (sequelize) => {
       discordChannelId:  { type: DataTypes.STRING, allowNull: false },
       captainDiscordId:  { type: DataTypes.STRING, allowNull: true },
       notes:             { type: DataTypes.TEXT,   allowNull: true },
+      teamToken:         { type: DataTypes.STRING(16), allowNull: true },
     },
     { sequelize, modelName: 'RainbowTeam' },
   );

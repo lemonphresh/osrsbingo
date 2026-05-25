@@ -27,6 +27,8 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 'PENDING',
       },
+      discordUsername:  { type: DataTypes.STRING, allowNull: true },
+      discordUserId:    { type: DataTypes.STRING, allowNull: true },
       reviewedBy:       { type: DataTypes.STRING, allowNull: true },
       reviewedAt:       { type: DataTypes.DATE,   allowNull: true },
       denialReason:     { type: DataTypes.TEXT,   allowNull: true },

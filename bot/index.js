@@ -21,8 +21,10 @@ const leaderboard = require('./commands/leaderboard');
 const clanwars = require('./commands/clanwars');
 const clanwarsHelp = clanwars.help;
 const clanwarsPresubmit = clanwars.cfpresubmit;
+const rainbowbingo = require('./commands/rainbowbingo');
+const rbpre = rainbowbingo.rbpre;
 
-const commands = [treasurehunt, nodes, submit, leaderboard, clanwars, clanwarsHelp, clanwarsPresubmit];
+const commands = [treasurehunt, nodes, submit, leaderboard, clanwars, clanwarsHelp, clanwarsPresubmit, rainbowbingo, rbpre];
 
 let TreasureEvent, TreasureTeam, ClanWarsEvent, ClanWarsTeam;
 

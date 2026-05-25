@@ -8,13 +8,12 @@ module.exports = {
       eventId:             { type: Sequelize.STRING, allowNull: false },
       tileCode:            { type: Sequelize.STRING, allowNull: false },
       status: {
-        type: Sequelize.ENUM('LOCKED', 'UNLOCKED', 'PRE_SUBMITTED', 'PRE_APPROVED', 'SUBMITTED', 'COMPLETE', 'DENIED'),
+        type: Sequelize.ENUM('LOCKED', 'UNLOCKED', 'SUBMITTED', 'COMPLETE'),
         allowNull: false,
         defaultValue: 'LOCKED',
       },
-      unlockedAt:          { type: Sequelize.DATE,   allowNull: true },
-      completedAt:         { type: Sequelize.DATE,   allowNull: true },
-      activeSubmissionId:  { type: Sequelize.STRING, allowNull: true },
+      unlockedAt:   { type: Sequelize.DATE, allowNull: true },
+      completedAt:  { type: Sequelize.DATE, allowNull: true },
       createdAt:           { type: Sequelize.DATE,   allowNull: false, defaultValue: Sequelize.literal('NOW()') },
       updatedAt:           { type: Sequelize.DATE,   allowNull: false, defaultValue: Sequelize.literal('NOW()') },
     });

@@ -590,6 +590,111 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # RAINBOW BINGO
+  # ============================================================
+
+  enum RainbowEventStatus { SETUP ACTIVE COMPLETE }
+  enum RainbowTileStatus  { LOCKED UNLOCKED SUBMITTED COMPLETE }
+  enum RainbowSubmissionType   { PRE FINAL }
+  enum RainbowSubmissionStatus { PENDING APPROVED DENIED }
+
+  type RainbowTileDef {
+    tileCode:      String!
+    color:         String!
+    colorIndex:    Int!
+    bossOrSkill:   String!
+    metricType:    String!
+    metricTarget:  Float
+    metricUnit:    String
+    metricLabel:   String!
+    hoursEstimate: Float
+    theme:         String
+    funName:       String
+    notes:         String
+  }
+
+  type RainbowEvent {
+    eventId:        ID!
+    eventName:      String!
+    status:         RainbowEventStatus!
+    startDate:      DateTime
+    endDate:        DateTime
+    adminIds:       [String!]!
+    staffChannelId: String
+    tileGraph:      JSON!
+    teams:          [RainbowTeam!]!
+    admins:         [User!]!
+    createdAt:      DateTime
+    updatedAt:      DateTime
+  }
+
+  type RainbowTeam {
+    teamId:           ID!
+    eventId:          ID!
+    teamName:         String!
+    discordChannelId: String!
+    captainDiscordId: String
+    notes:            String
+    teamToken:        String
+    tiles:            [RainbowTeamTile!]!
+    createdAt:        DateTime
+  }
+
+  type RainbowTeamTile {
+    teamTileId:  ID!
+    teamId:      ID!
+    eventId:     ID!
+    tileCode:    String!
+    status:      RainbowTileStatus!
+    progress:    Int!
+    unlockedAt:  DateTime
+    completedAt: DateTime
+    tileDef:     RainbowTileDef!
+  }
+
+  type RainbowSubmission {
+    submissionId:     ID!
+    teamId:           ID!
+    eventId:          ID!
+    tileCode:         String!
+    type:             RainbowSubmissionType!
+    screenshotUrl:    String
+    discordMessageId: String
+    channelId:        String!
+    status:           RainbowSubmissionStatus!
+    discordUsername:  String
+    discordUserId:    String
+    reviewedBy:       String
+    reviewedAt:       DateTime
+    denialReason:     String
+    submittedAt:      DateTime
+    team:             RainbowTeam
+  }
+
+  input CreateRainbowEventInput {
+    eventName:      String!
+    startDate:      DateTime
+    endDate:        DateTime
+    staffChannelId: String
+  }
+
+  input CreateRainbowTeamInput {
+    teamName:         String!
+    discordChannelId: String!
+    captainDiscordId: String
+    notes:            String
+  }
+
+  input CreateRainbowSubmissionInput {
+    tileCode:         String!
+    type:             RainbowSubmissionType!
+    screenshotUrl:    String
+    discordMessageId: String
+    channelId:        String!
+    submittedAt:      DateTime
+  }
+
+  # ============================================================
   # QUERIES
   # ============================================================
 
@@ -670,6 +775,15 @@ const typeDefs = gql`
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
     getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
+
+    # --- Rainbow Bingo ---
+    getActiveRainbowEvent: RainbowEvent
+    getRainbowEvent(eventId: ID!): RainbowEvent
+    getRainbowTeams(eventId: ID!): [RainbowTeam!]!
+    getRainbowTeamBoard(teamId: ID!): [RainbowTeamTile!]!
+    getRainbowTeamByToken(token: String!): RainbowTeam
+    getRainbowSubmissions(eventId: ID!, status: RainbowSubmissionStatus, teamId: ID, tileCode: String): [RainbowSubmission!]!
+    getRainbowTileDefs: [RainbowTileDef!]!
 
     # --- Group Goal Dashboard ---
     getGroupDashboard(slug: String!): GroupDashboard
@@ -910,6 +1024,23 @@ const typeDefs = gql`
     muteGroupDashboard(dashboardId: ID!): Boolean!
     unmuteGroupDashboard(dashboardId: ID!): Boolean!
     markGroupNotificationsRead: Boolean!
+
+    # --- Rainbow Bingo ---
+    createRainbowEvent(input: CreateRainbowEventInput!): RainbowEvent!
+    createRainbowTeam(eventId: ID!, input: CreateRainbowTeamInput!): RainbowTeam!
+    updateRainbowEventStatus(eventId: ID!, status: RainbowEventStatus!): RainbowEvent!
+    createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
+    reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
+    completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!
+    setRainbowTileProgress(teamId: ID!, tileCode: String!, progress: Int!): RainbowTeamTile!
+    undoRainbowTileComplete(teamId: ID!, tileCode: String!): Boolean!
+    addRainbowAdmin(eventId: ID!, userId: ID!): RainbowEvent!
+    removeRainbowAdmin(eventId: ID!, userId: ID!): RainbowEvent!
+    testRainbowChannel(teamId: ID!): Boolean!
+    testRainbowNotification(teamId: ID!, type: String!): Boolean!
+    deleteRainbowEvent(eventId: ID!): Boolean!
+    deleteRainbowTeam(teamId: ID!): Boolean!
+    generateRainbowTeamToken(teamId: ID!): RainbowTeam!
   }
 
   # ============================================================
@@ -1302,6 +1433,12 @@ const typeDefs = gql`
     clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
     clanWarsPreScreenshotAdded(eventId: ID!): ClanWarsPreScreenshot!
     clanWarsEventUpdated(eventId: ID!): ClanWarsEvent!
+
+    # --- Rainbow Bingo ---
+    rainbowSubmissionAdded(eventId: ID!): RainbowSubmission!
+    rainbowSubmissionReviewed(eventId: ID!): RainbowSubmission!
+    rainbowTeamBoardUpdated(teamId: ID!): [RainbowTeamTile!]!
+    rainbowEventBoardUpdated(eventId: ID!): ID!
   }
 `;
 

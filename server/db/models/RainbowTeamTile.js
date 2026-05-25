@@ -15,13 +15,13 @@ module.exports = (sequelize) => {
       eventId:    { type: DataTypes.STRING, allowNull: false },
       tileCode:   { type: DataTypes.STRING, allowNull: false },
       status: {
-        type: DataTypes.ENUM('LOCKED', 'UNLOCKED', 'PRE_SUBMITTED', 'PRE_APPROVED', 'SUBMITTED', 'COMPLETE', 'DENIED'),
+        type: DataTypes.ENUM('LOCKED', 'UNLOCKED', 'SUBMITTED', 'COMPLETE'),
         allowNull: false,
         defaultValue: 'LOCKED',
       },
-      unlockedAt:          { type: DataTypes.DATE,   allowNull: true },
-      completedAt:         { type: DataTypes.DATE,   allowNull: true },
-      activeSubmissionId:  { type: DataTypes.STRING, allowNull: true },
+      progress:    { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      unlockedAt:  { type: DataTypes.DATE, allowNull: true },
+      completedAt: { type: DataTypes.DATE, allowNull: true },
     },
     { sequelize, modelName: 'RainbowTeamTile' },
   );

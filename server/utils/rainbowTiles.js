@@ -105,7 +105,14 @@ const DEFAULT_TILE_GRAPH = {
   V6: ['V3', 'V5'],
   V7: ['V6'],
 
-  // Capstones: TBD
+  // Capstones — each unlocks after completing its color's final tile
+  C1: ['R7'],
+  C2: ['O7'],
+  C3: ['Y7'],
+  C4: ['G7'],
+  C5: ['B7'],
+  C6: ['I7'],
+  C7: ['V7'],
 };
 
 const TILE_MAP = Object.fromEntries(TILES.map((t) => [t.tileCode, t]));
@@ -130,4 +137,28 @@ function getNewlyUnlockedTiles(completedTileCodes, justCompletedTileCode, tileGr
     .map(([tileCode]) => tileCode);
 }
 
-module.exports = { TILES, TILE_MAP, DEFAULT_TILE_GRAPH, getStartTiles, getNewlyUnlockedTiles };
+// Given a tile being un-completed, returns all non-COMPLETE tiles that should
+// be re-locked because their prerequisites are no longer fully met.
+// Uses iterative expansion so chains (R7 un-done → C1 re-locks → etc.) are handled.
+function getCascadeLockTiles(uncompletedCode, allTiles, tileGraph = DEFAULT_TILE_GRAPH) {
+  const statusMap = Object.fromEntries(allTiles.map((t) => [t.tileCode, t.status]));
+  const toLock = new Set();
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const [tileCode, prereqs] of Object.entries(tileGraph)) {
+      if (toLock.has(tileCode)) continue;
+      if (statusMap[tileCode] === 'COMPLETE') continue;
+      if (statusMap[tileCode] === 'LOCKED') continue;
+      const effectivelyIncomplete = (code) =>
+        code === uncompletedCode || toLock.has(code) || statusMap[code] !== 'COMPLETE';
+      if (prereqs.some(effectivelyIncomplete)) {
+        toLock.add(tileCode);
+        changed = true;
+      }
+    }
+  }
+  return [...toLock];
+}
+
+module.exports = { TILES, TILE_MAP, DEFAULT_TILE_GRAPH, getStartTiles, getNewlyUnlockedTiles, getCascadeLockTiles };

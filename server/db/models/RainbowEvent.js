@@ -15,9 +15,9 @@ module.exports = (sequelize) => {
       eventId:   { type: DataTypes.STRING, primaryKey: true },
       eventName: { type: DataTypes.STRING, allowNull: false },
       status: {
-        type: DataTypes.ENUM('ACTIVE', 'PAUSED', 'COMPLETE'),
+        type: DataTypes.ENUM('SETUP', 'ACTIVE', 'COMPLETE'),
         allowNull: false,
-        defaultValue: 'ACTIVE',
+        defaultValue: 'SETUP',
       },
       startDate:        { type: DataTypes.DATE,  allowNull: true },
       endDate:          { type: DataTypes.DATE,  allowNull: true },
