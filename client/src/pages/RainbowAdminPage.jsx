@@ -298,13 +298,14 @@ function AddTeamForm({ eventId, onAdded }) {
   const [form, setForm] = useState({
     teamName: '',
     discordChannelId: '',
+    discordRoleId: '',
   });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const [createTeam, { loading }] = useMutation(CREATE_RAINBOW_TEAM, {
     onCompleted: () => {
       showToast('Team added!', 'success');
-      setForm({ teamName: '', discordChannelId: '' });
+      setForm({ teamName: '', discordChannelId: '', discordRoleId: '' });
       onAdded?.();
     },
     onError: (e) => showToast(e.message, 'error'),
@@ -318,6 +319,7 @@ function AddTeamForm({ eventId, onAdded }) {
         input: {
           teamName: form.teamName.trim(),
           discordChannelId: form.discordChannelId.trim(),
+          discordRoleId: form.discordRoleId.trim() || null,
         },
       },
     });
@@ -352,6 +354,22 @@ function AddTeamForm({ eventId, onAdded }) {
               size="sm"
               value={form.discordChannelId}
               onChange={set('discordChannelId')}
+              placeholder="123456789012345678"
+              bg="gray.700"
+              borderColor="gray.600"
+              color="white"
+              fontFamily="mono"
+            />
+          </Box>
+          <Box flex={1}>
+            <Text fontSize="xs" color="gray.500" mb={1}>
+              Discord Role ID{' '}
+              <Text as="span" color="gray.600">(optional)</Text>
+            </Text>
+            <Input
+              size="sm"
+              value={form.discordRoleId}
+              onChange={set('discordRoleId')}
               placeholder="123456789012345678"
               bg="gray.700"
               borderColor="gray.600"

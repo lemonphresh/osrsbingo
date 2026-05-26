@@ -58,7 +58,7 @@ async function postDiscordMessage(channelId, content) {
   }
 }
 
-async function postDiscordEmbed(channelId, embed, { ping = false } = {}) {
+async function postDiscordEmbed(channelId, embed, { roleId = null } = {}) {
   if (!process.env.DISCORD_BOT_TOKEN) {
     console.warn('[rainbowbingo] DISCORD_BOT_TOKEN is not set — skipping embed');
     return;
@@ -75,7 +75,7 @@ async function postDiscordEmbed(channelId, embed, { ping = false } = {}) {
         Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ content: ping ? '@here' : undefined, embeds: [embed] }),
+      body: JSON.stringify({ content: roleId ? `<@&${roleId}>` : undefined, embeds: [embed] }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -131,7 +131,7 @@ async function sendRainbowDiscordNotification({
         title: `✨ Capstone ${tileCode} complete!`,
         description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
-      }, { ping: true });
+      }, { roleId: team.discordRoleId });
     } else {
       const unlockedLines = newlyUnlocked.length
         ? newlyUnlocked
@@ -158,7 +158,7 @@ async function sendRainbowDiscordNotification({
         title: `🎉 ${tileCode} complete!`,
         description: parts.join('\n\n'),
         timestamp: new Date().toISOString(),
-      }, { ping: true });
+      }, { roleId: team.discordRoleId });
     }
   } else if (type === 'BOARD_COMPLETE') {
     await postDiscordEmbed(team.discordChannelId, {
@@ -166,7 +166,7 @@ async function sendRainbowDiscordNotification({
       title: '🌈 The board is complete!',
       description: `${team.teamName} has completed every tile on the Rainbow Bingo board. All seven colors, all seven capstones.\n\nThank you for playing, and for everything the rainbow stands for. We love you so much.`,
       timestamp: new Date().toISOString(),
-    }, { ping: true });
+    }, { roleId: team.discordRoleId });
   } else if (type === 'DENIED') {
     await postDiscordEmbed(team.discordChannelId, {
       color: 0xe74c3c,
@@ -280,8 +280,7 @@ const Mutation = {
       eventId,
       teamName: input.teamName,
       discordChannelId: input.discordChannelId,
-      captainDiscordId: input.captainDiscordId ?? null,
-      notes: input.notes ?? null,
+      discordRoleId: input.discordRoleId ?? null,
       teamToken: generateToken(),
     });
 
@@ -324,7 +323,7 @@ const Mutation = {
               `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
             ].join('\n\n'),
             timestamp: new Date().toISOString(),
-          }, { ping: true });
+          }, { roleId: team.discordRoleId });
         }
       }
     }
@@ -340,7 +339,7 @@ const Mutation = {
               `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
             ].join('\n\n'),
             timestamp: new Date().toISOString(),
-          }, { ping: true });
+          }, { roleId: team.discordRoleId });
         }
       }
     }
@@ -442,10 +441,11 @@ const Mutation = {
     const team = await RainbowTeam.findOne({ where: { discordChannelId: input.channelId } });
     if (!team) throw new UserInputError('No team found for this channel');
 
-    const event = await RainbowEvent.findOne({
-      where: { eventId: team.eventId, status: 'ACTIVE' },
-    });
-    if (!event) throw new UserInputError('No active event for this team');
+    const event = await RainbowEvent.findOne({ where: { eventId: team.eventId } });
+    if (!event) throw new UserInputError('No event found for this team');
+    if (event.status === 'SETUP') throw new UserInputError('The event has not started yet — submissions will open once the event begins!');
+    if (event.status === 'COMPLETE') throw new UserInputError('The event has ended — submissions are closed. Thanks for playing!');
+    if (event.status !== 'ACTIVE') throw new UserInputError('No active event for this team');
 
     const teamTile = await RainbowTeamTile.findOne({
       where: { teamId: team.teamId, tileCode: input.tileCode },

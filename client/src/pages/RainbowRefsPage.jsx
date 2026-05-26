@@ -484,8 +484,9 @@ function TileGroup({
             </HStack>
           ) : (
             <Button
-              size="xs"
+              size="sm"
               colorScheme="green"
+              variant="solid"
               mr={3}
               flexShrink={0}
               isDisabled={!canComplete}
@@ -495,13 +496,13 @@ function TileGroup({
                 setConfirming(true);
               }}
             >
-              ✅ Complete Tile
+              Mark Node Complete
             </Button>
           ))}
         {isComplete && (
-          <Badge colorScheme="green" mr={3} flexShrink={0} px={2} py={1}>
-            ✅ Completed
-          </Badge>
+          <HStack mr={3} flexShrink={0} spacing={1}>
+            <Text fontSize="sm" color="green.400" fontWeight="semibold">✅ Completed</Text>
+          </HStack>
         )}
         <AccordionIcon color="gray.400" />
       </AccordionButton>
@@ -569,7 +570,7 @@ export default function RainbowRefsPage() {
   const audioUnlockedRef = useRef(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [notifPermission, setNotifPermission] = useState(
-    typeof Notification !== 'undefined' ? Notification.permission : 'default',
+    typeof Notification !== 'undefined' ? Notification.permission : 'default'
   );
 
   useEffect(() => {
@@ -610,17 +611,30 @@ export default function RainbowRefsPage() {
     if (perm === 'granted') {
       setNotifEnabled(true);
       localStorage.setItem('rainbowRefs_notif_enabled', 'true');
-      new Notification('Rainbow Bingo Refs', { body: 'Desktop notifications enabled', icon: '/favicon.ico' });
+      new Notification('Rainbow Bingo Refs', {
+        body: 'Desktop notifications enabled',
+        icon: '/favicon.ico',
+      });
     }
   }, [notifEnabled, notifPermission]);
 
-  const fireNotif = useCallback((title, body) => {
-    if (!notifEnabled || notifPermission !== 'granted') return;
-    try {
-      const n = new Notification(title, { body, icon: '/favicon.ico', tag: 'rainbow-submission' });
-      n.onclick = () => { window.focus(); n.close(); };
-    } catch (_) {}
-  }, [notifEnabled, notifPermission]);
+  const fireNotif = useCallback(
+    (title, body) => {
+      if (!notifEnabled || notifPermission !== 'granted') return;
+      try {
+        const n = new Notification(title, {
+          body,
+          icon: '/favicon.ico',
+          tag: 'rainbow-submission',
+        });
+        n.onclick = () => {
+          window.focus();
+          n.close();
+        };
+      } catch (_) {}
+    },
+    [notifEnabled, notifPermission]
+  );
 
   // Track pending count across tab visibility changes so we can play sound on return
   const prevPendingRef = useRef(0);
@@ -652,7 +666,7 @@ export default function RainbowRefsPage() {
     pollInterval: 5 * 60 * 1000,
   });
 
-  const { tileStatusMap, tileProgressMap, completedTilesList } = useMemo(() => {
+  const { tileStatusMap, tileProgressMap, completedTilesList, latestCompletedKeys } = useMemo(() => {
     const statusMap = {};
     const progressMap = {};
     const completed = [];
@@ -667,14 +681,26 @@ export default function RainbowRefsPage() {
             teamName: team.teamName,
             tileCode: tile.tileCode,
             tileDef: tile.tileDef,
+            completedAt: tile.completedAt,
           });
         }
       });
     });
+    // Find most recently completed tile per team
+    const latestByTeam = {};
+    completed.forEach((t) => {
+      if (!latestByTeam[t.teamId] || t.completedAt > latestByTeam[t.teamId].completedAt) {
+        latestByTeam[t.teamId] = t;
+      }
+    });
+    const latestKeys = new Set(
+      Object.values(latestByTeam).map((t) => `${t.tileCode}_${t.teamId}`)
+    );
     return {
       tileStatusMap: statusMap,
       tileProgressMap: progressMap,
       completedTilesList: completed,
+      latestCompletedKeys: latestKeys,
     };
   }, [boardsData]);
 
@@ -685,7 +711,9 @@ export default function RainbowRefsPage() {
       refetchSubs();
       const sub = subData?.data?.rainbowSubmissionAdded;
       const label = sub
-        ? `${sub.team?.teamName ?? 'A team'} — ${sub.tileCode} (${sub.type === 'PRE' ? 'pre-screenshot' : 'final'})`
+        ? `${sub.team?.teamName ?? 'A team'} — ${sub.tileCode} (${
+            sub.type === 'PRE' ? 'pre-screenshot' : 'final'
+          })`
         : 'New submission';
       showToast(label, 'info');
       if (soundEnabled) playSubmissionReceived();
@@ -777,18 +805,24 @@ export default function RainbowRefsPage() {
 
   const pendingCount = useMemo(
     () => groups.reduce((sum, g) => sum + g.subs.filter((s) => s.status === 'PENDING').length, 0),
-    [groups],
+    [groups]
   );
 
   useEffect(() => {
-    document.title = pendingCount > 0 ? `(${pendingCount}) Rainbow Bingo Refs` : 'Rainbow Bingo Refs';
-    return () => { document.title = 'OSRS Bingo Hub'; };
+    document.title =
+      pendingCount > 0 ? `(${pendingCount}) Rainbow Bingo Refs` : 'Rainbow Bingo Refs';
+    return () => {
+      document.title = 'OSRS Bingo Hub';
+    };
   }, [pendingCount]);
 
   // Refetch on tab focus/visibility; play sound if new pending items arrived while away
   useEffect(() => {
     if (!isAdmin) return;
-    const refetchAll = () => { refetchSubs(); refetchBoards(); };
+    const refetchAll = () => {
+      refetchSubs();
+      refetchBoards();
+    };
     const onFocus = () => refetchAll();
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -889,7 +923,13 @@ export default function RainbowRefsPage() {
                 isChecked={soundEnabled}
                 onChange={soundEnabled ? handleDisableSound : handleEnableSound}
               />
-              <FormLabel htmlFor="sound-toggle" mb={0} fontSize="sm" color="gray.300" cursor="pointer">
+              <FormLabel
+                htmlFor="sound-toggle"
+                mb={0}
+                fontSize="sm"
+                color="gray.300"
+                cursor="pointer"
+              >
                 Sound
               </FormLabel>
             </FormControl>
@@ -907,7 +947,11 @@ export default function RainbowRefsPage() {
                 fontSize="sm"
                 color={notifPermission === 'denied' ? 'gray.600' : 'gray.300'}
                 cursor={notifPermission === 'denied' ? 'not-allowed' : 'pointer'}
-                title={notifPermission === 'denied' ? 'Notifications blocked in browser settings' : undefined}
+                title={
+                  notifPermission === 'denied'
+                    ? 'Notifications blocked in browser settings'
+                    : undefined
+                }
               >
                 Notify
               </FormLabel>
@@ -977,6 +1021,14 @@ export default function RainbowRefsPage() {
                 , use the slider to set it. The Complete Tile button will be locked until progress
                 is full and a final submission is approved.
               </Text>
+              <Text>
+                <Text as="span" color="green.300" fontWeight="semibold">
+                  Marking a node complete
+                </Text>{' '}
+                is the last step to reward the team the point(s) associated with the tile, and to
+                allow them to progress further down that color's path. Don't forget to do this after
+                setting the progress to 100%! :)
+              </Text>
             </VStack>
           </Box>
 
@@ -1040,7 +1092,7 @@ export default function RainbowRefsPage() {
                         <CompletedTileRow
                           key={`${t.tileCode}_${t.teamId}`}
                           tile={t}
-                          onUndo={handleUndo}
+                          onUndo={latestCompletedKeys.has(`${t.tileCode}_${t.teamId}`) ? handleUndo : undefined}
                         />
                       ))}
                     </VStack>

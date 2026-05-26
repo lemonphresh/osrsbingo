@@ -100,7 +100,7 @@ const NavBar = () => {
     localStorage.setItem(RAINBOW_BANNER_KEY, Date.now().toString());
   };
 
-  const showRainbowBanner = !!activeRainbowEvent && isRainbowBannerOpen;
+  const showRainbowBanner = !!activeRainbowEvent && activeRainbowEvent.status !== 'COMPLETE' && isRainbowBannerOpen;
 
   return (
     <>

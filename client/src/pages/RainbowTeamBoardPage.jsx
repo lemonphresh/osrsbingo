@@ -47,6 +47,19 @@ import {
   COLOR_BG,
   COLOR_TEXT,
 } from '../utils/rainbowBoard';
+import dollyGnome from '../assets/dolly_gnomechild.png';
+import yassifiedGnome from '../assets/yassifiedgnomechild.png';
+import { FaHeart, FaFire, FaSun, FaLeaf, FaDroplet, FaMoon, FaBolt } from 'react-icons/fa6';
+
+const COLOR_ICON = {
+  red: FaHeart,
+  orange: FaFire,
+  yellow: FaSun,
+  green: FaLeaf,
+  blue: FaDroplet,
+  indigo: FaMoon,
+  violet: FaBolt,
+};
 
 const COLOR_LABEL = {
   red: 'Red',
@@ -118,7 +131,7 @@ function BoardEdges({ boardMap, showLocked }) {
   );
 }
 
-const RING_PAD = 4;
+const RING_PAD = 8;
 const OVERLAY_SIZE = TILE_SIZE + RING_PAD * 2;
 const OC = OVERLAY_SIZE / 2; // overlay center
 
@@ -127,7 +140,7 @@ function TileOverlay({ col, row, progress, status }) {
   const showDot = status === 'SUBMITTED' || status === 'COMPLETE';
   if (!showRing && !showDot) return null;
 
-  const r = 30;
+  const r = 36;
   const circumference = 2 * Math.PI * r;
   const filled = circumference * (Math.min(progress, 100) / 100);
 
@@ -158,7 +171,7 @@ function TileOverlay({ col, row, progress, status }) {
             cy={OC}
             r={r}
             fill="none"
-            stroke={progress >= 100 ? '#ffd700' : 'rgba(255,255,255,0.85)'}
+            stroke={progress >= 100 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'}
             strokeWidth={5}
             strokeDasharray={`${filled} ${circumference - filled}`}
             strokeLinecap="round"
@@ -278,11 +291,20 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
         </>
       ) : (
         <>
+          {COLOR_ICON[color] && (
+            <Box position="absolute" top="5px" left="50%" transform="translateX(-50%)">
+              {React.createElement(COLOR_ICON[color], {
+                size: 11,
+                color: 'rgba(255,255,255,0.9)',
+                style: { filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.7))' },
+              })}
+            </Box>
+          )}
           <Text fontSize="8px" color={textCol} fontWeight="bold" opacity={0.8} lineHeight="1">
             {tileCode}
           </Text>
           <Text
-            fontSize="8px"
+            fontSize="9px"
             color={textCol}
             textAlign="center"
             lineHeight="1.15"
@@ -290,19 +312,21 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
             noOfLines={2}
             fontWeight={isComplete ? 'bold' : 'normal'}
           >
-            {tileDef?.bossOrSkill ?? tileCode}
+            {tileDef?.funName ?? tileDef?.bossOrSkill ?? tileCode}
           </Text>
-          <Text
-            fontSize="7px"
-            color={textCol}
-            opacity={0.75}
-            textAlign="center"
-            lineHeight="1"
-            px="2px"
-            noOfLines={1}
-          >
-            {tileDef?.metricLabel}
-          </Text>
+          {!isCapstone && (
+            <Text
+              fontSize="8px"
+              color={textCol}
+              opacity={0.75}
+              textAlign="center"
+              lineHeight="1"
+              px="2px"
+              noOfLines={1}
+            >
+              {tileDef?.metricLabel}
+            </Text>
+          )}
         </>
       )}
     </Box>
@@ -385,7 +409,21 @@ function SubmissionRow({ sub }) {
   );
 }
 
-function TileSubmissions({ eventId, teamId, tileCode }) {
+const PRE_HINT = {
+  xp: "Have everyone participating on this tile log out on Wise Old Man first to sync your team's current xp, then take a screenshot of your team's xp gained for this skill in the WOM group overview.",
+  kc: "Have everyone participating on this tile log out on Wise Old Man first to sync, then take a screenshot of your team's boss kc gained for this boss in the WOM group overview.",
+  unique:
+    'Open your collection log and take a screenshot showing the relevant slot with the event password visible on screen.',
+};
+
+const FINAL_HINT = {
+  xp: "Have everyone participating on this tile log out on Wise Old Man to sync your team's final xp, then take a screenshot of your team's xp gained for this skill in the WOM group overview.",
+  kc: "Have everyone participating on this tile log out on Wise Old Man to sync your team's final boss kc, then take a screenshot of your team's boss kc gained for this boss in the WOM group overview.",
+  unique:
+    'Make sure the event password is visible in the screenshot, the drop is visible in your chat, and set your loot value threshold low in settings so nothing gets filtered out.',
+};
+
+function TileSubmissions({ eventId, teamId, tileCode, metricType }) {
   const { data, loading } = useQuery(GET_RAINBOW_TILE_SUBMISSIONS, {
     variables: { eventId, teamId, tileCode },
     fetchPolicy: 'cache-and-network',
@@ -426,6 +464,19 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
             A pre-screenshot proves your <strong>starting state</strong> before you begin, like your
             kc or xp before training. Submit one as soon as your team decides to start this tile.
           </Text>
+          {PRE_HINT[metricType] && (
+            <Text
+              fontSize="xs"
+              color="blue.300"
+              lineHeight="1.6"
+              mt={2}
+              pt={2}
+              borderTop="1px solid"
+              borderColor="blue.800"
+            >
+              {PRE_HINT[metricType]}
+            </Text>
+          )}
         </Box>
         <CopyCommand cmd={`!rbpre ${tileCode}`} />
         {pre.length > 0 && (
@@ -474,6 +525,19 @@ function TileSubmissions({ eventId, teamId, tileCode }) {
             course! All submissions go into the review queue. A ref will approve or deny each one
             and mark the tile complete when satisfied.
           </Text>
+          {FINAL_HINT[metricType] && (
+            <Text
+              fontSize="xs"
+              color="purple.300"
+              lineHeight="1.6"
+              mt={2}
+              pt={2}
+              borderTop="1px solid"
+              borderColor="purple.800"
+            >
+              {FINAL_HINT[metricType]}
+            </Text>
+          )}
         </Box>
         <CopyCommand cmd={`!rbsubmit ${tileCode}`} />
         {final.length > 0 && (
@@ -759,6 +823,11 @@ function TileModal({ tile, onClose }) {
               <Text fontSize="lg" fontWeight="bold" lineHeight="1.2">
                 {tileDef?.bossOrSkill ?? tileCode}
               </Text>
+              {tileDef?.funName && (
+                <Text fontSize="sm" color="pink.300" fontStyle="italic">
+                  "{tileDef.funName}"
+                </Text>
+              )}
               <HStack gap={2} wrap="wrap">
                 <Badge colorScheme={COLOR_BADGE[color]} fontSize="xs">
                   {COLOR_LABEL[color]}
@@ -799,22 +868,6 @@ function TileModal({ tile, onClose }) {
                 {tileDef?.metricLabel ?? '—'}
               </Text>
             </Box>
-            {tileDef?.funName && (
-              <Box bg="whiteAlpha.50" borderRadius="md" p={3}>
-                <Text
-                  fontSize="xs"
-                  color="gray.400"
-                  mb={1}
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                >
-                  Also known as
-                </Text>
-                <Text color="pink.300" fontStyle="italic">
-                  "{tileDef.funName}"
-                </Text>
-              </Box>
-            )}
             {tileDef?.notes && (
               <Box bg="whiteAlpha.50" borderRadius="md" p={3}>
                 <Text
@@ -842,7 +895,12 @@ function TileModal({ tile, onClose }) {
               </HStack>
             )}
             <Divider borderColor="gray.700" />
-            <TileSubmissions eventId={eventId} teamId={teamId} tileCode={tileCode} />
+            <TileSubmissions
+              eventId={eventId}
+              teamId={teamId}
+              tileCode={tileCode}
+              metricType={tileDef?.metricType}
+            />
           </VStack>
         </ModalBody>
       </ModalContent>
@@ -1012,13 +1070,29 @@ export default function RainbowTeamBoardPage() {
       <Box minH="100vh" color="white" pt="56px" pb="64px" px={{ base: 3, md: 6 }}>
         <VStack align="stretch" gap={3} maxW="1200px" mx="auto">
           <VStack align="center" gap={1}>
-            <Heading
-              size="lg"
-              bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
-              bgClip="text"
-            >
-              Rainbow Bingo
-            </Heading>
+            <HStack gap={3} align="center">
+              <Box
+                as="img"
+                src={dollyGnome}
+                alt=""
+                h="48px"
+                style={{ imageRendering: 'pixelated' }}
+              />
+              <Heading
+                size="lg"
+                bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
+                bgClip="text"
+              >
+                Rainbow Bingo
+              </Heading>
+              <Box
+                as="img"
+                src={yassifiedGnome}
+                alt=""
+                h="48px"
+                style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }}
+              />
+            </HStack>
             <Text color="white" fontWeight="semibold" fontSize="lg">
               {team.teamName}
             </Text>

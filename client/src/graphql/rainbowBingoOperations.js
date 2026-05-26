@@ -11,6 +11,7 @@ export const RAINBOW_ADMIN_EVENT_FIELDS = gql`
       teamId
       teamName
       discordChannelId
+      discordRoleId
     }
   }
 `;
@@ -29,8 +30,7 @@ export const GET_ACTIVE_RAINBOW_EVENT = gql`
         teamId
         teamName
         discordChannelId
-        captainDiscordId
-        notes
+        discordRoleId
         teamToken
       }
       admins {
@@ -310,6 +310,7 @@ export const GET_RAINBOW_TEAM_BOARD = gql`
         color
         colorIndex
         bossOrSkill
+        metricType
         metricLabel
         funName
         theme

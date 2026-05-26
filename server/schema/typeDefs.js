@@ -633,6 +633,7 @@ const typeDefs = gql`
     eventId:          ID!
     teamName:         String!
     discordChannelId: String!
+    discordRoleId:    String
     captainDiscordId: String
     notes:            String
     teamToken:        String
@@ -681,8 +682,7 @@ const typeDefs = gql`
   input CreateRainbowTeamInput {
     teamName:         String!
     discordChannelId: String!
-    captainDiscordId: String
-    notes:            String
+    discordRoleId:    String
   }
 
   input CreateRainbowSubmissionInput {
