@@ -56,6 +56,7 @@ export const GET_RAINBOW_TILE_DEFS = gql`
       hoursEstimate
       theme
       funName
+      validDrops
       notes
     }
   }
@@ -311,8 +312,11 @@ export const GET_RAINBOW_TEAM_BOARD = gql`
         colorIndex
         bossOrSkill
         metricType
+        metricTarget
+        metricUnit
         metricLabel
         funName
+        validDrops
         theme
       }
     }
@@ -340,8 +344,12 @@ export const RAINBOW_TEAM_BOARD_UPDATED = gql`
         color
         colorIndex
         bossOrSkill
+        metricType
+        metricTarget
+        metricUnit
         metricLabel
         funName
+        validDrops
         theme
       }
     }

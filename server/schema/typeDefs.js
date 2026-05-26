@@ -610,6 +610,7 @@ const typeDefs = gql`
     hoursEstimate: Float
     theme:         String
     funName:       String
+    validDrops:    [String]
     notes:         String
   }
 

@@ -333,14 +333,26 @@ function CompletedTileRow({ tile, onUndo }) {
 
 // ── Progress editor ───────────────────────────────────────────────────────────
 
-function TileProgressEditor({ teamId, tileCode, progress, onSave }) {
-  const [val, setVal] = useState(progress);
+function TileProgressEditor({ teamId, tileCode, progress, tileDef, onSave }) {
+  const hasMetric = tileDef?.metricTarget != null && tileDef.metricTarget > 0;
+  const max  = hasMetric ? tileDef.metricTarget : 100;
+  const unit = hasMetric ? (tileDef.metricUnit ?? '') : '%';
+  const step = 1;
+
+  const rawFromPct = (pct) => hasMetric ? Math.round((pct / 100) * max) : pct;
+  const pctFromRaw = (raw) => hasMetric ? Math.round((raw / max) * 100) : raw;
+
+  const [val, setVal] = useState(() => rawFromPct(progress));
   React.useEffect(() => {
-    setVal(progress);
+    setVal(rawFromPct(progress));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress]);
-  const pct = Math.max(0, Math.min(100, Number(val) || 0));
+
+  const clampedRaw = Math.max(0, Math.min(max, Number(val) || 0));
+  const pct   = pctFromRaw(clampedRaw);
   const dirty = pct !== progress;
   const color = pct >= 100 ? 'green' : 'blue';
+
   return (
     <Box>
       <HStack justify="space-between" mb={2}>
@@ -357,19 +369,24 @@ function TileProgressEditor({ teamId, tileCode, progress, onSave }) {
           <Input
             type="number"
             min={0}
-            max={100}
+            max={max}
             value={val}
             onChange={(e) => setVal(e.target.value)}
             size="xs"
-            w="60px"
+            w="70px"
             bg="gray.700"
             borderColor="gray.600"
             color="white"
             textAlign="center"
           />
           <Text fontSize="xs" color="gray.400">
-            %
+            {unit}
           </Text>
+          {hasMetric && (
+            <Text fontSize="xs" color="gray.600">
+              / {max}
+            </Text>
+          )}
           <Button
             size="xs"
             colorScheme={color}
@@ -382,10 +399,11 @@ function TileProgressEditor({ teamId, tileCode, progress, onSave }) {
       </HStack>
       <Slider
         min={0}
-        max={100}
-        value={val}
-        onChange={setVal}
-        onChangeEnd={(v) => onSave(teamId, tileCode, v)}
+        max={max}
+        step={step}
+        value={clampedRaw}
+        onChange={(v) => setVal(v)}
+        onChangeEnd={(v) => onSave(teamId, tileCode, pctFromRaw(v))}
         focusThumbOnChange={false}
       >
         <SliderTrack bg="gray.700" h="8px" borderRadius="full">
@@ -454,7 +472,9 @@ function TileGroup({
           )}
           {progress > 0 && progress < 100 && (
             <Badge colorScheme="blue" variant="outline" fontSize="xs">
-              {progress}%
+              {tileDef?.metricTarget
+                ? `${Math.round((progress / 100) * tileDef.metricTarget)} / ${tileDef.metricTarget} ${tileDef.metricUnit ?? ''}`
+                : `${progress}%`}
             </Badge>
           )}
         </HStack>
@@ -490,7 +510,7 @@ function TileGroup({
               mr={3}
               flexShrink={0}
               isDisabled={!canComplete}
-              title={progress < 100 ? 'Progress must be 100% first' : undefined}
+              title={progress < 100 ? 'Set progress to the full metric value first' : undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 setConfirming(true);
@@ -523,12 +543,29 @@ function TileGroup({
               <Text fontSize="sm" color="white" fontWeight="semibold">
                 {tileDef.metricLabel}
               </Text>
+              {tileDef.validDrops?.length > 0 && (
+                <HStack wrap="wrap" gap={1.5} mt={2}>
+                  {tileDef.validDrops.map((drop) => (
+                    <Badge
+                      key={drop}
+                      colorScheme="purple"
+                      variant="subtle"
+                      fontSize="xs"
+                      px={2}
+                      py={0.5}
+                    >
+                      {drop}
+                    </Badge>
+                  ))}
+                </HStack>
+              )}
             </Box>
           )}
           <TileProgressEditor
             teamId={teamId}
             tileCode={tileCode}
             progress={progress}
+            tileDef={tileDef}
             onSave={onSetProgress}
           />
           <Divider borderColor="gray.700" />
@@ -1014,12 +1051,12 @@ export default function RainbowRefsPage() {
                 required before you can mark a tile complete.
               </Text>
               <Text>
-                Before marking complete, make sure the{' '}
+                Before marking complete, use the slider to set the{' '}
                 <Text as="span" color="white" fontWeight="semibold">
-                  progress bar is at 100%
+                  progress to the tile's full metric value
                 </Text>
-                , use the slider to set it. The Complete Tile button will be locked until progress
-                is full and a final submission is approved.
+                . The Complete Tile button will be locked until progress is at 100% and a final
+                submission is approved.
               </Text>
               <Text>
                 <Text as="span" color="green.300" fontWeight="semibold">

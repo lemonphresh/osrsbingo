@@ -205,6 +205,7 @@ function TileOverlay({ col, row, progress, status }) {
 }
 
 function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
+  const [isHovered, setIsHovered] = useState(false);
   if (isStart) {
     const { col, row } = BOARD_LAYOUT.START;
     return (
@@ -228,7 +229,7 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
   const pos = BOARD_LAYOUT[tileCode];
   if (!pos) return null;
 
-  const { status, tileDef } = tile;
+  const { status, progress, tileDef } = tile;
   const isCapstone = tileCode.startsWith('C');
   const color = tileDef?.color ?? 'capstone';
   const palette = COLOR_BG[color] ?? COLOR_BG.capstone;
@@ -236,6 +237,16 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
 
   const isLocked = status === 'LOCKED';
   const isComplete = status === 'COMPLETE';
+
+  const progressLabel = (() => {
+    if (isLocked || isComplete || !progress) return null;
+    const { metricType, metricTarget, metricUnit } = tileDef ?? {};
+    if (metricTarget && (metricType === 'unique' || metricType === 'minigame')) {
+      const got = Math.round((progress / 100) * metricTarget);
+      return `${got}/${metricTarget} ${metricUnit ?? 'uniques'}`;
+    }
+    return `${progress}%`;
+  })();
   const bgColor = isLocked
     ? palette.locked
     : status === 'SUBMITTED'
@@ -279,6 +290,8 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
       cursor={onClick ? 'pointer' : 'default'}
       onClick={onClick ?? undefined}
       title={isLocked ? `${tileCode} — Locked` : `${tileCode} — ${tileDef?.bossOrSkill}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {isLocked ? (
         <>
@@ -318,13 +331,14 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
             <Text
               fontSize="8px"
               color={textCol}
-              opacity={0.75}
+              opacity={isHovered && progressLabel ? 1 : 0.75}
               textAlign="center"
               lineHeight="1"
               px="2px"
               noOfLines={1}
+              fontWeight={isHovered && progressLabel ? 'bold' : 'normal'}
             >
-              {tileDef?.metricLabel}
+              {isHovered && progressLabel ? progressLabel : tileDef?.metricLabel}
             </Text>
           )}
         </>
@@ -410,10 +424,12 @@ function SubmissionRow({ sub }) {
 }
 
 const PRE_HINT = {
-  xp: "Have everyone participating on this tile log out on Wise Old Man first to sync your team's current xp, then take a screenshot of your team's xp gained for this skill in the WOM group overview.",
-  kc: "Have everyone participating on this tile log out on Wise Old Man first to sync, then take a screenshot of your team's boss kc gained for this boss in the WOM group overview.",
-  unique:
-    'Open your collection log and take a screenshot showing the relevant slot with the event password visible on screen.',
+  xp: "Just one person needs to submit this. Have everyone participating on this tile log out on Wise Old Man first to sync your team's current xp, then take a screenshot of your team's xp gained for this skill in the WOM group overview.",
+  kc: "Just one person needs to submit this. Have everyone participating on this tile log out on Wise Old Man first to sync, then take a screenshot of your team's boss kc gained for this boss in the WOM group overview.",
+  minigame:
+    'Everyone participating on this tile needs to submit a pre-screenshot. Take a screenshot showing 0 rewards points for this minigame before you start.',
+  hunter_rumor:
+    'Everyone participating on this tile needs to submit a pre-screenshot. Open your collection log and take a screenshot showing your current hunter rumor uniques before you start.',
 };
 
 const FINAL_HINT = {
@@ -421,6 +437,10 @@ const FINAL_HINT = {
   kc: "Have everyone participating on this tile log out on Wise Old Man to sync your team's final boss kc, then take a screenshot of your team's boss kc gained for this boss in the WOM group overview.",
   unique:
     'Make sure the event password is visible in the screenshot, the drop is visible in your chat, and set your loot value threshold low in settings so nothing gets filtered out.',
+  minigame:
+    'Make sure the event password is visible in the screenshot and drops are clearly shown in chat.',
+  hunter_rumor:
+    'Make sure the event password is visible in the screenshot and your collection log shows the new unique(s) obtained.',
 };
 
 function TileSubmissions({ eventId, teamId, tileCode, metricType }) {
@@ -442,58 +462,70 @@ function TileSubmissions({ eventId, teamId, tileCode, metricType }) {
 
   return (
     <VStack align="stretch" gap={4}>
-      <Box>
-        <HStack mb={2} gap={2}>
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color="blue.300"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
-            📸 Pre-screenshots
-          </Text>
-          {pre.length > 0 && (
-            <Badge colorScheme="blue" fontSize="xx-small">
-              {pre.length}
-            </Badge>
-          )}
-        </HStack>
-        <Box bg="blue.950" border="1px solid" borderColor="blue.800" borderRadius="md" p={3} mb={2}>
-          <Text fontSize="xs" color="blue.200" lineHeight="1.6">
-            A pre-screenshot proves your <strong>starting state</strong> before you begin, like your
-            kc or xp before training. Submit one as soon as your team decides to start this tile.
-          </Text>
-          {PRE_HINT[metricType] && (
-            <Text
-              fontSize="xs"
-              color="blue.300"
-              lineHeight="1.6"
-              mt={2}
-              pt={2}
-              borderTop="1px solid"
+      {metricType !== 'unique' && (
+        <>
+          <Box>
+            <HStack mb={2} gap={2}>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="blue.300"
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
+                📸 Pre-screenshots
+              </Text>
+              {pre.length > 0 && (
+                <Badge colorScheme="blue" fontSize="xx-small">
+                  {pre.length}
+                </Badge>
+              )}
+            </HStack>
+            <Box
+              bg="blue.950"
+              border="1px solid"
               borderColor="blue.800"
+              borderRadius="md"
+              p={3}
+              mb={2}
             >
-              {PRE_HINT[metricType]}
-            </Text>
-          )}
-        </Box>
-        <CopyCommand cmd={`!rbpre ${tileCode}`} />
-        {pre.length > 0 && (
-          <VStack align="stretch" gap={2} mt={3} maxH="240px" overflowY="auto">
-            {pre.map((s) => (
-              <SubmissionRow key={s.submissionId} sub={s} />
-            ))}
-          </VStack>
-        )}
-        {pre.length === 0 && (
-          <Text fontSize="xs" color="gray.600" mt={2}>
-            No pre-screenshots yet.
-          </Text>
-        )}
-      </Box>
+              <Text fontSize="xs" color="blue.200" lineHeight="1.6">
+                A pre-screenshot proves your <strong>starting state</strong> before you begin, like
+                your kc or xp before training. Submit one as soon as your team decides to start this
+                tile.
+              </Text>
+              {PRE_HINT[metricType] && (
+                <Text
+                  fontSize="xs"
+                  color="blue.300"
+                  lineHeight="1.6"
+                  mt={2}
+                  pt={2}
+                  borderTop="1px solid"
+                  borderColor="blue.800"
+                >
+                  {PRE_HINT[metricType]}
+                </Text>
+              )}
+            </Box>
+            <CopyCommand cmd={`!rbpre ${tileCode}`} />
+            {pre.length > 0 && (
+              <VStack align="stretch" gap={2} mt={3} maxH="240px" overflowY="auto">
+                {pre.map((s) => (
+                  <SubmissionRow key={s.submissionId} sub={s} />
+                ))}
+              </VStack>
+            )}
+            {pre.length === 0 && (
+              <Text fontSize="xs" color="gray.600" mt={2}>
+                No pre-screenshots yet.
+              </Text>
+            )}
+          </Box>
 
-      <Divider borderColor="gray.700" />
+          <Divider borderColor="gray.700" />
+        </>
+      )}
 
       <Box>
         <HStack mb={2} gap={2}>
@@ -844,7 +876,7 @@ function TileModal({ tile, onClose }) {
                 )}
                 {isSubmitted && (
                   <Badge colorScheme="orange" fontSize="xs">
-                    ⏳ Pending review
+                    ⏳ In progress
                   </Badge>
                 )}
               </HStack>
@@ -868,6 +900,33 @@ function TileModal({ tile, onClose }) {
                 {tileDef?.metricLabel ?? '—'}
               </Text>
             </Box>
+            {tileDef?.validDrops?.length > 0 && (
+              <Box bg="whiteAlpha.50" borderRadius="md" p={3}>
+                <Text
+                  fontSize="xs"
+                  color="gray.400"
+                  mb={2}
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                >
+                  Valid drops
+                </Text>
+                <HStack wrap="wrap" gap={1.5}>
+                  {tileDef.validDrops.map((drop) => (
+                    <Badge
+                      key={drop}
+                      colorScheme="purple"
+                      variant="subtle"
+                      fontSize="xs"
+                      px={2}
+                      py={0.5}
+                    >
+                      {drop}
+                    </Badge>
+                  ))}
+                </HStack>
+              </Box>
+            )}
             {tileDef?.notes && (
               <Box bg="whiteAlpha.50" borderRadius="md" p={3}>
                 <Text
@@ -988,6 +1047,11 @@ export default function RainbowTeamBoardPage() {
     variables: { teamId: team?.teamId },
     skip: !team?.teamId,
     fetchPolicy: 'cache-and-network',
+    onCompleted: (d) => {
+      if (d?.getRainbowTeamBoard && Object.keys(prevBoardRef.current).length === 0) {
+        prevBoardRef.current = Object.fromEntries(d.getRainbowTeamBoard.map((t) => [t.tileCode, t]));
+      }
+    },
   });
 
   useSubscription(RAINBOW_TEAM_BOARD_UPDATED, {
@@ -1109,7 +1173,7 @@ export default function RainbowTeamBoardPage() {
             <HStack>
               <Box w="10px" h="10px" bg="orange.400" borderRadius="full" />
               <Text fontSize="sm" color="gray.300">
-                Pending review ({stats.submitted})
+                In progress ({stats.submitted})
               </Text>
             </HStack>
             {isSiteAdmin && (

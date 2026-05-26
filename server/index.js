@@ -77,6 +77,7 @@ app.use(
           'blob:',
           'https:',
         ],
+        workerSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki', 'https://api.wiseoldman.net'],
         objectSrc: ["'none'"],
         frameAncestors: ["'self'", 'https://www.osrsbingohub.com', 'https://osrsbingohub.com'],

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery, useSubscription } from '@apollo/client';
 import { Box, Button, Center, Spinner, Text, VStack, HStack, Heading } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../providers/AuthProvider';
 import { useCompletionSound } from '../hooks/useCompletionSound';
 import { useRainbowCelebration } from '../hooks/useRainbowCelebration';
@@ -25,18 +26,68 @@ import { FaHeart, FaFire, FaSun, FaLeaf, FaDroplet, FaMoon, FaBolt } from 'react
 import dollyGnome from '../assets/dolly_gnomechild.png';
 import yassifiedGnome from '../assets/yassifiedgnomechild.png';
 import frogPrincess from '../assets/frogprincess.webp';
+import { FaArrowRight } from 'react-icons/fa';
 
 const STATUS_RANK = { LOCKED: 0, UNLOCKED: 1, SUBMITTED: 2, COMPLETE: 3 };
 
 const COLOR_ORDER = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet'];
 const COLOR_META = {
-  red:    { label: 'Red',    fill: '#e74c3c', track: '#3d1010', prefix: 'R', capstone: 'C1', Icon: FaHeart },
-  orange: { label: 'Orange', fill: '#e67e22', track: '#3d2510', prefix: 'O', capstone: 'C2', Icon: FaFire },
-  yellow: { label: 'Yellow', fill: '#f1c40f', track: '#3d380a', prefix: 'Y', capstone: 'C3', Icon: FaSun },
-  green:  { label: 'Green',  fill: '#2ecc71', track: '#0a2d1a', prefix: 'G', capstone: 'C4', Icon: FaLeaf },
-  blue:   { label: 'Blue',   fill: '#3498db', track: '#0a1e30', prefix: 'B', capstone: 'C5', Icon: FaDroplet },
-  indigo: { label: 'Indigo', fill: '#7766dd', track: '#1e1a40', prefix: 'I', capstone: 'C6', Icon: FaMoon },
-  violet: { label: 'Violet', fill: '#cc44cc', track: '#300a30', prefix: 'V', capstone: 'C7', Icon: FaBolt },
+  red: {
+    label: 'Red',
+    fill: '#e74c3c',
+    track: '#3d1010',
+    prefix: 'R',
+    capstone: 'C1',
+    Icon: FaHeart,
+  },
+  orange: {
+    label: 'Orange',
+    fill: '#e67e22',
+    track: '#3d2510',
+    prefix: 'O',
+    capstone: 'C2',
+    Icon: FaFire,
+  },
+  yellow: {
+    label: 'Yellow',
+    fill: '#f1c40f',
+    track: '#3d380a',
+    prefix: 'Y',
+    capstone: 'C3',
+    Icon: FaSun,
+  },
+  green: {
+    label: 'Green',
+    fill: '#2ecc71',
+    track: '#0a2d1a',
+    prefix: 'G',
+    capstone: 'C4',
+    Icon: FaLeaf,
+  },
+  blue: {
+    label: 'Blue',
+    fill: '#3498db',
+    track: '#0a1e30',
+    prefix: 'B',
+    capstone: 'C5',
+    Icon: FaDroplet,
+  },
+  indigo: {
+    label: 'Indigo',
+    fill: '#7766dd',
+    track: '#1e1a40',
+    prefix: 'I',
+    capstone: 'C6',
+    Icon: FaMoon,
+  },
+  violet: {
+    label: 'Violet',
+    fill: '#cc44cc',
+    track: '#300a30',
+    prefix: 'V',
+    capstone: 'C7',
+    Icon: FaBolt,
+  },
 };
 
 function TeamRainbowCard({ team, teamIndex }) {
@@ -103,7 +154,11 @@ function TeamRainbowCard({ team, teamIndex }) {
               gap={1}
               pointerEvents="none"
             >
-              <meta.Icon size={11} color="white" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))', flexShrink: 0 }} />
+              <meta.Icon
+                size={11}
+                color="white"
+                style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.8))', flexShrink: 0 }}
+              />
               <Text
                 fontSize="9px"
                 fontWeight="bold"
@@ -428,6 +483,8 @@ export default function RainbowBingoBoardPage() {
   });
 
   const event = eventData?.getActiveRainbowEvent;
+  const isEventAdmin =
+    isSiteAdmin || !!(event?.adminIds && user?.id && event.adminIds.includes(String(user.id)));
 
   const { data: boardsData, refetch: refetchBoards } = useQuery(GET_RAINBOW_EVENT_BOARDS, {
     variables: { eventId: event?.eventId },
@@ -540,7 +597,13 @@ export default function RainbowBingoBoardPage() {
         <VStack align="stretch" gap={5} maxW="1200px" mx="auto">
           <VStack align="center" gap={1}>
             <HStack gap={3} align="center">
-              <Box as="img" src={dollyGnome} alt="" h="48px" style={{ imageRendering: 'pixelated' }} />
+              <Box
+                as="img"
+                src={dollyGnome}
+                alt=""
+                h="48px"
+                style={{ imageRendering: 'pixelated' }}
+              />
               <Heading
                 size="lg"
                 bgGradient="linear(to-r, red.400, orange.400, yellow.300, green.400, blue.400, purple.400, pink.400)"
@@ -548,8 +611,26 @@ export default function RainbowBingoBoardPage() {
               >
                 Rainbow Bingo
               </Heading>
-              <Box as="img" src={yassifiedGnome} alt="" h="48px" style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }} />
+              <Box
+                as="img"
+                src={yassifiedGnome}
+                alt=""
+                h="48px"
+                style={{ imageRendering: 'pixelated', transform: 'scaleX(-1)' }}
+              />
             </HStack>
+            {isEventAdmin && (
+              <Button
+                as={RouterLink}
+                rightIcon={<FaArrowRight />}
+                to="/eg-rainbow/refs"
+                size="xs"
+                colorScheme="purple"
+                variant="ghost"
+              >
+                Refs panel
+              </Button>
+            )}
           </VStack>
 
           {!event && !eventLoading && (
@@ -572,9 +653,6 @@ export default function RainbowBingoBoardPage() {
                   mx="auto"
                   textAlign="center"
                 >
-                  <Text fontSize="xl" mb={2}>
-                    🏳️‍🌈
-                  </Text>
                   <Text fontWeight="bold" color="yellow.300" fontSize="lg" mb={2}>
                     This event has ended!
                   </Text>
@@ -670,7 +748,8 @@ export default function RainbowBingoBoardPage() {
               <RotatingFunFact />
               <TrevorProjectBanner />
               <Box textAlign="center">
-                <Box as="img" src={frogPrincess} alt="frog princess" h="120px" mx="auto" /></Box>
+                <Box as="img" src={frogPrincess} alt="frog princess" h="120px" mx="auto" />
+              </Box>
             </>
           )}
         </VStack>
