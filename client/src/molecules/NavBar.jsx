@@ -36,12 +36,14 @@ import HolidayEmojiFall, {
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const RAINBOW_BANNER_KEY = 'navbarRainbowBannerDismissed';
-const BANNER_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const JUNE_BANNER_KEY = 'navbarJuneBannerDismissed';
+const BANNER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const NavBar = () => {
   const { user, logout } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isRainbowBannerOpen, setIsRainbowBannerOpen] = useState(false);
+  const [isJuneBannerOpen, setIsJuneBannerOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [holidayEmojisOn, setHolidayEmojisOn] = useState(
     () => !localStorage.getItem(HOLIDAY_PREF_KEY)
@@ -67,27 +69,20 @@ const NavBar = () => {
   const totalBadgeCount = pendingInviteCount + unreadGroupCount;
 
   useEffect(() => {
-    const dismissedTime = localStorage.getItem(BANNER_STORAGE_KEY);
-    if (dismissedTime) {
-      const timePassed = Date.now() - parseInt(dismissedTime, 10);
-      if (timePassed >= BANNER_DURATION_MS) {
-        localStorage.removeItem(BANNER_STORAGE_KEY);
-        setIsBannerOpen(true);
+    const initBanner = (key, setter) => {
+      const ts = localStorage.getItem(key);
+      if (ts) {
+        if (Date.now() - parseInt(ts, 10) >= BANNER_DURATION_MS) {
+          localStorage.removeItem(key);
+          setter(true);
+        }
+      } else {
+        setter(true);
       }
-    } else {
-      setIsBannerOpen(true);
-    }
-
-    const rainbowDismissed = localStorage.getItem(RAINBOW_BANNER_KEY);
-    if (rainbowDismissed) {
-      const timePassed = Date.now() - parseInt(rainbowDismissed, 10);
-      if (timePassed >= BANNER_DURATION_MS) {
-        localStorage.removeItem(RAINBOW_BANNER_KEY);
-        setIsRainbowBannerOpen(true);
-      }
-    } else {
-      setIsRainbowBannerOpen(true);
-    }
+    };
+    initBanner(BANNER_STORAGE_KEY, setIsBannerOpen);
+    initBanner(RAINBOW_BANNER_KEY, setIsRainbowBannerOpen);
+    initBanner(JUNE_BANNER_KEY, setIsJuneBannerOpen);
   }, []);
 
   const handleCloseBanner = () => {
@@ -100,12 +95,21 @@ const NavBar = () => {
     localStorage.setItem(RAINBOW_BANNER_KEY, Date.now().toString());
   };
 
-  const showRainbowBanner = !!activeRainbowEvent && activeRainbowEvent.status !== 'COMPLETE' && isRainbowBannerOpen;
+  const handleCloseJuneBanner = () => {
+    setIsJuneBannerOpen(false);
+    localStorage.setItem(JUNE_BANNER_KEY, Date.now().toString());
+  };
+
+  const isJune = new Date().getMonth() === 5;
+  const showEventBanner =
+    !!activeRainbowEvent && activeRainbowEvent.status === 'ACTIVE' && isRainbowBannerOpen;
+  const showJuneBanner = isJune && !showEventBanner && isJuneBannerOpen;
+  const showDefaultBanner = !showEventBanner && !showJuneBanner && isBannerOpen;
 
   return (
     <>
-      {/* Rainbow Bingo event banner — shown instead of support banner during active event */}
-      <Collapse in={showRainbowBanner} animateOpacity>
+      {/* Rainbow Bingo event banner — highest priority, only when ACTIVE */}
+      <Collapse in={showEventBanner} animateOpacity>
         <Box
           background="linear-gradient(135deg, #1a0a2e 0%, #0d1a2e 50%, #0a1a0d 100%)"
           borderBottom="3px solid"
@@ -222,8 +226,128 @@ const NavBar = () => {
         </Box>
       </Collapse>
 
-      {/* Regular support banner — hidden during active rainbow event */}
-      <Collapse in={!showRainbowBanner && isBannerOpen} animateOpacity>
+      {/* June / Pride Month banner */}
+      <Collapse in={showJuneBanner} animateOpacity>
+        <Box
+          background="linear-gradient(135deg, #1a0a2e 0%, #0d1a2e 50%, #0a1a0d 100%)"
+          borderBottom="3px solid"
+          borderColor="transparent"
+          borderImage="linear-gradient(to right, #e74c3c, #e67e22, #f1c40f, #2ecc71, #3498db, #6c5ce7, #d63af9) 1"
+          color="white"
+          paddingX={['16px', '32px']}
+          paddingY="14px"
+          position="relative"
+        >
+          <IconButton
+            aria-label="Close banner"
+            position="absolute"
+            right={3}
+            top={3}
+            icon={<MdClose />}
+            size="sm"
+            variant="ghost"
+            color="white"
+            opacity={0.5}
+            onClick={handleCloseJuneBanner}
+            _hover={{ opacity: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+          />
+          <Flex
+            direction={['column', 'row']}
+            alignItems={['flex-start', 'center']}
+            gap={[3, 5]}
+            maxW="950px"
+            margin="0 auto"
+          >
+            <HStack spacing={4} alignItems="center" flex={1}>
+              <Box
+                borderRadius="50%"
+                overflow="hidden"
+                flexShrink={0}
+                width={['52px', '60px']}
+                height={['52px', '60px']}
+                border="2px solid rgba(255,255,255,0.25)"
+              >
+                <Image alt="Lemon" src={Lemon} width="100%" height="100%" objectFit="cover" />
+              </Box>
+              <VStack align="start" spacing={1} flex={1}>
+                <Text fontSize={['sm', 'md']} fontWeight="bold">
+                  🏳️‍🌈{' '}
+                  <Text as="span" color="pink.300">
+                    Happy Pride Month, 'Scapers!
+                  </Text>{' '}
+                  <Text>
+                    Any support this month goes to{' '}
+                    <Text
+                      as="a"
+                      href="https://www.thetrevorproject.org/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      color="teal.300"
+                      fontWeight="semibold"
+                      textDecoration="underline"
+                    >
+                      The Trevor Project
+                    </Text>
+                    , the world's largest suicide prevention organization for LGBTQIA+ youth.
+                  </Text>
+                </Text>
+                <Text fontSize={['xs', 'sm']} color="gray.400" lineHeight="1.5">
+                  {activeRainbowEvent?.startDate
+                    ? `Eternal Gems' Rainbow Bingo starts ${new Date(
+                        activeRainbowEvent.startDate
+                      ).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Tune in!`
+                    : "Eternal Gems' Rainbow Bingo is coming this June."}
+                </Text>
+              </VStack>
+            </HStack>
+            <Flex gap={3} flexShrink={0} align="center" w={['100%', 'auto']}>
+              <Link to="/eg-rainbow" style={{ width: '100%' }}>
+                <Flex
+                  as="span"
+                  align="center"
+                  justify="center"
+                  gap={2}
+                  background="linear-gradient(135deg, #9b59b6, #3498db)"
+                  color="white"
+                  paddingX={5}
+                  paddingY={2}
+                  borderRadius="md"
+                  fontWeight="semibold"
+                  fontSize="sm"
+                  _hover={{ opacity: 0.88 }}
+                  whiteSpace="nowrap"
+                >
+                  Party →
+                </Flex>
+              </Link>
+              <PleaseEffect>
+                <Link to="/support">
+                  <Flex
+                    as="span"
+                    align="center"
+                    gap={2}
+                    backgroundColor="rgba(244, 211, 94, 0.15)"
+                    border="1px solid rgba(244, 211, 94, 0.35)"
+                    color={theme.colors.yellow[300]}
+                    paddingX={4}
+                    paddingY={2}
+                    borderRadius="md"
+                    fontWeight="semibold"
+                    fontSize="sm"
+                    _hover={{ backgroundColor: 'rgba(244, 211, 94, 0.25)' }}
+                    whiteSpace="nowrap"
+                  >
+                    <FaHeart color={theme.colors.red[400]} /> Support
+                  </Flex>
+                </Link>
+              </PleaseEffect>
+            </Flex>
+          </Flex>
+        </Box>
+      </Collapse>
+
+      {/* Regular support banner */}
+      <Collapse in={showDefaultBanner} animateOpacity>
         <Box
           background="linear-gradient(135deg, #1a202c 0%, #2d3748 100%)"
           borderBottom="3px solid"

@@ -262,6 +262,16 @@ export const UPDATE_RAINBOW_EVENT_STATUS = gql`
   }
 `;
 
+export const SET_RAINBOW_EVENT_SCHEDULE = gql`
+  mutation SetRainbowEventSchedule($eventId: ID!, $startDate: DateTime, $endDate: DateTime) {
+    setRainbowEventSchedule(eventId: $eventId, startDate: $startDate, endDate: $endDate) {
+      eventId
+      startDate
+      endDate
+    }
+  }
+`;
+
 export const GET_RAINBOW_TEAM_BY_TOKEN = gql`
   query GetRainbowTeamByToken($token: String!) {
     getRainbowTeamByToken(token: $token) {

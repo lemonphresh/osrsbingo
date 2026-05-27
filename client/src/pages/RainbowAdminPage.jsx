@@ -24,6 +24,8 @@ import {
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
+import { useTimezone, fmtTs } from '../hooks/useTimezone';
+import TimezoneToggle from '../atoms/TimezoneToggle';
 import { SEARCH_USERS } from '../graphql/queries';
 import {
   GET_ACTIVE_RAINBOW_EVENT,
@@ -33,6 +35,7 @@ import {
   REMOVE_RAINBOW_ADMIN,
   TEST_RAINBOW_CHANNEL,
   UPDATE_RAINBOW_EVENT_STATUS,
+  SET_RAINBOW_EVENT_SCHEDULE,
   DELETE_RAINBOW_EVENT,
   DELETE_RAINBOW_TEAM,
   GENERATE_RAINBOW_TEAM_TOKEN,
@@ -96,9 +99,35 @@ function CreateEventForm({ onCreate }) {
 
 // ── Event Info ───────────────────────────────────────────────────────────────
 
+function toLocalDatetimeInput(utcString) {
+  if (!utcString) return '';
+  const d = new Date(utcString);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 function EventInfoPanel({ event, refetch }) {
   const { showToast } = useToastContext();
+  const { utc } = useTimezone();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [startInput, setStartInput] = useState(() => toLocalDatetimeInput(event.startDate));
+  const [endInput, setEndInput] = useState(() => toLocalDatetimeInput(event.endDate));
+
+  const [setSchedule, { loading: scheduleLoading }] = useMutation(SET_RAINBOW_EVENT_SCHEDULE, {
+    onCompleted: () => { showToast('Schedule saved', 'success'); refetch(); },
+    onError: (e) => showToast(e.message, 'error'),
+  });
+
+  const handleSaveSchedule = () => {
+    const parse = (val) => val ? new Date(val).toISOString() : null;
+    setSchedule({
+      variables: {
+        eventId: event.eventId,
+        startDate: parse(startInput),
+        endDate: parse(endInput),
+      },
+    });
+  };
 
   const [updateStatus, { loading: statusLoading }] = useMutation(UPDATE_RAINBOW_EVENT_STATUS, {
     onCompleted: () => {
@@ -197,6 +226,60 @@ function EventInfoPanel({ event, refetch }) {
             ))}
         </HStack>
       </HStack>
+      <Box mt={4} pt={4} borderTop="1px solid" borderColor="gray.700">
+        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
+          Auto-schedule
+        </Text>
+        <HStack gap={3} wrap="wrap" align="flex-end">
+          <VStack align="flex-start" gap={1}>
+            <Text fontSize="xs" color="gray.500">Start</Text>
+            <Input
+              type="datetime-local"
+              size="sm"
+              value={startInput}
+              onChange={(e) => setStartInput(e.target.value)}
+              bg="gray.700"
+              border="1px solid"
+              borderColor="gray.600"
+              color="white"
+              w="220px"
+            />
+          </VStack>
+          <VStack align="flex-start" gap={1}>
+            <Text fontSize="xs" color="gray.500">End</Text>
+            <Input
+              type="datetime-local"
+              size="sm"
+              value={endInput}
+              onChange={(e) => setEndInput(e.target.value)}
+              bg="gray.700"
+              border="1px solid"
+              borderColor="gray.600"
+              color="white"
+              w="220px"
+            />
+          </VStack>
+          <Button
+            size="sm"
+            colorScheme="purple"
+            variant="outline"
+            isLoading={scheduleLoading}
+            onClick={handleSaveSchedule}
+          >
+            Save schedule
+          </Button>
+        </HStack>
+        {(event.startDate || event.endDate) && (
+          <HStack mt={2} gap={2} align="center" wrap="wrap">
+            <Text fontSize="xs" color="gray.500">
+              {event.startDate ? `starts ${fmtTs(event.startDate, utc)}` : 'no start set'}
+              {' · '}
+              {event.endDate ? `ends ${fmtTs(event.endDate, utc)}` : 'no end set'}
+            </Text>
+            <TimezoneToggle />
+          </HStack>
+        )}
+      </Box>
     </Box>
   );
 }
