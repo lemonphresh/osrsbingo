@@ -40,7 +40,7 @@ export const EDGES = [
 ];
 
 export const CELL_PX  = 36;
-export const COLS     = 26;
+export const COLS     = 29;
 export const ROWS     = 24;
 export const TILE_SIZE = CELL_PX * 2;
 export const BOARD_W  = COLS * CELL_PX;

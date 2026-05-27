@@ -304,6 +304,7 @@ export const GET_RAINBOW_TEAM_BOARD = gql`
       tileCode
       status
       progress
+      hasSubmissions
       unlockedAt
       completedAt
       tileDef {
@@ -337,6 +338,7 @@ export const RAINBOW_TEAM_BOARD_UPDATED = gql`
       tileCode
       status
       progress
+      hasSubmissions
       unlockedAt
       completedAt
       tileDef {

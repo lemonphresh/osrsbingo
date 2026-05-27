@@ -493,6 +493,7 @@ export default function RainbowBingoBoardPage() {
   });
 
   const prevMergedRef = useRef({});
+  const boardScrollRef = useRef(null);
   const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
@@ -549,6 +550,12 @@ export default function RainbowBingoBoardPage() {
     });
     return { tileTeamStatuses, mergedBoardMap };
   }, [teams]);
+
+  useEffect(() => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+  }, [eventLoading]);
 
   useEffect(() => {
     const prev = prevMergedRef.current;
@@ -707,14 +714,13 @@ export default function RainbowBingoBoardPage() {
                 >
                   Board Map
                 </Text>
-                <Box overflowX="auto">
-                  <Box display="flex" justifyContent="center">
+                <Box overflowX="auto" pb={2} ref={boardScrollRef}>
                     <Box
                       bg="rgba(255,255,255,0.03)"
                       borderRadius="xl"
                       p="12px"
-                      display="inline-block"
-                      flexShrink={0}
+                      width="max-content"
+                      mx="auto"
                     >
                       <Box
                         position="relative"
@@ -741,7 +747,6 @@ export default function RainbowBingoBoardPage() {
                           })}
                       </Box>
                     </Box>
-                  </Box>
                 </Box>
               </Box>
 

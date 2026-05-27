@@ -643,15 +643,16 @@ const typeDefs = gql`
   }
 
   type RainbowTeamTile {
-    teamTileId:  ID!
-    teamId:      ID!
-    eventId:     ID!
-    tileCode:    String!
-    status:      RainbowTileStatus!
-    progress:    Int!
-    unlockedAt:  DateTime
-    completedAt: DateTime
-    tileDef:     RainbowTileDef!
+    teamTileId:     ID!
+    teamId:         ID!
+    eventId:        ID!
+    tileCode:       String!
+    status:         RainbowTileStatus!
+    progress:       Int!
+    unlockedAt:     DateTime
+    completedAt:    DateTime
+    tileDef:        RainbowTileDef!
+    hasSubmissions: Boolean!
   }
 
   type RainbowSubmission {

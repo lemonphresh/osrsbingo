@@ -204,9 +204,17 @@ function attachTileDef(teamTile) {
 }
 
 async function getFullBoard(teamId) {
-  const { RainbowTeamTile } = getModels();
-  const tiles = await RainbowTeamTile.findAll({ where: { teamId } });
-  return tiles.map(attachTileDef);
+  const { RainbowTeamTile, RainbowSubmission } = getModels();
+  const { Op } = require('sequelize');
+  const [tiles, submissions] = await Promise.all([
+    RainbowTeamTile.findAll({ where: { teamId } }),
+    RainbowSubmission.findAll({
+      where: { teamId, status: { [Op.ne]: 'DENIED' } },
+      attributes: ['tileCode'],
+    }),
+  ]);
+  const tilesWithSubs = new Set(submissions.map((s) => s.tileCode));
+  return tiles.map((t) => ({ ...attachTileDef(t), hasSubmissions: tilesWithSubs.has(t.tileCode) }));
 }
 
 // ── Queries ────────────────────────────────────────────────────────────────

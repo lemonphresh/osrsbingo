@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import { useAuth } from '../providers/AuthProvider';
 import { useCompletionSound } from '../hooks/useCompletionSound';
@@ -135,9 +135,9 @@ const RING_PAD = 8;
 const OVERLAY_SIZE = TILE_SIZE + RING_PAD * 2;
 const OC = OVERLAY_SIZE / 2; // overlay center
 
-function TileOverlay({ col, row, progress, status }) {
+function TileOverlay({ col, row, progress, status, hasSubmissions }) {
   const showRing = progress > 0;
-  const showDot = status === 'SUBMITTED' || status === 'COMPLETE';
+  const showDot = hasSubmissions || status === 'COMPLETE';
   if (!showRing && !showDot) return null;
 
   const r = 36;
@@ -145,8 +145,8 @@ function TileOverlay({ col, row, progress, status }) {
   const filled = circumference * (Math.min(progress, 100) / 100);
 
   // Dot at ~135° clockwise from top (bottom-right perimeter)
-  const dotAngle = (135 * Math.PI) / 180;
-  const dotR = r + RING_PAD - 1;
+  const dotAngle = (315 * Math.PI) / 180;
+  const dotR = r - 3;
   const dotX = OC + dotR * Math.sin(dotAngle);
   const dotY = OC - dotR * Math.cos(dotAngle);
 
@@ -981,6 +981,7 @@ export default function RainbowTeamBoardPage() {
   }, []);
   const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
   const prevBoardRef = useRef({});
+  const boardScrollRef = useRef(null);
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
 
@@ -1049,7 +1050,9 @@ export default function RainbowTeamBoardPage() {
     fetchPolicy: 'cache-and-network',
     onCompleted: (d) => {
       if (d?.getRainbowTeamBoard && Object.keys(prevBoardRef.current).length === 0) {
-        prevBoardRef.current = Object.fromEntries(d.getRainbowTeamBoard.map((t) => [t.tileCode, t]));
+        prevBoardRef.current = Object.fromEntries(
+          d.getRainbowTeamBoard.map((t) => [t.tileCode, t])
+        );
       }
     },
   });
@@ -1099,6 +1102,12 @@ export default function RainbowTeamBoardPage() {
     const tiles = data?.getRainbowTeamBoard ?? [];
     return Object.fromEntries(tiles.map((t) => [t.tileCode, t]));
   }, [data]);
+
+  useEffect(() => {
+    const el = boardScrollRef.current;
+    if (!el) return;
+    el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
+  }, [boardLoading]);
 
   const stats = useMemo(() => {
     const tiles = data?.getRainbowTeamBoard ?? [];
@@ -1161,6 +1170,36 @@ export default function RainbowTeamBoardPage() {
               {team.teamName}
             </Text>
             {eventPassword && <EventPasswordBadge password={eventPassword} />}
+            <Box
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.100"
+              borderRadius="lg"
+              px={4}
+              py={3}
+              maxW="520px"
+              mt="12px"
+              w="100%"
+              textAlign="center"
+            >
+              <Text fontSize="sm" color="gray.300" lineHeight="1.6">
+                Complete nodes by submitting screenshots to your refs of your adventures and
+                triumphs. Nodes unlock as you finish their prerequisites! Complete all 7 capstone
+                nodes to finish the board and win!{' '}
+                <Box
+                  as={RouterLink}
+                  to="/eg-rainbow"
+                  color="purple.300"
+                  _hover={{ color: 'purple.200', textDecoration: 'underline' }}
+                  display="inline"
+                >
+                  View the public leaderboard →
+                </Box>
+              </Text>
+              <Text fontSize="xs" color="red.400" fontWeight="semibold" mt={2}>
+                ⚠ Do not share this page's link with anyone outside your team.
+              </Text>
+            </Box>
           </VStack>
 
           <HStack gap={6} wrap="wrap" justify="center">
@@ -1193,51 +1232,48 @@ export default function RainbowTeamBoardPage() {
               <Spinner size="xl" color="purple.400" />
             </Center>
           ) : (
-            <Box overflowX="auto">
+            <Box overflowX="auto" pb={2} ref={boardScrollRef}>
               <style>{`@keyframes tileComplete { 0% { box-shadow: 0 0 0 0 rgba(255,215,0,0.9); } 50% { box-shadow: 0 0 0 16px rgba(255,215,0,0.35); } 100% { box-shadow: 0 0 0 0 rgba(255,215,0,0); } }`}</style>
-              <Box display="flex" justifyContent="center">
-                <Box
-                  bg="rgba(255,255,255,0.03)"
-                  borderRadius="xl"
-                  p="12px"
-                  display="inline-block"
-                  flexShrink={0}
-                >
-                  <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }}>
-                    <BoardEdges boardMap={boardMap} showLocked={showLocked} />
-                    <TileCard tileCode="START" tile={null} isStart onClick={null} />
-                    {Object.keys(BOARD_LAYOUT)
-                      .filter((k) => k !== 'START')
-                      .map((code) => {
-                        const pos = BOARD_LAYOUT[code];
-                        const tile = boardMap[code];
-                        if (tile?.status === 'LOCKED' && !showLocked) return null;
-                        return (
-                          <React.Fragment key={code}>
-                            <TileCard
-                              tileCode={code}
-                              tile={tile}
-                              isStart={false}
-                              isNewlyCompleted={recentlyCompleted.has(code)}
-                              onClick={
-                                tile?.status !== 'LOCKED' ? () => setSelectedTile(tile) : null
-                              }
-                            />
-                            {pos &&
-                              (tile?.progress > 0 ||
-                                tile?.status === 'SUBMITTED' ||
-                                tile?.status === 'COMPLETE') && (
-                                <TileOverlay
-                                  col={pos.col}
-                                  row={pos.row}
-                                  progress={tile.progress ?? 0}
-                                  status={tile.status}
-                                />
-                              )}
-                          </React.Fragment>
-                        );
-                      })}
-                  </Box>
+              <Box
+                bg="rgba(255,255,255,0.03)"
+                borderRadius="xl"
+                p="12px"
+                width="max-content"
+                mx="auto"
+              >
+                <Box position="relative" style={{ width: BOARD_W, height: BOARD_H }}>
+                  <BoardEdges boardMap={boardMap} showLocked={showLocked} />
+                  <TileCard tileCode="START" tile={null} isStart onClick={null} />
+                  {Object.keys(BOARD_LAYOUT)
+                    .filter((k) => k !== 'START')
+                    .map((code) => {
+                      const pos = BOARD_LAYOUT[code];
+                      const tile = boardMap[code];
+                      if (tile?.status === 'LOCKED' && !showLocked) return null;
+                      return (
+                        <React.Fragment key={code}>
+                          <TileCard
+                            tileCode={code}
+                            tile={tile}
+                            isStart={false}
+                            isNewlyCompleted={recentlyCompleted.has(code)}
+                            onClick={tile?.status !== 'LOCKED' ? () => setSelectedTile(tile) : null}
+                          />
+                          {pos &&
+                            (tile?.progress > 0 ||
+                              tile?.hasSubmissions ||
+                              tile?.status === 'COMPLETE') && (
+                              <TileOverlay
+                                col={pos.col}
+                                row={pos.row}
+                                progress={tile.progress ?? 0}
+                                status={tile.status}
+                                hasSubmissions={tile.hasSubmissions}
+                              />
+                            )}
+                        </React.Fragment>
+                      );
+                    })}
                 </Box>
               </Box>
             </Box>
