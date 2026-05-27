@@ -10,6 +10,7 @@ const {
   getCascadeLockTiles,
 } = require('../../utils/rainbowTiles');
 const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
+const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
 
 const getModels = () => require('../../db/models');
 
@@ -58,35 +59,6 @@ async function postDiscordMessage(channelId, content) {
   }
 }
 
-async function postDiscordEmbed(channelId, embed, { roleId = null } = {}) {
-  if (!process.env.DISCORD_BOT_TOKEN) {
-    console.warn('[rainbowbingo] DISCORD_BOT_TOKEN is not set — skipping embed');
-    return;
-  }
-  if (!channelId) {
-    console.warn('[rainbowbingo] postDiscordEmbed called with no channelId — skipping');
-    return;
-  }
-  console.log(`[rainbowbingo] posting embed to channel ${channelId}:`, JSON.stringify(embed));
-  try {
-    const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content: roleId ? `<@&${roleId}>` : undefined, embeds: [embed] }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      console.error(`[rainbowbingo] Discord API error ${res.status}:`, JSON.stringify(body));
-    } else {
-      console.log(`[rainbowbingo] Discord embed sent OK (${res.status})`);
-    }
-  } catch (err) {
-    console.error('[rainbowbingo] Discord notification failed:', err.message);
-  }
-}
 
 async function sendRainbowDiscordNotification({
   type,
@@ -352,6 +324,16 @@ const Mutation = {
       }
     }
 
+    return event;
+  },
+
+  setRainbowEventSchedule: async (_, { eventId, startDate, endDate }, { user }) => {
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
+    await event.update({
+      startDate: startDate ?? null,
+      endDate: endDate ?? null,
+    });
     return event;
   },
 

@@ -28,6 +28,7 @@ const discordRoutes = require('./routes/discord');
 const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
+const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -80,6 +81,7 @@ app.use(
         workerSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki', 'https://api.wiseoldman.net'],
         objectSrc: ["'none'"],
+        frameSrc: ['https://www.youtube.com'],
         frameAncestors: ["'self'", 'https://www.osrsbingohub.com', 'https://osrsbingohub.com'],
         upgradeInsecureRequests: [],
       },
@@ -538,6 +540,7 @@ server.start().then(async () => {
   startWomSyncScheduler();
   startGroupGoalScheduler();
   startTrackScapeScheduler();
+  startRainbowEventScheduler();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

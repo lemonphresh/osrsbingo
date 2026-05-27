@@ -1033,6 +1033,7 @@ const typeDefs = gql`
     createRainbowEvent(input: CreateRainbowEventInput!): RainbowEvent!
     createRainbowTeam(eventId: ID!, input: CreateRainbowTeamInput!): RainbowTeam!
     updateRainbowEventStatus(eventId: ID!, status: RainbowEventStatus!): RainbowEvent!
+    setRainbowEventSchedule(eventId: ID!, startDate: DateTime, endDate: DateTime): RainbowEvent!
     createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
     reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
     completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!

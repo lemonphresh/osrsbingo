@@ -42,7 +42,9 @@ export default function SupportPage() {
     fetchPolicy: 'cache-and-network',
   });
   const activeEvent = eventData?.getActiveRainbowEvent;
-  const showRainbowCallout = activeEvent && activeEvent.status !== 'COMPLETE';
+  const isJune = new Date().getMonth() === 5;
+  const showEventCallout = !!activeEvent && activeEvent.status === 'ACTIVE';
+  const showJuneCallout = isJune && !showEventCallout;
 
   return (
     <div
@@ -120,8 +122,53 @@ export default function SupportPage() {
             just sharing the site with your friends is huge. 💛
           </p>
         </Flex>
-        {/* Rainbow Bingo event callout */}
-        {showRainbowCallout && (
+        {/* June / Pride Month callout */}
+        {showJuneCallout && (
+          <div
+            style={{
+              marginTop: 28,
+              background: 'rgba(0, 180, 140, 0.08)',
+              border: '1px solid rgba(0, 180, 140, 0.3)',
+              borderRadius: 12,
+              padding: '16px 20px',
+            }}
+          >
+            <p style={{ margin: '0 0 6px 0', fontSize: 13, color: '#4dd9ac', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              🏳️‍🌈 Pride Month — June 2026
+            </p>
+            <p style={{ margin: 0, fontSize: 14, color: '#cbd5e0', lineHeight: 1.7 }}>
+              Any and all support to this site this month goes directly to{' '}
+              <a href="https://www.thetrevorproject.org" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+                The Trevor Project
+              </a>
+              , the world's largest suicide prevention organization for LGBTQ+ youth.{' '}
+              {activeEvent?.startDate ? (
+                <>
+                  <Link to="/eg-rainbow" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+                    Eternal Gems' Rainbow Bingo
+                  </Link>{' '}
+                  starts{' '}
+                  {new Date(activeEvent.startDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
+                  .
+                </>
+              ) : (
+                <>
+                  <Link to="/eg-rainbow" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+                    Eternal Gems' Rainbow Bingo
+                  </Link>{' '}
+                  is coming this June.
+                </>
+              )}{' '}
+              You can also{' '}
+              <a href="https://www.thetrevorproject.org/donate/" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+                donate to them directly
+              </a>
+              .
+            </p>
+          </div>
+        )}
+        {/* Rainbow Bingo event live callout */}
+        {showEventCallout && (
           <div
             style={{
               marginTop: 28,
