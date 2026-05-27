@@ -327,6 +327,13 @@ const Mutation = {
     return event;
   },
 
+  setRainbowEventGuildId: async (_, { eventId, guildId }, { user }) => {
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
+    await event.update({ guildId });
+    return event;
+  },
+
   setRainbowEventSchedule: async (_, { eventId, startDate, endDate }, { user }) => {
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');

@@ -26,6 +26,7 @@ export const GET_ACTIVE_RAINBOW_EVENT = gql`
       endDate
       adminIds
       staffChannelId
+      guildId
       teams {
         teamId
         teamName
@@ -258,6 +259,15 @@ export const UPDATE_RAINBOW_EVENT_STATUS = gql`
     updateRainbowEventStatus(eventId: $eventId, status: $status) {
       eventId
       status
+    }
+  }
+`;
+
+export const SET_RAINBOW_EVENT_GUILD_ID = gql`
+  mutation SetRainbowEventGuildId($eventId: ID!, $guildId: String!) {
+    setRainbowEventGuildId(eventId: $eventId, guildId: $guildId) {
+      eventId
+      guildId
     }
   }
 `;

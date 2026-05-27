@@ -107,7 +107,7 @@ function ScreenshotThumb({ url }) {
   );
 }
 
-function SubmissionItem({ sub, onApprove, onDeny, loadingId }) {
+function SubmissionItem({ sub, onApprove, onDeny, loadingId, guildId }) {
   const [denyReason, setDenyReason] = useState('');
   const [showDeny, setShowDeny] = useState(false);
   const isPending = sub.status === 'PENDING';
@@ -138,6 +138,19 @@ function SubmissionItem({ sub, onApprove, onDeny, loadingId }) {
             {sub.discordUsername && (
               <Text fontSize="xs" color="gray.400" fontWeight="semibold">
                 @{sub.discordUsername}
+              </Text>
+            )}
+            {guildId && sub.channelId && sub.discordMessageId && (
+              <Text
+                as="a"
+                href={`https://discord.com/channels/${guildId}/${sub.channelId}/${sub.discordMessageId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                fontSize="xs"
+                color="blue.400"
+                _hover={{ textDecoration: 'underline' }}
+              >
+                View in Discord ↗
               </Text>
             )}
             <Text fontSize="xs" color="gray.500">
@@ -228,7 +241,7 @@ function SubmissionItem({ sub, onApprove, onDeny, loadingId }) {
 
 // ── Section within a group: pending shown, reviewed collapsed ─────────────────
 
-function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId }) {
+function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId, guildId }) {
   const pending = subs.filter((s) => s.status === 'PENDING');
   const reviewed = subs.filter((s) => s.status !== 'PENDING');
 
@@ -252,6 +265,7 @@ function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId }) {
             onApprove={onApprove}
             onDeny={onDeny}
             loadingId={loadingId}
+            guildId={guildId}
           />
         ))}
       </VStack>
@@ -271,6 +285,7 @@ function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId }) {
                     onApprove={onApprove}
                     onDeny={onDeny}
                     loadingId={loadingId}
+                    guildId={guildId}
                   />
                 ))}
               </VStack>
@@ -427,6 +442,7 @@ function TileGroup({
   onComplete,
   onSetProgress,
   loadingId,
+  guildId,
 }) {
   const { tileCode, teamId, teamName, subs } = group;
   const [confirming, setConfirming] = useState(false);
@@ -577,6 +593,7 @@ function TileGroup({
               onApprove={onApprove}
               onDeny={onDeny}
               loadingId={loadingId}
+              guildId={guildId}
             />
           )}
           {pre.length > 0 && final.length > 0 && <Divider borderColor="gray.700" />}
@@ -588,6 +605,7 @@ function TileGroup({
               onApprove={onApprove}
               onDeny={onDeny}
               loadingId={loadingId}
+              guildId={guildId}
             />
           )}
         </VStack>
@@ -1100,6 +1118,7 @@ export default function RainbowRefsPage() {
                   onComplete={handleComplete}
                   onSetProgress={handleSetProgress}
                   loadingId={loadingId}
+                  guildId={event?.guildId}
                 />
               ))}
             </Accordion>
