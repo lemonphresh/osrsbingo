@@ -81,7 +81,7 @@ app.use(
         workerSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki', 'https://api.wiseoldman.net'],
         objectSrc: ["'none'"],
-        frameSrc: ['https://www.youtube.com'],
+        frameSrc: ['https://www.youtube.com', 'https://www.youtube-nocookie.com'],
         frameAncestors: ["'self'", 'https://www.osrsbingohub.com', 'https://osrsbingohub.com'],
         upgradeInsecureRequests: [],
       },
