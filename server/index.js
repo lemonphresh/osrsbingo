@@ -19,6 +19,7 @@ const calendarRoutes = require('./calendarRoutes');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
+const { execute, subscribe } = require('graphql');
 const helmet = require('helmet');
 const { ApolloServerPluginDrainHttpServer } = require('apollo-server-core');
 const { createLoaders } = require('./utils/dataLoaders');
@@ -27,6 +28,7 @@ const discordRoutes = require('./routes/discord');
 const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
+const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -76,8 +78,10 @@ app.use(
           'blob:',
           'https:',
         ],
+        workerSrc: ["'self'", 'blob:'],
         connectSrc: ["'self'", 'wss:', 'ws:', 'https://oldschool.runescape.wiki', 'https://api.wiseoldman.net'],
         objectSrc: ["'none'"],
+        frameSrc: ['https://www.youtube.com'],
         frameAncestors: ["'self'", 'https://www.osrsbingohub.com', 'https://osrsbingohub.com'],
         upgradeInsecureRequests: [],
       },
@@ -351,6 +355,8 @@ const wsServer = new WebSocketServer({
 const serverCleanup = useServer(
   {
     schema,
+    execute,
+    subscribe,
     context: async (ctx, msg, args) => {
       // Get auth from connection params
       const token = ctx.connectionParams?.authorization?.replace('Bearer ', '');
@@ -367,6 +373,9 @@ const serverCleanup = useServer(
       }
 
       return { user, jwtSecret: SECRET };
+    },
+    onError: (ctx, msg, errors) => {
+      console.error('[ws] subscription execution error:', JSON.stringify(errors));
     },
   },
   wsServer
@@ -531,6 +540,7 @@ server.start().then(async () => {
   startWomSyncScheduler();
   startGroupGoalScheduler();
   startTrackScapeScheduler();
+  startRainbowEventScheduler();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

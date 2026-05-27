@@ -1,0 +1,58 @@
+TileCode,Color,ColorIndex,BossOrSkill,MetricType,MetricTarget,MetricUnit,MetricLabel,HoursEstimate,Theme,FunName,Notes,Prerequisites,Unlocks
+START,start,0,Start,special,,,Start,0,,,,,R1|O1|Y1|G1|B1|I1|V1
+R1,red,1,Woodcutting,xp,5,M xp,5M xp,23,Life,,,START,R2|R4
+R2,red,2,Grotesque Guardians,kc,300,kc,300 kc,10,Life,,,R1,R3
+R3,red,3,Commander Zilyana,unique,2,uniques,2 uniques,4,Life,,,R2,R6
+R4,red,4,Moons of Peril,unique,3,uniques,3 uniques,4,Life,,,R1,R5
+R5,red,5,Abyssal Sire,kc,400,kc,400 kc,10,Life,,,R4,R6
+R6,red,6,Araxxor,kc,300,kc,300 kc,9,Life,,,R3|R5,R7
+R7,red,7,Fortis Colosseum,unique,2,uniques,2 uniques,4,Life,,,R6,
+O1,orange,1,Cooking,xp,5,M xp,5M xp,11,Healing,,,START,O2|O4
+O2,orange,2,Doom of Mokhaiotl,unique,2,uniques,2 uniques,12,Healing,,,O1,O3
+O3,orange,3,Zulrah,unique,3,uniques,3 uniques,9,Healing,,,O2,O6
+O4,orange,4,Sarachnis,unique,6,uniques,6 uniques,6,Healing,,,O1,O5
+O5,orange,5,Dagannoth Kings,unique,5,uniques,5 uniques,5,Healing,,,O4,O6
+O6,orange,6,General Graardor,unique,2,uniques,2 uniques,6.5,Healing,,,O3|O5,O7
+O7,orange,7,Jad / Zuk,special,,,"3 inferno OR 12 fire cape",3,Healing,,,O6,
+Y1,yellow,1,Agility,xp,1.5,M xp,1.5M xp,15,Sunlight,,,START,Y2|Y4
+Y2,yellow,2,Fletching,xp,5,M xp,5M xp,0,Sunlight,,,Y1,Y3
+Y3,yellow,3,The Leviathan,unique,2,uniques,2 uniques,7,Sunlight,,,Y2,Y6
+Y4,yellow,4,Wintertodt,unique,4,uniques,4 uniques,4,Sunlight,,,Y1,Y5
+Y5,yellow,5,Scurrius,kc,500,kc,500 kc,5,Sunlight,,,Y4,Y6
+Y6,yellow,6,K'ril Tsutsaroth,unique,3,uniques,3 uniques,4.5,Sunlight,,,Y3|Y5,Y7
+Y7,yellow,7,Tombs of Amascut,unique,2,uniques,2 uniques,6,Sunlight,,,Y6,
+G1,green,1,Fishing,xp,2.5,M xp,2.5M xp,20,Nature,,Interplay with G3 (Tempoross),START,G2|G4
+G2,green,2,Sailing,xp,6.5,M xp,6.5M xp,29,Nature,,,G1,G3
+G3,green,3,Tempoross,unique,1,unique,1 unique,3,Nature,,,G2,G6
+G4,green,4,Kalphite Queen,unique,3,uniques,3 uniques,4,Nature,,,G1,G5
+G5,green,5,Kraken,kc,500,kc,500 kc,5,Nature,,,G4,G6
+G6,green,6,Vorkath,unique,4,uniques,4 uniques,5,Nature,,,G3|G5,G7
+G7,green,7,Amoxliatl,unique,5,uniques,5 uniques,7,Nature,,,G6,
+B1,blue,1,Crafting,xp,5,M xp,5M xp,18,Magic and Art,,,START,B2|B4
+B2,blue,2,GOTR Dyes,unique,1,unique,1 unique,9,Magic and Art,,,B1,B3
+B3,blue,3,Smithing,xp,3,M xp,3M xp,7,Magic and Art,,,B2,B6
+B4,blue,4,Corrupted Gauntlet,unique,3,uniques,3 uniques,10,Magic and Art,,,B1,B5
+B5,blue,5,Zalcano,unique,1,unique,1 unique,40,Magic and Art,,,B4,B6
+B6,blue,6,Thermonuclear Smoke Devil,kc,500,kc,500 kc,5,Magic and Art,,,B3|B5,B7
+B7,blue,7,Yama,unique,1,unique,1 unique,13,Magic and Art,,,B6,
+I1,indigo,1,Mining,xp,2,M xp,2M xp,10,Serenity,,,START,I2|I4
+I2,indigo,2,Kree'arra,unique,2,uniques,2 uniques,7,Serenity,,,I1,I3
+I3,indigo,3,Calvar'ion,unique,3,uniques,3 uniques,6,Serenity,,,I2,I6
+I4,indigo,4,Spindel,unique,3,uniques,3 uniques,6,Serenity,,,I1,I5
+I5,indigo,5,Duke Sucellus,unique,3,uniques,3 uniques,7,Serenity,,,I4,I6
+I6,indigo,6,Alchemical Hydra,kc,300,kc,300 kc,10,Serenity,,,I3|I5,I7
+I7,indigo,7,Giant Mole,unique,10,uniques,10 uniques,5,Serenity,,,I6,
+V1,violet,1,Slayer,xp,4,M xp,4M xp,40,Spirit,,,START,V2|V4
+V2,violet,2,Barrows,special,,,mismatched set,6,Spirit,,,V1,V3
+V3,violet,3,Corporeal Beast,unique,2,uniques,2 uniques,9,Spirit,,,V2,V6
+V4,violet,4,Phantom Muspah,unique,4,uniques,4 uniques,5,Spirit,,,V1,V5
+V5,violet,5,The Whisperer,unique,3,uniques,3 uniques,9,Spirit,,,V4,V6
+V6,violet,6,Cerberus,kc,500,kc,500 kc,10,Spirit,,,V3|V5,V7
+V7,violet,7,Chambers of Xeric,unique,2,uniques,2 uniques,6,Spirit,,,V6,
+C1,capstone,1,Thieving,xp,4,M xp,4M xp,18,,be gay do crime,,TBD,TBD
+C2,capstone,2,Slayer Heads,unique,,,unique head count,0,,grindr,Done during V1 (Slayer xp). Requires separate submission.,TBD,TBD
+C3,capstone,3,Vardorvis,unique,2,uniques,2 uniques,7,,scissor me timbers,,TBD,TBD
+C4,capstone,4,Callisto / Artio,unique,3,uniques,3 uniques,6,,bears,,TBD,TBD
+C5,capstone,5,Nightmare / PNM,unique,1,unique,the egg,12,,trans inclusive (name TBD),,TBD,TBD
+C6,capstone,6,Hunter Rumors (Pitri),kc,200,rumors,200 rumors,13,,nb tile,Pitri is canonically nb,TBD,TBD
+C7,capstone,7,Royal Titans,unique,2,uniques,2 uniques,6,,bi tile,,TBD,TBD

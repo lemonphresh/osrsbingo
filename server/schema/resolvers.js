@@ -10,6 +10,7 @@ const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
 const ClanWarsResolvers = require('./resolvers/ClanWars');
 const ClanWarsSubscriptions = require('./resolvers/ClanWarsSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
+const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 
@@ -29,6 +30,7 @@ const resolvers = {
     ...DraftRoomResolvers.Query,
     ...ClanWarsResolvers.Query,
     ...GroupDashboardResolvers.Query,
+    ...RainbowBingoResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -41,11 +43,13 @@ const resolvers = {
     ...DraftRoomResolvers.Mutation,
     ...ClanWarsResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
+    ...RainbowBingoResolvers.Mutation,
   },
   Subscription: {
     ...TreasureHuntSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
     ...ClanWarsSubscriptions.ClanWarsSubscription,
+    ...RainbowBingoResolvers.Subscription,
   },
 
   // type resolvers (field-level resolvers for nested data)
@@ -83,6 +87,15 @@ const resolvers = {
   },
   GroupGoalEvent: {
     ...GroupDashboardResolvers.GroupGoalEvent,
+  },
+  RainbowEvent: {
+    ...RainbowBingoResolvers.RainbowEvent,
+  },
+  RainbowSubmission: {
+    ...RainbowBingoResolvers.RainbowSubmission,
+  },
+  RainbowTeam: {
+    ...RainbowBingoResolvers.RainbowTeam,
   },
 };
 

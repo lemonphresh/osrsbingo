@@ -46,6 +46,10 @@ const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboard
 const GroupDashboardActivityPage = lazy(() => import('./pages/GroupDashboardActivityPage'));
 const GroupDashboardWidgetPage = lazy(() => import('./pages/GroupDashboardWidgetPage'));
 const WallOfShame = lazy(() => import('./pages/WallOfShame'));
+const RainbowBingoBoardPage = lazy(() => import('./pages/RainbowBingoBoardPage'));
+const RainbowTeamBoardPage = lazy(() => import('./pages/RainbowTeamBoardPage'));
+const RainbowRefsPage = lazy(() => import('./pages/RainbowRefsPage'));
+const RainbowAdminPage = lazy(() => import('./pages/RainbowAdminPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -279,6 +283,26 @@ const routes = [
       {
         path: '/wall-of-shame',
         element: withSuspense(WallOfShame),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/eg-rainbow',
+        element: withSuspense(RainbowBingoBoardPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/eg-rainbow/team/:token',
+        element: withSuspense(RainbowTeamBoardPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/eg-rainbow/refs',
+        element: withSuspense(RainbowRefsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/eg-rainbow/admin',
+        element: withSuspense(RainbowAdminPage),
         errorElement: <ErrorPage />,
       },
       {
