@@ -435,7 +435,7 @@ function EventCountdown({ startDate }) {
         <iframe
           width="100%"
           height="100%"
-          src="https://www.youtube.com/embed/videoseries?list=PLGwZKkKxJCicAQmMkexJvUX1DozOOfGxT&autoplay=1&mute=1&loop=1"
+          src="https://www.youtube.com/embed/videoseries?list=PLL0kHJ0lmE1f_ui_72KznVw6PKmwVc1sD&autoplay=1&mute=1&loop=1"
           title="RuPaul's Drag Race lip syncs"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen

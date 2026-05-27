@@ -36,6 +36,7 @@ import {
   TEST_RAINBOW_CHANNEL,
   UPDATE_RAINBOW_EVENT_STATUS,
   SET_RAINBOW_EVENT_SCHEDULE,
+  SET_RAINBOW_EVENT_GUILD_ID,
   DELETE_RAINBOW_EVENT,
   DELETE_RAINBOW_TEAM,
   GENERATE_RAINBOW_TEAM_TOKEN,
@@ -112,6 +113,12 @@ function EventInfoPanel({ event, refetch }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [startInput, setStartInput] = useState(() => toLocalDatetimeInput(event.startDate));
   const [endInput, setEndInput] = useState(() => toLocalDatetimeInput(event.endDate));
+  const [guildIdInput, setGuildIdInput] = useState(event.guildId ?? '');
+
+  const [setGuildId, { loading: guildIdLoading }] = useMutation(SET_RAINBOW_EVENT_GUILD_ID, {
+    onCompleted: () => { showToast('Guild ID saved', 'success'); refetch(); },
+    onError: (e) => showToast(e.message, 'error'),
+  });
 
   const [setSchedule, { loading: scheduleLoading }] = useMutation(SET_RAINBOW_EVENT_SCHEDULE, {
     onCompleted: () => { showToast('Schedule saved', 'success'); refetch(); },
@@ -227,6 +234,36 @@ function EventInfoPanel({ event, refetch }) {
         </HStack>
       </HStack>
       <Box mt={4} pt={4} borderTop="1px solid" borderColor="gray.700">
+        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
+          Discord Guild ID
+        </Text>
+        <HStack gap={2} mb={4}>
+          <Input
+            size="sm"
+            value={guildIdInput}
+            onChange={(e) => setGuildIdInput(e.target.value)}
+            placeholder="123456789012345678"
+            bg="gray.700"
+            border="1px solid"
+            borderColor="gray.600"
+            color="white"
+            fontFamily="mono"
+            w="220px"
+          />
+          <Button
+            size="sm"
+            colorScheme="purple"
+            variant="outline"
+            isLoading={guildIdLoading}
+            isDisabled={!guildIdInput.trim() || guildIdInput === (event.guildId ?? '')}
+            onClick={() => setGuildId({ variables: { eventId: event.eventId, guildId: guildIdInput.trim() } })}
+          >
+            Save
+          </Button>
+          {event.guildId && (
+            <Text fontSize="xs" color="gray.600" fontFamily="mono">{event.guildId}</Text>
+          )}
+        </HStack>
         <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
           Auto-schedule
         </Text>

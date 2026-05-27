@@ -622,6 +622,7 @@ const typeDefs = gql`
     endDate:        DateTime
     adminIds:       [String!]!
     staffChannelId: String
+    guildId:        String
     tileGraph:      JSON!
     teams:          [RainbowTeam!]!
     admins:         [User!]!
@@ -1034,6 +1035,7 @@ const typeDefs = gql`
     createRainbowTeam(eventId: ID!, input: CreateRainbowTeamInput!): RainbowTeam!
     updateRainbowEventStatus(eventId: ID!, status: RainbowEventStatus!): RainbowEvent!
     setRainbowEventSchedule(eventId: ID!, startDate: DateTime, endDate: DateTime): RainbowEvent!
+    setRainbowEventGuildId(eventId: ID!, guildId: String!): RainbowEvent!
     createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
     reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
     completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!
