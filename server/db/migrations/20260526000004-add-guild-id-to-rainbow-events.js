@@ -2,12 +2,12 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.addColumn('rainbow_events', 'guildId', {
+    await queryInterface.addColumn('RainbowEvents', 'guildId', {
       type: Sequelize.STRING,
       allowNull: true,
     });
   },
   down: async (queryInterface) => {
-    await queryInterface.removeColumn('rainbow_events', 'guildId');
+    await queryInterface.removeColumn('RainbowEvents', 'guildId');
   },
 };
