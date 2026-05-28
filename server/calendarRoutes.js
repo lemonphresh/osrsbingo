@@ -135,13 +135,22 @@ router.post('/post-to-discord', requireCalendarAuth, async (req, res) => {
     const dayLabel = new Date(dateKey + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
     const lines = dayEvents.map((e) => {
       const emoji = TYPE_EMOJI[e.eventType] || '📌';
-      const start = Math.floor(new Date(e.start).getTime() / 1000);
-      const end = Math.floor(new Date(e.end).getTime() / 1000);
+      const startTs = Math.floor(new Date(e.start).getTime() / 1000);
+      const endTs = e.end ? Math.floor(new Date(e.end).getTime() / 1000) : null;
       let rawDesc = e.description ?? '';
       const truncated = rawDesc.length > DESC_LIMIT;
       if (truncated) rawDesc = rawDesc.slice(0, DESC_LIMIT).trimEnd() + `… [see more](${NOTION_URL})`;
       const desc = rawDesc ? `\n${rawDesc.split('\n').map((l) => `> ${l}`).join('\n')}` : '';
-      return `${emoji} **${e.title}**\n<t:${start}:F> – <t:${end}:F>${desc}`;
+      let timeStr;
+      if (e.allDay) {
+        const endInclusive = endTs && endTs > startTs ? endTs - 86400 : null;
+        timeStr = endInclusive && endInclusive > startTs
+          ? `<t:${startTs}:D> – <t:${endInclusive}:D>`
+          : `<t:${startTs}:D>`;
+      } else {
+        timeStr = endTs ? `<t:${startTs}:F> – <t:${endTs}:F>` : `<t:${startTs}:F>`;
+      }
+      return `${emoji} **${e.title}**\n${timeStr}${desc}`;
     });
     return { name: `📆 ${dayLabel}`, value: lines.join('\n\n'), inline: false };
   });
