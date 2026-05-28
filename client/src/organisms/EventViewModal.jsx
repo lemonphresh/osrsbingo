@@ -59,7 +59,7 @@ export default function EventViewModal({ isOpen, onClose, event }) {
                     ? (() => {
                         // FullCalendar all-day end is exclusive, subtract 1 day for display
                         const endInclusive = hasEnd ? subDays(end, 1) : null;
-                        const isMultiDay = endInclusive && !isSameDay(start, endInclusive);
+                        const isMultiDay = endInclusive && !isSameDay(start, endInclusive) && endInclusive >= start;
                         return isMultiDay
                           ? `${format(start, 'EEE, MMM d')} – ${format(endInclusive, 'EEE, MMM d, yyyy')} (all day)`
                           : `${format(start, 'EEE, MMM d, yyyy')} (all day)`;
