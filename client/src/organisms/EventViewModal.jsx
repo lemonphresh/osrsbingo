@@ -65,7 +65,11 @@ export default function EventViewModal({ isOpen, onClose, event }) {
                           : `${format(start, 'EEE, MMM d, yyyy')} (all day)`;
                       })()
                     : `${format(start, 'EEE, MMM d, yyyy • p')}${
-                        hasEnd ? ` – ${format(end, 'p')}` : ''
+                        hasEnd
+                          ? isSameDay(start, end)
+                            ? ` – ${format(end, 'p')}`
+                            : ` – ${format(end, 'EEE, MMM d, yyyy • p')}`
+                          : ''
                       }`}
                 </Text>
               ) : (
