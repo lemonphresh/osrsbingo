@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton, useToast } from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton, useToast, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Button } from '@chakra-ui/react';
 import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
 const GROUP_ID = 9738;
 const LEAGUES_GROUP_ID = 211;
-const INACTIVITY_DAYS = 30;
 const REFRESH_COOLDOWN_MS = 60_000;
 const AUTO_REFRESH_MS = 60 * 60_000;
 
@@ -65,6 +64,11 @@ function daysAgo(dateStr) {
   if (days === 0) return 'today';
   if (days === 1) return '1d ago';
   return `${days}d ago`;
+}
+
+function formatDate(dateStr) {
+  if (!dateStr) return 'never';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function accountTag(type) {
@@ -301,11 +305,14 @@ function AchievementsFeed({ data, loading, error }) {
 
 // --- Inactivity Tracker ---
 function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldownRemaining }) {
+  const [thresholdDays, setThresholdDays] = useState(30);
+  const [showDate, setShowDate] = useState(false);
+
   const inactive = data
     .filter((m) => {
       const lc = m.player?.lastChangedAt;
       if (!lc) return true;
-      return (Date.now() - new Date(lc).getTime()) / 86400000 >= INACTIVITY_DAYS;
+      return (Date.now() - new Date(lc).getTime()) / 86400000 >= thresholdDays;
     })
     .sort((a, b) => {
       const at = a.player?.lastChangedAt ? new Date(a.player.lastChangedAt).getTime() : 0;
@@ -330,7 +337,7 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
         </Text>
         <HStack spacing={2}>
           <Text fontSize="sm" color="whiteAlpha.500">
-            {loading ? '…' : `${inactive.length} inactive (${INACTIVITY_DAYS}+ days)`}
+            {loading ? '…' : `${inactive.length} inactive (${thresholdDays}+ days)`}
           </Text>
           {cooldownRemaining > 0 && (
             <Text fontSize="xs" color="whiteAlpha.300">{cooldownRemaining}s</Text>
@@ -346,6 +353,33 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
             onClick={onRefresh}
           />
         </HStack>
+      </Flex>
+      <Flex align="center" gap={3} mb={3} flexShrink={0} wrap="wrap">
+        <HStack spacing={1}>
+          <Text fontSize="xs" color="whiteAlpha.500">Min days inactive:</Text>
+          <NumberInput
+            size="xs"
+            value={thresholdDays}
+            min={1}
+            max={9999}
+            onChange={(_, val) => !isNaN(val) && val >= 1 && setThresholdDays(val)}
+            w="72px"
+          >
+            <NumberInputField px={2} />
+            <NumberInputStepper>
+              <NumberIncrementStepper />
+              <NumberDecrementStepper />
+            </NumberInputStepper>
+          </NumberInput>
+        </HStack>
+        <Button
+          size="xs"
+          variant="outline"
+          colorScheme="whiteAlpha"
+          onClick={() => setShowDate((v) => !v)}
+        >
+          {showDate ? 'Show days ago' : 'Show date'}
+        </Button>
       </Flex>
       {fetchedAt && (
         <Text fontSize="xs" color="whiteAlpha.300" mb={1} flexShrink={0}>
@@ -407,7 +441,7 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
               minW="100px"
               textAlign="right"
             >
-              Last Active
+              {showDate ? 'Last Active' : 'Days Inactive'}
             </Text>
             <Text
               fontSize="xs"
@@ -455,7 +489,7 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
                     textAlign="right"
                     flexShrink={0}
                   >
-                    {daysAgo(player?.lastChangedAt)}
+                    {showDate ? formatDate(player?.lastChangedAt) : daysAgo(player?.lastChangedAt)}
                   </Text>
                   <Text
                     fontSize="sm"
