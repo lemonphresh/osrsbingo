@@ -192,7 +192,10 @@ export default function EGCalendar({ authed, setAuthed }) {
   });
 
   useEffect(() => {
-    if (authed) checkVersion();
+    if (!authed) return;
+    checkVersion();
+    const id = setInterval(checkVersion, 2 * 60 * 1000);
+    return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authed]);
 
@@ -341,10 +344,10 @@ export default function EGCalendar({ authed, setAuthed }) {
   }, [data]);
 
   const doRefreshLists = async () => {
-    await Promise.all([refetch(), refetchSaved()]);
-    checkVersion();
     setBaseline({ activeUpdatedAt: null, savedUpdatedAt: null });
     setHasDrift(false);
+    await Promise.all([refetch(), refetchSaved()]);
+    checkVersion();
   };
 
   const openToolbar = (eventData, domEvt) => {
