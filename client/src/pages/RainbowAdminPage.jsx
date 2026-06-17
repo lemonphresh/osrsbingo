@@ -188,18 +188,20 @@ function EventInfoPanel({ event, refetch }) {
           </Text>
         </VStack>
         <HStack gap={2} wrap="wrap">
-          {actions.map(({ label, next, scheme }) => (
-            <Button
-              key={next}
-              size="sm"
-              colorScheme={scheme}
-              variant="outline"
-              isLoading={statusLoading}
-              onClick={() => updateStatus({ variables: { eventId: event.eventId, status: next } })}
-            >
-              {label}
-            </Button>
-          ))}
+          {actions
+            .filter(({ next }) => next !== 'ACTIVE' || (event.teams?.length ?? 0) > 0)
+            .map(({ label, next, scheme }) => (
+              <Button
+                key={next}
+                size="sm"
+                colorScheme={scheme}
+                variant="outline"
+                isLoading={statusLoading}
+                onClick={() => updateStatus({ variables: { eventId: event.eventId, status: next } })}
+              >
+                {label}
+              </Button>
+            ))}
           {event.status === 'COMPLETE' &&
             (confirmDelete ? (
               <HStack gap={2}>

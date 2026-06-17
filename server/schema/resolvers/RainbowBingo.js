@@ -192,6 +192,14 @@ async function getFullBoard(teamId) {
 // ── Queries ────────────────────────────────────────────────────────────────
 
 const Query = {
+  isRainbowBingoChannelActive: async (_, { channelId }) => {
+    const { RainbowTeam, RainbowEvent } = getModels();
+    const team = await RainbowTeam.findOne({ where: { discordChannelId: channelId } });
+    if (!team) return false;
+    const event = await RainbowEvent.findOne({ where: { eventId: team.eventId } });
+    return event?.status === 'ACTIVE';
+  },
+
   getActiveRainbowEvent: async () => {
     const { RainbowEvent } = getModels();
     const { Op } = require('sequelize');

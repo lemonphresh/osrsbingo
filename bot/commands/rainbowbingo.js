@@ -16,6 +16,17 @@ const COLOR_HEX = {
 };
 
 async function handleSubmission(message, args, type) {
+  // silently ignore if this channel isn't part of an active rainbow bingo event
+  try {
+    const check = await graphqlRequest(
+      `query IsActive($channelId: String!) { isRainbowBingoChannelActive(channelId: $channelId) }`,
+      { channelId: message.channelId },
+    );
+    if (!check.isRainbowBingoChannelActive) return;
+  } catch {
+    return;
+  }
+
   const tileCode = args[0]?.toUpperCase();
   if (!tileCode) {
     const cmd = type === 'PRE' ? 'rbpre' : 'rbsubmit';

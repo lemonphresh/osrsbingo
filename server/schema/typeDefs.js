@@ -782,6 +782,7 @@ const typeDefs = gql`
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
 
     # --- Rainbow Bingo ---
+    isRainbowBingoChannelActive(channelId: String!): Boolean!
     getActiveRainbowEvent: RainbowEvent
     getRainbowEvent(eventId: ID!): RainbowEvent
     getRainbowTeams(eventId: ID!): [RainbowTeam!]!
