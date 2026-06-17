@@ -350,23 +350,28 @@ function TileCard({ tileCode, tile, isStart, onClick, isNewlyCompleted }) {
 function CopyCommand({ cmd }) {
   const { onCopy, hasCopied } = useClipboard(cmd);
   return (
-    <HStack gap={2}>
-      <Code
-        flex={1}
-        px={3}
-        py={2}
-        bg="gray.700"
-        color="gray.100"
-        borderRadius="md"
-        fontSize="sm"
-        fontFamily="mono"
-      >
-        {cmd}
-      </Code>
-      <Button size="sm" colorScheme="purple" variant="outline" onClick={onCopy} flexShrink={0}>
-        {hasCopied ? 'Copied!' : 'Copy'}
-      </Button>
-    </HStack>
+    <Box>
+      <HStack gap={2}>
+        <Code
+          flex={1}
+          px={3}
+          py={2}
+          bg="gray.700"
+          color="gray.100"
+          borderRadius="md"
+          fontSize="sm"
+          fontFamily="mono"
+        >
+          {cmd}
+        </Code>
+        <Button size="sm" colorScheme="purple" variant="outline" onClick={onCopy} flexShrink={0}>
+          {hasCopied ? 'Copied!' : 'Copy'}
+        </Button>
+      </HStack>
+      <Text fontSize="xs" color="gray.500" mt={1}>
+        Paste this command in Discord and <Text as="span" color="gray.300" fontWeight="semibold">attach your screenshot directly in the same message</Text>.
+      </Text>
+    </Box>
   );
 }
 
@@ -1103,11 +1108,14 @@ export default function RainbowTeamBoardPage() {
     return Object.fromEntries(tiles.map((t) => [t.tileCode, t]));
   }, [data]);
 
+  const boardCenteredRef = useRef(false);
   useEffect(() => {
+    if (boardCenteredRef.current || !data) return;
     const el = boardScrollRef.current;
     if (!el) return;
+    boardCenteredRef.current = true;
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
-  }, [boardLoading]);
+  }, [data]);
 
   const stats = useMemo(() => {
     const tiles = data?.getRainbowTeamBoard ?? [];
@@ -1279,10 +1287,10 @@ export default function RainbowTeamBoardPage() {
             </Box>
           )}
 
-          <TileModal tile={selectedTile} onClose={() => setSelectedTile(null)} />
+          <TileModal tile={selectedTile ? (boardMap[selectedTile.tileCode] ?? selectedTile) : null} onClose={() => setSelectedTile(null)} />
         </VStack>
 
-        {isSiteAdmin && (
+        {isSiteAdmin && process.env.REACT_APP_SHOW_DEV_TOOLS === 'true' && (
           <Box
             position="fixed"
             bottom={4}

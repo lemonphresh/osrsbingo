@@ -39,6 +39,7 @@ import {
   ModalBody,
   ModalCloseButton,
   useDisclosure,
+  Tooltip,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -331,7 +332,7 @@ function CompletedTileRow({ tile, onUndo }) {
             Cancel
           </Button>
         </HStack>
-      ) : (
+      ) : onUndo ? (
         <Button
           size="xs"
           colorScheme="orange"
@@ -341,6 +342,16 @@ function CompletedTileRow({ tile, onUndo }) {
         >
           Undo
         </Button>
+      ) : (
+        <Tooltip
+          label="Only the most recently completed tile per team can be undone, to avoid breaking the unlock chain."
+          placement="left"
+          hasArrow
+        >
+          <Button size="xs" colorScheme="orange" variant="outline" flexShrink={0} isDisabled>
+            Undo
+          </Button>
+        </Tooltip>
       )}
     </HStack>
   );
