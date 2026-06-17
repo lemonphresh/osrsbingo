@@ -84,6 +84,9 @@ function CreateEventForm({ onCreate }) {
             borderColor="gray.600"
             color="white"
           />
+          <Text fontSize="xs" color="gray.500" mt={1}>
+            Players include this in their screenshots as proof. It also becomes the event's display name.
+          </Text>
         </Box>
         <Button
           colorScheme="purple"
@@ -168,7 +171,7 @@ function EventInfoPanel({ event, refetch }) {
       <HStack justify="space-between" wrap="wrap" gap={3}>
         <VStack align="flex-start" gap={1}>
           <HStack gap={2}>
-            <Text color="gray.400" fontSize="sm">Password:</Text>
+            <Text color="gray.400" fontSize="sm">Event Password:</Text>
             <Text color="white" fontWeight="semibold">
               {event.eventName}
             </Text>
@@ -185,18 +188,20 @@ function EventInfoPanel({ event, refetch }) {
           </Text>
         </VStack>
         <HStack gap={2} wrap="wrap">
-          {actions.map(({ label, next, scheme }) => (
-            <Button
-              key={next}
-              size="sm"
-              colorScheme={scheme}
-              variant="outline"
-              isLoading={statusLoading}
-              onClick={() => updateStatus({ variables: { eventId: event.eventId, status: next } })}
-            >
-              {label}
-            </Button>
-          ))}
+          {actions
+            .filter(({ next }) => next !== 'ACTIVE' || (event.teams?.length ?? 0) > 0)
+            .map(({ label, next, scheme }) => (
+              <Button
+                key={next}
+                size="sm"
+                colorScheme={scheme}
+                variant="outline"
+                isLoading={statusLoading}
+                onClick={() => updateStatus({ variables: { eventId: event.eventId, status: next } })}
+              >
+                {label}
+              </Button>
+            ))}
           {event.status === 'COMPLETE' &&
             (confirmDelete ? (
               <HStack gap={2}>
@@ -512,9 +517,10 @@ function AddTeamForm({ eventId, onAdded }) {
   );
 }
 
-function TeamRow({ team, onTest, testingId, onDelete, onGenerateToken }) {
+function TeamRow({ team, eventStatus, onTest, testingId, onDelete, onGenerateToken }) {
   const isTesting = testingId === team.teamId;
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const isEventActive = eventStatus === 'ACTIVE';
   const boardUrl = team.teamToken ? `/eg-rainbow/team/${team.teamToken}` : null;
 
   return (
@@ -569,13 +575,23 @@ function TeamRow({ team, onTest, testingId, onDelete, onGenerateToken }) {
           >
             Test Channel
           </Button>
-          {confirmDelete ? (
+          {isEventActive ? (
+            <IconButton
+              icon={<DeleteIcon />}
+              size="xs"
+              colorScheme="red"
+              variant="ghost"
+              aria-label="Delete team"
+              isDisabled
+              title="Cannot delete teams while the event is active"
+            />
+          ) : confirmDelete ? (
             <HStack gap={1}>
               <Text fontSize="xs" color="red.300">
-                Delete?
+                Delete all submissions?
               </Text>
               <Button size="xs" colorScheme="red" onClick={() => onDelete(team.teamId)}>
-                Yes
+                Yes, delete
               </Button>
               <Button
                 size="xs"
@@ -583,7 +599,7 @@ function TeamRow({ team, onTest, testingId, onDelete, onGenerateToken }) {
                 colorScheme="gray"
                 onClick={() => setConfirmDelete(false)}
               >
-                No
+                Cancel
               </Button>
             </HStack>
           ) : (
@@ -668,6 +684,7 @@ function TeamManager({ event, refetch }) {
               <TeamRow
                 key={t.teamId}
                 team={t}
+                eventStatus={event.status}
                 onTest={(teamId) => {
                   setTestingId(teamId);
                   testChannel({ variables: { teamId } });

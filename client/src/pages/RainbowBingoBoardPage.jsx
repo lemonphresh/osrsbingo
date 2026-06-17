@@ -126,7 +126,7 @@ function TeamRainbowCard({ team, teamIndex }) {
             {points} pts
           </Text>
           <Text fontSize="xs" color="gray.500">
-            {Math.round((totalComplete / 56) * 100)}%
+            {Math.round((totalComplete / (team.tiles?.length || 56)) * 100)}%
           </Text>
         </HStack>
       </HStack>
@@ -634,6 +634,7 @@ export default function RainbowBingoBoardPage() {
 
   const prevMergedRef = useRef({});
   const boardScrollRef = useRef(null);
+  const boardCenteredRef = useRef(false);
   const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
@@ -692,10 +693,12 @@ export default function RainbowBingoBoardPage() {
   }, [teams]);
 
   useEffect(() => {
+    if (boardCenteredRef.current || !teams.length) return;
     const el = boardScrollRef.current;
     if (!el) return;
+    boardCenteredRef.current = true;
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
-  }, [eventLoading]);
+  }, [teams]);
 
   useEffect(() => {
     const prev = prevMergedRef.current;
