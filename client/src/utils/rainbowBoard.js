@@ -76,6 +76,6 @@ export const COLOR_TEXT = {
 };
 
 export const TEAM_PALETTE = [
-  '#e74c3c', '#3498db', '#2ecc71', '#f39c12',
-  '#9b59b6', '#1abc9c', '#e67e22', '#e91e63',
+  '#ffffff', '#00d4e8', '#ff6b35', '#c5f542',
+  '#aa44ff', '#ff3399', '#ffd700', '#44ffaa',
 ];
