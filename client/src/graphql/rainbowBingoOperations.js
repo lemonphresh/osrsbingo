@@ -127,6 +127,7 @@ export const RAINBOW_SUBMISSION_REVIEWED = gql`
     rainbowSubmissionReviewed(eventId: $eventId) {
       submissionId
       status
+      type
     }
   }
 `;

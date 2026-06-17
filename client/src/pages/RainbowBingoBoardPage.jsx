@@ -28,9 +28,11 @@ import dollyGnome from '../assets/dolly_gnomechild.png';
 import yassifiedGnome from '../assets/yassifiedgnomechild.png';
 import frogPrincess from '../assets/frogprincess.webp';
 import { FaArrowRight } from 'react-icons/fa';
-
 import { fmtTs, useTimezone } from '../hooks/useTimezone';
 import TimezoneToggle from '../atoms/TimezoneToggle';
+
+const dragGifCtx = require.context('../assets/drag', false, /\.gif$/);
+const DRAG_GIFS = dragGifCtx.keys().map((k) => dragGifCtx(k));
 
 const STATUS_RANK = { LOCKED: 0, UNLOCKED: 1, SUBMITTED: 2, COMPLETE: 3 };
 
@@ -639,6 +641,15 @@ export default function RainbowBingoBoardPage() {
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
 
+  const [dragGif, setDragGif] = useState(null);
+  const dragGifTimerRef = useRef(null);
+  const showDragGif = () => {
+    const gif = DRAG_GIFS[Math.floor(Math.random() * DRAG_GIFS.length)];
+    setDragGif(gif);
+    if (dragGifTimerRef.current) clearTimeout(dragGifTimerRef.current);
+    dragGifTimerRef.current = setTimeout(() => setDragGif(null), 4500);
+  };
+
   useSubscription(RAINBOW_EVENT_BOARD_UPDATED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId,
@@ -718,9 +729,11 @@ export default function RainbowBingoBoardPage() {
     if (isCapstone) {
       playCapstoneComplete();
       triggerCelebration('capstone');
+      showDragGif();
     } else {
       playTileComplete();
       triggerCelebration('tile');
+      showDragGif();
     }
     const timer = setTimeout(() => {
       setRecentlyCompleted((s) => {
@@ -977,6 +990,26 @@ export default function RainbowBingoBoardPage() {
         )}
       </Box>
       {celebrationOverlay}
+      {dragGif && (
+        <Box
+          position="fixed"
+          inset={0}
+          zIndex={9997}
+          pointerEvents="none"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box
+            borderRadius="2xl"
+            overflow="hidden"
+            boxShadow="0 16px 64px rgba(0,0,0,0.8)"
+            w="min(70vw, 640px)"
+          >
+            <img src={dragGif} alt="" style={{ width: '100%', display: 'block' }} />
+          </Box>
+        </Box>
+      )}
     </>
   );
 }

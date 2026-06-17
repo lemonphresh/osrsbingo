@@ -127,6 +127,8 @@ These alert mechanisms together mean refs can have the tab open in the backgroun
 
 Submissions are grouped by `objectiveCode + teamId`. Each group shows all pre-screenshots and finals from that team for that objective together. Groups with at least one PENDING submission sort to the top and are auto-expanded. Within a group, submissions sort PENDING first, then APPROVED, then DENIED, with most recent first within each bucket.
 
+**Stable group order** — the sort order is snapshotted the moment the list first loads (or is manually refreshed). While a ref is mid-review, incoming WebSocket events increment a counter but do not re-sort the list. A yellow banner reading "X new submission(s) — click to load" appears below the "how reffing works" box when unloaded submissions are waiting. Clicking it resets the snapshot and refetches, re-sorting fresh data into the new stable order. This prevents the list from jumping under a ref's cursor while they are actively reviewing.
+
 ### Reviewing a Submission
 
 For each submission the ref sees:

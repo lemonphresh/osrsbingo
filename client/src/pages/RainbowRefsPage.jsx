@@ -981,27 +981,6 @@ export default function RainbowRefsPage() {
 
   return (
     <Box minH="100vh" bg="gray.900" color="white" pt="56px" pb={6} px={{ base: 3, md: 6 }}>
-      {pendingNewSubs > 0 && (
-        <Box
-          position="sticky"
-          top="56px"
-          zIndex={50}
-          bg="yellow.700"
-          px={4}
-          py={2}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          gap={3}
-          cursor="pointer"
-          _hover={{ bg: 'yellow.600' }}
-          onClick={handleLoadNewSubs}
-        >
-          <Text fontSize="sm" fontWeight="semibold" color="white">
-            {pendingNewSubs} new submission{pendingNewSubs !== 1 ? 's' : ''} — click to load
-          </Text>
-        </Box>
-      )}
       <VStack align="stretch" gap={6} maxW="1100px" mx="auto">
         <HStack justify="space-between" align="flex-start" wrap="wrap" gap={3}>
           <VStack align="flex-start" gap={1}>
@@ -1141,6 +1120,38 @@ export default function RainbowRefsPage() {
               </Text>
             </VStack>
           </Box>
+
+          {pendingNewSubs > 0 && (
+            <Box
+              px={4}
+              py={2}
+              borderRadius="md"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              cursor="pointer"
+              onClick={handleLoadNewSubs}
+              sx={{
+                '@keyframes rainbowWave': {
+                  '0%': { backgroundPosition: '0% 50%' },
+                  '50%': { backgroundPosition: '100% 50%' },
+                  '100%': { backgroundPosition: '0% 50%' },
+                },
+                background: '#1fb7af',
+                transition: 'background 0.2s',
+                '&:hover': {
+                  background:
+                    'linear-gradient(270deg, #cc3333, #cc7711, #b89400, #2d9940, #1466dd, #7722cc, #cc3333)',
+                  backgroundSize: '300% 300%',
+                  animation: 'rainbowWave 1.8s ease infinite',
+                },
+              }}
+            >
+              <Text fontSize="sm" fontWeight="semibold" color="white">
+                {pendingNewSubs} new submission{pendingNewSubs !== 1 ? 's' : ''} — click to load
+              </Text>
+            </Box>
+          )}
 
           {!event && (
             <Text color="gray.500" fontSize="sm">

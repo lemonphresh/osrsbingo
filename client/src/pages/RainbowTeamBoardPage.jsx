@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import { useAuth } from '../providers/AuthProvider';
@@ -31,6 +31,7 @@ import {
   GET_RAINBOW_TEAM_BY_TOKEN,
   GET_RAINBOW_TEAM_BOARD,
   RAINBOW_TEAM_BOARD_UPDATED,
+  RAINBOW_SUBMISSION_REVIEWED,
   GET_RAINBOW_TILE_SUBMISSIONS,
   TEST_RAINBOW_NOTIFICATION,
   GET_ACTIVE_RAINBOW_EVENT,
@@ -48,8 +49,12 @@ import {
   COLOR_TEXT,
 } from '../utils/rainbowBoard';
 import dollyGnome from '../assets/dolly_gnomechild.png';
+import gladfiuMp4 from '../assets/gladfiu.mp4';
 import yassifiedGnome from '../assets/yassifiedgnomechild.png';
 import { FaHeart, FaFire, FaSun, FaLeaf, FaDroplet, FaMoon, FaBolt } from 'react-icons/fa6';
+
+const dragGifCtx = require.context('../assets/drag', false, /\.gif$/);
+const DRAG_GIFS = dragGifCtx.keys().map((k) => dragGifCtx(k));
 
 const COLOR_ICON = {
   red: FaHeart,
@@ -369,7 +374,11 @@ function CopyCommand({ cmd }) {
         </Button>
       </HStack>
       <Text fontSize="xs" color="gray.500" mt={1}>
-        Paste this command in Discord and <Text as="span" color="gray.300" fontWeight="semibold">attach your screenshot directly in the same message</Text>.
+        Paste this command in Discord and{' '}
+        <Text as="span" color="gray.300" fontWeight="semibold">
+          attach your screenshot directly in the same message
+        </Text>
+        .
       </Text>
     </Box>
   );
@@ -632,6 +641,11 @@ function EventPasswordBadge({ password }) {
 
 function HowToPlayModal({ isOpen, onClose, eventPassword }) {
   const [checked, setChecked] = useState(false);
+  const [scrolledToBottom, setScrolledToBottom] = useState(false);
+  const handleBodyScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollTop + clientHeight >= scrollHeight - 8) setScrolledToBottom(true);
+  };
   const handleConfirm = () => {
     localStorage.setItem(RULES_KEY, 'true');
     onClose();
@@ -662,7 +676,7 @@ function HowToPlayModal({ isOpen, onClose, eventPassword }) {
             How to play Rainbow Bingo
           </Text>
         </ModalHeader>
-        <ModalBody pb={2}>
+        <ModalBody pb={2} onScroll={handleBodyScroll}>
           <VStack align="stretch" gap={4} fontSize="sm" color="gray.200">
             <Box bg="whiteAlpha.50" borderRadius="md" p={4}>
               <Text fontWeight="bold" color="white" mb={2}>
@@ -801,9 +815,15 @@ function HowToPlayModal({ isOpen, onClose, eventPassword }) {
           </VStack>
         </ModalBody>
         <ModalFooter flexDir="column" gap={4} pt={4}>
+          {!scrolledToBottom && (
+            <Text fontSize="xs" color="gray.500" textAlign="center">
+              scroll through the rules to continue
+            </Text>
+          )}
           <Checkbox
             isChecked={checked}
             onChange={(e) => setChecked(e.target.checked)}
+            isDisabled={!scrolledToBottom}
             colorScheme="purple"
             alignItems="flex-start"
             w="100%"
@@ -812,7 +832,12 @@ function HowToPlayModal({ isOpen, onClose, eventPassword }) {
               I have read and understand the rules
             </Text>
           </Checkbox>
-          <Button colorScheme="purple" w="100%" isDisabled={!checked} onClick={handleConfirm}>
+          <Button
+            colorScheme="purple"
+            w="100%"
+            isDisabled={!scrolledToBottom || !checked}
+            onClick={handleConfirm}
+          >
             Let's go! 🌈
           </Button>
         </ModalFooter>
@@ -980,6 +1005,7 @@ export default function RainbowTeamBoardPage() {
   const [selectedTile, setSelectedTile] = useState(null);
   const [showLocked, setShowLocked] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
+  const [showIntroVideo, setShowIntroVideo] = useState(false);
 
   useEffect(() => {
     if (!localStorage.getItem(RULES_KEY)) setShowHowToPlay(true);
@@ -989,6 +1015,15 @@ export default function RainbowTeamBoardPage() {
   const boardScrollRef = useRef(null);
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
+
+  const [dragGif, setDragGif] = useState(null);
+  const dragGifTimerRef = useRef(null);
+  const showDragGif = useCallback(() => {
+    const gif = DRAG_GIFS[Math.floor(Math.random() * DRAG_GIFS.length)];
+    setDragGif(gif);
+    if (dragGifTimerRef.current) clearTimeout(dragGifTimerRef.current);
+    dragGifTimerRef.current = setTimeout(() => setDragGif(null), 4500);
+  }, []);
 
   const [testNotify] = useMutation(TEST_RAINBOW_NOTIFICATION, {
     onError: (e) =>
@@ -1090,9 +1125,11 @@ export default function RainbowTeamBoardPage() {
         if (isCapstone) {
           playCapstoneComplete();
           triggerCelebration('capstone');
+          showDragGif();
         } else {
           playTileComplete();
           triggerCelebration('tile');
+          showDragGif();
         }
       }
       client.writeQuery({
@@ -1100,6 +1137,18 @@ export default function RainbowTeamBoardPage() {
         variables: { teamId: team.teamId },
         data: { getRainbowTeamBoard: updated },
       });
+    },
+  });
+
+  const eventId = eventData?.getActiveRainbowEvent?.eventId;
+  useSubscription(RAINBOW_SUBMISSION_REVIEWED, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: ({ data: subData }) => {
+      const reviewed = subData?.data?.rainbowSubmissionReviewed;
+      if (reviewed?.status === 'APPROVED' && reviewed?.type === 'FINAL') {
+        showDragGif();
+      }
     },
   });
 
@@ -1190,20 +1239,20 @@ export default function RainbowTeamBoardPage() {
               w="100%"
               textAlign="center"
             >
-              <Text fontSize="sm" color="gray.300" lineHeight="1.6">
+              <Text fontSize="sm" color="gray.300" mb={2} lineHeight="1.6">
                 Complete nodes by submitting screenshots to your refs of your adventures and
                 triumphs. Nodes unlock as you finish their prerequisites! Complete all 7 capstone
                 nodes to finish the board and win!{' '}
-                <Box
-                  as={RouterLink}
-                  to="/eg-rainbow"
-                  color="purple.300"
-                  _hover={{ color: 'purple.200', textDecoration: 'underline' }}
-                  display="inline"
-                >
-                  View the public leaderboard →
-                </Box>
               </Text>
+              <Box
+                as={RouterLink}
+                to="/eg-rainbow"
+                color="purple.300"
+                _hover={{ color: 'purple.200', textDecoration: 'underline' }}
+                display="inline"
+              >
+                View the public leaderboard →
+              </Box>
               <Text fontSize="xs" color="red.400" fontWeight="semibold" mt={2}>
                 ⚠ Do not share this page's link with anyone outside your team.
               </Text>
@@ -1287,7 +1336,10 @@ export default function RainbowTeamBoardPage() {
             </Box>
           )}
 
-          <TileModal tile={selectedTile ? (boardMap[selectedTile.tileCode] ?? selectedTile) : null} onClose={() => setSelectedTile(null)} />
+          <TileModal
+            tile={selectedTile ? boardMap[selectedTile.tileCode] ?? selectedTile : null}
+            onClose={() => setSelectedTile(null)}
+          />
         </VStack>
 
         {isSiteAdmin && process.env.REACT_APP_SHOW_DEV_TOOLS === 'true' && (
@@ -1338,16 +1390,69 @@ export default function RainbowTeamBoardPage() {
               >
                 Test board complete
               </Button>
+              <Button
+                size="xs"
+                colorScheme="pink"
+                variant="outline"
+                onClick={showDragGif}
+              >
+                Show drag gif
+              </Button>
             </VStack>
           </Box>
         )}
       </Box>
       {celebrationOverlay}
+      {dragGif && (
+        <Box
+          position="fixed"
+          inset={0}
+          zIndex={9997}
+          pointerEvents="none"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box
+            borderRadius="2xl"
+            overflow="hidden"
+            boxShadow="0 16px 64px rgba(0,0,0,0.8)"
+            w="min(70vw, 640px)"
+          >
+            <img src={dragGif} alt="" style={{ width: '100%', display: 'block' }} />
+          </Box>
+        </Box>
+      )}
       <HowToPlayModal
         isOpen={showHowToPlay}
-        onClose={() => setShowHowToPlay(false)}
+        onClose={() => {
+          setShowHowToPlay(false);
+          setShowIntroVideo(true);
+        }}
         eventPassword={eventPassword}
       />
+      {showIntroVideo && (
+        <Box
+          position="fixed"
+          inset={0}
+          zIndex={9999}
+          bg="black"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          <Box
+            as="video"
+            src={gladfiuMp4}
+            autoPlay
+            playsInline
+            w="100%"
+            h="100%"
+            objectFit="contain"
+            onEnded={() => setShowIntroVideo(false)}
+          />
+        </Box>
+      )}
     </>
   );
 }
