@@ -361,23 +361,24 @@ function CompletedTileRow({ tile, onUndo }) {
 
 function TileProgressEditor({ teamId, tileCode, progress, tileDef, onSave }) {
   const hasMetric = tileDef?.metricTarget != null && tileDef.metricTarget > 0;
-  const max  = hasMetric ? tileDef.metricTarget : 100;
-  const unit = hasMetric ? (tileDef.metricUnit ?? '') : '%';
+  const max = hasMetric ? tileDef.metricTarget : 100;
+  const unit = hasMetric ? tileDef.metricUnit ?? '' : '%';
   const step = 1;
 
-  const rawFromPct = (pct) => hasMetric ? Math.round((pct / 100) * max) : pct;
-  const pctFromRaw = (raw) => hasMetric ? Math.round((raw / max) * 100) : raw;
+  const rawFromPct = (pct) => (hasMetric ? Math.round((pct / 100) * max) : pct);
+  const pctFromRaw = (raw) => (hasMetric ? Math.round((raw / max) * 100) : raw);
 
   const [val, setVal] = useState(() => rawFromPct(progress));
   React.useEffect(() => {
     setVal(rawFromPct(progress));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress]);
 
   const clampedRaw = Math.max(0, Math.min(max, Number(val) || 0));
-  const pct   = pctFromRaw(clampedRaw);
-  const dirty = pct !== progress;
+  const pct = pctFromRaw(clampedRaw);
   const color = pct >= 100 ? 'green' : 'blue';
+
+  const commitInput = () => onSave(teamId, tileCode, pct);
 
   return (
     <Box>
@@ -398,6 +399,8 @@ function TileProgressEditor({ teamId, tileCode, progress, tileDef, onSave }) {
             max={max}
             value={val}
             onChange={(e) => setVal(e.target.value)}
+            onBlur={commitInput}
+            onKeyDown={(e) => e.key === 'Enter' && commitInput()}
             size="xs"
             w="70px"
             bg="gray.700"
@@ -413,14 +416,6 @@ function TileProgressEditor({ teamId, tileCode, progress, tileDef, onSave }) {
               / {max}
             </Text>
           )}
-          <Button
-            size="xs"
-            colorScheme={color}
-            isDisabled={!dirty}
-            onClick={() => onSave(teamId, tileCode, pct)}
-          >
-            Set
-          </Button>
         </HStack>
       </HStack>
       <Slider
@@ -500,7 +495,9 @@ function TileGroup({
           {progress > 0 && progress < 100 && (
             <Badge colorScheme="blue" variant="outline" fontSize="xs">
               {tileDef?.metricTarget
-                ? `${Math.round((progress / 100) * tileDef.metricTarget)} / ${tileDef.metricTarget} ${tileDef.metricUnit ?? ''}`
+                ? `${Math.round((progress / 100) * tileDef.metricTarget)} / ${
+                    tileDef.metricTarget
+                  } ${tileDef.metricUnit ?? ''}`
                 : `${progress}%`}
             </Badge>
           )}
@@ -548,7 +545,9 @@ function TileGroup({
           ))}
         {isComplete && (
           <HStack mr={3} flexShrink={0} spacing={1}>
-            <Text fontSize="sm" color="green.400" fontWeight="semibold">✅ Completed</Text>
+            <Text fontSize="sm" color="green.400" fontWeight="semibold">
+              ✅ Completed
+            </Text>
           </HStack>
         )}
         <AccordionIcon color="gray.400" />
@@ -632,6 +631,7 @@ export default function RainbowRefsPage() {
   const { showToast } = useToastContext();
   const { playSubmissionReceived } = useCompletionSound();
   const [loadingId, setLoadingId] = useState(null);
+  const [pendingNewSubs, setPendingNewSubs] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const audioUnlockedRef = useRef(false);
   const [notifEnabled, setNotifEnabled] = useState(false);
@@ -732,56 +732,56 @@ export default function RainbowRefsPage() {
     pollInterval: 5 * 60 * 1000,
   });
 
-  const { tileStatusMap, tileProgressMap, completedTilesList, latestCompletedKeys } = useMemo(() => {
-    const statusMap = {};
-    const progressMap = {};
-    const completed = [];
-    (boardsData?.getRainbowTeams ?? []).forEach((team) => {
-      (team.tiles ?? []).forEach((tile) => {
-        const key = `${tile.tileCode}_${team.teamId}`;
-        statusMap[key] = tile.status;
-        progressMap[key] = tile.progress ?? 0;
-        if (tile.status === 'COMPLETE') {
-          completed.push({
-            teamId: team.teamId,
-            teamName: team.teamName,
-            tileCode: tile.tileCode,
-            tileDef: tile.tileDef,
-            completedAt: tile.completedAt,
-          });
+  const { tileStatusMap, tileProgressMap, completedTilesList, latestCompletedKeys } =
+    useMemo(() => {
+      const statusMap = {};
+      const progressMap = {};
+      const completed = [];
+      (boardsData?.getRainbowTeams ?? []).forEach((team) => {
+        (team.tiles ?? []).forEach((tile) => {
+          const key = `${tile.tileCode}_${team.teamId}`;
+          statusMap[key] = tile.status;
+          progressMap[key] = tile.progress ?? 0;
+          if (tile.status === 'COMPLETE') {
+            completed.push({
+              teamId: team.teamId,
+              teamName: team.teamName,
+              tileCode: tile.tileCode,
+              tileDef: tile.tileDef,
+              completedAt: tile.completedAt,
+            });
+          }
+        });
+      });
+      // Find most recently completed tile per team
+      const latestByTeam = {};
+      completed.forEach((t) => {
+        if (!latestByTeam[t.teamId] || t.completedAt > latestByTeam[t.teamId].completedAt) {
+          latestByTeam[t.teamId] = t;
         }
       });
-    });
-    // Find most recently completed tile per team
-    const latestByTeam = {};
-    completed.forEach((t) => {
-      if (!latestByTeam[t.teamId] || t.completedAt > latestByTeam[t.teamId].completedAt) {
-        latestByTeam[t.teamId] = t;
-      }
-    });
-    const latestKeys = new Set(
-      Object.values(latestByTeam).map((t) => `${t.tileCode}_${t.teamId}`)
-    );
-    return {
-      tileStatusMap: statusMap,
-      tileProgressMap: progressMap,
-      completedTilesList: completed,
-      latestCompletedKeys: latestKeys,
-    };
-  }, [boardsData]);
+      const latestKeys = new Set(
+        Object.values(latestByTeam).map((t) => `${t.tileCode}_${t.teamId}`)
+      );
+      return {
+        tileStatusMap: statusMap,
+        tileProgressMap: progressMap,
+        completedTilesList: completed,
+        latestCompletedKeys: latestKeys,
+      };
+    }, [boardsData]);
 
   useSubscription(RAINBOW_SUBMISSION_ADDED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
     onData: ({ data: subData }) => {
-      refetchSubs();
+      setPendingNewSubs((n) => n + 1);
       const sub = subData?.data?.rainbowSubmissionAdded;
       const label = sub
         ? `${sub.team?.teamName ?? 'A team'} — ${sub.tileCode} (${
             sub.type === 'PRE' ? 'pre-screenshot' : 'final'
           })`
         : 'New submission';
-      showToast(label, 'info');
       if (soundEnabled) playSubmissionReceived();
       fireNotif('New Rainbow Bingo submission', label);
     },
@@ -868,6 +868,23 @@ export default function RainbowRefsPage() {
         return a.tileCode.localeCompare(b.tileCode);
       });
   }, [subsData, tileStatusMap]);
+
+  // Stable group order — snapshot on first load, only reset when ref manually loads.
+  // This prevents the list from re-sorting while a ref is mid-review.
+  const [stableGroupOrder, setStableGroupOrder] = useState(null);
+  useEffect(() => {
+    if (stableGroupOrder === null && groups.length > 0) {
+      setStableGroupOrder(groups.map((g) => `${g.tileCode}_${g.teamId}`));
+    }
+  }, [groups, stableGroupOrder]);
+
+  const sortedGroups = useMemo(() => {
+    if (!stableGroupOrder) return groups;
+    const keyToGroup = Object.fromEntries(groups.map((g) => [`${g.tileCode}_${g.teamId}`, g]));
+    const ordered = stableGroupOrder.map((k) => keyToGroup[k]).filter(Boolean);
+    const brandNew = groups.filter((g) => !stableGroupOrder.includes(`${g.tileCode}_${g.teamId}`));
+    return [...brandNew, ...ordered];
+  }, [groups, stableGroupOrder]);
 
   const pendingCount = useMemo(
     () => groups.reduce((sum, g) => sum + g.subs.filter((s) => s.status === 'PENDING').length, 0),
@@ -956,8 +973,35 @@ export default function RainbowRefsPage() {
     return acc;
   }, {});
 
+  const handleLoadNewSubs = () => {
+    setPendingNewSubs(0);
+    setStableGroupOrder(null);
+    refetchSubs();
+  };
+
   return (
     <Box minH="100vh" bg="gray.900" color="white" pt="56px" pb={6} px={{ base: 3, md: 6 }}>
+      {pendingNewSubs > 0 && (
+        <Box
+          position="sticky"
+          top="56px"
+          zIndex={50}
+          bg="yellow.700"
+          px={4}
+          py={2}
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          gap={3}
+          cursor="pointer"
+          _hover={{ bg: 'yellow.600' }}
+          onClick={handleLoadNewSubs}
+        >
+          <Text fontSize="sm" fontWeight="semibold" color="white">
+            {pendingNewSubs} new submission{pendingNewSubs !== 1 ? 's' : ''} — click to load
+          </Text>
+        </Box>
+      )}
       <VStack align="stretch" gap={6} maxW="1100px" mx="auto">
         <HStack justify="space-between" align="flex-start" wrap="wrap" gap={3}>
           <VStack align="flex-start" gap={1}>
@@ -977,7 +1021,7 @@ export default function RainbowRefsPage() {
             </HStack>
             {event && (
               <Text color="gray.400" fontSize="sm">
-                {event.eventName}
+                pw: {event.eventName}
               </Text>
             )}
           </VStack>
@@ -1034,9 +1078,9 @@ export default function RainbowRefsPage() {
             <Heading size="sm" color="gray.300">
               Submissions
             </Heading>
-            {groups.length > 0 && (
+            {sortedGroups.length > 0 && (
               <Badge colorScheme="purple" borderRadius="full">
-                {groups.length} tile{groups.length !== 1 ? 's' : ''}
+                {sortedGroups.length} tile{sortedGroups.length !== 1 ? 's' : ''}
               </Badge>
             )}
           </HStack>
@@ -1104,20 +1148,20 @@ export default function RainbowRefsPage() {
             </Text>
           )}
 
-          {event && groups.length === 0 && (
+          {event && sortedGroups.length === 0 && (
             <Center py={8}>
               <Text color="gray.500">No submissions yet.</Text>
             </Center>
           )}
 
-          {groups.length > 0 && (
+          {sortedGroups.length > 0 && (
             <Accordion
               allowMultiple
-              defaultIndex={groups
+              defaultIndex={sortedGroups
                 .map((_, i) => i)
-                .filter((i) => groups[i].subs.some((s) => s.status === 'PENDING'))}
+                .filter((i) => sortedGroups[i].subs.some((s) => s.status === 'PENDING'))}
             >
-              {groups.map((group) => (
+              {sortedGroups.map((group) => (
                 <TileGroup
                   key={`${group.tileCode}_${group.teamId}`}
                   group={group}
@@ -1159,7 +1203,11 @@ export default function RainbowRefsPage() {
                         <CompletedTileRow
                           key={`${t.tileCode}_${t.teamId}`}
                           tile={t}
-                          onUndo={latestCompletedKeys.has(`${t.tileCode}_${t.teamId}`) ? handleUndo : undefined}
+                          onUndo={
+                            latestCompletedKeys.has(`${t.tileCode}_${t.teamId}`)
+                              ? handleUndo
+                              : undefined
+                          }
                         />
                       ))}
                     </VStack>
