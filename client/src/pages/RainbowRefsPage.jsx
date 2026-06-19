@@ -1196,6 +1196,55 @@ export default function RainbowRefsPage() {
             <Divider borderColor="gray.700" />
             <Box>
               <Accordion allowToggle>
+                <AccordionItem border="1px solid" borderColor="gray.700" borderRadius="md" mb={2}>
+                  <AccordionButton px={4} py={3} _hover={{ bg: 'gray.800' }} borderRadius="md">
+                    <HStack flex={1} gap={2}>
+                      <Heading size="sm" color="gray.300">
+                        Completion Log
+                      </Heading>
+                      <Badge colorScheme="green" borderRadius="full">
+                        {completedTilesList.length}
+                      </Badge>
+                    </HStack>
+                    <AccordionIcon color="gray.400" />
+                  </AccordionButton>
+                  <AccordionPanel px={4} pb={4}>
+                    <VStack align="stretch" gap={1}>
+                      {[...completedTilesList]
+                        .sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? ''))
+                        .map((t) => (
+                          <HStack
+                            key={`log_${t.tileCode}_${t.teamId}`}
+                            gap={3}
+                            py={1.5}
+                            borderBottom="1px solid"
+                            borderColor="whiteAlpha.50"
+                            fontSize="sm"
+                          >
+                            <Text color="gray.500" fontSize="xs" flexShrink={0} w="120px">
+                              {formatDate(t.completedAt)}
+                            </Text>
+                            <Badge
+                              colorScheme={COLOR_SCHEME[t.tileDef?.color ?? 'capstone']?.badge ?? 'gray'}
+                              flexShrink={0}
+                            >
+                              {t.tileCode}
+                            </Badge>
+                            <Text color="gray.300" flex={1} noOfLines={1}>
+                              {t.tileDef?.bossOrSkill ?? t.tileCode}
+                            </Text>
+                            <Text color="gray.400" flexShrink={0} fontWeight="semibold">
+                              {t.teamName}
+                            </Text>
+                          </HStack>
+                        ))}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            </Box>
+            <Box>
+              <Accordion allowToggle>
                 <AccordionItem border="1px solid" borderColor="gray.700" borderRadius="md">
                   <AccordionButton px={4} py={3} _hover={{ bg: 'gray.800' }} borderRadius="md">
                     <HStack flex={1} gap={2}>
