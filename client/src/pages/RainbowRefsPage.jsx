@@ -95,7 +95,7 @@ function ScreenshotThumb({ url }) {
         _hover={{ opacity: 0.8 }}
         onClick={onOpen}
       />
-      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="full" isCentered>
         <ModalOverlay bg="blackAlpha.800" />
         <ModalContent bg="gray.900" border="1px solid" borderColor="gray.700">
           <ModalCloseButton color="white" />
@@ -108,7 +108,7 @@ function ScreenshotThumb({ url }) {
   );
 }
 
-function SubmissionItem({ sub, onApprove, onDeny, loadingId, guildId }) {
+function SubmissionItem({ sub, onApprove, onDeny, loadingId, guildId, isFlashed }) {
   const [denyReason, setDenyReason] = useState('');
   const [showDeny, setShowDeny] = useState(false);
   const isPending = sub.status === 'PENDING';
@@ -122,6 +122,14 @@ function SubmissionItem({ sub, onApprove, onDeny, loadingId, guildId }) {
       borderColor={isApproved ? 'green.800' : isDenied ? 'red.900' : 'gray.700'}
       borderRadius="md"
       p={3}
+      sx={isFlashed ? {
+        '@keyframes reviewFlash': {
+          '0%':   { outline: '2px solid rgba(99,179,237,0.9)' },
+          '60%':  { outline: '2px solid rgba(99,179,237,0.2)' },
+          '100%': { outline: '2px solid rgba(99,179,237,0)' },
+        },
+        animation: 'reviewFlash 1s ease-out',
+      } : undefined}
     >
       <HStack justify="space-between" align="flex-start" wrap="wrap" gap={2}>
         <VStack align="flex-start" gap={1} flex={1}>
@@ -242,7 +250,7 @@ function SubmissionItem({ sub, onApprove, onDeny, loadingId, guildId }) {
 
 // ── Section within a group: pending shown, reviewed collapsed ─────────────────
 
-function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId, guildId }) {
+function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId, guildId, flashedIds }) {
   const pending = subs.filter((s) => s.status === 'PENDING');
   const reviewed = subs.filter((s) => s.status !== 'PENDING');
 
@@ -267,6 +275,7 @@ function SubSection({ label, labelColor, subs, onApprove, onDeny, loadingId, gui
             onDeny={onDeny}
             loadingId={loadingId}
             guildId={guildId}
+            isFlashed={flashedIds?.has(s.submissionId)}
           />
         ))}
       </VStack>
@@ -449,6 +458,7 @@ function TileGroup({
   onSetProgress,
   loadingId,
   guildId,
+  flashedIds,
 }) {
   const { tileCode, teamId, teamName, subs } = group;
   const [confirming, setConfirming] = useState(false);
@@ -604,6 +614,7 @@ function TileGroup({
               onDeny={onDeny}
               loadingId={loadingId}
               guildId={guildId}
+              flashedIds={flashedIds}
             />
           )}
           {pre.length > 0 && final.length > 0 && <Divider borderColor="gray.700" />}
@@ -616,6 +627,7 @@ function TileGroup({
               onDeny={onDeny}
               loadingId={loadingId}
               guildId={guildId}
+              flashedIds={flashedIds}
             />
           )}
         </VStack>
@@ -787,10 +799,18 @@ export default function RainbowRefsPage() {
     },
   });
 
+  const [flashedIds, setFlashedIds] = useState(new Set());
   useSubscription(RAINBOW_SUBMISSION_REVIEWED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId || !isAdmin,
-    onData: () => refetchSubs(),
+    onData: ({ data: subData }) => {
+      refetchSubs();
+      const id = subData?.data?.rainbowSubmissionReviewed?.submissionId;
+      if (id) {
+        setFlashedIds((prev) => new Set([...prev, id]));
+        setTimeout(() => setFlashedIds((prev) => { const n = new Set(prev); n.delete(id); return n; }), 1200);
+      }
+    },
   });
 
   useSubscription(RAINBOW_EVENT_BOARD_UPDATED, {
@@ -903,6 +923,8 @@ export default function RainbowRefsPage() {
   useEffect(() => {
     if (!isAdmin) return;
     const refetchAll = () => {
+      setPendingNewSubs(0);
+      setStableGroupOrder(null);
       refetchSubs();
       refetchBoards();
     };
@@ -1185,6 +1207,7 @@ export default function RainbowRefsPage() {
                   onSetProgress={handleSetProgress}
                   loadingId={loadingId}
                   guildId={event?.guildId}
+                  flashedIds={flashedIds}
                 />
               ))}
             </Accordion>
