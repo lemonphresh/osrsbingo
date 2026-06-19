@@ -4,6 +4,7 @@ import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import { useAuth } from '../providers/AuthProvider';
 import { useCompletionSound } from '../hooks/useCompletionSound';
 import { useRainbowCelebration } from '../hooks/useRainbowCelebration';
+import { useRainbowCursorTrail } from '../hooks/useRainbowCursorTrail';
 import {
   Box,
   Center,
@@ -1015,6 +1016,7 @@ export default function RainbowTeamBoardPage() {
   const boardScrollRef = useRef(null);
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
+  useRainbowCursorTrail();
 
   const [dragGif, setDragGif] = useState(null);
   const dragGifTimerRef = useRef(null);
@@ -1058,10 +1060,12 @@ export default function RainbowTeamBoardPage() {
     } else if (type === 'capstone') {
       playCapstoneComplete();
       triggerCelebration('capstone');
+      showDragGif();
       toast({ title: 'Capstone complete fired', status: 'success', duration: 2000 });
     } else {
       playTileComplete();
       triggerCelebration('tile');
+      showDragGif();
       toast({ title: 'Tile complete fired', status: 'success', duration: 2000 });
     }
     const teamId = tokenData?.getRainbowTeamByToken?.teamId;
