@@ -6,6 +6,7 @@ import NoMatch from './NoMatch';
 import { useAuth } from '../providers/AuthProvider';
 import { useCompletionSound } from '../hooks/useCompletionSound';
 import { useRainbowCelebration } from '../hooks/useRainbowCelebration';
+import { useRainbowCursorTrail } from '../hooks/useRainbowCursorTrail';
 import {
   GET_ACTIVE_RAINBOW_EVENT,
   GET_RAINBOW_EVENT_BOARDS,
@@ -640,6 +641,7 @@ export default function RainbowBingoBoardPage() {
   const [recentlyCompleted, setRecentlyCompleted] = useState(new Set());
   const { playTileComplete, playCapstoneComplete, playBoardComplete } = useCompletionSound();
   const { trigger: triggerCelebration, overlay: celebrationOverlay } = useRainbowCelebration();
+  useRainbowCursorTrail();
 
   const [dragGif, setDragGif] = useState(null);
   const dragGifTimerRef = useRef(null);
