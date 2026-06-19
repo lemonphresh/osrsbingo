@@ -95,12 +95,26 @@ function ScreenshotThumb({ url }) {
         _hover={{ opacity: 0.8 }}
         onClick={onOpen}
       />
-      <Modal isOpen={isOpen} onClose={onClose} size="full" isCentered>
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
         <ModalOverlay bg="blackAlpha.800" />
         <ModalContent bg="gray.900" border="1px solid" borderColor="gray.700">
           <ModalCloseButton color="white" />
           <ModalBody p={4}>
             <Image src={url} alt="screenshot" w="100%" borderRadius="md" objectFit="contain" />
+            <Text
+              as="a"
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="xs"
+              color="blue.400"
+              _hover={{ textDecoration: 'underline' }}
+              display="block"
+              mt={2}
+              textAlign="right"
+            >
+              Open full size ↗
+            </Text>
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -337,7 +351,7 @@ function CompletedTileRow({ tile, onUndo }) {
           >
             Confirm Undo
           </Button>
-          <Button size="xs" variant="ghost" colorScheme="gray" onClick={() => setConfirming(false)}>
+          <Button size="xs" variant="outline" colorScheme="whiteAlpha" color="white" borderColor="white" onClick={() => setConfirming(false)}>
             Cancel
           </Button>
         </HStack>
