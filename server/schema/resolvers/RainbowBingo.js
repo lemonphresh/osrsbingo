@@ -11,6 +11,7 @@ const {
 } = require('../../utils/rainbowTiles');
 const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
 const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
+const { fetchCompetitionParticipations } = require('../../utils/womService');
 
 const getModels = () => require('../../db/models');
 
@@ -342,6 +343,13 @@ const Mutation = {
     return event;
   },
 
+  setRainbowEventWomCompetitionId: async (_, { eventId, womCompetitionId }, { user }) => {
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
+    await event.update({ womCompetitionId: womCompetitionId ?? null });
+    return event;
+  },
+
   setRainbowEventSchedule: async (_, { eventId, startDate, endDate }, { user }) => {
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
@@ -494,7 +502,7 @@ const Mutation = {
   // Tile advancement is a separate manual action via completeRainbowTile.
   reviewRainbowSubmission: async (_, { submissionId, approved, denialReason }, { user }) => {
     if (!user) throw new AuthenticationError('Must be logged in');
-    const { RainbowSubmission } = getModels();
+    const { RainbowSubmission, RainbowTeamTile, RainbowTeam } = getModels();
 
     const submission = await RainbowSubmission.findByPk(submissionId);
     if (!submission) throw new UserInputError('Submission not found');
@@ -508,6 +516,34 @@ const Mutation = {
       reviewedAt: new Date(),
       denialReason: approved ? null : denialReason ?? null,
     });
+
+    // On first PRE approval, snapshot WOM baseline so the sync job can measure delta from here.
+    if (approved && submission.type === 'PRE' && event.womCompetitionId) {
+      try {
+        const tileDef = TILE_MAP[submission.tileCode];
+        if (tileDef?.womMetric) {
+          const teamTile = await RainbowTeamTile.findOne({
+            where: { teamId: submission.teamId, tileCode: submission.tileCode },
+          });
+          if (teamTile && teamTile.womBaseline == null) {
+            const team = await RainbowTeam.findByPk(submission.teamId);
+            if (team) {
+              const participations = await fetchCompetitionParticipations(
+                event.womCompetitionId,
+                tileDef.womMetric
+              );
+              const entry = participations.find((p) => p.teamName === team.teamName);
+              if (entry != null) {
+                await teamTile.update({ womBaseline: entry.totalEnd });
+              }
+            }
+          }
+        }
+      } catch (err) {
+        // Non-critical — baseline snapshot failure should not block the review
+        require('../../utils/logger').warn(`[rainbowWom] baseline snapshot failed: ${err.message}`);
+      }
+    }
 
     await pubsub.publish(`RAINBOW_SUBMISSION_REVIEWED_${submission.eventId}`, {
       rainbowSubmissionReviewed: submission,

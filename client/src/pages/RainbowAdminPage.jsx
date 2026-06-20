@@ -37,6 +37,7 @@ import {
   UPDATE_RAINBOW_EVENT_STATUS,
   SET_RAINBOW_EVENT_SCHEDULE,
   SET_RAINBOW_EVENT_GUILD_ID,
+  SET_RAINBOW_EVENT_WOM_COMPETITION_ID,
   DELETE_RAINBOW_EVENT,
   DELETE_RAINBOW_TEAM,
   GENERATE_RAINBOW_TEAM_TOKEN,
@@ -117,9 +118,15 @@ function EventInfoPanel({ event, refetch }) {
   const [startInput, setStartInput] = useState(() => toLocalDatetimeInput(event.startDate));
   const [endInput, setEndInput] = useState(() => toLocalDatetimeInput(event.endDate));
   const [guildIdInput, setGuildIdInput] = useState(event.guildId ?? '');
+  const [womCompInput, setWomCompInput] = useState(event.womCompetitionId ?? '');
 
   const [setGuildId, { loading: guildIdLoading }] = useMutation(SET_RAINBOW_EVENT_GUILD_ID, {
     onCompleted: () => { showToast('Guild ID saved', 'success'); refetch(); },
+    onError: (e) => showToast(e.message, 'error'),
+  });
+
+  const [setWomCompetitionId, { loading: womCompLoading }] = useMutation(SET_RAINBOW_EVENT_WOM_COMPETITION_ID, {
+    onCompleted: () => { showToast('WOM Competition ID saved', 'success'); refetch(); },
     onError: (e) => showToast(e.message, 'error'),
   });
 
@@ -267,6 +274,43 @@ function EventInfoPanel({ event, refetch }) {
           </Button>
           {event.guildId && (
             <Text fontSize="xs" color="gray.600" fontFamily="mono">{event.guildId}</Text>
+          )}
+        </HStack>
+        <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>
+          WOM Competition ID
+        </Text>
+        <HStack gap={2} mb={4}>
+          <Input
+            size="sm"
+            value={womCompInput}
+            onChange={(e) => setWomCompInput(e.target.value)}
+            placeholder="141688"
+            bg="gray.700"
+            border="1px solid"
+            borderColor="gray.600"
+            color="white"
+            fontFamily="mono"
+            w="220px"
+          />
+          <Button
+            size="sm"
+            colorScheme="purple"
+            variant="outline"
+            isLoading={womCompLoading}
+            isDisabled={womCompInput.trim() === (event.womCompetitionId ?? '')}
+            onClick={() =>
+              setWomCompetitionId({
+                variables: {
+                  eventId: event.eventId,
+                  womCompetitionId: womCompInput.trim() || null,
+                },
+              })
+            }
+          >
+            Save
+          </Button>
+          {event.womCompetitionId && (
+            <Text fontSize="xs" color="gray.600" fontFamily="mono">{event.womCompetitionId}</Text>
           )}
         </HStack>
         <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider" mb={2}>

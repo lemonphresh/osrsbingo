@@ -27,6 +27,7 @@ export const GET_ACTIVE_RAINBOW_EVENT = gql`
       adminIds
       staffChannelId
       guildId
+      womCompetitionId
       teams {
         teamId
         teamName
@@ -279,6 +280,15 @@ export const SET_RAINBOW_EVENT_SCHEDULE = gql`
       eventId
       startDate
       endDate
+    }
+  }
+`;
+
+export const SET_RAINBOW_EVENT_WOM_COMPETITION_ID = gql`
+  mutation SetRainbowEventWomCompetitionId($eventId: ID!, $womCompetitionId: String) {
+    setRainbowEventWomCompetitionId(eventId: $eventId, womCompetitionId: $womCompetitionId) {
+      eventId
+      womCompetitionId
     }
   }
 `;

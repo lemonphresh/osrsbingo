@@ -22,8 +22,9 @@ module.exports = (sequelize) => {
       startDate:        { type: DataTypes.DATE,  allowNull: true },
       endDate:          { type: DataTypes.DATE,  allowNull: true },
       adminIds:         { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: false, defaultValue: [] },
-      staffChannelId:   { type: DataTypes.STRING, allowNull: true },
-      tileGraph:        { type: DataTypes.JSONB, allowNull: false, defaultValue: DEFAULT_TILE_GRAPH },
+      staffChannelId:     { type: DataTypes.STRING, allowNull: true },
+      womCompetitionId:   { type: DataTypes.STRING, allowNull: true },
+      tileGraph:          { type: DataTypes.JSONB, allowNull: false, defaultValue: DEFAULT_TILE_GRAPH },
     },
     { sequelize, modelName: 'RainbowEvent' },
   );

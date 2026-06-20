@@ -14,6 +14,8 @@ import {
   HStack,
   Heading,
   Badge,
+  Progress,
+  Tooltip,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -847,6 +849,166 @@ function HowToPlayModal({ isOpen, onClose, eventPassword }) {
   );
 }
 
+const COLOR_ORDER = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'capstone'];
+
+const MOCK_PROGRESS_TILES = [
+  { tileCode: 'R1', status: 'COMPLETE',  progress: 100, tileDef: { color: 'red',     bossOrSkill: 'Moons of Peril',              metricType: 'unique', metricTarget: 3,       metricUnit: 'uniques', metricLabel: '3 uniques' } },
+  { tileCode: 'R2', status: 'UNLOCKED',  progress: 67,  tileDef: { color: 'red',     bossOrSkill: 'Grotesque Guardians',         metricType: 'kc',     metricTarget: 300,     metricUnit: 'kc',      metricLabel: '300 kc' } },
+  { tileCode: 'R4', status: 'SUBMITTED', progress: 100, tileDef: { color: 'red',     bossOrSkill: 'Abyssal Sire',                metricType: 'kc',     metricTarget: 400,     metricUnit: 'kc',      metricLabel: '400 kc' } },
+  { tileCode: 'R5', status: 'UNLOCKED',  progress: 35,  tileDef: { color: 'red',     bossOrSkill: 'Woodcutting',                 metricType: 'xp',     metricTarget: 5000000, metricUnit: 'xp',      metricLabel: '5M xp' } },
+  { tileCode: 'O1', status: 'COMPLETE',  progress: 100, tileDef: { color: 'orange',  bossOrSkill: 'Cooking',                     metricType: 'xp',     metricTarget: 5000000, metricUnit: 'xp',      metricLabel: '5M xp' } },
+  { tileCode: 'O2', status: 'UNLOCKED',  progress: 50,  tileDef: { color: 'orange',  bossOrSkill: 'Dagannoth Kings',             metricType: 'unique', metricTarget: 8,       metricUnit: 'uniques', metricLabel: '8 uniques' } },
+  { tileCode: 'O3', status: 'UNLOCKED',  progress: 0,   tileDef: { color: 'orange',  bossOrSkill: 'Zulrah',                      metricType: 'unique', metricTarget: 3,       metricUnit: 'uniques', metricLabel: '3 uniques' } },
+  { tileCode: 'Y1', status: 'UNLOCKED',  progress: 80,  tileDef: { color: 'yellow',  bossOrSkill: 'Agility',                     metricType: 'xp',     metricTarget: 1500000, metricUnit: 'xp',      metricLabel: '1.5M xp' } },
+  { tileCode: 'Y3', status: 'UNLOCKED',  progress: 20,  tileDef: { color: 'yellow',  bossOrSkill: 'Fletching',                   metricType: 'xp',     metricTarget: 5000000, metricUnit: 'xp',      metricLabel: '5M xp' } },
+  { tileCode: 'Y5', status: 'UNLOCKED',  progress: 55,  tileDef: { color: 'yellow',  bossOrSkill: 'Shellbane',                   metricType: 'kc',     metricTarget: 500,     metricUnit: 'kc',      metricLabel: '500 kc' } },
+  { tileCode: 'G4', status: 'UNLOCKED',  progress: 60,  tileDef: { color: 'green',   bossOrSkill: 'Fishing',                     metricType: 'xp',     metricTarget: 2500000, metricUnit: 'xp',      metricLabel: '2.5M xp' } },
+  { tileCode: 'G5', status: 'COMPLETE',  progress: 100, tileDef: { color: 'green',   bossOrSkill: 'Kraken',                      metricType: 'kc',     metricTarget: 500,     metricUnit: 'kc',      metricLabel: '500 kc' } },
+  { tileCode: 'G7', status: 'UNLOCKED',  progress: 10,  tileDef: { color: 'green',   bossOrSkill: 'Sailing',                     metricType: 'xp',     metricTarget: 6500000, metricUnit: 'xp',      metricLabel: '6.5M xp' } },
+  { tileCode: 'B1', status: 'UNLOCKED',  progress: 25,  tileDef: { color: 'blue',    bossOrSkill: 'Crafting',                    metricType: 'xp',     metricTarget: 5000000, metricUnit: 'xp',      metricLabel: '5M xp' } },
+  { tileCode: 'B3', status: 'UNLOCKED',  progress: 45,  tileDef: { color: 'blue',    bossOrSkill: 'Smithing',                    metricType: 'xp',     metricTarget: 4000000, metricUnit: 'xp',      metricLabel: '4M xp' } },
+  { tileCode: 'B6', status: 'UNLOCKED',  progress: 0,   tileDef: { color: 'blue',    bossOrSkill: 'Thermonuclear Smoke Devil',    metricType: 'kc',     metricTarget: 500,     metricUnit: 'kc',      metricLabel: '500 kc' } },
+  { tileCode: 'I4', status: 'UNLOCKED',  progress: 10,  tileDef: { color: 'indigo',  bossOrSkill: 'Mining',                      metricType: 'xp',     metricTarget: 2000000, metricUnit: 'xp',      metricLabel: '2M xp' } },
+  { tileCode: 'I7', status: 'UNLOCKED',  progress: 88,  tileDef: { color: 'indigo',  bossOrSkill: 'Alchemical Hydra',            metricType: 'kc',     metricTarget: 300,     metricUnit: 'kc',      metricLabel: '300 kc' } },
+  { tileCode: 'V1', status: 'UNLOCKED',  progress: 70,  tileDef: { color: 'violet',  bossOrSkill: 'Slayer',                      metricType: 'xp',     metricTarget: 4000000, metricUnit: 'xp',      metricLabel: '4M xp' } },
+  { tileCode: 'V6', status: 'UNLOCKED',  progress: 42,  tileDef: { color: 'violet',  bossOrSkill: 'Cerberus',                    metricType: 'kc',     metricTarget: 500,     metricUnit: 'kc',      metricLabel: '500 kc' } },
+  { tileCode: 'C1', status: 'UNLOCKED',  progress: 30,  tileDef: { color: 'capstone', bossOrSkill: 'Thieving',                   metricType: 'xp',     metricTarget: 4000000, metricUnit: 'xp',      metricLabel: '4M xp' } },
+];
+
+function TileProgressRow({ tile }) {
+  const { status, progress, tileDef } = tile;
+  const isComplete = status === 'COMPLETE';
+  const { metricType, metricTarget, metricUnit, metricLabel, bossOrSkill, color } = tileDef ?? {};
+
+  const label = (() => {
+    if (isComplete) return 'Complete';
+    if (!progress) return metricLabel ?? '—';
+    if (metricTarget && (metricType === 'kc' || metricType === 'xp')) {
+      const got = Math.round((progress / 100) * metricTarget);
+      return `${got.toLocaleString()} / ${Number(metricTarget).toLocaleString()} ${metricUnit ?? ''}`;
+    }
+    if (metricTarget && (metricType === 'unique' || metricType === 'minigame')) {
+      const got = Math.round((progress / 100) * metricTarget);
+      return `${got} / ${metricTarget} ${metricUnit ?? ''}`;
+    }
+    return `${progress}%`;
+  })();
+
+  const scheme = COLOR_BADGE[color] ?? 'gray';
+
+  return (
+    <HStack gap={3} align="center" py="3px">
+      <Text fontSize="11px" color="gray.600" fontFamily="mono" w="26px" flexShrink={0}>
+        {tile.tileCode}
+      </Text>
+      <Tooltip label={bossOrSkill} placement="top" openDelay={400} hasArrow>
+        <Text
+          fontSize="xs"
+          color={isComplete ? 'gray.600' : 'gray.300'}
+          flexShrink={0}
+          w="130px"
+          noOfLines={1}
+          textDecoration={isComplete ? 'line-through' : 'none'}
+          cursor="default"
+        >
+          {bossOrSkill}
+        </Text>
+      </Tooltip>
+      {isComplete ? (
+        <Text fontSize="xs" color="green.400" fontWeight="semibold" flexShrink={0}>
+          ✓
+        </Text>
+      ) : (
+        <>
+          <Box flex={1}>
+            <Progress
+              value={progress ?? 0}
+              size="xs"
+              colorScheme={scheme}
+              borderRadius="full"
+              bg="whiteAlpha.100"
+            />
+          </Box>
+          <Text fontSize="11px" color="gray.500" flexShrink={0} w="185px" textAlign="right" fontFamily="mono">
+            {label}
+          </Text>
+        </>
+      )}
+    </HStack>
+  );
+}
+
+function TileProgressOverview({ tiles }) {
+  const groups = useMemo(() => {
+    const map = Object.fromEntries(COLOR_ORDER.map((c) => [c, []]));
+    for (const tile of tiles) {
+      if (tile.status === 'LOCKED') continue;
+      const c = tile.tileDef?.color;
+      if (c && map[c]) map[c].push(tile);
+    }
+    return map;
+  }, [tiles]);
+
+  const hasAny = COLOR_ORDER.some((c) => groups[c].length > 0);
+  if (!hasAny) return null;
+
+  return (
+    <Box mt={6} maxW="860px" mx="auto" w="100%">
+      <Text
+        fontSize="xs"
+        color="gray.500"
+        textTransform="uppercase"
+        letterSpacing="wider"
+        mb={4}
+        textAlign="center"
+      >
+        Tile Progress
+      </Text>
+      <VStack align="stretch" gap={3}>
+        {COLOR_ORDER.map((color) => {
+          const group = groups[color];
+          if (group.length === 0) return null;
+          const Icon = COLOR_ICON[color];
+          const complete = group.filter((t) => t.status === 'COMPLETE').length;
+          const scheme = COLOR_BADGE[color];
+          return (
+            <Box
+              key={color}
+              bg="whiteAlpha.50"
+              border="1px solid"
+              borderColor="whiteAlpha.100"
+              borderRadius="lg"
+              p={3}
+            >
+              <HStack mb={2} gap={2}>
+                {Icon && <Icon color={`var(--chakra-colors-${scheme}-400)`} size={12} />}
+                <Text
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  color={`${scheme}.300`}
+                  flex={1}
+                >
+                  {COLOR_LABEL[color]}
+                </Text>
+                <Text fontSize="10px" color="gray.600">
+                  {complete}/{group.length}
+                </Text>
+              </HStack>
+              <VStack gap={0} align="stretch" divider={<Box borderBottom="1px solid" borderColor="whiteAlpha.50" />}>
+                {group.map((tile) => (
+                  <TileProgressRow key={tile.tileCode} tile={tile} />
+                ))}
+              </VStack>
+            </Box>
+          );
+        })}
+      </VStack>
+    </Box>
+  );
+}
+
 function TileModal({ tile, onClose }) {
   if (!tile) return null;
   const { tileCode, status, tileDef, unlockedAt, completedAt, teamId, eventId } = tile;
@@ -1019,6 +1181,7 @@ export default function RainbowTeamBoardPage() {
   useRainbowCursorTrail();
 
   const [dragGif, setDragGif] = useState(null);
+  const [showProgressPreview, setShowProgressPreview] = useState(false);
   const dragGifTimerRef = useRef(null);
   const showDragGif = useCallback(() => {
     const gif = DRAG_GIFS[Math.floor(Math.random() * DRAG_GIFS.length)];
@@ -1174,8 +1337,9 @@ export default function RainbowTeamBoardPage() {
     const tiles = data?.getRainbowTeamBoard ?? [];
     return {
       complete: tiles.filter((t) => t.status === 'COMPLETE').length,
-      submitted: tiles.filter((t) => t.status === 'SUBMITTED').length,
-      unlocked: tiles.filter((t) => t.status === 'UNLOCKED').length,
+      inProgress: tiles.filter(
+        (t) => t.status === 'SUBMITTED' || (t.status === 'UNLOCKED' && t.progress > 0)
+      ).length,
       total: tiles.length,
     };
   }, [data]);
@@ -1273,7 +1437,7 @@ export default function RainbowTeamBoardPage() {
             <HStack>
               <Box w="10px" h="10px" bg="orange.400" borderRadius="full" />
               <Text fontSize="sm" color="gray.300">
-                In progress ({stats.submitted})
+                In progress ({stats.inProgress})
               </Text>
             </HStack>
             {isSiteAdmin && (
@@ -1340,6 +1504,8 @@ export default function RainbowTeamBoardPage() {
             </Box>
           )}
 
+          <TileProgressOverview tiles={data?.getRainbowTeamBoard ?? []} />
+
           <TileModal
             tile={selectedTile ? boardMap[selectedTile.tileCode] ?? selectedTile : null}
             onClose={() => setSelectedTile(null)}
@@ -1402,6 +1568,14 @@ export default function RainbowTeamBoardPage() {
               >
                 Show drag gif
               </Button>
+              <Button
+                size="xs"
+                colorScheme="teal"
+                variant="outline"
+                onClick={() => setShowProgressPreview(true)}
+              >
+                Preview progress
+              </Button>
             </VStack>
           </Box>
         )}
@@ -1427,6 +1601,17 @@ export default function RainbowTeamBoardPage() {
           </Box>
         </Box>
       )}
+      <Modal isOpen={showProgressPreview} onClose={() => setShowProgressPreview(false)} size="4xl" scrollBehavior="inside">
+        <ModalOverlay bg="blackAlpha.800" backdropFilter="blur(4px)" />
+        <ModalContent bg="gray.900" border="1px solid" borderColor="gray.700" color="white">
+          <ModalHeader fontSize="md">Progress overview (mock data)</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <TileProgressOverview tiles={MOCK_PROGRESS_TILES} />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
       <HowToPlayModal
         isOpen={showHowToPlay}
         onClose={() => {

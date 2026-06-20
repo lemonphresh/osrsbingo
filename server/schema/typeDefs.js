@@ -615,19 +615,20 @@ const typeDefs = gql`
   }
 
   type RainbowEvent {
-    eventId:        ID!
-    eventName:      String!
-    status:         RainbowEventStatus!
-    startDate:      DateTime
-    endDate:        DateTime
-    adminIds:       [String!]!
-    staffChannelId: String
-    guildId:        String
-    tileGraph:      JSON!
-    teams:          [RainbowTeam!]!
-    admins:         [User!]!
-    createdAt:      DateTime
-    updatedAt:      DateTime
+    eventId:          ID!
+    eventName:        String!
+    status:           RainbowEventStatus!
+    startDate:        DateTime
+    endDate:          DateTime
+    adminIds:         [String!]!
+    staffChannelId:   String
+    guildId:          String
+    womCompetitionId: String
+    tileGraph:        JSON!
+    teams:            [RainbowTeam!]!
+    admins:           [User!]!
+    createdAt:        DateTime
+    updatedAt:        DateTime
   }
 
   type RainbowTeam {
@@ -650,6 +651,7 @@ const typeDefs = gql`
     tileCode:       String!
     status:         RainbowTileStatus!
     progress:       Int!
+    womBaseline:    Float
     unlockedAt:     DateTime
     completedAt:    DateTime
     tileDef:        RainbowTileDef!
@@ -1037,6 +1039,7 @@ const typeDefs = gql`
     updateRainbowEventStatus(eventId: ID!, status: RainbowEventStatus!): RainbowEvent!
     setRainbowEventSchedule(eventId: ID!, startDate: DateTime, endDate: DateTime): RainbowEvent!
     setRainbowEventGuildId(eventId: ID!, guildId: String!): RainbowEvent!
+    setRainbowEventWomCompetitionId(eventId: ID!, womCompetitionId: String): RainbowEvent!
     createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
     reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
     completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!

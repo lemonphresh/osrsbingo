@@ -457,6 +457,45 @@ async function fetchLeaguesGroupCompetitions(leaguesWomGroupId) {
   return result;
 }
 
+/**
+ * Fetch participation data for a WOM team competition, optionally filtered to a specific metric.
+ * Returns [{ teamName, totalEnd }] where totalEnd = sum of progress.end across all team members.
+ * Works for both team competitions (data.teams[]) and classic competitions (data.participations[]).
+ */
+async function fetchCompetitionParticipations(competitionId, metric) {
+  const params = metric ? `?metric=${encodeURIComponent(metric)}` : '';
+  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}${params}`, {
+    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM competition ${res.status} for comp ${competitionId} metric "${metric}": ${body}`);
+    return [];
+  }
+  const data = await res.json();
+
+  if (Array.isArray(data.teams)) {
+    return data.teams.map((team) => {
+      const parts = team.participations ?? [];
+      return {
+        teamName: team.name,
+        totalStart: parts.reduce((sum, p) => sum + Math.max(0, p.progress?.start ?? 0), 0),
+        totalEnd:   parts.reduce((sum, p) => sum + (p.progress?.end ?? 0), 0),
+      };
+    });
+  }
+
+  const participations = Array.isArray(data.participations) ? data.participations : [];
+  const byTeam = {};
+  for (const p of participations) {
+    const name = p.teamName ?? '__unknown__';
+    if (!byTeam[name]) byTeam[name] = { totalStart: 0, totalEnd: 0 };
+    byTeam[name].totalStart += Math.max(0, p.progress?.start ?? 0);
+    byTeam[name].totalEnd   += (p.progress?.end ?? 0);
+  }
+  return Object.entries(byTeam).map(([teamName, { totalStart, totalEnd }]) => ({ teamName, totalStart, totalEnd }));
+}
+
 module.exports = {
   fetchPlayerStats,
   fetchAllPlayerStats,
@@ -468,4 +507,5 @@ module.exports = {
   fetchGroupMembers,
   fetchGroupCompetitions,
   fetchLeaguesGroupCompetitions,
+  fetchCompetitionParticipations,
 };

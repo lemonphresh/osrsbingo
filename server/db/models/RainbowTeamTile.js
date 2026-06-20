@@ -20,6 +20,7 @@ module.exports = (sequelize) => {
         defaultValue: 'LOCKED',
       },
       progress:    { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      womBaseline: { type: DataTypes.FLOAT,   allowNull: true },
       unlockedAt:  { type: DataTypes.DATE, allowNull: true },
       completedAt: { type: DataTypes.DATE, allowNull: true },
     },
