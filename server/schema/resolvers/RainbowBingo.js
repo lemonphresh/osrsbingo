@@ -12,7 +12,7 @@ const {
 const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
 const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
 const { fetchCompetitionParticipations } = require('../../utils/womService');
-const { syncTeamWomProgress, isSyncInProgress } = require('../../utils/rainbowWomSync');
+const { syncTeamWomProgress, startTeamWomSync, syncTeamWomTile, finalizeTeamWomSync, isSyncInProgress } = require('../../utils/rainbowWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -564,6 +564,10 @@ const Mutation = {
     }
     return syncTeamWomProgress(teamId);
   },
+
+  startTeamWomSync: async (_, { teamId }) => startTeamWomSync(teamId),
+  syncTeamWomTile: async (_, { teamId, tileCode }) => syncTeamWomTile(teamId, tileCode),
+  finalizeTeamWomSync: async (_, { teamId }) => finalizeTeamWomSync(teamId),
 
   resetTeamWomCooldown: async (_, { teamId }) => {
     const { RainbowTeam } = getModels();
