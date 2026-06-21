@@ -34,4 +34,5 @@ yarn-error.log*
 cookies.txt
 
 prod_backup.dump
+*.sql
 champion-forge-docs/
