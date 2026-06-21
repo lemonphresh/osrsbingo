@@ -39,8 +39,6 @@ import {
   TEST_RAINBOW_NOTIFICATION,
   GET_ACTIVE_RAINBOW_EVENT,
   START_TEAM_WOM_SYNC,
-  SYNC_TEAM_WOM_TILE,
-  FINALIZE_TEAM_WOM_SYNC,
   RESET_TEAM_WOM_COOLDOWN,
   GET_RAINBOW_SYNC_IN_PROGRESS,
   RAINBOW_SYNC_STATUS_CHANGED,
@@ -1218,7 +1216,16 @@ export default function RainbowTeamBoardPage() {
   }, [syncStatusData]);
   useSubscription(RAINBOW_SYNC_STATUS_CHANGED, {
     onData: ({ data: subData }) => {
-      if (subData?.data?.rainbowSyncStatusChanged != null) setGlobalSyncInProgress(subData.data.rainbowSyncStatusChanged);
+      const val = subData?.data?.rainbowSyncStatusChanged;
+      if (val != null) {
+        setGlobalSyncInProgress(val);
+        if (!val) {
+          // sync just finished — pick up the new lastWomSync from DB
+          refetchTeam();
+          setNow(Date.now());
+          setSyncTileProgress({ done: 0, total: 0 });
+        }
+      }
     },
   });
 
@@ -1228,10 +1235,8 @@ export default function RainbowTeamBoardPage() {
   }, []);
 
   const [womSyncing, setWomSyncing] = useState(false);
-  const [womSyncTileProgress, setWomSyncTileProgress] = useState({ done: 0, total: 0, name: '' });
+  const [syncTileProgress, setSyncTileProgress] = useState({ done: 0, total: 0 });
   const [startWomSync] = useMutation(START_TEAM_WOM_SYNC);
-  const [syncWomTile] = useMutation(SYNC_TEAM_WOM_TILE);
-  const [finalizeWomSync] = useMutation(FINALIZE_TEAM_WOM_SYNC);
 
   const [resetWomCooldown] = useMutation(RESET_TEAM_WOM_COOLDOWN, {
     onCompleted: () => {
@@ -1349,6 +1354,7 @@ export default function RainbowTeamBoardPage() {
           showDragGif();
         }
       }
+      setSyncTileProgress((p) => p.total > 0 ? { ...p, done: Math.min(p.done + 1, p.total) } : p);
       client.writeQuery({
         query: GET_RAINBOW_TEAM_BOARD,
         variables: { teamId: team.teamId },
@@ -1377,40 +1383,16 @@ export default function RainbowTeamBoardPage() {
   const handleWomSync = useCallback(async () => {
     if (!team) return;
     setWomSyncing(true);
-    setWomSyncTileProgress({ done: 0, total: 0, name: '' });
     try {
-      const startResult = await startWomSync({ variables: { teamId: team.teamId } });
-      const tileCodes = startResult.data?.startTeamWomSync?.tileCodes ?? [];
-      if (tileCodes.length === 0) return;
-
-      setWomSyncTileProgress({ done: 0, total: tileCodes.length, name: boardMap[tileCodes[0]]?.tileDef?.bossOrSkill ?? tileCodes[0] });
-
-      for (let i = 0; i < tileCodes.length; i++) {
-        const tileCode = tileCodes[i];
-        setWomSyncTileProgress({ done: i, total: tileCodes.length, name: boardMap[tileCode]?.tileDef?.bossOrSkill ?? tileCode });
-        await syncWomTile({ variables: { teamId: team.teamId, tileCode } });
-        if (i < tileCodes.length - 1) await new Promise((res) => setTimeout(res, 500));
-      }
-
-      const finalResult = await finalizeWomSync({ variables: { teamId: team.teamId } });
-      const newLastWomSync = finalResult.data?.finalizeTeamWomSync?.lastWomSync;
-      if (newLastWomSync) {
-        apolloClient.writeQuery({
-          query: GET_RAINBOW_TEAM_BY_TOKEN,
-          variables: { token },
-          data: { getRainbowTeamByToken: { ...team, lastWomSync: newLastWomSync } },
-        });
-      }
-      setNow(Date.now());
+      const result = await startWomSync({ variables: { teamId: team.teamId } });
+      const total = result.data?.startTeamWomSync?.tileCodes?.length ?? 0;
+      setSyncTileProgress({ done: 0, total });
     } catch (e) {
-      refetchTeam();
-      setNow(Date.now());
       toast({ title: 'WOM sync failed', description: e.message, status: 'error', duration: 8000, isClosable: true });
     } finally {
       setWomSyncing(false);
-      setWomSyncTileProgress({ done: 0, total: 0, name: '' });
     }
-  }, [team, startWomSync, syncWomTile, finalizeWomSync, apolloClient, token, boardMap, refetchTeam, setNow, toast]);
+  }, [team, startWomSync, toast]);
 
   const boardCenteredRef = useRef(false);
   useEffect(() => {
@@ -1597,24 +1579,19 @@ export default function RainbowTeamBoardPage() {
               <Button
                 colorScheme="purple"
                 variant="outline"
-                isLoading={womSyncing}
-                loadingText="Crunching the numbers…"
+                isLoading={womSyncing || globalSyncInProgress}
+                loadingText={syncTileProgress.total > 0 ? `${syncTileProgress.done} / ${syncTileProgress.total} tiles…` : 'Syncing…'}
                 isDisabled={womSyncOnCooldown || womSyncing || globalSyncInProgress}
                 onClick={handleWomSync}
               >
                 Sync WOM Progress
               </Button>
               <HStack gap={2} justify="center">
-                {(womSyncing || globalSyncInProgress) && (
-                  <Spinner size="xs" color="purple.400" />
-                )}
                 <Text fontSize="xs" color="gray.500" textAlign="center">
-                  {womSyncing
-                    ? womSyncTileProgress.total > 0
-                      ? `Syncing ${womSyncTileProgress.name} (${womSyncTileProgress.done + 1} / ${womSyncTileProgress.total})`
-                      : 'Starting sync…'
-                    : globalSyncInProgress
-                    ? 'A sync is currently in progress — check back in a few minutes'
+                  {womSyncing || globalSyncInProgress
+                    ? syncTileProgress.total > 0
+                      ? `Checked ${syncTileProgress.done} of ${syncTileProgress.total} tiles — updates rolling in…`
+                      : 'Sync in progress — updates will appear below'
                     : womSyncOnCooldown
                     ? `Available in ${cooldownMinsLeft} minute${cooldownMinsLeft === 1 ? '' : 's'}`
                     : 'Pulls the latest XP and KC from Wise Old Man for your active tiles — has a 15 minute cooldown to avoid rate limiting'}
