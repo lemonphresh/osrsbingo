@@ -1,110 +1,143 @@
 'use strict';
 
-const cron = require('node-cron');
 const logger = require('./logger');
-const { fetchCompetitionParticipations } = require('./womService');
+const { fetchGroupGains, fetchCompetitionTeamRosters, fetchCompetitionPlayerGains, fetchPlayerGainsInRange } = require('./womService');
 const { TILE_MAP } = require('./rainbowTiles');
+
+const WOM_GROUP_ID = 9738;
+const SYNC_COOLDOWN_MS = 15 * 60 * 1000;
 
 const getModels = () => require('../db/models');
 const getPubsub = () => require('../schema/pubsub').pubsub;
 const getFullBoard = (teamId) => require('../schema/resolvers/RainbowBingo').getFullBoard(teamId);
 
-async function syncRainbowWom() {
-  const { RainbowEvent, RainbowTeam, RainbowTeamTile } = getModels();
+let syncInProgress = false;
+
+function isSyncInProgress() {
+  return syncInProgress;
+}
+
+async function syncTeamWomProgress(teamId) {
+  if (syncInProgress) throw new Error('Another sync is already in progress — try again in a moment.');
+  syncInProgress = true;
+  getPubsub().publish('RAINBOW_SYNC_STATUS', { rainbowSyncStatusChanged: true });
+  try {
+    return await _syncTeamWomProgress(teamId);
+  } finally {
+    syncInProgress = false;
+    getPubsub().publish('RAINBOW_SYNC_STATUS', { rainbowSyncStatusChanged: false });
+  }
+}
+
+async function _syncTeamWomProgress(teamId) {
+  const { RainbowTeam, RainbowTeamTile, RainbowSubmission, RainbowEvent } = getModels();
   const pubsub = getPubsub();
 
-  const events = await RainbowEvent.findAll({
-    where: { status: 'ACTIVE' },
-  });
+  const team = await RainbowTeam.findByPk(teamId);
+  if (!team) throw new Error(`Team ${teamId} not found`);
 
-  const activeEvents = events.filter((e) => e.womCompetitionId);
-  if (activeEvents.length === 0) return;
-
-  for (const event of activeEvents) {
-    try {
-      await syncEvent(event, pubsub, { RainbowTeam, RainbowTeamTile });
-    } catch (err) {
-      logger.error(`[rainbowWomSync] event ${event.eventId} failed: ${err.message}`);
+  // Check cooldown from DB
+  if (team.lastWomSync) {
+    const remaining = SYNC_COOLDOWN_MS - (Date.now() - new Date(team.lastWomSync).getTime());
+    if (remaining > 0) {
+      const mins = Math.ceil(remaining / 60000);
+      throw new Error(`WOM sync on cooldown — try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
     }
   }
-}
 
-async function syncEvent(event, pubsub, { RainbowTeam, RainbowTeamTile }) {
-  // Find all UNLOCKED tiles across all teams that have a womBaseline set
+  const event = await RainbowEvent.findByPk(team.eventId);
+  if (!event?.womCompetitionId) return { updatedTiles: 0, lastWomSync: null };
+
   const tiles = await RainbowTeamTile.findAll({
-    where: { eventId: event.eventId, status: 'UNLOCKED' },
+    where: { teamId, status: ['UNLOCKED', 'SUBMITTED'] },
   });
+  const tilesWithMetric = tiles.filter((t) => TILE_MAP[t.tileCode]?.womMetric);
+  if (!tilesWithMetric.length) return { updatedTiles: 0, lastWomSync: null };
 
-  const tilesWithBaseline = tiles.filter((t) => {
-    const def = TILE_MAP[t.tileCode];
-    return def?.womMetric && t.womBaseline != null;
-  });
+  const { rosters, usernameMap } = await fetchCompetitionTeamRosters(event.womCompetitionId);
+  const roster = rosters[team.teamName] ?? [];
+  if (!roster.length) {
+    logger.warn(`[womSync] team "${team.teamName}" not found in competition rosters`);
+    return { updatedTiles: 0, lastWomSync: null };
+  }
 
-  if (tilesWithBaseline.length === 0) return;
+  let updatedTiles = 0;
 
-  // Gather unique metrics so we only call the WOM API once per metric
-  const uniqueMetrics = [...new Set(
-    tilesWithBaseline.map((t) => TILE_MAP[t.tileCode].womMetric)
-  )];
+  for (const tile of tilesWithMetric) {
+    const pre = await RainbowSubmission.findOne({
+      where: { teamId, tileCode: tile.tileCode, type: 'PRE' },
+      order: [['submittedAt', 'ASC']],
+    });
+    if (!pre) {
+      logger.info(`[womSync] ${team.teamName} ${tile.tileCode}: no PRE submission, skipping`);
+      continue;
+    }
 
-  // Fetch competition data per metric
-  const participationsByMetric = {};
-  for (const metric of uniqueMetrics) {
+    const metric = TILE_MAP[tile.tileCode].womMetric;
+    const preStartDate = new Date(new Date(pre.submittedAt).getTime() - 12 * 60 * 60 * 1000);
+    let gains;
     try {
-      const data = await fetchCompetitionParticipations(event.womCompetitionId, metric);
-      participationsByMetric[metric] = Object.fromEntries(
-        data.map((p) => [p.teamName, p.totalEnd])
-      );
+      gains = await fetchGroupGains(WOM_GROUP_ID, metric, preStartDate, new Date());
     } catch (err) {
-      logger.warn(`[rainbowWomSync] metric "${metric}" fetch failed: ${err.message}`);
-      participationsByMetric[metric] = {};
+      logger.warn(`[womSync] fetchGroupGains failed ${tile.tileCode} metric="${metric}": ${err.message}`);
+      continue;
     }
-  }
 
-  // Load teams to get teamName → teamId mapping
-  const teams = await RainbowTeam.findAll({ where: { eventId: event.eventId } });
-  const teamById = Object.fromEntries(teams.map((t) => [t.teamId, t]));
+    const playerGained = {};
+    for (const entry of gains) {
+      const name = entry.player?.displayName;
+      if (name != null) {
+        playerGained[name] = Math.max(0, (entry.data?.end ?? 0) - (entry.data?.start ?? 0));
+      }
+    }
 
-  const affectedTeamIds = new Set();
+    const missingFromGroup = roster.filter((n) => playerGained[n] === undefined);
+    if (missingFromGroup.length) {
+      logger.warn(`[womSync] ${team.teamName} ${tile.tileCode}: ${missingFromGroup.length} player(s) not in group, fetching individually: ${missingFromGroup.join(', ')}`);
+      let compGainsCache = null;
+      for (const name of missingFromGroup) {
+        const username = usernameMap[name];
+        if (username) {
+          const gained = await fetchPlayerGainsInRange(username, metric, preStartDate, new Date());
+          if (gained !== null) {
+            playerGained[name] = gained;
+            logger.info(`[womSync]   "${name}": ${gained} (per-player PRE-date gains)`);
+            continue;
+          }
+        }
+        // Per-player fetch failed — fall back to competition participation data
+        if (!compGainsCache) {
+          try { compGainsCache = await fetchCompetitionPlayerGains(event.womCompetitionId, metric); }
+          catch (err) { compGainsCache = {}; }
+        }
+        const compGained = compGainsCache[name];
+        if (compGained != null) {
+          playerGained[name] = compGained;
+          logger.warn(`[womSync]   "${name}": per-player fetch failed, using competition gains as fallback: ${compGained}`);
+        } else {
+          logger.warn(`[womSync]   "${name}": per-player fetch failed, not found in competition data either — skipping`);
+        }
+      }
+    }
 
-  for (const tile of tilesWithBaseline) {
     const def = TILE_MAP[tile.tileCode];
-    const byTeamName = participationsByMetric[def.womMetric];
-    if (!byTeamName) continue;
+    const totalGained = roster.reduce((sum, name) => sum + (playerGained[name] ?? 0), 0);
+    const newProgress = Math.min(100, Math.floor((totalGained / def.metricTarget) * 100));
 
-    const team = teamById[tile.teamId];
-    if (!team) continue;
+    logger.info(`[womSync] ${team.teamName} ${tile.tileCode}: metric=${metric} PRE=${pre.submittedAt.toISOString()} gained=${totalGained} target=${def.metricTarget} → ${newProgress}% (was ${tile.progress}%)`);
 
-    const currentEnd = byTeamName[team.teamName];
-    if (currentEnd == null) continue;
-
-    const delta = Math.max(0, currentEnd - tile.womBaseline);
-    const newProgress = Math.min(100, Math.floor((delta / def.metricTarget) * 100));
-
-    if (newProgress !== tile.progress) {
-      await tile.update({ progress: newProgress });
-      affectedTeamIds.add(tile.teamId);
-      logger.info(
-        `[rainbowWomSync] ${team.teamName} ${tile.tileCode}: ${tile.progress}% → ${newProgress}%`
-      );
-    }
+    await tile.update({ progress: newProgress });
+    updatedTiles++;
   }
 
-  // Publish board updates for affected teams
-  for (const teamId of affectedTeamIds) {
-    const board = await getFullBoard(teamId);
-    await pubsub.publish(`RAINBOW_BOARD_UPDATED_${teamId}`, {
-      rainbowTeamBoardUpdated: board,
-    });
-    await pubsub.publish(`RAINBOW_EVENT_BOARD_UPDATED_${event.eventId}`, {
-      rainbowEventBoardUpdated: teamId,
-    });
-  }
+  const now = new Date();
+  await team.update({ lastWomSync: now });
+
+  const board = await getFullBoard(teamId);
+  await pubsub.publish(`RAINBOW_BOARD_UPDATED_${teamId}`, { rainbowTeamBoardUpdated: board });
+  await pubsub.publish(`RAINBOW_EVENT_BOARD_UPDATED_${event.eventId}`, { rainbowEventBoardUpdated: teamId });
+
+  return { updatedTiles, lastWomSync: now };
 }
 
-function startRainbowWomSync() {
-  cron.schedule('*/10 * * * *', syncRainbowWom);
-  logger.info('[rainbowWomSync] Scheduler started — syncing every 10 minutes');
-}
-
-module.exports = { startRainbowWomSync, syncRainbowWom };
+module.exports = { syncTeamWomProgress, isSyncInProgress };

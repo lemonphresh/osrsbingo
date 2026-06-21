@@ -12,6 +12,7 @@ const {
 const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
 const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
 const { fetchCompetitionParticipations } = require('../../utils/womService');
+const { syncTeamWomProgress, isSyncInProgress } = require('../../utils/rainbowWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -233,6 +234,7 @@ const Query = {
   },
 
   getRainbowTileDefs: () => TILES,
+  getRainbowSyncInProgress: () => isSyncInProgress(),
 
   getRainbowTeamByToken: async (_, { token }) => {
     const { RainbowTeam } = getModels();
@@ -517,33 +519,6 @@ const Mutation = {
       denialReason: approved ? null : denialReason ?? null,
     });
 
-    // On first PRE approval, snapshot WOM baseline so the sync job can measure delta from here.
-    if (approved && submission.type === 'PRE' && event.womCompetitionId) {
-      try {
-        const tileDef = TILE_MAP[submission.tileCode];
-        if (tileDef?.womMetric) {
-          const teamTile = await RainbowTeamTile.findOne({
-            where: { teamId: submission.teamId, tileCode: submission.tileCode },
-          });
-          if (teamTile && teamTile.womBaseline == null) {
-            const team = await RainbowTeam.findByPk(submission.teamId);
-            if (team) {
-              const participations = await fetchCompetitionParticipations(
-                event.womCompetitionId,
-                tileDef.womMetric
-              );
-              const entry = participations.find((p) => p.teamName === team.teamName);
-              if (entry != null) {
-                await teamTile.update({ womBaseline: entry.totalEnd });
-              }
-            }
-          }
-        }
-      } catch (err) {
-        // Non-critical — baseline snapshot failure should not block the review
-        require('../../utils/logger').warn(`[rainbowWom] baseline snapshot failed: ${err.message}`);
-      }
-    }
 
     await pubsub.publish(`RAINBOW_SUBMISSION_REVIEWED_${submission.eventId}`, {
       rainbowSubmissionReviewed: submission,
@@ -581,6 +556,21 @@ const Mutation = {
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
     await team.update({ teamToken: generateToken() });
     return team;
+  },
+
+  syncTeamWomProgress: async (_, { teamId }) => {
+    if (isSyncInProgress()) {
+      throw new UserInputError('Another team is currently syncing — try again in a moment.');
+    }
+    return syncTeamWomProgress(teamId);
+  },
+
+  resetTeamWomCooldown: async (_, { teamId }) => {
+    const { RainbowTeam } = getModels();
+    const team = await RainbowTeam.findByPk(teamId);
+    if (!team) throw new UserInputError(`Team ${teamId} not found`);
+    await team.update({ lastWomSync: null });
+    return true;
   },
 
   deleteRainbowEvent: async (_, { eventId }, { user }) => {
@@ -743,6 +733,7 @@ const Subscription = {
   rainbowEventBoardUpdated: createSubscription(
     ({ eventId }) => `RAINBOW_EVENT_BOARD_UPDATED_${eventId}`
   ),
+  rainbowSyncStatusChanged: createSubscription(() => 'RAINBOW_SYNC_STATUS'),
 };
 
 // ── Field resolvers ────────────────────────────────────────────────────────

@@ -29,7 +29,6 @@ const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
-const { startRainbowWomSync } = require('./utils/rainbowWomSync');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -542,7 +541,6 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
-  startRainbowWomSync();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

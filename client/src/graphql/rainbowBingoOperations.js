@@ -300,6 +300,7 @@ export const GET_RAINBOW_TEAM_BY_TOKEN = gql`
       teamName
       teamToken
       eventId
+      lastWomSync
     }
   }
 `;
@@ -385,6 +386,33 @@ export const RAINBOW_TEAM_BOARD_UPDATED = gql`
         validDrops
         theme
       }
+    }
+  }
+`;
+
+export const GET_RAINBOW_SYNC_IN_PROGRESS = gql`
+  query GetRainbowSyncInProgress {
+    getRainbowSyncInProgress
+  }
+`;
+
+export const RAINBOW_SYNC_STATUS_CHANGED = gql`
+  subscription RainbowSyncStatusChanged {
+    rainbowSyncStatusChanged
+  }
+`;
+
+export const RESET_TEAM_WOM_COOLDOWN = gql`
+  mutation ResetTeamWomCooldown($teamId: ID!) {
+    resetTeamWomCooldown(teamId: $teamId)
+  }
+`;
+
+export const SYNC_TEAM_WOM_PROGRESS = gql`
+  mutation SyncTeamWomProgress($teamId: ID!) {
+    syncTeamWomProgress(teamId: $teamId) {
+      updatedTiles
+      lastWomSync
     }
   }
 `;

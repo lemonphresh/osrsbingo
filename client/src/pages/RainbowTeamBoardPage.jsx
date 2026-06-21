@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { useParams, Link as RouterLink } from 'react-router-dom';
-import { useQuery, useSubscription, useMutation } from '@apollo/client';
+import { useQuery, useSubscription, useMutation, useApolloClient } from '@apollo/client';
 import { useAuth } from '../providers/AuthProvider';
 import { useCompletionSound } from '../hooks/useCompletionSound';
 import { useRainbowCelebration } from '../hooks/useRainbowCelebration';
@@ -38,6 +38,10 @@ import {
   GET_RAINBOW_TILE_SUBMISSIONS,
   TEST_RAINBOW_NOTIFICATION,
   GET_ACTIVE_RAINBOW_EVENT,
+  SYNC_TEAM_WOM_PROGRESS,
+  RESET_TEAM_WOM_COOLDOWN,
+  GET_RAINBOW_SYNC_IN_PROGRESS,
+  RAINBOW_SYNC_STATUS_CHANGED,
 } from '../graphql/rainbowBingoOperations';
 import {
   BOARD_LAYOUT,
@@ -1201,6 +1205,55 @@ export default function RainbowTeamBoardPage() {
       }),
   });
 
+  const apolloClient = useApolloClient();
+  const COOLDOWN_MS = 15 * 60 * 1000;
+  const [now, setNow] = useState(Date.now());
+
+  const { data: syncStatusData } = useQuery(GET_RAINBOW_SYNC_IN_PROGRESS, { fetchPolicy: 'network-only' });
+  const [globalSyncInProgress, setGlobalSyncInProgress] = useState(false);
+  useEffect(() => {
+    if (syncStatusData?.getRainbowSyncInProgress != null) setGlobalSyncInProgress(syncStatusData.getRainbowSyncInProgress);
+  }, [syncStatusData]);
+  useSubscription(RAINBOW_SYNC_STATUS_CHANGED, {
+    onData: ({ data: subData }) => {
+      if (subData?.data?.rainbowSyncStatusChanged != null) setGlobalSyncInProgress(subData.data.rainbowSyncStatusChanged);
+    },
+  });
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const [syncWomProgress, { loading: womSyncing }] = useMutation(SYNC_TEAM_WOM_PROGRESS, {
+    onCompleted: (mutData) => {
+      const newLastWomSync = mutData?.syncTeamWomProgress?.lastWomSync;
+      if (newLastWomSync && team) {
+        apolloClient.writeQuery({
+          query: GET_RAINBOW_TEAM_BY_TOKEN,
+          variables: { token },
+          data: { getRainbowTeamByToken: { ...team, lastWomSync: newLastWomSync } },
+        });
+      }
+      setNow(Date.now());
+    },
+    onError: (e) =>
+      toast({ title: 'WOM sync failed', description: e.message, status: 'error', duration: 5000, isClosable: true }),
+  });
+
+  const [resetWomCooldown] = useMutation(RESET_TEAM_WOM_COOLDOWN, {
+    onCompleted: () => {
+      if (team) {
+        apolloClient.writeQuery({
+          query: GET_RAINBOW_TEAM_BY_TOKEN,
+          variables: { token },
+          data: { getRainbowTeamByToken: { ...team, lastWomSync: null } },
+        });
+      }
+      setNow(Date.now());
+    },
+  });
+
   const triggerTest = (type) => {
     const CAPSTONES = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7'];
     const codes = type === 'board' ? CAPSTONES : type === 'capstone' ? ['C1'] : ['R1'];
@@ -1245,11 +1298,16 @@ export default function RainbowTeamBoardPage() {
 
   const team = tokenData?.getRainbowTeamByToken;
 
+  const lastWomSyncMs = team?.lastWomSync ? new Date(team.lastWomSync).getTime() : null;
+  const cooldownMinsLeft = lastWomSyncMs ? Math.ceil(Math.max(0, (lastWomSyncMs + COOLDOWN_MS - now) / 60000)) : 0;
+  const womSyncOnCooldown = cooldownMinsLeft > 0;
+
   const { data: eventData } = useQuery(GET_ACTIVE_RAINBOW_EVENT, {
     skip: !team,
     fetchPolicy: 'cache-and-network',
   });
   const eventPassword = eventData?.getActiveRainbowEvent?.eventName ?? null;
+  const hasWomCompetition = !!eventData?.getActiveRainbowEvent?.womCompetitionId;
 
   const { data, loading: boardLoading } = useQuery(GET_RAINBOW_TEAM_BOARD, {
     variables: { teamId: team?.teamId },
@@ -1504,6 +1562,30 @@ export default function RainbowTeamBoardPage() {
             </Box>
           )}
 
+          {hasWomCompetition && (
+            <VStack align="center" gap={1}>
+              <Button
+                colorScheme="purple"
+                variant="outline"
+                isLoading={womSyncing}
+                loadingText="Crunching the numbers…"
+                isDisabled={womSyncOnCooldown || womSyncing || globalSyncInProgress}
+                onClick={() => syncWomProgress({ variables: { teamId: team.teamId } })}
+              >
+                Sync WOM Progress
+              </Button>
+              <Text fontSize="xs" color="gray.500" textAlign="center">
+                {womSyncing
+                  ? 'Wise Old Man has rate limits and this is a lot of data — this may take a few minutes'
+                  : globalSyncInProgress
+                  ? 'Another team is currently syncing — check back in a few minutes'
+                  : womSyncOnCooldown
+                  ? `Available in ${cooldownMinsLeft} minute${cooldownMinsLeft === 1 ? '' : 's'}`
+                  : 'Pulls the latest XP and KC from Wise Old Man for your active tiles — has a 15 minute cooldown to avoid rate limiting'}
+              </Text>
+            </VStack>
+          )}
+
           <TileProgressOverview tiles={data?.getRainbowTeamBoard ?? []} />
 
           <TileModal
@@ -1575,6 +1657,14 @@ export default function RainbowTeamBoardPage() {
                 onClick={() => setShowProgressPreview(true)}
               >
                 Preview progress
+              </Button>
+              <Button
+                size="xs"
+                colorScheme="orange"
+                variant="outline"
+                onClick={() => resetWomCooldown({ variables: { teamId: team.teamId } })}
+              >
+                Reset WOM cooldown
               </Button>
             </VStack>
           </Box>

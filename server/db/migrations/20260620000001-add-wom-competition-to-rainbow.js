@@ -6,13 +6,13 @@ module.exports = {
       type: Sequelize.STRING,
       allowNull: true,
     });
-    await queryInterface.addColumn('RainbowTeamTiles', 'womBaseline', {
-      type: Sequelize.FLOAT,
+    await queryInterface.addColumn('RainbowTeams', 'lastWomSync', {
+      type: Sequelize.DATE,
       allowNull: true,
     });
   },
   down: async (queryInterface) => {
     await queryInterface.removeColumn('RainbowEvents', 'womCompetitionId');
-    await queryInterface.removeColumn('RainbowTeamTiles', 'womBaseline');
+    await queryInterface.removeColumn('RainbowTeams', 'lastWomSync');
   },
 };
