@@ -416,3 +416,28 @@ export const SYNC_TEAM_WOM_PROGRESS = gql`
     }
   }
 `;
+
+export const START_TEAM_WOM_SYNC = gql`
+  mutation StartTeamWomSync($teamId: ID!) {
+    startTeamWomSync(teamId: $teamId) {
+      tileCodes
+    }
+  }
+`;
+
+export const SYNC_TEAM_WOM_TILE = gql`
+  mutation SyncTeamWomTile($teamId: ID!, $tileCode: String!) {
+    syncTeamWomTile(teamId: $teamId, tileCode: $tileCode) {
+      tileCode
+      progress
+    }
+  }
+`;
+
+export const FINALIZE_TEAM_WOM_SYNC = gql`
+  mutation FinalizeTeamWomSync($teamId: ID!) {
+    finalizeTeamWomSync(teamId: $teamId) {
+      lastWomSync
+    }
+  }
+`;

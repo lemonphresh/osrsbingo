@@ -577,6 +577,19 @@ const typeDefs = gql`
     lastWomSync:  DateTime
   }
 
+  type StartTeamWomSyncResult {
+    tileCodes: [String!]!
+  }
+
+  type SyncTeamWomTileResult {
+    tileCode: String!
+    progress: Int
+  }
+
+  type FinalizeTeamWomSyncResult {
+    lastWomSync: DateTime
+  }
+
   type SiteStats {
     totalBoards: Int!
     totalUsers: Int!
@@ -1059,6 +1072,9 @@ const typeDefs = gql`
     deleteRainbowEvent(eventId: ID!): Boolean!
     deleteRainbowTeam(teamId: ID!): Boolean!
     syncTeamWomProgress(teamId: ID!): SyncTeamWomResult!
+    startTeamWomSync(teamId: ID!): StartTeamWomSyncResult!
+    syncTeamWomTile(teamId: ID!, tileCode: String!): SyncTeamWomTileResult!
+    finalizeTeamWomSync(teamId: ID!): FinalizeTeamWomSyncResult!
     resetTeamWomCooldown(teamId: ID!): Boolean!
     generateRainbowTeamToken(teamId: ID!): RainbowTeam!
   }
