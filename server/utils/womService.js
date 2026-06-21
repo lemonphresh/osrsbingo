@@ -4,8 +4,7 @@ const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
 
 // When rate-limited, wait this long before retrying.
-// Kept under 10s so a single retry still completes within Heroku's 30s timeout.
-const RATE_LIMIT_RETRY_MS = 8000;
+const RATE_LIMIT_RETRY_MS = 5000;
 
 // Delay between players when processing a list (avoids WOM rate limits)
 const SEQUENTIAL_DELAY_MS = 500;
@@ -266,6 +265,8 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
   const allResults = [];
   const PAGE_SIZE = 50;
   let offset = 0;
+  let rateLimitRetries = 0;
+  const MAX_RATE_LIMIT_RETRIES = 2;
 
   while (true) {
     const params = new URLSearchParams({
@@ -277,7 +278,12 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
     });
     const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
     if (res.status === 429) {
-      logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" at offset ${offset}, retrying after ${RATE_LIMIT_RETRY_MS}ms`);
+      if (rateLimitRetries >= MAX_RATE_LIMIT_RETRIES) {
+        logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" — max retries reached, returning partial results`);
+        break;
+      }
+      rateLimitRetries++;
+      logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" at offset ${offset}, retrying after ${RATE_LIMIT_RETRY_MS}ms (attempt ${rateLimitRetries}/${MAX_RATE_LIMIT_RETRIES})`);
       await sleep(RATE_LIMIT_RETRY_MS);
       continue;
     }

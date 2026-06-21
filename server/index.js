@@ -357,6 +357,7 @@ const serverCleanup = useServer(
     schema,
     execute,
     subscribe,
+    keepAlive: 10_000,
     context: async (ctx, msg, args) => {
       // Get auth from connection params
       const token = ctx.connectionParams?.authorization?.replace('Bearer ', '');
