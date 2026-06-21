@@ -11,6 +11,8 @@ const {
 } = require('../../utils/rainbowTiles');
 const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
 const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
+const { fetchCompetitionParticipations } = require('../../utils/womService');
+const { syncTeamWomProgress, isSyncInProgress } = require('../../utils/rainbowWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -232,6 +234,7 @@ const Query = {
   },
 
   getRainbowTileDefs: () => TILES,
+  getRainbowSyncInProgress: () => isSyncInProgress(),
 
   getRainbowTeamByToken: async (_, { token }) => {
     const { RainbowTeam } = getModels();
@@ -339,6 +342,13 @@ const Mutation = {
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
     await event.update({ guildId });
+    return event;
+  },
+
+  setRainbowEventWomCompetitionId: async (_, { eventId, womCompetitionId }, { user }) => {
+    const event = await getEventOrThrow(eventId);
+    if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
+    await event.update({ womCompetitionId: womCompetitionId ?? null });
     return event;
   },
 
@@ -494,7 +504,7 @@ const Mutation = {
   // Tile advancement is a separate manual action via completeRainbowTile.
   reviewRainbowSubmission: async (_, { submissionId, approved, denialReason }, { user }) => {
     if (!user) throw new AuthenticationError('Must be logged in');
-    const { RainbowSubmission } = getModels();
+    const { RainbowSubmission, RainbowTeamTile, RainbowTeam } = getModels();
 
     const submission = await RainbowSubmission.findByPk(submissionId);
     if (!submission) throw new UserInputError('Submission not found');
@@ -508,6 +518,7 @@ const Mutation = {
       reviewedAt: new Date(),
       denialReason: approved ? null : denialReason ?? null,
     });
+
 
     await pubsub.publish(`RAINBOW_SUBMISSION_REVIEWED_${submission.eventId}`, {
       rainbowSubmissionReviewed: submission,
@@ -545,6 +556,21 @@ const Mutation = {
     if (!isAdmin(event, user)) throw new AuthenticationError('Admin only');
     await team.update({ teamToken: generateToken() });
     return team;
+  },
+
+  syncTeamWomProgress: async (_, { teamId }) => {
+    if (isSyncInProgress()) {
+      throw new UserInputError('Another team is currently syncing — try again in a moment.');
+    }
+    return syncTeamWomProgress(teamId);
+  },
+
+  resetTeamWomCooldown: async (_, { teamId }) => {
+    const { RainbowTeam } = getModels();
+    const team = await RainbowTeam.findByPk(teamId);
+    if (!team) throw new UserInputError(`Team ${teamId} not found`);
+    await team.update({ lastWomSync: null });
+    return true;
   },
 
   deleteRainbowEvent: async (_, { eventId }, { user }) => {
@@ -707,6 +733,7 @@ const Subscription = {
   rainbowEventBoardUpdated: createSubscription(
     ({ eventId }) => `RAINBOW_EVENT_BOARD_UPDATED_${eventId}`
   ),
+  rainbowSyncStatusChanged: createSubscription(() => 'RAINBOW_SYNC_STATUS'),
 };
 
 // ── Field resolvers ────────────────────────────────────────────────────────

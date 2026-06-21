@@ -27,6 +27,7 @@ export const GET_ACTIVE_RAINBOW_EVENT = gql`
       adminIds
       staffChannelId
       guildId
+      womCompetitionId
       teams {
         teamId
         teamName
@@ -283,6 +284,15 @@ export const SET_RAINBOW_EVENT_SCHEDULE = gql`
   }
 `;
 
+export const SET_RAINBOW_EVENT_WOM_COMPETITION_ID = gql`
+  mutation SetRainbowEventWomCompetitionId($eventId: ID!, $womCompetitionId: String) {
+    setRainbowEventWomCompetitionId(eventId: $eventId, womCompetitionId: $womCompetitionId) {
+      eventId
+      womCompetitionId
+    }
+  }
+`;
+
 export const GET_RAINBOW_TEAM_BY_TOKEN = gql`
   query GetRainbowTeamByToken($token: String!) {
     getRainbowTeamByToken(token: $token) {
@@ -290,6 +300,7 @@ export const GET_RAINBOW_TEAM_BY_TOKEN = gql`
       teamName
       teamToken
       eventId
+      lastWomSync
     }
   }
 `;
@@ -375,6 +386,33 @@ export const RAINBOW_TEAM_BOARD_UPDATED = gql`
         validDrops
         theme
       }
+    }
+  }
+`;
+
+export const GET_RAINBOW_SYNC_IN_PROGRESS = gql`
+  query GetRainbowSyncInProgress {
+    getRainbowSyncInProgress
+  }
+`;
+
+export const RAINBOW_SYNC_STATUS_CHANGED = gql`
+  subscription RainbowSyncStatusChanged {
+    rainbowSyncStatusChanged
+  }
+`;
+
+export const RESET_TEAM_WOM_COOLDOWN = gql`
+  mutation ResetTeamWomCooldown($teamId: ID!) {
+    resetTeamWomCooldown(teamId: $teamId)
+  }
+`;
+
+export const SYNC_TEAM_WOM_PROGRESS = gql`
+  mutation SyncTeamWomProgress($teamId: ID!) {
+    syncTeamWomProgress(teamId: $teamId) {
+      updatedTiles
+      lastWomSync
     }
   }
 `;

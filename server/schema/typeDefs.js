@@ -572,6 +572,11 @@ const typeDefs = gql`
     message: String
   }
 
+  type SyncTeamWomResult {
+    updatedTiles: Int!
+    lastWomSync:  DateTime
+  }
+
   type SiteStats {
     totalBoards: Int!
     totalUsers: Int!
@@ -615,19 +620,20 @@ const typeDefs = gql`
   }
 
   type RainbowEvent {
-    eventId:        ID!
-    eventName:      String!
-    status:         RainbowEventStatus!
-    startDate:      DateTime
-    endDate:        DateTime
-    adminIds:       [String!]!
-    staffChannelId: String
-    guildId:        String
-    tileGraph:      JSON!
-    teams:          [RainbowTeam!]!
-    admins:         [User!]!
-    createdAt:      DateTime
-    updatedAt:      DateTime
+    eventId:          ID!
+    eventName:        String!
+    status:           RainbowEventStatus!
+    startDate:        DateTime
+    endDate:          DateTime
+    adminIds:         [String!]!
+    staffChannelId:   String
+    guildId:          String
+    womCompetitionId: String
+    tileGraph:        JSON!
+    teams:            [RainbowTeam!]!
+    admins:           [User!]!
+    createdAt:        DateTime
+    updatedAt:        DateTime
   }
 
   type RainbowTeam {
@@ -641,6 +647,7 @@ const typeDefs = gql`
     teamToken:        String
     tiles:            [RainbowTeamTile!]!
     createdAt:        DateTime
+    lastWomSync:      DateTime
   }
 
   type RainbowTeamTile {
@@ -650,6 +657,7 @@ const typeDefs = gql`
     tileCode:       String!
     status:         RainbowTileStatus!
     progress:       Int!
+    womBaseline:    Float
     unlockedAt:     DateTime
     completedAt:    DateTime
     tileDef:        RainbowTileDef!
@@ -790,6 +798,7 @@ const typeDefs = gql`
     getRainbowTeamByToken(token: String!): RainbowTeam
     getRainbowSubmissions(eventId: ID!, status: RainbowSubmissionStatus, teamId: ID, tileCode: String): [RainbowSubmission!]!
     getRainbowTileDefs: [RainbowTileDef!]!
+    getRainbowSyncInProgress: Boolean!
 
     # --- Group Goal Dashboard ---
     getGroupDashboard(slug: String!): GroupDashboard
@@ -1037,6 +1046,7 @@ const typeDefs = gql`
     updateRainbowEventStatus(eventId: ID!, status: RainbowEventStatus!): RainbowEvent!
     setRainbowEventSchedule(eventId: ID!, startDate: DateTime, endDate: DateTime): RainbowEvent!
     setRainbowEventGuildId(eventId: ID!, guildId: String!): RainbowEvent!
+    setRainbowEventWomCompetitionId(eventId: ID!, womCompetitionId: String): RainbowEvent!
     createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
     reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
     completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!
@@ -1048,6 +1058,8 @@ const typeDefs = gql`
     testRainbowNotification(teamId: ID!, type: String!): Boolean!
     deleteRainbowEvent(eventId: ID!): Boolean!
     deleteRainbowTeam(teamId: ID!): Boolean!
+    syncTeamWomProgress(teamId: ID!): SyncTeamWomResult!
+    resetTeamWomCooldown(teamId: ID!): Boolean!
     generateRainbowTeamToken(teamId: ID!): RainbowTeam!
   }
 
@@ -1447,6 +1459,7 @@ const typeDefs = gql`
     rainbowSubmissionReviewed(eventId: ID!): RainbowSubmission!
     rainbowTeamBoardUpdated(teamId: ID!): [RainbowTeamTile!]!
     rainbowEventBoardUpdated(eventId: ID!): ID!
+    rainbowSyncStatusChanged: Boolean!
   }
 `;
 

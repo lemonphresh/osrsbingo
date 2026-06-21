@@ -20,6 +20,7 @@ module.exports = (sequelize) => {
       notes:             { type: DataTypes.TEXT,   allowNull: true },
       teamToken:         { type: DataTypes.STRING(16), allowNull: true },
       discordRoleId:     { type: DataTypes.STRING, allowNull: true },
+      lastWomSync:       { type: DataTypes.DATE,   allowNull: true },
     },
     { sequelize, modelName: 'RainbowTeam' },
   );

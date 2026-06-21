@@ -276,6 +276,11 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
       offset,
     });
     const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
+    if (res.status === 429) {
+      logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" at offset ${offset}, retrying after ${RATE_LIMIT_RETRY_MS}ms`);
+      await sleep(RATE_LIMIT_RETRY_MS);
+      continue;
+    }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       logger.warn(
@@ -457,6 +462,145 @@ async function fetchLeaguesGroupCompetitions(leaguesWomGroupId) {
   return result;
 }
 
+/**
+ * Fetch a single player's gains for a specific metric over a custom date range.
+ * Uses the per-player gained endpoint, which works regardless of group membership.
+ * Returns the gained value (number) or null on failure.
+ */
+async function fetchPlayerGainsInRange(username, metric, startDate, endDate) {
+  const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
+  const params = new URLSearchParams({
+    startDate: new Date(startDate).toISOString(),
+    endDate: effectiveEnd,
+  });
+  const encoded = encodeURIComponent(username.trim());
+  const res = await fetch(`${WOM_BASE}/players/${encoded}/gained?${params}`, {
+    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
+  });
+  if (res.status === 429) {
+    logger.warn(`WOM player gained 429 for "${username}", retrying after ${RATE_LIMIT_RETRY_MS}ms`);
+    await sleep(RATE_LIMIT_RETRY_MS);
+    return fetchPlayerGainsInRange(username, metric, startDate, endDate);
+  }
+  if (!res.ok) {
+    logger.warn(`WOM player gained ${res.status} for "${username}" metric "${metric}"`);
+    return null;
+  }
+  const body = await res.json();
+  const data = body?.data;
+  if (!data) return null;
+  // Try flat .gained first (seen in some WOM responses), then nested .value.gained
+  const skillNode = data.skills?.[metric]?.experience;
+  if (skillNode != null) {
+    const gained = skillNode.gained ?? skillNode.value?.gained;
+    if (gained != null) return Math.max(0, gained);
+  }
+  const bossNode = data.bosses?.[metric]?.kills;
+  if (bossNode != null) {
+    const gained = bossNode.gained ?? bossNode.value?.gained;
+    if (gained != null) return Math.max(0, gained);
+  }
+  logger.warn(`WOM player gained: metric "${metric}" not found in response for "${username}" — keys: skills=${Object.keys(data.skills ?? {}).join(',')}`);
+  return null;
+}
+
+/**
+ * Fetch per-player gains for a WOM competition filtered to a specific metric.
+ * Returns { displayName: gained } for all participants.
+ * Used as a fallback for players not in the WOM group.
+ */
+async function fetchCompetitionPlayerGains(competitionId, metric) {
+  const params = new URLSearchParams({ metric });
+  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}?${params}`, {
+    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM competition player gains ${res.status} for comp ${competitionId} metric "${metric}": ${body}`);
+    return {};
+  }
+  const data = await res.json();
+  const participations = Array.isArray(data.teams)
+    ? data.teams.flatMap((t) => t.participations ?? [])
+    : Array.isArray(data.participations) ? data.participations : [];
+  const result = {};
+  for (const p of participations) {
+    const name = p.player?.displayName ?? p.player?.username;
+    if (name) result[name] = Math.max(0, (p.progress?.end ?? 0) - (p.progress?.start ?? 0));
+  }
+  return result;
+}
+
+/**
+ * Fetch team rosters for a WOM competition.
+ * Returns { teamName: [displayName, ...] } for use with point-in-time group gains lookups.
+ */
+async function fetchCompetitionTeamRosters(competitionId) {
+  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}`, {
+    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM competition rosters ${res.status} for comp ${competitionId}: ${body}`);
+    return { rosters: {}, usernameMap: {} };
+  }
+  const data = await res.json();
+  const rosters = {};
+  const usernameMap = {}; // displayName → username for per-player gains fallback
+  const allParticipations = Array.isArray(data.teams)
+    ? data.teams.flatMap((t) => (t.participations ?? []).map((p) => ({ ...p, _teamName: t.name })))
+    : (Array.isArray(data.participations) ? data.participations : []).map((p) => ({ ...p, _teamName: p.teamName }));
+  for (const p of allParticipations) {
+    const displayName = p.player?.displayName ?? p.player?.username;
+    const username = p.player?.username;
+    const teamName = p._teamName;
+    if (!displayName || !teamName) continue;
+    if (!rosters[teamName]) rosters[teamName] = [];
+    rosters[teamName].push(displayName);
+    if (username) usernameMap[displayName] = username;
+  }
+  return { rosters, usernameMap };
+}
+
+/**
+ * Fetch participation data for a WOM team competition, optionally filtered to a specific metric.
+ * Returns [{ teamName, totalEnd }] where totalEnd = sum of progress.end across all team members.
+ * Works for both team competitions (data.teams[]) and classic competitions (data.participations[]).
+ */
+async function fetchCompetitionParticipations(competitionId, metric) {
+  const params = metric ? `?metric=${encodeURIComponent(metric)}` : '';
+  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}${params}`, {
+    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    logger.warn(`WOM competition ${res.status} for comp ${competitionId} metric "${metric}": ${body}`);
+    return [];
+  }
+  const data = await res.json();
+
+  if (Array.isArray(data.teams)) {
+    return data.teams.map((team) => {
+      const parts = team.participations ?? [];
+      return {
+        teamName: team.name,
+        totalStart: parts.reduce((sum, p) => sum + Math.max(0, p.progress?.start ?? 0), 0),
+        totalEnd:   parts.reduce((sum, p) => sum + (p.progress?.end ?? 0), 0),
+      };
+    });
+  }
+
+  const participations = Array.isArray(data.participations) ? data.participations : [];
+  const byTeam = {};
+  for (const p of participations) {
+    const name = p.teamName ?? '__unknown__';
+    if (!byTeam[name]) byTeam[name] = { totalStart: 0, totalEnd: 0 };
+    byTeam[name].totalStart += Math.max(0, p.progress?.start ?? 0);
+    byTeam[name].totalEnd   += (p.progress?.end ?? 0);
+  }
+  return Object.entries(byTeam).map(([teamName, { totalStart, totalEnd }]) => ({ teamName, totalStart, totalEnd }));
+}
+
 module.exports = {
   fetchPlayerStats,
   fetchAllPlayerStats,
@@ -468,4 +612,8 @@ module.exports = {
   fetchGroupMembers,
   fetchGroupCompetitions,
   fetchLeaguesGroupCompetitions,
+  fetchCompetitionParticipations,
+  fetchCompetitionTeamRosters,
+  fetchCompetitionPlayerGains,
+  fetchPlayerGainsInRange,
 };
