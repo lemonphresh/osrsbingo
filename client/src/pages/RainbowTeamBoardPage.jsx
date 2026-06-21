@@ -1574,15 +1574,20 @@ export default function RainbowTeamBoardPage() {
               >
                 Sync WOM Progress
               </Button>
-              <Text fontSize="xs" color="gray.500" textAlign="center">
-                {womSyncing
-                  ? 'Wise Old Man has rate limits and this is a lot of data — this may take a few minutes'
-                  : globalSyncInProgress
-                  ? 'Another team is currently syncing — check back in a few minutes'
-                  : womSyncOnCooldown
-                  ? `Available in ${cooldownMinsLeft} minute${cooldownMinsLeft === 1 ? '' : 's'}`
-                  : 'Pulls the latest XP and KC from Wise Old Man for your active tiles — has a 15 minute cooldown to avoid rate limiting'}
-              </Text>
+              <HStack gap={2} justify="center">
+                {(womSyncing || globalSyncInProgress) && (
+                  <Spinner size="xs" color="purple.400" />
+                )}
+                <Text fontSize="xs" color="gray.500" textAlign="center">
+                  {womSyncing
+                    ? 'Wise Old Man has rate limits and this is a lot of data — this may take a few minutes'
+                    : globalSyncInProgress
+                    ? 'A sync is currently in progress — check back in a few minutes'
+                    : womSyncOnCooldown
+                    ? `Available in ${cooldownMinsLeft} minute${cooldownMinsLeft === 1 ? '' : 's'}`
+                    : 'Pulls the latest XP and KC from Wise Old Man for your active tiles — has a 15 minute cooldown to avoid rate limiting'}
+                </Text>
+              </HStack>
             </VStack>
           )}
 
