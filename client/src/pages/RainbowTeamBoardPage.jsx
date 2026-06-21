@@ -1579,7 +1579,7 @@ export default function RainbowTeamBoardPage() {
               <Button
                 colorScheme="purple"
                 variant="outline"
-                isLoading={womSyncing || globalSyncInProgress}
+                isLoading={womSyncing || syncTileProgress.total > 0}
                 loadingText={syncTileProgress.total > 0 ? `${syncTileProgress.done} / ${syncTileProgress.total} tiles…` : 'Syncing…'}
                 isDisabled={womSyncOnCooldown || womSyncing || globalSyncInProgress}
                 onClick={handleWomSync}
@@ -1591,7 +1591,9 @@ export default function RainbowTeamBoardPage() {
                   {womSyncing || globalSyncInProgress
                     ? syncTileProgress.total > 0
                       ? `Checked ${syncTileProgress.done} of ${syncTileProgress.total} tiles — updates rolling in…`
-                      : 'Sync in progress — updates will appear below'
+                      : womSyncing
+                      ? 'Starting sync…'
+                      : 'A sync is currently in progress'
                     : womSyncOnCooldown
                     ? `Available in ${cooldownMinsLeft} minute${cooldownMinsLeft === 1 ? '' : 's'}`
                     : 'Pulls the latest XP and KC from Wise Old Man for your active tiles — has a 15 minute cooldown to avoid rate limiting'}
