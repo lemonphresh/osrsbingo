@@ -1,4 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+} from 'recharts';
 import { useQuery, useSubscription } from '@apollo/client';
 import { Box, Button, Center, Spinner, Text, VStack, HStack, Heading } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -616,6 +619,90 @@ function SpectatorTile({ tileCode, tileDef, teamStatuses, isNewlyCompleted }) {
   );
 }
 
+const TILE_COUNT = () => 1;
+const TILE_SCORE = (tileCode) => (tileCode.startsWith('C') ? 3 : 1);
+
+function TeamTimeline({ teams, startDate, endDate, yLabel, getScore }) {
+  const data = useMemo(() => {
+    if (!startDate || !teams.length) return [];
+
+    const start = new Date(startDate).getTime();
+    const end = endDate ? new Date(endDate).getTime() : Date.now();
+
+    const events = [];
+    for (const team of teams) {
+      for (const tile of team.tiles ?? []) {
+        if (tile.status === 'COMPLETE' && tile.completedAt) {
+          const t = new Date(tile.completedAt).getTime();
+          if (t >= start) events.push({ time: t, teamName: team.teamName, score: getScore(tile.tileCode) });
+        }
+      }
+    }
+    events.sort((a, b) => a.time - b.time);
+
+    const totals = Object.fromEntries(teams.map((t) => [t.teamName, 0]));
+    const points = [{ time: start, ...totals }];
+
+    for (const ev of events) {
+      totals[ev.teamName] = (totals[ev.teamName] ?? 0) + ev.score;
+      points.push({ time: ev.time, ...totals });
+    }
+
+    points.push({ time: Math.min(end, Date.now()), ...totals });
+    return points;
+  }, [teams, startDate, endDate, getScore]);
+
+  const fmtTick = (ms) => new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const fmtLabel = (ms) => new Date(ms).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
+  if (data.length < 2) return null;
+
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <LineChart data={data} margin={{ top: 4, right: 24, left: 0, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+        <XAxis
+          dataKey="time"
+          type="number"
+          scale="time"
+          domain={['dataMin', 'dataMax']}
+          tickFormatter={fmtTick}
+          tick={{ fill: '#718096', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          tickCount={7}
+          minTickGap={60}
+        />
+        <YAxis
+          allowDecimals={false}
+          tick={{ fill: '#718096', fontSize: 11 }}
+          tickLine={false}
+          axisLine={false}
+          width={56}
+          label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 12, style: { fill: '#718096', fontSize: 11 } }}
+        />
+        <Tooltip
+          contentStyle={{ backgroundColor: '#141420', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
+          labelStyle={{ color: '#a0aec0', fontSize: 11, marginBottom: 4 }}
+          labelFormatter={fmtLabel}
+        />
+        <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
+        {teams.map((team, i) => (
+          <Line
+            key={team.teamId}
+            type="stepAfter"
+            dataKey={team.teamName}
+            stroke={TEAM_PALETTE[i % TEAM_PALETTE.length]}
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+          />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 export default function RainbowBingoBoardPage() {
   const { user } = useAuth();
   const isSiteAdmin = !!user?.admin;
@@ -883,6 +970,36 @@ export default function RainbowBingoBoardPage() {
                     </Box>
                   ))}
                 </Box>
+              </Box>
+            )}
+
+            {teams.length > 0 && event?.startDate && (
+              <Box>
+                <Text fontSize="xs" color="gray.600" textTransform="uppercase" letterSpacing="wider" textAlign="center" mb={3}>
+                  Completion Timeline
+                </Text>
+                <TeamTimeline
+                  teams={teams}
+                  startDate={event.startDate}
+                  endDate={event.endDate}
+                  yLabel="Tiles completed"
+                  getScore={TILE_COUNT}
+                />
+              </Box>
+            )}
+
+            {teams.length > 0 && event?.startDate && (
+              <Box>
+                <Text fontSize="xs" color="gray.600" textTransform="uppercase" letterSpacing="wider" textAlign="center" mb={3}>
+                  Points Timeline
+                </Text>
+                <TeamTimeline
+                  teams={teams}
+                  startDate={event.startDate}
+                  endDate={event.endDate}
+                  yLabel="Points"
+                  getScore={TILE_SCORE}
+                />
               </Box>
             )}
 
