@@ -25,16 +25,20 @@ async function checkRainbowEventSchedule() {
     const teams = await RainbowTeam.findAll({ where: { eventId: event.eventId } });
     for (const team of teams) {
       if (!team.discordChannelId || !team.teamToken) continue;
-      await postDiscordEmbed(team.discordChannelId, {
-        color: 0x9b59b6,
-        title: `🌈 Rainbow Bingo has started!`,
-        description: [
-          `**Event password:** \`${event.eventName}\``,
-          `Include this password visibly in every screenshot you submit, like by utilizing the Wise Old Man RuneLite plugin.`,
-          `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
-        ].join('\n\n'),
-        timestamp: now.toISOString(),
-      }, { roleId: team.discordRoleId });
+      await postDiscordEmbed(
+        team.discordChannelId,
+        {
+          color: 0x9b59b6,
+          title: `🌈 Rainbow Bingo has started!`,
+          description: [
+            `**Event password:** \`${event.eventName}\``,
+            `Include this password visibly in every screenshot you submit, like by utilizing the Wise Old Man RuneLite plugin.`,
+            `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
+          ].join('\n\n'),
+          timestamp: now.toISOString(),
+        },
+        { roleId: team.discordRoleId }
+      );
     }
   }
 
@@ -52,15 +56,21 @@ async function checkRainbowEventSchedule() {
     const teams = await RainbowTeam.findAll({ where: { eventId: event.eventId } });
     for (const team of teams) {
       if (!team.discordChannelId) continue;
-      await postDiscordEmbed(team.discordChannelId, {
-        color: 0xffd700,
-        title: `🏳️‍🌈 Rainbow Bingo has ended!`,
-        description: [
-          `That's a wrap! Thank you so much for playing, you all made this event something special.`,
-          `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
-        ].join('\n\n'),
-        timestamp: now.toISOString(),
-      }, { roleId: team.discordRoleId });
+      await postDiscordEmbed(
+        team.discordChannelId,
+        {
+          color: 0xffd700,
+          title: `🏳️‍🌈 Rainbow Bingo has ended!`,
+          description: [
+            `That's a wrap! Thank you so much for playing, you all made this event something special.`,
+            `It's ending FOR REAL this time 😅 Thank you for your patience with the refs and with me (lemon) for putting in the wrong end date for my event LOL`,
+            `If you feel so inclined, support the site via the donate page! All contributions this month go directly to the Trevor Project, and I'll be posting proof of this when the month concludes. 🏳️‍🌈`,
+            `Final standings and lil graphs for the nerdiest of you are up on the event page.\n${siteUrl}/eg-rainbow`,
+          ].join('\n\n'),
+          timestamp: now.toISOString(),
+        },
+        { roleId: team.discordRoleId }
+      );
     }
   }
 }
