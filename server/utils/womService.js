@@ -262,46 +262,42 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
   // Cap endDate to now — WOM rejects future dates for ongoing events
   const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
 
-  const allResults = [];
-  const PAGE_SIZE = 50;
-  let offset = 0;
+  const params = new URLSearchParams({
+    metric,
+    startDate: new Date(startDate).toISOString(),
+    endDate: effectiveEnd,
+  });
+
   let rateLimitRetries = 0;
   const MAX_RATE_LIMIT_RETRIES = 2;
 
   while (true) {
-    const params = new URLSearchParams({
-      metric,
-      startDate: new Date(startDate).toISOString(),
-      endDate: effectiveEnd,
-      limit: PAGE_SIZE,
-      offset,
-    });
-    const res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 45000);
+    let res;
+    try {
+      res = await fetch(`${WOM_BASE}/groups/${womGroupId}/gained?${params}`, { signal: controller.signal });
+    } catch (err) {
+      throw new Error(`WOM group gains timeout/network for group ${womGroupId} metric "${metric}": ${err.message}`);
+    } finally {
+      clearTimeout(timeout);
+    }
     if (res.status === 429) {
       if (rateLimitRetries >= MAX_RATE_LIMIT_RETRIES) {
-        logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" — max retries reached, returning partial results`);
-        break;
+        throw new Error(`WOM group gains 429 for group ${womGroupId} metric "${metric}" — max retries reached`);
       }
       rateLimitRetries++;
-      logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}" at offset ${offset}, retrying after ${RATE_LIMIT_RETRY_MS}ms (attempt ${rateLimitRetries}/${MAX_RATE_LIMIT_RETRIES})`);
+      logger.warn(`WOM group gains 429 for group ${womGroupId} metric "${metric}", retrying after ${RATE_LIMIT_RETRY_MS}ms (attempt ${rateLimitRetries}/${MAX_RATE_LIMIT_RETRIES})`);
       await sleep(RATE_LIMIT_RETRY_MS);
       continue;
     }
     if (!res.ok) {
       const body = await res.text().catch(() => '');
-      logger.warn(
-        `WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`
-      );
-      break;
+      throw new Error(`WOM group gains ${res.status} for group ${womGroupId} metric "${metric}": ${body}`);
     }
     const data = await res.json();
-    const page = Array.isArray(data) ? data : data.data ?? [];
-    allResults.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
+    return Array.isArray(data) ? data : data.data ?? [];
   }
-
-  return allResults;
 }
 
 /**
@@ -310,34 +306,19 @@ async function fetchGroupGains(womGroupId, metric, startDate, endDate) {
 async function fetchLeaguesGroupGains(leaguesWomGroupId, metric, startDate, endDate) {
   const effectiveEnd = new Date(Math.min(new Date(endDate).getTime(), Date.now())).toISOString();
 
-  const allResults = [];
-  const PAGE_SIZE = 50;
-  let offset = 0;
+  const params = new URLSearchParams({
+    metric,
+    startDate: new Date(startDate).toISOString(),
+    endDate: effectiveEnd,
+  });
 
-  while (true) {
-    const params = new URLSearchParams({
-      metric,
-      startDate: new Date(startDate).toISOString(),
-      endDate: effectiveEnd,
-      limit: PAGE_SIZE,
-      offset,
-    });
-    const res = await fetch(`${LEAGUES_WOM_BASE}/groups/${leaguesWomGroupId}/gained?${params}`);
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      logger.warn(
-        `Leagues WOM group gains ${res.status} for group ${leaguesWomGroupId} metric "${metric}": ${body}`
-      );
-      break;
-    }
-    const data = await res.json();
-    const page = Array.isArray(data) ? data : data.data ?? [];
-    allResults.push(...page);
-    if (page.length < PAGE_SIZE) break;
-    offset += PAGE_SIZE;
+  const res = await fetch(`${LEAGUES_WOM_BASE}/groups/${leaguesWomGroupId}/gained?${params}`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Leagues WOM group gains ${res.status} for group ${leaguesWomGroupId} metric "${metric}": ${body}`);
   }
-
-  return allResults;
+  const data = await res.json();
+  return Array.isArray(data) ? data : data.data ?? [];
 }
 
 // ---------------------------------------------------------------------------

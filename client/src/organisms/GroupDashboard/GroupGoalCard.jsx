@@ -134,7 +134,7 @@ function IndividualGoalCard({ goalConfig = {}, progress, accentColor, userRsn })
             const isMe = userRsn && c.rsn.toLowerCase() === userRsn.toLowerCase();
             return (
               <HStack
-                key={c.rsn}
+                key={i}
                 px={5}
                 py={2.5}
                 gap={3}
@@ -456,7 +456,7 @@ export default function GroupGoalCard({
             const isMe = userRsn && c.rsn.toLowerCase() === userRsn.toLowerCase();
             return (
               <HStack
-                key={c.rsn}
+                key={i}
                 px={5}
                 py={3}
                 gap={3}
