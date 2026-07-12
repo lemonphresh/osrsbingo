@@ -864,55 +864,16 @@ export function DropsFeed({ mockDrops, hideSync, cardBg = 'dark.cardBg' } = {}) 
       )}
 
       {!loading && !error && drops.length > 0 && (
-        <Flex gap={6} direction={['column', 'column', 'row']} align="flex-start">
-          {/* Summary */}
-          <Box flexShrink={0}>
-            <Flex gap={4} mb={4} wrap="wrap">
-              <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
-                <Text
-                  fontSize="xs"
-                  color="whiteAlpha.500"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={1}
-                >
-                  High Value
-                </Text>
-                <Text fontSize="xl" fontWeight="bold">
-                  {highValueDrops.length}
-                </Text>
-              </Box>
-              <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
-                <Text
-                  fontSize="xs"
-                  color="whiteAlpha.500"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={1}
-                >
-                  Pets
-                </Text>
-                <Text fontSize="xl" fontWeight="bold">
-                  {petDrops.length}
-                </Text>
-              </Box>
-            </Flex>
-          </Box>
-
-          {/* Drop lists */}
-          <Flex gap={6} flex="1" direction={['column', 'row']} align="flex-start" width="100%">
-            {highValueDrops.length > 0 && (
-              <Box flex="1" minW="200px">
-                <Text
-                  fontSize="xs"
-                  color="whiteAlpha.500"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={2}
-                >
-                  High Value Drops
-                </Text>
-                <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
+        <Flex gap={6} direction={['column', 'row']} align="flex-start" width="100%">
+          {highValueDrops.length > 0 && (
+              <Box flex="1" minW="0">
+                <Flex align="baseline" gap={2} mb={2}>
+                  <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide">
+                    High Value Drops
+                  </Text>
+                  <Text fontSize="xs" color="whiteAlpha.400" fontWeight="bold">{highValueDrops.length}</Text>
+                </Flex>
+                <VStack spacing={0} align="stretch" maxH={['none', '400px']} overflowY={['visible', 'auto']}>
                   {highValueDrops.map((d) => (
                     <Flex
                       key={d.id}
@@ -948,16 +909,13 @@ export function DropsFeed({ mockDrops, hideSync, cardBg = 'dark.cardBg' } = {}) 
 
             {petDrops.length > 0 && (
               <Box flex="1" minW="180px">
-                <Text
-                  fontSize="xs"
-                  color="whiteAlpha.500"
-                  textTransform="uppercase"
-                  letterSpacing="wide"
-                  mb={2}
-                >
-                  Pets
-                </Text>
-                <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
+                <Flex align="baseline" gap={2} mb={2}>
+                  <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide">
+                    Pets
+                  </Text>
+                  <Text fontSize="xs" color="whiteAlpha.400" fontWeight="bold">{petDrops.length}</Text>
+                </Flex>
+                <VStack spacing={0} align="stretch" maxH={['none', '400px']} overflowY={['visible', 'auto']}>
                   {petDrops.map((d) => (
                     <Flex
                       key={d.id}
@@ -988,7 +946,6 @@ export function DropsFeed({ mockDrops, hideSync, cardBg = 'dark.cardBg' } = {}) 
                 </VStack>
               </Box>
             )}
-          </Flex>
         </Flex>
       )}
     </Box>
