@@ -270,15 +270,20 @@ router.put('/settings', requireCalendarAuth, async (req, res) => {
 
 // --- trackscape drops ---
 router.get('/trackscape/drops', async (req, res) => {
-  const now = new Date();
-  const year = parseInt(req.query.year) || now.getFullYear();
-  const month = parseInt(req.query.month) || now.getMonth() + 1;
-  const monthKey = `${year}-${String(month).padStart(2, '0')}`;
-  const drops = await TrackScapeDrop.findAll({
-    where: { month: monthKey },
-    order: [['droppedAt', 'DESC']],
-  });
-  res.json(drops);
+  try {
+    const now = new Date();
+    const year = parseInt(req.query.year) || now.getFullYear();
+    const month = parseInt(req.query.month) || now.getMonth() + 1;
+    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+    const drops = await TrackScapeDrop.findAll({
+      where: { month: monthKey },
+      order: [['droppedAt', 'DESC']],
+    });
+    res.json(drops);
+  } catch (err) {
+    console.error('TrackScape drops error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch drops' });
+  }
 });
 
 router.post('/trackscape/sync', requireCalendarAuth, async (_req, res) => {

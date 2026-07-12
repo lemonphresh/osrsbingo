@@ -1,6 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Box, Flex, Text, VStack, HStack, Select, Spinner, Center, IconButton, useToast, NumberInput, NumberInputField, NumberInputStepper, NumberIncrementStepper, NumberDecrementStepper, Button } from '@chakra-ui/react';
-import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon } from '@chakra-ui/icons';
+import trackscapeImg from '../assets/trackscape.png';
+import {
+  Box,
+  Flex,
+  Text,
+  VStack,
+  HStack,
+  Select,
+  Spinner,
+  Center,
+  IconButton,
+  useToast,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  Button,
+  Image,
+  Collapse,
+} from '@chakra-ui/react';
+import { ChevronLeftIcon, ChevronRightIcon, RepeatIcon, ChevronDownIcon } from '@chakra-ui/icons';
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
@@ -9,7 +29,7 @@ const LEAGUES_GROUP_ID = 211;
 const REFRESH_COOLDOWN_MS = 60_000;
 const AUTO_REFRESH_MS = 60 * 60_000;
 
-const METRIC_OPTIONS = [
+const SKILL_OPTIONS = [
   { value: 'ehp', label: 'EHP (Efficient Hours Played)' },
   { value: 'ehb', label: 'EHB (Efficient Hours Bossed)' },
   { value: 'overall', label: 'Overall XP' },
@@ -35,6 +55,73 @@ const METRIC_OPTIONS = [
   { value: 'runecrafting', label: 'Runecrafting' },
   { value: 'hunter', label: 'Hunter' },
   { value: 'construction', label: 'Construction' },
+];
+
+const BOSS_OPTIONS = [
+  { value: 'abyssal_sire', label: 'Abyssal Sire' },
+  { value: 'alchemical_hydra', label: 'Alchemical Hydra' },
+  { value: 'amoxliatl', label: 'Amoxliatl' },
+  { value: 'araxxor', label: 'Araxxor' },
+  { value: 'artio', label: 'Artio' },
+  { value: 'barrows_chests', label: 'Barrows' },
+  { value: 'bryophyta', label: 'Bryophyta' },
+  { value: 'callisto', label: 'Callisto' },
+  { value: 'calvarion', label: "Calvar'ion" },
+  { value: 'cerberus', label: 'Cerberus' },
+  { value: 'chambers_of_xeric', label: 'Chambers of Xeric' },
+  { value: 'chambers_of_xeric_challenge_mode', label: 'CoX Challenge Mode' },
+  { value: 'chaos_elemental', label: 'Chaos Elemental' },
+  { value: 'chaos_fanatic', label: 'Chaos Fanatic' },
+  { value: 'commander_zilyana', label: 'Commander Zilyana' },
+  { value: 'corporeal_beast', label: 'Corporeal Beast' },
+  { value: 'crazy_archaeologist', label: 'Crazy Archaeologist' },
+  { value: 'dagannoth_prime', label: 'Dagannoth Prime' },
+  { value: 'dagannoth_rex', label: 'Dagannoth Rex' },
+  { value: 'dagannoth_supreme', label: 'Dagannoth Supreme' },
+  { value: 'deranged_archaeologist', label: 'Deranged Archaeologist' },
+  { value: 'duke_sucellus', label: 'Duke Sucellus' },
+  { value: 'general_graardor', label: 'General Graardor' },
+  { value: 'giant_mole', label: 'Giant Mole' },
+  { value: 'grotesque_guardians', label: 'Grotesque Guardians' },
+  { value: 'hespori', label: 'Hespori' },
+  { value: 'kalphite_queen', label: 'Kalphite Queen' },
+  { value: 'king_black_dragon', label: 'King Black Dragon' },
+  { value: 'kraken', label: 'Kraken' },
+  { value: 'kreearra', label: "Kree'arra" },
+  { value: 'kril_tsutsaroth', label: "K'ril Tsutsaroth" },
+  { value: 'maggot_king', label: 'The Maggot King' },
+  { value: 'mimic', label: 'The Mimic' },
+  { value: 'nex', label: 'Nex' },
+  { value: 'nightmare', label: 'The Nightmare' },
+  { value: 'obor', label: 'Obor' },
+  { value: 'phantom_muspah', label: 'Phantom Muspah' },
+  { value: 'phosanis_nightmare', label: "Phosani's Nightmare" },
+  { value: 'sarachnis', label: 'Sarachnis' },
+  { value: 'scorpia', label: 'Scorpia' },
+  { value: 'scurrius', label: 'Scurrius' },
+  { value: 'skotizo', label: 'Skotizo' },
+  { value: 'sol_heredit', label: 'Sol Heredit' },
+  { value: 'spindel', label: 'Spindel' },
+  { value: 'tempoross', label: 'Tempoross' },
+  { value: 'the_corrupted_gauntlet', label: 'The Corrupted Gauntlet' },
+  { value: 'the_gauntlet', label: 'The Gauntlet' },
+  { value: 'the_hueycoatl', label: 'The Hueycoatl' },
+  { value: 'the_leviathan', label: 'The Leviathan' },
+  { value: 'the_whisperer', label: 'The Whisperer' },
+  { value: 'theatre_of_blood', label: 'Theatre of Blood' },
+  { value: 'theatre_of_blood_hard_mode', label: 'Theatre of Blood HM' },
+  { value: 'thermonuclear_smoke_devil', label: 'Thermonuclear Smoke Devil' },
+  { value: 'tombs_of_amascut', label: 'Tombs of Amascut' },
+  { value: 'tombs_of_amascut_expert', label: 'ToA Expert Mode' },
+  { value: 'tzkal_zuk', label: 'TzKal-Zuk' },
+  { value: 'tztok_jad', label: 'TzTok-Jad' },
+  { value: 'vardorvis', label: 'Vardorvis' },
+  { value: 'venenatis', label: 'Venenatis' },
+  { value: 'vetion', label: "Vet'ion" },
+  { value: 'vorkath', label: 'Vorkath' },
+  { value: 'wintertodt', label: 'Wintertodt' },
+  { value: 'zalcano', label: 'Zalcano' },
+  { value: 'zulrah', label: 'Zulrah' },
 ];
 
 const PERIOD_OPTIONS = [
@@ -68,7 +155,11 @@ function daysAgo(dateStr) {
 
 function formatDate(dateStr) {
   if (!dateStr) return 'never';
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
 }
 
 function accountTag(type) {
@@ -80,9 +171,9 @@ function accountTag(type) {
 }
 
 // --- Stat Cards ---
-function StatCard({ label, value, sub }) {
+function StatCard({ label, value, sub, cardBg = 'dark.cardBg' }) {
   return (
-    <Box bg="dark.cardBg" borderRadius="12px" p={5} flex="1" minW="130px">
+    <Box bg={cardBg} borderRadius="12px" p={5} flex="1" minW="130px">
       <Text
         fontSize="xs"
         color="whiteAlpha.500"
@@ -105,7 +196,7 @@ function StatCard({ label, value, sub }) {
 }
 
 // --- Top Gainers ---
-function TopGainers() {
+function TopGainers({ cardBg = 'dark.cardBg' }) {
   const [metric, setMetric] = useState('ehp');
   const [period, setPeriod] = useState('week');
   const [data, setData] = useState([]);
@@ -121,7 +212,9 @@ function TopGainers() {
         return r.json();
       })
       .then((json) => {
-        const entries = Array.isArray(json) ? json.filter((e) => e.data?.gained > 0) : [];
+        const entries = Array.isArray(json)
+          ? json.filter((e) => (e.gained ?? e.data?.gained ?? 0) > 0)
+          : [];
         setData(entries);
       })
       .catch((e) => setError(e.message))
@@ -130,7 +223,7 @@ function TopGainers() {
 
   return (
     <Box
-      bg="dark.cardBg"
+      bg={cardBg}
       borderRadius="12px"
       p={6}
       width="100%"
@@ -163,7 +256,11 @@ function TopGainers() {
             borderColor="whiteAlpha.300"
           >
             {PERIOD_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} style={{ background: '#2D3748', color: '#E2E8F0' }}>
+              <option
+                key={o.value}
+                value={o.value}
+                style={{ background: '#2D3748', color: '#E2E8F0' }}
+              >
                 {o.label}
               </option>
             ))}
@@ -177,11 +274,28 @@ function TopGainers() {
             color="gray.100"
             borderColor="whiteAlpha.300"
           >
-            {METRIC_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value} style={{ background: '#2D3748', color: '#E2E8F0' }}>
-                {o.label}
-              </option>
-            ))}
+            <optgroup label="Skills / EHP" style={{ background: '#2D3748', color: '#A0AEC0' }}>
+              {SKILL_OPTIONS.map((o) => (
+                <option
+                  key={o.value}
+                  value={o.value}
+                  style={{ background: '#2D3748', color: '#E2E8F0' }}
+                >
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Bosses" style={{ background: '#2D3748', color: '#A0AEC0' }}>
+              {BOSS_OPTIONS.map((o) => (
+                <option
+                  key={o.value}
+                  value={o.value}
+                  style={{ background: '#2D3748', color: '#E2E8F0' }}
+                >
+                  {o.label}
+                </option>
+              ))}
+            </optgroup>
           </Select>
         </HStack>
       </Flex>
@@ -206,7 +320,7 @@ function TopGainers() {
           <VStack spacing={0} align="stretch" overflowY="auto" paddingRight={2} flex="1">
             {data.map((entry, idx) => {
               const player = entry.player;
-              const gained = formatGained(entry.data?.gained, metric);
+              const gained = formatGained(entry.gained ?? entry.data?.gained, metric);
               const tag = accountTag(player?.type);
               return (
                 <Flex key={player?.id ?? idx} align="center" py={2} gap={3}>
@@ -244,10 +358,10 @@ function TopGainers() {
 }
 
 // --- Achievements Feed ---
-function AchievementsFeed({ data, loading, error }) {
+function AchievementsFeed({ data, loading, error, cardBg = 'dark.cardBg' }) {
   return (
     <Box
-      bg="dark.cardBg"
+      bg={cardBg}
       borderRadius="12px"
       p={6}
       width="100%"
@@ -304,7 +418,15 @@ function AchievementsFeed({ data, loading, error }) {
 }
 
 // --- Inactivity Tracker ---
-function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldownRemaining }) {
+function InactivityTracker({
+  data,
+  loading,
+  error,
+  fetchedAt,
+  onRefresh,
+  cooldownRemaining,
+  cardBg = 'dark.cardBg',
+}) {
   const [thresholdDays, setThresholdDays] = useState(30);
   const [showDate, setShowDate] = useState(false);
 
@@ -322,7 +444,7 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
 
   return (
     <Box
-      bg="dark.cardBg"
+      bg={cardBg}
       maxH="600px"
       borderRadius="12px"
       p={6}
@@ -340,7 +462,9 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
             {loading ? '…' : `${inactive.length} inactive (${thresholdDays}+ days)`}
           </Text>
           {cooldownRemaining > 0 && (
-            <Text fontSize="xs" color="whiteAlpha.300">{cooldownRemaining}s</Text>
+            <Text fontSize="xs" color="whiteAlpha.300">
+              {cooldownRemaining}s
+            </Text>
           )}
           <IconButton
             icon={<RepeatIcon />}
@@ -356,7 +480,9 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
       </Flex>
       <Flex align="center" gap={3} mb={3} flexShrink={0} wrap="wrap">
         <HStack spacing={1}>
-          <Text fontSize="xs" color="whiteAlpha.500">Min days inactive:</Text>
+          <Text fontSize="xs" color="whiteAlpha.500">
+            Min days inactive:
+          </Text>
           <NumberInput
             size="xs"
             value={thresholdDays}
@@ -469,10 +595,20 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
                 >
                   <Flex flex="1" align="center" gap={2} overflow="hidden">
                     <a
-                      href={`https://wiseoldman.net/players/${encodeURIComponent(player?.username || player?.displayName)}`}
+                      href={`https://wiseoldman.net/players/${encodeURIComponent(
+                        player?.username || player?.displayName
+                      )}`}
                       target="_blank"
                       rel="noreferrer"
-                      style={{ fontSize: '14px', color: 'inherit', textDecoration: 'underline', textDecorationColor: 'rgba(255,255,255,0.2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      style={{
+                        fontSize: '14px',
+                        color: 'inherit',
+                        textDecoration: 'underline',
+                        textDecorationColor: 'rgba(255,255,255,0.2)',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
                     >
                       {player?.displayName || player?.username}
                     </a>
@@ -511,10 +647,10 @@ function InactivityTracker({ data, loading, error, fetchedAt, onRefresh, cooldow
 }
 
 // --- Name Changes ---
-function NameChanges({ data, loading, error }) {
+function NameChanges({ data, loading, error, cardBg = 'dark.cardBg' }) {
   return (
     <Box
-      bg="dark.cardBg"
+      bg={cardBg}
       borderRadius="12px"
       p={6}
       width="100%"
@@ -586,7 +722,18 @@ function formatValue(v) {
   return String(Math.round(n));
 }
 
-export function DropsFeed({ mockDrops } = {}) {
+// RuneLite cash stack color tiers
+function getDropValueColor(v) {
+  const n = Number(v);
+  if (n >= 100_000_000) return 'cyan.300'; // 100M+
+  if (n >= 50_000_000) return 'pink.300'; // 50M+
+  if (n >= 10_000_000) return 'purple.400'; // 10M+
+  if (n >= 5_000_000) return 'green.400'; // 10M+
+  if (n >= 1_000_000) return 'yellow.300'; // 1M+
+  return 'whiteAlpha.800';
+}
+
+export function DropsFeed({ mockDrops, hideSync, cardBg = 'dark.cardBg' } = {}) {
   const now = new Date();
   const toast = useToast();
   const [year, setYear] = useState(now.getFullYear());
@@ -610,7 +757,9 @@ export function DropsFeed({ mockDrops } = {}) {
       .finally(() => setLoading(false));
   }, [year, month, mockDrops]);
 
-  useEffect(() => { fetchDrops(); }, [fetchDrops]);
+  useEffect(() => {
+    fetchDrops();
+  }, [fetchDrops]);
 
   const handleSync = async () => {
     setSyncing(true);
@@ -621,7 +770,11 @@ export function DropsFeed({ mockDrops } = {}) {
       });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
-      toast({ status: 'success', title: `Synced — ${data.inserted} new drop${data.inserted !== 1 ? 's' : ''} added`, duration: 3000 });
+      toast({
+        status: 'success',
+        title: `Synced — ${data.inserted} new drop${data.inserted !== 1 ? 's' : ''} added`,
+        duration: 3000,
+      });
       fetchDrops();
     } catch (e) {
       toast({ status: 'error', title: e.message || 'Sync failed', duration: 4000 });
@@ -631,23 +784,32 @@ export function DropsFeed({ mockDrops } = {}) {
   };
 
   const prevMonth = () => {
-    if (month === 1) { setYear((y) => y - 1); setMonth(12); }
-    else setMonth((m) => m - 1);
+    if (month === 1) {
+      setYear((y) => y - 1);
+      setMonth(12);
+    } else setMonth((m) => m - 1);
   };
   const nextMonth = () => {
-    if (month === 12) { setYear((y) => y + 1); setMonth(1); }
-    else setMonth((m) => m + 1);
+    if (month === 12) {
+      setYear((y) => y + 1);
+      setMonth(1);
+    } else setMonth((m) => m + 1);
   };
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
   const highValueDrops = drops.filter((d) => d.type === 'drop');
   const petDrops = drops.filter((d) => d.type === 'pet');
-  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date(year, month - 1, 1).toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
 
   return (
-    <Box bg="dark.cardBg" borderRadius="12px" p={6} width="100%">
+    <Box bg={cardBg} borderRadius="12px" p={6} width="100%">
       <Flex align="center" justify="space-between" mb={4} wrap="wrap" gap={2}>
-        <Text fontWeight="bold" fontSize="lg">TrackScape Drops</Text>
+        <Text fontWeight="bold" fontSize="lg">
+          TrackScape Drops
+        </Text>
         <HStack spacing={2}>
           <IconButton
             aria-label="Previous month"
@@ -669,7 +831,7 @@ export function DropsFeed({ mockDrops } = {}) {
             onClick={nextMonth}
             isDisabled={isCurrentMonth}
           />
-          {!mockDrops && (
+          {!mockDrops && !hideSync && (
             <IconButton
               aria-label="Sync drops"
               icon={<RepeatIcon />}
@@ -684,11 +846,21 @@ export function DropsFeed({ mockDrops } = {}) {
         </HStack>
       </Flex>
 
-      {loading && <Center py={6}><Spinner size="sm" /></Center>}
-      {error && <Text color="dark.red.base" fontSize="sm">{error}</Text>}
+      {loading && (
+        <Center py={6}>
+          <Spinner size="sm" />
+        </Center>
+      )}
+      {error && (
+        <Text color="dark.red.base" fontSize="sm">
+          {error}
+        </Text>
+      )}
 
       {!loading && !error && drops.length === 0 && (
-        <Text fontSize="sm" color="whiteAlpha.500">No drops recorded for this month.</Text>
+        <Text fontSize="sm" color="whiteAlpha.500">
+          No drops recorded for this month.
+        </Text>
       )}
 
       {!loading && !error && drops.length > 0 && (
@@ -697,12 +869,32 @@ export function DropsFeed({ mockDrops } = {}) {
           <Box flexShrink={0}>
             <Flex gap={4} mb={4} wrap="wrap">
               <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
-                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={1}>High Value</Text>
-                <Text fontSize="xl" fontWeight="bold">{highValueDrops.length}</Text>
+                <Text
+                  fontSize="xs"
+                  color="whiteAlpha.500"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={1}
+                >
+                  High Value
+                </Text>
+                <Text fontSize="xl" fontWeight="bold">
+                  {highValueDrops.length}
+                </Text>
               </Box>
               <Box bg="whiteAlpha.50" borderRadius="lg" px={4} py={3} minW="110px">
-                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={1}>Pets</Text>
-                <Text fontSize="xl" fontWeight="bold">{petDrops.length}</Text>
+                <Text
+                  fontSize="xs"
+                  color="whiteAlpha.500"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={1}
+                >
+                  Pets
+                </Text>
+                <Text fontSize="xl" fontWeight="bold">
+                  {petDrops.length}
+                </Text>
               </Box>
             </Flex>
           </Box>
@@ -711,18 +903,40 @@ export function DropsFeed({ mockDrops } = {}) {
           <Flex gap={6} flex="1" direction={['column', 'row']} align="flex-start" width="100%">
             {highValueDrops.length > 0 && (
               <Box flex="1" minW="200px">
-                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+                <Text
+                  fontSize="xs"
+                  color="whiteAlpha.500"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={2}
+                >
                   High Value Drops
                 </Text>
                 <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
                   {highValueDrops.map((d) => (
-                    <Flex key={d.id} py={2} gap={2} borderBottom="1px solid" borderColor="whiteAlpha.50" align="center">
+                    <Flex
+                      key={d.id}
+                      py={2}
+                      gap={2}
+                      borderBottom="1px solid"
+                      borderColor="whiteAlpha.50"
+                      align="center"
+                    >
                       <Box flex="1" overflow="hidden">
-                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>{d.player}</Text>
-                        <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>{d.item}</Text>
+                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>
+                          {d.player}
+                        </Text>
+                        <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>
+                          {d.item}
+                        </Text>
                       </Box>
                       {d.value != null && (
-                        <Text fontSize="sm" color="dark.turquoise.base" fontWeight="bold" flexShrink={0}>
+                        <Text
+                          fontSize="sm"
+                          color={getDropValueColor(d.value)}
+                          fontWeight="bold"
+                          flexShrink={0}
+                        >
                           {formatValue(d.value)}
                         </Text>
                       )}
@@ -734,18 +948,40 @@ export function DropsFeed({ mockDrops } = {}) {
 
             {petDrops.length > 0 && (
               <Box flex="1" minW="180px">
-                <Text fontSize="xs" color="whiteAlpha.500" textTransform="uppercase" letterSpacing="wide" mb={2}>
+                <Text
+                  fontSize="xs"
+                  color="whiteAlpha.500"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  mb={2}
+                >
                   Pets
                 </Text>
                 <VStack spacing={0} align="stretch" maxH="400px" overflowY="auto">
                   {petDrops.map((d) => (
-                    <Flex key={d.id} py={2} gap={2} borderBottom="1px solid" borderColor="whiteAlpha.50" align="center">
+                    <Flex
+                      key={d.id}
+                      py={2}
+                      gap={2}
+                      borderBottom="1px solid"
+                      borderColor="whiteAlpha.50"
+                      align="center"
+                    >
                       <Box flex="1" overflow="hidden">
-                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>{d.player}</Text>
-                        {d.item && <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>{d.item}</Text>}
+                        <Text fontSize="sm" fontWeight="semibold" noOfLines={1}>
+                          {d.player}
+                        </Text>
+                        {d.item && (
+                          <Text fontSize="xs" color="whiteAlpha.500" noOfLines={1}>
+                            {d.item}
+                          </Text>
+                        )}
                       </Box>
                       <Text fontSize="xs" color="whiteAlpha.400" flexShrink={0}>
-                        {new Date(d.droppedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {new Date(d.droppedAt).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}
                       </Text>
                     </Flex>
                   ))}
@@ -759,8 +995,80 @@ export function DropsFeed({ mockDrops } = {}) {
   );
 }
 
+// --- TrackScape Recruitment Banner ---
+function TrackScapeBanner({ cardBg = 'dark.cardBg' }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Box bg={cardBg} borderRadius="12px" overflow="hidden" position="relative">
+      <Flex
+        as="button"
+        onClick={() => setOpen((v) => !v)}
+        align="center"
+        justify="space-between"
+        w="100%"
+        px={6}
+        py={4}
+        cursor="pointer"
+        _hover={{ bg: 'whiteAlpha.50' }}
+        transition="background 0.15s"
+        textAlign="left"
+      >
+        <Text fontWeight="semibold" fontSize="sm" color="whiteAlpha.800">
+          Want to help with TrackScape coverage?
+        </Text>
+        <ChevronDownIcon
+          color="whiteAlpha.500"
+          boxSize={4}
+          transform={open ? 'rotate(180deg)' : 'rotate(0deg)'}
+          transition="transform 0.2s"
+        />
+      </Flex>
+      <Collapse in={open} animateOpacity>
+        <Flex
+          direction={['column', 'column', 'row']}
+          align={['flex-start', 'flex-start', 'center']}
+          gap={6}
+          px={6}
+          pb={6}
+        >
+          <Flex direction="column" gap={3} flex="1">
+            <Text fontSize="sm" color="whiteAlpha.700" lineHeight="tall">
+              TrackScape automatically captures clan highlights: valuable drops, pets, and coffer
+              deposits, straight from clan chat. However, it only records when a clan member with
+              the plugin is actively logged in! The more people running it, the better our coverage.
+            </Text>
+            <Box borderLeft="3px solid" borderColor="dark.turquoise.base" pl={3}>
+              <Text fontSize="xs" color="whiteAlpha.500" lineHeight="tall">
+                The plugin also records clan chat messages, which are stored privately in a staff
+                channel and used solely for moderation purposes.
+              </Text>
+            </Box>
+            <Text fontSize="sm" color="whiteAlpha.600">
+              Want to help? Install the{' '}
+              <Text as="span" color="white" fontWeight="semibold">
+                TrackScape Connector
+              </Text>{' '}
+              plugin, details in the image:
+            </Text>
+          </Flex>{' '}
+          <Image
+            src={trackscapeImg}
+            alt="TrackScape plugin"
+            h={['150px', '240px']}
+            w={['150px', '240px']}
+            objectFit="contain"
+            flexShrink={0}
+            mx="auto"
+            borderRadius="8px"
+          />
+        </Flex>
+      </Collapse>
+    </Box>
+  );
+}
+
 // --- Main ClanStats ---
-export default function ClanStats() {
+export default function ClanStats({ isPublic = false, cardBg = 'dark.cardBg', noPadding = false }) {
   const [statsData, setStatsData] = useState(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
@@ -789,7 +1097,9 @@ export default function ClanStats() {
     Promise.all([
       fetch(`${WOM_BASE}/groups/${GROUP_ID}/statistics`).then((r) => r.json()),
       fetch(`${WOM_BASE}/groups/${GROUP_ID}?_=${t}`, nc).then((r) => r.json()),
-      fetch(`${LEAGUES_WOM_BASE}/groups/${LEAGUES_GROUP_ID}?_=${t}`, nc).then((r) => r.json()).catch(() => null),
+      fetch(`${LEAGUES_WOM_BASE}/groups/${LEAGUES_GROUP_ID}?_=${t}`, nc)
+        .then((r) => r.json())
+        .catch(() => null),
     ])
       .then(([stats, group, leaguesGroup]) => {
         setStatsData({ stats, memberCount: group.memberCount });
@@ -873,13 +1183,18 @@ export default function ClanStats() {
       direction="column"
       align="center"
       width="100%"
-      paddingX={['16px', '24px', '64px']}
-      paddingY={['32px', '48px']}
+      paddingX={noPadding ? 0 : ['16px', '24px', '64px']}
+      paddingY={noPadding ? 0 : ['32px', '48px']}
       gap={6}
     >
       {/* Headline stat cards */}
       <Flex gap={4} width="100%" maxW="1200px" wrap="wrap">
-        <StatCard label="Members" value={statsLoading ? '…' : memberCount} sub="in clan" />
+        <StatCard
+          label="Members"
+          value={statsLoading ? '…' : memberCount}
+          sub="in clan"
+          cardBg={cardBg}
+        />
         <StatCard
           label="Maxed Combat"
           value={statsLoading ? '…' : stats?.maxedCombatCount}
@@ -888,6 +1203,7 @@ export default function ClanStats() {
               ? `${Math.round((stats.maxedCombatCount / memberCount) * 100)}% of clan`
               : null
           }
+          cardBg={cardBg}
         />
         <StatCard
           label="Maxed Total"
@@ -897,11 +1213,13 @@ export default function ClanStats() {
               ? `${Math.round((stats.maxedTotalCount / memberCount) * 100)}% of clan`
               : null
           }
+          cardBg={cardBg}
         />
         <StatCard
           label="200M Clubs"
           value={statsLoading ? '…' : stats?.maxed200msCount}
           sub="skills at 200M XP"
+          cardBg={cardBg}
         />
       </Flex>
       {statsError && (
@@ -919,33 +1237,55 @@ export default function ClanStats() {
         direction={['column', 'column', 'row']}
       >
         <Box flex="1" width="100%">
-          <TopGainers />
+          <TopGainers cardBg={cardBg} />
         </Box>
         <Box flex="1" width="100%">
-          <AchievementsFeed data={achievements} loading={achLoading} error={achError} />
+          <AchievementsFeed
+            data={achievements}
+            loading={achLoading}
+            error={achError}
+            cardBg={cardBg}
+          />
         </Box>
       </Flex>
 
-      {/* Inactivity + Name Changes side by side */}
-      <Flex
-        gap={6}
-        width="100%"
-        maxW="1200px"
-        align="flex-start"
-        direction={['column', 'column', 'row']}
-      >
-        <Box flex="1" width="100%">
-          <InactivityTracker data={members} loading={membersLoading} error={membersError} fetchedAt={membersFetchedAt} onRefresh={handleRefresh} cooldownRemaining={cooldownRemaining} />
-        </Box>
-        <Box flex="1" width="100%">
-          <NameChanges data={nameChanges} loading={ncLoading} error={ncError} />
-        </Box>
-      </Flex>
+      {/* Inactivity + Name Changes side by side (inactivity hidden on public page) */}
+      {!isPublic && (
+        <Flex
+          gap={6}
+          width="100%"
+          maxW="1200px"
+          align="flex-start"
+          direction={['column', 'column', 'row']}
+        >
+          <Box flex="1" width="100%">
+            <InactivityTracker
+              data={members}
+              loading={membersLoading}
+              error={membersError}
+              fetchedAt={membersFetchedAt}
+              onRefresh={handleRefresh}
+              cooldownRemaining={cooldownRemaining}
+              cardBg={cardBg}
+            />
+          </Box>
+
+          <Box flex="1" width="100%">
+            <NameChanges data={nameChanges} loading={ncLoading} error={ncError} cardBg={cardBg} />
+          </Box>
+        </Flex>
+      )}
 
       {/* TrackScape drops */}
       <Box width="100%" maxW="1200px">
-        <DropsFeed />
+        <DropsFeed hideSync={isPublic} cardBg={cardBg} />
       </Box>
+
+      {isPublic && (
+        <Box width="100%" maxW="1200px">
+          <TrackScapeBanner cardBg={cardBg} />
+        </Box>
+      )}
     </Flex>
   );
 }

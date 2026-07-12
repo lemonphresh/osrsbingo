@@ -427,6 +427,21 @@ export const GET_CALENDAR_EVENTS = gql`
   }
 `;
 
+export const GET_PUBLIC_CALENDAR_EVENTS = gql`
+  query GetPublicCalendarEvents {
+    getPublicCalendarEvents {
+      id
+      title
+      description
+      threadUrl
+      start
+      end
+      allDay
+      eventType
+    }
+  }
+`;
+
 export const GET_SAVED_CALENDAR_EVENTS = gql`
   query GetSavedCalendarEvents($offset: Int, $limit: Int) {
     savedCalendarEvents(offset: $offset, limit: $limit) {

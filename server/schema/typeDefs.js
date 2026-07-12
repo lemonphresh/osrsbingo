@@ -759,6 +759,7 @@ const typeDefs = gql`
     savedCalendarEvents(offset: Int = 0, limit: Int = 500): CalendarEventsPage!
     calendarVersion: CalendarVersion!
     savedCalendarVersion: CalendarVersion!
+    getPublicCalendarEvents(limit: Int = 20): [CalendarEvent!]!
 
     # --- Gielinor Rush ---
     getTreasureEvent(eventId: ID!): TreasureEvent

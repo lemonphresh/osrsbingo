@@ -795,7 +795,13 @@ const GroupDashboardResolvers = {
       const event = await getEventOrThrow(id);
       if (!isDashboardAdmin(event.dashboard, user.id)) throw new ForbiddenError('Not authorized');
 
-      const existingMessageId = event.notificationsSent?.__event_started_message_id ?? null;
+      // Preserve all __ bookkeeping flags (event_started, event_ended, message_id) so that
+      // editing description/name/goals doesn't cause the start notification to repost.
+      // Only strip per-goal milestone keys, which may be stale after a goals/date change.
+      const prevNotifs = event.notificationsSent || {};
+      const resetNotifs = Object.fromEntries(
+        Object.entries(prevNotifs).filter(([k]) => k.startsWith('__'))
+      );
 
       await event.update({
         eventName: input.eventName,
@@ -803,12 +809,9 @@ const GroupDashboardResolvers = {
         startDate: input.startDate,
         endDate: input.endDate,
         goals: input.goals ?? event.goals,
-        // Reset cached data + notifications when event config changes, but preserve the message ID
         cachedData: null,
         lastSyncedAt: null,
-        notificationsSent: existingMessageId
-          ? { __event_started_message_id: existingMessageId }
-          : {},
+        notificationsSent: resetNotifs,
       });
 
       // If the event started notification was already sent, edit it in place

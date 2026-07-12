@@ -50,6 +50,7 @@ const RainbowBingoBoardPage = lazy(() => import('./pages/RainbowBingoBoardPage')
 const RainbowTeamBoardPage = lazy(() => import('./pages/RainbowTeamBoardPage'));
 const RainbowRefsPage = lazy(() => import('./pages/RainbowRefsPage'));
 const RainbowAdminPage = lazy(() => import('./pages/RainbowAdminPage'));
+const EternalGemsPage = lazy(() => import('./pages/EternalGemsPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -303,6 +304,11 @@ const routes = [
       {
         path: '/eg-rainbow/admin',
         element: withSuspense(RainbowAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/eternal-gems',
+        element: withSuspense(EternalGemsPage),
         errorElement: <ErrorPage />,
       },
       {

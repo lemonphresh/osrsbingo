@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { Op } = require('sequelize');
 const { CalendarEvent } = require('../../db/models');
 const { AuthenticationError, UserInputError } = require('apollo-server-errors');
 
@@ -75,6 +76,19 @@ const calendarResolvers = {
         CalendarEvent.count({ where: { status: 'SAVED' } }),
       ]);
       return { lastUpdated: lastUpdated || new Date(0), totalCount };
+    },
+
+    async getPublicCalendarEvents(_, { limit = 200 }) {
+      const cutoff = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000); // 2 weeks ago
+      return CalendarEvent.findAll({
+        where: {
+          status: 'ACTIVE',
+          publishStatus: 'OFFICIAL',
+          end: { [Op.gte]: cutoff },
+        },
+        order: [['start', 'ASC']],
+        limit,
+      });
     },
   },
 
