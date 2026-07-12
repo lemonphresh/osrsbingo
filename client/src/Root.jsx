@@ -1,12 +1,23 @@
 import React from 'react';
 import AuthProvider, { useAuth } from './providers/AuthProvider';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation, Link } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
-import { Alert, AlertIcon, AlertTitle, Button, Flex, HStack, Spinner } from '@chakra-ui/react';
+import {
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  Button,
+  Flex,
+  HStack,
+  Spinner,
+  Text,
+  Image,
+} from '@chakra-ui/react';
 import theme from './theme';
 import ScrollToTop from './atoms/ScrollToTop';
 import { useAppVersion } from './hooks/useAppVersion';
+import GemLogo from './assets/gemlogo-small.png';
 
 const AuthConsumer = () => {
   const { isCheckingAuth } = useAuth();
@@ -29,8 +40,33 @@ const AuthConsumer = () => {
   return <Outlet />;
 };
 
+const EGMiniNav = () => (
+  <Flex
+    as={Link}
+    to="/"
+    align="center"
+    gap={2}
+    px={4}
+    py={3}
+    borderBottom="1px solid"
+    borderColor="whiteAlpha.100"
+    _hover={{ textDecoration: 'none', bg: 'whiteAlpha.50' }}
+    transition="background 0.15s"
+  >
+    <Image src={GemLogo} h="24px" w="24px" />
+    <Text fontSize="xs" color="whiteAlpha.500">
+      Hosted with ♡ on{' '}
+      <Text as="span" color="whiteAlpha.700" fontWeight="semibold">
+        OSRS Bingo Hub
+      </Text>
+    </Text>
+  </Flex>
+);
+
 const Root = () => {
   const updateAvailable = useAppVersion();
+  const location = useLocation();
+  const isEGPage = location.pathname === '/eternal-gems';
 
   return (
     <AuthProvider>
@@ -42,7 +78,7 @@ const Root = () => {
         minHeight="100vh"
       >
         <ScrollToTop />
-        <NavBar />
+        {isEGPage ? <EGMiniNav /> : <NavBar />}
         {updateAvailable && (
           <Alert status="info" colorScheme="pink" textColor={theme.colors.light.textColor}>
             <AlertIcon />
@@ -57,7 +93,7 @@ const Root = () => {
         <Flex flex="1" flexDirection="column">
           <AuthConsumer />
         </Flex>
-        <Footer />
+        {!isEGPage && <Footer />}
       </Flex>
     </AuthProvider>
   );
