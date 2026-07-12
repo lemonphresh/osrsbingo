@@ -168,6 +168,16 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
 
     syncInProgress.add(event.id);
     try {
+      // Preserve the existing cache as a fallback before potentially wiping it.
+      // On a forced refresh we null the DB record so Sequelize always detects a
+      // real change when writing back, but we still want the old data available
+      // if WOM fails mid-fetch.
+      const fallbackData = womData;
+      if (forceRefresh) {
+        await event.update({ cachedData: null, lastSyncedAt: null });
+        womData = null;
+      }
+
       const goals = event.goals ?? [];
       const metrics = getRequiredMetrics(goals);
 
@@ -208,15 +218,15 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
               `Failed to fetch WOM gains for event ${event.id} metric "${metric}"`
             );
             anyFailed = true;
-            if (womData?.[metric]) newData[metric] = womData[metric];
+            if (fallbackData?.[metric]?.length) newData[metric] = fallbackData[metric];
           }
         })
       );
 
       womData = newData;
-      if (!anyFailed || !event.cachedData) {
-        await event.update({ cachedData: womData, lastSyncedAt: new Date() });
-      }
+      // newData already falls back to old cached values for any failed metrics,
+      // so always save — partial successes shouldn't block fresh data from being stored.
+      await event.update({ cachedData: womData, lastSyncedAt: new Date() });
 
       // Run milestone checks only on a fresh WOM fetch — cached data can't have new crossings.
       const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
@@ -902,6 +912,17 @@ const GroupDashboardResolvers = {
       if (!user) throw new AuthenticationError('Login required');
       const event = await getEventOrThrow(eventId);
       if (!isDashboardAdmin(event.dashboard, user.id)) throw new ForbiddenError('Not authorized');
+
+      // Ended events are frozen — no point hitting WOM. If there's no finalSnapshot yet,
+      // write one from whatever cached data we have rather than re-fetching.
+      if (new Date(event.endDate) < new Date()) {
+        if (!event.finalSnapshot && event.cachedData) {
+          const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+          const snapshot = calculateGoalProgress(event.goals || [], event.cachedData, roleMap);
+          await event.update({ finalSnapshot: snapshot });
+        }
+        return event.finalSnapshot ? event : event.reload();
+      }
 
       await fetchAndCacheProgress(event, true);
       return event.reload();

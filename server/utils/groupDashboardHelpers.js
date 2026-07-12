@@ -51,7 +51,7 @@ function calculateGoalProgress(goals, cachedData, roleMap = {}) {
         const contributors = members
           .map((entry) => ({
             rsn: entry.player?.displayName ?? 'Unknown',
-            value: entry.data?.gained ?? 0,
+            value: entry.gained ?? entry.data?.gained ?? 0,
           }))
           .filter((c) => c.value >= 1)
           .sort((a, b) => b.value - a.value)
@@ -84,7 +84,7 @@ function calculateGoalProgress(goals, cachedData, roleMap = {}) {
       const contributions = members
         .map((entry) => ({
           rsn: entry.player?.displayName ?? 'Unknown',
-          value: entry.data?.gained ?? 0,
+          value: entry.gained ?? entry.data?.gained ?? 0,
         }))
         .filter((c) => c.value > 0)
         .sort((a, b) => b.value - a.value);
