@@ -1,5 +1,5 @@
-const { ApolloError } = require('apollo-server-express');
-const { BingoTile } = require('../../db/models');
+const { ApolloError, AuthenticationError } = require('apollo-server-express');
+const { BingoTile, BingoBoard, User } = require('../../db/models');
 const sequelize = require('../../db/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -42,18 +42,30 @@ module.exports = {
     },
   },
   Mutation: {
-    editBingoTile: async (_, { id, input }) => {
+    editBingoTile: async (_, { id, input }, context) => {
       try {
         const tile = await BingoTile.findByPk(id);
-        tile.set({
-          ...input,
+        if (!tile) {
+          throw new ApolloError('Tile not found', 'NOT_FOUND');
+        }
+
+        const board = await BingoBoard.findByPk(tile.board, {
+          include: [{ model: User, as: 'editors' }],
         });
+        const isEditor = board?.editors?.some((editor) => editor.id === context.user?.id);
+        const isAdmin = context.user?.admin;
+
+        if (!isAdmin && !isEditor) {
+          throw new AuthenticationError('Not authorized to edit this tile');
+        }
+
+        tile.set({ ...input });
         await tile.save();
         const updatedTile = tile.reload();
         return updatedTile;
       } catch (error) {
         logger.error('Error editing BingoTile:', error);
-        throw new ApolloError('Failed to update tile');
+        throw error;
       }
     },
   },

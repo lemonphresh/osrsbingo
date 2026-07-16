@@ -1,5 +1,5 @@
 // server/graphql/resolvers/BingoBoard.js
-const { ApolloError } = require('apollo-server-express');
+const { ApolloError, AuthenticationError } = require('apollo-server-express');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -127,6 +127,17 @@ module.exports = {
 
         if (!board) {
           throw new ApolloError('BingoBoard not found', 'NOT_FOUND');
+        }
+
+        const editors = context.loaders
+          ? await context.loaders.editorsByBoardId.load(boardId.toString())
+          : (await BingoBoard.findByPk(boardId, { include: [{ model: User, as: 'editors' }] }))
+              ?.editors || [];
+        const isEditor = editors.some((editor) => editor.id === context.user?.id);
+        const isAdmin = context.user?.admin;
+
+        if (!isAdmin && !isEditor) {
+          throw new AuthenticationError('Not authorized to modify this board');
         }
 
         const size = newType === 'FIVE' ? 5 : 7;
@@ -258,10 +269,21 @@ module.exports = {
     },
 
     updateBoardEditors: async (_, { boardId, editorIds }, context) => {
+      if (!context.user) {
+        throw new AuthenticationError('Not authenticated');
+      }
+
       const board = await BingoBoard.findByPk(boardId);
 
       if (!board) {
         throw new Error('Board not found');
+      }
+
+      const isOwner = context.user.id === board.userId;
+      const isAdmin = context.user.admin;
+
+      if (!isOwner && !isAdmin) {
+        throw new AuthenticationError('Not authorized to manage editors for this board');
       }
 
       const boardOwnerId = board.userId;
@@ -343,12 +365,27 @@ module.exports = {
 
   Query: {
     // ✅ SIMPLIFIED: No includes - field resolvers handle nested data
-    getBingoBoard: async (_, { id }) => {
+    getBingoBoard: async (_, { id }, context) => {
       try {
         const bingoBoard = await BingoBoard.findByPk(id);
 
         if (!bingoBoard) {
           return null;
+        }
+
+        if (!bingoBoard.isPublic) {
+          const isAdmin = context.user?.admin;
+          const isOwner = context.user?.id === bingoBoard.userId;
+
+          const editors = context.loaders
+            ? await context.loaders.editorsByBoardId.load(id.toString())
+            : (await BingoBoard.findByPk(id, { include: [{ model: User, as: 'editors' }] }))
+                ?.editors || [];
+          const isEditor = editors.some((editor) => editor.id === context.user?.id);
+
+          if (!isAdmin && !isOwner && !isEditor) {
+            throw new AuthenticationError('Not authorized to view this board');
+          }
         }
 
         return bingoBoard;
