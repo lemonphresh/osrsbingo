@@ -136,8 +136,19 @@ module.exports = {
       }
     },
 
-    updateUser: async (_, { id, input }) => {
+    updateUser: async (_, { id, input }, context) => {
       try {
+        if (!context.user) {
+          throw new AuthenticationError('Not authenticated');
+        }
+
+        const isOwnAccount = context.user.id === parseInt(id);
+        const isAdmin = context.user.admin;
+
+        if (!isOwnAccount && !isAdmin) {
+          throw new AuthenticationError('Not authorized to update this account');
+        }
+
         // ✅ SIMPLIFIED: Just fetch user, field resolvers handle editorBoards
         const user = await User.findByPk(id);
 
@@ -145,7 +156,10 @@ module.exports = {
           throw new ApolloError('User not found', 'NOT_FOUND');
         }
 
-        const allowedFields = ['displayName', 'admin', 'username', 'email', 'rsn', 'team'];
+        // Only admins can set the admin field
+        const allowedFields = isAdmin
+          ? ['displayName', 'admin', 'username', 'email', 'rsn', 'team']
+          : ['displayName', 'username', 'email', 'rsn', 'team'];
         const validFields = Object.keys(input).reduce((acc, key) => {
           if (allowedFields.includes(key)) {
             acc[key] = input[key];
