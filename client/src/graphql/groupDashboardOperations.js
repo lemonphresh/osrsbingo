@@ -16,6 +16,7 @@ const GROUP_GOAL_EVENT_FIELDS = gql`
     lastSyncedAt
     isVisible
     notificationsSent
+    womStartBufferHours
   }
 `;
 
@@ -321,5 +322,14 @@ export const DELETE_GOAL_TEMPLATE = gql`
 export const DELETE_GROUP_DASHBOARD = gql`
   mutation DeleteGroupDashboard($id: ID!) {
     deleteGroupDashboard(id: $id)
+  }
+`;
+
+export const SET_EVENT_WOM_START_BUFFER = gql`
+  ${GROUP_GOAL_EVENT_FIELDS}
+  mutation SetEventWomStartBuffer($eventId: ID!, $hours: Int!) {
+    setEventWomStartBuffer(eventId: $eventId, hours: $hours) {
+      ...GroupGoalEventFields
+    }
   }
 `;

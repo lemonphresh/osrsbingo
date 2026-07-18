@@ -28,6 +28,7 @@ module.exports = (sequelize) => {
       lastSyncedAt: { type: DataTypes.DATE, allowNull: true },
       notificationsSent: { type: DataTypes.JSONB, allowNull: false, defaultValue: {} },
       finalSnapshot: { type: DataTypes.JSONB, allowNull: true },
+      womStartBufferHours: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     },
     {
       sequelize,

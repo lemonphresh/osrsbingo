@@ -1042,6 +1042,7 @@ const typeDefs = gql`
     updateGroupDiscordNotifications(id: ID!, notifications: JSON!): GroupDashboard!
     sendTestGroupDiscordMessage(id: ID!): Boolean!
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
+    setEventWomStartBuffer(eventId: ID!, hours: Int!): GroupGoalEvent!
     addGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     removeGroupDashboardAdmin(id: ID!, userId: ID!): GroupDashboard!
     transferGroupDashboard(id: ID!, newOwnerId: ID!): GroupDashboard!
@@ -1394,6 +1395,7 @@ const typeDefs = gql`
     lastSyncedAt: DateTime
     isVisible: Boolean!
     notificationsSent: JSON
+    womStartBufferHours: Int!
   }
 
   type GroupGoalProgress {
