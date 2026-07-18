@@ -58,6 +58,7 @@ import {
   DELETE_GOAL_TEMPLATE,
   SET_LEAGUES_WOM_GROUP_ID,
   DELETE_GROUP_DASHBOARD,
+  SET_EVENT_WOM_START_BUFFER,
 } from '../graphql/groupDashboardOperations';
 import GroupGoalEventEditor from '../organisms/GroupDashboard/GroupGoalEventEditor';
 import GroupDiscordSetup from '../organisms/GroupDashboard/GroupDiscordSetup';
@@ -598,7 +599,14 @@ function LeaguesGroupPanel({ dashboard, onRefetch }) {
       </Text>
       <Text fontSize="sm" color="gray.400" mb={4} lineHeight="1.6">
         Link a{' '}
-        <Text as="a" href="https://league.wiseoldman.net" target="_blank" rel="noopener noreferrer" color="purple.300" textDecoration="underline">
+        <Text
+          as="a"
+          href="https://league.wiseoldman.net"
+          target="_blank"
+          rel="noopener noreferrer"
+          color="purple.300"
+          textDecoration="underline"
+        >
           league.wiseoldman.net
         </Text>{' '}
         group to show its competitions on this dashboard's competitions page.
@@ -619,7 +627,9 @@ function LeaguesGroupPanel({ dashboard, onRefetch }) {
           isLoading={saving}
           isDisabled={!isDirty}
           onClick={() =>
-            setLeaguesWomGroupId({ variables: { id: dashboard.id, leaguesWomGroupId: leaguesId || null } })
+            setLeaguesWomGroupId({
+              variables: { id: dashboard.id, leaguesWomGroupId: leaguesId || null },
+            })
           }
           flexShrink={0}
         >
@@ -716,12 +726,16 @@ function EventRow({
   onViewLeaderboard,
   onSaveTemplate,
   archived,
+  isSiteAdmin,
+  onSetWomBuffer,
+  womBufferLoading,
 }) {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [rerunning, setRerunning] = useState(false);
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [templateName, setTemplateName] = useState(event.eventName);
+  const [bufferHours, setBufferHours] = useState(String(event.womStartBufferHours ?? 0));
   const { utc } = useTimezone();
   const now = new Date();
   const isActive = now >= new Date(event.startDate) && now <= new Date(event.endDate);
@@ -1091,6 +1105,58 @@ function EventRow({
           />
         </Box>
       </Collapse>
+
+      {/* Site-admin WOM start buffer */}
+      {isSiteAdmin && (
+        <Box
+          px={5}
+          py={3}
+          borderTop="1px solid"
+          borderColor="yellow.900"
+          bg="yellow.900"
+          bgOpacity={0.15}
+        >
+          <HStack spacing={3} align="center">
+            <Text fontSize="xs" color="yellow.500" fontWeight="semibold" flexShrink={0}>
+              WOM start buffer (for delayed snapshots)
+            </Text>
+            <Input
+              size="xs"
+              type="number"
+              min={0}
+              max={48}
+              value={bufferHours}
+              onChange={(e) => setBufferHours(e.target.value)}
+              w="60px"
+              bg="gray.800"
+              borderColor="yellow.700"
+              color="yellow.200"
+              _hover={{ borderColor: 'yellow.500' }}
+              textAlign="center"
+            />
+            <Text fontSize="xs" color="yellow.600">
+              hrs
+            </Text>
+            <Button
+              size="xs"
+              colorScheme="yellow"
+              variant="outline"
+              isLoading={womBufferLoading}
+              isDisabled={
+                parseInt(bufferHours, 10) === (event.womStartBufferHours ?? 0) || bufferHours === ''
+              }
+              onClick={() => onSetWomBuffer(parseInt(bufferHours, 10))}
+            >
+              Save & refetch
+            </Button>
+            {(event.womStartBufferHours ?? 0) > 0 && (
+              <Text fontSize="xs" color="yellow.600">
+                currently {event.womStartBufferHours}h lookback
+              </Text>
+            )}
+          </HStack>
+        </Box>
+      )}
     </Box>
   );
 }
@@ -1153,7 +1219,9 @@ function SettingsPanel({ dashboard, isOwner, onRefetch }) {
             isLoading={renaming}
             isDisabled={!nameIsDirty || !groupName.trim()}
             onClick={() =>
-              updateDashboard({ variables: { id: dashboard.id, input: { groupName: groupName.trim() } } })
+              updateDashboard({
+                variables: { id: dashboard.id, input: { groupName: groupName.trim() } },
+              })
             }
             flexShrink={0}
           >
@@ -1164,13 +1232,7 @@ function SettingsPanel({ dashboard, isOwner, onRefetch }) {
 
       {/* Delete — owner only */}
       {isOwner && (
-        <Box
-          bg="gray.800"
-          borderRadius="xl"
-          p={5}
-          border="1px solid"
-          borderColor="red.900"
-        >
+        <Box bg="gray.800" borderRadius="xl" p={5} border="1px solid" borderColor="red.900">
           <Text fontSize="sm" fontWeight="semibold" color="red.300" mb={1}>
             Delete Group
           </Text>
@@ -1191,8 +1253,12 @@ function SettingsPanel({ dashboard, isOwner, onRefetch }) {
                   Are you sure?
                 </Text>
                 <Text fontSize="xs" color="gray.300">
-                  This will delete <Text as="span" fontWeight="bold">{dashboard.groupName}</Text> and all
-                  associated events and activity. Followers will lose access. There is no going back.
+                  This will delete{' '}
+                  <Text as="span" fontWeight="bold">
+                    {dashboard.groupName}
+                  </Text>{' '}
+                  and all associated events and activity. Followers will lose access. There is no
+                  going back.
                 </Text>
               </Box>
               <HStack spacing={2}>
@@ -1249,7 +1315,10 @@ function SettingsPanel({ dashboard, isOwner, onRefetch }) {
                   variant="ghost"
                   colorScheme="gray"
                   color="gray.400"
-                  onClick={() => { setDeleteStep(0); setDeleteConfirmName(''); }}
+                  onClick={() => {
+                    setDeleteStep(0);
+                    setDeleteConfirmName('');
+                  }}
                 >
                   Cancel
                 </Button>
@@ -1306,6 +1375,21 @@ export default function GroupDashboardManagePage() {
     },
   });
 
+  const [setWomBuffer, { loading: settingBuffer }] = useMutation(SET_EVENT_WOM_START_BUFFER, {
+    onCompleted: () => {
+      refetch();
+      toast({
+        title: 'WOM start buffer updated',
+        status: 'success',
+        duration: 2000,
+        isClosable: true,
+      });
+    },
+    onError: (err) => {
+      toast({ title: err.message, status: 'error', duration: 4000, isClosable: true });
+    },
+  });
+
   const [saveTemplate] = useMutation(SAVE_GOAL_TEMPLATE, {
     onCompleted: () => {
       refetch();
@@ -1348,6 +1432,8 @@ export default function GroupDashboardManagePage() {
     user &&
     (String(dashboard.creatorId) === String(user.id) ||
       (dashboard.adminIds ?? []).map(String).includes(String(user.id)));
+
+  const isSiteAdmin = !!user?.admin;
 
   if (!user || !isAdmin) {
     return (
@@ -1554,6 +1640,11 @@ export default function GroupDashboardManagePage() {
                             variables: { id: dashboard.id, name, goals: e.goals ?? [] },
                           })
                         }
+                        isSiteAdmin={isSiteAdmin}
+                        onSetWomBuffer={(hours) =>
+                          setWomBuffer({ variables: { eventId: e.id, hours } })
+                        }
+                        womBufferLoading={settingBuffer}
                       />
                     ))}
 
@@ -1589,6 +1680,11 @@ export default function GroupDashboardManagePage() {
                                     variables: { id: dashboard.id, name, goals: e.goals ?? [] },
                                   })
                                 }
+                                isSiteAdmin={isSiteAdmin}
+                                onSetWomBuffer={(hours) =>
+                                  setWomBuffer({ variables: { eventId: e.id, hours } })
+                                }
+                                womBufferLoading={settingBuffer}
                                 archived
                               />
                             ))}
@@ -1768,12 +1864,19 @@ export default function GroupDashboardManagePage() {
                 <TabPanel px={0} pt={5}>
                   <VStack spacing={4} align="stretch">
                     <LeaguesGroupPanel dashboard={dashboard} onRefetch={refetch} />
-                    <Box bg="gray.800" borderRadius="xl" p={5} borderLeft="3px solid" borderColor="yellow.600">
+                    <Box
+                      bg="gray.800"
+                      borderRadius="xl"
+                      p={5}
+                      borderLeft="3px solid"
+                      borderColor="yellow.600"
+                    >
                       <Text fontWeight="semibold" color="gray.100" mb={1}>
                         DMM (Deadman Mode)
                       </Text>
                       <Text fontSize="sm" color="gray.400" lineHeight="1.6">
-                        We don't have a DMM endpoint yet to use, but when that comes available I'll make sure it's supported. 🤍 — lemon the dev
+                        We don't have a DMM endpoint yet to use, but when that comes available I'll
+                        make sure it's supported. 🤍 — lemon the dev
                       </Text>
                     </Box>
                   </VStack>

@@ -193,6 +193,9 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
         goals.filter(isLeaguesGoal).map((g) => getRequiredMetrics([g])[0]).filter(Boolean)
       );
 
+      const bufferMs = (event.womStartBufferHours || 0) * 60 * 60 * 1000;
+      const effectiveStartDate = new Date(new Date(event.startDate).getTime() - bufferMs);
+
       await Promise.all(
         metrics.map(async (metric) => {
           try {
@@ -201,14 +204,14 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
               newData[metric] = await fetchLeaguesGroupGains(
                 event.dashboard.leaguesWomGroupId,
                 metric,
-                event.startDate,
+                effectiveStartDate,
                 event.endDate
               );
             } else {
               newData[metric] = await fetchGroupGains(
                 event.dashboard.womGroupId,
                 metric,
-                event.startDate,
+                effectiveStartDate,
                 event.endDate
               );
             }
@@ -928,6 +931,15 @@ const GroupDashboardResolvers = {
       }
 
       await fetchAndCacheProgress(event, true);
+      return event.reload();
+    },
+
+    setEventWomStartBuffer: async (_, { eventId, hours }, { user }) => {
+      if (!user?.admin) throw new ForbiddenError('Site admin required');
+      const event = await getEventOrThrow(eventId);
+      await event.update({ womStartBufferHours: hours, finalSnapshot: null });
+      await event.reload();
+      await fetchAndCacheProgress(event, true, false);
       return event.reload();
     },
 
