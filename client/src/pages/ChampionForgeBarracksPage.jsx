@@ -218,7 +218,8 @@ function TaskDetailModal({
   const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   const isDropTask = task?.acceptableItems?.length > 0;
-  const isXpTask = !isDropTask && task?.quantity > 0;
+  const isMinigameTask = !isDropTask && (task?.description?.startsWith('Complete') ?? false);
+  const isXpTask = !isDropTask && !isMinigameTask && task?.quantity > 0;
   const taskRole = isDropTask ? 'PVMER' : 'SKILLER';
 
   const { data: subData } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
@@ -423,6 +424,8 @@ function TaskDetailModal({
                     <Text fontSize="xs" color="teal.300" mb={2}>
                       {isXpTask
                         ? 'Step 2 — Submit via Discord when done grinding:'
+                        : isMinigameTask
+                        ? 'Submit via Discord when you\'ve hit your completion count:'
                         : 'Submit via Discord when done in-game:'}
                     </Text>
                     <HStack spacing={2} mb={2}>
@@ -540,8 +543,32 @@ function TaskDetailModal({
                             </Text>
                           </>
                         )}
+                        {isMinigameTask && (
+                          <Text fontSize="xs" color="gray.400">
+                            • Completion count visible (post-game chatbox, adventure log, or KC counter)
+                          </Text>
+                        )}
                       </VStack>
                     </Box>
+
+                    {isMinigameTask && (
+                      <Box
+                        p={3}
+                        bg="purple.900"
+                        border="1px solid"
+                        borderColor="purple.700"
+                        borderRadius="md"
+                      >
+                        <Text fontSize="xs" fontWeight="semibold" color="purple.300" mb={2}>
+                          Minigame completions
+                        </Text>
+                        <Text fontSize="xs" color="gray.300">
+                          Screenshot your completion message in chatbox, post-game score screen, or
+                          your adventure log showing the total count. No pre-screenshot needed — just
+                          submit once you've hit the target.
+                        </Text>
+                      </Box>
+                    )}
 
                     {isXpTask && (
                       <Box
