@@ -169,8 +169,15 @@ export default function BattleScreen({
   const [activeTab, setActiveTab] = useState('attack');
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [lobbyCountdown, setLobbyCountdown] = useState(null);
+  const [preGameCountdown, setPreGameCountdown] = useState(() => {
+    const ts = initialBattle?.battleState?.turnStartedAt;
+    if (!ts) return null;
+    const ms = new Date(ts).getTime() - Date.now();
+    return ms > 0 ? Math.ceil(ms / 1000) : null;
+  });
   const timerRef = useRef(null);
   const lobbyTimerRef = useRef(null);
+  const preGameRef = useRef(null);
   const autoRef = useRef(null);
   const battleRef = useRef(battle);
 
@@ -179,6 +186,22 @@ export default function BattleScreen({
   // Pre-warm audio context while user is active on the page
   useEffect(() => {
     warmUpAudio();
+  }, []);
+
+  // Pre-game countdown: 15s before actions open (only for fresh battles)
+  useEffect(() => {
+    if (preGameCountdown === null) return;
+    preGameRef.current = setInterval(() => {
+      setPreGameCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(preGameRef.current);
+          return null;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(preGameRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const state = battle?.battleState ?? {};
@@ -426,7 +449,50 @@ export default function BattleScreen({
           />
         ))}
 
-        {!isBattleOver && (
+        {/* Pre-game countdown overlay */}
+        {preGameCountdown !== null && !isBattleOver && (
+          <Box
+            position="absolute"
+            top={0}
+            left={0}
+            right={0}
+            bottom={0}
+            bg="rgba(0,0,0,0.88)"
+            display="flex"
+            flexDir="column"
+            alignItems="center"
+            justifyContent="center"
+            zIndex={20}
+            borderRadius="xl"
+          >
+            <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing={4} mb={6}>
+              ⚔️ Battle starting in
+            </Text>
+            <Box
+              w="140px"
+              h="140px"
+              borderRadius="full"
+              bg="#c9a84c11"
+              border="3px solid #c9a84c"
+              boxShadow="0 0 60px #c9a84c55, inset 0 0 30px #c9a84c11"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              fontSize="80px"
+              fontWeight="bold"
+              color="#c9a84c"
+              fontFamily="mono"
+              transition="all 0.8s"
+            >
+              {preGameCountdown}
+            </Box>
+            <Text fontSize="xs" color="gray.500" mt={6}>
+              Get ready, Captains!
+            </Text>
+          </Box>
+        )}
+
+        {!isBattleOver && preGameCountdown === null && (
           <Text textAlign="center" mb={3} fontSize="12px" color={isMyTurn ? '#4caf50' : '#888'}>
             {isMyTurn
               ? '🟢 your turn — pick an action'
@@ -487,6 +553,7 @@ export default function BattleScreen({
                 isShaking={shaking === 'left'}
                 isFlashing={flashing === 'left'}
                 isDead={(state.hp?.team1 ?? 1) <= 0}
+                isActive={!isBattleOver && state.currentTurn === 'team1'}
               />
             </Box>
           </VStack>
@@ -496,7 +563,7 @@ export default function BattleScreen({
             <Text fontSize="11px" color="gray.600">
               vs
             </Text>
-            {!isBattleOver && !isSpectator && (
+            {!isBattleOver && preGameCountdown === null && (
               <Box
                 w="44px"
                 h="44px"
@@ -512,22 +579,6 @@ export default function BattleScreen({
                 transition="all 0.5s"
               >
                 {timer}
-              </Box>
-            )}
-            {!isBattleOver && isSpectator && (
-              <Box
-                w="44px"
-                h="44px"
-                borderRadius="full"
-                bg="gray.700"
-                border="2px solid"
-                borderColor="gray.600"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                fontSize="18px"
-              >
-                ⏳
               </Box>
             )}
           </VStack>
@@ -563,6 +614,7 @@ export default function BattleScreen({
                 isShaking={shaking === 'right'}
                 isFlashing={flashing === 'right'}
                 isDead={(state.hp?.team2 ?? 1) <= 0}
+                isActive={!isBattleOver && state.currentTurn === 'team2'}
               />
             </Box>
           </VStack>
@@ -599,7 +651,7 @@ export default function BattleScreen({
       </Box>
 
       {/* Action panel */}
-      {isMyTurn && !isBattleOver && (
+      {isMyTurn && !isBattleOver && preGameCountdown === null && (
         <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="lg" p={4} mb={4}>
           <HStack mb={3} spacing={2}>
             {['attack', 'defend', 'special', 'item'].map((t) => (

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
-import { useQuery, useMutation } from '@apollo/client';
-import { Box, Center, Spinner, Text, VStack, HStack, Button, Badge } from '@chakra-ui/react';
+import { useQuery, useMutation, useSubscription } from '@apollo/client';
+import { Box, Center, Spinner, Text, VStack, HStack, Button, Badge, Flex } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import {
   GET_CLAN_WARS_EVENT,
@@ -11,6 +11,10 @@ import {
   UPDATE_CLAN_WARS_EVENT_STATUS,
   DEV_AUTO_BATTLE,
   DEV_SIMULATE_NEXT_MATCH,
+  JOIN_BATTLE_VIEW,
+  LEAVE_BATTLE_VIEW,
+  BATTLE_VIEWERS_UPDATED,
+  GET_BATTLE_VIEWER_COUNT,
 } from '../graphql/clanWarsOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
@@ -19,6 +23,24 @@ import { isChampionForgeEnabled } from '../config/featureFlags';
 import BattleScreen from '../organisms/ChampionForge/BattleScreen';
 import BattleBracket from '../organisms/ChampionForge/BattleBracket';
 import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
+
+function getOrderedBattleIds(bracket) {
+  const ids = [];
+  for (const round of bracket.rounds ?? []) {
+    for (const match of round.matches) {
+      if (match.battleId && match.winnerId) ids.push(match.battleId);
+    }
+  }
+  for (const round of bracket.losersBracket ?? []) {
+    for (const match of round.matches) {
+      if (match.battleId && match.winnerId) ids.push(match.battleId);
+    }
+  }
+  if (bracket.grandFinal?.battleId && bracket.grandFinal?.winnerId) {
+    ids.push(bracket.grandFinal.battleId);
+  }
+  return ids;
+}
 
 export default function ChampionForgeBattlePage() {
   const { eventId } = useParams();
@@ -29,6 +51,9 @@ export default function ChampionForgeBattlePage() {
   const [completeOpen, setCompleteOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [viewingBattleId, setViewingBattleId] = useState(null);
+  const [isRewatching, setIsRewatching] = useState(false);
+  const [rewatchQueue, setRewatchQueue] = useState([]);
+  const [rewatchTotal, setRewatchTotal] = useState(0);
   // Keep showing the battle screen even after activeBattleId disappears (when winnerId is written),
   // so the in-screen countdown can fire before we navigate away.
   const [showBattleId, setShowBattleId] = useState(null);
@@ -111,6 +136,38 @@ export default function ChampionForgeBattlePage() {
     ...(t2ChestData?.getClanWarsWarChest ?? []),
   ];
 
+  const [viewerCount, setViewerCount] = useState(0);
+  const [joinBattleView] = useMutation(JOIN_BATTLE_VIEW);
+  const [leaveBattleView] = useMutation(LEAVE_BATTLE_VIEW);
+
+  const { data: viewerData } = useQuery(GET_BATTLE_VIEWER_COUNT, {
+    variables: { eventId },
+    fetchPolicy: 'cache-and-network',
+  });
+
+  useEffect(() => {
+    if (viewerData?.getBattleViewerCount != null) setViewerCount(viewerData.getBattleViewerCount);
+  }, [viewerData]);
+
+  useSubscription(BATTLE_VIEWERS_UPDATED, {
+    variables: { eventId },
+    onData: ({ data }) => {
+      if (data?.data?.battleViewersUpdated != null) {
+        setViewerCount(data.data.battleViewersUpdated);
+      }
+    },
+  });
+
+  useEffect(() => {
+    joinBattleView({ variables: { eventId } });
+    const interval = setInterval(() => joinBattleView({ variables: { eventId } }), 30_000);
+    return () => {
+      clearInterval(interval);
+      leaveBattleView({ variables: { eventId } });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
+
   const [startBattle] = useMutation(START_CLAN_WARS_BATTLE);
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });
   const [autoBattle, { loading: autoBattleLoading }] = useMutation(DEV_AUTO_BATTLE, {
@@ -130,12 +187,44 @@ export default function ChampionForgeBattlePage() {
   const allMatchesDone = useMemo(() => {
     const bracket = event?.bracket;
     if (!bracket?.rounds?.length) return false;
-    const roundsDone = (rounds) => (rounds ?? []).every((r) => r.matches.every((m) => m.isBye || !!m.winnerId));
+    const roundsDone = (rounds) =>
+      (rounds ?? []).every((r) => r.matches.every((m) => m.isBye || !!m.winnerId));
     if (!roundsDone(bracket.rounds)) return false;
     if (!roundsDone(bracket.losersBracket)) return false;
     if (bracket.grandFinal && !bracket.grandFinal.winnerId) return false;
     return true;
   }, [event]);
+
+  const pendingMatches = useMemo(() => {
+    const bracket = event?.bracket;
+    if (!bracket) return [];
+    const all = [];
+    const collect = (rounds) => {
+      for (const round of rounds ?? []) {
+        for (const match of round.matches ?? []) {
+          if (
+            !match.isBye &&
+            match.team1Id &&
+            match.team2Id &&
+            !match.battleId &&
+            !match.winnerId
+          ) {
+            all.push(match);
+          }
+        }
+      }
+    };
+    collect(bracket.rounds);
+    collect(bracket.losersBracket);
+    const gf = bracket.grandFinal;
+    if (gf && !gf.isBye && gf.team1Id && gf.team2Id && !gf.battleId && !gf.winnerId) all.push(gf);
+    return all;
+  }, [event]);
+
+  const teamById = useMemo(
+    () => Object.fromEntries((event?.teams ?? []).map((t) => [t.teamId, t])),
+    [event]
+  );
 
   // True when the currently active battle is the only remaining undecided match
   const isLastBattle = useMemo(() => {
@@ -193,12 +282,37 @@ export default function ChampionForgeBattlePage() {
               Battle
             </Badge>
           </HStack>
-          <Text fontSize="sm" color="gray.400">
-            {(event.teams ?? []).length} teams
-          </Text>
+          <HStack spacing={3}>
+            <Text fontSize="sm" color="gray.400">
+              {(event.teams ?? []).length} teams
+            </Text>
+            <Badge colorScheme="gray" fontSize="xs" variant="subtle">
+              👁 {viewerCount} watching
+            </Badge>
+            {isRewatching && (
+              <Badge colorScheme="blue" fontSize="xs" variant="subtle">
+                📺 Battle {rewatchTotal - rewatchQueue.length} of {rewatchTotal}
+              </Badge>
+            )}
+          </HStack>
         </VStack>
       </HStack>
       <HStack mb={3} justify="flex-end" w="100%" spacing={2}>
+        {isRewatching && (
+          <Button
+            size="sm"
+            colorScheme="blue"
+            variant="outline"
+            onClick={() => {
+              setShowBattleId(null);
+              setIsRewatching(false);
+              setRewatchQueue([]);
+              setRewatchTotal(0);
+            }}
+          >
+            ✕ Stop Rewatch
+          </Button>
+        )}
         {isAdmin && !isEventDone && !activeBattleId && (
           <Button
             size="sm"
@@ -246,9 +360,7 @@ export default function ChampionForgeBattlePage() {
             <Text color="gray.500">Battle not found.</Text>
           </Center>
         )
-      ) : isEventDone ? (
-        null
-      ) : showBattleId ? (
+      ) : isEventDone ? null : showBattleId ? (
         battleLoading && !activeBattle ? (
           <Center h="300px">
             <Spinner color="red.400" size="xl" />
@@ -263,9 +375,15 @@ export default function ChampionForgeBattlePage() {
             isAdmin={isAdmin}
             isLastBattle={isLastBattle}
             onBattleEnd={() => {
-              setShowBattleId(null);
-              navigate(`/champion-forge/${eventId}`);
-            }}
+                if (rewatchQueue.length > 0) {
+                  setShowBattleId(rewatchQueue[0]);
+                  setRewatchQueue((q) => q.slice(1));
+                } else {
+                  setShowBattleId(null);
+                  setIsRewatching(false);
+                  setRewatchTotal(0);
+                }
+              }}
           />
         ) : (
           <Center h="200px">
@@ -275,26 +393,92 @@ export default function ChampionForgeBattlePage() {
       ) : (
         /* Lobby */
         <VStack align="stretch" spacing={5}>
-          <Box
-            textAlign="center"
-            p={8}
-            bg="gray.800"
-            borderRadius="xl"
-            border="1px solid"
-            borderColor="gray.600"
-          >
-            <Text fontSize="4xl" mb={2}>
-              ⚔️
-            </Text>
-            <Text fontSize="xl" fontWeight="bold" color="red.300" mb={1}>
-              Battle Starting Soon
-            </Text>
-            <Text fontSize="sm" color="gray.400">
-              {isAdmin
-                ? 'Start a match from the bracket below.'
-                : 'Waiting for the admin to kick things off...'}
-            </Text>
-          </Box>
+          {pendingMatches.length > 0 ? (
+            <Flex
+              p={5}
+              bg="gray.800"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.600"
+              alignItems="center"
+              flexDirection="column"
+            >
+              <Text fontWeight="bold" color="red.300" fontSize="md" mb={3}>
+                ⏳ Next battle coming up
+              </Text>
+              <VStack align="stretch" spacing={3}>
+                {pendingMatches.slice(0, 1).map((match) => {
+                  const t1 = teamById[match.team1Id];
+                  const t2 = teamById[match.team2Id];
+                  const readyCount = (match.team1Ready ? 1 : 0) + (match.team2Ready ? 1 : 0);
+                  return (
+                    <Box key={`${match.team1Id}-${match.team2Id}`}>
+                      <HStack spacing={3} mb={2}>
+                        <Badge colorScheme={match.team1Ready ? 'green' : 'gray'}>
+                          {match.team1Ready ? '✅' : '⏳'} {t1?.teamName ?? match.team1Id}
+                        </Badge>
+                        <Text fontSize="sm" color="gray.500">
+                          vs
+                        </Text>
+                        <Badge colorScheme={match.team2Ready ? 'green' : 'gray'}>
+                          {match.team2Ready ? '✅' : '⏳'} {t2?.teamName ?? match.team2Id}
+                        </Badge>
+                      </HStack>
+                      <Text textAlign="center" fontSize="xs" color="gray.500">
+                        {readyCount === 2
+                          ? 'Both captains are ready — waiting for the admin to start.'
+                          : `${readyCount}/2 captains ready`}
+                      </Text>
+                    </Box>
+                  );
+                })}
+              </VStack>
+              <Text fontSize="xs" color="gray.600" mt={3}>
+                Stay on this page — the next battle will start automatically once the admin kicks it
+                off.
+              </Text>
+            </Flex>
+          ) : (
+            <Box
+              textAlign="center"
+              p={8}
+              bg="gray.800"
+              borderRadius="xl"
+              border="1px solid"
+              borderColor="gray.600"
+            >
+              <Text fontSize="4xl" mb={2}>
+                ⚔️
+              </Text>
+              <Text fontSize="xl" fontWeight="bold" color="red.300" mb={1}>
+                Battle Starting Soon
+              </Text>
+              <Text fontSize="sm" color="gray.400">
+                {isAdmin
+                  ? 'Start a match from the bracket below.'
+                  : 'Waiting for the admin to kick things off...'}
+              </Text>
+            </Box>
+          )}
+
+          {allMatchesDone && (
+            <Box textAlign="center" py={2}>
+              <Button
+                colorScheme="blue"
+                variant="solid"
+                onClick={() => {
+                  const ids = getOrderedBattleIds(event.bracket);
+                  if (ids.length === 0) return;
+                  setRewatchTotal(ids.length);
+                  setRewatchQueue(ids.slice(1));
+                  setIsRewatching(true);
+                  setShowBattleId(ids[0]);
+                }}
+              >
+                📺 Rewatch All Battles in Order
+              </Button>
+            </Box>
+          )}
 
           <BattleBracket
             event={event}

@@ -44,7 +44,7 @@ function initBattleState(snap1, snap2) {
   return {
     currentTurn: 'team1',
     turnNumber: 1,
-    turnStartedAt: new Date().toISOString(),
+    turnStartedAt: new Date(Date.now() + 15000).toISOString(),
     hp: {
       team1: snap1.stats.maxHp,
       team2: snap2.stats.maxHp,
@@ -99,7 +99,7 @@ function tickEffects(state, side) {
       // fortress counts down on actor's turn at top of submitBattleAction
       remaining.push(effect);
     } else {
-      if (effect.turns > 1) remaining.push({ ...effect, turns: effect.turns - 1 });
+      if (effect.turns >= 1) remaining.push({ ...effect, turns: effect.turns - 1 });
     }
   }
 

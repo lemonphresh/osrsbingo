@@ -435,7 +435,7 @@ export default function AdminEventPanel({ event, refetch }) {
         {/* Teams section */}
         <Accordion allowMultiple defaultIndex={[0]} reduceMotion>
           <AccordionItem border="none">
-            <AccordionButton px={5} py={3} _hover={{ bg: 'gray.750' }}>
+            <AccordionButton px={5} py={3} _hover={{ bg: 'gray.700' }}>
               <Box flex="1" textAlign="left">
                 <Text fontWeight="semibold" color="gray.200" fontSize="sm">
                   Teams ({event.teams?.length ?? 0})
@@ -465,7 +465,7 @@ export default function AdminEventPanel({ event, refetch }) {
         {/* Staff manager — admins + refs */}
         <Accordion allowMultiple reduceMotion>
           <AccordionItem border="none">
-            <AccordionButton px={5} py={3} _hover={{ bg: 'gray.750' }}>
+            <AccordionButton px={5} py={3} _hover={{ bg: 'gray.700' }}>
               <Box flex="1" textAlign="left">
                 <Text fontWeight="semibold" color="gray.200" fontSize="sm">
                   Staff - Admins & Ref Setup

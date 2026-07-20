@@ -170,7 +170,8 @@ function StepEventConfig({ config, onChange }) {
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
           <FormHelperText color="gray.500" fontSize="xs" whiteSpace="nowrap">
-            1–168 hrs (max 7 days){config.gatheringHours ? ` · ${toHumanDuration(config.gatheringHours)}` : ''}
+            1–168 hrs (max 7 days)
+            {config.gatheringHours ? ` · ${toHumanDuration(config.gatheringHours)}` : ''}
           </FormHelperText>
         </FormControl>
         <FormControl>
@@ -189,7 +190,8 @@ function StepEventConfig({ config, onChange }) {
             <NumberInputField bg="gray.700" borderColor="gray.600" color="white" />
           </NumberInput>
           <FormHelperText color="gray.500" fontSize="xs" whiteSpace="nowrap">
-            1–48 hrs (max 2 days){config.outfittingHours ? ` · ${toHumanDuration(config.outfittingHours)}` : ''}
+            1–48 hrs (max 2 days)
+            {config.outfittingHours ? ` · ${toHumanDuration(config.outfittingHours)}` : ''}
           </FormHelperText>
         </FormControl>
       </HStack>
@@ -451,6 +453,13 @@ function StepTeams({ teams, onChange }) {
         Add the teams competing in this event. Each team can have up to 10 members. Tasks and item
         drops are seeded at event creation, and your roster can be adjusted later.
       </Text>
+      <Box p={3} bg="gray.700" borderRadius="md" border="1px solid" borderColor="gray.600">
+        <Text fontSize="xs" color="gray.300">
+          💡 This step is optional — you can skip it and add teams from the admin panel after the
+          event is created. Members can also be added or changed at any time before the battle
+          starts.
+        </Text>
+      </Box>
 
       {teams.map((team, ti) => (
         <TeamCard

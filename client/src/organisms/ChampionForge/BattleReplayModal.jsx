@@ -223,7 +223,9 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
             <HStack spacing={2} flexWrap="wrap">
               <Text>⏮</Text>
               <Text>{team1Name}</Text>
-              <Text color="gray.500" fontSize="sm">vs</Text>
+              <Text color="gray.500" fontSize="sm">
+                vs
+              </Text>
               <Text>{team2Name}</Text>
               {battle?.winnerId && (
                 <Badge colorScheme="yellow" fontSize="xs">
@@ -267,8 +269,11 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
 
         <ModalBody pb={5} flex="1" overflowY="auto">
           {battleLoading && !battle ? (
-            <Center h="300px">
+            <Center h="300px" flexDir="column" gap={4}>
               <Spinner color="purple.400" size="xl" />
+              <Text color="gray.500" fontSize="sm">
+                Loading battle replay...
+              </Text>
             </Center>
           ) : !battle ? (
             <Center h="200px">
@@ -423,20 +428,34 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
                 >
                   Prev
                 </Button>
-                <Button
-                  size="sm"
-                  colorScheme="purple"
-                  onClick={() => {
-                    if (isAtEnd) {
-                      handleRestart();
-                      setTimeout(() => setIsPlaying(true), 50);
-                    } else {
-                      setIsPlaying((p) => !p);
-                    }
-                  }}
-                >
-                  {isAtEnd ? '🔄 Replay' : isPlaying ? '⏸ Pause' : '▶ Play'}
-                </Button>
+                {isAtEnd && hasNext ? (
+                  <Button
+                    size="sm"
+                    colorScheme="green"
+                    rightIcon={<ChevronRightIcon />}
+                    onClick={() => {
+                      goToBattle(battleIds[battleIndex + 1]);
+                      setTimeout(() => setIsPlaying(true), 100);
+                    }}
+                  >
+                    Next Battle
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    colorScheme="purple"
+                    onClick={() => {
+                      if (isAtEnd) {
+                        handleRestart();
+                        setTimeout(() => setIsPlaying(true), 50);
+                      } else {
+                        setIsPlaying((p) => !p);
+                      }
+                    }}
+                  >
+                    {isAtEnd ? '🔄 Replay' : isPlaying ? '⏸ Pause' : '▶ Play'}
+                  </Button>
+                )}
                 <Button
                   size="xs"
                   variant="outline"

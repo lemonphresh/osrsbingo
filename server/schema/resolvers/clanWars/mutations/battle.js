@@ -291,7 +291,19 @@ module.exports = {
         if (effect.type === 'heal') {
           const heal = effect.value;
           newState.hp[actorSide] = Math.min(actorSnap.stats.maxHp, newState.hp[actorSide] + heal);
-          narrative = `🍖 ${actorSnap.teamName} uses ${item.name}! Restored ${heal} HP.`;
+          let cleansedMsg = '';
+          if (effect.cleanse) {
+            const debuffIdx = (newState.activeEffects[actorSide] ?? []).findIndex(
+              (e) => e.type === 'debuff'
+            );
+            if (debuffIdx !== -1) {
+              newState.activeEffects[actorSide] = newState.activeEffects[actorSide].filter(
+                (_, i) => i !== debuffIdx
+              );
+              cleansedMsg = ' A debuff was cleansed!';
+            }
+          }
+          narrative = `🍖 ${actorSnap.teamName} uses ${item.name}! Restored ${heal} HP.${cleansedMsg}`;
         } else if (effect.type === 'damage') {
           damageDealt = effect.value;
           newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);

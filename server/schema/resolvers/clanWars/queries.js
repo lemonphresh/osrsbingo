@@ -3,6 +3,7 @@
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const { Op, fn, col } = require('sequelize');
 const { getEventOrThrow, getTeamOrThrow, getWarChest, getModels } = require('./helpers');
+const { getViewerCount } = require('../../../utils/battleViewers');
 
 module.exports = {
   getClanWarsEvent: async (_, { eventId }) => {
@@ -81,6 +82,10 @@ module.exports = {
       where: { eventId, taskId, teamId },
       order: [['submittedAt', 'DESC']],
     });
+  },
+
+  getBattleViewerCount: async (_, { eventId }) => {
+    return getViewerCount(eventId);
   },
 
   getClanWarsBattle: async (_, { battleId }) => {

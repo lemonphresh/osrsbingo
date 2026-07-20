@@ -14,6 +14,7 @@ function MatchCard({
   onStartBattle,
   onSelectBattle,
   preview,
+  isNextUp,
 }) {
   const team1 = teams.find((t) => t.teamId === match.team1Id);
   const team2 = teams.find((t) => t.teamId === match.team2Id);
@@ -29,11 +30,13 @@ function MatchCard({
   const amIReady = myTeamIsTeam1 ? !!match.team1Ready : myTeamIsTeam2 ? !!match.team2Ready : false;
 
   const [startConfirmOpen, setStartConfirmOpen] = useState(false);
+  const [readyingTeamId, setReadyingTeamId] = useState(null);
 
   const [setCaptainReady, { loading: readying }] = useMutation(SET_CAPTAIN_READY);
 
-  const handleReady = () => {
-    setCaptainReady({ variables: { eventId, teamId: myTeamId } });
+  const handleReady = (teamId) => {
+    setReadyingTeamId(teamId);
+    setCaptainReady({ variables: { eventId, teamId } }).finally(() => setReadyingTeamId(null));
   };
 
   const handleStartClick = () => setStartConfirmOpen(true);
@@ -74,13 +77,21 @@ function MatchCard({
         borderColor="gray.600"
         minW="180px"
       >
-        <Text fontSize="sm" color={match.winnerId === match.team1Id ? 'yellow.400' : 'white'} fontWeight={match.winnerId === match.team1Id ? 'bold' : 'normal'}>
+        <Text
+          fontSize="sm"
+          color={match.winnerId === match.team1Id ? 'yellow.400' : 'white'}
+          fontWeight={match.winnerId === match.team1Id ? 'bold' : 'normal'}
+        >
           {team1?.teamName ?? 'TBD'}
         </Text>
         <Text fontSize="10px" color="gray.600" textAlign="center" letterSpacing={2} my={1}>
           VS
         </Text>
-        <Text fontSize="sm" color={match.winnerId === match.team2Id ? 'yellow.400' : 'white'} fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}>
+        <Text
+          fontSize="sm"
+          color={match.winnerId === match.team2Id ? 'yellow.400' : 'white'}
+          fontWeight={match.winnerId === match.team2Id ? 'bold' : 'normal'}
+        >
           {team2?.teamName ?? 'TBD'}
         </Text>
       </Box>
@@ -168,7 +179,9 @@ function MatchCard({
 
         {/* Captain ready button */}
         {isUpcoming &&
-          match.team1Id && match.team2Id &&
+          isNextUp &&
+          match.team1Id &&
+          match.team2Id &&
           iAmInThisMatch &&
           !isAdmin &&
           (amIReady ? (
@@ -182,14 +195,15 @@ function MatchCard({
               w="full"
               mb={2}
               isLoading={readying}
-              onClick={handleReady}
+              isDisabled={readying}
+              onClick={() => handleReady(myTeamId)}
             >
               ✅ Ready Up
             </Button>
           ))}
 
         {/* Admin ready-up on behalf + start */}
-        {isUpcoming && isAdmin && match.team1Id && match.team2Id && (
+        {isUpcoming && isNextUp && isAdmin && match.team1Id && match.team2Id && (
           <VStack spacing={1}>
             <HStack w="full" spacing={1}>
               <Button
@@ -197,9 +211,9 @@ function MatchCard({
                 variant={match.team1Ready ? 'solid' : 'outline'}
                 colorScheme="green"
                 flex={1}
-                isLoading={readying && !match.team1Ready}
-                isDisabled={!!match.team1Ready}
-                onClick={() => !match.team1Ready && setCaptainReady({ variables: { eventId, teamId: match.team1Id } })}
+                isLoading={readying && readyingTeamId === match.team1Id}
+                isDisabled={!!match.team1Ready || readying}
+                onClick={() => !match.team1Ready && handleReady(match.team1Id)}
               >
                 {match.team1Ready ? '✅' : `Ready ${team1?.teamName?.split(' ')[0]}`}
               </Button>
@@ -208,9 +222,9 @@ function MatchCard({
                 variant={match.team2Ready ? 'solid' : 'outline'}
                 colorScheme="green"
                 flex={1}
-                isLoading={readying && !match.team2Ready}
-                isDisabled={!!match.team2Ready}
-                onClick={() => !match.team2Ready && setCaptainReady({ variables: { eventId, teamId: match.team2Id } })}
+                isLoading={readying && readyingTeamId === match.team2Id}
+                isDisabled={!!match.team2Ready || readying}
+                onClick={() => !match.team2Ready && handleReady(match.team2Id)}
               >
                 {match.team2Ready ? '✅' : `Ready ${team2?.teamName?.split(' ')[0]}`}
               </Button>
@@ -273,9 +287,23 @@ function MatchCard({
 // so every column in the section has the same total height → proper ">" alignment.
 const BASE_SLOT_H = { preview: 100, full: 220 };
 
-function RoundColumn({ round, roundLabel, maxMatchesInSection, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle, preview }) {
+function RoundColumn({
+  round,
+  roundLabel,
+  maxMatchesInSection,
+  teams,
+  isAdmin,
+  myTeamId,
+  eventId,
+  starting,
+  onStartBattle,
+  onSelectBattle,
+  preview,
+  nextUpMatchKey,
+}) {
   const slotH = Math.round(
-    (preview ? BASE_SLOT_H.preview : BASE_SLOT_H.full) * maxMatchesInSection / round.matches.length
+    ((preview ? BASE_SLOT_H.preview : BASE_SLOT_H.full) * maxMatchesInSection) /
+      round.matches.length
   );
   return (
     <Box display="flex" flexDir="column" minW={preview ? '160px' : '240px'} flexShrink={0}>
@@ -296,6 +324,7 @@ function RoundColumn({ round, roundLabel, maxMatchesInSection, teams, isAdmin, m
                 onStartBattle={onStartBattle}
                 onSelectBattle={onSelectBattle}
                 preview={preview}
+                isNextUp={nextUpMatchKey === `${match.team1Id}-${match.team2Id}`}
               />
             </Box>
           </Box>
@@ -314,7 +343,18 @@ function getSELabel(roundIdx, totalRounds) {
 // ---------------------------------------------------------------------------
 // Single-elimination layout (original)
 // ---------------------------------------------------------------------------
-function SEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle, preview }) {
+function SEBracket({
+  bracket,
+  teams,
+  isAdmin,
+  myTeamId,
+  eventId,
+  starting,
+  onStartBattle,
+  onSelectBattle,
+  preview,
+  nextUpMatchKey,
+}) {
   const maxMatches = Math.max(...bracket.rounds.map((r) => r.matches.length));
   return (
     <Box overflowX="auto">
@@ -333,6 +373,7 @@ function SEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onSta
             onStartBattle={onStartBattle}
             onSelectBattle={onSelectBattle}
             preview={preview}
+            nextUpMatchKey={nextUpMatchKey}
           />
         ))}
       </HStack>
@@ -343,8 +384,29 @@ function SEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onSta
 // ---------------------------------------------------------------------------
 // Double-elimination layout
 // ---------------------------------------------------------------------------
-function DEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle, preview }) {
-  const sharedProps = { teams, isAdmin, myTeamId, eventId, starting, onStartBattle, onSelectBattle, preview };
+function DEBracket({
+  bracket,
+  teams,
+  isAdmin,
+  myTeamId,
+  eventId,
+  starting,
+  onStartBattle,
+  onSelectBattle,
+  preview,
+  nextUpMatchKey,
+}) {
+  const sharedProps = {
+    teams,
+    isAdmin,
+    myTeamId,
+    eventId,
+    starting,
+    onStartBattle,
+    onSelectBattle,
+    preview,
+    nextUpMatchKey,
+  };
 
   const lbRounds = bracket.losersBracket ?? [];
   const gf = bracket.grandFinal;
@@ -357,10 +419,18 @@ function DEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onSta
       {/* Winners Bracket */}
       <Box>
         <HStack mb={3} spacing={2} align="center">
-          <Text fontSize="xs" fontWeight="bold" color="yellow.400" textTransform="uppercase" letterSpacing={2}>
+          <Text
+            fontSize="xs"
+            fontWeight="bold"
+            color="yellow.400"
+            textTransform="uppercase"
+            letterSpacing={2}
+          >
             Winners Bracket
           </Text>
-          <Text fontSize="xs" color="gray.600">(lose here and you drop to Losers Bracket)</Text>
+          <Text fontSize="xs" color="gray.600">
+            (lose here and you drop to Losers Bracket)
+          </Text>
         </HStack>
         <Box overflowX="auto">
           <HStack align="flex-start" spacing={8} pb={2}>
@@ -383,10 +453,18 @@ function DEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onSta
       {lbRounds.length > 0 && (
         <Box>
           <HStack mb={3} spacing={2} align="center">
-            <Text fontSize="xs" fontWeight="bold" color="orange.400" textTransform="uppercase" letterSpacing={2}>
+            <Text
+              fontSize="xs"
+              fontWeight="bold"
+              color="orange.400"
+              textTransform="uppercase"
+              letterSpacing={2}
+            >
               Losers Bracket
             </Text>
-            <Text fontSize="xs" color="gray.600">(one more loss and you're eliminated)</Text>
+            <Text fontSize="xs" color="gray.600">
+              (one more loss and you're eliminated)
+            </Text>
           </HStack>
           <Box overflowX="auto">
             <HStack align="flex-start" spacing={8} pb={2}>
@@ -409,10 +487,21 @@ function DEBracket({ bracket, teams, isAdmin, myTeamId, eventId, starting, onSta
         <>
           <Divider borderColor="gray.700" />
           <Box alignSelf="flex-start">
-            <Text fontSize="xs" fontWeight="bold" color="purple.300" textTransform="uppercase" letterSpacing={2} mb={3}>
-              Grand Final
+            <Text
+              fontSize="xs"
+              fontWeight="bold"
+              color="purple.300"
+              textTransform="uppercase"
+              letterSpacing={2}
+              mb={3}
+            >
+              Grand Finale
             </Text>
-            <MatchCard match={gf} {...sharedProps} />
+            <MatchCard
+              match={gf}
+              {...sharedProps}
+              isNextUp={sharedProps.nextUpMatchKey === `${gf.team1Id}-${gf.team2Id}`}
+            />
           </Box>
         </>
       )}
@@ -443,7 +532,27 @@ export default function BattleBracket({
     );
   }
 
-  const sharedProps = { teams, isAdmin, myTeamId, eventId: event.eventId, starting, onStartBattle, onSelectBattle, preview };
+  const allMatches = [
+    ...(bracket.rounds ?? []).flatMap((r) => r.matches),
+    ...(bracket.losersBracket ?? []).flatMap((r) => r.matches),
+    ...(bracket.grandFinal ? [bracket.grandFinal] : []),
+  ];
+  const nextUp = allMatches.find(
+    (m) => !m.isBye && m.team1Id && m.team2Id && !m.battleId && !m.winnerId
+  );
+  const nextUpMatchKey = nextUp ? `${nextUp.team1Id}-${nextUp.team2Id}` : null;
+
+  const sharedProps = {
+    teams,
+    isAdmin,
+    myTeamId,
+    eventId: event.eventId,
+    starting,
+    onStartBattle,
+    onSelectBattle,
+    preview,
+    nextUpMatchKey,
+  };
 
   if (bracket.type === 'DOUBLE_ELIMINATION') {
     return <DEBracket bracket={bracket} {...sharedProps} />;

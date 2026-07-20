@@ -36,6 +36,7 @@ export default function ChampionSprite({
   isShaking = false,
   isFlashing = false,
   isDead = false,
+  isActive = false,
 }) {
   const mirror = facing === 'left';
 
@@ -63,13 +64,13 @@ export default function ChampionSprite({
         w={`${Math.round(size * 1.5)}px`}
         h={`${size * 2.25}px`}
         borderRadius="20%"
-        bg={`${color}22`}
+        bg={isActive ? `${color}44` : `${color}22`}
         border={hasBorder ? `2px solid ${color}` : undefined}
         my={3}
         mx={10}
         position="relative"
         overflow="hidden"
-        boxShadow={`0 0 20px ${color}44`}
+        boxShadow={isActive ? `0 0 32px ${color}99` : `0 0 20px ${color}44`}
         transform={transforms.length ? transforms.join(' ') : 'none'}
         filter={filter}
         transition="transform 0.1s, filter 0.1s"

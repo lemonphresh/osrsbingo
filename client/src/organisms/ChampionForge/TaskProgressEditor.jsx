@@ -6,8 +6,6 @@ import {
   VStack,
   Text,
   Button,
-  NumberInput,
-  NumberInputField,
   Slider,
   SliderFilledTrack,
   SliderThumb,
@@ -65,47 +63,31 @@ export default function TaskProgressEditor({
         </Text>
       </HStack>
 
-      {isAdmin && (
+      {isAdmin && quantity > 0 && (
         <VStack spacing={2} align="stretch">
-          {quantity > 0 && (
-            <Slider
-              min={0}
-              max={quantity}
-              step={1}
-              value={value}
-              onChange={(v) => setValue(v)}
-              focusThumbOnChange={false}
-            >
-              <SliderTrack bg="gray.700">
-                <SliderFilledTrack bg="green.400" />
-              </SliderTrack>
-              <SliderThumb />
-            </Slider>
-          )}
-          <HStack>
-            <NumberInput
-              min={0}
-              max={quantity > 0 ? quantity : undefined}
-              value={value}
-              onChange={(_, v) => {
-                if (!isNaN(v))
-                  setValue(quantity > 0 ? Math.max(0, Math.min(v, quantity)) : Math.max(0, v));
-              }}
-              size="sm"
-              flex={1}
-            >
-              <NumberInputField bg="gray.800" color="white" borderColor="gray.600" />
-            </NumberInput>
-            <Button
-              size="sm"
-              colorScheme="blue"
-              isLoading={saving}
-              isDisabled={!isDirty}
-              onClick={handleSave}
-            >
-              Save
-            </Button>
-          </HStack>
+          <Slider
+            min={0}
+            max={quantity}
+            step={1}
+            value={value}
+            onChange={(v) => setValue(v)}
+            focusThumbOnChange={false}
+          >
+            <SliderTrack bg="gray.700">
+              <SliderFilledTrack bg="green.400" />
+            </SliderTrack>
+            <SliderThumb />
+          </Slider>
+          <Button
+            size="sm"
+            colorScheme="blue"
+            isLoading={saving}
+            isDisabled={!isDirty}
+            onClick={handleSave}
+            alignSelf="flex-end"
+          >
+            Save
+          </Button>
         </VStack>
       )}
     </Box>

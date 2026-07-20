@@ -30,5 +30,6 @@ module.exports = {
     clanWarsSubmissionReviewed: createSubscription((args) => `CLAN_WARS_SUBMISSION_REVIEWED_${args.eventId}`),
     clanWarsPreScreenshotAdded: createSubscription((args) => `CLAN_WARS_PRESCREENSHOT_ADDED_${args.eventId}`),
     clanWarsEventUpdated: createSubscription((args) => `CLAN_WARS_EVENT_UPDATED_${args.eventId}`),
+    battleViewersUpdated: createSubscription((args) => `BATTLE_VIEWERS_${args.eventId}`),
   },
 };

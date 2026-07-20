@@ -46,7 +46,7 @@ import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
 
 const RARITY_COLORS = { common: '#888', uncommon: '#2ecc71', rare: '#3498db', epic: '#9b59b6' };
 
-const GEAR_SLOTS = [
+export const GEAR_SLOTS = [
   'weapon',
   'helm',
   'chest',
@@ -329,7 +329,7 @@ function computeAvailableSpecials(loadout, items) {
   return result;
 }
 
-function computeChampionStats(loadout, items) {
+export function computeChampionStats(loadout, items) {
   const itemById = Object.fromEntries(items.map((i) => [i.itemId, i]));
   let atk = 8,
     def = 0,
@@ -421,7 +421,7 @@ function ConsumablePins({ loadout, items, maxSlots, onRemove, onSlotClick, activ
               px={2}
               py={1}
               borderRadius="sm"
-              bg={item ? 'gray.900' : 'gray.850'}
+              bg={item ? 'gray.900' : 'gray.800'}
               border="1px solid"
               borderColor={item ? rColor + '66' : 'gray.700'}
               minH="28px"
@@ -1289,14 +1289,14 @@ function BattlePreviewModal({ isOpen, onClose, myStats, myName, displayLoadout, 
                   mb={0.5}
                   color={
                     entry.type === 'special'
-                      ? '#ce93d8'
+                      ? 'purple.300'
                       : entry.type === 'item'
-                      ? '#ffe082'
+                      ? 'yellow.200'
                       : entry.type === 'result'
-                      ? '#c9a84c'
+                      ? 'yellow.600'
                       : entry.type === 'system'
-                      ? '#666'
-                      : '#ccc'
+                      ? 'gray.600'
+                      : 'gray.300'
                   }
                 >
                   {entry.text}
@@ -1652,7 +1652,7 @@ export function TeamOutfitter({ team, event, isAdmin }) {
               _hover={{ color: 'purple.300' }}
               onClick={() => setPreviewOpen(true)}
             >
-              ⚔️ preview
+              ⚔️ training dummy
             </Button>
           </HStack>
 

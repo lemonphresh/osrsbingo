@@ -111,8 +111,8 @@ function rollDamage({ attackStat, defenseStat, critChance, isDefending = false }
   const base = Math.max(1, attackStat - defenseStat * 0.3);
   const variance = 0.85 + Math.random() * 0.3;
   const defMult = isDefending ? 0.4 : 1;
-  const isCrit = Math.random() * 100 < Math.min(critChance, 75);
-  const damage = Math.round(base * variance * defMult * (isCrit ? 1.5 : 1));
+  const isCrit = Math.random() * 100 < Math.min(critChance, 90);
+  const damage = Math.round(base * variance * defMult * (isCrit ? 1.25 : 1));
   return { damage: Math.max(1, damage), isCrit };
 }
 
@@ -146,8 +146,8 @@ function processSpecial(specialId, actorSnap, defSnap, state, actorSide, defSide
         isCrit: roll.isCrit,
         attackerHeal: 0,
         attackerEffects: [],
-        defenderEffects: [{ type: 'bleed', value: 5, turns: 3 }],
-        narrative: `⚡ ${actorName} uses CLEAVE! ${roll.damage} damage + bleed (5/turn, 3 turns)!`,
+        defenderEffects: [{ type: 'bleed', value: 12, turns: 4 }],
+        narrative: `⚡ ${actorName} uses CLEAVE! ${roll.damage} damage + bleed (12/turn, 4 turns)!`,
       };
     }
 
@@ -155,7 +155,7 @@ function processSpecial(specialId, actorSnap, defSnap, state, actorSide, defSide
       // Ignore defense, guaranteed crit → 1.5× base damage
       const base = Math.max(1, atk);
       const variance = 0.85 + Math.random() * 0.3;
-      const damage = Math.round(base * variance * 1.5);
+      const damage = Math.round(base * variance * 1.25);
       return {
         damage: Math.max(1, damage),
         isCrit: true,

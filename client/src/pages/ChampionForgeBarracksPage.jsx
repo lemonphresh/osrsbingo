@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -51,7 +51,12 @@ import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import { isChampionForgeEnabled } from '../config/featureFlags';
-import { playSubmissionApproved, playSubmissionDenied, playTaskComplete, warmUpAudio } from '../utils/soundEngine';
+import {
+  playSubmissionApproved,
+  playSubmissionDenied,
+  playTaskComplete,
+  warmUpAudio,
+} from '../utils/soundEngine';
 import { useTimezone, fmtTs } from '../hooks/useTimezone';
 import TimezoneToggle from '../atoms/TimezoneToggle';
 import { TeamOutfitter } from '../organisms/ChampionForge/OutfittingScreen';
@@ -59,6 +64,13 @@ import laidee from '../assets/laidee.png';
 import gnomeChild from '../assets/gnomechild.png';
 import gemoji from '../assets/adventurepath-small.webp';
 import WarChestPanel from '../organisms/ChampionForge/WarChestPanel';
+import { ChampionForgeInfoModal } from '../organisms/ChampionForge/ChampionForgeInfoModal';
+import {
+  GatheringPhaseIntroModal,
+  OutfittingPhaseIntroModal,
+  CF_GATHERING_SEEN_KEY,
+  CF_OUTFITTING_SEEN_KEY,
+} from '../organisms/ChampionForge/PhaseIntroModals';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -425,7 +437,7 @@ function TaskDetailModal({
                       {isXpTask
                         ? 'Step 2 — Submit via Discord when done grinding:'
                         : isMinigameTask
-                        ? 'Submit via Discord when you\'ve hit your completion count:'
+                        ? "Submit via Discord when you've hit your completion count:"
                         : 'Submit via Discord when done in-game:'}
                     </Text>
                     <HStack spacing={2} mb={2}>
@@ -453,8 +465,20 @@ function TaskDetailModal({
                       Attach your screenshot in Discord when you run the command.
                     </Text>
                     {confirmingLeave ? (
-                      <Box p={2} bg="red.900" borderRadius="md" border="1px solid" borderColor="red.700">
-                        <Text fontSize="xs" color="red.200" mb={2}>Are you sure you want to leave this quest?</Text>
+                      <Box
+                        p={2}
+                        bg="red.900"
+                        borderRadius="md"
+                        border="1px solid"
+                        borderColor="red.700"
+                      >
+                        <Text fontSize="xs" color="red.200" mb={1}>
+                          Are you sure you want to leave this quest?
+                        </Text>
+                        <Text fontSize="xs" color="red.400" mb={2}>
+                          Any progress you've contributed stays on the task, leaving just removes
+                          you from the active list.
+                        </Text>
                         <HStack spacing={2}>
                           <Button
                             size="xs"
@@ -545,7 +569,8 @@ function TaskDetailModal({
                         )}
                         {isMinigameTask && (
                           <Text fontSize="xs" color="gray.400">
-                            • Completion count visible (post-game chatbox, adventure log, or KC counter)
+                            • Completion count visible (post-game chatbox, adventure log, or KC
+                            counter)
                           </Text>
                         )}
                       </VStack>
@@ -564,8 +589,8 @@ function TaskDetailModal({
                         </Text>
                         <Text fontSize="xs" color="gray.300">
                           Screenshot your completion message in chatbox, post-game score screen, or
-                          your adventure log showing the total count. No pre-screenshot needed — just
-                          submit once you've hit the target.
+                          your adventure log showing the total count. No pre-screenshot needed —
+                          just submit once you've hit the target.
                         </Text>
                       </Box>
                     )}
@@ -667,6 +692,7 @@ function TaskRow({
   teamMembers,
   currentUserDiscordId,
   userMemberRole,
+  isAdmin,
   onJoin,
   onLeave,
   gatheringStart,
@@ -681,15 +707,18 @@ function TaskRow({
   const othersInProgress = inProgressIds.filter((id) => id !== currentUserDiscordId);
 
   const roleUnset = !userMemberRole || userMemberRole === 'UNSET';
-  const isOnAnotherTask = !!currentUserDiscordId && Object.entries(taskProgress ?? {}).some(
-    ([tid, ids]) => tid !== task.taskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)
-  );
+  const isOnAnotherTask =
+    !!currentUserDiscordId &&
+    Object.entries(taskProgress ?? {}).some(
+      ([tid, ids]) =>
+        tid !== task.taskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)
+    );
+  // Admins bypass role checks server-side, so mirror that on the client
   const canJoin =
     !isCompleted &&
     !isMeInProgress &&
-    !roleUnset &&
     !isOnAnotherTask &&
-    (userMemberRole === 'FLEX' || userMemberRole === task.role);
+    (isAdmin || (!roleUnset && (userMemberRole === 'FLEX' || userMemberRole === task.role)));
 
   const getMemberName = (discordId) => {
     const m = (teamMembers ?? []).find((tm) => tm.discordId === discordId);
@@ -826,19 +855,21 @@ function TaskRow({
 }
 
 // ---------------------------------------------------------------------------
-// Task list grouped by role + difficulty
+// Task list by role
 // ---------------------------------------------------------------------------
 function TaskSection({
   title,
   subtitle,
   colorScheme,
   tasks,
+  groupByDifficulty,
   completedTaskIds,
   taskProgress,
   numericTaskProgress,
   teamMembers,
   currentUserDiscordId,
   userMemberRole,
+  isAdmin,
   onJoin,
   onLeave,
   gatheringStart,
@@ -855,24 +886,21 @@ function TaskSection({
 
   return (
     <Box
-      bg="gray.700"
+      bg="gray.800"
       border="1px solid"
-      borderColor="gray.600"
+      borderColor="gray.700"
+      borderLeftWidth="3px"
+      borderLeftColor={`${colorScheme}.500`}
       borderRadius="lg"
       p={3}
       display="flex"
       flexDir="column"
       h="100%"
+      maxH={{ base: '420px', lg: 'none' }}
     >
-      <HStack mb={1} justify="space-between" flexShrink={0}>
+      <HStack mb={2} justify="space-between" flexShrink={0}>
         <HStack spacing={2}>
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color="gray.400"
-            textTransform="uppercase"
-            letterSpacing="wider"
-          >
+          <Text fontSize="sm" fontWeight="bold" color="white">
             {title}
           </Text>
           <Badge colorScheme={colorScheme} fontSize="xx-small">
@@ -902,44 +930,84 @@ function TaskSection({
           scrollbarColor: '#abb8ceff transparent',
         }}
       >
-        <VStack align="stretch" spacing={2}>
-          {DIFF_ORDER.map((diff) => {
-            const diffTasks = byDiff[diff];
-            if (!diffTasks.length) return null;
-            return (
-              <Box key={diff}>
-                <Text
-                  fontSize="xs"
-                  color="gray.500"
-                  textTransform="uppercase"
-                  letterSpacing="wider"
-                  mb={1}
-                >
-                  {diff}
-                </Text>
-                <VStack align="stretch" spacing={1}>
-                  {diffTasks.map((task) => (
-                    <TaskRow
-                      key={task.taskId}
-                      task={task}
-                      isCompleted={completedTaskIds.includes(task.taskId)}
-                      taskProgress={taskProgress}
-                      numericTaskProgress={numericTaskProgress}
-                      teamMembers={teamMembers}
-                      currentUserDiscordId={currentUserDiscordId}
-                      userMemberRole={userMemberRole}
-                      onJoin={() => onJoin(task.taskId)}
-                      onLeave={() => onLeave(task.taskId)}
-                      gatheringStart={gatheringStart}
-                      gatheringEnd={gatheringEnd}
-                      eventId={eventId}
-                    />
-                  ))}
-                </VStack>
-              </Box>
-            );
-          })}
-        </VStack>
+        {groupByDifficulty ? (
+          <Accordion allowMultiple defaultIndex={[0, 1, 2]} reduceMotion>
+            {DIFF_ORDER.map((diff) => {
+              const diffTasks = byDiff[diff];
+              if (!diffTasks.length) return null;
+              const diffDone = diffTasks.filter((t) => completedTaskIds.includes(t.taskId)).length;
+              return (
+                <AccordionItem key={diff} border="none" mb={1}>
+                  <AccordionButton px={1} py={1} _hover={{ bg: 'whiteAlpha.50' }} borderRadius="md">
+                    <HStack spacing={1.5} flex={1} align="center">
+                      <Box w="8px" h="2px" bg={`${DIFF_COLOR[diff]}.400`} borderRadius="full" />
+                      <Text
+                        fontSize="xs"
+                        color={`${DIFF_COLOR[diff]}.400`}
+                        textTransform="uppercase"
+                        letterSpacing="wider"
+                      >
+                        {diff}
+                      </Text>
+                      <Badge
+                        colorScheme={DIFF_COLOR[diff]}
+                        fontSize="xx-small"
+                        variant="subtle"
+                        ml={1}
+                      >
+                        {diffDone}/{diffTasks.length}
+                      </Badge>
+                    </HStack>
+                    <AccordionIcon color="gray.500" boxSize={3} />
+                  </AccordionButton>
+                  <AccordionPanel px={0} pt={1} pb={2}>
+                    <VStack align="stretch" spacing={1}>
+                      {diffTasks.map((task) => (
+                        <TaskRow
+                          key={task.taskId}
+                          task={task}
+                          isCompleted={completedTaskIds.includes(task.taskId)}
+                          taskProgress={taskProgress}
+                          numericTaskProgress={numericTaskProgress}
+                          teamMembers={teamMembers}
+                          currentUserDiscordId={currentUserDiscordId}
+                          userMemberRole={userMemberRole}
+                          isAdmin={isAdmin}
+                          onJoin={() => onJoin(task.taskId)}
+                          onLeave={() => onLeave(task.taskId)}
+                          gatheringStart={gatheringStart}
+                          gatheringEnd={gatheringEnd}
+                          eventId={eventId}
+                        />
+                      ))}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        ) : (
+          <VStack align="stretch" spacing={1}>
+            {tasks.map((task) => (
+              <TaskRow
+                key={task.taskId}
+                task={task}
+                isCompleted={completedTaskIds.includes(task.taskId)}
+                taskProgress={taskProgress}
+                numericTaskProgress={numericTaskProgress}
+                teamMembers={teamMembers}
+                currentUserDiscordId={currentUserDiscordId}
+                userMemberRole={userMemberRole}
+                isAdmin={isAdmin}
+                onJoin={() => onJoin(task.taskId)}
+                onLeave={() => onLeave(task.taskId)}
+                gatheringStart={gatheringStart}
+                gatheringEnd={gatheringEnd}
+                eventId={eventId}
+              />
+            ))}
+          </VStack>
+        )}
       </Box>
     </Box>
   );
@@ -976,7 +1044,9 @@ function MyRoleSelector({ team, event, myDiscordId, currentRole, roleLocked, ref
   const { showToast } = useToastContext();
   const [hoveredRole, setHoveredRole] = useState(null);
   const flexRolesAllowed = event?.eventConfig?.flexRolesAllowed ?? true;
-  const flexCount = (team.members ?? []).filter((m) => m.discordId !== myDiscordId && m.role === 'FLEX').length;
+  const flexCount = (team.members ?? []).filter(
+    (m) => m.discordId !== myDiscordId && m.role === 'FLEX'
+  ).length;
   const maxFlex = Math.max(1, Math.ceil((team.members ?? []).length * 0.2));
   const flexFull = flexCount >= maxFlex;
   const [updateMembers, { loading }] = useMutation(UPDATE_CLAN_WARS_TEAM_MEMBERS, {
@@ -1066,55 +1136,61 @@ function MyRoleSelector({ team, event, myDiscordId, currentRole, roleLocked, ref
           </Text>
         </VStack>
         <SimpleGrid columns={{ base: 1, md: 3 }} spacing={3}>
-          {ROLES.filter(({ key }) => key !== 'FLEX' || flexRolesAllowed).map(({ key, label, scheme, img, desc }) => {
-            const isFlexCard = key === 'FLEX';
-            const isDisabledCard = loading || (isFlexCard && flexFull);
-            return (
-              <Box
-                key={key}
-                as="button"
-                onClick={() => !isDisabledCard && setRole(key)}
-                onMouseEnter={() => !isDisabledCard && setHoveredRole(key)}
-                onMouseLeave={() => setHoveredRole(null)}
-                p={4}
-                bg={hoveredRole === key ? `${scheme}.900` : 'blackAlpha.400'}
-                border="2px solid"
-                borderColor={hoveredRole === key ? `${scheme}.400` : `${scheme}.700`}
-                borderRadius="lg"
-                textAlign="left"
-                cursor={isDisabledCard ? 'not-allowed' : 'pointer'}
-                opacity={isDisabledCard ? 0.5 : 1}
-                transition="all 0.15s"
-                disabled={isDisabledCard}
-              >
-                <HStack spacing={3} align="center">
-                  <Box display="flex" alignItems="center" justifyContent="center" flexShrink={0}>
-                    <Image
-                      src={img}
-                      alt={label}
-                      w="64px"
-                      h="64px"
-                      objectFit="contain"
-                      style={{ imageRendering: 'pixelated' }}
-                    />
-                  </Box>
-                  <VStack align="flex-start" spacing={1} flex={1}>
-                    <Text fontSize="lg" fontWeight="bold" color={`${scheme}.300`}>
-                      {label}
-                    </Text>
-                    <Text fontSize="sm" color="gray.300" lineHeight="short" textAlign="left">
-                      {desc}
-                    </Text>
-                    {isFlexCard && (
-                      <Text fontSize="xs" color={flexFull ? 'red.400' : 'purple.400'} fontWeight="semibold">
-                        {flexCount} / {maxFlex} slots taken{flexFull ? ' — full' : ''}
+          {ROLES.filter(({ key }) => key !== 'FLEX' || flexRolesAllowed).map(
+            ({ key, label, scheme, img, desc }) => {
+              const isFlexCard = key === 'FLEX';
+              const isDisabledCard = loading || (isFlexCard && flexFull);
+              return (
+                <Box
+                  key={key}
+                  as="button"
+                  onClick={() => !isDisabledCard && setRole(key)}
+                  onMouseEnter={() => !isDisabledCard && setHoveredRole(key)}
+                  onMouseLeave={() => setHoveredRole(null)}
+                  p={4}
+                  bg={hoveredRole === key ? `${scheme}.900` : 'blackAlpha.400'}
+                  border="2px solid"
+                  borderColor={hoveredRole === key ? `${scheme}.400` : `${scheme}.700`}
+                  borderRadius="lg"
+                  textAlign="left"
+                  cursor={isDisabledCard ? 'not-allowed' : 'pointer'}
+                  opacity={isDisabledCard ? 0.5 : 1}
+                  transition="all 0.15s"
+                  disabled={isDisabledCard}
+                >
+                  <HStack spacing={3} align="center">
+                    <Box display="flex" alignItems="center" justifyContent="center" flexShrink={0}>
+                      <Image
+                        src={img}
+                        alt={label}
+                        w="64px"
+                        h="64px"
+                        objectFit="contain"
+                        style={{ imageRendering: 'pixelated' }}
+                      />
+                    </Box>
+                    <VStack align="flex-start" spacing={1} flex={1}>
+                      <Text fontSize="lg" fontWeight="bold" color={`${scheme}.300`}>
+                        {label}
                       </Text>
-                    )}
-                  </VStack>
-                </HStack>
-              </Box>
-            );
-          })}
+                      <Text fontSize="sm" color="gray.300" lineHeight="short" textAlign="left">
+                        {desc}
+                      </Text>
+                      {isFlexCard && (
+                        <Text
+                          fontSize="xs"
+                          color={flexFull ? 'red.400' : 'purple.400'}
+                          fontWeight="semibold"
+                        >
+                          {flexCount} / {maxFlex} slots taken{flexFull ? ' — full' : ''}
+                        </Text>
+                      )}
+                    </VStack>
+                  </HStack>
+                </Box>
+              );
+            }
+          )}
         </SimpleGrid>
       </VStack>
     </Box>
@@ -1148,6 +1224,37 @@ function useCountdown(target) {
 }
 
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Helpful resources
+// ---------------------------------------------------------------------------
+function ResourcesSection() {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  return (
+    <>
+      <Box
+        p={3}
+        bg="whiteAlpha.50"
+        border="1px solid"
+        borderColor="whiteAlpha.100"
+        borderRadius="md"
+      >
+        <Text fontSize="xs" fontWeight="semibold" color="gray.400" mb={2}>
+          Helpful Resources
+        </Text>
+        <HStack spacing={2} flexWrap="wrap">
+          <Button size="xs" colorScheme="yellow" variant="outline" onClick={onOpen}>
+            ℹ️ How it Works
+          </Button>
+          <Button as={RouterLink} to="/champion-forge/guide" size="xs" colorScheme="teal" variant="outline">
+            📖 Event Guide
+          </Button>
+        </HStack>
+      </Box>
+      <ChampionForgeInfoModal isOpen={isOpen} onClose={onClose} />
+    </>
+  );
+}
+
 // Submission feed — player-facing, read-only
 // ---------------------------------------------------------------------------
 const STATUS_COLOR = { PENDING: 'yellow', APPROVED: 'green', DENIED: 'red' };
@@ -1184,12 +1291,13 @@ function SubmissionFeed({ eventId, teamId }) {
 
   return (
     <Box>
-      <HStack mb={2} spacing={2} justify="space-between">
-        <HStack spacing={2}>
+      <HStack mb={2} spacing={3} align="center" justify="space-between">
+        <HStack spacing={3} align="center" flex={1}>
+          <Box w="3px" h="16px" bg="blue.400" borderRadius="full" flexShrink={0} />
           <Text
             fontSize="xs"
             fontWeight="semibold"
-            color="gray.400"
+            color="blue.300"
             textTransform="uppercase"
             letterSpacing="wider"
           >
@@ -1200,13 +1308,14 @@ function SubmissionFeed({ eventId, teamId }) {
               {pendingCount} pending
             </Badge>
           )}
+          <Box flex={1} h="1px" bg="gray.700" />
         </HStack>
         <TimezoneToggle />
       </HStack>
       <VStack
         spacing={1}
         align="stretch"
-        maxH="400px"
+        maxH="260px"
         overflowY="auto"
         css={{
           '&::-webkit-scrollbar': { width: '6px' },
@@ -1302,6 +1411,7 @@ const IS_DEV = process.env.NODE_ENV !== 'production';
 function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   const { showToast } = useToastContext();
   const [previewRole, setPreviewRole] = useState(null);
+  const [showIntro, setShowIntro] = useState(() => !localStorage.getItem(CF_GATHERING_SEEN_KEY));
 
   const [joinTask] = useMutation(JOIN_TASK_IN_PROGRESS, {
     onCompleted: refetch,
@@ -1312,10 +1422,16 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     onError: (err) => showToast(err.message ?? 'Failed to leave task', 'error'),
   });
 
-  const tasks = event.tasks ?? [];
-  const completedTaskIds = React.useMemo(() => team.completedTaskIds ?? [], [team.completedTaskIds]);
-  const taskProgress = team.taskProgress ?? {};
-  const numericTaskProgress = team.numericTaskProgress ?? {};
+  const tasks = React.useMemo(() => event.tasks ?? [], [event.tasks]);
+  const completedTaskIds = React.useMemo(
+    () => team.completedTaskIds ?? [],
+    [team.completedTaskIds]
+  );
+  const taskProgress = React.useMemo(() => team.taskProgress ?? {}, [team.taskProgress]);
+  const numericTaskProgress = React.useMemo(
+    () => team.numericTaskProgress ?? {},
+    [team.numericTaskProgress]
+  );
   const currentUserDiscordId = user?.discordUserId ?? null;
 
   const prevCompletedRef = useRef(completedTaskIds);
@@ -1378,11 +1494,12 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
   // Role is locked once the player has joined any task
   const roleLocked =
     !!currentUserDiscordId &&
-    Object.values(taskProgress).some((ids) => Array.isArray(ids) && ids.includes(currentUserDiscordId));
+    Object.values(taskProgress).some(
+      (ids) => Array.isArray(ids) && ids.includes(currentUserDiscordId)
+    );
 
   const [pendingJoinTaskId, setPendingJoinTaskId] = useState(null);
   const [pendingRejoinTaskId, setPendingRejoinTaskId] = useState(null);
-  const [pendingLeaveTaskId, setPendingLeaveTaskId] = useState(null);
 
   const handleJoin = (taskId) => {
     if (!roleLocked) {
@@ -1396,27 +1513,24 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 
   const confirmJoin = () => {
     if (pendingJoinTaskId) {
-      joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingJoinTaskId } });
+      joinTask({
+        variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingJoinTaskId },
+      });
     }
     setPendingJoinTaskId(null);
   };
 
   const confirmRejoin = () => {
     if (pendingRejoinTaskId) {
-      joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingRejoinTaskId } });
+      joinTask({
+        variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingRejoinTaskId },
+      });
     }
     setPendingRejoinTaskId(null);
   };
 
   const handleLeave = (taskId) => {
-    setPendingLeaveTaskId(taskId);
-  };
-
-  const confirmLeave = () => {
-    if (pendingLeaveTaskId) {
-      leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingLeaveTaskId } });
-    }
-    setPendingLeaveTaskId(null);
+    leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
   };
 
   const sharedTaskProps = {
@@ -1426,6 +1540,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     teamMembers: team.members,
     currentUserDiscordId,
     userMemberRole: effectiveRole,
+    isAdmin,
     onJoin: handleJoin,
     onLeave: handleLeave,
     gatheringStart: event.gatheringStart,
@@ -1560,16 +1675,19 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       {/* Active Quest Log */}
       {questEntries.length > 0 && (
         <Box>
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color="gray.400"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            mb={3}
-          >
-            Active Quests
-          </Text>
+          <HStack spacing={3} mb={3} align="center">
+            <Box w="3px" h="16px" bg="green.400" borderRadius="full" flexShrink={0} />
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="green.300"
+              textTransform="uppercase"
+              letterSpacing="wider"
+            >
+              Active Quests
+            </Text>
+            <Box flex={1} h="1px" bg="gray.700" />
+          </HStack>
           <SimpleGrid columns={{ base: 1, sm: 2, md: 3, xl: 4 }} spacing={3}>
             {questEntries.map(({ taskId, task, assignedPlayers, progress, total }) => (
               <Box
@@ -1585,16 +1703,10 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 transition="border-color 0.15s"
               >
                 <HStack mb={1} spacing={1} flexWrap="wrap">
-                  <Badge
-                    colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'}
-                    fontSize="2xs"
-                  >
+                  <Badge colorScheme={task.role === 'PVMER' ? 'orange' : 'teal'} fontSize="2xs">
                     {task.role === 'PVMER' ? 'PvM' : 'Skill'}
                   </Badge>
-                  <Badge
-                    colorScheme={DIFF_COLOR[task.difficulty] ?? 'gray'}
-                    fontSize="2xs"
-                  >
+                  <Badge colorScheme={DIFF_COLOR[task.difficulty] ?? 'gray'} fontSize="2xs">
                     {task.difficulty}
                   </Badge>
                 </HStack>
@@ -1623,7 +1735,12 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                   </>
                 )}
                 <VStack align="flex-start" spacing={0} mt={1}>
-                  <Text fontSize="2xs" color="gray.500" textTransform="uppercase" letterSpacing="wider">
+                  <Text
+                    fontSize="2xs"
+                    color="gray.500"
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                  >
                     Adventurers
                   </Text>
                   <HStack spacing={1} flexWrap="wrap">
@@ -1632,10 +1749,13 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                         key={p.discordId}
                         fontSize="xs"
                         color={
-                          p.role === 'PVMER' ? 'orange.300'
-                          : p.role === 'SKILLER' ? 'teal.300'
-                          : p.role === 'FLEX' || p.role === 'ANY' ? 'purple.300'
-                          : 'gray.300'
+                          p.role === 'PVMER'
+                            ? 'orange.300'
+                            : p.role === 'SKILLER'
+                            ? 'teal.300'
+                            : p.role === 'FLEX' || p.role === 'ANY'
+                            ? 'purple.300'
+                            : 'gray.300'
                         }
                       >
                         {p.rsn || p.username}
@@ -1655,19 +1775,28 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
           onClose={() => setSelectedQuestTaskId(null)}
           task={selectedQuestTask}
           isCompleted={completedTaskIds.includes(selectedQuestTaskId)}
-          isMeInProgress={!!(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId))}
+          isMeInProgress={!!taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId)}
           canJoin={
             !completedTaskIds.includes(selectedQuestTaskId) &&
-            !(taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId)) &&
-            !!effectiveRole && effectiveRole !== 'UNSET' &&
-            !Object.entries(taskProgress).some(([tid, ids]) => tid !== selectedQuestTaskId && Array.isArray(ids) && ids.includes(currentUserDiscordId)) &&
-            (effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)
+            !taskProgress[selectedQuestTaskId]?.includes(currentUserDiscordId) &&
+            !Object.entries(taskProgress).some(
+              ([tid, ids]) =>
+                tid !== selectedQuestTaskId &&
+                Array.isArray(ids) &&
+                ids.includes(currentUserDiscordId)
+            ) &&
+            (isAdmin ||
+              (!!effectiveRole &&
+                effectiveRole !== 'UNSET' &&
+                (effectiveRole === 'FLEX' || effectiveRole === selectedQuestTask.role)))
           }
-          othersInProgress={(taskProgress[selectedQuestTaskId] ?? []).filter((id) => id !== currentUserDiscordId)}
+          othersInProgress={(taskProgress[selectedQuestTaskId] ?? []).filter(
+            (id) => id !== currentUserDiscordId
+          )}
           inProgressIds={taskProgress[selectedQuestTaskId] ?? []}
           getMemberName={getMemberName}
           numericTaskProgress={numericTaskProgress}
-          onJoin={handleJoin}
+          onJoin={() => handleJoin(selectedQuestTaskId)}
           onLeave={() => handleLeave(selectedQuestTaskId)}
           handleCopyCommand={handleQuestCopyCommand}
           gatheringStart={event.gatheringStart}
@@ -1678,9 +1807,23 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       )}
 
       {/* Two-column layout: quest logs + sidebar */}
-      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="stretch">
+      <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} alignItems="start">
         {/* Quest logs — PvM and Skilling side by side, takes 2/3 */}
-        <Box gridColumn={{ lg: 'span 2' }} h="100%">
+        <Box gridColumn={{ lg: 'span 2' }} order={{ base: 2, lg: 1 }}>
+          {/* Full Task List section header — lives inside the ordered box so it follows the tasks on mobile */}
+          <HStack spacing={3} align="center" mb={3}>
+            <Box w="3px" h="16px" bg="purple.400" borderRadius="full" flexShrink={0} />
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color="purple.300"
+              textTransform="uppercase"
+              letterSpacing="wider"
+            >
+              Full Task List
+            </Text>
+            <Box flex={1} h="1px" bg="gray.700" />
+          </HStack>
           {tasks.length === 0 ? (
             <Center h="200px">
               <Text color="gray.500">No tasks assigned to this event yet.</Text>
@@ -1690,16 +1833,17 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
               {pvmerTasks.length > 0 && (
                 <TaskSection
                   title="PvM Tasks"
-                  subtitle="Drops: weapon, helm, chest, legs, or misc"
+                  subtitle="Drops: weapon, helm, chest, legs, gloves, boots, or trinket"
                   colorScheme="orange"
                   tasks={pvmerTasks}
+                  groupByDifficulty
                   {...sharedTaskProps}
                 />
               )}
               {skillerTasks.length > 0 && (
                 <TaskSection
                   title="Skilling Tasks"
-                  subtitle="Drops: consumable, ring, amulet, cape, or shield"
+                  subtitle="Drops: consumables, rings, amulets, capes, or shields"
                   colorScheme="teal"
                   tasks={skillerTasks}
                   {...sharedTaskProps}
@@ -1709,19 +1853,26 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
           )}
         </Box>
 
-        {/* Right sidebar — war chest + submissions */}
-        <VStack align="stretch" spacing={4}>
+        {/* Right sidebar — roster + war chest + submissions */}
+        <VStack align="stretch" spacing={4} order={{ base: 1, lg: 2 }}>
           {/* Team roster */}
           <Box>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.400"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={2}
-            >
-              Team Roster
+            <HStack spacing={3} mb={2} align="center">
+              <Box w="3px" h="16px" bg="orange.400" borderRadius="full" flexShrink={0} />
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="orange.300"
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
+                Team Roster
+              </Text>
+              <Box flex={1} h="1px" bg="gray.700" />
+            </HStack>
+            <Text fontSize="xs" color="gray.500" mb={2}>
+              Outlined roles are still flexible, solid means locked in. Coordinate with your team
+              before diving in.
             </Text>
             <VStack
               align="stretch"
@@ -1742,47 +1893,71 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
               }}
             >
               {(team.members ?? []).filter((m) => typeof m !== 'string').length === 0 ? (
-                <Text fontSize="xs" color="gray.600">No members yet.</Text>
+                <Text fontSize="xs" color="gray.600">
+                  No members yet.
+                </Text>
               ) : (
                 (team.members ?? [])
                   .filter((m) => typeof m !== 'string')
                   .sort((a, b) => {
-                    const order = { PVMER: 0, SKILLER: 1, FLEX: 2, ANY: 3 };
-                    return (order[a.role] ?? 4) - (order[b.role] ?? 4);
+                    const order = { PVMER: 0, SKILLER: 1, FLEX: 2, ANY: 3, UNSET: 4 };
+                    return (order[a.role] ?? 5) - (order[b.role] ?? 5);
                   })
-                  .map((m) => (
-                    <HStack key={m.discordId} spacing={2} justify="space-between">
-                      <Text fontSize="xs" color="gray.300" isTruncated>
-                        {m.rsn || m.username || m.discordId}
-                      </Text>
-                      <Badge
-                        fontSize="2xs"
-                        colorScheme={
-                          m.role === 'PVMER' ? 'orange'
-                          : m.role === 'SKILLER' ? 'teal'
-                          : 'purple'
-                        }
-                        flexShrink={0}
-                      >
-                        {m.role === 'ANY' ? 'FLEX' : m.role}
-                      </Badge>
-                    </HStack>
-                  ))
+                  .map((m) => {
+                    const isLocked = Object.values(taskProgress).some(
+                      (ids) => Array.isArray(ids) && ids.includes(m.discordId)
+                    );
+                    const isUnset = !m.role || m.role === 'UNSET';
+                    const roleLabel = isUnset ? '?' : m.role === 'ANY' ? 'FLEX' : m.role;
+                    const roleScheme =
+                      m.role === 'PVMER'
+                        ? 'orange'
+                        : m.role === 'SKILLER'
+                        ? 'teal'
+                        : isUnset
+                        ? 'gray'
+                        : 'purple';
+                    return (
+                      <HStack key={m.discordId} spacing={2} justify="space-between">
+                        <Text fontSize="xs" color={isUnset ? 'gray.500' : 'gray.300'} isTruncated>
+                          {m.rsn || m.username || m.discordId}
+                        </Text>
+                        <HStack spacing={1} flexShrink={0}>
+                          <Badge
+                            fontSize="2xs"
+                            colorScheme={roleScheme}
+                            variant={isLocked ? 'solid' : 'outline'}
+                            opacity={isUnset ? 0.5 : 1}
+                          >
+                            {roleLabel}
+                          </Badge>
+                          {isLocked && (
+                            <Text fontSize="2xs" color="gray.500" title="Role locked in">
+                              🔒
+                            </Text>
+                          )}
+                        </HStack>
+                      </HStack>
+                    );
+                  })
               )}
             </VStack>
           </Box>
 
           <Box>
-            <Text
-              fontSize="xs"
-              fontWeight="semibold"
-              color="gray.400"
-              textTransform="uppercase"
-              letterSpacing="wider"
-              mb={2}
-            >
-              War Chest
-            </Text>
+            <HStack spacing={3} mb={2} align="center">
+              <Box w="3px" h="16px" bg="yellow.400" borderRadius="full" flexShrink={0} />
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color="yellow.300"
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
+                War Chest
+              </Text>
+              <Box flex={1} h="1px" bg="gray.700" />
+            </HStack>
             <Box
               maxH="360px"
               overflowY="auto"
@@ -1798,6 +1973,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             </Box>
           </Box>
           <SubmissionFeed eventId={event.eventId} teamId={team.teamId} />
+          <ResourcesSection />
         </VStack>
       </SimpleGrid>
 
@@ -1811,17 +1987,24 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
             <VStack align="stretch" spacing={4}>
               <Text color="gray.300">
                 Once you join a task, your role is locked in as{' '}
-                <Text as="span" fontWeight="bold" color={
-                  userMemberRole === 'PVMER' ? 'orange.300' :
-                  userMemberRole === 'SKILLER' ? 'teal.300' : 'purple.300'
-                }>
+                <Text
+                  as="span"
+                  fontWeight="bold"
+                  color={
+                    userMemberRole === 'PVMER'
+                      ? 'orange.300'
+                      : userMemberRole === 'SKILLER'
+                      ? 'teal.300'
+                      : 'purple.300'
+                  }
+                >
                   {userMemberRole}
                 </Text>
                 . You won't be able to switch roles after this.
               </Text>
               <Text fontSize="sm" color="gray.500">
-                Joining a task lets your team see who's working on what — you can move yourself to
-                a different task at any time, but your role stays fixed.
+                Joining a task lets your team see who's working on what — you can move yourself to a
+                different task at any time, but your role stays fixed.
               </Text>
               <HStack spacing={3} justify="flex-end">
                 <Button variant="ghost" size="sm" onClick={() => setPendingJoinTaskId(null)}>
@@ -1837,10 +2020,17 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       </Modal>
 
       {/* Join task modal (role already locked) */}
-      <Modal isOpen={!!pendingRejoinTaskId} onClose={() => setPendingRejoinTaskId(null)} isCentered size="sm">
+      <Modal
+        isOpen={!!pendingRejoinTaskId}
+        onClose={() => setPendingRejoinTaskId(null)}
+        isCentered
+        size="sm"
+      >
         <ModalOverlay />
         <ModalContent bg="gray.800" border="1px solid" borderColor="green.700">
-          <ModalHeader color="green.200" fontSize="md">Join this task?</ModalHeader>
+          <ModalHeader color="green.200" fontSize="md">
+            Join this task?
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
             <VStack align="stretch" spacing={4}>
@@ -1861,33 +2051,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
         </ModalContent>
       </Modal>
 
-      {/* Leave task confirmation modal */}
-      <Modal isOpen={!!pendingLeaveTaskId} onClose={() => setPendingLeaveTaskId(null)} isCentered size="sm">
-        <ModalOverlay />
-        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.600">
-          <ModalHeader color="white" fontSize="md">Leave this task?</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack align="stretch" spacing={4}>
-              <Text color="gray.300" fontSize="sm">
-                Any contributions you've already made to this task still count — leaving just
-                removes you from the active tracker so your team knows you've moved on.
-              </Text>
-              <Text color="gray.500" fontSize="xs">
-                You can rejoin this task or pick up a different one at any time.
-              </Text>
-              <HStack spacing={3} justify="flex-end">
-                <Button variant="ghost" size="sm" onClick={() => setPendingLeaveTaskId(null)}>
-                  Stay
-                </Button>
-                <Button colorScheme="red" variant="outline" size="sm" onClick={confirmLeave}>
-                  Leave task
-                </Button>
-              </HStack>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      <GatheringPhaseIntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} />
     </VStack>
   );
 }
@@ -1896,6 +2060,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
 // OUTFITTING phase
 // ---------------------------------------------------------------------------
 function OutfittingPhaseBarracks({ event, team, isAdmin }) {
+  const [showIntro, setShowIntro] = useState(() => !localStorage.getItem(CF_OUTFITTING_SEEN_KEY));
   const outfittingCountdown = useCountdown(event.outfittingEnd);
   return (
     <VStack align="stretch" spacing={6}>
@@ -1919,7 +2084,13 @@ function OutfittingPhaseBarracks({ event, team, isAdmin }) {
       </Box>
 
       {isAdmin && (
-        <Alert status="warning" borderRadius="md" bg="yellow.900" borderColor="yellow.700" border="1px solid">
+        <Alert
+          status="warning"
+          borderRadius="md"
+          bg="yellow.900"
+          borderColor="yellow.700"
+          border="1px solid"
+        >
           <AlertIcon color="yellow.400" />
           <Box>
             <Text color="yellow.200" fontWeight="semibold" fontSize="sm">
@@ -1927,7 +2098,8 @@ function OutfittingPhaseBarracks({ event, team, isAdmin }) {
             </Text>
             <Text color="yellow.300" fontSize="xs" mt={0.5}>
               The battle phase won't start automatically when outfitting ends. Once all captains
-              have locked their loadouts, go to the event page and hit <strong>Start Battle Phase</strong>.
+              have locked their loadouts, go to the event page and hit{' '}
+              <strong>Start Battle Phase</strong>.
             </Text>
           </Box>
         </Alert>
@@ -1943,6 +2115,8 @@ function OutfittingPhaseBarracks({ event, team, isAdmin }) {
       )}
 
       <TeamOutfitter team={team} event={event} isAdmin={isAdmin} />
+
+      <OutfittingPhaseIntroModal isOpen={showIntro} onClose={() => setShowIntro(false)} />
     </VStack>
   );
 }
@@ -2022,7 +2196,9 @@ export default function ChampionForgeBarracksPage() {
   const { eventId, teamId } = useParams();
   const { user } = useAuth();
 
-  useEffect(() => { warmUpAudio(); }, []);
+  useEffect(() => {
+    warmUpAudio();
+  }, []);
 
   const { data, loading, error, refetch } = useQuery(GET_CLAN_WARS_EVENT, {
     variables: { eventId },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -16,6 +16,13 @@ import {
   Code,
   SimpleGrid,
   Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  Switch,
+  FormLabel,
+  FormControl,
 } from '@chakra-ui/react';
 import { useTimezone } from '../../hooks/useTimezone';
 import {
@@ -45,20 +52,38 @@ import WarChestPanel from './WarChestPanel';
 import TaskGroupItem from './TaskGroupItem';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
-const COMPLETED_PAGE_SIZE = 5;
 
-export default function GatheringPhase({ event, isAdmin, refetch }) {
+export default function GatheringPhase({
+  event,
+  isAdmin,
+  refetch,
+  showAdminTab: showAdminTabProp,
+  isRefsPanel = false,
+  onPendingCountChange,
+}) {
+  const showAdminTab = showAdminTabProp !== undefined ? showAdminTabProp : isAdmin;
   const { user } = useAuth();
   const { showToast } = useToastContext();
   const { utc } = useTimezone();
 
-  useEffect(() => { warmUpAudio(); }, []);
+  useEffect(() => {
+    warmUpAudio();
+  }, []);
 
-  const [showAllCompleted, setShowAllCompleted] = useState(false);
+  const [pendingNewSubs, setPendingNewSubs] = useState(0);
+  const [stableGroupOrder, setStableGroupOrder] = useState(null);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const audioUnlockedRef = useRef(false);
+  const soundEnabledRef = useRef(false);
+  soundEnabledRef.current = soundEnabled;
 
   // openKeys tracks which taskId_teamId accordion items are expanded
   const [openKeys, setOpenKeys] = useState(new Set());
   const openKeysInitializedRef = useRef(false);
+  const [completedOpenKeys, setCompletedOpenKeys] = useState(new Set());
+  const [isCompletedOpen, setIsCompletedOpen] = useState(false);
+  const [reviewedOpenKeys, setReviewedOpenKeys] = useState(new Set());
+  const [isReviewedOpen, setIsReviewedOpen] = useState(false);
 
   // Incremented after mutations so open TaskGroupItems know to refetch their subs
   const [subsRefetchSignal, setSubsRefetchSignal] = useState(0);
@@ -118,9 +143,15 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   useSubscription(CLAN_WARS_SUBMISSION_ADDED, {
     variables: { eventId: event.eventId },
     onData: () => {
-      playSubmissionIncoming();
-      triggerSubsRefetch();
-      showToast('New submission!', 'info');
+      if (isRefsPanel) {
+        setPendingNewSubs((n) => n + 1);
+        if (soundEnabledRef.current && audioUnlockedRef.current) playSubmissionIncoming();
+        showToast('New submission!', 'info');
+      } else {
+        playSubmissionIncoming();
+        triggerSubsRefetch();
+        showToast('New submission!', 'info');
+      }
     },
   });
   useSubscription(CLAN_WARS_SUBMISSION_REVIEWED, {
@@ -146,33 +177,67 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
   });
 
   const preScreenshots = prescreensData?.getClanWarsPreScreenshots ?? [];
-  const summaries = summariesData?.getClanWarsSubmissionSummaries ?? [];
+  const summaries = useMemo(
+    () => summariesData?.getClanWarsSubmissionSummaries ?? [],
+    [summariesData]
+  );
   const tasks = event.tasks ?? [];
 
-  // Build sorted visible groups from summaries
-  const relevantSummaries = summaries
-    .filter((s) => s.pendingCount > 0 || s.approvedCount > 0)
-    .sort((a, b) => {
-      const teamA = event.teams?.find((t) => t.teamId === a.teamId);
-      const teamB = event.teams?.find((t) => t.teamId === b.teamId);
-      const completedA = teamA?.completedTaskIds?.includes(a.taskId) ?? false;
-      const completedB = teamB?.completedTaskIds?.includes(b.taskId) ?? false;
-      if (completedA !== completedB) return completedA ? 1 : -1;
-      return b.pendingCount - a.pendingCount;
-    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const activeSummaries = useMemo(
+    () =>
+      summaries
+        .filter((s) => {
+          if (!(s.pendingCount > 0)) return false;
+          const team = event.teams?.find((t) => t.teamId === s.teamId);
+          return !(team?.completedTaskIds?.includes(s.taskId) ?? false);
+        })
+        .sort((a, b) => b.pendingCount - a.pendingCount),
+    [summaries, event.teams]
+  ); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const activeSummaries = relevantSummaries.filter((s) => {
-    const team = event.teams?.find((t) => t.teamId === s.teamId);
-    return !(team?.completedTaskIds?.includes(s.taskId) ?? false);
-  });
-  const completedSummaries = relevantSummaries.filter((s) => {
-    const team = event.teams?.find((t) => t.teamId === s.teamId);
-    return team?.completedTaskIds?.includes(s.taskId) ?? false;
-  });
-  const visibleCompleted = showAllCompleted
-    ? completedSummaries
-    : completedSummaries.slice(0, COMPLETED_PAGE_SIZE);
-  const visibleSummaries = [...activeSummaries, ...visibleCompleted];
+  const reviewedSummaries = useMemo(
+    () =>
+      summaries.filter((s) => {
+        if (!(s.pendingCount === 0 && s.approvedCount > 0)) return false;
+        const team = event.teams?.find((t) => t.teamId === s.teamId);
+        return !(team?.completedTaskIds?.includes(s.taskId) ?? false);
+      }),
+    [summaries, event.teams] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const completedSummaries = useMemo(
+    () =>
+      summaries.filter((s) => {
+        if (!(s.pendingCount > 0 || s.approvedCount > 0)) return false;
+        const team = event.teams?.find((t) => t.teamId === s.teamId);
+        return !!(team?.completedTaskIds?.includes(s.taskId) ?? false);
+      }),
+    [summaries, event.teams]
+  ); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const visibleSummaries = useMemo(() => [...activeSummaries], [activeSummaries]);
+
+  const sortedVisibleSummaries = useMemo(() => {
+    if (!isRefsPanel || !stableGroupOrder) return visibleSummaries;
+    const keyToSummary = Object.fromEntries(
+      visibleSummaries.map((s) => [`${s.taskId}_${s.teamId}`, s])
+    );
+    const ordered = stableGroupOrder.map((k) => keyToSummary[k]).filter(Boolean);
+    const brandNew = visibleSummaries.filter(
+      (s) => !stableGroupOrder.includes(`${s.taskId}_${s.teamId}`)
+    );
+    return [...brandNew, ...ordered];
+  }, [isRefsPanel, stableGroupOrder, visibleSummaries]);
+
+  // Load sound pref on mount
+  useEffect(() => {
+    if (isRefsPanel && localStorage.getItem('cfRefs_sound_enabled') === 'true') {
+      setSoundEnabled(true);
+      audioUnlockedRef.current = true;
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Initialize open state: active groups open, completed closed
   useEffect(() => {
@@ -182,11 +247,47 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
     }
   }, [summaries.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openIndices = visibleSummaries
+  // Stable group order: snapshot on first load, re-snapshot after manual load
+  useEffect(() => {
+    if (!isRefsPanel) return;
+    if (stableGroupOrder === null && visibleSummaries.length > 0) {
+      setStableGroupOrder(visibleSummaries.map((s) => `${s.taskId}_${s.teamId}`));
+    }
+  }, [visibleSummaries, stableGroupOrder]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch + reset stable order when tab regains focus
+  useEffect(() => {
+    if (!isRefsPanel) return;
+    const handleRefresh = () => {
+      setPendingNewSubs(0);
+      setStableGroupOrder(null);
+      triggerSubsRefetch();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') handleRefresh();
+    };
+    window.addEventListener('focus', handleRefresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [isRefsPanel, triggerSubsRefetch]);
+
+  const openIndices = sortedVisibleSummaries
     .map((s, i) => (openKeys.has(`${s.taskId}_${s.teamId}`) ? i : -1))
     .filter((i) => i !== -1);
 
+  const completedOpenIndices = completedSummaries
+    .map((s, i) => (completedOpenKeys.has(`${s.taskId}_${s.teamId}`) ? i : -1))
+    .filter((i) => i !== -1);
+
   const pendingCount = summaries.reduce((acc, s) => acc + s.pendingCount, 0);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    onPendingCountChange?.(pendingCount);
+  }, [pendingCount, onPendingCountChange]);
 
   const gatheringEnded = event.gatheringEnd ? new Date(event.gatheringEnd) <= new Date() : false;
 
@@ -226,31 +327,42 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
     });
   };
 
+  const handleLoadNewSubs = useCallback(() => {
+    setPendingNewSubs(0);
+    setStableGroupOrder(null);
+    triggerSubsRefetch();
+  }, [triggerSubsRefetch]);
+
+  const handleEnableSound = useCallback(() => {
+    audioUnlockedRef.current = true;
+    setSoundEnabled(true);
+    localStorage.setItem('cfRefs_sound_enabled', 'true');
+    warmUpAudio();
+    playSubmissionIncoming();
+  }, []);
+
+  const handleDisableSound = useCallback(() => {
+    setSoundEnabled(false);
+    localStorage.setItem('cfRefs_sound_enabled', 'false');
+  }, []);
+
   return (
     <VStack align="stretch" spacing={4} w="100%" minW={0}>
       {/* ── Admin controls ── */}
       {isAdmin && pendingCount > 0 && (
-        <HStack justify="flex-end">
+        <HStack justify="center">
           <Badge colorScheme="yellow" fontSize="sm" px={3} py={1}>
-            {pendingCount} pending
+            {pendingCount} pending submissions
           </Badge>
         </HStack>
       )}
-
-      <HStack spacing={3} align="center">
-        <Divider borderColor="gray.600" />
-        <Text fontSize="xs" color="gray.500" whiteSpace="nowrap" fontStyle="italic">
-          ↓ admin / ref eyes only ↓
-        </Text>
-        <Divider borderColor="gray.600" />
-      </HStack>
 
       <Tabs
         colorScheme="purple"
         variant="enclosed"
         w="100%"
         minW={0}
-        defaultIndex={isAdmin && gatheringEnded ? 2 : 0}
+        defaultIndex={showAdminTab && gatheringEnded && !isRefsPanel ? 2 : 0}
       >
         <TabList borderColor="gray.600">
           <Tab
@@ -277,7 +389,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
           >
             War Chests
           </Tab>
-          {isAdmin && (
+          {showAdminTab && (
             <Tab
               fontSize="sm"
               color="gray.400"
@@ -297,6 +409,26 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
           {/* ─── Submissions tab ─── */}
           <TabPanel px={0} w="100%">
             <HStack mb={3} justify="flex-end" spacing={3}>
+              {isRefsPanel && (
+                <FormControl display="flex" alignItems="center" gap={2} w="auto">
+                  <Switch
+                    id="cf-sound"
+                    colorScheme="green"
+                    isChecked={soundEnabled}
+                    onChange={soundEnabled ? handleDisableSound : handleEnableSound}
+                    size="sm"
+                  />
+                  <FormLabel
+                    htmlFor="cf-sound"
+                    mb={0}
+                    fontSize="sm"
+                    color="gray.300"
+                    cursor="pointer"
+                  >
+                    Sound
+                  </FormLabel>
+                </FormControl>
+              )}
               <TimezoneToggle />
               {IS_DEV && (
                 <Button
@@ -310,7 +442,93 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
               )}
             </HStack>
 
-            {visibleSummaries.length === 0 ? (
+            {isAdmin && (
+              <Box
+                bg="whiteAlpha.50"
+                border="1px solid"
+                borderColor="whiteAlpha.100"
+                borderRadius="lg"
+                p={4}
+                mb={2}
+              >
+                <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={3}>
+                  How submissions work
+                </Text>
+                <VStack align="stretch" spacing={2}>
+                  <Text fontSize="xs" color="gray.400">
+                    <Text as="span" color="white" fontWeight="semibold">
+                      Submitting:{' '}
+                    </Text>
+                    Players submit via Discord with{' '}
+                    <Code fontSize="xs" bg="gray.900" color="cyan.300" px={1} borderRadius="sm">
+                      !cfsubmit &lt;taskId&gt;
+                    </Code>{' '}
+                    and a screenshot attached. Pre-screenshots use{' '}
+                    <Code fontSize="xs" bg="gray.900" color="cyan.300" px={1} borderRadius="sm">
+                      !cfpresubmit &lt;taskId&gt;
+                    </Code>{' '}
+                    and land in the prescreenshots stash to verify starting state before the grind.
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    <Text as="span" color="orange.300" fontWeight="semibold">
+                      PvM tasks:{' '}
+                    </Text>
+                    Check the drop against the Allowed Drops list on the task. When approving,
+                    assign the reward slot that matches the item (i.e. Serpentine Visage or Torva
+                    Helm = helm, Scythe or Tumeken's Shadow = weapon, Bandos Chestplate = chest,
+                    Bandos Tassets = legs, anything else = misc). Not sure? Ask a fellow ref, or
+                    just go with misc / random.
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    <Text as="span" color="teal.300" fontWeight="semibold">
+                      Skilling tasks:{' '}
+                    </Text>
+                    Verify the XP gain or completion count in the screenshot. Skilling rewards are
+                    awarded randomly regardless of slot. Use "no reward" when approving a
+                    contribution that doesn't earn anything yet, like multiple teammates chipping
+                    away at the same shared goal.
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    <Text as="span" color="blue.300" fontWeight="semibold">
+                      Progress slider:{' '}
+                    </Text>
+                    For tasks with a quantity target, drag the slider inside the task accordion and
+                    hit Save as the team advances toward the goal.
+                  </Text>
+                  <Text fontSize="xs" color="gray.400">
+                    <Text as="span" color="green.300" fontWeight="semibold">
+                      Mark complete:{' '}
+                    </Text>
+                    Once the task is fully done, use the Complete Task button (requires at least one
+                    approved submission). This locks the task and grants the team the points.
+                  </Text>
+                </VStack>
+              </Box>
+            )}
+
+            {isRefsPanel && pendingNewSubs > 0 && (
+              <Box
+                mb={3}
+                px={4}
+                py={2}
+                borderRadius="md"
+                bg="teal.700"
+                _hover={{ bg: 'teal.600' }}
+                cursor="pointer"
+                onClick={handleLoadNewSubs}
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Text fontSize="sm" fontWeight="semibold" color="white">
+                  {pendingNewSubs} new submission{pendingNewSubs !== 1 ? 's' : ''} — click to load
+                </Text>
+              </Box>
+            )}
+
+            {sortedVisibleSummaries.length === 0 &&
+            reviewedSummaries.length === 0 &&
+            completedSummaries.length === 0 ? (
               <Box
                 p={6}
                 bg="gray.800"
@@ -339,7 +557,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
                       new Set(
                         newIndices
                           .map((i) => {
-                            const s = visibleSummaries[i];
+                            const s = sortedVisibleSummaries[i];
                             return s ? `${s.taskId}_${s.teamId}` : null;
                           })
                           .filter(Boolean)
@@ -347,7 +565,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
                     );
                   }}
                 >
-                  {visibleSummaries.map((summary) => {
+                  {sortedVisibleSummaries.map((summary) => {
                     const key = `${summary.taskId}_${summary.teamId}`;
                     return (
                       <TaskGroupItem
@@ -385,29 +603,162 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
                   })}
                 </Accordion>
 
-                {!showAllCompleted && completedSummaries.length > COMPLETED_PAGE_SIZE && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    color="gray.400"
-                    onClick={() => setShowAllCompleted(true)}
-                    w="100%"
-                    mt={1}
+                {reviewedSummaries.length > 0 && (
+                  <Accordion
+                    allowToggle
+                    mt={2}
+                    onChange={(indices) => setIsReviewedOpen(indices.length > 0)}
                   >
-                    Show {completedSummaries.length - COMPLETED_PAGE_SIZE} more completed tasks
-                  </Button>
+                    <AccordionItem border="1px solid" borderColor="blue.900" borderRadius="md">
+                      <AccordionButton px={4} py={3} _hover={{ bg: 'gray.800' }} borderRadius="md">
+                        <HStack flex={1} spacing={2}>
+                          <Text fontSize="sm" fontWeight="semibold" color="blue.300">
+                            Active Tasks
+                          </Text>
+                          <Badge colorScheme="blue" fontSize="xs">
+                            {reviewedSummaries.length}
+                          </Badge>
+                        </HStack>
+                        <AccordionIcon color="gray.400" />
+                      </AccordionButton>
+                      <AccordionPanel px={0} pb={2}>
+                        <Accordion
+                          allowMultiple
+                          index={reviewedSummaries
+                            .map((s, i) =>
+                              reviewedOpenKeys.has(`${s.taskId}_${s.teamId}`) ? i : null
+                            )
+                            .filter((i) => i !== null)}
+                          onChange={(newIndices) =>
+                            setReviewedOpenKeys(
+                              new Set(
+                                newIndices
+                                  .map((i) => {
+                                    const s = reviewedSummaries[i];
+                                    return s ? `${s.taskId}_${s.teamId}` : null;
+                                  })
+                                  .filter(Boolean)
+                              )
+                            )
+                          }
+                        >
+                          {reviewedSummaries.map((summary) => {
+                            const key = `${summary.taskId}_${summary.teamId}`;
+                            return (
+                              <TaskGroupItem
+                                key={key}
+                                eventId={event.eventId}
+                                taskId={summary.taskId}
+                                teamId={summary.teamId}
+                                task={tasks.find((t) => t.taskId === summary.taskId)}
+                                team={event.teams?.find((t) => t.teamId === summary.teamId)}
+                                summary={summary}
+                                isAdmin={isAdmin}
+                                isOpen={isReviewedOpen && reviewedOpenKeys.has(key)}
+                                prescreens={preScreenshots}
+                                guildId={event.guildId}
+                                handleReview={handleReview}
+                                onUndoApproval={(submissionId) =>
+                                  undoSubmissionApprovalMutation({ variables: { submissionId } })
+                                }
+                                onUndoTaskComplete={({ teamId, taskId }) =>
+                                  undoTaskCompleteMutation({
+                                    variables: { eventId: event.eventId, teamId, taskId },
+                                  })
+                                }
+                                onMarkTaskComplete={({ teamId, taskId }) =>
+                                  markTaskComplete({
+                                    variables: { eventId: event.eventId, teamId, taskId },
+                                  })
+                                }
+                                subsRefetchSignal={subsRefetchSignal}
+                                onEventRefetch={refetch}
+                                utc={utc}
+                                tasks={tasks}
+                              />
+                            );
+                          })}
+                        </Accordion>
+                      </AccordionPanel>
+                    </AccordionItem>
+                  </Accordion>
                 )}
-                {showAllCompleted && completedSummaries.length > COMPLETED_PAGE_SIZE && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    color="gray.400"
-                    onClick={() => setShowAllCompleted(false)}
-                    w="100%"
-                    mt={1}
+
+                {completedSummaries.length > 0 && (
+                  <Accordion
+                    allowToggle
+                    mt={2}
+                    onChange={(indices) => setIsCompletedOpen(indices.length > 0)}
                   >
-                    Show fewer
-                  </Button>
+                    <AccordionItem border="1px solid" borderColor="green.900" borderRadius="md">
+                      <AccordionButton px={4} py={3} _hover={{ bg: 'gray.800' }} borderRadius="md">
+                        <HStack flex={1} spacing={2}>
+                          <Text fontSize="sm" fontWeight="semibold" color="green.300">
+                            Completed Tasks
+                          </Text>
+                          <Badge colorScheme="green" fontSize="xs">
+                            {completedSummaries.length}
+                          </Badge>
+                        </HStack>
+                        <AccordionIcon color="gray.400" />
+                      </AccordionButton>
+                      <AccordionPanel px={0} pb={2}>
+                        <Accordion
+                          allowMultiple
+                          index={completedOpenIndices}
+                          onChange={(newIndices) =>
+                            setCompletedOpenKeys(
+                              new Set(
+                                newIndices
+                                  .map((i) => {
+                                    const s = completedSummaries[i];
+                                    return s ? `${s.taskId}_${s.teamId}` : null;
+                                  })
+                                  .filter(Boolean)
+                              )
+                            )
+                          }
+                        >
+                          {completedSummaries.map((summary) => {
+                            const key = `${summary.taskId}_${summary.teamId}`;
+                            return (
+                              <TaskGroupItem
+                                key={key}
+                                eventId={event.eventId}
+                                taskId={summary.taskId}
+                                teamId={summary.teamId}
+                                task={tasks.find((t) => t.taskId === summary.taskId)}
+                                team={event.teams?.find((t) => t.teamId === summary.teamId)}
+                                summary={summary}
+                                isAdmin={isAdmin}
+                                isOpen={isCompletedOpen && completedOpenKeys.has(key)}
+                                prescreens={preScreenshots}
+                                guildId={event.guildId}
+                                handleReview={handleReview}
+                                onUndoApproval={(submissionId) =>
+                                  undoSubmissionApprovalMutation({ variables: { submissionId } })
+                                }
+                                onUndoTaskComplete={({ teamId, taskId }) =>
+                                  undoTaskCompleteMutation({
+                                    variables: { eventId: event.eventId, teamId, taskId },
+                                  })
+                                }
+                                onMarkTaskComplete={({ teamId, taskId }) =>
+                                  markTaskComplete({
+                                    variables: { eventId: event.eventId, teamId, taskId },
+                                  })
+                                }
+                                subsRefetchSignal={subsRefetchSignal}
+                                onEventRefetch={refetch}
+                                utc={utc}
+                                tasks={tasks}
+                              />
+                            );
+                          })}
+                        </Accordion>
+                      </AccordionPanel>
+                    </AccordionItem>
+                  </Accordion>
                 )}
               </>
             )}
@@ -423,7 +774,7 @@ export default function GatheringPhase({ event, isAdmin, refetch }) {
           </TabPanel>
 
           {/* ─── Admin tab ─── */}
-          {isAdmin && (
+          {showAdminTab && (
             <TabPanel px={0} w="100%">
               <AdminEventPanel event={event} isAdmin={isAdmin} refetch={refetch} />
             </TabPanel>

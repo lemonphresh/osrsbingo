@@ -775,3 +775,27 @@ export const CLAN_WARS_EVENT_UPDATED = gql`
     }
   }
 `;
+
+export const GET_BATTLE_VIEWER_COUNT = gql`
+  query GetBattleViewerCount($eventId: ID!) {
+    getBattleViewerCount(eventId: $eventId)
+  }
+`;
+
+export const JOIN_BATTLE_VIEW = gql`
+  mutation JoinBattleView($eventId: ID!) {
+    joinBattleView(eventId: $eventId)
+  }
+`;
+
+export const LEAVE_BATTLE_VIEW = gql`
+  mutation LeaveBattleView($eventId: ID!) {
+    leaveBattleView(eventId: $eventId)
+  }
+`;
+
+export const BATTLE_VIEWERS_UPDATED = gql`
+  subscription BattleViewersUpdated($eventId: ID!) {
+    battleViewersUpdated(eventId: $eventId)
+  }
+`;

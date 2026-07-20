@@ -19,6 +19,7 @@ const {
   initBattleState,
   tickEffects,
   advanceTurn,
+  isBlinded,
 } = require('../helpers');
 
 module.exports = {
@@ -83,18 +84,23 @@ module.exports = {
         .filter((e) => e.turns > 0);
 
       const isDefending = state.defendActive[defSide] ?? false;
-      const roll = rollDamage({
-        attackStat: actorSnap.stats.attack,
-        defenseStat: defSnap.stats.defense,
-        critChance: actorSnap.stats.crit,
-        isDefending,
-      });
-
-      state.hp[defSide] = Math.max(0, state.hp[defSide] - roll.damage);
+      let roll = { damage: 0, isCrit: false };
+      let narrative;
+      if (isBlinded(state.activeEffects[actorSide])) {
+        narrative = `😵 ${actorSnap.teamName} is blinded and misses their attack!`;
+      } else {
+        roll = rollDamage({
+          attackStat: actorSnap.stats.attack,
+          defenseStat: defSnap.stats.defense,
+          critChance: actorSnap.stats.crit,
+          isDefending,
+        });
+        state.hp[defSide] = Math.max(0, state.hp[defSide] - roll.damage);
+        narrative = `${roll.isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${
+          roll.damage
+        } damage!${roll.isCrit ? ' (critical hit!)' : ''}`;
+      }
       state.defendActive[defSide] = false;
-      const narrative = `${roll.isCrit ? '💥 CRIT! ' : ''}${actorSnap.teamName} attacks for ${
-        roll.damage
-      } damage!${roll.isCrit ? ' (critical hit!)' : ''}`;
 
       const bleedResult = tickEffects(state, actorSide);
       if (bleedResult.bleedDamage > 0) {
