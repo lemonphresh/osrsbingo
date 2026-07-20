@@ -218,8 +218,7 @@ function TaskDetailModal({
   const [confirmingLeave, setConfirmingLeave] = useState(false);
 
   const isDropTask = task?.acceptableItems?.length > 0;
-  const isMinigameTask = !isDropTask && (task?.description?.startsWith('Complete') ?? false);
-  const isXpTask = !isDropTask && !isMinigameTask && task?.quantity > 0;
+  const isXpTask = !isDropTask && task?.quantity > 0;
   const taskRole = isDropTask ? 'PVMER' : 'SKILLER';
 
   const { data: subData } = useQuery(GET_CLAN_WARS_SUBMISSIONS, {
@@ -424,8 +423,6 @@ function TaskDetailModal({
                     <Text fontSize="xs" color="teal.300" mb={2}>
                       {isXpTask
                         ? 'Step 2 — Submit via Discord when done grinding:'
-                        : isMinigameTask
-                        ? 'Submit via Discord when you\'ve hit your completion count:'
                         : 'Submit via Discord when done in-game:'}
                     </Text>
                     <HStack spacing={2} mb={2}>
@@ -543,32 +540,8 @@ function TaskDetailModal({
                             </Text>
                           </>
                         )}
-                        {isMinigameTask && (
-                          <Text fontSize="xs" color="gray.400">
-                            • Completion count visible (post-game chatbox, adventure log, or KC counter)
-                          </Text>
-                        )}
                       </VStack>
                     </Box>
-
-                    {isMinigameTask && (
-                      <Box
-                        p={3}
-                        bg="purple.900"
-                        border="1px solid"
-                        borderColor="purple.700"
-                        borderRadius="md"
-                      >
-                        <Text fontSize="xs" fontWeight="semibold" color="purple.300" mb={2}>
-                          Minigame completions
-                        </Text>
-                        <Text fontSize="xs" color="gray.300">
-                          Screenshot your completion message in chatbox, post-game score screen, or
-                          your adventure log showing the total count. No pre-screenshot needed — just
-                          submit once you've hit the target.
-                        </Text>
-                      </Box>
-                    )}
 
                     {isXpTask && (
                       <Box
@@ -1381,8 +1354,6 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     Object.values(taskProgress).some((ids) => Array.isArray(ids) && ids.includes(currentUserDiscordId));
 
   const [pendingJoinTaskId, setPendingJoinTaskId] = useState(null);
-  const [pendingRejoinTaskId, setPendingRejoinTaskId] = useState(null);
-  const [pendingLeaveTaskId, setPendingLeaveTaskId] = useState(null);
 
   const handleJoin = (taskId) => {
     if (!roleLocked) {
@@ -1390,8 +1361,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       setPendingJoinTaskId(taskId);
       return;
     }
-    // Subsequent join — show light coordination reminder
-    setPendingRejoinTaskId(taskId);
+    joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
   };
 
   const confirmJoin = () => {
@@ -1401,22 +1371,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     setPendingJoinTaskId(null);
   };
 
-  const confirmRejoin = () => {
-    if (pendingRejoinTaskId) {
-      joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingRejoinTaskId } });
-    }
-    setPendingRejoinTaskId(null);
-  };
-
   const handleLeave = (taskId) => {
-    setPendingLeaveTaskId(taskId);
-  };
-
-  const confirmLeave = () => {
-    if (pendingLeaveTaskId) {
-      leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingLeaveTaskId } });
-    }
-    setPendingLeaveTaskId(null);
+    leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
   };
 
   const sharedTaskProps = {
@@ -1801,7 +1757,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
         </VStack>
       </SimpleGrid>
 
-      {/* Role lock confirmation modal (first join) */}
+      {/* Role lock confirmation modal */}
       <Modal isOpen={!!pendingJoinTaskId} onClose={() => setPendingJoinTaskId(null)} isCentered>
         <ModalOverlay />
         <ModalContent bg="gray.800" border="1px solid" borderColor="yellow.600">
@@ -1820,8 +1776,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 . You won't be able to switch roles after this.
               </Text>
               <Text fontSize="sm" color="gray.500">
-                Joining a task lets your team see who's working on what — you can move yourself to
-                a different task at any time, but your role stays fixed.
+                Make sure you've coordinated with your team before committing.
               </Text>
               <HStack spacing={3} justify="flex-end">
                 <Button variant="ghost" size="sm" onClick={() => setPendingJoinTaskId(null)}>
@@ -1829,59 +1784,6 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 </Button>
                 <Button colorScheme="teal" size="sm" onClick={confirmJoin}>
                   Lock in and join
-                </Button>
-              </HStack>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      {/* Join task modal (role already locked) */}
-      <Modal isOpen={!!pendingRejoinTaskId} onClose={() => setPendingRejoinTaskId(null)} isCentered size="sm">
-        <ModalOverlay />
-        <ModalContent bg="gray.800" border="1px solid" borderColor="green.700">
-          <ModalHeader color="green.200" fontSize="md">Join this task?</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack align="stretch" spacing={4}>
-              <Text color="gray.300" fontSize="sm">
-                This helps your team see who's actively working on what. You're free to move
-                yourself to a different task at any time — no commitment required.
-              </Text>
-              <HStack spacing={3} justify="flex-end">
-                <Button variant="ghost" size="sm" onClick={() => setPendingRejoinTaskId(null)}>
-                  Cancel
-                </Button>
-                <Button colorScheme="green" size="sm" onClick={confirmRejoin}>
-                  Join task
-                </Button>
-              </HStack>
-            </VStack>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
-
-      {/* Leave task confirmation modal */}
-      <Modal isOpen={!!pendingLeaveTaskId} onClose={() => setPendingLeaveTaskId(null)} isCentered size="sm">
-        <ModalOverlay />
-        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.600">
-          <ModalHeader color="white" fontSize="md">Leave this task?</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody pb={6}>
-            <VStack align="stretch" spacing={4}>
-              <Text color="gray.300" fontSize="sm">
-                Any contributions you've already made to this task still count — leaving just
-                removes you from the active tracker so your team knows you've moved on.
-              </Text>
-              <Text color="gray.500" fontSize="xs">
-                You can rejoin this task or pick up a different one at any time.
-              </Text>
-              <HStack spacing={3} justify="flex-end">
-                <Button variant="ghost" size="sm" onClick={() => setPendingLeaveTaskId(null)}>
-                  Stay
-                </Button>
-                <Button colorScheme="red" variant="outline" size="sm" onClick={confirmLeave}>
-                  Leave task
                 </Button>
               </HStack>
             </VStack>
@@ -1917,21 +1819,6 @@ function OutfittingPhaseBarracks({ event, team, isAdmin }) {
           )}
         </HStack>
       </Box>
-
-      {isAdmin && (
-        <Alert status="warning" borderRadius="md" bg="yellow.900" borderColor="yellow.700" border="1px solid">
-          <AlertIcon color="yellow.400" />
-          <Box>
-            <Text color="yellow.200" fontWeight="semibold" fontSize="sm">
-              Battle start is manual
-            </Text>
-            <Text color="yellow.300" fontSize="xs" mt={0.5}>
-              The battle phase won't start automatically when outfitting ends. Once all captains
-              have locked their loadouts, go to the event page and hit <strong>Start Battle Phase</strong>.
-            </Text>
-          </Box>
-        </Alert>
-      )}
 
       {team.loadoutLocked && (
         <Alert status="success" borderRadius="md" bg="green.900">

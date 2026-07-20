@@ -29,7 +29,6 @@ const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
-const { startClanWarsTurnTimer } = require('./utils/clanWarsTurnTimer');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -113,9 +112,6 @@ const pool = new Pool({
     require: true,
     rejectUnauthorized: false,
   },
-  max: 3,
-  min: 0,
-  idleTimeoutMillis: 10000,
 });
 
 // ── Rate limiters ─────────────────────────────────────────────────────────────
@@ -546,7 +542,6 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
-  startClanWarsTurnTimer();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

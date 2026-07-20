@@ -1,50 +1,21 @@
-'use strict';
-
 const { PubSub } = require('graphql-subscriptions');
 const { EventEmitter } = require('events');
 const logger = require('../utils/logger');
 
-// raise the default listener cap (only matters for in-memory fallback)
+// raise the default listener cap (default is 10, way too low for concurrent events)
 EventEmitter.defaultMaxListeners = 100;
 
-let pubsub;
+const pubsub = new PubSub();
 
-if (process.env.REDIS_URL) {
-  const { RedisPubSub } = require('graphql-redis-subscriptions');
-  const Redis = require('ioredis');
-
-  const makeRedisClient = () => {
-    const isTls = process.env.REDIS_URL.startsWith('rediss://');
-    return new Redis(process.env.REDIS_URL, {
-      tls: isTls ? { rejectUnauthorized: false } : undefined,
-      retryStrategy: (times) => Math.min(times * 100, 3000),
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: false,
-      lazyConnect: false,
-    });
-  };
-
-  pubsub = new RedisPubSub({
-    publisher: makeRedisClient(),
-    subscriber: makeRedisClient(),
-  });
-
-  logger.info('[PubSub] Using Redis-backed PubSub');
-} else {
-  pubsub = new PubSub();
-
-  // warn if a single topic accumulates too many listeners in dev (sign of a leak)
-  const _publish = pubsub.publish.bind(pubsub);
-  pubsub.publish = (topic, payload) => {
-    const listenerCount = pubsub.ee?.listenerCount?.(topic) ?? 0;
-    if (listenerCount > 50) {
-      logger.warn(`⚠️ PubSub topic "${topic}" has ${listenerCount} listeners — possible leak`);
-    }
-    return _publish(topic, payload);
-  };
-
-  logger.info('[PubSub] REDIS_URL not set — using in-memory PubSub (dev only)');
-}
+// warn if a single topic accumulates too many listeners (sign of a leak)
+const _publish = pubsub.publish.bind(pubsub);
+pubsub.publish = (topic, payload) => {
+  const listenerCount = pubsub.ee?.listenerCount?.(topic) ?? 0;
+  if (listenerCount > 50) {
+    logger.warn(`⚠️ PubSub topic "${topic}" has ${listenerCount} listeners — possible leak`);
+  }
+  return _publish(topic, payload);
+};
 
 const SUBMISSION_TOPICS = {
   SUBMISSION_ADDED: 'SUBMISSION_ADDED',

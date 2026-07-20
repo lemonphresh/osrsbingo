@@ -273,7 +273,7 @@ function buildChampionStats(loadout, items) {
     if (idx > 0) specials.unshift(...specials.splice(idx, 1));
   }
 
-  return { ...stats, crit: Math.min(stats.crit, 75), maxHp: stats.hp, specials };
+  return { ...stats, maxHp: stats.hp, specials };
 }
 
 module.exports = {

@@ -62,7 +62,7 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
     ];
 
     for (const task of picks) {
-      const qtys = task.quantities?.[eventDifficulty] ?? task.quantities?.standard;
+      const qtys = task.quantities?.[eventDifficulty];
       let description;
 
       let resolvedQuantity = null;

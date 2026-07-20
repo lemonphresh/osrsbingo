@@ -243,22 +243,17 @@ export default function BattleScreen({
   });
 
   useEffect(() => {
-    if (isBattleOver) return;
-
-    const getRemaining = () => {
-      if (!state.turnStartedAt) return turnTimerSeconds;
-      const elapsed = (Date.now() - new Date(state.turnStartedAt).getTime()) / 1000;
-      return Math.max(0, Math.ceil(turnTimerSeconds - elapsed));
-    };
-
-    setTimer(getRemaining());
+    if (isBattleOver || !isMyTurn) return;
+    setTimer(turnTimerSeconds);
     timerRef.current = setInterval(() => {
-      const remaining = getRemaining();
-      setTimer(remaining);
-      if (remaining <= 0 && isMyTurn) {
-        clearInterval(timerRef.current);
-        handleAction('ATTACK');
-      }
+      setTimer((t) => {
+        if (t <= 1) {
+          clearInterval(timerRef.current);
+          handleAction('ATTACK');
+          return turnTimerSeconds;
+        }
+        return t - 1;
+      });
     }, 1000);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps

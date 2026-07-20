@@ -795,12 +795,12 @@ const typeDefs = gql`
     getMyClanWarsEvents: [ClanWarsEvent!]!
     getClanWarsTeam(eventId: ID!, teamId: ID!): ClanWarsTeam
     getClanWarsWarChest(teamId: ID!): [ClanWarsItem!]!
-    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus, limit: Int, offset: Int): [ClanWarsSubmission!]!
+    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus): [ClanWarsSubmission!]!
     getClanWarsSubmissionSummaries(eventId: ID!): [ClanWarsSubmissionSummary!]!
     getClanWarsTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [ClanWarsSubmission!]!
-    getClanWarsPreScreenshots(eventId: ID!, limit: Int, offset: Int): [ClanWarsPreScreenshot!]!
+    getClanWarsPreScreenshots(eventId: ID!): [ClanWarsPreScreenshot!]!
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
-    getClanWarsBattleLog(battleId: ID!, limit: Int, offset: Int): [ClanWarsBattleEvent!]!
+    getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
 
     # --- Rainbow Bingo ---

@@ -75,10 +75,9 @@ function getNarrativeColor(action) {
 // ---------------------------------------------------------------------------
 // Main component
 // ---------------------------------------------------------------------------
-export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds = [] }) {
+export default function BattleReplayModal({ isOpen, onClose, battleId }) {
   const effectIdRef = useRef(0);
 
-  const [activeBattleId, setActiveBattleId] = useState(battleId);
   const [step, setStep] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1200);
@@ -86,22 +85,11 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
   const [shaking, setShaking] = useState(null);
   const [flashing, setFlashing] = useState(null);
 
-  const battleIndex = battleIds.indexOf(activeBattleId);
-  const hasPrev = battleIndex > 0;
-  const hasNext = battleIndex >= 0 && battleIndex < battleIds.length - 1;
-
-  const goToBattle = (id) => {
-    setActiveBattleId(id);
-    setStep(0);
-    setIsPlaying(false);
-    setEffects([]);
-  };
-
   const logRef = useRef(null);
 
   const { data: battleData, loading: battleLoading } = useQuery(GET_CLAN_WARS_BATTLE, {
-    variables: { battleId: activeBattleId },
-    skip: !activeBattleId || !isOpen,
+    variables: { battleId },
+    skip: !battleId || !isOpen,
     fetchPolicy: 'cache-first',
   });
   const battle = battleData?.getClanWarsBattle;
@@ -148,10 +136,9 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
   const champion2Src =
     BASE_SPRITES[snap.champion2?.loadout?.baseSprite ?? 'baseSprite1'] ?? undefined;
 
-  // Sync activeBattleId when the parent opens the modal with a new battleId
+  // Reset on open / battleId change
   useEffect(() => {
-    if (isOpen && battleId) {
-      setActiveBattleId(battleId);
+    if (isOpen) {
       setStep(0);
       setIsPlaying(false);
       setEffects([]);
@@ -223,7 +210,9 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
             <HStack spacing={2} flexWrap="wrap">
               <Text>⏮</Text>
               <Text>{team1Name}</Text>
-              <Text color="gray.500" fontSize="sm">vs</Text>
+              <Text color="gray.500" fontSize="sm">
+                vs
+              </Text>
               <Text>{team2Name}</Text>
               {battle?.winnerId && (
                 <Badge colorScheme="yellow" fontSize="xs">
@@ -231,36 +220,7 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
                 </Badge>
               )}
             </HStack>
-            <HStack spacing={2} flexShrink={0}>
-              {battleIds.length > 1 && (
-                <HStack spacing={1}>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    color={hasPrev ? 'gray.300' : 'gray.600'}
-                    isDisabled={!hasPrev}
-                    leftIcon={<ChevronLeftIcon />}
-                    onClick={() => goToBattle(battleIds[battleIndex - 1])}
-                  >
-                    Prev
-                  </Button>
-                  <Text fontSize="xs" color="gray.500" minW="40px" textAlign="center">
-                    {battleIndex + 1} / {battleIds.length}
-                  </Text>
-                  <Button
-                    size="xs"
-                    variant="ghost"
-                    color={hasNext ? 'gray.300' : 'gray.600'}
-                    isDisabled={!hasNext}
-                    rightIcon={<ChevronRightIcon />}
-                    onClick={() => goToBattle(battleIds[battleIndex + 1])}
-                  >
-                    Next
-                  </Button>
-                </HStack>
-              )}
-              <BattleVolumeSlider />
-            </HStack>
+            <BattleVolumeSlider />
           </HStack>
         </ModalHeader>
         <ModalCloseButton color="gray.400" />

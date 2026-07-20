@@ -410,23 +410,16 @@ export default function AdminEventPanel({ event, refetch }) {
             </HStack>
           )}
           {nextStatus && (
-            <HStack spacing={2} align="center">
-              {event.status === 'OUTFITTING' && (
-                <Text fontSize="xs" color="yellow.400" fontStyle="italic">
-                  Manual — start when captains are ready
-                </Text>
-              )}
-              <Button
-                size="sm"
-                colorScheme="purple"
-                onClick={() => {
-                  setPendingNext(nextStatus);
-                  setAdvanceOpen(true);
-                }}
-              >
-                → {PHASE_LABELS[nextStatus]}
-              </Button>
-            </HStack>
+            <Button
+              size="sm"
+              colorScheme="purple"
+              onClick={() => {
+                setPendingNext(nextStatus);
+                setAdvanceOpen(true);
+              }}
+            >
+              → {PHASE_LABELS[nextStatus]}
+            </Button>
           )}
         </HStack>
       </HStack>
