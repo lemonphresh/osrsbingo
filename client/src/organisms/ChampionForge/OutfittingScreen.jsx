@@ -1617,14 +1617,14 @@ export function TeamOutfitter({ team, event, isAdmin }) {
                 }
                 onSlotClick={setActiveSlot}
                 activeSlot={activeSlot}
-                isLocked={isLocked && !isAdmin}
+                isLocked={isLocked}
               />
               <SpecialPicker
                 loadout={draftLoadout}
                 items={items}
                 chosenSpecial={draftLoadout.chosenSpecial}
                 onPick={(id) => setDraftLoadout((prev) => ({ ...prev, chosenSpecial: id }))}
-                isLocked={isLocked && !isAdmin}
+                isLocked={isLocked}
               />
             </>
           )}

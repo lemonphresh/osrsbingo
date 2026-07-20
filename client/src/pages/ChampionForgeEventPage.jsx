@@ -684,6 +684,23 @@ function TeamCard({ team, eventId, currentUserDiscordId, isAdmin, phase }) {
   );
 }
 
+function getBracketBattleIds(bracket) {
+  if (!bracket) return [];
+  const ids = [];
+  for (const round of bracket.rounds ?? []) {
+    for (const match of round.matches) {
+      if (match.battleId) ids.push(match.battleId);
+    }
+  }
+  for (const round of bracket.losersBracket ?? []) {
+    for (const match of round.matches) {
+      if (match.battleId) ids.push(match.battleId);
+    }
+  }
+  if (bracket.grandFinal?.battleId) ids.push(bracket.grandFinal.battleId);
+  return ids;
+}
+
 // ---------------------------------------------------------------------------
 // Main page
 // ---------------------------------------------------------------------------
@@ -809,6 +826,7 @@ export default function ChampionForgeEventPage() {
 
   // ── Completed event layout ──
   if (event.status === 'COMPLETED') {
+    const bracketBattleIds = getBracketBattleIds(event.bracket);
     return (
       <Box maxW="1200px" mx="auto" px={4} py={6} flex="1" overflow="hidden" w="100%">
         <VStack align="stretch" spacing={6}>
@@ -830,6 +848,7 @@ export default function ChampionForgeEventPage() {
           isOpen={!!replayBattleId}
           onClose={() => setReplayBattleId(null)}
           battleId={replayBattleId}
+          battleIds={bracketBattleIds}
         />
       </Box>
     );
