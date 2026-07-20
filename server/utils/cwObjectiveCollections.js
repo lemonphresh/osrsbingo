@@ -474,9 +474,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from the Giant Mole.',
     acceptableItems: ['Baby Mole', 'Immaculate Mole Skin'],
     quantities: {
-      casual: { min: 5, max: 10 },
-      standard: { min: 8, max: 15 },
-      hardcore: { min: 12, max: 20 },
+      casual: { min: 4, max: 6 },
+      standard: { min: 6, max: 10 },
+      hardcore: { min: 10, max: 14 },
     },
   },
   {

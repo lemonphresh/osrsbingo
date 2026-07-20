@@ -1918,6 +1918,21 @@ function OutfittingPhaseBarracks({ event, team, isAdmin }) {
         </HStack>
       </Box>
 
+      {isAdmin && (
+        <Alert status="warning" borderRadius="md" bg="yellow.900" borderColor="yellow.700" border="1px solid">
+          <AlertIcon color="yellow.400" />
+          <Box>
+            <Text color="yellow.200" fontWeight="semibold" fontSize="sm">
+              Battle start is manual
+            </Text>
+            <Text color="yellow.300" fontSize="xs" mt={0.5}>
+              The battle phase won't start automatically when outfitting ends. Once all captains
+              have locked their loadouts, go to the event page and hit <strong>Start Battle Phase</strong>.
+            </Text>
+          </Box>
+        </Alert>
+      )}
+
       {team.loadoutLocked && (
         <Alert status="success" borderRadius="md" bg="green.900">
           <AlertIcon color="green.400" />
