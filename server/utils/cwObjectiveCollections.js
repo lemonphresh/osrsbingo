@@ -23,7 +23,9 @@ const PVM_INITIATE = [
     descriptionTemplate: 'Obtain {quantity} drops from Amoxliatl.',
     acceptableItems: ['Moxi', 'Glacial Temotli'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -51,7 +53,9 @@ const PVM_INITIATE = [
     descriptionTemplate: 'Obtain {quantity} drops from Kraken.',
     acceptableItems: ['Kraken Tentacle', 'Trident of the Seas', 'Jar of Dirt', 'Pet Kraken'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -84,7 +88,9 @@ const PVM_INITIATE = [
       'Bran',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -97,7 +103,9 @@ const PVM_INITIATE = [
     descriptionTemplate: 'Obtain {quantity} drops from Sarachnis.',
     acceptableItems: ['Sraracha', 'Sarachnis Cudgel', 'Jar of Eyes', 'Pristine Spider Silk'],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 2, max: 3 },
     },
   },
 ];
@@ -119,7 +127,9 @@ const PVM_ADEPT = [
       'Jar of Miasma',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -132,7 +142,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Araxxor.',
     acceptableItems: ['Nid', 'Araxyte Fang', 'Noxious Point', 'Noxious Blade', 'Noxious Pommel'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -152,7 +164,9 @@ const PVM_ADEPT = [
       'Claws of Callisto',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -190,7 +204,9 @@ const PVM_ADEPT = [
       "Verac's Flail",
     ],
     quantities: {
+      casual: { min: 3, max: 5 },
       standard: { min: 5, max: 7 },
+      hardcore: { min: 7, max: 10 },
     },
   },
   {
@@ -210,7 +226,9 @@ const PVM_ADEPT = [
       'Claws of Callisto',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -230,7 +248,9 @@ const PVM_ADEPT = [
       "Skull of Vet'ion",
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -257,7 +277,9 @@ const PVM_ADEPT = [
       'Twisted Buckler',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -286,7 +308,9 @@ const PVM_ADEPT = [
       'Metamorphic Dust',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -299,7 +323,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Chaos Elemental.',
     acceptableItems: ['Pet Chaos Elemental', 'Dragon 2h Sword', 'Dragon Pickaxe'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -312,7 +338,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Chaos Fanatic.',
     acceptableItems: ['Pet Chaos Fanatic', 'Odium Shard', 'Malediction Shard'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -331,7 +359,9 @@ const PVM_ADEPT = [
       'Zilyana Jr.',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -344,7 +374,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Crazy Archaeologist.',
     acceptableItems: ['Pet Chaos Elemental', 'Odium Shard', 'Malediction Shard'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -368,7 +400,9 @@ const PVM_ADEPT = [
       'Mud Battlestaff',
     ],
     quantities: {
+      casual: { min: 2, max: 3 },
       standard: { min: 3, max: 4 },
+      hardcore: { min: 4, max: 5 },
     },
   },
   {
@@ -387,7 +421,9 @@ const PVM_ADEPT = [
       'General Graardor Jr.',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -408,7 +444,9 @@ const PVM_ADEPT = [
       'Jar of Stone',
     ],
     quantities: {
-      standard: { min: 3, max: 4 },
+      casual: { min: 2, max: 2 },
+      standard: { min: 3, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -421,7 +459,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Hueycoatl.',
     acceptableItems: ['Huberte', 'Hueycoatl Hide', 'Tome of Earth', 'Dragon Hunter Wand'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -434,7 +474,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from the Giant Mole.',
     acceptableItems: ['Baby Mole', 'Immaculate Mole Skin'],
     quantities: {
+      casual: { min: 5, max: 10 },
       standard: { min: 8, max: 15 },
+      hardcore: { min: 12, max: 20 },
     },
   },
   {
@@ -453,7 +495,9 @@ const PVM_ADEPT = [
       'Kq Head',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -472,7 +516,9 @@ const PVM_ADEPT = [
       "Kree'arra Jr.",
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -491,7 +537,9 @@ const PVM_ADEPT = [
       "K'ril Tsutsaroth Jr.",
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -517,7 +565,9 @@ const PVM_ADEPT = [
       'Eclipse Atlatl',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -530,7 +580,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Phantom Muspah.',
     acceptableItems: ['Muphin', 'Ancient Icon', 'Venator Shard'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -543,7 +595,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Scorpia.',
     acceptableItems: ["Scorpia's Offspring", 'Odium Shard', 'Malediction Shard'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -556,7 +610,9 @@ const PVM_ADEPT = [
     descriptionTemplate: 'Obtain {quantity} drops from Shellbane Gryphon.',
     acceptableItems: ['Gull', "Belle's Folly", 'Jar of Feathers'],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -576,7 +632,9 @@ const PVM_ADEPT = [
       'Fangs of Venenatis',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -598,7 +656,9 @@ const PVM_ADEPT = [
       'Justiciar Legguards',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -623,7 +683,9 @@ const PVM_ADEPT = [
       'Sanguine Dust',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -641,7 +703,9 @@ const PVM_ADEPT = [
       'Dragon Chainbody',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -663,7 +727,9 @@ const PVM_ADEPT = [
       "Elidinis' Ward",
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -682,7 +748,9 @@ const PVM_ADEPT = [
       'Dragon Pickaxe',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -701,7 +769,9 @@ const PVM_ADEPT = [
       'Dragon Pickaxe',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -721,7 +791,9 @@ const PVM_ADEPT = [
       'Draconic Visage',
     ],
     quantities: {
+      casual: { min: 2, max: 3 },
       standard: { min: 3, max: 4 },
+      hardcore: { min: 4, max: 5 },
     },
   },
   {
@@ -743,7 +815,9 @@ const PVM_ADEPT = [
       'Magma Mutagen',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -754,7 +828,9 @@ const PVM_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Colosseum.',
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 1, max: 3 },
+      hardcore: { min: 2, max: 4 },
     },
   },
   {
@@ -765,7 +841,9 @@ const PVM_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Fight Caves.',
     quantities: {
+      casual: { min: 1, max: 3 },
       standard: { min: 1, max: 5 },
+      hardcore: { min: 2, max: 7 },
     },
   },
   {
@@ -776,7 +854,9 @@ const PVM_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Inferno.',
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 1, max: 3 },
+      hardcore: { min: 2, max: 4 },
     },
   },
   {
@@ -787,7 +867,9 @@ const PVM_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Pest Control.',
     quantities: {
+      casual: { min: 7, max: 12 },
       standard: { min: 10, max: 20 },
+      hardcore: { min: 15, max: 30 },
     },
   },
 ];
@@ -812,7 +894,9 @@ const PVM_MASTER = [
       'Jar of Chemicals',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -832,7 +916,9 @@ const PVM_MASTER = [
       'Jar of Souls',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 3 },
+      hardcore: { min: 3, max: 4 },
     },
   },
   {
@@ -853,7 +939,9 @@ const PVM_MASTER = [
       'Jar of Spirits',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -871,7 +959,9 @@ const PVM_MASTER = [
       'Youngllef',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -904,7 +994,9 @@ const PVM_MASTER = [
     descriptionTemplate: 'Obtain {quantity} drops from Doom of Mokhaioitl.',
     acceptableItems: ['Dom', 'Avernic Treads', 'Eye of Ayak', 'Mokhaiotl Cloth'],
     quantities: {
-      standard: { min: 1, max: 1 },
+      casual: { min: 1, max: 1 },
+      standard: { min: 1, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -926,7 +1018,9 @@ const PVM_MASTER = [
       'Gold Ring',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -945,9 +1039,12 @@ const PVM_MASTER = [
       'Virtus Robe Top',
       'Virtus Mask',
       'Virtus Robe Bottom',
+      'Gold Ring',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -968,7 +1065,9 @@ const PVM_MASTER = [
       'Nexling',
     ],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 1 },
+      hardcore: { min: 1, max: 2 },
     },
   },
   {
@@ -1043,7 +1142,9 @@ const PVM_MASTER = [
       'Gold Ring',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -1065,7 +1166,9 @@ const PVM_MASTER = [
       'Gold Ring',
     ],
     quantities: {
+      casual: { min: 1, max: 2 },
       standard: { min: 2, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -1085,7 +1188,9 @@ const PVM_MASTER = [
       'Smol Heredit',
     ],
     quantities: {
-      standard: { min: 1, max: 3 },
+      casual: { min: 1, max: 1 },
+      standard: { min: 1, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
   {
@@ -1121,7 +1226,9 @@ const PVM_MASTER = [
     descriptionTemplate: 'Obtain {quantity} drops from the Maggot King.',
     acceptableItems: ['Crimson Kisten', 'Elder Venator Fang'],
     quantities: {
+      casual: { min: 1, max: 1 },
       standard: { min: 1, max: 2 },
+      hardcore: { min: 2, max: 3 },
     },
   },
 ];
@@ -1141,7 +1248,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Cooking XP.',
     quantities: {
-      standard: { min: 500000, max: 1000000 },
+      casual: { min: 500000, max: 1000000 },
+      standard: { min: 1000000, max: 1500000 },
+      hardcore: { min: 1500000, max: 2500000 },
     },
   },
   {
@@ -1152,7 +1261,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Crafting XP.',
     quantities: {
+      casual: { min: 500000, max: 1000000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1163,7 +1274,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Fletching XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1174,7 +1287,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Agility XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1185,7 +1300,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Firemaking XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1196,7 +1313,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Fishing XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1207,7 +1326,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Herblore XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1218,7 +1339,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Hunter XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1229,7 +1352,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Mining XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1240,7 +1365,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Runecrafting XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1251,7 +1378,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Sailing XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1262,7 +1391,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Slayer XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1273,7 +1404,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Smithing XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1284,7 +1417,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Thieving XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1295,7 +1430,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Earn {quantity} Woodcutting XP.',
     quantities: {
+      casual: { min: 250000, max: 500000 },
       standard: { min: 500000, max: 1000000 },
+      hardcore: { min: 1000000, max: 2000000 },
     },
   },
   {
@@ -1306,7 +1443,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Barbarian Assault.',
     quantities: {
+      casual: { min: 5, max: 7 },
       standard: { min: 7, max: 12 },
+      hardcore: { min: 10, max: 20 },
     },
   },
   {
@@ -1317,7 +1456,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Guardians of the Rift.',
     quantities: {
+      casual: { min: 7, max: 12 },
       standard: { min: 10, max: 20 },
+      hardcore: { min: 15, max: 30 },
     },
   },
   {
@@ -1328,7 +1469,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Tempoross.',
     quantities: {
+      casual: { min: 7, max: 12 },
       standard: { min: 10, max: 20 },
+      hardcore: { min: 15, max: 30 },
     },
   },
   {
@@ -1339,7 +1482,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Wintertodt.',
     quantities: {
+      casual: { min: 7, max: 12 },
       standard: { min: 10, max: 20 },
+      hardcore: { min: 15, max: 30 },
     },
   },
   {
@@ -1350,7 +1495,9 @@ const SKL_ADEPT = [
     difficulty: 'adept',
     descriptionTemplate: 'Complete {quantity} Zalcano.',
     quantities: {
+      casual: { min: 7, max: 12 },
       standard: { min: 10, max: 20 },
+      hardcore: { min: 15, max: 30 },
     },
   },
 ];

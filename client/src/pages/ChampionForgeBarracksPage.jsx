@@ -1381,6 +1381,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     Object.values(taskProgress).some((ids) => Array.isArray(ids) && ids.includes(currentUserDiscordId));
 
   const [pendingJoinTaskId, setPendingJoinTaskId] = useState(null);
+  const [pendingRejoinTaskId, setPendingRejoinTaskId] = useState(null);
+  const [pendingLeaveTaskId, setPendingLeaveTaskId] = useState(null);
 
   const handleJoin = (taskId) => {
     if (!roleLocked) {
@@ -1388,7 +1390,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
       setPendingJoinTaskId(taskId);
       return;
     }
-    joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
+    // Subsequent join — show light coordination reminder
+    setPendingRejoinTaskId(taskId);
   };
 
   const confirmJoin = () => {
@@ -1398,8 +1401,22 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
     setPendingJoinTaskId(null);
   };
 
+  const confirmRejoin = () => {
+    if (pendingRejoinTaskId) {
+      joinTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingRejoinTaskId } });
+    }
+    setPendingRejoinTaskId(null);
+  };
+
   const handleLeave = (taskId) => {
-    leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId } });
+    setPendingLeaveTaskId(taskId);
+  };
+
+  const confirmLeave = () => {
+    if (pendingLeaveTaskId) {
+      leaveTask({ variables: { eventId: event.eventId, teamId: team.teamId, taskId: pendingLeaveTaskId } });
+    }
+    setPendingLeaveTaskId(null);
   };
 
   const sharedTaskProps = {
@@ -1784,7 +1801,7 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
         </VStack>
       </SimpleGrid>
 
-      {/* Role lock confirmation modal */}
+      {/* Role lock confirmation modal (first join) */}
       <Modal isOpen={!!pendingJoinTaskId} onClose={() => setPendingJoinTaskId(null)} isCentered>
         <ModalOverlay />
         <ModalContent bg="gray.800" border="1px solid" borderColor="yellow.600">
@@ -1803,7 +1820,8 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 . You won't be able to switch roles after this.
               </Text>
               <Text fontSize="sm" color="gray.500">
-                Make sure you've coordinated with your team before committing.
+                Joining a task lets your team see who's working on what — you can move yourself to
+                a different task at any time, but your role stays fixed.
               </Text>
               <HStack spacing={3} justify="flex-end">
                 <Button variant="ghost" size="sm" onClick={() => setPendingJoinTaskId(null)}>
@@ -1811,6 +1829,59 @@ function GatheringPhaseBarracks({ event, team, isAdmin, user, refetch }) {
                 </Button>
                 <Button colorScheme="teal" size="sm" onClick={confirmJoin}>
                   Lock in and join
+                </Button>
+              </HStack>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Join task modal (role already locked) */}
+      <Modal isOpen={!!pendingRejoinTaskId} onClose={() => setPendingRejoinTaskId(null)} isCentered size="sm">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" border="1px solid" borderColor="green.700">
+          <ModalHeader color="green.200" fontSize="md">Join this task?</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack align="stretch" spacing={4}>
+              <Text color="gray.300" fontSize="sm">
+                This helps your team see who's actively working on what. You're free to move
+                yourself to a different task at any time — no commitment required.
+              </Text>
+              <HStack spacing={3} justify="flex-end">
+                <Button variant="ghost" size="sm" onClick={() => setPendingRejoinTaskId(null)}>
+                  Cancel
+                </Button>
+                <Button colorScheme="green" size="sm" onClick={confirmRejoin}>
+                  Join task
+                </Button>
+              </HStack>
+            </VStack>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Leave task confirmation modal */}
+      <Modal isOpen={!!pendingLeaveTaskId} onClose={() => setPendingLeaveTaskId(null)} isCentered size="sm">
+        <ModalOverlay />
+        <ModalContent bg="gray.800" border="1px solid" borderColor="gray.600">
+          <ModalHeader color="white" fontSize="md">Leave this task?</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack align="stretch" spacing={4}>
+              <Text color="gray.300" fontSize="sm">
+                Any contributions you've already made to this task still count — leaving just
+                removes you from the active tracker so your team knows you've moved on.
+              </Text>
+              <Text color="gray.500" fontSize="xs">
+                You can rejoin this task or pick up a different one at any time.
+              </Text>
+              <HStack spacing={3} justify="flex-end">
+                <Button variant="ghost" size="sm" onClick={() => setPendingLeaveTaskId(null)}>
+                  Stay
+                </Button>
+                <Button colorScheme="red" variant="outline" size="sm" onClick={confirmLeave}>
+                  Leave task
                 </Button>
               </HStack>
             </VStack>
