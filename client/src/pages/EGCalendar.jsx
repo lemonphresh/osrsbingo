@@ -350,6 +350,24 @@ export default function EGCalendar({ authed, setAuthed }) {
     checkVersion();
   };
 
+  const formInitial = useMemo(
+    () =>
+      selected
+        ? {
+            id: selected.id,
+            title: selected.title,
+            description: selected.description,
+            threadUrl: selected.threadUrl,
+            start: selected.start,
+            end: selected.end,
+            allDay: !!selected.allDay,
+            eventType: selected.eventType || 'MISC',
+          }
+        : undefined,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selected?.id]
+  );
+
   const openToolbar = (eventData, domEvt) => {
     setSelected(eventData);
     setToolbarPos({ x: (domEvt?.clientX || 0) + 8, y: (domEvt?.clientY || 0) + 8 });
@@ -721,20 +739,7 @@ export default function EGCalendar({ authed, setAuthed }) {
             form.onClose();
             setSelected(null);
           }}
-          initial={
-            selected
-              ? {
-                  id: selected.id,
-                  title: selected.title,
-                  description: selected.description,
-                  threadUrl: selected.threadUrl,
-                  start: selected.start,
-                  end: selected.end,
-                  allDay: !!selected.allDay,
-                  eventType: selected.eventType || 'MISC',
-                }
-              : undefined
-          }
+          initial={formInitial}
           onSubmit={handleSave}
         />
 

@@ -450,6 +450,21 @@ const PVM_ADEPT = [
     },
   },
   {
+    id: 'pvm_madAngel',
+    label: 'Fallen Angel',
+    type: 'item_collection',
+    role: 'PVMER',
+    difficulty: 'adept',
+    boss: 'Mad Angel',
+    descriptionTemplate: 'Obtain {quantity} drops from Mad Angel.',
+    acceptableItems: ['Aggy', 'Hallowvale'],
+    quantities: {
+      casual: { min: 2, max: 2 },
+      standard: { min: 3, max: 3 },
+      hardcore: { min: 3, max: 4 },
+    },
+  },
+  {
     id: 'pvm_hueycoatl',
     label: 'Feathered Fury',
     type: 'item_collection',
