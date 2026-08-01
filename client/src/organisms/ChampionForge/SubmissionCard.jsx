@@ -35,6 +35,9 @@ export default function SubmissionCard({
   onUndoApproval,
   onSlotChanged,
   tasks,
+  task,
+  numericProgress = 0,
+  approvedCount = 0,
   hideTaskInfo = false,
   utc = false,
 }) {
@@ -46,6 +49,7 @@ export default function SubmissionCard({
   const [undoLoading, setUndoLoading] = useState(false);
   const [confirmingApprove, setConfirmingApprove] = useState(false);
   const [noReward, setNoReward] = useState(false);
+  const [progressOverride, setProgressOverride] = useState(false);
   const [editingSlot, setEditingSlot] = useState(false);
   const [editSlotValue, setEditSlotValue] = useState(submission.rewardSlot ?? 'weapon');
   const [slotSaving, setSlotSaving] = useState(false);
@@ -382,6 +386,21 @@ export default function SubmissionCard({
           )}
           {confirmingApprove ? (
             <Box p={3} bg="green.900" borderRadius="md" border="1px solid" borderColor="green.700">
+              {task?.quantity > 0 && numericProgress <= approvedCount && (
+                <Box mb={3} p={2} bg="orange.900" borderRadius="md" border="1px solid" borderColor="orange.700">
+                  <Text fontSize="xs" color="orange.200" mb={2}>
+                    Heads up — you're approving a submission for a progress-based task but the progress slider hasn't been updated yet. Update it first, or check the box below to approve anyway.
+                  </Text>
+                  <Checkbox
+                    size="sm"
+                    isChecked={progressOverride}
+                    onChange={(e) => setProgressOverride(e.target.checked)}
+                    colorScheme="orange"
+                  >
+                    <Text fontSize="xs" color="orange.300">I want to approve without updating progress</Text>
+                  </Checkbox>
+                </Box>
+              )}
               <Text fontSize="sm" color="green.200" mb={2} fontWeight="semibold">
                 {noReward
                   ? 'Approve this submission with no reward?'
@@ -394,6 +413,7 @@ export default function SubmissionCard({
                   size="sm"
                   colorScheme="green"
                   isLoading={loading}
+                  isDisabled={task?.quantity > 0 && numericProgress <= approvedCount && !progressOverride}
                   onClick={() => {
                     setConfirmingApprove(false);
                     handleReview(true);

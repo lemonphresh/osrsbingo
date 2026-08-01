@@ -367,8 +367,8 @@ function EventCreatorSection() {
           Click the <strong style={{ color: 'white' }}>crown icon</strong> next to any team member
           to assign them as that team's captain. Each team must have a captain before outfitting
           begins, so teams or admins will have time to determine who a viable captain will be.
-          Because captains are the only ones who can build and save the team loadout, this MUST be
-          done before the outfitting phase begins. Captains also control the ready-up process during
+          Because captains and event admins are the only ones who can build and save the team
+          loadout, this MUST be done before the outfitting phase begins. Captains also control the ready-up process during
           Battle phase.
         </StepCard>
 
@@ -484,7 +484,12 @@ function GatheringSection() {
             unavailable, ask your admin to add your Discord user ID to the roster.
           </BulletItem>
           <BulletItem number="2">
-            Choose your role from the role selector at the top of barracks:
+            Choose your role from the role selector at the top of barracks.{' '}
+            <strong style={{ color: 'white' }}>
+              Your role locks permanently when you join your first task
+            </strong>{' '}
+            — a confirmation modal appears before that happens so you can double-check your choice.
+            Pick carefully before joining anything.
             <VStack spacing={2} mt={2} alignItems="flex-start">
               <HStack spacing={2} flexWrap="wrap">
                 <RoleBadge role="PvMer" />
@@ -508,16 +513,11 @@ function GatheringSection() {
             </VStack>
           </BulletItem>
           <BulletItem number="3">
-            <strong>Your role locks when you join your first task.</strong> Until then, you can
-            switch freely. A confirmation modal appears before the lock happens so you can
-            double-check your choice.
-          </BulletItem>
-          <BulletItem number="4">
             Browse tasks in your section. Click any task row to open its detail modal and see the
             full description, screenshot requirements, and what items it can drop. Click{' '}
             <strong>Join Quest</strong> to start working it.
           </BulletItem>
-          <BulletItem number="5">
+          <BulletItem number="4">
             For XP-based tasks, run{' '}
             <Code fontSize="xs" bg="gray.700" color="teal.300">
               !cfpresubmit &lt;taskId&gt;
@@ -528,14 +528,15 @@ function GatheringSection() {
               !cfsubmit &lt;taskId&gt;
             </Code>{' '}
             after you've hit the XP target with a screenshot showing the gain. For non-XP tasks,
-            just run !cfsubmit directly with your screenshot.
+            just run !cfsubmit directly with your screenshot. You can find the taskId in the task
+            detail modal in barracks — it's shown near the top of the panel.
           </BulletItem>
-          <BulletItem number="6">
+          <BulletItem number="5">
             Watch the war chest panel in the right sidebar of barracks. Items appear there after an
             admin approves your submission. Coordinate with teammates to cover different tasks and
             maximize your chest variety.
           </BulletItem>
-          <BulletItem number="7">
+          <BulletItem number="6">
             The Quest Log at the top of barracks shows all active tasks across your team. Use it to
             avoid doubling up on tasks when one teammate is already close to finishing and you could
             get more value elsewhere.
@@ -626,11 +627,17 @@ function OutfittingSection() {
             Knowing who you're up against can inform how the captain builds the loadout.
           </BulletItem>
           <BulletItem number="3">
-            Any team member can use the outfitting screen to experiment with the war chest and put
-            together a proposed loadout. Use the <strong>Export</strong> button to copy a loadout
-            code, then share it in your team chat. Your captain can paste it in using the{' '}
-            <strong>Import</strong> button to load up your proposed build and run a Preview battle
-            against the Training Dummy to test how it performs before committing to it.
+            Any team member can use the outfitting screen to experiment with the war chest — but
+            only the captain (or an event admin) can save the official loadout.{' '}
+            Use the <strong>Export</strong> button to copy a loadout code, then share it in your
+            team chat. Your captain can paste it in using the <strong>Import</strong> button to load
+            your proposed build instantly.
+          </BulletItem>
+          <BulletItem number="4">
+            Click <strong>Preview</strong> near the action buttons to run a simulated battle against
+            the Training Dummy using your current build. Anyone can do this — it's a great way to
+            get a feel for how your stats translate into actual damage numbers before the captain
+            commits to a final loadout.
           </BulletItem>
           <CaptainNote>
             The outfitting screen has three main areas: the paperdoll on the left for visualizing
@@ -657,9 +664,12 @@ function OutfittingSection() {
           </CaptainNote>
           <CaptainNote>
             Click <strong>Save Draft</strong> to save your current loadout without locking. You can
-            keep editing until battle begins. Use the battle preview (the "Preview" link near the
-            action buttons) to test your build against a Training Dummy and get a feel for how your
-            stats translate into actual combat before committing to a final loadout.
+            keep editing right up until battle begins.{' '}
+            <strong style={{ color: theme.colors.yellow[200] }}>
+              If battle starts before you've saved anything, your champion enters with only base
+              stats and no gear.
+            </strong>{' '}
+            Don't leave it until the last minute.
           </CaptainNote>
         </Column>
       </SimpleGrid>
@@ -768,9 +778,9 @@ function BattleSection() {
             <strong>You must be present and actively playing during your match.</strong> When the
             battle starts, you will see action buttons each turn: attack, defend, use a special, or
             use a consumable. You choose one per turn. The turn timer runs down and if you miss it
-            the game picks for you, so stay focused. Coordinate your match time with the opposing
-            captain and your admin in advance. Do not go offline during Battle phase without letting
-            your admin know.
+            the game defaults to Attack on your behalf — which may not be what you'd choose, so
+            stay focused. Coordinate your match time with the opposing captain and your admin in
+            advance. Do not go offline during Battle phase without letting your admin know.
           </CaptainNote>
         </Column>
       </SimpleGrid>
@@ -793,9 +803,18 @@ export default function ChampionForgeGuidePage() {
         <Text fontSize={['2xl', '3xl']} fontWeight="bold" color="white" mb={3}>
           Champion Forge: Event Guide
         </Text>
-        <Text fontSize="md" color={theme.colors.gray[400]} lineHeight="tall" maxWidth="600px">
-          A complete walkthrough of the Champion Forge format from event setup through the final
-          battle. Use this as a reference before running or participating in an event.
+        <Text fontSize="md" color={theme.colors.gray[400]} lineHeight="tall" maxWidth="680px" mb={3}>
+          Champion Forge is a team tournament format for OSRS. During the{' '}
+          <strong style={{ color: 'white' }}>Gathering</strong> phase, your team completes in-game
+          tasks to earn equipment for your war chest. During{' '}
+          <strong style={{ color: 'white' }}>Outfitting</strong>, your captain builds a champion
+          loadout from that gear. During <strong style={{ color: 'white' }}>Battle</strong>, captains
+          face off in a live turn-based bracket — the gear your team earned determines how strong
+          your champion is.
+        </Text>
+        <Text fontSize="md" color={theme.colors.gray[400]} lineHeight="tall" maxWidth="680px">
+          This guide covers every phase from event setup through the final match. Use it as a
+          reference before running or participating in an event.
         </Text>
       </Box>
 

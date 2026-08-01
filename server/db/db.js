@@ -8,9 +8,10 @@ const sharedOptions = {
   dialect: 'postgres',
   benchmark: true,
   logging: isDev ? (sql, timing) => logger.debug({ timing, sql }, 'SQL') : false,
+  // This instance is only used for sync/authenticate at startup — keep it tiny
   pool: {
-    max: 20,
-    min: 2,
+    max: 3,
+    min: 0,
     acquire: 30000,
     idle: 10000,
   },

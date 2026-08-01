@@ -20,6 +20,11 @@ import {
   warmUpAudio,
 } from '../../utils/soundEngine';
 import { BACK_SLOTS, LAYER_ORDER } from './championLayers';
+import HPBar from './battle/HPBar';
+import FloatingEmote from './battle/FloatingEmote';
+import StatusBadges from './battle/StatusBadges';
+import ActionPanel from './battle/ActionPanel';
+import BattlePreGameOverlay from './battle/BattlePreGameOverlay';
 
 function buildLayers(loadout, itemById) {
   if (!loadout) return { layers: [], backLayers: [] };
@@ -37,112 +42,6 @@ function buildLayers(loadout, itemById) {
 }
 
 const EMOTE_OPTIONS = ['🔥', '💀', '😱', '👏', '🗡️', '🛡️', '💥', '😤', '🤩', '👀'];
-
-// ---- HP Bar ----
-function HPBar({ current, max, color }) {
-  const pct = Math.max(0, Math.min(1, current / Math.max(1, max)));
-  const barColor = pct > 0.5 ? color : pct > 0.25 ? '#e0a020' : '#e05050';
-  return (
-    <Box w="full" bg="#111" borderRadius={6} h="14px" overflow="hidden" border="1px solid #333">
-      <Box
-        w={`${pct * 100}%`}
-        h="full"
-        bg={barColor}
-        borderRadius={6}
-        transition="width 0.4s ease"
-        boxShadow={`0 0 8px ${barColor}88`}
-      />
-    </Box>
-  );
-}
-
-// ---- Floating Emote (user-sent emoji bar only) ----
-function FloatingEmote({ emote, x, y, onDone }) {
-  const [visible, setVisible] = useState(true);
-  const [top, setTop] = useState(y);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => {
-      setVisible(false);
-      setTop(y - 120);
-    }, 50);
-    const t2 = setTimeout(onDone, 1200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [onDone, y]);
-
-  return (
-    <Box
-      position="absolute"
-      left={`${x}%`}
-      top={`${top}px`}
-      fontSize="28px"
-      opacity={visible ? 1 : 0}
-      transition="top 1.1s ease-out, opacity 1.1s ease-out"
-      pointerEvents="none"
-      userSelect="none"
-      zIndex={10}
-    >
-      {emote}
-    </Box>
-  );
-}
-
-// ---- Status Badges ----
-function StatusBadges({ effects, defendActive }) {
-  return (
-    <HStack flexWrap="wrap" spacing={1}>
-      {(effects ?? []).map((e, i) => (
-        <Badge key={i} colorScheme="red" fontSize="10px" variant="subtle">
-          {e.type === 'bleed'
-            ? `🩸 bleed ${e.turns}t`
-            : e.type === 'blind'
-            ? '👁 blind'
-            : e.type === 'fortress'
-            ? `🏰 fortress ${e.turns}t`
-            : e.type}
-        </Badge>
-      ))}
-      {defendActive && (
-        <Badge colorScheme="blue" fontSize="10px">
-          🛡️ defending
-        </Badge>
-      )}
-    </HStack>
-  );
-}
-
-// ---- Consumable List ----
-function ConsumableList({ consumableIds, items, onUse, disabled }) {
-  return (
-    <VStack align="stretch" spacing={1}>
-      {consumableIds.map((id) => {
-        const item = items.find((i) => i.itemId === id);
-        if (!item) return null;
-        return (
-          <Button
-            key={id}
-            size="xs"
-            colorScheme="blue"
-            variant="outline"
-            isDisabled={disabled}
-            onClick={() => onUse(id)}
-            justifyContent="flex-start"
-          >
-            🧪 {item.name}
-          </Button>
-        );
-      })}
-      {consumableIds.length === 0 && (
-        <Text fontSize="xs" color="gray.500">
-          No consumables remaining.
-        </Text>
-      )}
-    </VStack>
-  );
-}
 
 export default function BattleScreen({
   battle: initialBattle,
@@ -166,26 +65,46 @@ export default function BattleScreen({
   const [flashing, setFlashing] = useState(null);
   const [log, setLog] = useState([]);
   const [timer, setTimer] = useState(turnTimerSeconds);
-  const [activeTab, setActiveTab] = useState('attack');
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [lobbyCountdown, setLobbyCountdown] = useState(null);
+  const [preGameCountdown, setPreGameCountdown] = useState(() => {
+    const ts = initialBattle?.battleState?.turnStartedAt;
+    if (!ts) return null;
+    const ms = new Date(ts).getTime() - Date.now();
+    return ms > 0 ? Math.ceil(ms / 1000) : null;
+  });
   const timerRef = useRef(null);
   const lobbyTimerRef = useRef(null);
+  const preGameRef = useRef(null);
   const autoRef = useRef(null);
   const battleRef = useRef(battle);
 
   battleRef.current = battle;
 
-  // Pre-warm audio context while user is active on the page
   useEffect(() => {
     warmUpAudio();
+  }, []);
+
+  // Pre-game countdown: 15s before actions open (only for fresh battles)
+  useEffect(() => {
+    if (preGameCountdown === null) return;
+    preGameRef.current = setInterval(() => {
+      setPreGameCountdown((c) => {
+        if (c <= 1) {
+          clearInterval(preGameRef.current);
+          return null;
+        }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(preGameRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const state = battle?.battleState ?? {};
   const snap = battle?.championSnapshots ?? {};
   const isBattleOver = battle?.status === 'COMPLETED';
 
-  // Determine if this user is an active captain for one of the battle's teams
   const isSpectator = !myTeamId || (myTeamId !== battle?.team1Id && myTeamId !== battle?.team2Id);
 
   const mySide = myTeamId === battle?.team1Id ? 'team1' : 'team2';
@@ -243,17 +162,22 @@ export default function BattleScreen({
   });
 
   useEffect(() => {
-    if (isBattleOver || !isMyTurn) return;
-    setTimer(turnTimerSeconds);
+    if (isBattleOver) return;
+
+    const getRemaining = () => {
+      if (!state.turnStartedAt) return turnTimerSeconds;
+      const elapsed = (Date.now() - new Date(state.turnStartedAt).getTime()) / 1000;
+      return Math.max(0, Math.ceil(turnTimerSeconds - elapsed));
+    };
+
+    setTimer(getRemaining());
     timerRef.current = setInterval(() => {
-      setTimer((t) => {
-        if (t <= 1) {
-          clearInterval(timerRef.current);
-          handleAction('ATTACK');
-          return turnTimerSeconds;
-        }
-        return t - 1;
-      });
+      const remaining = getRemaining();
+      setTimer(remaining);
+      if (remaining <= 0 && isMyTurn) {
+        clearInterval(timerRef.current);
+        handleAction('ATTACK');
+      }
     }, 1000);
     return () => clearInterval(timerRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -263,7 +187,6 @@ export default function BattleScreen({
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
   }, [log]);
 
-  // Dev auto-play: submit one ATTACK per second on behalf of whoever's turn it is
   useEffect(() => {
     if (!autoPlaying || !isAdmin || isBattleOver) {
       clearInterval(autoRef.current);
@@ -321,7 +244,7 @@ export default function BattleScreen({
 
   const spawnEmote = (emote) => {
     const id = emoteIdRef.current++;
-    const x = 10 + Math.random() * 75; // percentage across arena width
+    const x = 10 + Math.random() * 75;
     const y = 160 + Math.random() * 60;
     setEmotes((e) => [...e, { id, emote, x, y }]);
   };
@@ -421,7 +344,11 @@ export default function BattleScreen({
           />
         ))}
 
-        {!isBattleOver && (
+        {preGameCountdown !== null && !isBattleOver && (
+          <BattlePreGameOverlay countdown={preGameCountdown} />
+        )}
+
+        {!isBattleOver && preGameCountdown === null && (
           <Text textAlign="center" mb={3} fontSize="12px" color={isMyTurn ? '#4caf50' : '#888'}>
             {isMyTurn
               ? '🟢 your turn — pick an action'
@@ -482,6 +409,7 @@ export default function BattleScreen({
                 isShaking={shaking === 'left'}
                 isFlashing={flashing === 'left'}
                 isDead={(state.hp?.team1 ?? 1) <= 0}
+                isActive={!isBattleOver && state.currentTurn === 'team1'}
               />
             </Box>
           </VStack>
@@ -491,7 +419,7 @@ export default function BattleScreen({
             <Text fontSize="11px" color="gray.600">
               vs
             </Text>
-            {!isBattleOver && !isSpectator && (
+            {!isBattleOver && preGameCountdown === null && (
               <Box
                 w="44px"
                 h="44px"
@@ -507,22 +435,6 @@ export default function BattleScreen({
                 transition="all 0.5s"
               >
                 {timer}
-              </Box>
-            )}
-            {!isBattleOver && isSpectator && (
-              <Box
-                w="44px"
-                h="44px"
-                borderRadius="full"
-                bg="gray.700"
-                border="2px solid"
-                borderColor="gray.600"
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                fontSize="18px"
-              >
-                ⏳
               </Box>
             )}
           </VStack>
@@ -558,6 +470,7 @@ export default function BattleScreen({
                 isShaking={shaking === 'right'}
                 isFlashing={flashing === 'right'}
                 isDead={(state.hp?.team2 ?? 1) <= 0}
+                isActive={!isBattleOver && state.currentTurn === 'team2'}
               />
             </Box>
           </VStack>
@@ -593,78 +506,15 @@ export default function BattleScreen({
         </HStack>
       </Box>
 
-      {/* Action panel */}
-      {isMyTurn && !isBattleOver && (
-        <Box bg="gray.800" border="1px solid" borderColor="gray.600" borderRadius="lg" p={4} mb={4}>
-          <HStack mb={3} spacing={2}>
-            {['attack', 'defend', 'special', 'item'].map((t) => (
-              <Button
-                key={t}
-                size="xs"
-                variant={activeTab === t ? 'solid' : 'outline'}
-                colorScheme="purple"
-                onClick={() => setActiveTab(t)}
-              >
-                {t === 'attack' ? '⚔️' : t === 'defend' ? '🛡️' : t === 'special' ? '✨' : '🧪'} {t}
-              </Button>
-            ))}
-          </HStack>
-
-          {activeTab === 'attack' && (
-            <VStack align="stretch">
-              <Text fontSize="xs" color="gray.400" mb={1}>
-                Deal damage to the enemy champion.
-              </Text>
-              <Button colorScheme="red" onClick={() => handleAction('ATTACK')} isLoading={acting}>
-                ⚔️ Attack
-              </Button>
-            </VStack>
-          )}
-          {activeTab === 'defend' && (
-            <VStack align="stretch">
-              <Text fontSize="xs" color="gray.400" mb={1}>
-                Reduce incoming damage by 60% until the next hit lands.
-              </Text>
-              <Button colorScheme="blue" onClick={() => handleAction('DEFEND')} isLoading={acting}>
-                🛡️ Defend
-              </Button>
-            </VStack>
-          )}
-          {activeTab === 'special' && (
-            <VStack align="stretch">
-              {specialUsed ? (
-                <Text fontSize="sm" color="gray.500">
-                  Special ability already used this battle.
-                </Text>
-              ) : mySpecials.length === 0 ? (
-                <Text fontSize="sm" color="gray.500">
-                  No special abilities equipped.
-                </Text>
-              ) : (
-                <>
-                  <Text fontSize="xs" color="gray.400" mb={1}>
-                    One-time use — cannot be undone.
-                  </Text>
-                  <Button
-                    colorScheme="purple"
-                    onClick={() => handleAction('SPECIAL')}
-                    isLoading={acting}
-                  >
-                    ✨ {mySpecials[0]}
-                  </Button>
-                </>
-              )}
-            </VStack>
-          )}
-          {activeTab === 'item' && (
-            <ConsumableList
-              consumableIds={myConsumableIds}
-              items={allItems ?? []}
-              onUse={(itemId) => handleAction('USE_ITEM', itemId)}
-              disabled={acting}
-            />
-          )}
-        </Box>
+      {isMyTurn && !isBattleOver && preGameCountdown === null && (
+        <ActionPanel
+          mySpecials={mySpecials}
+          specialUsed={specialUsed}
+          myConsumableIds={myConsumableIds}
+          allItems={allItems}
+          acting={acting}
+          onAction={handleAction}
+        />
       )}
 
       {/* Battle log */}
@@ -680,21 +530,14 @@ export default function BattleScreen({
         fontFamily="mono"
         fontSize="12px"
         sx={{
-          '&::-webkit-scrollbar': {
-            height: '4px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: 'transparent',
-            width: '4px',
-          },
+          '&::-webkit-scrollbar': { height: '4px' },
+          '&::-webkit-scrollbar-track': { background: 'transparent', width: '4px' },
           '&::-webkit-scrollbar-thumb': {
             background: 'rgba(255, 255, 255, 0.3)',
             borderRadius: '4px',
             width: '4px',
           },
-          '&::-webkit-scrollbar-thumb:hover': {
-            background: 'rgba(255, 255, 255, 0.4)',
-          },
+          '&::-webkit-scrollbar-thumb:hover': { background: 'rgba(255, 255, 255, 0.4)' },
         }}
       >
         {log.length === 0 && <Text color="gray.600">⚔️ Battle beginning...</Text>}

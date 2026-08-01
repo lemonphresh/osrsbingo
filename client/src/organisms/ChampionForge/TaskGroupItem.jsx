@@ -57,7 +57,7 @@ export default function TaskGroupItem({
 
   const isCompleted = team?.completedTaskIds?.includes(taskId) ?? false;
   const approvedCount = summary?.approvedCount ?? 0;
-  const pendingSubs = summary?.pendingCount ?? 0;
+  const pendingSubsCount = summary?.pendingCount ?? 0;
   const quantity = task?.quantity ?? null;
   const numericProgress = team?.numericTaskProgress?.[taskId] ?? 0;
   const progressPct = isCompleted
@@ -81,6 +81,9 @@ export default function TaskGroupItem({
   }, [subsRefetchSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const groupSubs = taskSubsData?.getClanWarsTaskSubmissions ?? [];
+  const pendingSubs = groupSubs.filter((s) => s.status === 'PENDING');
+  const approvedSubs = groupSubs.filter((s) => s.status === 'APPROVED');
+  const deniedSubs = groupSubs.filter((s) => s.status === 'DENIED');
   const taskPrescreens = isAdmin
     ? (prescreens ?? []).filter((ps) => ps.taskId === taskId && ps.teamId === teamId)
     : [];
@@ -88,9 +91,9 @@ export default function TaskGroupItem({
   return (
     <AccordionItem
       border="1px solid"
-      borderColor={isCompleted ? 'green.700' : 'gray.600'}
+      borderColor={isCompleted ? 'green.700' : 'gray.500'}
       borderRadius="md"
-      mb={3}
+      mb={6}
       overflow="hidden"
       opacity={isCompleted ? 0.75 : 1}
     >
@@ -148,10 +151,10 @@ export default function TaskGroupItem({
                 {task?.difficulty}
               </Badge>
               <Badge
-                colorScheme={isCompleted ? 'green' : pendingSubs > 0 ? 'yellow' : 'red'}
+                colorScheme={isCompleted ? 'green' : pendingSubsCount > 0 ? 'yellow' : 'red'}
                 fontSize="xs"
               >
-                {approvedCount > 0 ? `✓ ${approvedCount} approved` : `${pendingSubs} pending`}
+                {approvedCount > 0 ? `✓ ${approvedCount} approved` : `${pendingSubsCount} pending`}
               </Badge>
             </HStack>
           </VStack>
@@ -263,124 +266,137 @@ export default function TaskGroupItem({
       </AccordionButton>
 
       <AccordionPanel px={4} py={3} bg="gray.900">
-        {/* prescreenshots stash — admin only */}
-        {isAdmin && taskPrescreens.length > 0 && (
-          <Accordion allowToggle mb={3}>
-            <AccordionItem border="none">
-              <AccordionButton
-                px={2}
-                py={1}
-                bg="blue.900"
-                borderRadius="md"
-                _hover={{ bg: 'blue.800' }}
-              >
-                <HStack flex="1" spacing={2}>
-                  <Text fontSize="xs" fontWeight="semibold" color="blue.300">
-                    📸 Prescreenshots stash
-                  </Text>
-                  <Badge colorScheme="blue" fontSize="xx-small">
-                    {taskPrescreens.length}
-                  </Badge>
-                </HStack>
-                <AccordionIcon color="blue.400" />
-              </AccordionButton>
-              <AccordionPanel px={2} py={2} bg="blue.950" borderRadius="md" mt={1}>
-                <VStack align="stretch" spacing={2}>
-                  {taskPrescreens.map((ps) => {
-                    const permalink =
-                      ps.channelId && ps.messageId && guildId
-                        ? `https://discord.com/channels/${guildId}/${ps.channelId}/${ps.messageId}`
-                        : null;
-                    return (
-                      <Box
-                        key={ps.preScreenshotId}
-                        p={2}
-                        bg="gray.800"
-                        borderRadius="md"
-                        border="1px solid"
-                        borderColor="blue.700"
-                      >
-                        <HStack justify="space-between" flexWrap="wrap" gap={1}>
-                          <VStack align="flex-start" spacing={0}>
-                            <Text fontSize="xs" color="blue.200" fontWeight="semibold">
-                              {ps.submittedUsername ?? ps.submittedBy}
-                            </Text>
-                            <Text fontSize="xs" color="gray.400">
-                              {fmtTs(ps.submittedAt, utc)}
-                            </Text>
-                          </VStack>
-                          <HStack spacing={1}>
-                            {ps.screenshotUrl && (
-                              <Link
-                                href={ps.screenshotUrl}
-                                isExternal
-                                fontSize="xs"
-                                color="blue.300"
-                              >
-                                view
-                              </Link>
-                            )}
-                            {permalink && (
-                              <Link href={permalink} isExternal fontSize="xs" color="gray.400">
-                                discord msg
-                              </Link>
-                            )}
-                          </HStack>
-                        </HStack>
-                      </Box>
-                    );
-                  })}
-                </VStack>
-              </AccordionPanel>
-            </AccordionItem>
-          </Accordion>
-        )}
+        {/* stashes — prescreens, approved, denied */}
+        {(isAdmin && taskPrescreens.length > 0) ||
+        approvedSubs.length > 0 ||
+        deniedSubs.length > 0 ? (
+          <VStack align="stretch" spacing={1} mb={3}>
+            {isAdmin && taskPrescreens.length > 0 && (
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton px={2} py={1} bg="blue.900" borderRadius="md" _hover={{ bg: 'blue.800' }}>
+                    <HStack flex="1" spacing={2}>
+                      <Text fontSize="xs" fontWeight="semibold" color="blue.300">
+                        📸 Prescreenshots
+                      </Text>
+                      <Badge colorScheme="blue" fontSize="xx-small">{taskPrescreens.length}</Badge>
+                    </HStack>
+                    <AccordionIcon color="blue.400" />
+                  </AccordionButton>
+                  <AccordionPanel px={2} py={2} bg="blue.950" borderRadius="md" mt={1}>
+                    <VStack align="stretch" spacing={2}>
+                      {taskPrescreens.map((ps) => {
+                        const permalink =
+                          ps.channelId && ps.messageId && guildId
+                            ? `https://discord.com/channels/${guildId}/${ps.channelId}/${ps.messageId}`
+                            : null;
+                        return (
+                          <Box key={ps.preScreenshotId} p={2} bg="gray.800" borderRadius="md" border="1px solid" borderColor="blue.700">
+                            <HStack justify="space-between" flexWrap="wrap" gap={1}>
+                              <VStack align="flex-start" spacing={0}>
+                                <Text fontSize="xs" color="blue.200" fontWeight="semibold">
+                                  {ps.submittedUsername ?? ps.submittedBy}
+                                </Text>
+                                <Text fontSize="xs" color="gray.400">{fmtTs(ps.submittedAt, utc)}</Text>
+                              </VStack>
+                              <HStack spacing={1}>
+                                {ps.screenshotUrl && (
+                                  <Link href={ps.screenshotUrl} isExternal fontSize="xs" color="blue.300">view</Link>
+                                )}
+                                {permalink && (
+                                  <Link href={permalink} isExternal fontSize="xs" color="gray.400">discord msg</Link>
+                                )}
+                              </HStack>
+                            </HStack>
+                          </Box>
+                        );
+                      })}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            )}
+
+            {approvedSubs.length > 0 && (
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton px={2} py={1} bg="green.900" borderRadius="md" _hover={{ bg: 'green.800' }}>
+                    <HStack flex="1" spacing={2}>
+                      <Text fontSize="xs" fontWeight="semibold" color="green.300">
+                        ✅ Approved submissions
+                      </Text>
+                      <Badge colorScheme="green" fontSize="xx-small">{approvedSubs.length}</Badge>
+                    </HStack>
+                    <AccordionIcon color="green.400" />
+                  </AccordionButton>
+                  <AccordionPanel px={2} py={2} mt={1}>
+                    <VStack align="stretch" spacing={3}>
+                      {approvedSubs.map((sub, idx) => (
+                        <React.Fragment key={sub.submissionId}>
+                          {idx > 0 && <Divider borderColor="gray.700" />}
+                          <SubmissionCard submission={sub} isAdmin={isAdmin} onReview={handleReview} onUndoApproval={onUndoApproval} onSlotChanged={refetchTaskSubs} tasks={tasks} task={task} numericProgress={numericProgress} approvedCount={approvedSubs.length} hideTaskInfo utc={utc} />
+                        </React.Fragment>
+                      ))}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            )}
+
+            {deniedSubs.length > 0 && (
+              <Accordion allowToggle>
+                <AccordionItem border="none">
+                  <AccordionButton px={2} py={1} bg="red.950" borderRadius="md" _hover={{ bg: 'red.900' }}>
+                    <HStack flex="1" spacing={2}>
+                      <Text fontSize="xs" fontWeight="semibold" color="red.400">
+                        ❌ Denied submissions
+                      </Text>
+                      <Badge colorScheme="red" fontSize="xx-small">{deniedSubs.length}</Badge>
+                    </HStack>
+                    <AccordionIcon color="red.500" />
+                  </AccordionButton>
+                  <AccordionPanel px={2} py={2} mt={1}>
+                    <VStack align="stretch" spacing={3}>
+                      {deniedSubs.map((sub, idx) => (
+                        <React.Fragment key={sub.submissionId}>
+                          {idx > 0 && <Divider borderColor="gray.700" />}
+                          <SubmissionCard submission={sub} isAdmin={isAdmin} onReview={handleReview} onUndoApproval={onUndoApproval} onSlotChanged={refetchTaskSubs} tasks={tasks} task={task} numericProgress={numericProgress} approvedCount={approvedSubs.length} hideTaskInfo utc={utc} />
+                        </React.Fragment>
+                      ))}
+                    </VStack>
+                  </AccordionPanel>
+                </AccordionItem>
+              </Accordion>
+            )}
+          </VStack>
+        ) : null}
 
         <VStack align="stretch" spacing={3}>
           {/* allowed drops — PVMER tasks only */}
           {task?.role === 'PVMER' && task?.acceptableItems?.length > 0 && (
-            <Box
-              p={3}
-              bg="orange.900"
-              borderRadius="md"
-              border="1px solid"
-              borderColor="orange.700"
-            >
-              <Text fontSize="xs" fontWeight="semibold" color="orange.300" mb={2}>
-                Allowed Drops
-              </Text>
+            <Box p={3} bg="orange.900" borderRadius="md" border="1px solid" borderColor="orange.700">
+              <Text fontSize="xs" fontWeight="semibold" color="orange.300" mb={2}>Allowed Drops</Text>
               <HStack flexWrap="wrap" gap={1}>
                 {task.acceptableItems.map((item) => (
-                  <Badge key={item} colorScheme="orange" fontSize="xs" variant="outline">
-                    {item}
-                  </Badge>
+                  <Badge key={item} colorScheme="orange" fontSize="xs" variant="outline">{item}</Badge>
                 ))}
               </HStack>
             </Box>
           )}
 
-          {/* submissions — loaded lazily when accordion opens */}
+          {/* pending submissions — loaded lazily when accordion opens */}
           {groupSubs.length === 0 ? (
             <Text fontSize="xs" color="gray.500" py={2}>
               {isOpen ? 'Loading submissions…' : ''}
             </Text>
-          ) : (
-            groupSubs.map((sub, idx) => (
+          ) : pendingSubs.length > 0 ? (
+            pendingSubs.map((sub, idx) => (
               <React.Fragment key={sub.submissionId}>
                 {idx > 0 && <Divider borderColor="gray.700" />}
-                <SubmissionCard
-                  submission={sub}
-                  isAdmin={isAdmin}
-                  onReview={handleReview}
-                  onUndoApproval={onUndoApproval}
-                  onSlotChanged={refetchTaskSubs}
-                  tasks={tasks}
-                  hideTaskInfo
-                  utc={utc}
-                />
+                <SubmissionCard submission={sub} isAdmin={isAdmin} onReview={handleReview} onUndoApproval={onUndoApproval} onSlotChanged={refetchTaskSubs} tasks={tasks} task={task} numericProgress={numericProgress} approvedCount={approvedSubs.length} hideTaskInfo utc={utc} />
               </React.Fragment>
             ))
-          )}
+          ) : null}
 
           {/* progress tracker — bar visible to all (when quantity set), editing admin-only */}
           {!isCompleted && (isAdmin || quantity > 0) && (

@@ -795,12 +795,13 @@ const typeDefs = gql`
     getMyClanWarsEvents: [ClanWarsEvent!]!
     getClanWarsTeam(eventId: ID!, teamId: ID!): ClanWarsTeam
     getClanWarsWarChest(teamId: ID!): [ClanWarsItem!]!
-    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus): [ClanWarsSubmission!]!
+    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus, limit: Int, offset: Int): [ClanWarsSubmission!]!
     getClanWarsSubmissionSummaries(eventId: ID!): [ClanWarsSubmissionSummary!]!
     getClanWarsTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [ClanWarsSubmission!]!
-    getClanWarsPreScreenshots(eventId: ID!): [ClanWarsPreScreenshot!]!
+    getClanWarsPreScreenshots(eventId: ID!, limit: Int, offset: Int): [ClanWarsPreScreenshot!]!
+    getBattleViewerCount(eventId: ID!): Int!
     getClanWarsBattle(battleId: ID!): ClanWarsBattle
-    getClanWarsBattleLog(battleId: ID!): [ClanWarsBattleEvent!]!
+    getClanWarsBattleLog(battleId: ID!, limit: Int, offset: Int): [ClanWarsBattleEvent!]!
     getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
 
     # --- Rainbow Bingo ---
@@ -1014,6 +1015,8 @@ const typeDefs = gql`
     adminLockAllLoadouts(eventId: ID!): [ClanWarsTeam!]!
 
     # --- Champion Forge: Battle ---
+    joinBattleView(eventId: ID!): Boolean
+    leaveBattleView(eventId: ID!): Boolean
     setCaptainReady(eventId: ID!, teamId: ID!): ClanWarsEvent!
     startClanWarsBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): ClanWarsBattle!
     submitBattleAction(
@@ -1472,6 +1475,7 @@ const typeDefs = gql`
     clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
     clanWarsPreScreenshotAdded(eventId: ID!): ClanWarsPreScreenshot!
     clanWarsEventUpdated(eventId: ID!): ClanWarsEvent!
+    battleViewersUpdated(eventId: ID!): Int!
 
     # --- Rainbow Bingo ---
     rainbowSubmissionAdded(eventId: ID!): RainbowSubmission!
