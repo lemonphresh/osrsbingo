@@ -60,6 +60,7 @@ const NodeSubmissionItem = ({
   setConfirmingKey,
 }) => {
   const itemKey = `${nodeId}_${teamId}`;
+  const { soloBosses, raids, minigames } = useContentRegistry();
 
   // Lazy-fetch full submissions when a completed-node accordion is opened
   const { data: lazyData, loading: lazyLoading } = useQuery(GET_NODE_SUBMISSIONS, {
@@ -477,7 +478,6 @@ const SubmissionsTab = ({
   onOpenCompleteDialog,
   handleReviewSubmission,
 }) => {
-  const { soloBosses, raids, minigames } = useContentRegistry();
   const [confirmingKey, setConfirmingKey] = useState(null);
   const [progressOverrides, setProgressOverrides] = useState({});
   const [openKeys, setOpenKeys] = useState(new Set());

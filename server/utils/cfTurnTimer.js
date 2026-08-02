@@ -9,7 +9,7 @@ const {
   isBlinded,
   tickEffects,
   advanceTurn,
-} = require('../schema/resolvers/cf/helpers');
+} = require('../schema/resolvers/championForge/helpers');
 const { advanceBracketAfterBattle, allMatchesDone } = require('./cfBracket');
 const { sendBattleCompleteAnnouncement } = require('./cfNotifications');
 

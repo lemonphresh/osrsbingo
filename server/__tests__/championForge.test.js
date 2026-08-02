@@ -12,7 +12,7 @@ process.env.NODE_ENV = 'test';
 const { Sequelize } = require('sequelize');
 const db = require('../db/models');
 const { Op } = require('sequelize');
-const { Mutation: resolvers, Query: queryResolvers } = require('../schema/resolvers/CF');
+const { Mutation: resolvers, Query: queryResolvers } = require('../schema/resolvers/ChampionForge');
 const { triggerGatheringTransition } = require('../utils/cfScheduler');
 const { generateId } = require('../utils/cfTaskSampler');
 
