@@ -3471,13 +3471,21 @@ const EXTRA_ACTIVITY_OPTIONS = [
   { value: 'soul_wars_zeal',       label: 'Soul Wars (Zeal)' },
 ];
 
+// The registry uses a composite dagannoth_kings entry (womKey: null) for event
+// objectives, but WOM tracks the three kings individually. Expose them for group goals.
+const DAGANNOTH_KINGS_OPTIONS = [
+  { value: 'dagannoth_prime',   label: 'Dagannoth Prime' },
+  { value: 'dagannoth_rex',     label: 'Dagannoth Rex' },
+  { value: 'dagannoth_supreme', label: 'Dagannoth Supreme' },
+];
+
 // All WOM Boss-enum metrics, including MINIGAME entries tracked as bosses by WOM.
 function getGroupDashboardBossOptions() {
   const bossRaidOptions = getBossMetricOptions();
   const minigameBossOptions = Object.values(MINIGAMES)
     .filter((m) => m.womKey && MINIGAME_BOSS_KEYS.has(m.womKey))
     .map((m) => ({ value: m.womKey, label: m.displayName }));
-  return [...bossRaidOptions, ...minigameBossOptions].sort((a, b) =>
+  return [...bossRaidOptions, ...minigameBossOptions, ...DAGANNOTH_KINGS_OPTIONS].sort((a, b) =>
     a.label.localeCompare(b.label)
   );
 }
