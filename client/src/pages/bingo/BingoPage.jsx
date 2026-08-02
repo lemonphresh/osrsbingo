@@ -15,7 +15,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { Link, useNavigate } from 'react-router-dom';
 import Section from '../../atoms/Section';
 import GemTitle from '../../atoms/GemTitle';
-import theme from '../theme';
+import theme from '../../theme';
 import { useQuery } from '@apollo/client';
 import { GET_USER } from '../../graphql/queries';
 import GnomeChild from '../../assets/gnomechild.png';

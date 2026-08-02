@@ -18,7 +18,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_BOARD, GET_USER } from '../../graphql/queries';
 import Section from '../../atoms/Section';
-import theme from '../theme';
+import theme from '../../theme';
 import BingoBoard from '../../molecules/BingoBoard';
 import { useAuth } from '../../providers/AuthProvider';
 import useBingoCompletion from '../../hooks/useBingoCompletion';

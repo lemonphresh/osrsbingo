@@ -11,7 +11,7 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import theme from '../theme';
+import theme from '../../theme';
 import { usePageTitle } from '../../hooks/usePageTitle';
 
 // ---------------------------------------------------------------------------

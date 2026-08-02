@@ -28,8 +28,8 @@ import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
 import CreateCFEventModal from '../../organisms/ChampionForge/CreateCFEventModal';
 import ConfirmModal from '../../organisms/ChampionForge/ConfirmModal';
-import { isChampionForgeEnabled } from '../config/featureFlags';
-import theme from '../theme';
+import { isChampionForgeEnabled } from '../../config/featureFlags';
+import theme from '../../theme';
 import GemTitle from '../../atoms/GemTitle';
 
 const STATUS_COLORS = {

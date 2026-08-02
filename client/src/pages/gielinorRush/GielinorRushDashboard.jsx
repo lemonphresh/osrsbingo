@@ -39,7 +39,7 @@ import { useState, useMemo, useRef } from 'react';
 import { useToastContext } from '../../providers/ToastProvider';
 import AuthRequiredModal from '../../molecules/AuthRequiredModal';
 import usePageTitle from '../../hooks/usePageTitle';
-import { isGielinorRushEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled } from '../../config/featureFlags';
 import GRSummary from '../../molecules/GielinorRush/GRSummary';
 import EventCard from '../../organisms/GielinorRush/EventCard';
 import DashboardEmptyState from '../../organisms/GielinorRush/DashboardEmptyState';

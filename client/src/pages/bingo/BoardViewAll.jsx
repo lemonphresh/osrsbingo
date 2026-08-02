@@ -17,7 +17,7 @@ import GemTitle from '../../atoms/GemTitle';
 import usePublicBoardsWithThumbnails from '../../hooks/usePublicBoardsWithThumbnails';
 import MiniBingoBoard from '../../atoms/MiniBingoBoard';
 import { Link } from 'react-router-dom';
-import theme from '../theme';
+import theme from '../../theme';
 import { debounce } from 'lodash';
 import usePageTitle from '../../hooks/usePageTitle';
 

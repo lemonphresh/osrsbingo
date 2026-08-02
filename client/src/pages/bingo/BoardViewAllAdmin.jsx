@@ -5,7 +5,7 @@ import GemTitle from '../../atoms/GemTitle';
 import useAllBoardsWithThumbnails from '../../hooks/useAllBoardsWithThumbnails';
 import MiniBingoBoard from '../../atoms/MiniBingoBoard';
 import { Link, useNavigate } from 'react-router-dom';
-import theme from '../theme';
+import theme from '../../theme';
 import { debounce } from 'lodash';
 import { useAuth } from '../../providers/AuthProvider';
 import { MdLockOutline, MdPublic } from 'react-icons/md';

@@ -1,4 +1,4 @@
-# 🗺️ OSRS Bingo Hub
+# OSRS Bingo Hub
 
 **The ultimate competitive event platform for Old School RuneScape clans.**
 
@@ -8,74 +8,72 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 
 ---
 
-## ✨ Features
+## Features
 
-### 🎯 Bingo Boards
+### Bingo Boards
 
-- **Fully customizable** tiles with any OSRS objective
-- **Progress tracking** — set a goal and drag a slider to update progress per tile
-- **Share with clanmates** via unique links
-- **Multiple templates** to get started quickly
+- Fully customizable tiles with any OSRS objective
+- Progress tracking — set a goal and drag a slider to update progress per tile
+- Share with clanmates via unique links
+- Multiple templates to get started quickly
 
-### ⚔️ Gielinor Rush
+### Gielinor Rush
 
-- **Procedurally generated maps** tailored to your event configuration
-- **Three difficulty paths** per location — Short, Medium, and Long objectives
-- **Key & Inn mechanics** — collect keys, trade for bonus GP at checkpoints
-- **Buff system** — earn and spend buffs to reduce objective requirements
-- **Automated prize distribution** with hard-capped budget guarantees
-- **Discord bot integration** — submit proofs, check progress, all from Discord
-- **Live updates** via WebSocket subscriptions
+- Procedurally generated maps tailored to your event configuration
+- Three difficulty paths per location — Short, Medium, and Long objectives
+- Key & Inn mechanics — collect keys, trade for bonus GP at checkpoints
+- Buff system — earn and spend buffs to reduce objective requirements
+- Automated prize distribution with hard-capped budget guarantees
+- Discord bot integration — submit proofs, check progress, all from Discord
+- Live updates via WebSocket subscriptions
 
-### ⚔️ Champion Forge
+### Champion Forge
 
-- **Four-phase tournament structure**: Draft → Gathering → Outfitting → Battle
-- **Gathering phase** — players complete OSRS tasks to earn items for their war chest, submitted via Discord bot with admin approve/deny review
-- **War chest** — approved drops become equippable gear and consumables for your champion
-- **Outfitting phase** — full paperdoll gear slots (helm, cape, amulet, weapon, chest, shield, legs, gloves, boots, ring, trinket) with a live training dummy battle previewer
-- **Turn-based battle engine** — attacks, defends, specials, and consumable items
-- **Bracket support** — single-elimination and double-elimination formats
-- **Live battle screen** with real-time WebSocket updates and a per-turn action timer
-- **Battle replay** — step through any completed fight turn by turn
-- **Per-action visual effects** — CSS-animated slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs, and debuffs
-- **Synthesized sound effects** — every action has a unique Web Audio API sound, with a per-user volume slider
+- Four-phase tournament structure: Draft → Gathering → Outfitting → Battle
+- Gathering phase — players complete OSRS tasks to earn items for their war chest, submitted via Discord bot with admin approve/deny review
+- War chest — approved drops become equippable gear and consumables for your champion
+- Outfitting phase — full paperdoll gear slots with a live training dummy battle previewer
+- Turn-based battle engine — attacks, defends, specials, and consumable items
+- Bracket support — single-elimination and double-elimination formats
+- Live battle screen with real-time WebSocket updates and a per-turn action timer
+- Battle replay — step through any completed fight turn by turn
+- Per-action visual effects — CSS-animated slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs, and debuffs
+- Synthesized sound effects — every action has a unique Web Audio API sound, with a per-user volume slider
 
-### 🎲 Blind Draft
+### Blind Draft
 
-- **Create a draft room** with a custom name, team count, and pick timer
-- **Three draft formats**: Snake, Linear, or Auction
-- **Blind picks** — teams can't see each other's selections during the draft
-- **Captain PIN system** — captains join via a shareable link and room PIN
-- **Auto-timer** — configurable pick clock enforces pace
-- **Big reveal** — all picks are revealed simultaneously when the draft completes
-- **Stat categories & tier formulas** — weight players by any custom stat
+- Create a draft room with a custom name, team count, and pick timer
+- Three draft formats: Snake, Linear, or Auction
+- Blind picks — teams can't see each other's selections during the draft
+- Captain PIN system — captains join via a shareable link and room PIN
+- Auto-timer — configurable pick clock enforces pace
+- Big reveal — all picks are revealed simultaneously when the draft completes
 
-### ⚖️ Team Balancer
+### Team Balancer
 
-- **Paste any list of RSNs** — stats are fetched automatically via Wise Old Man
-- **Weighted scoring** across EHP, EHB, EHP/year, EHB/year, total level, and raid KCs (CoX, ToB, ToA)
-- **Presets** for common event types: All-Rounder, PvM Focused, Skilling Focused, Raid Specialist
-- **Fully adjustable weights** — fine-tune each stat's contribution with sliders
-- **Hours-per-day slider** per player for balancing around availability
-- **Auto-balance** assigns players to teams using a greedy score-equalization algorithm
-- **Drag-and-drop** to manually move players between teams after auto-balancing
-- **CSV export** for sharing team assignments
+- Paste any list of RSNs — stats are fetched automatically via Wise Old Man
+- Weighted scoring across EHP, EHB, EHP/year, EHB/year, total level, and raid KCs (CoX, ToB, ToA)
+- Presets for common event types: All-Rounder, PvM Focused, Skilling Focused, Raid Specialist
+- Fully adjustable weights — fine-tune each stat's contribution with sliders
+- Hours-per-day slider per player for balancing around availability
+- Auto-balance assigns players to teams using a greedy score-equalization algorithm
+- Drag-and-drop to manually move players between teams after auto-balancing
+- CSV export for sharing team assignments
 
-### 🏆 Group Dashboard
+### Group Dashboard
 
-- **WOM-powered group tracking** — connect any Wise Old Man group and display live goal progress
-- **Custom goals** — admins define skill/boss targets with start snapshots and deadlines
-- **WOM competitions** — surface active and upcoming competitions with live countdowns and progress bars
-- **Follow system** — any user can follow a group dashboard to keep it accessible
-- **Auto-sync** — group data refreshes from WOM automatically (1-hour TTL, manual refresh available)
-- **Custom themes** — per-group accent colors and branding
-- **Admin management** — transfer ownership, add/remove co-admins
-- **Activity feed** — per-group log of recent member events
-- **Discord integration** — optional webhook for posting goal completions
+- WOM-powered group tracking — connect any Wise Old Man group and display live goal progress
+- Custom goals — admins define skill/boss targets with start snapshots and deadlines
+- WOM competitions — surface active and upcoming competitions with live countdowns and progress bars
+- Follow system — any user can follow a group dashboard to keep it accessible
+- Auto-sync — group data refreshes from WOM automatically (1-hour TTL, manual refresh available)
+- Custom themes — per-group accent colors and branding
+- Admin management — transfer ownership, add/remove co-admins
+- Activity feed — per-group log of recent member events
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 | Layer         | Technologies                                     |
 | ------------- | ------------------------------------------------ |
@@ -88,7 +86,7 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 
 ---
 
-## 🎮 For Event Runners
+## For Event Runners
 
 ### Running a Gielinor Rush
 
@@ -100,7 +98,7 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 | **4. Monitor**   | Review submissions and watch the leaderboard live    |
 | **5. Payout**    | Winners calculated automatically — you're done!      |
 
-> 💡 **Budget Guarantee**: The hard-capped system ensures you'll _never_ owe more than your prize pool, no matter what teams achieve.
+> **Budget Guarantee**: The hard-capped system ensures you'll _never_ owe more than your prize pool, no matter what teams achieve.
 
 ### Running a Champion Forge
 
@@ -143,18 +141,18 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 osrs-bingo-hub/
 ├── client/          # React frontend (Chakra UI)
 ├── server/          # Node.js GraphQL backend
-└── bot/             # Discord bot for Gielinor Rush
+└── bot/             # Discord bot
 ```
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -168,7 +166,6 @@ osrs-bingo-hub/
 git clone https://github.com/yourusername/osrs-bingo-hub.git
 cd osrs-bingo-hub
 
-# Install all dependencies
 cd client && npm install
 cd ../server && npm install
 cd ../bot && npm install  # optional
@@ -184,7 +181,7 @@ PORT=4000
 JWT_SECRET=your-secret-key
 SESSION_SECRET=your-session-secret
 DISCORD_BOT_TOKEN=your-bot-token       # optional
-WOM_VERIFICATION_CODE=xxx-xxx-xxx      # optional — found in your WOM group settings. enables a daily update-all cron so the clan stats inactivity tracker stays accurate
+WOM_VERIFICATION_CODE=xxx-xxx-xxx      # optional — found in your WOM group settings
 ```
 
 **Client** (`/client/.env`):
@@ -219,16 +216,13 @@ cd bot && npm start
 
 ---
 
-## 🧰 Local Development Setup (First-Time / Fresh Machine)
-
-This section covers everything you need to get fully running from scratch, including common pitfalls.
+## Local Development Setup (First-Time / Fresh Machine)
 
 ### Node Version (NVM)
 
 This project uses **Node v20.19.3**. Managing it via NVM is strongly recommended.
 
 ```bash
-# Install NVM (if not already installed via Homebrew)
 brew install nvm
 
 # Add to your shell config (~/.zshrc or ~/.bashrc):
@@ -239,57 +233,27 @@ export NVM_DIR="$HOME/.nvm"
 nvm install 20.19.3
 nvm use 20.19.3
 
-# Verify
 node --version  # should print v20.19.3
 ```
 
-> ⚠️ If you see `EBADENGINE` warnings during `npm install`, it means you're on the wrong Node version. Run `nvm use 20.19.3` before installing.
+> If you see `EBADENGINE` warnings during `npm install`, you're on the wrong Node version. Run `nvm use 20.19.3` before installing.
 
-The `bingostart` script handles this automatically per terminal tab — but for manual installs, always set your Node version first.
-
----
+The `bingostart` script handles this automatically per terminal tab.
 
 ### PostgreSQL Setup
 
-#### 1. Install & Start PostgreSQL
-
 ```bash
-brew install postgresql@14  # or whichever version you prefer (v12+)
+brew install postgresql@14
 brew services start postgresql@14
-```
 
-To verify it's running:
-
-```bash
-brew services list  # postgresql should show "started"
-```
-
-#### 2. Create the `postgres` Role
-
-Homebrew installs PostgreSQL with your Mac username as the default superuser, **not** `postgres`. The app expects a `postgres` role, so create it:
-
-```bash
+# Homebrew uses your Mac username as the default superuser, not "postgres".
+# The app expects a "postgres" role, so create it:
 psql postgres -c "CREATE ROLE postgres WITH SUPERUSER LOGIN;"
-```
-
-> ⚠️ If you skip this step, you'll get: `ConnectionError: role "postgres" does not exist`
-
-#### 3. Create the Database
-
-```bash
 psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"
-```
 
-Replace `osrsbingo` with whatever your `DATABASE_URL` in `.env` points to if different.
-
-#### 4. Run Migrations
-
-```bash
 cd server/db
 npx sequelize-cli db:migrate
 ```
-
----
 
 ### Common Errors & Fixes
 
@@ -301,21 +265,17 @@ npx sequelize-cli db:migrate
 | `database "osrsbingo" does not exist` | DB not created yet                              | `psql postgres -c "CREATE DATABASE osrsbingo OWNER postgres;"`  |
 | `npm run dev` crashes immediately     | Missing `.env` file                             | Copy `.env.example` to `.env` and fill in values                |
 
----
-
-### Using the `bingo` Script
-
-There's a helper script in `.zshrc` that opens all tabs and starts everything automatically:
+### The `bingo` Script
 
 ```bash
 bingo
 ```
 
-This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3` and `npm i` per tab) and `bingostatus` together. Make sure PostgreSQL is already running before calling it, or the server tab will crash on startup.
+Opens bot, client, and server tabs with `nvm use 20.19.3` and `npm i` per tab. Make sure PostgreSQL is already running before calling it.
 
 ---
 
-## 💰 Gielinor Rush: How It Works
+## Gielinor Rush: How It Works
 
 ### The Game Loop
 
@@ -324,17 +284,17 @@ This runs `bingostart` (opens bot, client, and server tabs with `nvm use 20.19.3
 3. **Complete** — Finish OSRS tasks (boss KC, XP gains, item drops, clue scrolls, etc.)
 4. **Submit** — Upload proof via Discord bot
 5. **Earn** — Approved submissions grant GP + keys
-6. **Trade** — Spend keys at Inns for bonus GP rewards (inn completes on purchase)
+6. **Trade** — Spend keys at Inns for bonus GP rewards
 7. **Win** — Highest GP total at event end takes the prize!
 
 ### Map Structure
 
-| Element             | Description                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| **Location Groups** | Each map location offers 3 difficulty variants                                                   |
-| **One Choice Rule** | Teams can only complete ONE difficulty per location                                              |
-| **Paths**           | Mountain (🔴), Trade Route (🔵), Coastal (🟢) — each grants different colored keys               |
-| **Inns**            | Checkpoints where teams trade keys for GP bonuses — completing an Inn requires making a purchase |
+| Element             | Description                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| **Location Groups** | Each map location offers 3 difficulty variants                                     |
+| **One Choice Rule** | Teams can only complete ONE difficulty per location                                |
+| **Paths**           | Mountain (🔴), Trade Route (🔵), Coastal (🟢) — each grants different colored keys |
+| **Inns**            | Checkpoints where teams trade keys for GP bonuses                                  |
 
 ### Objective Types
 
@@ -358,11 +318,7 @@ Buffs are earned from nodes and Inn purchases. They reduce objective requirement
 | **Universal** | 50% reduction on any objective  |
 | **Multi-use** | 25% reduction on two objectives |
 
-> Item buffs require the objective to have more than 2 drops.
-
 ### Budget System
-
-The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 | Allocation | Default | Description                          |
 | ---------- | ------- | ------------------------------------ |
@@ -377,8 +333,6 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 | 🟡 Medium  | 70% of max  | 1 key       |
 | 🔴 Long    | 100% of max | 2 keys      |
 
-> Long nodes pay **5× more** than Short nodes. Each path's max GP is calibrated to the total node budget.
-
 #### Inn Trade Options
 
 | Option       | Key Cost        | Payout    |
@@ -389,7 +343,7 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 
 ---
 
-## ⚔️ Champion Forge: How It Works
+## Champion Forge: How It Works
 
 ### The Four Phases
 
@@ -409,9 +363,7 @@ The prize pool is automatically distributed with a **hard-capped guarantee**:
 | **Special** | Unique ability tied to your equipped weapon (cleave, barrage, lifesteal, etc.) |
 | **Item**    | Use a consumable from your war chest (heal, damage, debuff, buff, etc.)        |
 
-### Stats & Items
-
-Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, trinket, weapon, chest, shield, legs, gloves, boots, ring, and two consumable slots. Items are earned exclusively through gathering phase submissions — no pay-to-win.
+Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, trinket, weapon, chest, shield, legs, gloves, boots, ring, and two consumable slots. Items are earned exclusively through gathering phase submissions.
 
 ### Discord Bot Commands (Champion Forge)
 
@@ -422,7 +374,7 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 
 ---
 
-## 🎲 Blind Draft: How It Works
+## Blind Draft: How It Works
 
 ### Formats
 
@@ -440,15 +392,11 @@ Champion stats are derived from equipped gear. Item slots: helm, cape, amulet, t
 4. Teams pick in turn — picks are **hidden** from other teams during the draft
 5. When all picks are done, picks are **revealed to everyone simultaneously**
 
-### Picking Rules
-
-- Pick timer is enforced per pick (default 60s) — the organizer can pick on behalf of a timed-out captain
-- Organizer can always make picks regardless of whose turn it is
-- Picks per turn is configurable (default: 1)
+Organizer can always make picks on behalf of any team. Pick timer is enforced per pick (default 60s).
 
 ---
 
-## ⚖️ Team Balancer: How It Works
+## Team Balancer: How It Works
 
 ### Scoring
 
@@ -474,53 +422,47 @@ Each player is scored by a weighted sum of their WOM stats:
 | **Skilling Focused** | XP races or skilling events — ignores bossing stats    |
 | **Raid Specialist**  | Raid events — weights CoX, ToB, ToA, and EHB/Y heavily |
 
-### Auto-Balance Algorithm
-
-Players are sorted by score descending and assigned one at a time to whichever team currently has the lowest total score — producing near-equal team strength without manual effort.
+Players are sorted by score descending and assigned one at a time to whichever team currently has the lowest total score.
 
 ---
 
-## 🏆 Group Dashboard: How It Works
-
-### Goals
+## Group Dashboard: How It Works
 
 Admins define goals with a **metric** (skill XP, boss KC, etc.), a **target value**, and an optional deadline. The dashboard captures a WOM snapshot at goal creation as the baseline and shows progress toward the target in real time.
 
-### Competitions
-
-Any active or upcoming WOM competition for the group is automatically surfaced with a live countdown timer and per-player progress bars.
-
-### Sync
-
-Group data is synced from Wise Old Man automatically with a 1-hour TTL. Admins can force a manual refresh at any time. The dashboard shows when the last sync occurred and when the next one is due.
+Group data is synced from Wise Old Man automatically with a 1-hour TTL. Admins can force a manual refresh at any time. Any active or upcoming WOM competition for the group is automatically surfaced with a live countdown timer and per-player progress bars.
 
 ---
 
-## 🤖 Discord Bot
+## Discord Bot
 
-Integrate your Gielinor Rush event directly into Discord for seamless team coordination.
+Supports Gielinor Rush event coordination and Champion Forge task submission from Discord.
 
 ### Setup
 
 1. Create a Discord app at [discord.com/developers](https://discord.com/developers)
 2. Add a bot and copy the token to your `.env`
 3. Invite bot to your server with permissions: Send Messages, Read Messages, Embed Links
-4. Set any channel's **topic** to your Event ID (i.e., `event_abc123`)
+4. Set the channel **topic** to your Event ID (e.g., `event_abc123`) for Gielinor Rush channels
 
 ### Commands
 
-| Command                          | Description                            |
-| -------------------------------- | -------------------------------------- |
-| `!treasurehunt` / `!th`          | View team status and available nodes   |
-| `!nodes`                         | List all available and completed nodes |
-| `!submit <node_id>` + upload img | Submit completion proof                |
-| `!leaderboard` / `!lb`           | View current event rankings            |
+| Command                            | Description                                   |
+| ---------------------------------- | --------------------------------------------- |
+| `!gielinorrush` / `!gr`            | View team status and available nodes          |
+| `!nodes`                           | List all available and completed nodes        |
+| `!submit <node_id>` + upload img   | Submit Gielinor Rush completion proof         |
+| `!leaderboard` / `!lb`             | View current event rankings                   |
+| `!cfsubmit <task_id>` + upload img | Submit Champion Forge task for review         |
+| `!cfpresubmit`                     | Record a pre-screenshot baseline for XP tasks |
 
 ---
 
-## 🗄️ Database
+## Database
 
-### Core Tables
+The code uses renamed model classes (GREvent, CFEvent, etc.) while the underlying Postgres tables retain their original names — no migration needed when the codebase was reorganized.
+
+### Tables
 
 | Table                  | Purpose                          |
 | ---------------------- | -------------------------------- |
@@ -539,38 +481,45 @@ Integrate your Gielinor Rush event directly into Discord for seamless team coord
 | `ClanWarsTasks`        | Gathering phase task definitions |
 | `ClanWarsSubmissions`  | Proof submissions with review    |
 | `ClanWarsItems`        | Equippable item definitions      |
-| `ClanWarsTeamItems`    | Items earned per team            |
 | `ClanWarsBattles`      | Battle instances and state       |
 | `ClanWarsBattleEvents` | Turn-by-turn battle log          |
+| `RainbowEvents`        | EG Rainbow bingo event config    |
+| `RainbowTeams`         | Competing teams                  |
 
 ### Migration Commands
 
 ```bash
 cd server/db
 
-# Run migrations
 npx sequelize-cli db:migrate
-
-# Create new migration
 npx sequelize-cli migration:generate --name your-migration-name
-
-# Rollback
 npx sequelize-cli db:migrate:undo
 ```
 
 ---
 
-## 🧪 Development
+## Development
+
+### Running Tests
+
+```bash
+# Client (Jest via react-scripts)
+cd client && npx react-scripts test --watchAll=false
+
+# Server unit tests
+cd server && npx jest
+
+# Server integration tests (requires local Postgres — see below)
+cd server && npx jest __tests__/championForge.test.js
+```
 
 ### Test Database Setup
 
-Integration tests (i.e. Champion Forge) run against a local `database_test` Postgres database. One-time setup:
+Integration tests run against a local `database_test` Postgres database.
 
 ```bash
-# 1. Create the test database
 createdb database_test
 
-# 2. Run migrations against it (run from the server/ directory)
 cd server
 npx sequelize-cli db:migrate \
   --config db/config/config.json \
@@ -578,90 +527,102 @@ npx sequelize-cli db:migrate \
   --env test
 ```
 
-The `test` config in `server/db/config/config.json` connects as your local Mac username (no password) on `127.0.0.1:5432`. If your local Postgres superuser is different, update the `username` field in that config.
-
-To run the integration tests:
-
-```bash
-cd server
-npx jest __tests__/championForge.test.js
-```
-
-> Each test suite cleans up its own data in `afterAll`, so repeated runs are safe.
+The `test` config in `server/db/config/config.json` connects as your local Mac username on `127.0.0.1:5432`. Each test suite cleans up its own data in `afterAll`, so repeated runs are safe.
 
 ### Dev Mode with Hot Reload
 
 ```bash
-# Server (nodemon)
-cd server && npm run dev
-
-# Client (React dev server)
-cd client && npm start
-
-# Bot (nodemon)
-cd bot && npm run dev
+cd server && npm run dev   # nodemon
+cd client && npm start     # React dev server
+cd bot && npm run dev      # nodemon
 ```
 
 ### Project Structure
 
 ```
 server/
-├── index.js                    # Entry point
+├── index.js
 ├── schema/
-│   ├── resolvers/              # Query & mutation handlers
-│   └── typeDefs.js             # GraphQL schema
+│   ├── typeDefs.js                     # GraphQL schema
+│   └── resolvers/
+│       ├── GielinorRush.js
+│       ├── ChampionForge.js
+│       ├── championForge/              # CF sub-resolvers (queries, mutations, field resolvers)
+│       └── ...
 ├── db/
-│   ├── models/                 # Sequelize models
-│   └── migrations/             # Database migrations
+│   ├── models/
+│   │   ├── core/                       # User, SiteStats, etc.
+│   │   ├── bingo/                      # BingoBoard, BingoTile
+│   │   ├── gielinorRush/               # GREvent, GRTeam, GRNode, GRSubmission, GRActivity
+│   │   ├── championForge/              # CFEvent, CFTeam, CFTask, CFItem, CFBattle, etc.
+│   │   ├── draftRoom/                  # DraftRoom, DraftPlayer
+│   │   ├── groupDashboard/             # GroupDashboard, GroupGoalEvent, etc.
+│   │   ├── rainbow/                    # RainbowEvent, RainbowTeam, etc.
+│   │   └── calendar/                   # CalendarEvent, CalendarSettings
+│   └── migrations/
 └── utils/
-    ├── treasureMapGenerator.js # Procedural map generation
-    ├── objectiveBuilder.js     # OSRS objective creation
-    └── buffHelpers.js          # Buff system logic
+    ├── gielinorRush/                   # grMapGenerator, objectiveBuilder, buffHelpers, nodeCache
+    ├── championForge/                  # cfBracket, cfTurnTimer, cfScheduler, cfNotifications, etc.
+    ├── groupDashboard/                 # groupDashboardHelpers, groupGoalScheduler
+    ├── rainbow/                        # rainbowTiles, rainbowDiscord, rainbowWomSync, etc.
+    ├── trackScape/                     # trackScapeScraper, trackScapeScheduler
+    ├── contentRegistry.js              # OSRS content definitions (bosses, skills, etc.)
+    ├── dataLoaders.js
+    ├── womService.js
+    └── logger.js
 
-client/
-├── src/
-│   ├── components/             # Reusable UI components
-│   ├── pages/                  # Route pages
-│   ├── graphql/                # Queries, mutations, subscriptions
-│   ├── providers/              # Context providers
-│   └── hooks/                  # Custom React hooks
-└── public/                     # Static assets
+client/src/
+├── pages/
+│   ├── gielinorRush/
+│   ├── championForge/
+│   ├── draftRoom/
+│   ├── groupDashboard/
+│   ├── bingo/
+│   └── rainbow/
+├── organisms/                          # Complex feature components
+├── graphql/                            # Apollo queries, mutations, subscriptions
+├── providers/                          # React context providers
+└── hooks/                              # Custom React hooks
 
 bot/
-├── index.js                    # Bot entry point
-├── commands/                   # Discord command handlers
-└── utils/                      # Bot utilities
+├── index.js
+└── commands/
+    ├── gielinorrush.js
+    ├── championforge.js
+    ├── submit.js
+    ├── leaderboard.js
+    └── nodes.js
 ```
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push: `git push origin feature/amazing-feature`
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit changes: `git commit -m 'Add your feature'`
+4. Push: `git push origin feature/your-feature`
 5. Open a Pull Request
 
 ---
 
-## 💬 Support
+## Support
 
-- 🐛 **Issues**: Open a GitHub issue
-- 💬 **Discord**: Join the community server
-- 📧 **Contact**: Reach out to the maintainer
+- **Issues**: Open a GitHub issue
+- **Discord**: Join the community server
+- **Contact**: Reach out via the email on my GitHub profile
 
 ---
 
-## 📄 License
+## License
 
-This is proprietary software. All rights reserved. For licensing inquiries or partnership opportunities, please email me using the email attached to my GitHub account.
+This is proprietary software. All rights reserved. For licensing inquiries, please email me using the email attached to my GitHub account.
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for the OSRS community**
+Made with love for the OSRS community
 
 [Visit OSRS Bingo Hub](https://www.osrsbingohub.com)
 

@@ -24,7 +24,7 @@ import {
   CLAN_WARS_EVENT_UPDATED,
 } from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
-import { isChampionForgeEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled } from '../../config/featureFlags';
 import usePageTitle from '../../hooks/usePageTitle';
 import BattleBracket from '../../organisms/ChampionForge/BattleBracket';
 import CFDraftPanel from '../../organisms/ChampionForge/CFDraftPanel';

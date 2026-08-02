@@ -46,7 +46,7 @@ import {
 } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import Section from '../../atoms/Section';
-import theme from '../theme';
+import theme from '../../theme';
 import CreateTeamModal from '../../organisms/GielinorRush/CreateGRTeamModal';
 import EditEventModal from '../../organisms/GielinorRush/EditGREventModal';
 import EditTeamModal from '../../organisms/GielinorRush/EditGRTeamModal';

@@ -5,7 +5,7 @@ import {
 import { useQuery, useSubscription } from '@apollo/client';
 import { Box, Button, Center, Spinner, Text, VStack, HStack, Heading } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import NoMatch from './NoMatch';
+import NoMatch from '../NoMatch';
 import { useAuth } from '../../providers/AuthProvider';
 import { useCompletionSound } from '../../hooks/useCompletionSound';
 import { useRainbowCelebration } from '../../hooks/useRainbowCelebration';
@@ -35,7 +35,7 @@ import { FaArrowRight } from 'react-icons/fa';
 import { fmtTs, useTimezone } from '../../hooks/useTimezone';
 import TimezoneToggle from '../../atoms/TimezoneToggle';
 
-const dragGifCtx = require.context('../assets/drag', false, /\.gif$/);
+const dragGifCtx = require.context('../../assets/drag', false, /\.gif$/);
 const DRAG_GIFS = dragGifCtx.keys().map((k) => dragGifCtx(k));
 
 const STATUS_RANK = { LOCKED: 0, UNLOCKED: 1, SUBMITTED: 2, COMPLETE: 3 };

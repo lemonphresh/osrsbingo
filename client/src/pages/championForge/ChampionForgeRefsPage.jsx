@@ -24,7 +24,7 @@ import {
   GET_BATTLE_VIEWER_COUNT,
 } from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
-import { isChampionForgeEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled } from '../../config/featureFlags';
 import usePageTitle from '../../hooks/usePageTitle';
 import GatheringPhase from '../../organisms/ChampionForge/GatheringPhase';
 import WarChestPanel from '../../organisms/ChampionForge/WarChestPanel';

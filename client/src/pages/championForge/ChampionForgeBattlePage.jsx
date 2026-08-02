@@ -19,7 +19,7 @@ import {
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
-import { isChampionForgeEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled } from '../../config/featureFlags';
 import BattleScreen from '../../organisms/ChampionForge/BattleScreen';
 import BattleBracket from '../../organisms/ChampionForge/BattleBracket';
 import BattleLogViewer from '../../organisms/ChampionForge/BattleLogViewer';

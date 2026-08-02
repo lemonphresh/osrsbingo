@@ -60,7 +60,7 @@ import gladfiuMp4 from '../../assets/gladfiu.mp4';
 import yassifiedGnome from '../../assets/yassifiedgnomechild.png';
 import { FaHeart, FaFire, FaSun, FaLeaf, FaDroplet, FaMoon, FaBolt } from 'react-icons/fa6';
 
-const dragGifCtx = require.context('../assets/drag', false, /\.gif$/);
+const dragGifCtx = require.context('../../assets/drag', false, /\.gif$/);
 const DRAG_GIFS = dragGifCtx.keys().map((k) => dragGifCtx(k));
 
 const COLOR_ICON = {

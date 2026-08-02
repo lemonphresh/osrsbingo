@@ -50,7 +50,7 @@ import {
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
-import { isChampionForgeEnabled } from '../config/featureFlags';
+import { isChampionForgeEnabled } from '../../config/featureFlags';
 import {
   playSubmissionApproved,
   playSubmissionDenied,

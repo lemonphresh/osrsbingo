@@ -15,7 +15,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../providers/AuthProvider';
 import { GET_MY_DRAFT_ROOMS } from '../../graphql/draftOperations';
 import usePageTitle from '../../hooks/usePageTitle';
-import { isBlindDraftEnabled } from '../config/featureFlags';
+import { isBlindDraftEnabled } from '../../config/featureFlags';
 import { useEffect } from 'react';
 
 const STATUS_COLORS = {
