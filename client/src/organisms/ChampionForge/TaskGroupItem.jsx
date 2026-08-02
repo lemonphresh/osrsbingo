@@ -18,7 +18,7 @@ import {
 } from '@chakra-ui/react';
 import { CheckIcon } from '@chakra-ui/icons';
 import { fmtTs } from '../../hooks/useTimezone';
-import { GET_CLAN_WARS_TASK_SUBMISSIONS } from '../../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_TASK_SUBMISSIONS } from '../../graphql/cfOperations';
 import { DIFFICULTY_COLOR } from './gatheringConstants';
 import SubmissionCard from './SubmissionCard';
 import TaskProgressEditor from './TaskProgressEditor';
@@ -80,7 +80,7 @@ export default function TaskGroupItem({
     }
   }, [subsRefetchSignal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const groupSubs = taskSubsData?.getClanWarsTaskSubmissions ?? [];
+  const groupSubs = taskSubsData?.getCFTaskSubmissions ?? [];
   const pendingSubs = groupSubs.filter((s) => s.status === 'PENDING');
   const approvedSubs = groupSubs.filter((s) => s.status === 'APPROVED');
   const deniedSubs = groupSubs.filter((s) => s.status === 'DENIED');

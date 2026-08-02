@@ -5,7 +5,7 @@ import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_NODES } from '../mocks/nodes';
 import { MOCK_TEAMS } from '../mocks/teams';
 import { MOCK_USERS } from '../mocks/users';
-import NodeDetailModal from '../../organisms/TreasureHunt/NodeDetailModal';
+import NodeDetailModal from '../../organisms/GielinorRush/NodeDetailModal';
 
 function NodeScenario({
   title,

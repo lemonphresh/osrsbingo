@@ -15,7 +15,7 @@
 require('dotenv').config();
 
 const { fetchGroupGains } = require('../utils/womService');
-const { TILE_MAP } = require('../utils/rainbowTiles');
+const { TILE_MAP } = require('../utils/rainbow/rainbowTiles');
 
 const WOM_GROUP_ID = 9738;
 const SLEEP_MS = 1500;

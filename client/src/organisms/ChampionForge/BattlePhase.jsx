@@ -13,7 +13,7 @@ import {
   GET_CLAN_WARS_WAR_CHEST,
   START_CLAN_WARS_BATTLE,
   UPDATE_CLAN_WARS_EVENT_STATUS,
-} from '../../graphql/clanWarsOperations';
+} from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 
@@ -29,7 +29,7 @@ export default function BattlePhase({ event: initialEvent, isAdmin, refetch }) {
     pollInterval: 5000,
     fetchPolicy: 'network-only',
   });
-  const event = eventData?.getClanWarsEvent ?? initialEvent;
+  const event = eventData?.getCFEvent ?? initialEvent;
 
   // Find the currently active battle from the bracket:
   // a match has battleId set but no winnerId yet = IN_PROGRESS
@@ -49,7 +49,7 @@ export default function BattlePhase({ event: initialEvent, isAdmin, refetch }) {
     skip: !activeBattleId,
     fetchPolicy: 'cache-and-network',
   });
-  const activeBattle = battleData?.getClanWarsBattle;
+  const activeBattle = battleData?.getCFBattle;
 
   const myTeam = event.teams?.find((t) =>
     t.captainDiscordId === user?.discordUserId ||
@@ -60,7 +60,7 @@ export default function BattlePhase({ event: initialEvent, isAdmin, refetch }) {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam,
   });
-  const myItems = chestData?.getClanWarsWarChest ?? [];
+  const myItems = chestData?.getCFWarChest ?? [];
 
   const [startBattle] = useMutation(START_CLAN_WARS_BATTLE);
   const [advancePhase] = useMutation(UPDATE_CLAN_WARS_EVENT_STATUS, { onCompleted: refetch });

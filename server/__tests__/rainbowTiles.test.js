@@ -6,7 +6,7 @@ const {
   getStartTiles,
   getNewlyUnlockedTiles,
   getCascadeLockTiles,
-} = require('../utils/rainbowTiles');
+} = require('../utils/rainbow/rainbowTiles');
 
 // ── TILES ─────────────────────────────────────────────────────────────────────
 

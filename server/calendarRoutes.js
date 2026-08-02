@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { CalendarEvent, CalendarSettings, TrackScapeDrop, sequelize } = require('./db/models');
 const { syncEventsToNotion } = require('./utils/notionSync');
-const { syncTrackScapeDrops } = require('./utils/trackScapeScraper');
+const { syncTrackScapeDrops } = require('./utils/trackScape/trackScapeScraper');
 const { Op } = sequelize.Sequelize;
 
 const router = express.Router();

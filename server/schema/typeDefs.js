@@ -256,7 +256,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: EVENTS
   # ============================================================
 
-  enum TreasureEventStatus {
+  enum GREventStatus {
     DRAFT
     PUBLIC
     COMPLETED
@@ -270,11 +270,11 @@ const typeDefs = gql`
     value: Int!
   }
 
-  type TreasureEvent {
+  type GREvent {
     eventId: ID!
     eventName: String!
     eventPassword: String
-    status: TreasureEventStatus!
+    status: GREventStatus!
     clanId: String
     startDate: DateTime
     endDate: DateTime
@@ -285,8 +285,8 @@ const typeDefs = gql`
     contentSelections: JSON
     mapStructure: JSON
     discordConfig: JSON
-    teams: [TreasureTeam!]
-    nodes: [TreasureNode!]
+    teams: [GRTeam!]
+    nodes: [GRNode!]
     creatorId: ID
     creator: User
     adminIds: [ID!]
@@ -296,7 +296,7 @@ const typeDefs = gql`
     lastMapGeneratedAt: DateTime
   }
 
-  input CreateTreasureEventInput {
+  input CreateGREventInput {
     eventName: String!
     clanId: String
     eventPassword: String
@@ -307,9 +307,9 @@ const typeDefs = gql`
     discordConfig: JSON
   }
 
-  input UpdateTreasureEventInput {
+  input UpdateGREventInput {
     eventName: String
-    status: TreasureEventStatus
+    status: GREventStatus
     startDate: DateTime
     endDate: DateTime
     eventConfig: JSON
@@ -349,7 +349,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: TEAMS
   # ============================================================
 
-  type TreasureTeamMember {
+  type GRTeamMember {
     discordUserId: String!
     discordUsername: String
     discordAvatar: String
@@ -357,12 +357,12 @@ const typeDefs = gql`
     rsn: String
   }
 
-  type TreasureTeam {
+  type GRTeam {
     teamId: ID!
     eventId: ID!
     teamName: String!
     discordRoleId: String
-    members: [TreasureTeamMember!]!
+    members: [GRTeamMember!]!
     currentPot: String
     completedNodes: [String!]
     availableNodes: [String!]
@@ -375,12 +375,12 @@ const typeDefs = gql`
     nodeProgress: JSON
     inProgressNodes: [String]
     nodeUnlockTimes: JSON
-    submissions: [TreasureSubmission!]
-    event: TreasureEvent
+    submissions: [GRSubmission!]
+    event: GREvent
     updatedAt: String
   }
 
-  input CreateTreasureTeamInput {
+  input CreateGRTeamInput {
     teamName: String!
     discordRoleId: String
     members: [String!]
@@ -390,17 +390,17 @@ const typeDefs = gql`
   # GIELINOR RUSH: NODES
   # ============================================================
 
-  enum TreasureNodeType {
+  enum GRNodeType {
     START
     STANDARD
     INN
     TREASURE
   }
 
-  type TreasureNode {
+  type GRNode {
     nodeId: ID!
     eventId: ID!
-    nodeType: TreasureNodeType!
+    nodeType: GRNodeType!
     title: String!
     description: String
     coordinates: JSON
@@ -420,13 +420,13 @@ const typeDefs = gql`
   # GIELINOR RUSH: SUBMISSIONS
   # ============================================================
 
-  enum TreasureSubmissionStatus {
+  enum GRSubmissionStatus {
     PENDING_REVIEW
     APPROVED
     DENIED
   }
 
-  type TreasureSubmission {
+  type GRSubmission {
     submissionId: ID!
     eventId: ID!
     teamId: ID!
@@ -435,11 +435,11 @@ const typeDefs = gql`
     submittedByUsername: String
     channelId: String
     proofUrl: String
-    status: TreasureSubmissionStatus!
+    status: GRSubmissionStatus!
     reviewedBy: String
     reviewedAt: DateTime
     submittedAt: DateTime!
-    team: TreasureTeam
+    team: GRTeam
   }
 
   type NodeSubmissionSummary {
@@ -454,7 +454,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: ACTIVITY FEED
   # ============================================================
 
-  type TreasureHuntActivity {
+  type GRActivity {
     id: ID!
     eventId: ID!
     teamId: ID!
@@ -762,17 +762,17 @@ const typeDefs = gql`
     getPublicCalendarEvents(limit: Int = 20): [CalendarEvent!]!
 
     # --- Gielinor Rush ---
-    getTreasureEvent(eventId: ID!): TreasureEvent
-    getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
-    getAllTreasureEvents(userId: ID): [TreasureEvent!]
-    getMyTreasureEvents: [TreasureEvent!]
-    getAssociatedTreasureEvents: [TreasureEvent!]!
-    getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
-    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getGREvent(eventId: ID!): GREvent
+    getGRTeam(eventId: ID!, teamId: ID!): GRTeam
+    getAllGREvents(userId: ID): [GREvent!]
+    getMyGREvents: [GREvent!]
+    getAssociatedGREvents: [GREvent!]!
+    getPendingSubmissions(eventId: ID!): [GRSubmission!]
+    getAllSubmissions(eventId: ID!): [GRSubmission!]
     getNodeSubmissionSummaries(eventId: ID!): [NodeSubmissionSummary!]!
-    getNodeSubmissions(nodeId: ID!, teamId: ID!): [TreasureSubmission!]!
-    getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
-    getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
+    getNodeSubmissions(nodeId: ID!, teamId: ID!): [GRSubmission!]!
+    getGREventLeaderboard(eventId: ID!): [GRTeam!]
+    getGRActivities(eventId: ID!, limit: Int, offset: Int): [GRActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
     checkDiscordChannels(
       guildId: String!
@@ -790,19 +790,19 @@ const typeDefs = gql`
     fetchPlayerCompHistory(rsns: [String!]!): [PlayerCompHistory!]!
 
     # --- Champion Forge ---
-    getClanWarsEvent(eventId: ID!): ClanWarsEvent
-    getAllClanWarsEvents: [ClanWarsEvent!]!
-    getMyClanWarsEvents: [ClanWarsEvent!]!
-    getClanWarsTeam(eventId: ID!, teamId: ID!): ClanWarsTeam
-    getClanWarsWarChest(teamId: ID!): [ClanWarsItem!]!
-    getClanWarsSubmissions(eventId: ID!, status: ClanWarsSubmissionStatus, limit: Int, offset: Int): [ClanWarsSubmission!]!
-    getClanWarsSubmissionSummaries(eventId: ID!): [ClanWarsSubmissionSummary!]!
-    getClanWarsTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [ClanWarsSubmission!]!
-    getClanWarsPreScreenshots(eventId: ID!, limit: Int, offset: Int): [ClanWarsPreScreenshot!]!
+    getCFEvent(eventId: ID!): CFEvent
+    getAllCFEvents: [CFEvent!]!
+    getMyCFEvents: [CFEvent!]!
+    getCFTeam(eventId: ID!, teamId: ID!): CFTeam
+    getCFWarChest(teamId: ID!): [CFItem!]!
+    getCFSubmissions(eventId: ID!, status: CFSubmissionStatus, limit: Int, offset: Int): [CFSubmission!]!
+    getCFSubmissionSummaries(eventId: ID!): [CFSubmissionSummary!]!
+    getCFTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [CFSubmission!]!
+    getCFPreScreenshots(eventId: ID!, limit: Int, offset: Int): [CFPreScreenshot!]!
     getBattleViewerCount(eventId: ID!): Int!
-    getClanWarsBattle(battleId: ID!): ClanWarsBattle
-    getClanWarsBattleLog(battleId: ID!, limit: Int, offset: Int): [ClanWarsBattleEvent!]!
-    getClanWarsTaskPool(eventId: ID!): [ClanWarsTask!]!
+    getCFBattle(battleId: ID!): CFBattle
+    getCFBattleLog(battleId: ID!, limit: Int, offset: Int): [CFBattleEvent!]!
+    getCFTaskPool(eventId: ID!): [CFTask!]!
 
     # --- Rainbow Bingo ---
     isRainbowBingoChannelActive(channelId: String!): Boolean!
@@ -879,29 +879,29 @@ const typeDefs = gql`
     demoteCalendarEvent(id: ID!): CalendarEvent!
 
     # --- Gielinor Rush: Events ---
-    createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!
-    updateTreasureEvent(eventId: ID!, input: UpdateTreasureEventInput!): TreasureEvent!
-    deleteTreasureEvent(eventId: ID!): MutationResponse!
-    generateTreasureMap(eventId: ID!): TreasureEvent!
-    launchEvent(eventId: ID!): TreasureEvent!
-    completeEvent(eventId: ID!): TreasureEvent!
+    createGREvent(input: CreateGREventInput!): GREvent!
+    updateGREvent(eventId: ID!, input: UpdateGREventInput!): GREvent!
+    deleteGREvent(eventId: ID!): MutationResponse!
+    generateGRMap(eventId: ID!): GREvent!
+    launchEvent(eventId: ID!): GREvent!
+    completeEvent(eventId: ID!): GREvent!
 
     # --- Gielinor Rush: Discord ---
     confirmDiscordSetup(eventId: ID!, guildId: String!): DiscordConfirmResponse!
 
     # --- Gielinor Rush: Event Admins ---
-    addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
-    removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
-    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
+    addEventAdmin(eventId: ID!, userId: ID!): GREvent!
+    removeEventAdmin(eventId: ID!, userId: ID!): GREvent!
+    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): GREvent!
 
     # --- Gielinor Rush: Event Refs ---
-    addEventRef(eventId: ID!, userId: ID!): TreasureEvent!
-    removeEventRef(eventId: ID!, userId: ID!): TreasureEvent!
+    addEventRef(eventId: ID!, userId: ID!): GREvent!
+    removeEventRef(eventId: ID!, userId: ID!): GREvent!
 
     # --- Gielinor Rush: Teams ---
-    createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
-    updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
-    deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
+    createGRTeam(eventId: ID!, input: CreateGRTeamInput!): GRTeam!
+    updateGRTeam(eventId: ID!, teamId: ID!, input: JSON!): GRTeam!
+    deleteGRTeam(eventId: ID!, teamId: ID!): MutationResponse!
 
     # --- Gielinor Rush: Node Completion ---
     adminCompleteNode(
@@ -909,12 +909,12 @@ const typeDefs = gql`
       teamId: ID!
       nodeId: ID!
       congratsMessage: String
-    ): TreasureTeam!
-    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
-    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminRepairLocationGroupAvailability(eventId: ID!): [TreasureTeam!]!
+    ): GRTeam!
+    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam
+    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminRepairLocationGroupAvailability(eventId: ID!): [GRTeam!]!
 
     # --- Gielinor Rush: Submissions ---
     submitNodeCompletion(
@@ -925,29 +925,29 @@ const typeDefs = gql`
       submittedBy: String!
       submittedByUsername: String
       channelId: String
-    ): TreasureSubmission!
+    ): GRSubmission!
     reviewSubmission(
       submissionId: ID!
       approved: Boolean!
       reviewerId: String!
       denialReason: String
-    ): TreasureSubmission!
+    ): GRSubmission!
 
     # --- Gielinor Rush: Buffs ---
-    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
-    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
-    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
-    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): GRTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): GRTeam!
+    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): GRTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Gielinor Rush: Admin Notes ---
-    addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): TreasureTeam!
-    deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): TreasureTeam!
-    updateNodeProgress(eventId: ID!, teamId: ID!, nodeId: ID!, value: Int!): TreasureTeam!
-    toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): GRTeam!
+    deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): GRTeam!
+    updateNodeProgress(eventId: ID!, teamId: ID!, nodeId: ID!, value: Int!): GRTeam!
+    toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Gielinor Rush: Inns ---
-    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
-    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): GRTeam!
+    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Blind Draft Room ---
     createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!
@@ -958,34 +958,34 @@ const typeDefs = gql`
     revealNames(roomId: ID!): DraftRoom!
 
     # --- Champion Forge: Events ---
-    createClanWarsEvent(input: CreateClanWarsEventInput!): ClanWarsEvent!
-    updateClanWarsEventStatus(eventId: ID!, status: ClanWarsEventStatus!): ClanWarsEvent!
-    updateClanWarsEventSettings(eventId: ID!, input: UpdateClanWarsEventSettingsInput!): ClanWarsEvent!
-    joinTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
-    leaveTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
-    deleteClanWarsEvent(eventId: ID!): MutationResponse!
-    generateClanWarsBracket(eventId: ID!, bracketType: String): ClanWarsEvent!
-    addClanWarsAdmin(eventId: ID!, userId: ID!): ClanWarsEvent!
-    removeClanWarsAdmin(eventId: ID!, userId: ID!): ClanWarsEvent!
-    addClanWarsRef(eventId: ID!, userId: ID!): ClanWarsEvent!
-    removeClanWarsRef(eventId: ID!, userId: ID!): ClanWarsEvent!
+    createCFEvent(input: CreateCFEventInput!): CFEvent!
+    updateCFEventStatus(eventId: ID!, status: CFEventStatus!): CFEvent!
+    updateCFEventSettings(eventId: ID!, input: UpdateCFEventSettingsInput!): CFEvent!
+    joinTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): CFTeam!
+    leaveTaskInProgress(eventId: ID!, teamId: ID!, taskId: ID!): CFTeam!
+    deleteCFEvent(eventId: ID!): MutationResponse!
+    generateCFBracket(eventId: ID!, bracketType: String): CFEvent!
+    addCFAdmin(eventId: ID!, userId: ID!): CFEvent!
+    removeCFAdmin(eventId: ID!, userId: ID!): CFEvent!
+    addCFRef(eventId: ID!, userId: ID!): CFEvent!
+    removeCFRef(eventId: ID!, userId: ID!): CFEvent!
 
     # --- Champion Forge: Teams ---
-    createClanWarsTeam(eventId: ID!, input: CreateClanWarsTeamInput!): ClanWarsTeam!
-    updateClanWarsTeamMembers(teamId: ID!, members: [ClanWarsMemberInput!]!): ClanWarsTeam!
-    deleteClanWarsTeam(eventId: ID!, teamId: ID!): MutationResponse!
-    setClanWarsCaptain(teamId: ID!, discordId: String!): ClanWarsTeam!
+    createCFTeam(eventId: ID!, input: CreateCFTeamInput!): CFTeam!
+    updateCFTeamMembers(teamId: ID!, members: [CFMemberInput!]!): CFTeam!
+    deleteCFTeam(eventId: ID!, teamId: ID!): MutationResponse!
+    setCFCaptain(teamId: ID!, discordId: String!): CFTeam!
 
     # --- Champion Forge: Tasks ---
-    addClanWarsTask(eventId: ID!, input: ClanWarsTaskInput!): ClanWarsTask!
-    deleteClanWarsTask(taskId: ID!): MutationResponse!
-    setTaskProgress(eventId: ID!, teamId: ID!, taskId: ID!, value: Int!): ClanWarsTeam!
-    markTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
-    undoTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): ClanWarsTeam!
+    addCFTask(eventId: ID!, input: CFTaskInput!): CFTask!
+    deleteCFTask(taskId: ID!): MutationResponse!
+    setTaskProgress(eventId: ID!, teamId: ID!, taskId: ID!, value: Int!): CFTeam!
+    markTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): CFTeam!
+    undoTaskComplete(eventId: ID!, teamId: ID!, taskId: ID!): CFTeam!
 
     # --- Champion Forge: Submissions ---
-    createClanWarsSubmission(input: ClanWarsSubmissionInput!): ClanWarsSubmission!
-    createClanWarsPreScreenshot(
+    createCFSubmission(input: CFSubmissionInput!): CFSubmission!
+    createCFPreScreenshot(
       eventId: ID!
       teamId: ID
       taskId: String!
@@ -995,43 +995,43 @@ const typeDefs = gql`
       screenshotUrl: String
       channelId: String
       messageId: String
-    ): ClanWarsPreScreenshot!
-    reviewClanWarsSubmission(
+    ): CFPreScreenshot!
+    reviewCFSubmission(
       submissionId: ID!
       approved: Boolean!
       reviewerId: String!
       rewardSlot: String
       denialReason: String
-    ): ClanWarsSubmission!
-    changeSubmissionRewardSlot(submissionId: ID!, rewardSlot: String!): ClanWarsSubmission!
-    undoSubmissionApproval(submissionId: ID!): ClanWarsSubmission!
+    ): CFSubmission!
+    changeSubmissionRewardSlot(submissionId: ID!, rewardSlot: String!): CFSubmission!
+    undoSubmissionApproval(submissionId: ID!): CFSubmission!
 
     # --- Champion Forge: Outfitting ---
-    saveOfficialLoadout(teamId: ID!, loadout: JSON!): ClanWarsTeam!
-    lockClanWarsLoadout(teamId: ID!): ClanWarsTeam!
+    saveOfficialLoadout(teamId: ID!, loadout: JSON!): CFTeam!
+    lockCFLoadout(teamId: ID!): CFTeam!
 
     # --- Champion Forge: Admin shortcuts (dev / fast-forward) ---
-    adminForceEventStatus(eventId: ID!, status: String!): ClanWarsEvent!
-    adminLockAllLoadouts(eventId: ID!): [ClanWarsTeam!]!
+    adminForceEventStatus(eventId: ID!, status: String!): CFEvent!
+    adminLockAllLoadouts(eventId: ID!): [CFTeam!]!
 
     # --- Champion Forge: Battle ---
     joinBattleView(eventId: ID!): Boolean
     leaveBattleView(eventId: ID!): Boolean
-    setCaptainReady(eventId: ID!, teamId: ID!): ClanWarsEvent!
-    startClanWarsBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): ClanWarsBattle!
+    setCaptainReady(eventId: ID!, teamId: ID!): CFEvent!
+    startCFBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): CFBattle!
     submitBattleAction(
       battleId: ID!
       teamId: ID!
-      action: ClanWarsBattleAction!
+      action: CFBattleAction!
       itemId: ID
-    ): ClanWarsBattle!
+    ): CFBattle!
 
     # Dev-only: seed all CF scenario events; adds caller to adminIds on each
     devSeedCfEvent: Boolean!
     # Dev-only: auto-play a battle to completion (admin only)
-    devAutoBattle(battleId: ID!): ClanWarsBattle!
+    devAutoBattle(battleId: ID!): CFBattle!
     # Dev-only: start the next unstarted bracket match and simulate it to completion
-    devSimulateNextMatch(eventId: ID!): ClanWarsBattle!
+    devSimulateNextMatch(eventId: ID!): CFBattle!
     sendBattleEmote(battleId: ID!, emote: String!): Boolean!
 
     # --- Group Goal Dashboard ---
@@ -1088,7 +1088,7 @@ const typeDefs = gql`
   # CHAMPION FORGE: CORE TYPES
   # ============================================================
 
-  enum ClanWarsEventStatus {
+  enum CFEventStatus {
     DRAFT
     GATHERING
     OUTFITTING
@@ -1096,30 +1096,30 @@ const typeDefs = gql`
     COMPLETED
   }
 
-  enum ClanWarsSubmissionStatus {
+  enum CFSubmissionStatus {
     PENDING
     APPROVED
     DENIED
   }
 
-  enum ClanWarsBattleStatus {
+  enum CFBattleStatus {
     WAITING
     IN_PROGRESS
     COMPLETED
   }
 
-  enum ClanWarsBattleAction {
+  enum CFBattleAction {
     ATTACK
     DEFEND
     USE_ITEM
     SPECIAL
   }
 
-  type ClanWarsEvent {
+  type CFEvent {
     eventId: ID!
     clanId: String
     eventName: String!
-    status: ClanWarsEventStatus!
+    status: CFEventStatus!
     gatheringStart: DateTime
     gatheringEnd: DateTime
     outfittingEnd: DateTime
@@ -1136,15 +1136,15 @@ const typeDefs = gql`
     scheduledGatheringStart: DateTime
     difficulty: String
     eventPassword: String
-    teams: [ClanWarsTeam!]
-    submissions: [ClanWarsSubmission!]
-    tasks: [ClanWarsTask!]
-    battles: [ClanWarsBattle!]
+    teams: [CFTeam!]
+    submissions: [CFSubmission!]
+    tasks: [CFTask!]
+    battles: [CFBattle!]
     createdAt: DateTime
     updatedAt: DateTime
   }
 
-  type ClanWarsMember {
+  type CFMember {
     discordId: String!
     username: String
     rsn: String
@@ -1152,23 +1152,23 @@ const typeDefs = gql`
     role: String
   }
 
-  type ClanWarsTeam {
+  type CFTeam {
     teamId: ID!
     eventId: ID!
     teamName: String!
     discordRoleId: String
-    members: [ClanWarsMember!]
+    members: [CFMember!]
     officialLoadout: JSON
     loadoutLocked: Boolean!
     captainDiscordId: String
     completedTaskIds: [String!]
     taskProgress: JSON
     numericTaskProgress: JSON
-    items: [ClanWarsItem!]
-    submissions: [ClanWarsSubmission!]
+    items: [CFItem!]
+    submissions: [CFSubmission!]
   }
 
-  type ClanWarsItem {
+  type CFItem {
     itemId: ID!
     teamId: ID!
     eventId: ID!
@@ -1182,7 +1182,7 @@ const typeDefs = gql`
     isUsed: Boolean!
   }
 
-  type ClanWarsSubmissionSummary {
+  type CFSubmissionSummary {
     taskId: String!
     teamId: ID!
     pendingCount: Int!
@@ -1190,7 +1190,7 @@ const typeDefs = gql`
     deniedCount: Int!
   }
 
-  type ClanWarsPreScreenshot {
+  type CFPreScreenshot {
     preScreenshotId: ID!
     eventId: ID!
     teamId: ID
@@ -1205,7 +1205,7 @@ const typeDefs = gql`
     createdAt: DateTime
   }
 
-  type ClanWarsSubmission {
+  type CFSubmission {
     submissionId: ID!
     eventId: ID!
     teamId: ID!
@@ -1217,10 +1217,10 @@ const typeDefs = gql`
     difficulty: String!
     role: String!
     screenshot: String
-    status: ClanWarsSubmissionStatus!
+    status: CFSubmissionStatus!
     rewardSlot: String
     rewardItemId: String
-    rewardItem: ClanWarsItem
+    rewardItem: CFItem
     reviewedBy: String
     reviewNote: String
     reviewedAt: DateTime
@@ -1228,22 +1228,22 @@ const typeDefs = gql`
     createdAt: DateTime
   }
 
-  type ClanWarsBattle {
+  type CFBattle {
     battleId: ID!
     eventId: ID!
     team1Id: ID!
     team2Id: ID!
-    status: ClanWarsBattleStatus!
+    status: CFBattleStatus!
     championSnapshots: JSON
     battleState: JSON
     rngSeed: String
     winnerId: String
     startedAt: DateTime
     endedAt: DateTime
-    battleLog: [ClanWarsBattleEvent!]
+    battleLog: [CFBattleEvent!]
   }
 
-  type ClanWarsBattleEvent {
+  type CFBattleEvent {
     eventLogId: ID!
     battleId: ID!
     turnNumber: Int!
@@ -1259,7 +1259,7 @@ const typeDefs = gql`
     createdAt: DateTime
   }
 
-  type ClanWarsTask {
+  type CFTask {
     taskId: ID!
     eventId: ID!
     label: String!
@@ -1271,10 +1271,10 @@ const typeDefs = gql`
     quantity: Int
   }
 
-  type ClanWarsSubmitResult {
+  type CFSubmitResult {
     success: Boolean!
     message: String!
-    item: ClanWarsItem
+    item: CFItem
   }
 
   type BattleEmote {
@@ -1282,23 +1282,23 @@ const typeDefs = gql`
     emote: String!
   }
 
-  type ClanWarsBattleUpdate {
+  type CFBattleUpdate {
     battleId: ID!
-    battle: ClanWarsBattle!
-    latestEvent: ClanWarsBattleEvent
+    battle: CFBattle!
+    latestEvent: CFBattleEvent
   }
 
   # ============================================================
   # CHAMPION FORGE: INPUTS
   # ============================================================
 
-  input UpdateClanWarsEventSettingsInput {
+  input UpdateCFEventSettingsInput {
     guildId: String
     announcementsChannelId: String
     scheduledGatheringStart: DateTime
   }
 
-  input CreateClanWarsEventInput {
+  input CreateCFEventInput {
     eventName: String!
     clanId: String
     gatheringHours: Int
@@ -1308,23 +1308,23 @@ const typeDefs = gql`
     flexRolesAllowed: Boolean
     difficulty: String
     bracketType: String
-    teams: [CreateClanWarsTeamInput!]
+    teams: [CreateCFTeamInput!]
   }
 
-  input CreateClanWarsTeamInput {
+  input CreateCFTeamInput {
     teamName: String!
     discordRoleId: String
-    members: [ClanWarsMemberInput!]
+    members: [CFMemberInput!]
   }
 
-  input ClanWarsMemberInput {
+  input CFMemberInput {
     discordId: String!
     username: String
     avatar: String
     role: String
   }
 
-  input ClanWarsTaskInput {
+  input CFTaskInput {
     label: String!
     description: String
     difficulty: String!
@@ -1332,7 +1332,7 @@ const typeDefs = gql`
     quantity: Int
   }
 
-  input ClanWarsSubmissionInput {
+  input CFSubmissionInput {
     eventId: ID!
     teamId: ID!
     submittedBy: String!
@@ -1458,23 +1458,23 @@ const typeDefs = gql`
   # ============================================================
 
   type Subscription {
-    submissionAdded(eventId: ID!): TreasureSubmission!
-    submissionReviewed(eventId: ID!): TreasureSubmission!
+    submissionAdded(eventId: ID!): GRSubmission!
+    submissionReviewed(eventId: ID!): GRSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
-    treasureHuntActivity(eventId: ID!): TreasureHuntActivity
-    teamUpdated(eventId: ID!): TreasureTeam!
+    grActivity(eventId: ID!): GRActivity
+    teamUpdated(eventId: ID!): GRTeam!
     nodeProgressUpdated(eventId: ID!): NodeProgressUpdate
 
     # --- Blind Draft Room ---
     draftRoomUpdated(roomId: ID!): DraftRoomUpdate!
 
     # --- Champion Forge ---
-    clanWarsBattleUpdated(battleId: ID!): ClanWarsBattleUpdate!
+    cfBattleUpdated(battleId: ID!): CFBattleUpdate!
     battleEmoteReceived(battleId: ID!): BattleEmote!
-    clanWarsSubmissionAdded(eventId: ID!): ClanWarsSubmission!
-    clanWarsSubmissionReviewed(eventId: ID!): ClanWarsSubmission!
-    clanWarsPreScreenshotAdded(eventId: ID!): ClanWarsPreScreenshot!
-    clanWarsEventUpdated(eventId: ID!): ClanWarsEvent!
+    cfSubmissionAdded(eventId: ID!): CFSubmission!
+    cfSubmissionReviewed(eventId: ID!): CFSubmission!
+    cfPreScreenshotAdded(eventId: ID!): CFPreScreenshot!
+    cfEventUpdated(eventId: ID!): CFEvent!
     battleViewersUpdated(eventId: ID!): Int!
 
     # --- Rainbow Bingo ---

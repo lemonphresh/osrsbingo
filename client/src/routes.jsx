@@ -9,15 +9,15 @@ const LogIn = lazy(() => import('./pages/LogIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const Faq = lazy(() => import('./pages/Faq'));
 const UserDetails = lazy(() => import('./pages/UserDetails'));
-const BoardViewAll = lazy(() => import('./pages/BoardViewAll'));
-const BoardViewAllAdmin = lazy(() => import('./pages/BoardViewAllAdmin'));
+const BoardViewAll = lazy(() => import('./pages/bingo/BoardViewAll'));
+const BoardViewAllAdmin = lazy(() => import('./pages/bingo/BoardViewAllAdmin'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
-const BoardDetails = lazy(() => import('./pages/BoardDetails'));
-const BoardCreation = lazy(() => import('./pages/BoardCreation'));
+const BoardDetails = lazy(() => import('./pages/bingo/BoardDetails'));
+const BoardCreation = lazy(() => import('./pages/bingo/BoardCreation'));
 const EGHub = lazy(() => import('./pages/EGHub'));
-const TreasureHuntDashboard = lazy(() => import('./pages/TreasureHuntDashboard'));
-const TreasureEventView = lazy(() => import('./pages/TreasureEventPage'));
-const TreasureTeamPage = lazy(() => import('./pages/TreasureTeamPage'));
+const GielinorRushDashboard = lazy(() => import('./pages/gielinorRush/GielinorRushDashboard'));
+const GREventView = lazy(() => import('./pages/gielinorRush/GREventPage'));
+const GRTeamPage = lazy(() => import('./pages/gielinorRush/GRTeamPage'));
 const AboutPage = lazy(() => import('./pages/About'));
 const TermsPage = lazy(() => import('./pages/Terms'));
 const PrivacyPage = lazy(() => import('./pages/Privacy'));
@@ -25,32 +25,32 @@ const SupportPage = lazy(() => import('./pages/SupportTheSite'));
 const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
-const TreasureHuntActiveEventsPage = lazy(() => import('./pages/TreasureHuntActiveEvents'));
-const BingoPage = lazy(() => import('./pages/BingoPage'));
-const DraftDashboard = lazy(() => import('./pages/DraftDashboard'));
-const DraftRoomPage = lazy(() => import('./pages/DraftRoomPage'));
-const DraftResultsPage = lazy(() => import('./pages/DraftResultsPage'));
+const GielinorRushActiveEventsPage = lazy(() => import('./pages/gielinorRush/GielinorRushActiveEvents'));
+const BingoPage = lazy(() => import('./pages/bingo/BingoPage'));
+const DraftDashboard = lazy(() => import('./pages/draftRoom/DraftDashboard'));
+const DraftRoomPage = lazy(() => import('./pages/draftRoom/DraftRoomPage'));
+const DraftResultsPage = lazy(() => import('./pages/draftRoom/DraftResultsPage'));
 const DebugComponentsPage = lazy(() => import('./debug/index'));
-const ChampionForgeDashboard = lazy(() => import('./pages/ChampionForgeDashboard'));
-const ChampionForgeEventPage = lazy(() => import('./pages/ChampionForgeEventPage'));
-const ChampionForgeBarracksPage = lazy(() => import('./pages/ChampionForgeBarracksPage'));
-const ChampionForgeBattlePage = lazy(() => import('./pages/ChampionForgeBattlePage'));
-const ChampionForgeGuidePage = lazy(() => import('./pages/ChampionForgeGuidePage'));
-const ChampionForgeRefsPage = lazy(() => import('./pages/ChampionForgeRefsPage'));
-const GielinorRushGuidePage = lazy(() => import('./pages/GielinorRushGuidePage'));
+const ChampionForgeDashboard = lazy(() => import('./pages/championForge/ChampionForgeDashboard'));
+const ChampionForgeEventPage = lazy(() => import('./pages/championForge/ChampionForgeEventPage'));
+const ChampionForgeBarracksPage = lazy(() => import('./pages/championForge/ChampionForgeBarracksPage'));
+const ChampionForgeBattlePage = lazy(() => import('./pages/championForge/ChampionForgeBattlePage'));
+const ChampionForgeGuidePage = lazy(() => import('./pages/championForge/ChampionForgeGuidePage'));
+const ChampionForgeRefsPage = lazy(() => import('./pages/championForge/ChampionForgeRefsPage'));
+const GielinorRushGuidePage = lazy(() => import('./pages/gielinorRush/GielinorRushGuidePage'));
 const TeamBalancerPage = lazy(() => import('./pages/TeamBalancerPage'));
-const GroupDashboardPage = lazy(() => import('./pages/GroupDashboardPage'));
-const GroupDashboardManagePage = lazy(() => import('./pages/GroupDashboardManagePage'));
-const GroupDashboardCreatePage = lazy(() => import('./pages/GroupDashboardCreatePage'));
-const GroupDashboardListPage = lazy(() => import('./pages/GroupDashboardListPage'));
-const GroupDashboardCompetitionsPage = lazy(() => import('./pages/GroupDashboardCompetitionsPage'));
-const GroupDashboardActivityPage = lazy(() => import('./pages/GroupDashboardActivityPage'));
-const GroupDashboardWidgetPage = lazy(() => import('./pages/GroupDashboardWidgetPage'));
+const GroupDashboardPage = lazy(() => import('./pages/groupDashboard/GroupDashboardPage'));
+const GroupDashboardManagePage = lazy(() => import('./pages/groupDashboard/GroupDashboardManagePage'));
+const GroupDashboardCreatePage = lazy(() => import('./pages/groupDashboard/GroupDashboardCreatePage'));
+const GroupDashboardListPage = lazy(() => import('./pages/groupDashboard/GroupDashboardListPage'));
+const GroupDashboardCompetitionsPage = lazy(() => import('./pages/groupDashboard/GroupDashboardCompetitionsPage'));
+const GroupDashboardActivityPage = lazy(() => import('./pages/groupDashboard/GroupDashboardActivityPage'));
+const GroupDashboardWidgetPage = lazy(() => import('./pages/groupDashboard/GroupDashboardWidgetPage'));
 const WallOfShame = lazy(() => import('./pages/WallOfShame'));
-const RainbowBingoBoardPage = lazy(() => import('./pages/RainbowBingoBoardPage'));
-const RainbowTeamBoardPage = lazy(() => import('./pages/RainbowTeamBoardPage'));
-const RainbowRefsPage = lazy(() => import('./pages/RainbowRefsPage'));
-const RainbowAdminPage = lazy(() => import('./pages/RainbowAdminPage'));
+const RainbowBingoBoardPage = lazy(() => import('./pages/rainbow/RainbowBingoBoardPage'));
+const RainbowTeamBoardPage = lazy(() => import('./pages/rainbow/RainbowTeamBoardPage'));
+const RainbowRefsPage = lazy(() => import('./pages/rainbow/RainbowRefsPage'));
+const RainbowAdminPage = lazy(() => import('./pages/rainbow/RainbowAdminPage'));
 const EternalGemsPage = lazy(() => import('./pages/EternalGemsPage'));
 
 // loading fallback component
@@ -139,12 +139,12 @@ const routes = [
       },
       {
         path: '/gielinor-rush',
-        element: withSuspense(TreasureHuntDashboard),
+        element: withSuspense(GielinorRushDashboard),
         errorElement: <ErrorPage />,
       },
       {
         path: '/gielinor-rush/active',
-        element: withSuspense(TreasureHuntActiveEventsPage),
+        element: withSuspense(GielinorRushActiveEventsPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -154,12 +154,12 @@ const routes = [
       },
       {
         path: '/gielinor-rush/:eventId',
-        element: withSuspense(TreasureEventView),
+        element: withSuspense(GREventView),
         errorElement: <ErrorPage />,
       },
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
-        element: withSuspense(TreasureTeamPage),
+        element: withSuspense(GRTeamPage),
         errorElement: <ErrorPage />,
       },
       {

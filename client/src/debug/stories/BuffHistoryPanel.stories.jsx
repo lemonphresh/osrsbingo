@@ -2,7 +2,7 @@ import React from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_BUFF_HISTORY } from '../mocks/teams';
 import { MOCK_NODES } from '../mocks/nodes';
-import BuffHistoryPanel from '../../organisms/TreasureHunt/BuffHistoryPanel';
+import BuffHistoryPanel from '../../organisms/GielinorRush/BuffHistoryPanel';
 
 const NODES = Object.values(MOCK_NODES);
 

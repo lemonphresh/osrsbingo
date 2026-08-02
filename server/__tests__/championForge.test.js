@@ -12,9 +12,9 @@ process.env.NODE_ENV = 'test';
 const { Sequelize } = require('sequelize');
 const db = require('../db/models');
 const { Op } = require('sequelize');
-const { Mutation: resolvers, Query: queryResolvers } = require('../schema/resolvers/ClanWars');
-const { triggerGatheringTransition } = require('../utils/cwScheduler');
-const { generateId } = require('../utils/cwTaskSampler');
+const { Mutation: resolvers, Query: queryResolvers } = require('../schema/resolvers/ChampionForge');
+const { triggerGatheringTransition } = require('../utils/championForge/cfScheduler');
+const { generateId } = require('../utils/championForge/cfTaskSampler');
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 
@@ -47,7 +47,7 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 1. Create event ──────────────────────────────────────────────────────────
   test('admin can create an event', async () => {
-    const event = await resolvers.createClanWarsEvent(
+    const event = await resolvers.createCFEvent(
       null,
       {
         input: {
@@ -71,8 +71,8 @@ describe('Champion Forge — full game flow', () => {
     expect(event.creatorId).toBe(String(adminUser.id));
     eventId = event.eventId;
 
-    const { ClanWarsTeam } = db;
-    const teams = await ClanWarsTeam.findAll({ where: { eventId } });
+    const { CFTeam } = db;
+    const teams = await CFTeam.findAll({ where: { eventId } });
     expect(teams).toHaveLength(2);
     pvmerTeamId  = teams.find((t) => t.teamName === 'PvM Squad').teamId;
     skillerTeamId = teams.find((t) => t.teamName === 'Skill Squad').teamId;
@@ -80,8 +80,8 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 2. Advance to GATHERING ──────────────────────────────────────────────────
   test('admin can start gathering phase', async () => {
-    const { ClanWarsEvent } = db;
-    const event = await ClanWarsEvent.findByPk(eventId);
+    const { CFEvent } = db;
+    const event = await CFEvent.findByPk(eventId);
     // triggerGatheringTransition bypasses the guildId requirement
     await triggerGatheringTransition(event);
     await event.reload();
@@ -89,8 +89,8 @@ describe('Champion Forge — full game flow', () => {
     expect(event.gatheringStart).not.toBeNull();
 
     // Tasks should have been generated
-    const { ClanWarsTask } = db;
-    const tasks = await ClanWarsTask.findAll({ where: { eventId } });
+    const { CFTask } = db;
+    const tasks = await CFTask.findAll({ where: { eventId } });
     expect(tasks.length).toBeGreaterThan(0);
     pvmerTaskId  = tasks.find((t) => t.role === 'PVMER')?.taskId;
     skillerTaskId = tasks.find((t) => t.role === 'SKILLER')?.taskId;
@@ -100,14 +100,14 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 3. Members set roles ─────────────────────────────────────────────────────
   test('pvmer can set role to PVMER', async () => {
-    const { ClanWarsTeam } = db;
-    const team = await ClanWarsTeam.findByPk(pvmerTeamId);
+    const { CFTeam } = db;
+    const team = await CFTeam.findByPk(pvmerTeamId);
     const updated = team.members.map((m) =>
       m.discordId === pvmerUser.discordUserId
         ? { ...m, role: 'PVMER' }
         : m
     );
-    const result = await resolvers.updateClanWarsTeamMembers(
+    const result = await resolvers.updateCFTeamMembers(
       null,
       { teamId: pvmerTeamId, members: updated },
       ctx(pvmerUser)
@@ -117,14 +117,14 @@ describe('Champion Forge — full game flow', () => {
   });
 
   test('skiller can set role to SKILLER', async () => {
-    const { ClanWarsTeam } = db;
-    const team = await ClanWarsTeam.findByPk(skillerTeamId);
+    const { CFTeam } = db;
+    const team = await CFTeam.findByPk(skillerTeamId);
     const updated = team.members.map((m) =>
       m.discordId === skillerUser.discordUserId
         ? { ...m, role: 'SKILLER' }
         : m
     );
-    const result = await resolvers.updateClanWarsTeamMembers(
+    const result = await resolvers.updateCFTeamMembers(
       null,
       { teamId: skillerTeamId, members: updated },
       ctx(skillerUser)
@@ -144,8 +144,8 @@ describe('Champion Forge — full game flow', () => {
   });
 
   test('pvmer cannot join a second task while on one', async () => {
-    const { ClanWarsTask } = db;
-    const otherTask = await ClanWarsTask.findOne({
+    const { CFTask } = db;
+    const otherTask = await CFTask.findOne({
       where: { eventId, role: 'PVMER', taskId: { [Op.ne]: pvmerTaskId } },
     });
     if (!otherTask) return; // no second PVMER task in this seed — skip
@@ -180,13 +180,13 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 5. Role locks after joining ──────────────────────────────────────────────
   test('pvmer cannot change role after joining a task', async () => {
-    const { ClanWarsTeam } = db;
-    const team = await ClanWarsTeam.findByPk(pvmerTeamId);
+    const { CFTeam } = db;
+    const team = await CFTeam.findByPk(pvmerTeamId);
     const updated = team.members.map((m) =>
       m.discordId === pvmerUser.discordUserId ? { ...m, role: 'SKILLER' } : m
     );
     await expect(
-      resolvers.updateClanWarsTeamMembers(
+      resolvers.updateCFTeamMembers(
         null,
         { teamId: pvmerTeamId, members: updated },
         ctx(pvmerUser)
@@ -218,7 +218,7 @@ describe('Champion Forge — full game flow', () => {
   let skillerSubmissionId;
 
   test('pvmer can submit a screenshot', async () => {
-    const sub = await resolvers.createClanWarsSubmission(
+    const sub = await resolvers.createCFSubmission(
       null,
       {
         input: {
@@ -238,7 +238,7 @@ describe('Champion Forge — full game flow', () => {
   });
 
   test('skiller can submit a screenshot', async () => {
-    const sub = await resolvers.createClanWarsSubmission(
+    const sub = await resolvers.createCFSubmission(
       null,
       {
         input: {
@@ -259,7 +259,7 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 8. Admin reviews submissions ─────────────────────────────────────────────
   test('admin can approve pvmer submission with reward slot', async () => {
-    const sub = await resolvers.reviewClanWarsSubmission(
+    const sub = await resolvers.reviewCFSubmission(
       null,
       { submissionId: pvmerSubmissionId, approved: true, rewardSlot: 'weapon', reviewerId: String(adminUser.id) },
       ctx(adminUser)
@@ -269,7 +269,7 @@ describe('Champion Forge — full game flow', () => {
   });
 
   test('admin can approve skiller submission', async () => {
-    const sub = await resolvers.reviewClanWarsSubmission(
+    const sub = await resolvers.reviewCFSubmission(
       null,
       { submissionId: skillerSubmissionId, approved: true, reviewerId: String(adminUser.id) },
       ctx(adminUser)
@@ -298,7 +298,7 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 10. Advance to OUTFITTING ────────────────────────────────────────────────
   test('admin can advance to OUTFITTING', async () => {
-    const event = await resolvers.updateClanWarsEventStatus(
+    const event = await resolvers.updateCFEventStatus(
       null,
       { eventId, status: 'OUTFITTING' },
       ctx(adminUser)
@@ -308,7 +308,7 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 11. Advance to BATTLE ────────────────────────────────────────────────────
   test('admin can advance to BATTLE', async () => {
-    const event = await resolvers.updateClanWarsEventStatus(
+    const event = await resolvers.updateCFEventStatus(
       null,
       { eventId, status: 'BATTLE' },
       ctx(adminUser)
@@ -318,7 +318,7 @@ describe('Champion Forge — full game flow', () => {
 
   // ── 12. Generate bracket ─────────────────────────────────────────────────────
   test('admin can generate bracket', async () => {
-    const event = await resolvers.generateClanWarsBracket(
+    const event = await resolvers.generateCFBracket(
       null,
       { eventId, bracketType: 'SINGLE_ELIMINATION' },
       ctx(adminUser)
@@ -331,12 +331,12 @@ describe('Champion Forge — full game flow', () => {
   // ── Cleanup ──────────────────────────────────────────────────────────────────
   afterAll(async () => {
     if (!eventId) return;
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem } = db;
-    await ClanWarsSubmission.destroy({ where: { eventId } });
-    await ClanWarsItem.destroy({ where: { eventId } });
-    await ClanWarsTask.destroy({ where: { eventId } });
-    await ClanWarsTeam.destroy({ where: { eventId } });
-    await ClanWarsEvent.destroy({ where: { eventId } });
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFItem } = db;
+    await CFSubmission.destroy({ where: { eventId } });
+    await CFItem.destroy({ where: { eventId } });
+    await CFTask.destroy({ where: { eventId } });
+    await CFTeam.destroy({ where: { eventId } });
+    await CFEvent.destroy({ where: { eventId } });
   });
 });
 
@@ -361,10 +361,10 @@ describe('Champion Forge — battle system', () => {
   // ── Setup ──────────────────────────────────────────────────────────────────
 
   beforeAll(async () => {
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsItem } = db;
+    const { CFEvent, CFTeam, CFItem } = db;
 
     // 1. Create event in DRAFT status
-    const event = await resolvers.createClanWarsEvent(
+    const event = await resolvers.createCFEvent(
       null,
       {
         input: {
@@ -394,17 +394,17 @@ describe('Champion Forge — battle system', () => {
     );
     battleEventId = event.eventId;
 
-    const teams = await ClanWarsTeam.findAll({ where: { eventId: battleEventId } });
+    const teams = await CFTeam.findAll({ where: { eventId: battleEventId } });
     redTeamId = teams.find((t) => t.teamName === 'Red Team').teamId;
     blueTeamId = teams.find((t) => t.teamName === 'Blue Team').teamId;
 
-    // 2. Set captains so startClanWarsBattle can find them
-    await resolvers.setClanWarsCaptain(
+    // 2. Set captains so startCFBattle can find them
+    await resolvers.setCFCaptain(
       null,
       { teamId: redTeamId, discordId: adminUser.discordUserId },
       ctx(adminUser)
     );
-    await resolvers.setClanWarsCaptain(
+    await resolvers.setCFCaptain(
       null,
       { teamId: blueTeamId, discordId: pvmerUser.discordUserId },
       ctx(adminUser)
@@ -415,7 +415,7 @@ describe('Champion Forge — battle system', () => {
     redRareWeaponId = generateId('cwi');
     redConsumableId = generateId('cwi');
 
-    await ClanWarsItem.bulkCreate([
+    await CFItem.bulkCreate([
       {
         itemId: redWeaponId,
         teamId: redTeamId,
@@ -472,7 +472,7 @@ describe('Champion Forge — battle system', () => {
 
     // 4. Create items for blue team
     blueWeaponId = generateId('cwi');
-    await ClanWarsItem.create({
+    await CFItem.create({
       itemId: blueWeaponId,
       teamId: blueTeamId,
       eventId: battleEventId,
@@ -490,7 +490,7 @@ describe('Champion Forge — battle system', () => {
       earnedAt: new Date(),
     });
 
-    // 5. Advance event to OUTFITTING so lockClanWarsLoadout is allowed
+    // 5. Advance event to OUTFITTING so lockCFLoadout is allowed
     await resolvers.adminForceEventStatus(
       null,
       { eventId: battleEventId, status: 'OUTFITTING' },
@@ -520,7 +520,7 @@ describe('Champion Forge — battle system', () => {
       },
       ctx(adminUser)
     );
-    await resolvers.lockClanWarsLoadout(null, { teamId: redTeamId }, ctx(adminUser));
+    await resolvers.lockCFLoadout(null, { teamId: redTeamId }, ctx(adminUser));
 
     await resolvers.saveOfficialLoadout(
       null,
@@ -544,7 +544,7 @@ describe('Champion Forge — battle system', () => {
       },
       ctx(adminUser)
     );
-    await resolvers.lockClanWarsLoadout(null, { teamId: blueTeamId }, ctx(adminUser));
+    await resolvers.lockCFLoadout(null, { teamId: blueTeamId }, ctx(adminUser));
 
     // 7. Advance to BATTLE and generate bracket
     await resolvers.adminForceEventStatus(
@@ -552,14 +552,14 @@ describe('Champion Forge — battle system', () => {
       { eventId: battleEventId, status: 'BATTLE' },
       ctx(adminUser)
     );
-    await resolvers.generateClanWarsBracket(
+    await resolvers.generateCFBracket(
       null,
       { eventId: battleEventId, bracketType: 'SINGLE_ELIMINATION' },
       ctx(adminUser)
     );
 
     // 8. Start the battle
-    const battle = await resolvers.startClanWarsBattle(
+    const battle = await resolvers.startCFBattle(
       null,
       { eventId: battleEventId, team1Id: redTeamId, team2Id: blueTeamId },
       ctx(adminUser)
@@ -569,10 +569,10 @@ describe('Champion Forge — battle system', () => {
 
   // ── Core battle actions ────────────────────────────────────────────────────
 
-  test('startClanWarsBattle creates a battle IN_PROGRESS with correct initial state', async () => {
-    const { ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = db;
+  test('startCFBattle creates a battle IN_PROGRESS with correct initial state', async () => {
+    const { CFBattle, CFBattleEvent: CFBattleLog } = db;
 
-    const battle = await ClanWarsBattle.findByPk(battleId);
+    const battle = await CFBattle.findByPk(battleId);
     expect(battle).not.toBeNull();
     expect(battle.status).toBe('IN_PROGRESS');
     expect(battle.team1Id).toBe(redTeamId);
@@ -589,16 +589,16 @@ describe('Champion Forge — battle system', () => {
     expect(state.currentTurn).toBe('team1');
 
     // BATTLE_START log entry exists
-    const log = await ClanWarsBattleLog.findAll({ where: { battleId, action: 'BATTLE_START' } });
+    const log = await CFBattleLog.findAll({ where: { battleId, action: 'BATTLE_START' } });
     expect(log).toHaveLength(1);
     expect(log[0].turnNumber).toBe(0);
     expect(log[0].actorTeamId).toBeNull();
   });
 
   test('ATTACK action reduces defender HP', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    const battleBefore = await ClanWarsBattle.findByPk(battleId);
+    const battleBefore = await CFBattle.findByPk(battleId);
     const stateBefore = battleBefore.battleState;
     const actorSide = stateBefore.currentTurn;
     const defSide = actorSide === 'team1' ? 'team2' : 'team1';
@@ -611,7 +611,7 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     const stateAfter = battleAfter.battleState;
 
     expect(stateAfter.hp[defSide]).toBeLessThan(hpBefore);
@@ -619,9 +619,9 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('turn advances to the other team after each action', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    const battleBefore = await ClanWarsBattle.findByPk(battleId);
+    const battleBefore = await CFBattle.findByPk(battleId);
     const turnBefore = battleBefore.battleState.currentTurn;
     const actorTeamId = turnBefore === 'team1' ? redTeamId : blueTeamId;
 
@@ -631,7 +631,7 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     const turnAfter = battleAfter.battleState.currentTurn;
 
     const expected = turnBefore === 'team1' ? 'team2' : 'team1';
@@ -639,9 +639,9 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('non-turn-holder cannot submit an action', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    const battle = await ClanWarsBattle.findByPk(battleId);
+    const battle = await CFBattle.findByPk(battleId);
     const currentTurn = battle.battleState.currentTurn;
     // The team whose turn it is NOT
     const wrongTeamId = currentTurn === 'team1' ? blueTeamId : redTeamId;
@@ -656,9 +656,9 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('DEFEND action sets defendActive flag for acting team', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    const battleBefore = await ClanWarsBattle.findByPk(battleId);
+    const battleBefore = await CFBattle.findByPk(battleId);
     const actorSide = battleBefore.battleState.currentTurn;
     const actorTeamId = actorSide === 'team1' ? redTeamId : blueTeamId;
 
@@ -668,16 +668,16 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     expect(battleAfter.battleState.defendActive[actorSide]).toBe(true);
   });
 
   test('attacking a defending champion deals reduced damage', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
     // The defender side is the team that just DEFENDed (actorSide from previous test).
     // After DEFEND, it's now the other team's turn.
-    const battleNow = await ClanWarsBattle.findByPk(battleId);
+    const battleNow = await CFBattle.findByPk(battleId);
     const state = battleNow.battleState;
     const actorSide = state.currentTurn;
     const defSide = actorSide === 'team1' ? 'team2' : 'team1';
@@ -693,7 +693,7 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     const hpAfter = battleAfter.battleState.hp[defSide];
     const damageDealt = hpBefore - hpAfter;
 
@@ -710,18 +710,18 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('SPECIAL action fires and marks specialUsed for that team', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
     // Find whose turn it is; red team (team1) has 'cleave' special
     // We need it to be red team's turn. Advance turns with ATTACKs until it's team1's turn.
-    let battle = await ClanWarsBattle.findByPk(battleId);
+    let battle = await CFBattle.findByPk(battleId);
     while (battle.battleState.currentTurn !== 'team1' && battle.status === 'IN_PROGRESS') {
       await resolvers.submitBattleAction(
         null,
         { battleId, teamId: blueTeamId, action: 'ATTACK' },
         ctx(adminUser)
       );
-      battle = await ClanWarsBattle.findByPk(battleId);
+      battle = await CFBattle.findByPk(battleId);
     }
 
     // Guard: if battle ended before we could test special, skip gracefully
@@ -734,14 +734,14 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     expect(battleAfter.battleState.specialUsed.team1).toBe(true);
   });
 
   test('using a special twice throws an error containing "already used"', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    let battle = await ClanWarsBattle.findByPk(battleId);
+    let battle = await CFBattle.findByPk(battleId);
     if (battle.status !== 'IN_PROGRESS') return;
 
     // Advance to team1's turn again
@@ -751,7 +751,7 @@ describe('Champion Forge — battle system', () => {
         { battleId, teamId: blueTeamId, action: 'ATTACK' },
         ctx(adminUser)
       );
-      battle = await ClanWarsBattle.findByPk(battleId);
+      battle = await CFBattle.findByPk(battleId);
     }
 
     if (battle.status !== 'IN_PROGRESS') return;
@@ -767,13 +767,13 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('USE_ITEM heal restores HP and removes item from consumablesRemaining', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    let battle = await ClanWarsBattle.findByPk(battleId);
+    let battle = await CFBattle.findByPk(battleId);
     if (battle.status !== 'IN_PROGRESS') return;
 
     // Manually inject the consumable into consumablesRemaining for team1 so USE_ITEM works.
-    // (initBattleState uses snap.consumables which is not set by startClanWarsBattle — this
+    // (initBattleState uses snap.consumables which is not set by startCFBattle — this
     //  patches the live battleState to simulate the item being available.)
     const patchedState = {
       ...battle.battleState,
@@ -785,14 +785,14 @@ describe('Champion Forge — battle system', () => {
     await battle.update({ battleState: patchedState });
 
     // Deal some damage first (advance to team2's turn, attack team1, then back to team1's turn)
-    battle = await ClanWarsBattle.findByPk(battleId);
+    battle = await CFBattle.findByPk(battleId);
     while (battle.battleState.currentTurn !== 'team2' && battle.status === 'IN_PROGRESS') {
       await resolvers.submitBattleAction(
         null,
         { battleId, teamId: redTeamId, action: 'ATTACK' },
         ctx(adminUser)
       );
-      battle = await ClanWarsBattle.findByPk(battleId);
+      battle = await CFBattle.findByPk(battleId);
     }
     if (battle.status !== 'IN_PROGRESS') return;
 
@@ -802,7 +802,7 @@ describe('Champion Forge — battle system', () => {
       { battleId, teamId: blueTeamId, action: 'ATTACK' },
       ctx(adminUser)
     );
-    battle = await ClanWarsBattle.findByPk(battleId);
+    battle = await CFBattle.findByPk(battleId);
     if (battle.status !== 'IN_PROGRESS') return;
 
     // Advance to team1's turn
@@ -812,7 +812,7 @@ describe('Champion Forge — battle system', () => {
         { battleId, teamId: blueTeamId, action: 'ATTACK' },
         ctx(adminUser)
       );
-      battle = await ClanWarsBattle.findByPk(battleId);
+      battle = await CFBattle.findByPk(battleId);
     }
     if (battle.status !== 'IN_PROGRESS') return;
 
@@ -827,7 +827,7 @@ describe('Champion Forge — battle system', () => {
       });
     }
 
-    battle = await ClanWarsBattle.findByPk(battleId);
+    battle = await CFBattle.findByPk(battleId);
     const hpBeforeHeal = battle.battleState.hp.team1;
     const maxHp = battle.championSnapshots.champion1.stats.maxHp;
 
@@ -837,7 +837,7 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    const battleAfter = await ClanWarsBattle.findByPk(battleId);
+    const battleAfter = await CFBattle.findByPk(battleId);
     const hpAfterHeal = battleAfter.battleState.hp.team1;
 
     // HP should have gone up (capped at maxHp) unless already at max
@@ -851,9 +851,9 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('USE_ITEM with an invalid itemId throws an error', async () => {
-    const { ClanWarsBattle } = db;
+    const { CFBattle } = db;
 
-    let battle = await ClanWarsBattle.findByPk(battleId);
+    let battle = await CFBattle.findByPk(battleId);
     if (battle.status !== 'IN_PROGRESS') return;
 
     // Advance to team1's turn
@@ -863,7 +863,7 @@ describe('Champion Forge — battle system', () => {
         { battleId, teamId: blueTeamId, action: 'ATTACK' },
         ctx(adminUser)
       );
-      battle = await ClanWarsBattle.findByPk(battleId);
+      battle = await CFBattle.findByPk(battleId);
     }
     if (battle.status !== 'IN_PROGRESS') return;
 
@@ -878,13 +878,13 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('devAutoBattle completes the battle with a winner and BATTLE_END log entry', async () => {
-    const { ClanWarsBattle, ClanWarsBattleEvent: ClanWarsBattleLog } = db;
+    const { CFBattle, CFBattleEvent: CFBattleLog } = db;
 
-    let battle = await ClanWarsBattle.findByPk(battleId);
+    let battle = await CFBattle.findByPk(battleId);
     if (battle.status === 'COMPLETED') {
       // Battle may have already ended during earlier action tests — verify directly
       expect(battle.winnerId).not.toBeNull();
-      const endLog = await ClanWarsBattleLog.findAll({
+      const endLog = await CFBattleLog.findAll({
         where: { battleId, action: 'BATTLE_END' },
       });
       expect(endLog.length).toBeGreaterThanOrEqual(1);
@@ -902,14 +902,14 @@ describe('Champion Forge — battle system', () => {
     expect([redTeamId, blueTeamId]).toContain(completedBattle.winnerId);
 
     // BATTLE_END log entry exists
-    const endLog = await ClanWarsBattleLog.findAll({
+    const endLog = await CFBattleLog.findAll({
       where: { battleId, action: 'BATTLE_END' },
     });
     expect(endLog.length).toBeGreaterThanOrEqual(1);
   });
 
-  test('getClanWarsBattleLog returns log entries including BATTLE_START', async () => {
-    const log = await queryResolvers.getClanWarsBattleLog(null, { battleId });
+  test('getCFBattleLog returns log entries including BATTLE_START', async () => {
+    const log = await queryResolvers.getCFBattleLog(null, { battleId });
     expect(Array.isArray(log)).toBe(true);
     expect(log.length).toBeGreaterThan(0);
 
@@ -919,13 +919,13 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('bracket advances after battle completes — winnerId set in bracket match', async () => {
-    const { ClanWarsEvent, ClanWarsBattle } = db;
+    const { CFEvent, CFBattle } = db;
 
-    const battle = await ClanWarsBattle.findByPk(battleId);
+    const battle = await CFBattle.findByPk(battleId);
     expect(battle.status).toBe('COMPLETED');
     expect(battle.winnerId).not.toBeNull();
 
-    const event = await ClanWarsEvent.findByPk(battleEventId);
+    const event = await CFEvent.findByPk(battleEventId);
     const bracket = event.bracket;
     expect(bracket).not.toBeNull();
 
@@ -942,9 +942,9 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('devSimulateNextMatch starts the next bracket match (or event is completed if only one match)', async () => {
-    const { ClanWarsEvent } = db;
+    const { CFEvent } = db;
 
-    const event = await ClanWarsEvent.findByPk(battleEventId);
+    const event = await CFEvent.findByPk(battleEventId);
     // With 2 teams in SINGLE_ELIMINATION there is only one match (already played).
     // devSimulateNextMatch should throw "No unstarted matches" OR the event has auto-completed.
     if (event.status === 'COMPLETED') {
@@ -960,8 +960,8 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('cannot submit action to a completed battle', async () => {
-    const { ClanWarsBattle } = db;
-    const battle = await ClanWarsBattle.findByPk(battleId);
+    const { CFBattle } = db;
+    const battle = await CFBattle.findByPk(battleId);
     expect(battle.status).toBe('COMPLETED');
 
     await expect(
@@ -978,20 +978,20 @@ describe('Champion Forge — battle system', () => {
   afterAll(async () => {
     if (!battleEventId) return;
     const {
-      ClanWarsEvent,
-      ClanWarsTeam,
-      ClanWarsTask,
-      ClanWarsSubmission,
-      ClanWarsItem,
-      ClanWarsBattle,
-      ClanWarsBattleEvent,
+      CFEvent,
+      CFTeam,
+      CFTask,
+      CFSubmission,
+      CFItem,
+      CFBattle,
+      CFBattleEvent,
     } = db;
-    await ClanWarsBattleEvent.destroy({ where: { battleId } });
-    await ClanWarsBattle.destroy({ where: { eventId: battleEventId } });
-    await ClanWarsSubmission.destroy({ where: { eventId: battleEventId } });
-    await ClanWarsItem.destroy({ where: { eventId: battleEventId } });
-    await ClanWarsTask.destroy({ where: { eventId: battleEventId } });
-    await ClanWarsTeam.destroy({ where: { eventId: battleEventId } });
-    await ClanWarsEvent.destroy({ where: { eventId: battleEventId } });
+    await CFBattleEvent.destroy({ where: { battleId } });
+    await CFBattle.destroy({ where: { eventId: battleEventId } });
+    await CFSubmission.destroy({ where: { eventId: battleEventId } });
+    await CFItem.destroy({ where: { eventId: battleEventId } });
+    await CFTask.destroy({ where: { eventId: battleEventId } });
+    await CFTeam.destroy({ where: { eventId: battleEventId } });
+    await CFEvent.destroy({ where: { eventId: battleEventId } });
   });
 });

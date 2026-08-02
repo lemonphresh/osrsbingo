@@ -5,7 +5,7 @@ import { Box, HStack, VStack, Text, Badge, Button } from '@chakra-ui/react';
 import {
   GET_BATTLE_VIEWER_COUNT,
   BATTLE_VIEWERS_UPDATED,
-} from '../../../graphql/clanWarsOperations';
+} from '../../../graphql/cfOperations';
 import EventPasswordBadge from './EventPasswordBadge';
 
 function calcCountdown(target) {

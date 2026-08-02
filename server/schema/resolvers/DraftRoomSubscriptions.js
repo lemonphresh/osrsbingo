@@ -1,7 +1,7 @@
 const { pubsub } = require('../pubsub');
 const logger = require('../../utils/logger');
 
-// Reuse the same createSubscription pattern from TreasureHuntSubscriptions
+// Reuse the same createSubscription pattern from GielinorRushSubscriptions
 const createSubscription = (topicFn) => ({
   subscribe: (_, args) => {
     const topic = topicFn(args);

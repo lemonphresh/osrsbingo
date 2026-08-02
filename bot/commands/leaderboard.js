@@ -14,20 +14,20 @@ module.exports = {
 
       const query = `
         query GetLeaderboard($eventId: ID!) {
-          getTreasureEventLeaderboard(eventId: $eventId) {
+          getGREventLeaderboard(eventId: $eventId) {
             teamName
             currentPot
             completedNodes
           }
-          getTreasureEvent(eventId: $eventId) {
+          getGREvent(eventId: $eventId) {
             eventName
           }
         }
       `;
 
       const data = await graphqlRequest(query, { eventId });
-      const teams = data.getTreasureEventLeaderboard;
-      const eventName = data.getTreasureEvent?.eventName || 'Gielinor Rush';
+      const teams = data.getGREventLeaderboard;
+      const eventName = data.getGREvent?.eventName || 'Gielinor Rush';
 
       if (!teams || teams.length === 0) {
         return message.reply('❌ No teams found in this event yet.');

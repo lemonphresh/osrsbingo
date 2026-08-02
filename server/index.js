@@ -16,6 +16,7 @@ const { ApolloServer } = require('apollo-server-express');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const calendarRoutes = require('./calendarRoutes');
+const contentRegistryRoutes = require('./routes/contentRegistry');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
@@ -26,11 +27,15 @@ const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
 const { startWomSyncScheduler } = require('./utils/womSync');
-const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
-const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
-const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
-const { startClanWarsTurnTimer } = require('./utils/clanWarsTurnTimer');
+const { startGroupGoalScheduler } = require('./utils/groupDashboard/groupGoalScheduler');
+const { startTrackScapeScheduler } = require('./utils/trackScape/trackScapeScheduler');
+const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventScheduler');
+const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
 const logger = require('./utils/logger');
+
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+  require('./scripts/check-wom-registry');
+}
 
 const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
@@ -151,6 +156,7 @@ app.get('/', (req, res) => {
 app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/discord', discordRoutes);
+app.use('/api/content-registry', contentRegistryRoutes);
 
 app.get('/discuser/:userId', discordLimiter, async (req, res) => {
   const { userId } = req.params;
@@ -546,7 +552,7 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
-  startClanWarsTurnTimer();
+  startCFTurnTimer();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

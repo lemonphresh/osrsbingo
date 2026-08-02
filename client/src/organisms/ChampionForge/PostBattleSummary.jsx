@@ -3,7 +3,7 @@ import {
   Box, VStack, HStack, Text, Badge, Divider, SimpleGrid,
 } from '@chakra-ui/react';
 import { useQuery } from '@apollo/client';
-import { GET_CLAN_WARS_BATTLE } from '../../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_BATTLE } from '../../graphql/cfOperations';
 
 function StatRow({ label, value }) {
   return (
@@ -99,7 +99,7 @@ export default function PostBattleSummary({ event }) {
     skip: !finalBattle?.battleId,
   });
 
-  const battleLog = logData?.getClanWarsBattle?.battleLog ?? [];
+  const battleLog = logData?.getCFBattle?.battleLog ?? [];
 
   const winnerTeam = finalBattle
     ? teams.find((t) => t.teamId === finalBattle.winnerId)

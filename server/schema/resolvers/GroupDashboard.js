@@ -18,7 +18,7 @@ const {
   getRequiredMetrics,
   isIndividualGoal,
   isLeaguesGoal,
-} = require('../../utils/groupDashboardHelpers');
+} = require('../../utils/groupDashboard/groupDashboardHelpers');
 const {
   sendGroupGoalMilestoneNotification,
   sendGroupEventStartedNotification,

@@ -8,11 +8,11 @@ const {
   getStartTiles,
   getNewlyUnlockedTiles,
   getCascadeLockTiles,
-} = require('../../utils/rainbowTiles');
-const { TILE_FUN_FACTS } = require('../../utils/rainbowFunFacts');
-const { postDiscordEmbed } = require('../../utils/rainbowDiscord');
+} = require('../../utils/rainbow/rainbowTiles');
+const { TILE_FUN_FACTS } = require('../../utils/rainbow/rainbowFunFacts');
+const { postDiscordEmbed } = require('../../utils/rainbow/rainbowDiscord');
 const { fetchCompetitionParticipations } = require('../../utils/womService');
-const { syncTeamWomProgress, startTeamWomSync, syncTeamWomTile, finalizeTeamWomSync, isSyncInProgress } = require('../../utils/rainbowWomSync');
+const { syncTeamWomProgress, startTeamWomSync, syncTeamWomTile, finalizeTeamWomSync, isSyncInProgress } = require('../../utils/rainbow/rainbowWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -248,7 +248,7 @@ const Mutation = {
   createRainbowEvent: async (_, { input }, { user }) => {
     if (!user) throw new AuthenticationError('Must be logged in');
     const { RainbowEvent } = getModels();
-    const { DEFAULT_TILE_GRAPH } = require('../../utils/rainbowTiles');
+    const { DEFAULT_TILE_GRAPH } = require('../../utils/rainbow/rainbowTiles');
     return RainbowEvent.create({
       eventId: generateId('rb'),
       eventName: input.eventName,

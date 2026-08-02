@@ -90,9 +90,9 @@ const operations = {
     }
   `,
 
-  GET_TREASURE_EVENT: `
-    query GetTreasureEvent($eventId: ID!) {
-      getTreasureEvent(eventId: $eventId) {
+  GET_GR_EVENT: `
+    query GetGREvent($eventId: ID!) {
+      getGREvent(eventId: $eventId) {
         eventId eventName eventPassword status clanId
         startDate endDate createdAt updatedAt
         eventConfig derivedValues contentSelections mapStructure discordConfig
@@ -112,36 +112,36 @@ const operations = {
     }
   `,
 
-  GET_ALL_TREASURE_EVENTS: `
-    query GetAllTreasureEvents($userId: ID) {
-      getAllTreasureEvents(userId: $userId) {
+  GET_ALL_GR_EVENTS: `
+    query GetAllGREvents($userId: ID) {
+      getAllGREvents(userId: $userId) {
         eventId eventName status startDate endDate creatorId adminIds
         teams { teamId teamName currentPot completedNodes }
       }
     }
   `,
 
-  GET_MY_TREASURE_EVENTS: `
-    query GetMyTreasureEvents {
-      getMyTreasureEvents {
+  GET_MY_GR_EVENTS: `
+    query GetMyGREvents {
+      getMyGREvents {
         eventId eventName status startDate endDate
         teams { teamId teamName }
       }
     }
   `,
 
-  GET_TREASURE_TEAM: `
-    query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
-      getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+  GET_GR_TEAM: `
+    query GetGRTeam($eventId: ID!, $teamId: ID!) {
+      getGRTeam(eventId: $eventId, teamId: $teamId) {
         teamId teamName members currentPot keysHeld
         completedNodes availableNodes innTransactions activeBuffs buffHistory
       }
     }
   `,
 
-  GET_TREASURE_LEADERBOARD: `
-    query GetTreasureEventLeaderboard($eventId: ID!) {
-      getTreasureEventLeaderboard(eventId: $eventId) {
+  GET_GR_LEADERBOARD: `
+    query GetGREventLeaderboard($eventId: ID!) {
+      getGREventLeaderboard(eventId: $eventId) {
         teamId teamName currentPot completedNodes keysHeld
       }
     }
@@ -166,9 +166,9 @@ const operations = {
     }
   `,
 
-  GET_TREASURE_ACTIVITIES: `
-    query GetTreasureActivities($eventId: ID!, $limit: Int) {
-      getTreasureActivities(eventId: $eventId, limit: $limit) {
+  GET_GR_ACTIVITIES: `
+    query GetGRActivities($eventId: ID!, $limit: Int) {
+      getGRActivities(eventId: $eventId, limit: $limit) {
         id eventId teamId type data timestamp
       }
     }
@@ -305,54 +305,54 @@ const operations = {
     }
   `,
 
-  CREATE_TREASURE_EVENT: `
-    mutation CreateTreasureEvent($input: CreateTreasureEventInput!) {
-      createTreasureEvent(input: $input) {
+  CREATE_GR_EVENT: `
+    mutation CreateGREvent($input: CreateGREventInput!) {
+      createGREvent(input: $input) {
         eventId eventName status eventConfig derivedValues
       }
     }
   `,
 
-  UPDATE_TREASURE_EVENT: `
-    mutation UpdateTreasureEvent($eventId: ID!, $input: UpdateTreasureEventInput!) {
-      updateTreasureEvent(eventId: $eventId, input: $input) { eventId eventName status }
+  UPDATE_GR_EVENT: `
+    mutation UpdateGREvent($eventId: ID!, $input: UpdateGREventInput!) {
+      updateGREvent(eventId: $eventId, input: $input) { eventId eventName status }
     }
   `,
 
-  DELETE_TREASURE_EVENT: `
-    mutation DeleteTreasureEvent($eventId: ID!) {
-      deleteTreasureEvent(eventId: $eventId) { success message }
+  DELETE_GR_EVENT: `
+    mutation DeleteGREvent($eventId: ID!) {
+      deleteGREvent(eventId: $eventId) { success message }
     }
   `,
 
-  GENERATE_TREASURE_MAP: `
-    mutation GenerateTreasureMap($eventId: ID!) {
-      generateTreasureMap(eventId: $eventId) {
+  GENERATE_GR_MAP: `
+    mutation GenerateGRMap($eventId: ID!) {
+      generateGRMap(eventId: $eventId) {
         eventId mapStructure
         nodes { nodeId nodeType title }
       }
     }
   `,
 
-  CREATE_TREASURE_TEAM: `
-    mutation CreateTreasureTeam($eventId: ID!, $input: CreateTreasureTeamInput!) {
-      createTreasureTeam(eventId: $eventId, input: $input) {
+  CREATE_GR_TEAM: `
+    mutation CreateGRTeam($eventId: ID!, $input: CreateGRTeamInput!) {
+      createGRTeam(eventId: $eventId, input: $input) {
         teamId teamName members currentPot
       }
     }
   `,
 
-  UPDATE_TREASURE_TEAM: `
-    mutation UpdateTreasureTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
-      updateTreasureTeam(eventId: $eventId, teamId: $teamId, input: $input) {
+  UPDATE_GR_TEAM: `
+    mutation UpdateGRTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
+      updateGRTeam(eventId: $eventId, teamId: $teamId, input: $input) {
         teamId teamName currentPot
       }
     }
   `,
 
-  DELETE_TREASURE_TEAM: `
-    mutation DeleteTreasureTeam($eventId: ID!, $teamId: ID!) {
-      deleteTreasureTeam(eventId: $eventId, teamId: $teamId) { success message }
+  DELETE_GR_TEAM: `
+    mutation DeleteGRTeam($eventId: ID!, $teamId: ID!) {
+      deleteGRTeam(eventId: $eventId, teamId: $teamId) { success message }
     }
   `,
 

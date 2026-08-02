@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Box, HStack, Text, VStack } from '@chakra-ui/react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import NodeProgressEditor from '../../organisms/TreasureHunt/NodeProgressEditor';
+import NodeProgressEditor from '../../organisms/GielinorRush/NodeProgressEditor';
 
 // NodeProgressEditor uses useMutation internally — save requires a backend.
 // Read-only variants (isAdmin=false) are fully static.

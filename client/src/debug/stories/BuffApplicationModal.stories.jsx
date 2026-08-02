@@ -5,7 +5,7 @@ import { StoryPage, StoryLayout } from '../StoryLayout';
 
 import { MOCK_NODES } from '../mocks/nodes';
 import { MOCK_BUFFS } from '../mocks/buffs';
-import BuffApplicationModal from '../../organisms/TreasureHunt/TreasureBuffApplicationModal';
+import BuffApplicationModal from '../../organisms/GielinorRush/GRBuffApplicationModal';
 
 function BuffAppScenario({ title, description, tags, node, buffs }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
