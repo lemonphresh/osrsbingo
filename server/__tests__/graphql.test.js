@@ -407,10 +407,10 @@ describe('GielinorRush Queries', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GET_TREASURE_ACTIVITIES', () => {
+  test('GET_GR_ACTIVITIES', () => {
     const result = validateOperation(`
       query GetGRActivities($eventId: ID!, $limit: Int) {
-        getTreasureActivities(eventId: $eventId, limit: $limit) {
+        getGRActivities(eventId: $eventId, limit: $limit) {
           id
           eventId
           teamId
