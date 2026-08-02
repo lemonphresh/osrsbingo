@@ -457,7 +457,7 @@ const PVM_ADEPT = [
     difficulty: 'adept',
     boss: 'Mad Angel',
     descriptionTemplate: 'Obtain {quantity} drops from Mad Angel.',
-    acceptableItems: ['Aggy', 'Hallowvale'],
+    acceptableItems: ['Aggy', 'Hallowfell'],
     quantities: {
       casual: { min: 2, max: 2 },
       standard: { min: 3, max: 3 },

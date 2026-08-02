@@ -57,6 +57,7 @@ const BOSS_METRICS = [
   { value: 'kril_tsutsaroth', label: "K'ril Tsutsaroth (Zammy)" },
   { value: 'lunar_chests', label: 'Lunar Chests' },
   { value: 'mad_angel', label: 'Mad Angel' },
+  { value: 'maggot_king', label: 'Maggot King' },
   { value: 'mimic', label: 'Mimic' },
   { value: 'nex', label: 'Nex' },
   { value: 'nightmare', label: 'Nightmare' },
