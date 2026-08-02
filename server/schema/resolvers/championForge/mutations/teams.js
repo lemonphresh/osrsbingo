@@ -1,7 +1,7 @@
 'use strict';
 
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
-const { generateId } = require('../../../../utils/cfTaskSampler');
+const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const { isAdmin, getEventOrThrow, getTeamOrThrow, getModels } = require('../helpers');
 
 module.exports = {

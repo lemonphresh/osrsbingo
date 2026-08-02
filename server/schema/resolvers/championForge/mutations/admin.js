@@ -3,15 +3,15 @@
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const logger = require('../../../../utils/logger');
-const { buildChampionStats, rollDamage, processSpecial } = require('../../../../utils/cfRandomisation');
-const { generateId } = require('../../../../utils/cfTaskSampler');
+const { buildChampionStats, rollDamage, processSpecial } = require('../../../../utils/championForge/cfRandomisation');
+const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const {
   advanceBracketAfterBattle,
   setBattleIdInBracket,
   allMatchesDone,
   findNextUnstartedMatch,
-} = require('../../../../utils/cfBracket');
-const { sendCFPhaseAnnouncement } = require('../../../../utils/cfNotifications');
+} = require('../../../../utils/championForge/cfBracket');
+const { sendCFPhaseAnnouncement } = require('../../../../utils/championForge/cfNotifications');
 const {
   isAdmin,
   getEventOrThrow,
@@ -48,7 +48,7 @@ module.exports = {
   devSeedCfEvent: async (_, __, { user }) => {
     if (!user) throw new AuthenticationError('Must be logged in');
     if (process.env.NODE_ENV === 'production') throw new ApolloError('Not available in production');
-    const { seedAllCfEvents } = require('../../../../utils/cfDevSeed');
+    const { seedAllCfEvents } = require('../../../../utils/championForge/cfDevSeed');
     await seedAllCfEvents(user.id, {
       discordId: user.discordUserId,
       discordUsername: user.discordUsername,

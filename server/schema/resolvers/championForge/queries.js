@@ -3,7 +3,7 @@
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const { Op, fn, col } = require('sequelize');
 const { getEventOrThrow, getTeamOrThrow, getWarChest, getModels } = require('./helpers');
-const { getViewerCount } = require('../../../utils/battleViewers');
+const { getViewerCount } = require('../../../utils/championForge/battleViewers');
 
 module.exports = {
   getCFEvent: async (_, { eventId }) => {

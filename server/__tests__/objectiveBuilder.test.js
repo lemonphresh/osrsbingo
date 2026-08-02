@@ -11,7 +11,7 @@ const {
   buildFormattedObjectives,
   getDefaultContentSelections,
   DEFAULT_QUANTITIES,
-} = require('../utils/objectiveBuilder');
+} = require('../utils/gielinorRush/objectiveBuilder');
 
 // ── DEFAULT_QUANTITIES ────────────────────────────────────────────────────────
 

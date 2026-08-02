@@ -4,9 +4,9 @@ const crypto = require('crypto');
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const logger = require('../../../../utils/logger');
-const { sendCFPhaseAnnouncement } = require('../../../../utils/cfNotifications');
-const { triggerGatheringTransition } = require('../../../../utils/cfScheduler');
-const { generateId } = require('../../../../utils/cfTaskSampler');
+const { sendCFPhaseAnnouncement } = require('../../../../utils/championForge/cfNotifications');
+const { triggerGatheringTransition } = require('../../../../utils/championForge/cfScheduler');
+const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const { isAdmin, getEventOrThrow, getModels } = require('../helpers');
 
 module.exports = {

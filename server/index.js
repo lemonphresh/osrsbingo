@@ -27,10 +27,10 @@ const { createLoaders } = require('./utils/dataLoaders');
 const itemsService = require('./utils/itemsService');
 const discordRoutes = require('./routes/discord');
 const { startWomSyncScheduler } = require('./utils/womSync');
-const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
-const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
-const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
-const { startCFTurnTimer } = require('./utils/cfTurnTimer');
+const { startGroupGoalScheduler } = require('./utils/groupDashboard/groupGoalScheduler');
+const { startTrackScapeScheduler } = require('./utils/trackScape/trackScapeScheduler');
+const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventScheduler');
+const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
 const logger = require('./utils/logger');
 
 const userCache = new Map();

@@ -2,7 +2,7 @@
 
 const { AuthenticationError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
-const { joinView, leaveView, getViewerCount } = require('../../../../utils/battleViewers');
+const { joinView, leaveView, getViewerCount } = require('../../../../utils/championForge/battleViewers');
 
 module.exports = {
   joinBattleView: async (_, { eventId }, { user }) => {

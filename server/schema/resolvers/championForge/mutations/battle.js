@@ -3,18 +3,18 @@
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const logger = require('../../../../utils/logger');
-const { buildChampionStats, rollDamage, processSpecial } = require('../../../../utils/cfRandomisation');
-const { generateId } = require('../../../../utils/cfTaskSampler');
+const { buildChampionStats, rollDamage, processSpecial } = require('../../../../utils/championForge/cfRandomisation');
+const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const {
   advanceBracketAfterBattle,
   setBattleIdInBracket,
   setTeamReadyInBracket,
   allMatchesDone,
-} = require('../../../../utils/cfBracket');
+} = require('../../../../utils/championForge/cfBracket');
 const {
   sendCFPhaseAnnouncement,
   sendBattleCompleteAnnouncement,
-} = require('../../../../utils/cfNotifications');
+} = require('../../../../utils/championForge/cfNotifications');
 const {
   isAdmin,
   isAdminOrRef,

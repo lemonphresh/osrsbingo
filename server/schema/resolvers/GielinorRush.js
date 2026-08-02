@@ -8,9 +8,9 @@ const {
   GRActivity,
   User,
 } = require('../../db/models');
-const { generateMap } = require('../../utils/grMapGenerator');
-const { getDefaultContentSelections } = require('../../utils/objectiveBuilder');
-const { createBuff, canApplyBuff } = require('../../utils/buffHelpers');
+const { generateMap } = require('../../utils/gielinorRush/grMapGenerator');
+const { getDefaultContentSelections } = require('../../utils/gielinorRush/objectiveBuilder');
+const { createBuff, canApplyBuff } = require('../../utils/gielinorRush/buffHelpers');
 const {
   sendSubmissionApprovalNotification,
   sendSubmissionDenialNotification,
@@ -18,7 +18,7 @@ const {
   sendAllNodesCompletedNotification,
 } = require('../../utils/discordNotifications');
 const { pubsub } = require('../pubsub');
-const { invalidateEventNodes } = require('../../utils/nodeCache');
+const { invalidateEventNodes } = require('../../utils/gielinorRush/nodeCache');
 const { verifyGuild, checkEventChannels } = require('../../../bot/utils/verify');
 const { sendLaunchMessage, sendCompleteMessage } = require('../../../bot/verify');
 const OBJECTIVE_TYPES = {

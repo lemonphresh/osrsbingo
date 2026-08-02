@@ -45,8 +45,8 @@ const alertedMissingCaptains = new Set();
 async function checkGatheringEnded() {
   if (!CFEvent || !CFTeam) return;
   const now = new Date();
-  const { triggerOutfittingTransition } = require('../server/utils/cfScheduler');
-  const { sendCaptainMissingAlert } = require('../server/utils/cfNotifications');
+  const { triggerOutfittingTransition } = require('../server/utils/championForge/cfScheduler');
+  const { sendCaptainMissingAlert } = require('../server/utils/championForge/cfNotifications');
 
   const events = await CFEvent.findAll({
     where: {
@@ -82,7 +82,7 @@ async function checkGatheringEnded() {
 async function checkCFScheduledStarts() {
   if (!CFEvent) return;
   const now = new Date();
-  const { triggerGatheringTransition } = require('../server/utils/cfScheduler');
+  const { triggerGatheringTransition } = require('../server/utils/championForge/cfScheduler');
   const events = await CFEvent.findAll({
     where: {
       status: 'DRAFT',
@@ -139,7 +139,7 @@ client.on('ready', () => {
   registerClient(client);
   // Register bot client for CF Discord notifications
   try {
-    const { registerBotClient } = require('../server/utils/cfNotifications');
+    const { registerBotClient } = require('../server/utils/championForge/cfNotifications');
     registerBotClient(client);
   } catch (err) {
     console.warn('[bot] Could not register CF notifications client:', err.message);

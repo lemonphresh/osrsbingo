@@ -1,7 +1,7 @@
 // server/utils/dataLoaders.js
 const DataLoader = require('dataloader');
 const { Op } = require('sequelize');
-const { nodeCache } = require('./nodeCache');
+const { nodeCache } = require('./gielinorRush/nodeCache');
 const logger = require('./logger');
 
 const DEBUG = process.env.NODE_ENV !== 'production';

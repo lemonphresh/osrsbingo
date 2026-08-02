@@ -3,8 +3,8 @@
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const logger = require('../../../../utils/logger');
-const { rollPvmerDrop, rollSkillerDrop } = require('../../../../utils/cfRandomisation');
-const { generateId } = require('../../../../utils/cfTaskSampler');
+const { rollPvmerDrop, rollSkillerDrop } = require('../../../../utils/championForge/cfRandomisation');
+const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const { isAdmin, isAdminOrRef, getEventOrThrow, getTeamOrThrow, getWarChest, getModels } = require('../helpers');
 
 module.exports = {
@@ -262,7 +262,7 @@ module.exports = {
       cfSubmissionReviewed: submission,
     });
 
-    const { sendCFSubmissionResult } = require('../../../../utils/cfNotifications');
+    const { sendCFSubmissionResult } = require('../../../../utils/championForge/cfNotifications');
     sendCFSubmissionResult({
       discordId: submission.submittedBy,
       channelId: submission.channelId,

@@ -2,7 +2,7 @@
 
 const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const logger = require('../../../../utils/logger');
-const { buildSEBracket, buildDEBracket } = require('../../../../utils/cfBracket');
+const { buildSEBracket, buildDEBracket } = require('../../../../utils/championForge/cfBracket');
 const { isAdmin, getEventOrThrow, getTeamOrThrow, getModels } = require('../helpers');
 
 module.exports = {

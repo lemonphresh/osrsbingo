@@ -13,8 +13,8 @@ const { Sequelize } = require('sequelize');
 const db = require('../db/models');
 const { Op } = require('sequelize');
 const { Mutation: resolvers, Query: queryResolvers } = require('../schema/resolvers/ChampionForge');
-const { triggerGatheringTransition } = require('../utils/cfScheduler');
-const { generateId } = require('../utils/cfTaskSampler');
+const { triggerGatheringTransition } = require('../utils/championForge/cfScheduler');
+const { generateId } = require('../utils/championForge/cfTaskSampler');
 
 // ── DB setup ──────────────────────────────────────────────────────────────────
 

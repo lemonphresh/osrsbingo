@@ -1,6 +1,6 @@
 'use strict';
 const { Model, DataTypes } = require('sequelize');
-const { DEFAULT_TILE_GRAPH } = require('../../../utils/rainbowTiles');
+const { DEFAULT_TILE_GRAPH } = require('../../../utils/rainbow/rainbowTiles');
 
 module.exports = (sequelize) => {
   class RainbowEvent extends Model {
