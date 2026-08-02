@@ -5,7 +5,7 @@ import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_NODES } from '../mocks/nodes';
 import { MOCK_TEAMS } from '../mocks/teams';
 import { MOCK_USERS } from '../mocks/users';
-import InnModal from '../../organisms/TreasureHunt/TreasureInnModal';
+import InnModal from '../../organisms/GielinorRush/GRInnModal';
 
 function InnScenario({ title, description, tags, node, team, user }) {
   const { isOpen, onOpen, onClose } = useDisclosure();

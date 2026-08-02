@@ -3,8 +3,8 @@ const BingoBoardResolvers = require('./resolvers/BingoBoard');
 const BingoTileResolvers = require('./resolvers/BingoTile');
 const EditorInvitationResolvers = require('./resolvers/EditorInvitation');
 const CalendarResolvers = require('./resolvers/Calendar');
-const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
-const TreasureHuntSubscriptions = require('./resolvers/TreasureHuntSubscriptions');
+const GielinorRushResolvers = require('./resolvers/GielinorRush');
+const GielinorRushSubscriptions = require('./resolvers/GielinorRushSubscriptions');
 const DraftRoomResolvers = require('./resolvers/DraftRoom');
 const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
 const ClanWarsResolvers = require('./resolvers/ClanWars');
@@ -25,7 +25,7 @@ const resolvers = {
     ...CalendarResolvers.Query,
     ...EditorInvitationResolvers.Query,
     ...UserResolvers.Query,
-    ...TreasureHuntResolvers.Query,
+    ...GielinorRushResolvers.Query,
     ...SiteStats.Query,
     ...DraftRoomResolvers.Query,
     ...ClanWarsResolvers.Query,
@@ -38,7 +38,7 @@ const resolvers = {
     ...CalendarResolvers.Mutation,
     ...EditorInvitationResolvers.Mutation,
     ...UserResolvers.Mutation,
-    ...TreasureHuntResolvers.Mutation,
+    ...GielinorRushResolvers.Mutation,
     ...SiteStats.Mutation,
     ...DraftRoomResolvers.Mutation,
     ...ClanWarsResolvers.Mutation,
@@ -46,7 +46,7 @@ const resolvers = {
     ...RainbowBingoResolvers.Mutation,
   },
   Subscription: {
-    ...TreasureHuntSubscriptions.Subscription,
+    ...GielinorRushSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
     ...ClanWarsSubscriptions.ClanWarsSubscription,
     ...RainbowBingoResolvers.Subscription,
@@ -59,14 +59,14 @@ const resolvers = {
   BingoBoard: {
     ...fieldResolvers.BingoBoard,
   },
-  TreasureEvent: {
-    ...fieldResolvers.TreasureEvent,
+  GREvent: {
+    ...fieldResolvers.GREvent,
   },
-  TreasureTeam: {
-    ...fieldResolvers.TreasureTeam,
+  GRTeam: {
+    ...fieldResolvers.GRTeam,
   },
-  TreasureSubmission: {
-    ...fieldResolvers.TreasureSubmission,
+  GRSubmission: {
+    ...fieldResolvers.GRSubmission,
   },
   ClanWarsEvent: {
     ...ClanWarsResolvers.ClanWarsEvent,

@@ -66,7 +66,7 @@ module.exports = {
 
       const verifyQuery = `
         query VerifyNode($eventId: ID!, $teamId: ID!) {
-          getTreasureEvent(eventId: $eventId) {
+          getGREvent(eventId: $eventId) {
             status
             eventName
             startDate
@@ -79,7 +79,7 @@ module.exports = {
               mapLocation
             }
           }
-          getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+          getGRTeam(eventId: $eventId, teamId: $teamId) {
             availableNodes
             completedNodes
           }
@@ -87,9 +87,9 @@ module.exports = {
       `;
 
       const verifyData = await graphqlRequest(verifyQuery, { eventId, teamId: team.teamId });
-      const event = verifyData.getTreasureEvent;
+      const event = verifyData.getGREvent;
       const node = event.nodes.find((n) => n.nodeId === nodeId);
-      const teamData = verifyData.getTreasureTeam;
+      const teamData = verifyData.getGRTeam;
       const mapStructure = event.mapStructure;
 
       if (event.status !== 'PUBLIC') {

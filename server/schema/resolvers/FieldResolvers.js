@@ -57,9 +57,9 @@ const fieldResolvers = {
   },
 
   // ============================================================
-  // TREASURE EVENT FIELD RESOLVERS
+  // GIELINOR RUSH EVENT FIELD RESOLVERS
   // ============================================================
-  TreasureEvent: {
+  GREvent: {
     teams: async (event, _, { loaders }) => {
       return loaders.teamsByEventId.load(event.eventId);
     },
@@ -95,9 +95,9 @@ const fieldResolvers = {
   },
 
   // ============================================================
-  // TREASURE TEAM FIELD RESOLVERS
+  // GIELINOR RUSH TEAM FIELD RESOLVERS
   // ============================================================
-  TreasureTeam: {
+  GRTeam: {
     submissions: async (team, _, { loaders }) => {
       return loaders.submissionsByTeamId.load(team.teamId);
     },
@@ -216,9 +216,9 @@ const fieldResolvers = {
   },
 
   // ============================================================
-  // TREASURE SUBMISSION FIELD RESOLVERS
+  // GIELINOR RUSH SUBMISSION FIELD RESOLVERS
   // ============================================================
-  TreasureSubmission: {
+  GRSubmission: {
     team: async (submission, _, { loaders }) => {
       return loaders.teamForSubmission.load(submission.teamId);
     },

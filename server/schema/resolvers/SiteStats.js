@@ -3,8 +3,8 @@ const {
   BingoBoard,
   BingoTile,
   User,
-  TreasureEvent,
-  TreasureTeam,
+  GREvent,
+  GRTeam,
   DraftRoom,
   GroupDashboard,
   ClanWarsEvent,
@@ -62,13 +62,13 @@ const resolvers = {
           BingoBoard.count({ where: { isPublic: true } }),
           SiteStats.findByPk(1),
           DraftRoom.count(),
-          TreasureEvent.findOne({
+          GREvent.findOne({
             attributes: [
               [
-                TreasureEvent.sequelize.fn(
+                GREvent.sequelize.fn(
                   'SUM',
-                  TreasureEvent.sequelize.cast(
-                    TreasureEvent.sequelize.literal(`"eventConfig"->>'prize_pool_total'`),
+                  GREvent.sequelize.cast(
+                    GREvent.sequelize.literal(`"eventConfig"->>'prize_pool_total'`),
                     'bigint'
                   )
                 ),

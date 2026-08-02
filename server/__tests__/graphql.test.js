@@ -248,11 +248,11 @@ describe('EditorInvitation Queries', () => {
 // TREASURE HUNT QUERIES
 // ============================================================
 
-describe('TreasureHunt Queries', () => {
-  test('GET_TREASURE_EVENT', () => {
+describe('GielinorRush Queries', () => {
+  test('GET_GR_EVENT', () => {
     const result = validateOperation(`
-      query GetTreasureEvent($eventId: ID!) {
-        getTreasureEvent(eventId: $eventId) {
+      query GetGREvent($eventId: ID!) {
+        getGREvent(eventId: $eventId) {
           eventId
           eventName
           eventPassword
@@ -293,10 +293,10 @@ describe('TreasureHunt Queries', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GET_ALL_TREASURE_EVENTS', () => {
+  test('GET_ALL_GR_EVENTS', () => {
     const result = validateOperation(`
-      query GetAllTreasureEvents($userId: ID) {
-        getAllTreasureEvents(userId: $userId) {
+      query GetAllGREvents($userId: ID) {
+        getAllGREvents(userId: $userId) {
           eventId
           eventName
           status
@@ -312,10 +312,10 @@ describe('TreasureHunt Queries', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GET_MY_TREASURE_EVENTS', () => {
+  test('GET_MY_GR_EVENTS', () => {
     const result = validateOperation(`
-      query GetMyTreasureEvents {
-        getMyTreasureEvents {
+      query GetMyGREvents {
+        getMyGREvents {
           eventId
           eventName
           status
@@ -327,10 +327,10 @@ describe('TreasureHunt Queries', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GET_TREASURE_TEAM', () => {
+  test('GET_GR_TEAM', () => {
     const result = validateOperation(`
-      query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
-        getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+      query GetGRTeam($eventId: ID!, $teamId: ID!) {
+        getGRTeam(eventId: $eventId, teamId: $teamId) {
           teamId
           teamName
           members {
@@ -352,8 +352,8 @@ describe('TreasureHunt Queries', () => {
 
   test('GET_TREASURE_LEADERBOARD', () => {
     const result = validateOperation(`
-      query GetTreasureEventLeaderboard($eventId: ID!) {
-        getTreasureEventLeaderboard(eventId: $eventId) {
+      query GetGREventLeaderboard($eventId: ID!) {
+        getGREventLeaderboard(eventId: $eventId) {
           teamId
           teamName
           currentPot
@@ -409,7 +409,7 @@ describe('TreasureHunt Queries', () => {
 
   test('GET_TREASURE_ACTIVITIES', () => {
     const result = validateOperation(`
-      query GetTreasureActivities($eventId: ID!, $limit: Int) {
+      query GetGRActivities($eventId: ID!, $limit: Int) {
         getTreasureActivities(eventId: $eventId, limit: $limit) {
           id
           eventId
@@ -706,11 +706,11 @@ describe('EditorInvitation Mutations', () => {
 // TREASURE HUNT MUTATIONS
 // ============================================================
 
-describe('TreasureHunt Mutations', () => {
-  test('CREATE_TREASURE_EVENT', () => {
+describe('GielinorRush Mutations', () => {
+  test('CREATE_GR_EVENT', () => {
     const result = validateOperation(`
-      mutation CreateTreasureEvent($input: CreateTreasureEventInput!) {
-        createTreasureEvent(input: $input) {
+      mutation CreateGREvent($input: CreateGREventInput!) {
+        createGREvent(input: $input) {
           eventId
           eventName
           status
@@ -722,10 +722,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('UPDATE_TREASURE_EVENT', () => {
+  test('UPDATE_GR_EVENT', () => {
     const result = validateOperation(`
-      mutation UpdateTreasureEvent($eventId: ID!, $input: UpdateTreasureEventInput!) {
-        updateTreasureEvent(eventId: $eventId, input: $input) {
+      mutation UpdateGREvent($eventId: ID!, $input: UpdateGREventInput!) {
+        updateGREvent(eventId: $eventId, input: $input) {
           eventId
           eventName
           status
@@ -735,10 +735,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('DELETE_TREASURE_EVENT', () => {
+  test('DELETE_GR_EVENT', () => {
     const result = validateOperation(`
-      mutation DeleteTreasureEvent($eventId: ID!) {
-        deleteTreasureEvent(eventId: $eventId) {
+      mutation DeleteGREvent($eventId: ID!) {
+        deleteGREvent(eventId: $eventId) {
           success
           message
         }
@@ -747,10 +747,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GENERATE_TREASURE_MAP', () => {
+  test('GENERATE_GR_MAP', () => {
     const result = validateOperation(`
-      mutation GenerateTreasureMap($eventId: ID!) {
-        generateTreasureMap(eventId: $eventId) {
+      mutation GenerateGRMap($eventId: ID!) {
+        generateGRMap(eventId: $eventId) {
           eventId
           mapStructure
           nodes {
@@ -764,10 +764,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('CREATE_TREASURE_TEAM', () => {
+  test('CREATE_GR_TEAM', () => {
     const result = validateOperation(`
-      mutation CreateTreasureTeam($eventId: ID!, $input: CreateTreasureTeamInput!) {
-        createTreasureTeam(eventId: $eventId, input: $input) {
+      mutation CreateGRTeam($eventId: ID!, $input: CreateGRTeamInput!) {
+        createGRTeam(eventId: $eventId, input: $input) {
           teamId
           teamName
           members {
@@ -783,10 +783,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('UPDATE_TREASURE_TEAM', () => {
+  test('UPDATE_GR_TEAM', () => {
     const result = validateOperation(`
-      mutation UpdateTreasureTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
-        updateTreasureTeam(eventId: $eventId, teamId: $teamId, input: $input) {
+      mutation UpdateGRTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
+        updateGRTeam(eventId: $eventId, teamId: $teamId, input: $input) {
           teamId
           teamName
           currentPot
@@ -796,10 +796,10 @@ describe('TreasureHunt Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('DELETE_TREASURE_TEAM', () => {
+  test('DELETE_GR_TEAM', () => {
     const result = validateOperation(`
-      mutation DeleteTreasureTeam($eventId: ID!, $teamId: ID!) {
-        deleteTreasureTeam(eventId: $eventId, teamId: $teamId) {
+      mutation DeleteGRTeam($eventId: ID!, $teamId: ID!) {
+        deleteGRTeam(eventId: $eventId, teamId: $teamId) {
           success
           message
         }

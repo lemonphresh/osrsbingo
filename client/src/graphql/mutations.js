@@ -37,7 +37,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const TEAM_PROGRESS_FIELDS = gql`
-//   fragment TeamProgressFields on TreasureTeam {
+//   fragment TeamProgressFields on GRTeam {
 //     teamId
 //     teamName
 //     currentPot
@@ -48,7 +48,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const TEAM_BUFF_FIELDS = gql`
-//   fragment TeamBuffFields on TreasureTeam {
+//   fragment TeamBuffFields on GRTeam {
 //     teamId
 //     activeBuffs
 //     buffHistory
@@ -484,9 +484,9 @@ export const LIST_SAVED_CAL_EVENTS = gql`
 // GIELINOR RUSH: EVENTS
 // ============================================================
 
-export const CREATE_TREASURE_EVENT = gql`
-  mutation CreateTreasureEvent($input: CreateTreasureEventInput!) {
-    createTreasureEvent(input: $input) {
+export const CREATE_GR_EVENT = gql`
+  mutation CreateGREvent($input: CreateGREventInput!) {
+    createGREvent(input: $input) {
       eventId
       eventName
       eventPassword
@@ -505,9 +505,9 @@ export const CREATE_TREASURE_EVENT = gql`
   }
 `;
 
-export const UPDATE_TREASURE_EVENT = gql`
-  mutation UpdateTreasureEvent($eventId: ID!, $input: UpdateTreasureEventInput!) {
-    updateTreasureEvent(eventId: $eventId, input: $input) {
+export const UPDATE_GR_EVENT = gql`
+  mutation UpdateGREvent($eventId: ID!, $input: UpdateGREventInput!) {
+    updateGREvent(eventId: $eventId, input: $input) {
       eventId
       eventName
       status
@@ -524,18 +524,18 @@ export const UPDATE_TREASURE_EVENT = gql`
   }
 `;
 
-export const DELETE_TREASURE_EVENT = gql`
-  mutation DeleteTreasureEvent($eventId: ID!) {
-    deleteTreasureEvent(eventId: $eventId) {
+export const DELETE_GR_EVENT = gql`
+  mutation DeleteGREvent($eventId: ID!) {
+    deleteGREvent(eventId: $eventId) {
       success
       message
     }
   }
 `;
 
-export const GENERATE_TREASURE_MAP = gql`
-  mutation GenerateTreasureMap($eventId: ID!) {
-    generateTreasureMap(eventId: $eventId) {
+export const GENERATE_GR_MAP = gql`
+  mutation GenerateGRMap($eventId: ID!) {
+    generateGRMap(eventId: $eventId) {
       eventId
       mapStructure
       lastMapGeneratedAt
@@ -632,9 +632,9 @@ export const REMOVE_EVENT_REF = gql`
 // GIELINOR RUSH: TEAMS
 // ============================================================
 
-export const CREATE_TREASURE_TEAM = gql`
-  mutation CreateTreasureTeam($eventId: ID!, $input: CreateTreasureTeamInput!) {
-    createTreasureTeam(eventId: $eventId, input: $input) {
+export const CREATE_GR_TEAM = gql`
+  mutation CreateGRTeam($eventId: ID!, $input: CreateGRTeamInput!) {
+    createGRTeam(eventId: $eventId, input: $input) {
       teamId
       eventId
       teamName
@@ -653,9 +653,9 @@ export const CREATE_TREASURE_TEAM = gql`
   }
 `;
 
-export const UPDATE_TREASURE_TEAM = gql`
-  mutation UpdateTreasureTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
-    updateTreasureTeam(eventId: $eventId, teamId: $teamId, input: $input) {
+export const UPDATE_GR_TEAM = gql`
+  mutation UpdateGRTeam($eventId: ID!, $teamId: ID!, $input: JSON!) {
+    updateGRTeam(eventId: $eventId, teamId: $teamId, input: $input) {
       teamId
       teamName
       currentPot
@@ -667,9 +667,9 @@ export const UPDATE_TREASURE_TEAM = gql`
   }
 `;
 
-export const DELETE_TREASURE_TEAM = gql`
-  mutation DeleteTreasureTeam($eventId: ID!, $teamId: ID!) {
-    deleteTreasureTeam(eventId: $eventId, teamId: $teamId) {
+export const DELETE_GR_TEAM = gql`
+  mutation DeleteGRTeam($eventId: ID!, $teamId: ID!) {
+    deleteGRTeam(eventId: $eventId, teamId: $teamId) {
       success
       message
     }
@@ -921,9 +921,9 @@ export const ADMIN_REFUND_INN_PURCHASE = gql`
 // GIELINOR RUSH: ACTIVITY FEED (Query)
 // ============================================================
 
-export const GET_TREASURE_ACTIVITIES = gql`
-  query GetTreasureActivities($eventId: ID!, $limit: Int) {
-    getTreasureActivities(eventId: $eventId, limit: $limit) {
+export const GET_GR_ACTIVITIES = gql`
+  query GetGRActivities($eventId: ID!, $limit: Int) {
+    getGRActivities(eventId: $eventId, limit: $limit) {
       id
       eventId
       teamId
@@ -994,9 +994,9 @@ export const NODE_COMPLETED_SUB = gql`
   }
 `;
 
-export const TREASURE_ACTIVITY_SUB = gql`
-  subscription OnTreasureHuntActivity($eventId: ID!) {
-    treasureHuntActivity(eventId: $eventId) {
+export const GR_ACTIVITY_SUB = gql`
+  subscription OnGRActivity($eventId: ID!) {
+    grActivity(eventId: $eventId) {
       id
       eventId
       teamId

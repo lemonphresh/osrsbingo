@@ -12,10 +12,10 @@ const createLoaders = (models) => {
     User,
     BingoBoard,
     BingoTile,
-    TreasureEvent,
-    TreasureTeam,
-    TreasureNode,
-    TreasureSubmission,
+    GREvent,
+    GRTeam,
+    GRNode,
+    GRSubmission,
   } = models;
 
   return {
@@ -123,7 +123,7 @@ const createLoaders = (models) => {
     treasureEventById: new DataLoader(async (eventIds) => {
       log(`📦 Batching ${eventIds.length} treasure events`);
 
-      const events = await TreasureEvent.findAll({
+      const events = await GREvent.findAll({
         where: { eventId: { [Op.in]: eventIds } },
       });
 
@@ -134,7 +134,7 @@ const createLoaders = (models) => {
     teamsByEventId: new DataLoader(async (eventIds) => {
       log(`📦 Batching teams for ${eventIds.length} events`);
 
-      const teams = await TreasureTeam.findAll({
+      const teams = await GRTeam.findAll({
         where: { eventId: { [Op.in]: eventIds } },
       });
 
@@ -173,7 +173,7 @@ const createLoaders = (models) => {
       if (uncachedIds.length > 0) {
         log(`  ↳ Cache miss for ${uncachedIds.length} events, fetching from DB`);
 
-        const nodes = await TreasureNode.findAll({
+        const nodes = await GRNode.findAll({
           where: { eventId: { [Op.in]: uncachedIds } },
           raw: true, // ✅ Faster - skip model instantiation
         });
@@ -211,7 +211,7 @@ const createLoaders = (models) => {
           eventId: k.eventId,
         }));
 
-        const teams = await TreasureTeam.findAll({
+        const teams = await GRTeam.findAll({
           where: { [Op.or]: conditions },
         });
 
@@ -231,7 +231,7 @@ const createLoaders = (models) => {
     submissionsByTeamId: new DataLoader(async (teamIds) => {
       log(`📦 Batching submissions for ${teamIds.length} teams`);
 
-      const submissions = await TreasureSubmission.findAll({
+      const submissions = await GRSubmission.findAll({
         where: { teamId: { [Op.in]: teamIds } },
         attributes: [
           'submissionId',
@@ -267,7 +267,7 @@ const createLoaders = (models) => {
     submissionById: new DataLoader(async (submissionIds) => {
       log(`📦 Batching ${submissionIds.length} submissions`);
 
-      const submissions = await TreasureSubmission.findAll({
+      const submissions = await GRSubmission.findAll({
         where: { submissionId: { [Op.in]: submissionIds } },
       });
 
@@ -278,7 +278,7 @@ const createLoaders = (models) => {
     teamForSubmission: new DataLoader(async (teamIds) => {
       log(`📦 Batching teams for ${teamIds.length} submissions`);
 
-      const teams = await TreasureTeam.findAll({
+      const teams = await GRTeam.findAll({
         where: { teamId: { [Op.in]: teamIds } },
       });
 
@@ -293,7 +293,7 @@ const createLoaders = (models) => {
     nodeById: new DataLoader(async (nodeIds) => {
       log(`📦 Batching ${nodeIds.length} nodes`);
 
-      const nodes = await TreasureNode.findAll({
+      const nodes = await GRNode.findAll({
         where: { nodeId: { [Op.in]: nodeIds } },
         raw: true,
       });

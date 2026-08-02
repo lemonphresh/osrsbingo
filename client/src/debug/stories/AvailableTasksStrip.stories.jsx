@@ -3,7 +3,7 @@ import { StoryPage, StoryLayout } from '../StoryLayout';
 import { Box, HStack, Text, Badge, Icon, Flex, Progress, useColorMode } from '@chakra-ui/react';
 import { FaCoins } from 'react-icons/fa';
 import GemTitle from '../../atoms/GemTitle';
-import { OBJECTIVE_TYPES } from '../../utils/treasureHuntHelpers';
+import { OBJECTIVE_TYPES } from '../../utils/grHelpers';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -132,7 +132,7 @@ const NODES = {
   inn: mkInn('inn_001', 'Varrock Inn - Checkpoint 1'),
 };
 
-// ── Strip renderer (mirrors TreasureTeamPage logic) ──────────────────────────
+// ── Strip renderer (mirrors GRTeamPage logic) ──────────────────────────
 
 function AvailableTasksStrip({
   nodes = [],

@@ -256,7 +256,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: EVENTS
   # ============================================================
 
-  enum TreasureEventStatus {
+  enum GREventStatus {
     DRAFT
     PUBLIC
     COMPLETED
@@ -270,11 +270,11 @@ const typeDefs = gql`
     value: Int!
   }
 
-  type TreasureEvent {
+  type GREvent {
     eventId: ID!
     eventName: String!
     eventPassword: String
-    status: TreasureEventStatus!
+    status: GREventStatus!
     clanId: String
     startDate: DateTime
     endDate: DateTime
@@ -285,8 +285,8 @@ const typeDefs = gql`
     contentSelections: JSON
     mapStructure: JSON
     discordConfig: JSON
-    teams: [TreasureTeam!]
-    nodes: [TreasureNode!]
+    teams: [GRTeam!]
+    nodes: [GRNode!]
     creatorId: ID
     creator: User
     adminIds: [ID!]
@@ -296,7 +296,7 @@ const typeDefs = gql`
     lastMapGeneratedAt: DateTime
   }
 
-  input CreateTreasureEventInput {
+  input CreateGREventInput {
     eventName: String!
     clanId: String
     eventPassword: String
@@ -307,9 +307,9 @@ const typeDefs = gql`
     discordConfig: JSON
   }
 
-  input UpdateTreasureEventInput {
+  input UpdateGREventInput {
     eventName: String
-    status: TreasureEventStatus
+    status: GREventStatus
     startDate: DateTime
     endDate: DateTime
     eventConfig: JSON
@@ -349,7 +349,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: TEAMS
   # ============================================================
 
-  type TreasureTeamMember {
+  type GRTeamMember {
     discordUserId: String!
     discordUsername: String
     discordAvatar: String
@@ -357,12 +357,12 @@ const typeDefs = gql`
     rsn: String
   }
 
-  type TreasureTeam {
+  type GRTeam {
     teamId: ID!
     eventId: ID!
     teamName: String!
     discordRoleId: String
-    members: [TreasureTeamMember!]!
+    members: [GRTeamMember!]!
     currentPot: String
     completedNodes: [String!]
     availableNodes: [String!]
@@ -375,12 +375,12 @@ const typeDefs = gql`
     nodeProgress: JSON
     inProgressNodes: [String]
     nodeUnlockTimes: JSON
-    submissions: [TreasureSubmission!]
-    event: TreasureEvent
+    submissions: [GRSubmission!]
+    event: GREvent
     updatedAt: String
   }
 
-  input CreateTreasureTeamInput {
+  input CreateGRTeamInput {
     teamName: String!
     discordRoleId: String
     members: [String!]
@@ -390,17 +390,17 @@ const typeDefs = gql`
   # GIELINOR RUSH: NODES
   # ============================================================
 
-  enum TreasureNodeType {
+  enum GRNodeType {
     START
     STANDARD
     INN
     TREASURE
   }
 
-  type TreasureNode {
+  type GRNode {
     nodeId: ID!
     eventId: ID!
-    nodeType: TreasureNodeType!
+    nodeType: GRNodeType!
     title: String!
     description: String
     coordinates: JSON
@@ -420,13 +420,13 @@ const typeDefs = gql`
   # GIELINOR RUSH: SUBMISSIONS
   # ============================================================
 
-  enum TreasureSubmissionStatus {
+  enum GRSubmissionStatus {
     PENDING_REVIEW
     APPROVED
     DENIED
   }
 
-  type TreasureSubmission {
+  type GRSubmission {
     submissionId: ID!
     eventId: ID!
     teamId: ID!
@@ -435,11 +435,11 @@ const typeDefs = gql`
     submittedByUsername: String
     channelId: String
     proofUrl: String
-    status: TreasureSubmissionStatus!
+    status: GRSubmissionStatus!
     reviewedBy: String
     reviewedAt: DateTime
     submittedAt: DateTime!
-    team: TreasureTeam
+    team: GRTeam
   }
 
   type NodeSubmissionSummary {
@@ -454,7 +454,7 @@ const typeDefs = gql`
   # GIELINOR RUSH: ACTIVITY FEED
   # ============================================================
 
-  type TreasureHuntActivity {
+  type GRActivity {
     id: ID!
     eventId: ID!
     teamId: ID!
@@ -762,17 +762,17 @@ const typeDefs = gql`
     getPublicCalendarEvents(limit: Int = 20): [CalendarEvent!]!
 
     # --- Gielinor Rush ---
-    getTreasureEvent(eventId: ID!): TreasureEvent
-    getTreasureTeam(eventId: ID!, teamId: ID!): TreasureTeam
-    getAllTreasureEvents(userId: ID): [TreasureEvent!]
-    getMyTreasureEvents: [TreasureEvent!]
-    getAssociatedTreasureEvents: [TreasureEvent!]!
-    getPendingSubmissions(eventId: ID!): [TreasureSubmission!]
-    getAllSubmissions(eventId: ID!): [TreasureSubmission!]
+    getGREvent(eventId: ID!): GREvent
+    getGRTeam(eventId: ID!, teamId: ID!): GRTeam
+    getAllGREvents(userId: ID): [GREvent!]
+    getMyGREvents: [GREvent!]
+    getAssociatedGREvents: [GREvent!]!
+    getPendingSubmissions(eventId: ID!): [GRSubmission!]
+    getAllSubmissions(eventId: ID!): [GRSubmission!]
     getNodeSubmissionSummaries(eventId: ID!): [NodeSubmissionSummary!]!
-    getNodeSubmissions(nodeId: ID!, teamId: ID!): [TreasureSubmission!]!
-    getTreasureEventLeaderboard(eventId: ID!): [TreasureTeam!]
-    getTreasureActivities(eventId: ID!, limit: Int, offset: Int): [TreasureHuntActivity!]
+    getNodeSubmissions(nodeId: ID!, teamId: ID!): [GRSubmission!]!
+    getGREventLeaderboard(eventId: ID!): [GRTeam!]
+    getGRActivities(eventId: ID!, limit: Int, offset: Int): [GRActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
     checkDiscordChannels(
       guildId: String!
@@ -879,29 +879,29 @@ const typeDefs = gql`
     demoteCalendarEvent(id: ID!): CalendarEvent!
 
     # --- Gielinor Rush: Events ---
-    createTreasureEvent(input: CreateTreasureEventInput!): TreasureEvent!
-    updateTreasureEvent(eventId: ID!, input: UpdateTreasureEventInput!): TreasureEvent!
-    deleteTreasureEvent(eventId: ID!): MutationResponse!
-    generateTreasureMap(eventId: ID!): TreasureEvent!
-    launchEvent(eventId: ID!): TreasureEvent!
-    completeEvent(eventId: ID!): TreasureEvent!
+    createGREvent(input: CreateGREventInput!): GREvent!
+    updateGREvent(eventId: ID!, input: UpdateGREventInput!): GREvent!
+    deleteGREvent(eventId: ID!): MutationResponse!
+    generateGRMap(eventId: ID!): GREvent!
+    launchEvent(eventId: ID!): GREvent!
+    completeEvent(eventId: ID!): GREvent!
 
     # --- Gielinor Rush: Discord ---
     confirmDiscordSetup(eventId: ID!, guildId: String!): DiscordConfirmResponse!
 
     # --- Gielinor Rush: Event Admins ---
-    addEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
-    removeEventAdmin(eventId: ID!, userId: ID!): TreasureEvent!
-    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): TreasureEvent!
+    addEventAdmin(eventId: ID!, userId: ID!): GREvent!
+    removeEventAdmin(eventId: ID!, userId: ID!): GREvent!
+    updateEventAdmins(eventId: ID!, adminIds: [ID!]!): GREvent!
 
     # --- Gielinor Rush: Event Refs ---
-    addEventRef(eventId: ID!, userId: ID!): TreasureEvent!
-    removeEventRef(eventId: ID!, userId: ID!): TreasureEvent!
+    addEventRef(eventId: ID!, userId: ID!): GREvent!
+    removeEventRef(eventId: ID!, userId: ID!): GREvent!
 
     # --- Gielinor Rush: Teams ---
-    createTreasureTeam(eventId: ID!, input: CreateTreasureTeamInput!): TreasureTeam!
-    updateTreasureTeam(eventId: ID!, teamId: ID!, input: JSON!): TreasureTeam!
-    deleteTreasureTeam(eventId: ID!, teamId: ID!): MutationResponse!
+    createGRTeam(eventId: ID!, input: CreateGRTeamInput!): GRTeam!
+    updateGRTeam(eventId: ID!, teamId: ID!, input: JSON!): GRTeam!
+    deleteGRTeam(eventId: ID!, teamId: ID!): MutationResponse!
 
     # --- Gielinor Rush: Node Completion ---
     adminCompleteNode(
@@ -909,12 +909,12 @@ const typeDefs = gql`
       teamId: ID!
       nodeId: ID!
       congratsMessage: String
-    ): TreasureTeam!
-    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam
-    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
-    adminRepairLocationGroupAvailability(eventId: ID!): [TreasureTeam!]!
+    ): GRTeam!
+    visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam
+    adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminRestoreLocationGroupSiblings(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
+    adminRepairLocationGroupAvailability(eventId: ID!): [GRTeam!]!
 
     # --- Gielinor Rush: Submissions ---
     submitNodeCompletion(
@@ -925,29 +925,29 @@ const typeDefs = gql`
       submittedBy: String!
       submittedByUsername: String
       channelId: String
-    ): TreasureSubmission!
+    ): GRSubmission!
     reviewSubmission(
       submissionId: ID!
       approved: Boolean!
       reviewerId: String!
       denialReason: String
-    ): TreasureSubmission!
+    ): GRSubmission!
 
     # --- Gielinor Rush: Buffs ---
-    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): TreasureTeam!
-    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): TreasureTeam!
-    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): TreasureTeam!
-    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    applyBuffToNode(eventId: ID!, teamId: ID!, nodeId: ID!, buffId: ID!): GRTeam!
+    adminGiveBuff(eventId: ID!, teamId: ID!, buffType: String!): GRTeam!
+    adminRemoveBuff(eventId: ID!, teamId: ID!, buffId: ID!): GRTeam!
+    adminRemoveBuffFromNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Gielinor Rush: Admin Notes ---
-    addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): TreasureTeam!
-    deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): TreasureTeam!
-    updateNodeProgress(eventId: ID!, teamId: ID!, nodeId: ID!, value: Int!): TreasureTeam!
-    toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    addNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, text: String!): GRTeam!
+    deleteNodeComment(eventId: ID!, teamId: ID!, nodeId: ID!, commentId: ID!): GRTeam!
+    updateNodeProgress(eventId: ID!, teamId: ID!, nodeId: ID!, value: Int!): GRTeam!
+    toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Gielinor Rush: Inns ---
-    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): TreasureTeam!
-    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): TreasureTeam!
+    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): GRTeam!
+    adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Blind Draft Room ---
     createDraftRoom(input: CreateDraftRoomInput!): DraftRoom!
@@ -1458,11 +1458,11 @@ const typeDefs = gql`
   # ============================================================
 
   type Subscription {
-    submissionAdded(eventId: ID!): TreasureSubmission!
-    submissionReviewed(eventId: ID!): TreasureSubmission!
+    submissionAdded(eventId: ID!): GRSubmission!
+    submissionReviewed(eventId: ID!): GRSubmission!
     nodeCompleted(eventId: ID!): NodeCompletionPayload!
-    treasureHuntActivity(eventId: ID!): TreasureHuntActivity
-    teamUpdated(eventId: ID!): TreasureTeam!
+    grActivity(eventId: ID!): GRActivity
+    teamUpdated(eventId: ID!): GRTeam!
     nodeProgressUpdated(eventId: ID!): NodeProgressUpdate
 
     # --- Blind Draft Room ---

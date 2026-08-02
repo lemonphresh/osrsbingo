@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box } from '@chakra-ui/react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import AdminQuickActionsPanel from '../../organisms/TreasureHunt/AdminQuickActions';
+import AdminQuickActionsPanel from '../../organisms/GielinorRush/AdminQuickActions';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

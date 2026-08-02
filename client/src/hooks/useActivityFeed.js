@@ -1,6 +1,6 @@
 import { useSubscription, useQuery } from '@apollo/client';
 import { useState, useEffect, useRef } from 'react';
-import { TREASURE_ACTIVITY_SUB, GET_TREASURE_ACTIVITIES } from '../graphql/mutations';
+import { GR_ACTIVITY_SUB, GET_GR_ACTIVITIES } from '../graphql/mutations';
 
 export const useActivityFeed = (eventId, teams = []) => {
   const [activities, setActivities] = useState([]);
@@ -15,12 +15,12 @@ export const useActivityFeed = (eventId, teams = []) => {
   // Buffer incoming subscription events that arrive before history loads
   const pendingRef = useRef([]);
 
-  const { data: historyData, loading: historyLoading } = useQuery(GET_TREASURE_ACTIVITIES, {
+  const { data: historyData, loading: historyLoading } = useQuery(GET_GR_ACTIVITIES, {
     variables: { eventId, limit: 50 },
     skip: !eventId,
   });
 
-  const { data: subData, error } = useSubscription(TREASURE_ACTIVITY_SUB, {
+  const { data: subData, error } = useSubscription(GR_ACTIVITY_SUB, {
     variables: { eventId },
     skip: !eventId,
   });
@@ -39,9 +39,9 @@ export const useActivityFeed = (eventId, teams = []) => {
 
   // Load history — then flush any buffered subscription events
   useEffect(() => {
-    if (!historyData?.getTreasureActivities) return;
+    if (!historyData?.getGRActivities) return;
 
-    const formatted = historyData.getTreasureActivities.map(formatActivity);
+    const formatted = historyData.getGRActivities.map(formatActivity);
     const ids = new Set(formatted.map((a) => a.id));
 
     // Merge buffered subscription events that aren't already in history
@@ -55,8 +55,8 @@ export const useActivityFeed = (eventId, teams = []) => {
 
   // Handle incoming subscription events
   useEffect(() => {
-    if (!subData?.treasureHuntActivity) return;
-    const activity = subData.treasureHuntActivity;
+    if (!subData?.grActivity) return;
+    const activity = subData.grActivity;
     const formatted = formatActivity(activity);
 
     if (!historyLoaded) {

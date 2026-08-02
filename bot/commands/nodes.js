@@ -23,7 +23,7 @@ module.exports = {
       // Get event and node data - INCLUDING mapStructure for location groups
       const query = `
         query GetEventData($eventId: ID!, $teamId: ID!) {
-          getTreasureEvent(eventId: $eventId) {
+          getGREvent(eventId: $eventId) {
             eventName
             mapStructure
             nodes {
@@ -38,7 +38,7 @@ module.exports = {
               mapLocation
             }
           }
-          getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+          getGRTeam(eventId: $eventId, teamId: $teamId) {
             availableNodes
             completedNodes
             activeBuffs
@@ -49,21 +49,21 @@ module.exports = {
 
       const data = await graphqlRequest(query, { eventId, teamId: team.teamId });
 
-      if (!data || !data.getTreasureEvent) {
+      if (!data || !data.getGREvent) {
         return message.reply(
           `❌ Event not found with ID: \`${eventId}\`\n` +
             `Make sure the event ID in the channel topic is correct.`
         );
       }
 
-      if (!data.getTreasureTeam) {
+      if (!data.getGRTeam) {
         return message.reply(
           `❌ Team data not found. Your team may have been deleted from this event.`
         );
       }
 
-      const event = data.getTreasureEvent;
-      const teamData = data.getTreasureTeam;
+      const event = data.getGREvent;
+      const teamData = data.getGRTeam;
       const nodes = event.nodes || [];
       const mapStructure = event.mapStructure;
 

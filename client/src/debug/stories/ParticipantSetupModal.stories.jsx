@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@chakra-ui/react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import ParticipantSetupModal from '../../molecules/TreasureHunt/ParticipantSetupModal';
+import ParticipantSetupModal from '../../molecules/GielinorRush/ParticipantSetupModal';
 
 const EVENT_ID = 'debug_event_001';
 

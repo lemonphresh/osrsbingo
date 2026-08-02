@@ -30,7 +30,7 @@ async function getCachedNodes(eventId, fetchFn) {
 }
 
 /**
- * Invalidate cache for an event (call after generateTreasureMap)
+ * Invalidate cache for an event (call after generateGRMap)
  */
 function invalidateEventNodes(eventId) {
   const cacheKey = `nodes:${eventId}`;

@@ -15,9 +15,9 @@ const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
 const BoardDetails = lazy(() => import('./pages/BoardDetails'));
 const BoardCreation = lazy(() => import('./pages/BoardCreation'));
 const EGHub = lazy(() => import('./pages/EGHub'));
-const TreasureHuntDashboard = lazy(() => import('./pages/TreasureHuntDashboard'));
-const TreasureEventView = lazy(() => import('./pages/TreasureEventPage'));
-const TreasureTeamPage = lazy(() => import('./pages/TreasureTeamPage'));
+const GielinorRushDashboard = lazy(() => import('./pages/GielinorRushDashboard'));
+const GREventView = lazy(() => import('./pages/GREventPage'));
+const GRTeamPage = lazy(() => import('./pages/GRTeamPage'));
 const AboutPage = lazy(() => import('./pages/About'));
 const TermsPage = lazy(() => import('./pages/Terms'));
 const PrivacyPage = lazy(() => import('./pages/Privacy'));
@@ -25,7 +25,7 @@ const SupportPage = lazy(() => import('./pages/SupportTheSite'));
 const ChangelogPage = lazy(() => import('./pages/ChangeLog'));
 const NoMatch = lazy(() => import('./pages/NoMatch'));
 const StatsPage = lazy(() => import('./pages/Stats'));
-const TreasureHuntActiveEventsPage = lazy(() => import('./pages/TreasureHuntActiveEvents'));
+const GielinorRushActiveEventsPage = lazy(() => import('./pages/GielinorRushActiveEvents'));
 const BingoPage = lazy(() => import('./pages/BingoPage'));
 const DraftDashboard = lazy(() => import('./pages/DraftDashboard'));
 const DraftRoomPage = lazy(() => import('./pages/DraftRoomPage'));
@@ -139,12 +139,12 @@ const routes = [
       },
       {
         path: '/gielinor-rush',
-        element: withSuspense(TreasureHuntDashboard),
+        element: withSuspense(GielinorRushDashboard),
         errorElement: <ErrorPage />,
       },
       {
         path: '/gielinor-rush/active',
-        element: withSuspense(TreasureHuntActiveEventsPage),
+        element: withSuspense(GielinorRushActiveEventsPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -154,12 +154,12 @@ const routes = [
       },
       {
         path: '/gielinor-rush/:eventId',
-        element: withSuspense(TreasureEventView),
+        element: withSuspense(GREventView),
         errorElement: <ErrorPage />,
       },
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
-        element: withSuspense(TreasureTeamPage),
+        element: withSuspense(GRTeamPage),
         errorElement: <ErrorPage />,
       },
       {
