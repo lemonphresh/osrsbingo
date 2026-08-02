@@ -3438,6 +3438,73 @@ function getValidWomActivityKeys() {
   return new Set([...minigameKeys, ...clueKeys]);
 }
 
+// ── group dashboard metric options ────────────────────────────────────────────
+// The group dashboard needs the complete WOM metric space, not just event-eligible
+// content. These resolvers extend the event-focused ones to cover metrics like
+// combat skills and PvP activities that have no place in event objectives.
+
+// MINIGAME entries whose womKey falls under WOM's Boss enum (not Activity).
+// They appear in the group dashboard "Boss KC" goal type.
+const MINIGAME_BOSS_KEYS = new Set([
+  'tempoross', 'wintertodt', 'zalcano', 'tztok_jad', 'tzkal_zuk', 'sol_heredit',
+]);
+
+// Skills that are valid WOM Skill metrics but excluded from event objectives.
+const COMBAT_SKILL_OPTIONS = [
+  { value: 'overall',   label: 'Overall' },
+  { value: 'attack',    label: 'Attack' },
+  { value: 'defence',   label: 'Defence' },
+  { value: 'strength',  label: 'Strength' },
+  { value: 'hitpoints', label: 'Hitpoints' },
+  { value: 'ranged',    label: 'Ranged' },
+  { value: 'prayer',    label: 'Prayer' },
+  { value: 'magic',     label: 'Magic' },
+];
+
+// WOM Activity metrics excluded from event objectives but valid for group goals.
+const EXTRA_ACTIVITY_OPTIONS = [
+  { value: 'bounty_hunter_hunter', label: 'Bounty Hunter (Hunter)' },
+  { value: 'bounty_hunter_rogue',  label: 'Bounty Hunter (Rogue)' },
+  { value: 'colosseum_glory',      label: 'Colosseum Glory' },
+  { value: 'last_man_standing',    label: 'Last Man Standing' },
+  { value: 'pvp_arena',            label: 'PvP Arena' },
+  { value: 'soul_wars_zeal',       label: 'Soul Wars (Zeal)' },
+];
+
+// All WOM Boss-enum metrics, including MINIGAME entries tracked as bosses by WOM.
+function getGroupDashboardBossOptions() {
+  const bossRaidOptions = getBossMetricOptions();
+  const minigameBossOptions = Object.values(MINIGAMES)
+    .filter((m) => m.womKey && MINIGAME_BOSS_KEYS.has(m.womKey))
+    .map((m) => ({ value: m.womKey, label: m.displayName }));
+  return [...bossRaidOptions, ...minigameBossOptions].sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
+}
+
+// All WOM Skill-enum metrics, including combat stats excluded from event objectives.
+function getGroupDashboardSkillOptions() {
+  return [...getSkillMetricOptions(), ...COMBAT_SKILL_OPTIONS].sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
+}
+
+// All clue tiers plus the WOM aggregate key, with All Clues first.
+function getGroupDashboardClueOptions() {
+  return [{ value: 'clue_scrolls_all', label: 'All Clues' }, ...getClueMetricOptions()];
+}
+
+// All WOM Activity-enum metrics that aren't clues — registry entries plus
+// PvP/misc activities excluded from event objectives.
+function getGroupDashboardActivityOptions() {
+  const registryActivityOptions = Object.values(MINIGAMES)
+    .filter((m) => m.womKey && !MINIGAME_BOSS_KEYS.has(m.womKey))
+    .map((m) => ({ value: m.womKey, label: m.displayName }));
+  return [...registryActivityOptions, ...EXTRA_ACTIVITY_OPTIONS].sort((a, b) =>
+    a.label.localeCompare(b.label)
+  );
+}
+
 // ── exports ────────────────────────────────────────────────────────────────────
 
 module.exports = {
@@ -3460,4 +3527,8 @@ module.exports = {
   getValidWomBossKeys,
   getValidWomSkillKeys,
   getValidWomActivityKeys,
+  getGroupDashboardBossOptions,
+  getGroupDashboardSkillOptions,
+  getGroupDashboardClueOptions,
+  getGroupDashboardActivityOptions,
 };

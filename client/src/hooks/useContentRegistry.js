@@ -44,6 +44,11 @@ export default function useContentRegistry() {
     skills:     data?.skills     ?? null,
     minigames:  data?.minigames  ?? null,
     clueTiers:  data?.clueTiers  ?? null,
+    // Group dashboard metric selectors — full WOM metric space
+    bossMetricOptions:     data?.groupDashboard?.bossOptions     ?? null,
+    skillMetricOptions:    data?.groupDashboard?.skillOptions    ?? null,
+    clueMetricOptions:     data?.groupDashboard?.clueOptions     ?? null,
+    activityMetricOptions: data?.groupDashboard?.activityOptions ?? null,
     loading,
     error,
   };

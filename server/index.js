@@ -33,6 +33,10 @@ const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventSche
 const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
 const logger = require('./utils/logger');
 
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
+  require('./scripts/check-wom-registry');
+}
+
 const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 const searchCache = new Map(); // { query -> { results, cachedAt } }

@@ -7,6 +7,10 @@ const {
   getSkillMap,
   getMinigameMap,
   getClueMap,
+  getGroupDashboardBossOptions,
+  getGroupDashboardSkillOptions,
+  getGroupDashboardClueOptions,
+  getGroupDashboardActivityOptions,
 } = require('../utils/contentRegistry');
 
 const router = express.Router();
@@ -18,6 +22,13 @@ const payload = JSON.stringify({
   skills:     getSkillMap(),
   minigames:  getMinigameMap(),
   clueTiers:  getClueMap(),
+  // Group dashboard metric selectors — full WOM metric space, not filtered for events
+  groupDashboard: {
+    bossOptions:     getGroupDashboardBossOptions(),
+    skillOptions:    getGroupDashboardSkillOptions(),
+    clueOptions:     getGroupDashboardClueOptions(),
+    activityOptions: getGroupDashboardActivityOptions(),
+  },
 });
 
 router.get('/', (req, res) => {
