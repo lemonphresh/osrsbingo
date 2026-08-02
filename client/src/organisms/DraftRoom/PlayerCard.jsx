@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   Box,
   Text,
@@ -10,20 +11,7 @@ import {
   PopoverContent,
   PopoverBody,
 } from '@chakra-ui/react';
-import { SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
-
-// build WOM snake_case key → display name from objectiveCollections
-const BOSS_DISPLAY = {};
-[...Object.values(SOLO_BOSSES), ...Object.values(RAIDS), ...Object.values(MINIGAMES)].forEach(
-  ({ id, name, shortName }) => {
-    const womKey = id.replace(/([A-Z])/g, '_$1').toLowerCase();
-    BOSS_DISPLAY[womKey] = shortName ?? name;
-  }
-);
-
-function formatBossName(womKey) {
-  return BOSS_DISPLAY[womKey] ?? womKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
+import useContentRegistry from '../../hooks/useContentRegistry';
 
 const TIER_COLORS = {
   S: { bg: '#FFD700', color: '#1A202C' },
@@ -94,6 +82,24 @@ export default function PlayerCard({
   isCurrentPick = false,
   isAuctionTarget = false,
 }) {
+  const { soloBosses, raids, minigames } = useContentRegistry();
+
+  const bossDisplay = useMemo(() => {
+    const map = {};
+    for (const entry of [
+      ...Object.values(soloBosses ?? {}),
+      ...Object.values(raids ?? {}),
+      ...Object.values(minigames ?? {}),
+    ]) {
+      const womKey = entry.id.replace(/([A-Z])/g, '_$1').toLowerCase();
+      map[womKey] = entry.shortName ?? entry.name;
+    }
+    return map;
+  }, [soloBosses, raids, minigames]);
+
+  const formatBossName = (womKey) =>
+    bossDisplay[womKey] ?? womKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
   const revealed = player.rsn !== null && player.rsn !== undefined;
   const drafted = player.teamIndex !== null && player.teamIndex !== undefined;
 

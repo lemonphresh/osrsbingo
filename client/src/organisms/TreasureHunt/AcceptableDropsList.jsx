@@ -1,21 +1,25 @@
 import React from 'react';
 import { Badge, Box, HStack, Text, VStack, Wrap, WrapItem } from '@chakra-ui/react';
-import { COLLECTIBLE_ITEMS, SOLO_BOSSES, RAIDS, MINIGAMES } from '../../utils/objectiveCollections';
 
-export function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
-  const sourceKey = `${sourceType}:${sourceId}`;
-  return Object.values(COLLECTIBLE_ITEMS).filter((item) => {
-    if (!item.sources || item.sources.length === 0) return false;
-    return item.sources.includes(sourceKey);
-  });
+function makeDropItems(contentId, drops) {
+  return (drops ?? []).map((name) => ({ id: `${contentId}__${name}`, name, tags: [] }));
 }
 
-export function getAcceptableDropsForNode(objective) {
+export function getAcceptableDropsForSource(sourceId, sourceType = 'bosses', registryData = {}) {
+  const { soloBosses, raids, minigames } = registryData;
+  if (sourceType === 'bosses') return makeDropItems(sourceId, soloBosses?.[sourceId]?.drops);
+  if (sourceType === 'raids') return makeDropItems(sourceId, raids?.[sourceId]?.drops);
+  if (sourceType === 'minigames') return makeDropItems(sourceId, minigames?.[sourceId]?.drops);
+  return [];
+}
+
+export function getAcceptableDropsForNode(objective, registryData = {}) {
   if (!objective || objective.type !== 'item_collection' || !objective.contentId) return null;
   const { contentId } = objective;
-  if (SOLO_BOSSES[contentId]) return getAcceptableDropsForSource(contentId, 'bosses');
-  if (RAIDS[contentId]) return getAcceptableDropsForSource(contentId, 'raids');
-  if (MINIGAMES[contentId]) return getAcceptableDropsForSource(contentId, 'minigames');
+  const { soloBosses, raids, minigames } = registryData;
+  if (soloBosses?.[contentId]) return getAcceptableDropsForSource(contentId, 'bosses', registryData);
+  if (raids?.[contentId]) return getAcceptableDropsForSource(contentId, 'raids', registryData);
+  if (minigames?.[contentId]) return getAcceptableDropsForSource(contentId, 'minigames', registryData);
   return null;
 }
 

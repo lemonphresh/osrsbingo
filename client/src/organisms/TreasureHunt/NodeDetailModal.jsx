@@ -33,6 +33,7 @@ import { useMemo } from 'react';
 import { userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 import { useToastContext } from '../../providers/ToastProvider';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
+import useContentRegistry from '../../hooks/useContentRegistry';
 import NodeProgressEditor from './NodeProgressEditor';
 
 export default function NodeDetailModal({
@@ -55,9 +56,10 @@ export default function NodeDetailModal({
   const { isOpen: showTutorial, onClose: closeTutorial } = useDisclosure({ defaultIsOpen: true });
   const appliedBuff = appliedBuffProp ?? node?.objective?.appliedBuff ?? null;
   const { showToast } = useToastContext();
+  const { soloBosses, raids, minigames } = useContentRegistry();
   const acceptableDrops = useMemo(
-    () => getAcceptableDropsForNode(node?.objective),
-    [node?.objective]
+    () => getAcceptableDropsForNode(node?.objective, { soloBosses, raids, minigames }),
+    [node?.objective, soloBosses, raids, minigames]
   );
 
   if (!node) return null;

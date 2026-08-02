@@ -16,6 +16,7 @@ const { ApolloServer } = require('apollo-server-express');
 const bcrypt = require('bcryptjs');
 const cookieParser = require('cookie-parser');
 const calendarRoutes = require('./calendarRoutes');
+const contentRegistryRoutes = require('./routes/contentRegistry');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/use/ws');
@@ -151,6 +152,7 @@ app.get('/', (req, res) => {
 app.use(cookieParser());
 app.use('/api/calendar', calendarRoutes);
 app.use('/api/discord', discordRoutes);
+app.use('/api/content-registry', contentRegistryRoutes);
 
 app.get('/discuser/:userId', discordLimiter, async (req, res) => {
   const { userId } = req.params;

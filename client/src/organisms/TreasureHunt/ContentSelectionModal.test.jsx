@@ -11,7 +11,6 @@ import {
   SKILLS,
   MINIGAMES,
   CLUE_TIERS,
-  COLLECTIBLE_ITEMS,
 } from '../../utils/objectiveCollections';
 
 // ── SKILLS — category grouping ────────────────────────────────────────────────
@@ -139,57 +138,6 @@ describe('RAIDS — ContentSelectionModal field access', () => {
     for (const r of raids) {
       expect(typeof r.id).toBe('string');
       expect(typeof r.name).toBe('string');
-    }
-  });
-});
-
-// ── COLLECTIBLE_ITEMS — sources field ─────────────────────────────────────────
-// groupItemsBySource(COLLECTIBLE_ITEMS) splits each item's sources array on ':'.
-// Every item needs id, and sources must be strings in 'type:id' format.
-
-describe('COLLECTIBLE_ITEMS — ContentSelectionModal groupItemsBySource usage', () => {
-  const items = Object.values(COLLECTIBLE_ITEMS);
-
-  test('is non-empty', () => {
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  test('every item has an id and name', () => {
-    for (const item of items) {
-      expect(typeof item.id).toBe('string');
-      expect(typeof item.name).toBe('string');
-    }
-  });
-
-  test('items with sources have them in type:id format', () => {
-    for (const item of items) {
-      if (!item.sources || item.sources.length === 0) continue;
-      for (const source of item.sources) {
-        expect(source).toMatch(/^[a-zA-Z]+:[a-zA-Z]+/);
-      }
-    }
-  });
-
-  test('source types are all known types', () => {
-    const valid = new Set(['bosses', 'raids', 'minigames', 'other', 'clues', 'skills']);
-    for (const item of items) {
-      for (const source of item.sources ?? []) {
-        const [type] = source.split(':');
-        expect(valid).toContain(type);
-      }
-    }
-  });
-
-  test('source boss ids all exist in SOLO_BOSSES or RAIDS', () => {
-    for (const item of items) {
-      for (const source of item.sources ?? []) {
-        const [type, id] = source.split(':');
-        if (type === 'bosses') {
-          expect(SOLO_BOSSES[id]).toBeDefined();
-        } else if (type === 'raids') {
-          expect(RAIDS[id]).toBeDefined();
-        }
-      }
     }
   });
 });

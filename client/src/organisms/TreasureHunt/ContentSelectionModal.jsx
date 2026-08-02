@@ -26,60 +26,30 @@ import {
   Collapse,
 } from '@chakra-ui/react';
 import { InfoIcon, AlertIcon, ChevronDownIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import {
-  SOLO_BOSSES,
-  RAIDS,
-  SKILLS,
-  MINIGAMES,
-  COLLECTIBLE_ITEMS,
-  CLUE_TIERS,
-  parseItemSources,
-} from '../../utils/objectiveCollections';
+import useContentRegistry from '../../hooks/useContentRegistry';
+
 
 // Helper to sort items alphabetically by name
 function sortByName(items) {
   return [...items].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-// Helper to group items by their source boss/raid
-function groupItemsBySource(items) {
-  const grouped = { bosses: {}, raids: {}, minigames: {}, other: [] };
+// Build grouped drops directly from the registry's drops arrays.
+// Each drop: { id: `${contentId}__${name}`, name, enabled: true, tags: [] }
+function buildGroupedDrops(soloBosses, raids, minigames) {
+  const makeItems = (id, drops) =>
+    sortByName((drops ?? []).map((name) => ({ id: `${id}__${name}`, name, enabled: true, tags: [] })));
 
-  Object.values(items).forEach((item) => {
-    if (!item.sources || item.sources.length === 0) {
-      grouped.other.push(item);
-      return;
-    }
-
-    item.sources.forEach((source) => {
-      const [type, id] = source.split(':');
-      if (type === 'bosses') {
-        if (!grouped.bosses[id]) grouped.bosses[id] = [];
-        grouped.bosses[id].push(item);
-      } else if (type === 'raids') {
-        if (!grouped.raids[id]) grouped.raids[id] = [];
-        grouped.raids[id].push(item);
-      } else if (type === 'minigames') {
-        if (!grouped.minigames[id]) grouped.minigames[id] = [];
-        grouped.minigames[id].push(item);
-      } else {
-        grouped.other.push(item);
-      }
-    });
-  });
-
-  // Sort drops within each boss/raid/minigame alphabetically
-  Object.keys(grouped.bosses).forEach((key) => {
-    grouped.bosses[key] = sortByName(grouped.bosses[key]);
-  });
-  Object.keys(grouped.raids).forEach((key) => {
-    grouped.raids[key] = sortByName(grouped.raids[key]);
-  });
-  Object.keys(grouped.minigames).forEach((key) => {
-    grouped.minigames[key] = sortByName(grouped.minigames[key]);
-  });
-  grouped.other = sortByName(grouped.other);
-
+  const grouped = { bosses: {}, raids: {}, minigames: {} };
+  for (const [id, boss] of Object.entries(soloBosses)) {
+    if (boss.drops?.length) grouped.bosses[id] = makeItems(id, boss.drops);
+  }
+  for (const [id, raid] of Object.entries(raids)) {
+    if (raid.drops?.length) grouped.raids[id] = makeItems(id, raid.drops);
+  }
+  for (const [id, mg] of Object.entries(minigames)) {
+    if (mg.drops?.length) grouped.minigames[id] = makeItems(id, mg.drops);
+  }
   return grouped;
 }
 
@@ -243,79 +213,54 @@ function BossDropsRow({
 }
 
 // Helper functions to organize content
-function getSkillOptions() {
-  const skills = Object.values(SKILLS);
+function getSkillOptions(skills) {
+  const list = Object.values(skills);
   return {
-    gathering: sortByName(
-      skills
-        .filter((s) => s.category === 'gathering')
-        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
-    ),
-    artisan: sortByName(
-      skills
-        .filter((s) => s.category === 'artisan')
-        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
-    ),
-    support: sortByName(
-      skills
-        .filter((s) => s.category === 'support')
-        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
-    ),
-    combat: sortByName(
-      skills
-        .filter((s) => s.category === 'combat')
-        .map((s) => ({ id: s.id, name: s.name, icon: s.icon }))
-    ),
+    gathering: sortByName(list.filter((s) => s.category === 'gathering').map((s) => ({ id: s.id, name: s.name, icon: s.icon }))),
+    artisan:   sortByName(list.filter((s) => s.category === 'artisan').map((s) => ({ id: s.id, name: s.name, icon: s.icon }))),
+    support:   sortByName(list.filter((s) => s.category === 'support').map((s) => ({ id: s.id, name: s.name, icon: s.icon }))),
+    combat:    sortByName(list.filter((s) => s.category === 'combat').map((s) => ({ id: s.id, name: s.name, icon: s.icon }))),
   };
 }
 
-function getMinigameOptions() {
-  const minigames = Object.values(MINIGAMES);
+function getMinigameOptions(minigames) {
+  const list = Object.values(minigames);
   return {
-    skilling: sortByName(
-      minigames.filter((m) => m.category === 'skilling').map((m) => ({ id: m.id, name: m.name }))
-    ),
-    combat: sortByName(
-      minigames.filter((m) => m.category === 'combat').map((m) => ({ id: m.id, name: m.name }))
-    ),
-    pvp: sortByName(
-      minigames.filter((m) => m.category === 'pvp').map((m) => ({ id: m.id, name: m.name }))
-    ),
+    skilling: sortByName(list.filter((m) => m.category === 'skilling').map((m) => ({ id: m.id, name: m.name }))),
+    combat:   sortByName(list.filter((m) => m.category === 'combat').map((m) => ({ id: m.id, name: m.name }))),
+    pvp:      sortByName(list.filter((m) => m.category === 'pvp').map((m) => ({ id: m.id, name: m.name }))),
   };
 }
 
-function getBossCategories() {
-  const bosses = Object.values(SOLO_BOSSES);
+function getBossCategories(soloBosses) {
+  const bosses = Object.values(soloBosses);
   return {
-    gwd: sortByName(bosses.filter((b) => b.tags?.includes('gwd'))),
+    gwd:       sortByName(bosses.filter((b) => b.tags?.includes('gwd'))),
     wilderness: sortByName(bosses.filter((b) => b.category === 'wilderness')),
-    slayer: sortByName(bosses.filter((b) => b.tags?.some((tag) => tag.includes('slayer')))),
-    other: sortByName(
-      bosses.filter(
-        (b) =>
-          !b.tags?.includes('gwd') &&
-          b.category !== 'wilderness' &&
-          !b.tags?.some((tag) => tag.includes('slayer'))
-      )
-    ),
+    slayer:    sortByName(bosses.filter((b) => b.tags?.some((tag) => tag.includes('slayer')))),
+    other:     sortByName(bosses.filter((b) => !b.tags?.includes('gwd') && b.category !== 'wilderness' && !b.tags?.some((tag) => tag.includes('slayer')))),
   };
 }
 
-function getClueOptions() {
-  return sortByName(
-    Object.values(CLUE_TIERS).map((c) => ({
-      id: c.id,
-      name: c.name,
-      color: c.color,
-    }))
-  );
+function getClueOptions(clueTiers) {
+  return sortByName(Object.values(clueTiers).map((c) => ({ id: c.id, name: c.name, color: c.color })));
 }
 
-function getRaidOptions() {
-  return sortByName(Object.values(RAIDS));
+function getRaidOptions(raids) {
+  return sortByName(Object.values(raids));
 }
 
 export default function ContentSelectionModal({ isOpen, onClose, currentSelections, onSave }) {
+  const {
+    soloBosses,
+    raids,
+    skills,
+    minigames,
+    clueTiers,
+
+    loading: registryLoading,
+  } = useContentRegistry();
+
   const [selections, setSelections] = useState(
     currentSelections || {
       bosses: {},
@@ -329,66 +274,63 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
 
   const MIN_CONTENT_REQUIRED = 6;
 
-  const totalContentAltogether =
-    Object.values(SOLO_BOSSES).length +
-    Object.values(RAIDS).length +
-    Object.values(SKILLS).length +
-    Object.values(MINIGAMES).length +
-    Object.values(CLUE_TIERS).length;
+  const totalContentAltogether = !soloBosses ? 0 :
+    Object.values(soloBosses).length +
+    Object.values(raids).length +
+    Object.values(skills).length +
+    Object.values(minigames).length +
+    Object.values(clueTiers).length;
 
   const totalEnabledContent = useMemo(() => {
-    const enabledBosses = Object.keys(SOLO_BOSSES).filter(
-      (id) => SOLO_BOSSES[id].enabled && selections.bosses?.[id] !== false
+    if (!soloBosses) return 0;
+    const enabledBosses = Object.keys(soloBosses).filter(
+      (id) => soloBosses[id].enabled && selections.bosses?.[id] !== false
     ).length;
-
-    const enabledRaids = Object.keys(RAIDS).filter(
-      (id) => RAIDS[id].enabled && selections.raids?.[id] !== false
+    const enabledRaids = Object.keys(raids).filter(
+      (id) => raids[id].enabled && selections.raids?.[id] !== false
     ).length;
-
-    const enabledSkills = Object.keys(SKILLS).filter(
-      (id) => SKILLS[id].enabled !== false && selections.skills?.[id] !== false
+    const enabledSkills = Object.keys(skills).filter(
+      (id) => skills[id].enabled !== false && selections.skills?.[id] !== false
     ).length;
-
-    const enabledMinigames = Object.keys(MINIGAMES).filter(
-      (id) => MINIGAMES[id].enabled && selections.minigames?.[id] !== false
+    const enabledMinigames = Object.keys(minigames).filter(
+      (id) => minigames[id].enabled && selections.minigames?.[id] !== false
     ).length;
-
-    const enabledClues = Object.keys(CLUE_TIERS).filter(
-      (id) => CLUE_TIERS[id].enabled !== false && selections.clues?.[id] !== false
+    const enabledClues = Object.keys(clueTiers).filter(
+      (id) => clueTiers[id].enabled !== false && selections.clues?.[id] !== false
     ).length;
-
     return enabledBosses + enabledRaids + enabledSkills + enabledMinigames + enabledClues;
-  }, [selections]);
+  }, [soloBosses, raids, skills, minigames, clueTiers, selections]);
 
   const canSave = totalEnabledContent >= MIN_CONTENT_REQUIRED;
 
-  // Group items by source
-  const groupedItems = useMemo(() => groupItemsBySource(COLLECTIBLE_ITEMS), []);
-  const bossCategories = useMemo(() => getBossCategories(), []);
-  const skillOptions = useMemo(() => getSkillOptions(), []);
-  const minigameOptions = useMemo(() => getMinigameOptions(), []);
-  const clueOptions = useMemo(() => getClueOptions(), []);
-  const raidOptions = useMemo(() => getRaidOptions(), []);
+  const groupedItems = useMemo(
+    () => soloBosses ? buildGroupedDrops(soloBosses, raids, minigames) : null,
+    [soloBosses, raids, minigames]
+  );
+  const bossCategories = useMemo(() => soloBosses ? getBossCategories(soloBosses) : null, [soloBosses]);
+  const skillOptions = useMemo(() => skills ? getSkillOptions(skills) : null, [skills]);
+  const minigameOptions = useMemo(() => minigames ? getMinigameOptions(minigames) : null, [minigames]);
+  const clueOptions = useMemo(() => clueTiers ? getClueOptions(clueTiers) : null, [clueTiers]);
+  const raidOptions = useMemo(() => raids ? getRaidOptions(raids) : null, [raids]);
 
   // Calculate stats
   const stats = useMemo(() => {
-    const enabledBosses = Object.keys(SOLO_BOSSES).filter(
-      (id) => SOLO_BOSSES[id].enabled && selections.bosses?.[id] !== false
+    if (!soloBosses) return { enabledBosses: 0, enabledRaids: 0, enabledDrops: 0, enabledClues: 0 };
+    const enabledBosses = Object.keys(soloBosses).filter(
+      (id) => soloBosses[id].enabled && selections.bosses?.[id] !== false
     ).length;
-    const enabledRaids = Object.keys(RAIDS).filter(
-      (id) => RAIDS[id].enabled && selections.raids?.[id] !== false
+    const enabledRaids = Object.keys(raids).filter(
+      (id) => raids[id].enabled && selections.raids?.[id] !== false
     ).length;
-    const enabledD = Object.values(COLLECTIBLE_ITEMS).filter((item) => {
-      if (!item.enabled) return false;
-      if (selections.items?.[item.id] === false) return false;
-      return parseItemSources(item, selections);
-    });
-    const enabledDrops = enabledD.length;
-    const enabledClues = Object.keys(CLUE_TIERS).filter(
-      (id) => CLUE_TIERS[id].enabled !== false && selections.clues?.[id] !== false
+    const allDropItems = groupedItems
+      ? [...Object.values(groupedItems.bosses), ...Object.values(groupedItems.raids), ...Object.values(groupedItems.minigames)].flat()
+      : [];
+    const enabledDrops = allDropItems.filter((item) => selections.items?.[item.id] !== false).length;
+    const enabledClues = Object.keys(clueTiers).filter(
+      (id) => clueTiers[id].enabled !== false && selections.clues?.[id] !== false
     ).length;
     return { enabledBosses, enabledRaids, enabledDrops, enabledClues };
-  }, [selections]);
+  }, [soloBosses, raids, clueTiers, groupedItems, selections]);
 
   const handleToggle = (category, id) => {
     setSelections((prev) => ({
@@ -474,7 +416,11 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
         <ModalCloseButton color="gray.400" _hover={{ color: 'white' }} />
 
         <ModalBody pb={6}>
-          <VStack spacing={4} align="stretch">
+          {registryLoading || !bossCategories ? (
+            <VStack py={12} spacing={3}>
+              <Text color="gray.400">Loading content...</Text>
+            </VStack>
+          ) : <VStack spacing={4} align="stretch">
             {/* Stats bar */}
             <HStack spacing={6} p={3} bg="purple.900" borderRadius="md" justify="center">
               <VStack spacing={0}>
@@ -544,7 +490,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         size="xs"
                         variant="ghost"
                         colorScheme="purple"
-                        onClick={() => handleToggleAllBosses(Object.values(SOLO_BOSSES), true)}
+                        onClick={() => handleToggleAllBosses(Object.values(soloBosses), true)}
                       >
                         All
                       </Button>
@@ -555,7 +501,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         size="xs"
                         variant="ghost"
                         color="gray.400"
-                        onClick={() => handleToggleAllBosses(Object.values(SOLO_BOSSES), false)}
+                        onClick={() => handleToggleAllBosses(Object.values(soloBosses), false)}
                       >
                         None
                       </Button>
@@ -670,7 +616,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         size="xs"
                         variant="ghost"
                         colorScheme="purple"
-                        onClick={() => handleToggleAll('raids', Object.values(RAIDS), true)}
+                        onClick={() => handleToggleAll('raids', Object.values(raids), true)}
                       >
                         All
                       </Button>
@@ -681,7 +627,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                         size="xs"
                         variant="ghost"
                         color="gray.400"
-                        onClick={() => handleToggleAll('raids', Object.values(RAIDS), false)}
+                        onClick={() => handleToggleAll('raids', Object.values(raids), false)}
                       >
                         None
                       </Button>
@@ -904,7 +850,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                           {category} Minigames
                         </Text>
                         {minigames.map((minigame) => {
-                          const minigameData = MINIGAMES[minigame.id];
+                          const minigameData = minigame;
                           const drops = groupedItems.minigames[minigame.id] || [];
                           return (
                             <BossDropsRow
@@ -1044,7 +990,7 @@ export default function ContentSelectionModal({ isOpen, onClose, currentSelectio
                 </Button>
               </Tooltip>
             </HStack>
-          </VStack>
+          </VStack>}
         </ModalBody>
       </ModalContent>
     </Modal>

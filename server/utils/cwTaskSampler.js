@@ -12,7 +12,9 @@
  */
 
 const seedrandom = require('seedrandom');
-const { CW_OBJECTIVE_COLLECTIONS } = require('./cwObjectiveCollections');
+const { getCwTaskPool } = require('./contentRegistry');
+
+const CW_OBJECTIVE_COLLECTIONS = getCwTaskPool();
 
 function generateId(prefix) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -49,7 +51,12 @@ const REFERENCE_TEAM_SIZE = 5;
  * @param {number} avgTeamSize     - average members per team (default 5)
  * @returns {Array<Object>}        - task row objects (no createdAt/updatedAt)
  */
-function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTeamSize = REFERENCE_TEAM_SIZE) {
+function sampleTasksFromPool(
+  eventId,
+  seed,
+  eventDifficulty = 'standard',
+  avgTeamSize = REFERENCE_TEAM_SIZE
+) {
   const rng = seedrandom(seed);
   const tasks = [];
 
@@ -57,8 +64,8 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
     const pool = CW_OBJECTIVE_COLLECTIONS[role];
     const picks = [
       ...seededShuffle(pool.initiate, rng),
-      ...seededShuffle(pool.adept,    rng),
-      ...seededShuffle(pool.master,   rng),
+      ...seededShuffle(pool.adept, rng),
+      ...seededShuffle(pool.master, rng),
     ];
 
     for (const task of picks) {
@@ -67,14 +74,11 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
 
       let resolvedQuantity = null;
       if (qtys != null) {
-        resolvedQuantity = (typeof qtys === 'object' && 'min' in qtys)
-          ? seededRange(qtys.min, qtys.max, rng)
-          : qtys;
+        resolvedQuantity =
+          typeof qtys === 'object' && 'min' in qtys ? seededRange(qtys.min, qtys.max, rng) : qtys;
 
-        // Scale xp_gain and minigame_completions by team size
         if (task.type === 'xp_gain' || task.type === 'minigame_completions') {
           resolvedQuantity = Math.round(resolvedQuantity * (avgTeamSize / REFERENCE_TEAM_SIZE));
-          // Round XP tasks up to the nearest 10k so numbers stay clean
           if (task.type === 'xp_gain') {
             resolvedQuantity = Math.ceil(resolvedQuantity / 10_000) * 10_000;
           }
@@ -94,16 +98,16 @@ function sampleTasksFromPool(eventId, seed, eventDifficulty = 'standard', avgTea
       }
 
       tasks.push({
-        taskId:          generateId('cwtask'),
-        objectiveId:     task.id,
+        taskId: generateId('cwtask'),
+        objectiveId: task.id,
         eventId,
-        label:           task.label,
+        label: task.label,
         description,
-        difficulty:      task.difficulty,
-        role:            task.role,
-        isActive:        true,
-        acceptableItems: task.acceptableItems ?? [],
-        quantity:        resolvedQuantity,
+        difficulty: task.difficulty,
+        role: task.role,
+        isActive: true,
+        acceptableItems: task.type === 'item_collection' ? (task.drops ?? []) : [],
+        quantity: resolvedQuantity,
       });
     }
   }

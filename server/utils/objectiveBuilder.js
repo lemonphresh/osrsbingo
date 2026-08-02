@@ -1,15 +1,19 @@
 // objectiveBuilder.js
-// Dynamically builds FORMATTED_OBJECTIVES from objectiveCollections based on contentSelections
+// Dynamically builds FORMATTED_OBJECTIVES from the content registry based on contentSelections
 
 const {
-  SOLO_BOSSES,
-  RAIDS,
-  SKILLS,
-  MINIGAMES,
-  COLLECTIBLE_ITEMS,
-  CLUE_TIERS,
-  parseItemSources,
-} = require('./objectiveCollections');
+  getSoloBossMap,
+  getRaidMap,
+  getSkillMap,
+  getMinigameMap,
+  getClueMap,
+} = require('./contentRegistry');
+
+const SOLO_BOSSES = getSoloBossMap();
+const RAIDS = getRaidMap();
+const SKILLS = getSkillMap();
+const MINIGAMES = getMinigameMap();
+const CLUE_TIERS = getClueMap();
 
 // Fallback defaults (only used if content item has no quantities defined)
 const DEFAULT_QUANTITIES = {
@@ -27,19 +31,11 @@ const DEFAULT_QUANTITIES = {
   },
 };
 
-/**
- * Get a random quantity within a range
- */
 function getRandomInRange(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- * Get quantity for KC/XP/Minigame objectives
- * Returns null if this difficulty isn't available
- */
 function getQuantity(objectiveType, difficulty, contentItem, contentSelections) {
-  // 1. Check for custom override
   const customQuantity =
     contentSelections?.customQuantities?.[objectiveType]?.[contentItem.id]?.[difficulty];
   if (customQuantity) {
@@ -48,13 +44,11 @@ function getQuantity(objectiveType, difficulty, contentItem, contentSelections) 
       : customQuantity;
   }
 
-  // 2. Check for per-item quantities - return null if not defined
   if (contentItem.quantities?.[difficulty]) {
     const range = contentItem.quantities[difficulty];
     return getRandomInRange(range.min, range.max);
   }
 
-  // 3. Fall back to global defaults
   const defaultRange = DEFAULT_QUANTITIES[objectiveType]?.[difficulty];
   if (defaultRange) {
     return getRandomInRange(defaultRange.min, defaultRange.max);
@@ -63,12 +57,7 @@ function getQuantity(objectiveType, difficulty, contentItem, contentSelections) 
   return null;
 }
 
-/**
- * Get drop quantity for boss/raid drop objectives
- * Returns null if drops aren't available at this difficulty
- */
 function getDropQuantity(difficulty, sourceEntity, contentSelections) {
-  // 1. Check for custom override
   const customQty = contentSelections?.customQuantities?.drops?.[sourceEntity.id]?.[difficulty];
   if (customQty) {
     return typeof customQty === 'object'
@@ -76,7 +65,6 @@ function getDropQuantity(difficulty, sourceEntity, contentSelections) {
       : customQty;
   }
 
-  // 2. Use entity's dropQuantities - return null if not defined
   if (!sourceEntity.dropQuantities?.[difficulty]) {
     return null;
   }
@@ -85,48 +73,10 @@ function getDropQuantity(difficulty, sourceEntity, contentSelections) {
   return getRandomInRange(range.min, range.max);
 }
 
-/**
- * Helper to group items by their source (boss/raid/minigame)
- */
-function groupItemsBySource(items) {
-  const grouped = { bosses: {}, raids: {}, minigames: {}, other: [] };
-
-  Object.values(items).forEach((item) => {
-    if (!item.sources || item.sources.length === 0) {
-      grouped.other.push(item);
-      return;
-    }
-
-    item.sources.forEach((source) => {
-      const [type, id] = source.split(':');
-      if (type === 'bosses') {
-        if (!grouped.bosses[id]) grouped.bosses[id] = [];
-        grouped.bosses[id].push(item);
-      } else if (type === 'raids') {
-        if (!grouped.raids[id]) grouped.raids[id] = [];
-        grouped.raids[id].push(item);
-      } else if (type === 'minigames') {
-        if (!grouped.minigames[id]) grouped.minigames[id] = [];
-        grouped.minigames[id].push(item);
-      } else {
-        grouped.other.push(item);
-      }
-    });
-  });
-
-  return grouped;
-}
-
-/**
- * Round up to nearest increment
- */
 function roundUpTo(value, increment) {
   return Math.ceil(value / increment) * increment;
 }
 
-/**
- * Build Boss KC objectives
- */
 function buildBossKCObjectives(contentSelections = {}) {
   const enabledBosses = Object.values(SOLO_BOSSES).filter(
     (b) => b.enabled && contentSelections.bosses?.[b.id] !== false
@@ -138,39 +88,19 @@ function buildBossKCObjectives(contentSelections = {}) {
   const buildForDifficulty = (difficulty, filterFn) => {
     const objectives = [];
 
-    // Bosses
     enabledBosses.filter(filterFn).forEach((b) => {
       let quantity = getQuantity('boss_kc', difficulty, b, contentSelections);
-      if (quantity === null) return; // Skip if no quantity for this difficulty
-
-      // Round up to nearest 5
+      if (quantity === null) return;
       quantity = roundUpTo(quantity, 5);
-
-      objectives.push({
-        type: 'boss_kc',
-        target: b.name,
-        quantity,
-        contentId: b.id,
-        sourceType: 'bosses',
-      });
+      objectives.push({ type: 'boss_kc', target: b.name, quantity, contentId: b.id, sourceType: 'bosses' });
     });
 
-    // Raids (only on long)
     if (difficulty === 'long') {
       enabledRaids.forEach((r) => {
         let quantity = getQuantity('boss_kc', difficulty, r, contentSelections);
         if (quantity === null) return;
-
-        // Round up to nearest 5
         quantity = roundUpTo(quantity, 5);
-
-        objectives.push({
-          type: 'boss_kc',
-          target: r.name,
-          quantity,
-          contentId: r.id,
-          sourceType: 'raids',
-        });
+        objectives.push({ type: 'boss_kc', target: r.name, quantity, contentId: r.id, sourceType: 'raids' });
       });
     }
 
@@ -184,9 +114,6 @@ function buildBossKCObjectives(contentSelections = {}) {
   };
 }
 
-/**
- * Build XP Gain objectives
- */
 function buildXPGainObjectives(contentSelections = {}) {
   const enabledSkills = Object.values(SKILLS).filter(
     (s) => s.enabled !== false && contentSelections.skills?.[s.id] !== false
@@ -198,17 +125,8 @@ function buildXPGainObjectives(contentSelections = {}) {
     enabledSkills.forEach((s) => {
       let quantity = getQuantity('xp_gain', difficulty, s, contentSelections);
       if (quantity === null) return;
-
-      // Round XP to nearest 50k for cleaner display
       quantity = Math.round(quantity / 50000) * 50000;
-
-      objectives.push({
-        type: 'xp_gain',
-        target: s.name,
-        quantity,
-        contentId: s.id,
-        sourceType: 'skills',
-      });
+      objectives.push({ type: 'xp_gain', target: s.name, quantity, contentId: s.id, sourceType: 'skills' });
     });
 
     return objectives;
@@ -221,9 +139,6 @@ function buildXPGainObjectives(contentSelections = {}) {
   };
 }
 
-/**
- * Build Minigame objectives (KC only, no drops)
- */
 function buildMinigameObjectives(contentSelections = {}) {
   const enabledMinigames = Object.values(MINIGAMES).filter(
     (m) => m.enabled && contentSelections.minigames?.[m.id] !== false
@@ -235,14 +150,7 @@ function buildMinigameObjectives(contentSelections = {}) {
     enabledMinigames.filter(filterFn).forEach((m) => {
       const quantity = getQuantity('minigame', difficulty, m, contentSelections);
       if (quantity === null) return;
-
-      objectives.push({
-        type: 'minigame',
-        target: m.name,
-        quantity,
-        contentId: m.id,
-        sourceType: 'minigames',
-      });
+      objectives.push({ type: 'minigame', target: m.name, quantity, contentId: m.id, sourceType: 'minigames' });
     });
 
     return objectives;
@@ -250,80 +158,49 @@ function buildMinigameObjectives(contentSelections = {}) {
 
   return {
     short: buildForDifficulty('short', (m) => m.category === 'skilling'),
-    medium: buildForDifficulty(
-      'medium',
-      (m) => m.category === 'combat' && !m.tags?.includes('difficult')
-    ),
-    long: buildForDifficulty(
-      'long',
-      (m) => m.tags?.includes('difficult') || m.tags?.includes('solo')
-    ),
+    medium: buildForDifficulty('medium', (m) => m.category === 'combat' && !m.tags?.includes('difficult')),
+    long: buildForDifficulty('long', (m) => m.tags?.includes('difficult') || m.tags?.includes('solo')),
   };
 }
 
-/**
- * Build Item Collection objectives (boss/raid drops)
- * Generates "Obtain X [Boss] drops" objectives
- */
+// Acceptable drops are resolved at display time from the registry via getAcceptableDropsForNode.
+// This function only decides whether to emit an item_collection objective for each boss/raid
+// based on whether it has drops and dropQuantities defined.
 function buildItemCollectionObjectives(contentSelections = {}) {
-  const groupedItems = groupItemsBySource(COLLECTIBLE_ITEMS);
-
-  // Filter items based on content selections
-  const getEnabledItems = (items) => {
-    return items.filter((item) => {
-      if (!item.enabled) return false;
-      if (contentSelections.items?.[item.id] === false) return false;
-      return parseItemSources(item, contentSelections);
-    });
-  };
-
   const buildForDifficulty = (difficulty) => {
     const objectives = [];
 
-    // Boss drop objectives
-    Object.entries(groupedItems.bosses).forEach(([bossId, items]) => {
-      const boss = SOLO_BOSSES[bossId];
-      if (!boss || !boss.enabled) return;
-      if (contentSelections.bosses?.[bossId] === false) return;
+    for (const [bossId, boss] of Object.entries(SOLO_BOSSES)) {
+      if (!boss.enabled) continue;
+      if (contentSelections.bosses?.[bossId] === false) continue;
+      if (!boss.drops?.length) continue;
 
-      const enabledDrops = getEnabledItems(items);
-      if (enabledDrops.length === 0) return;
+      const anyDropEnabled = boss.drops.some(
+        (name) => contentSelections.items?.[`${bossId}__${name}`] !== false
+      );
+      if (!anyDropEnabled) continue;
 
-      // Get drop quantity - returns null if not available at this difficulty
       const quantity = getDropQuantity(difficulty, boss, contentSelections);
-      if (quantity === null) return;
+      if (quantity === null) continue;
 
-      objectives.push({
-        type: 'item_collection',
-        target: `${boss.name} drop`,
-        quantity,
-        contentId: bossId,
-        sourceType: 'bosses',
-        acceptableItems: enabledDrops.map((d) => d.id),
-      });
-    });
+      objectives.push({ type: 'item_collection', target: `${boss.name} drop`, quantity, contentId: bossId, sourceType: 'bosses' });
+    }
 
-    // Raid drop objectives
-    Object.entries(groupedItems.raids).forEach(([raidId, items]) => {
-      const raid = RAIDS[raidId];
-      if (!raid || !raid.enabled) return;
-      if (contentSelections.raids?.[raidId] === false) return;
+    for (const [raidId, raid] of Object.entries(RAIDS)) {
+      if (!raid.enabled) continue;
+      if (contentSelections.raids?.[raidId] === false) continue;
+      if (!raid.drops?.length) continue;
 
-      const enabledDrops = getEnabledItems(items);
-      if (enabledDrops.length === 0) return;
+      const anyDropEnabled = raid.drops.some(
+        (name) => contentSelections.items?.[`${raidId}__${name}`] !== false
+      );
+      if (!anyDropEnabled) continue;
 
       const quantity = getDropQuantity(difficulty, raid, contentSelections);
-      if (quantity === null) return;
+      if (quantity === null) continue;
 
-      objectives.push({
-        type: 'item_collection',
-        target: `${raid.name} drop`,
-        quantity,
-        contentId: raidId,
-        sourceType: 'raids',
-        acceptableItems: enabledDrops.map((d) => d.id),
-      });
-    });
+      objectives.push({ type: 'item_collection', target: `${raid.name} drop`, quantity, contentId: raidId, sourceType: 'raids' });
+    }
 
     return objectives;
   };
@@ -335,9 +212,6 @@ function buildItemCollectionObjectives(contentSelections = {}) {
   };
 }
 
-/**
- * Build Clue Scroll objectives
- */
 function buildClueScrollObjectives(contentSelections = {}) {
   const enabledClues = Object.values(CLUE_TIERS).filter(
     (c) => c.enabled !== false && contentSelections.clues?.[c.id] !== false
@@ -349,14 +223,7 @@ function buildClueScrollObjectives(contentSelections = {}) {
     enabledClues.filter(filterFn).forEach((c) => {
       const quantity = getQuantity('clue_scrolls', difficulty, c, contentSelections);
       if (quantity === null) return;
-
-      objectives.push({
-        type: 'clue_scrolls',
-        target: c.name,
-        quantity,
-        contentId: c.id,
-        sourceType: 'clues',
-      });
+      objectives.push({ type: 'clue_scrolls', target: c.name, quantity, contentId: c.id, sourceType: 'clues' });
     });
 
     return objectives;
@@ -369,9 +236,6 @@ function buildClueScrollObjectives(contentSelections = {}) {
   };
 }
 
-/**
- * Build all formatted objectives
- */
 function buildFormattedObjectives(contentSelections = {}) {
   return [
     { type: 'boss_kc', difficulties: buildBossKCObjectives(contentSelections) },
@@ -382,32 +246,22 @@ function buildFormattedObjectives(contentSelections = {}) {
   ];
 }
 
-/**
- * Get default content selections based on what's enabled in the data
- */
 function getDefaultContentSelections() {
+  const items = {};
+  for (const [id, boss] of Object.entries(SOLO_BOSSES)) {
+    for (const name of boss.drops ?? []) items[`${id}__${name}`] = true;
+  }
+  for (const [id, raid] of Object.entries(RAIDS)) {
+    for (const name of raid.drops ?? []) items[`${id}__${name}`] = true;
+  }
+
   return {
-    bosses: Object.keys(SOLO_BOSSES).reduce(
-      (acc, key) => ({ ...acc, [key]: SOLO_BOSSES[key].enabled }),
-      {}
-    ),
-    raids: Object.keys(RAIDS).reduce((acc, key) => ({ ...acc, [key]: RAIDS[key].enabled }), {}),
-    skills: Object.keys(SKILLS).reduce(
-      (acc, key) => ({ ...acc, [key]: SKILLS[key].enabled !== false }),
-      {}
-    ),
-    minigames: Object.keys(MINIGAMES).reduce(
-      (acc, key) => ({ ...acc, [key]: MINIGAMES[key].enabled }),
-      {}
-    ),
-    items: Object.keys(COLLECTIBLE_ITEMS).reduce(
-      (acc, key) => ({ ...acc, [key]: COLLECTIBLE_ITEMS[key].enabled !== false }),
-      {}
-    ),
-    clues: Object.keys(CLUE_TIERS).reduce(
-      (acc, key) => ({ ...acc, [key]: CLUE_TIERS[key].enabled !== false }),
-      {}
-    ),
+    bosses: Object.fromEntries(Object.keys(SOLO_BOSSES).map((k) => [k, true])),
+    raids: Object.fromEntries(Object.keys(RAIDS).map((k) => [k, true])),
+    skills: Object.fromEntries(Object.keys(SKILLS).map((k) => [k, true])),
+    minigames: Object.fromEntries(Object.keys(MINIGAMES).map((k) => [k, true])),
+    items,
+    clues: Object.fromEntries(Object.keys(CLUE_TIERS).map((k) => [k, true])),
     customQuantities: {},
   };
 }
@@ -415,6 +269,5 @@ function getDefaultContentSelections() {
 module.exports = {
   buildFormattedObjectives,
   getDefaultContentSelections,
-  groupItemsBySource,
   DEFAULT_QUANTITIES,
 };

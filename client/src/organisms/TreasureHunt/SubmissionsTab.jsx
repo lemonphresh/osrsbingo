@@ -26,6 +26,7 @@ import { OBJECTIVE_TYPES, applyTeamBuffToNode } from '../../utils/treasureHuntHe
 import NodeNoteEditor from './NodeNoteEditor';
 import NodeProgressEditor from './NodeProgressEditor';
 import AcceptableDropsList, { getAcceptableDropsForNode } from './AcceptableDropsList';
+import useContentRegistry from '../../hooks/useContentRegistry';
 import theme from '../../theme';
 import { NODE_PROGRESS_UPDATED_SUB } from '../../graphql/mutations';
 import { GET_NODE_SUBMISSIONS } from '../../graphql/queries';
@@ -284,7 +285,7 @@ const NodeSubmissionItem = ({
 
             {effectiveNode?.objective?.type === 'item_collection' &&
               (() => {
-                const drops = getAcceptableDropsForNode(effectiveNode.objective);
+                const drops = getAcceptableDropsForNode(effectiveNode.objective, { soloBosses, raids, minigames });
                 return drops?.length > 0 ? (
                   <AcceptableDropsList
                     drops={drops}
@@ -476,6 +477,7 @@ const SubmissionsTab = ({
   onOpenCompleteDialog,
   handleReviewSubmission,
 }) => {
+  const { soloBosses, raids, minigames } = useContentRegistry();
   const [confirmingKey, setConfirmingKey] = useState(null);
   const [progressOverrides, setProgressOverrides] = useState({});
   const [openKeys, setOpenKeys] = useState(new Set());

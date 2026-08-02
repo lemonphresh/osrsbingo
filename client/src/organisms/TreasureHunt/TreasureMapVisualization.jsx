@@ -24,7 +24,7 @@ import { RedactedText } from '../../molecules/TreasureHunt/RedactedTreasureInfo'
 import { OBJECTIVE_TYPES, userHasNeverSubmitted } from '../../utils/treasureHuntHelpers';
 import Casket from '../../assets/casket.png';
 import { convertCoordinates, getMapBounds } from '../../utils/mapConfig';
-import { COLLECTIBLE_ITEMS, MINIGAMES, RAIDS, SOLO_BOSSES } from '../../utils/objectiveCollections';
+import useContentRegistry from '../../hooks/useContentRegistry';
 import OSRSMap from '../../assets/osrsmap12112025.webp';
 import Gnome from '../../assets/gnomechild-small.webp';
 
@@ -92,13 +92,13 @@ const RecenterButton = () => {
   );
 };
 
-function getAcceptableDropsForSource(sourceId, sourceType = 'bosses') {
-  const sourceKey = `${sourceType}:${sourceId}`;
-
-  return Object.values(COLLECTIBLE_ITEMS).filter((item) => {
-    if (!item.sources || item.sources.length === 0) return false;
-    return item.sources.includes(sourceKey);
-  });
+function getAcceptableDropsForSource(sourceId, sourceType = 'bosses', registryData = {}) {
+  const { soloBosses, raids, minigames } = registryData;
+  const drops =
+    sourceType === 'bosses' ? soloBosses?.[sourceId]?.drops :
+    sourceType === 'raids' ? raids?.[sourceId]?.drops :
+    sourceType === 'minigames' ? minigames?.[sourceId]?.drops : null;
+  return (drops ?? []).map((name) => ({ id: `${sourceId}__${name}`, name, tags: [] }));
 }
 
 function AcceptableDropsCompact({ drops }) {
@@ -146,22 +146,14 @@ function AcceptableDropsCompact({ drops }) {
   );
 }
 
-function getDropsForNode(node) {
+function getDropsForNode(node, registryData = {}) {
   if (!node?.objective) return null;
-
   const { type, contentId } = node.objective;
-
-  if (type === 'item_collection' && contentId) {
-    if (SOLO_BOSSES[contentId]) {
-      return getAcceptableDropsForSource(contentId, 'bosses');
-    }
-    if (RAIDS[contentId]) {
-      return getAcceptableDropsForSource(contentId, 'raids');
-    }
-    if (MINIGAMES[contentId]) {
-      return getAcceptableDropsForSource(contentId, 'minigames');
-    }
-  }
+  if (type !== 'item_collection' || !contentId) return null;
+  const { soloBosses, raids, minigames } = registryData;
+  if (soloBosses?.[contentId]) return getAcceptableDropsForSource(contentId, 'bosses', registryData);
+  if (raids?.[contentId]) return getAcceptableDropsForSource(contentId, 'raids', registryData);
+  if (minigames?.[contentId]) return getAcceptableDropsForSource(contentId, 'minigames', registryData);
   return null;
 }
 
@@ -269,6 +261,8 @@ const TreasureMapVisualization = ({
 }) => {
   const toast = useToast();
   const isMobile = useBreakpointValue({ base: true, md: false });
+  const { soloBosses, raids, minigames } = useContentRegistry();
+  const registryData = { soloBosses, raids, minigames };
   const [isLegendOpen, setIsLegendOpen] = useState(() => window.innerWidth >= 768);
   const onToggle = () => setIsLegendOpen((v) => !v);
   const [isNodeOpen, setIsNodeOpen] = useState(null);
@@ -656,7 +650,7 @@ const TreasureMapVisualization = ({
 
                             {/* Show acceptable drops for item_collection tasks */}
                             {node.objective.type === 'item_collection' && (
-                              <AcceptableDropsCompact drops={getDropsForNode(node)} />
+                              <AcceptableDropsCompact drops={getDropsForNode(node, registryData)} />
                             )}
                           </Box>
                         )}
