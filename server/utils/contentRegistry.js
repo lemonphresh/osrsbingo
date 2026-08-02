@@ -8,9 +8,7 @@
 // kings individually (dagannoth_prime/rex/supreme). This entry is used for bingo
 // objectives only; group dashboard dropdown uses the individual WOM keys.
 //
-// drops: null everywhere in Phase 1 — populate from COLLECTIBLE_ITEMS in Phase 2.
-// killsPerHour: null everywhere in Phase 1 — validate-registry.js fills these in
-// from WOM EHB rates.
+// killsPerHour: null everywhere — stubbed for future use, not read by any current logic.
 
 const BOSSES = {
   // ── short-category bosses ──────────────────────────────────────────────────
