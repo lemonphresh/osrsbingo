@@ -145,7 +145,7 @@ const fieldResolvers = {
   // ============================================================
   // CHAMPION FORGE EVENT FIELD RESOLVERS
   // ============================================================
-  ClanWarsEvent: {
+  CFEvent: {
     admins: async (event, _, { loaders }) => {
       if (!event.adminIds?.length) return [];
       const admins = await Promise.all(
@@ -166,7 +166,7 @@ const fieldResolvers = {
   // ============================================================
   // CHAMPION FORGE TEAM FIELD RESOLVERS
   // ============================================================
-  ClanWarsTeam: {
+  CFTeam: {
     members: async (team) => {
       if (!team.members?.length) return [];
 

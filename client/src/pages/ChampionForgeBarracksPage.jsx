@@ -46,7 +46,7 @@ import {
   CLAN_WARS_SUBMISSION_ADDED,
   CLAN_WARS_SUBMISSION_REVIEWED,
   CLAN_WARS_EVENT_UPDATED,
-} from '../graphql/clanWarsOperations';
+} from '../graphql/cfOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
@@ -240,7 +240,7 @@ function TaskDetailModal({
     fetchPolicy: 'cache-first',
   });
 
-  const hasSubmittedToType = (subData?.clanWarsSubmissions ?? []).some(
+  const hasSubmittedToType = (subData?.cfSubmissions ?? []).some(
     (s) => s.submittedBy === currentUserDiscordId && s.role === taskRole
   );
 
@@ -1275,13 +1275,13 @@ function SubmissionFeed({ eventId, teamId }) {
     variables: { eventId },
     onData: ({ data }) => {
       refetch();
-      const status = data?.data?.clanWarsSubmissionReviewed?.status;
+      const status = data?.data?.cfSubmissionReviewed?.status;
       if (status === 'APPROVED') playSubmissionApproved();
       else if (status === 'DENIED') playSubmissionDenied();
     },
   });
 
-  const subs = (data?.getClanWarsSubmissions ?? [])
+  const subs = (data?.getCFSubmissions ?? [])
     .filter((s) => s.teamId === teamId)
     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 
@@ -2210,7 +2210,7 @@ export default function ChampionForgeBarracksPage() {
     onData: () => refetch(),
   });
 
-  const event = data?.getClanWarsEvent;
+  const event = data?.getCFEvent;
   const team = event?.teams?.find((t) => t.teamId === teamId);
 
   usePageTitle(team ? `${team.teamName} Barracks — Champion Forge` : 'Champion Forge');

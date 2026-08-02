@@ -15,7 +15,7 @@ import {
   LEAVE_BATTLE_VIEW,
   BATTLE_VIEWERS_UPDATED,
   GET_BATTLE_VIEWER_COUNT,
-} from '../graphql/clanWarsOperations';
+} from '../graphql/cfOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
@@ -65,7 +65,7 @@ export default function ChampionForgeBattlePage() {
     fetchPolicy: 'cache-and-network',
   });
 
-  const event = data?.getClanWarsEvent;
+  const event = data?.getCFEvent;
 
   usePageTitle(event ? `${event.eventName} — Battle` : 'Champion Forge Battle');
 
@@ -108,20 +108,20 @@ export default function ChampionForgeBattlePage() {
     skip: !showBattleId,
     fetchPolicy: 'cache-and-network',
   });
-  const activeBattle = battleData?.getClanWarsBattle;
+  const activeBattle = battleData?.getCFBattle;
 
   const { data: viewBattleData, loading: viewBattleLoading } = useQuery(GET_CLAN_WARS_BATTLE, {
     variables: { battleId: viewingBattleId },
     skip: !viewingBattleId,
     fetchPolicy: 'cache-and-network',
   });
-  const viewedBattle = viewBattleData?.getClanWarsBattle;
+  const viewedBattle = viewBattleData?.getCFBattle;
 
   const { data: chestData } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam,
   });
-  const myItems = chestData?.getClanWarsWarChest ?? [];
+  const myItems = chestData?.getCFWarChest ?? [];
 
   // Load both teams' items for sprite layers (needed even for spectators/admins)
   const { data: t1ChestData } = useQuery(GET_CLAN_WARS_WAR_CHEST, {
@@ -133,8 +133,8 @@ export default function ChampionForgeBattlePage() {
     skip: !activeBattle?.team2Id,
   });
   const allBattleItems = [
-    ...(t1ChestData?.getClanWarsWarChest ?? []),
-    ...(t2ChestData?.getClanWarsWarChest ?? []),
+    ...(t1ChestData?.getCFWarChest ?? []),
+    ...(t2ChestData?.getCFWarChest ?? []),
   ];
 
   const [viewerCount, setViewerCount] = useState(0);

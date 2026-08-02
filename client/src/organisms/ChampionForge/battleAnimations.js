@@ -12,7 +12,7 @@
 
 /**
  * For BattleReplayModal + BattleScreen.
- * Parses a ClanWarsBattleEvent log entry and returns effect defs.
+ * Parses a CFBattleEvent log entry and returns effect defs.
  */
 export function getActionEffects(entry) {
   if (!entry) return [];

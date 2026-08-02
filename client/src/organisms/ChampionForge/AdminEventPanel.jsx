@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useAuth } from '../../providers/AuthProvider';
 import ConfirmModal from './ConfirmModal';
-import ClanWarsStaffManager from './ClanWarsStaffManager';
+import CFStaffManager from './CFStaffManager';
 import {
   Box,
   VStack,
@@ -34,7 +34,7 @@ import {
   DELETE_CLAN_WARS_TEAM,
   SET_CLAN_WARS_CAPTAIN,
   GENERATE_CLAN_WARS_BRACKET,
-} from '../../graphql/clanWarsOperations';
+} from '../../graphql/cfOperations';
 
 const ROLE_COLORS = { PVMER: 'orange', SKILLER: 'teal', ANY: 'purple' };
 
@@ -474,7 +474,7 @@ export default function AdminEventPanel({ event, refetch }) {
               <AccordionIcon color="gray.400" />
             </AccordionButton>
             <AccordionPanel px={5} pb={4}>
-              <ClanWarsStaffManager event={event} currentUserId={user?.id} refetch={refetch} />
+              <CFStaffManager event={event} currentUserId={user?.id} refetch={refetch} />
             </AccordionPanel>
           </AccordionItem>
         </Accordion>

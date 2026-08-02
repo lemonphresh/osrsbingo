@@ -7,8 +7,8 @@ const GielinorRushResolvers = require('./resolvers/GielinorRush');
 const GielinorRushSubscriptions = require('./resolvers/GielinorRushSubscriptions');
 const DraftRoomResolvers = require('./resolvers/DraftRoom');
 const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
-const ClanWarsResolvers = require('./resolvers/ClanWars');
-const ClanWarsSubscriptions = require('./resolvers/ClanWarsSubscriptions');
+const CFResolvers = require('./resolvers/CF');
+const CFSubscriptions = require('./resolvers/CFSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
 const fieldResolvers = require('./resolvers/FieldResolvers');
@@ -28,7 +28,7 @@ const resolvers = {
     ...GielinorRushResolvers.Query,
     ...SiteStats.Query,
     ...DraftRoomResolvers.Query,
-    ...ClanWarsResolvers.Query,
+    ...CFResolvers.Query,
     ...GroupDashboardResolvers.Query,
     ...RainbowBingoResolvers.Query,
   },
@@ -41,14 +41,14 @@ const resolvers = {
     ...GielinorRushResolvers.Mutation,
     ...SiteStats.Mutation,
     ...DraftRoomResolvers.Mutation,
-    ...ClanWarsResolvers.Mutation,
+    ...CFResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
     ...RainbowBingoResolvers.Mutation,
   },
   Subscription: {
     ...GielinorRushSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
-    ...ClanWarsSubscriptions.ClanWarsSubscription,
+    ...CFSubscriptions.CFSubscription,
     ...RainbowBingoResolvers.Subscription,
   },
 
@@ -68,19 +68,19 @@ const resolvers = {
   GRSubmission: {
     ...fieldResolvers.GRSubmission,
   },
-  ClanWarsEvent: {
-    ...ClanWarsResolvers.ClanWarsEvent,
-    ...fieldResolvers.ClanWarsEvent,
+  CFEvent: {
+    ...CFResolvers.CFEvent,
+    ...fieldResolvers.CFEvent,
   },
-  ClanWarsTeam: {
-    ...ClanWarsResolvers.ClanWarsTeam,
-    ...fieldResolvers.ClanWarsTeam,
+  CFTeam: {
+    ...CFResolvers.CFTeam,
+    ...fieldResolvers.CFTeam,
   },
-  ClanWarsSubmission: {
-    ...ClanWarsResolvers.ClanWarsSubmission,
+  CFSubmission: {
+    ...CFResolvers.CFSubmission,
   },
-  ClanWarsBattle: {
-    ...ClanWarsResolvers.ClanWarsBattle,
+  CFBattle: {
+    ...CFResolvers.CFBattle,
   },
   GroupDashboard: {
     ...GroupDashboardResolvers.GroupDashboard,

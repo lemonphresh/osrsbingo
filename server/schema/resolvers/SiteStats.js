@@ -7,7 +7,7 @@ const {
   GRTeam,
   DraftRoom,
   GroupDashboard,
-  ClanWarsEvent,
+  CFEvent,
 } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -79,7 +79,7 @@ const resolvers = {
             raw: true,
           }),
           GroupDashboard.count(),
-          ClanWarsEvent.count({ where: { status: 'COMPLETED' } }),
+          CFEvent.count({ where: { status: 'COMPLETED' } }),
         ]);
 
         const stats = {

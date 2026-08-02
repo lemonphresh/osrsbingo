@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { fmtTs } from '../../hooks/useTimezone';
 import { useToastContext } from '../../providers/ToastProvider';
-import { CHANGE_SUBMISSION_REWARD_SLOT } from '../../graphql/clanWarsOperations';
+import { CHANGE_SUBMISSION_REWARD_SLOT } from '../../graphql/cfOperations';
 import { DIFFICULTY_COLOR } from './gatheringConstants';
 
 const PVMER_SLOTS = ['weapon', 'helm', 'chest', 'legs', 'misc'];

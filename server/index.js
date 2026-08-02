@@ -30,7 +30,7 @@ const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbowEventScheduler');
-const { startClanWarsTurnTimer } = require('./utils/clanWarsTurnTimer');
+const { startCFTurnTimer } = require('./utils/cfTurnTimer');
 const logger = require('./utils/logger');
 
 const userCache = new Map();
@@ -548,7 +548,7 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
-  startClanWarsTurnTimer();
+  startCFTurnTimer();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');

@@ -33,7 +33,7 @@ const BOSSES = {
       hardcore: { min: 10, max: 14 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_giantMole',
         role: 'PVMER',
@@ -67,7 +67,7 @@ const BOSSES = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_sarachnis',
         role: 'PVMER',
@@ -100,7 +100,7 @@ const BOSSES = {
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_obor',
         role: 'PVMER',
@@ -135,7 +135,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_krakenBoss',
         role: 'PVMER',
@@ -170,7 +170,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_amoxliatl',
         role: 'PVMER',
@@ -205,7 +205,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_royalTitans',
         role: 'PVMER',
@@ -238,7 +238,7 @@ const BOSSES = {
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_bryophyta',
         role: 'PVMER',
@@ -282,7 +282,7 @@ const BOSSES = {
       long: { min: 5, max: 7 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_vorkath',
         role: 'PVMER',
@@ -326,7 +326,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_zulrah',
         role: 'PVMER',
@@ -386,7 +386,7 @@ const BOSSES = {
       long: { min: 7, max: 9 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_barrows',
         role: 'PVMER',
@@ -429,7 +429,7 @@ const BOSSES = {
       long: { min: 4, max: 5 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_grotesqueGuardians',
         role: 'PVMER',
@@ -464,7 +464,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_araxxor',
         role: 'PVMER',
@@ -499,7 +499,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_thermonuclearSmokeDevil',
         role: 'PVMER',
@@ -540,7 +540,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_commanderZilyana',
         role: 'PVMER',
@@ -581,7 +581,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_generalGraardor',
         role: 'PVMER',
@@ -622,7 +622,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_kreeArra',
         role: 'PVMER',
@@ -663,7 +663,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_krilTsutsaroth',
         role: 'PVMER',
@@ -698,7 +698,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_hueycoatl',
         role: 'PVMER',
@@ -732,7 +732,7 @@ const BOSSES = {
       long: { min: 2, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_shellbaneGryphon',
         role: 'PVMER',
@@ -781,7 +781,7 @@ const BOSSES = {
       long: { min: 4, max: 5 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_dagannothKings',
         role: 'PVMER',
@@ -822,7 +822,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_abyssalSire',
         role: 'PVMER',
@@ -857,7 +857,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_phantomMuspah',
         role: 'PVMER',
@@ -905,7 +905,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_moons',
         role: 'PVMER',
@@ -946,7 +946,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_kalphiteQueen',
         role: 'PVMER',
@@ -986,7 +986,7 @@ const BOSSES = {
       },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_madAngel',
         role: 'PVMER',
@@ -1023,7 +1023,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_chaosFanatic',
         role: 'PVMER',
@@ -1058,7 +1058,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_crazyArchaeologist',
         role: 'PVMER',
@@ -1093,7 +1093,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_scorpia',
         role: 'PVMER',
@@ -1128,7 +1128,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_chaosElemental',
         role: 'PVMER',
@@ -1170,7 +1170,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_spindel',
         role: 'PVMER',
@@ -1212,7 +1212,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_artio',
         role: 'PVMER',
@@ -1254,7 +1254,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_calvarion',
         role: 'PVMER',
@@ -1295,7 +1295,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_venenatis',
         role: 'PVMER',
@@ -1336,7 +1336,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_vetion',
         role: 'PVMER',
@@ -1378,7 +1378,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_callisto',
         role: 'PVMER',
@@ -1423,7 +1423,7 @@ const BOSSES = {
       long: { min: 2, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_corporealBeast',
         role: 'PVMER',
@@ -1465,7 +1465,7 @@ const BOSSES = {
       long: { min: 3, max: 4 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_cerberus',
         role: 'PVMER',
@@ -1507,7 +1507,7 @@ const BOSSES = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_nex',
         role: 'PVMER',
@@ -1551,7 +1551,7 @@ const BOSSES = {
       long: { min: 2, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_alchemicalHydra',
         role: 'PVMER',
@@ -1587,7 +1587,7 @@ const BOSSES = {
       short: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_crystallineHunllef',
         role: 'PVMER',
@@ -1627,7 +1627,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_corruptedHunllef',
         role: 'PVMER',
@@ -1671,7 +1671,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_vardorvis',
         role: 'PVMER',
@@ -1715,7 +1715,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_whisperer',
         role: 'PVMER',
@@ -1759,7 +1759,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_dukeSucellus',
         role: 'PVMER',
@@ -1803,7 +1803,7 @@ const BOSSES = {
       long: { min: 3, max: 3 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_leviathan',
         role: 'PVMER',
@@ -1844,7 +1844,7 @@ const BOSSES = {
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_yama',
         role: 'PVMER',
@@ -1888,7 +1888,7 @@ const BOSSES = {
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_nightmare',
         role: 'PVMER',
@@ -1933,7 +1933,7 @@ const BOSSES = {
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_phosanisNightmare',
         role: 'PVMER',
@@ -1967,7 +1967,7 @@ const BOSSES = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_doom',
         role: 'PVMER',
@@ -2007,7 +2007,7 @@ const BOSSES = {
       },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_maggotKing',
         role: 'PVMER',
@@ -2155,7 +2155,7 @@ const RAIDS = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_chambersOfXeric',
         role: 'PVMER',
@@ -2205,7 +2205,7 @@ const RAIDS = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_chambersOfXericChallengeMode',
         role: 'PVMER',
@@ -2248,7 +2248,7 @@ const RAIDS = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_theatreOfBlood',
         role: 'PVMER',
@@ -2294,7 +2294,7 @@ const RAIDS = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_theatreOfBloodHardMode',
         role: 'PVMER',
@@ -2337,7 +2337,7 @@ const RAIDS = {
       long: { min: 2, max: 2 },
     },
     killsPerHour: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_tombsOfAmascut',
         role: 'PVMER',
@@ -2391,7 +2391,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_fishing_xp',
         role: 'SKILLER',
@@ -2419,7 +2419,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_woodcutting_xp',
         role: 'SKILLER',
@@ -2447,7 +2447,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_mining_xp',
         role: 'SKILLER',
@@ -2488,7 +2488,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_hunter_xp',
         role: 'SKILLER',
@@ -2516,7 +2516,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_sailing_xp',
         role: 'SKILLER',
@@ -2544,7 +2544,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_agility_xp',
         role: 'SKILLER',
@@ -2572,7 +2572,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_thieving_xp',
         role: 'SKILLER',
@@ -2600,7 +2600,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_firemaking_xp',
         role: 'SKILLER',
@@ -2628,7 +2628,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_slayer_xp',
         role: 'SKILLER',
@@ -2656,7 +2656,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_herblore_xp',
         role: 'SKILLER',
@@ -2697,7 +2697,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_cooking_xp',
         role: 'SKILLER',
@@ -2725,7 +2725,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_smithing_xp',
         role: 'SKILLER',
@@ -2753,7 +2753,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_crafting_xp',
         role: 'SKILLER',
@@ -2781,7 +2781,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_fletching_xp',
         role: 'SKILLER',
@@ -2809,7 +2809,7 @@ const SKILLS = {
       medium: { min: 500000, max: 1000000 },
       long: { min: 800000, max: 1500000 },
     },
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_runecrafting_xp',
         role: 'SKILLER',
@@ -2853,7 +2853,7 @@ const MINIGAMES = {
       'Big Harpoonfish',
       'Dragon Harpoon',
     ],
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_tempoross',
         role: 'SKILLER',
@@ -2882,7 +2882,7 @@ const MINIGAMES = {
       long: { min: 12, max: 25 },
     },
     drops: ['Abyssal Green Dye', 'Abyssal Blue Dye', 'Abyssal Red Dye'],
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_guardiansOfTheRift',
         role: 'SKILLER',
@@ -2920,7 +2920,7 @@ const MINIGAMES = {
       'Magic Seed',
       'Torstol Seed',
     ],
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_wintertodt',
         role: 'SKILLER',
@@ -2949,7 +2949,7 @@ const MINIGAMES = {
       long: { min: 12, max: 25 },
     },
     drops: ['Smolcano', 'Crystal Tool Seed', 'Zalcano Shard', 'Uncut Onyx'],
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_zalcano',
         role: 'SKILLER',
@@ -2978,7 +2978,7 @@ const MINIGAMES = {
       long: { min: 8, max: 15 },
     },
     drops: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'skl_barbarianAssault',
         role: 'SKILLER',
@@ -3007,7 +3007,7 @@ const MINIGAMES = {
       long: { min: 12, max: 25 },
     },
     drops: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_pestControl',
         role: 'PVMER',
@@ -3051,7 +3051,7 @@ const MINIGAMES = {
       long: { min: 5, max: 8 },
     },
     drops: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_fightCaves',
         role: 'PVMER',
@@ -3080,7 +3080,7 @@ const MINIGAMES = {
       long: { min: 3, max: 5 },
     },
     drops: null,
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_inferno',
         role: 'PVMER',
@@ -3116,7 +3116,7 @@ const MINIGAMES = {
       'Echo Crystal',
       'Smol Heredit',
     ],
-    cwTasks: [
+    cfTasks: [
       {
         id: 'pvm_colosseum',
         role: 'PVMER',
@@ -3228,7 +3228,7 @@ const CLUES = {
 
 // ── champion forge task pool ───────────────────────────────────────────────────
 
-function getCwTaskPool() {
+function getCfTaskPool() {
   const groups = {
     PVMER: { initiate: [], adept: [], master: [] },
     SKILLER: { initiate: [], adept: [], master: [] },
@@ -3236,7 +3236,7 @@ function getCwTaskPool() {
 
   const collect = (entries, parentDrops) => {
     for (const entry of Object.values(entries)) {
-      for (const task of entry.cwTasks ?? []) {
+      for (const task of entry.cfTasks ?? []) {
         const drops = parentDrops ? entry.drops ?? [] : [];
         groups[task.role][task.difficulty].push({ ...task, drops });
       }
@@ -3393,26 +3393,26 @@ function getClueMap() {
 }
 
 // Bosses with cw metadata — used by champion forge objective builder.
-// Supports both legacy `cw` field and new `cwTasks` array.
-// When `cwTasks` is present, synthesises a `cw` shim from the first task for backward compat.
+// Supports both legacy `cw` field and new `cfTasks` array.
+// When `cfTasks` is present, synthesises a `cw` shim from the first task for backward compat.
 function getCwBosses() {
   return Object.values(BOSSES)
-    .filter((b) => b.cw != null || (b.cwTasks != null && b.cwTasks.length > 0))
+    .filter((b) => b.cw != null || (b.cfTasks != null && b.cfTasks.length > 0))
     .map((b) => {
       if (b.cw != null) return b;
-      const first = b.cwTasks[0];
+      const first = b.cfTasks[0];
       return { ...b, cw: { difficulty: first.difficulty, label: first.label } };
     });
 }
 
 // Raids with cw metadata — used by champion forge objective builder.
-// Supports both legacy `cw` field and new `cwTasks` array.
+// Supports both legacy `cw` field and new `cfTasks` array.
 function getCwRaids() {
   return Object.values(RAIDS)
-    .filter((r) => r.cw != null || (r.cwTasks != null && r.cwTasks.length > 0))
+    .filter((r) => r.cw != null || (r.cfTasks != null && r.cfTasks.length > 0))
     .map((r) => {
       if (r.cw != null) return r;
-      const first = r.cwTasks[0];
+      const first = r.cfTasks[0];
       return { ...r, cw: { difficulty: first.difficulty, label: first.label } };
     });
 }
@@ -3458,7 +3458,7 @@ module.exports = {
   getClueMap,
   getCwBosses,
   getCwRaids,
-  getCwTaskPool,
+  getCfTaskPool,
   getValidWomBossKeys,
   getValidWomSkillKeys,
   getValidWomActivityKeys,

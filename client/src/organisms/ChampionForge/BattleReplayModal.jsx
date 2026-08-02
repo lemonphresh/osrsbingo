@@ -19,7 +19,7 @@ import {
   Center,
 } from '@chakra-ui/react';
 import { RepeatIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
-import { GET_CLAN_WARS_BATTLE, GET_CLAN_WARS_WAR_CHEST } from '../../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_BATTLE, GET_CLAN_WARS_WAR_CHEST } from '../../graphql/cfOperations';
 import ChampionSprite from './ChampionSprite';
 import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprites/spriteRegistry';
 import ActionEffect from './ActionEffect';
@@ -104,7 +104,7 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
     skip: !activeBattleId || !isOpen,
     fetchPolicy: 'cache-first',
   });
-  const battle = battleData?.getClanWarsBattle;
+  const battle = battleData?.getCFBattle;
   const log = battle?.battleLog ?? [];
   const snap = battle?.championSnapshots ?? {};
 
@@ -133,7 +133,7 @@ export default function BattleReplayModal({ isOpen, onClose, battleId, battleIds
   const winnerName = battle?.winnerId === battle?.team1Id ? team1Name : team2Name;
 
   // Sprite layers
-  const allItems = [...(t1Data?.getClanWarsWarChest ?? []), ...(t2Data?.getClanWarsWarChest ?? [])];
+  const allItems = [...(t1Data?.getCFWarChest ?? []), ...(t2Data?.getCFWarChest ?? [])];
   const battleItemById = Object.fromEntries(allItems.map((i) => [i.itemId, i]));
   const { layers: champion1Layers, backLayers: champion1BackLayers } = buildLayers(
     snap.champion1?.loadout,

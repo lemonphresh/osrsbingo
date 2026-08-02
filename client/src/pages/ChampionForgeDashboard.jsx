@@ -22,11 +22,11 @@ import {
   CREATE_CLAN_WARS_EVENT,
   DELETE_CLAN_WARS_EVENT,
   DEV_SEED_CF_EVENT,
-} from '../graphql/clanWarsOperations';
+} from '../graphql/cfOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
-import CreateClanWarsEventModal from '../organisms/ChampionForge/CreateClanWarsEventModal';
+import CreateCFEventModal from '../organisms/ChampionForge/CreateCFEventModal';
 import ConfirmModal from '../organisms/ChampionForge/ConfirmModal';
 import { isChampionForgeEnabled } from '../config/featureFlags';
 import theme from '../theme';
@@ -52,7 +52,7 @@ function EventCard({ event, isAdmin }) {
   const navigate = useNavigate();
   const { showToast } = useToastContext();
   const [deleteEvent] = useMutation(DELETE_CLAN_WARS_EVENT, {
-    refetchQueries: ['GetAllClanWarsEvents'],
+    refetchQueries: ['GetAllCFEvents'],
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -158,13 +158,13 @@ function ChampionForgeDashboardContent() {
 
   const { data, loading, error } = useQuery(GET_ALL_CLAN_WARS_EVENTS);
   const [createEvent] = useMutation(CREATE_CLAN_WARS_EVENT, {
-    refetchQueries: ['GetAllClanWarsEvents'],
+    refetchQueries: ['GetAllCFEvents'],
   });
   const [seedDevEvent, { loading: seeding }] = useMutation(DEV_SEED_CF_EVENT, {
-    refetchQueries: ['GetAllClanWarsEvents'],
+    refetchQueries: ['GetAllCFEvents'],
   });
 
-  const allEvents = data?.getAllClanWarsEvents ?? [];
+  const allEvents = data?.getAllCFEvents ?? [];
   const uid = user?.id;
 
   const isMyEvent = (e) => e.creatorId === uid;
@@ -192,7 +192,7 @@ function ChampionForgeDashboardContent() {
       const { data } = await createEvent({ variables: { input } });
       showToast('Event created!', 'success');
       setIsCreateOpen(false);
-      return data.createClanWarsEvent;
+      return data.createCFEvent;
     } catch (err) {
       showToast('Failed to create event', 'error');
     }
@@ -380,7 +380,7 @@ function ChampionForgeDashboardContent() {
         </VStack>
       )}
 
-      <CreateClanWarsEventModal
+      <CreateCFEventModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
         onSubmit={handleCreate}

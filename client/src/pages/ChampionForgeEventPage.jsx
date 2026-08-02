@@ -22,12 +22,12 @@ import { ChampionForgeInfoModal } from '../organisms/ChampionForge/ChampionForge
 import {
   GET_CLAN_WARS_EVENT,
   CLAN_WARS_EVENT_UPDATED,
-} from '../graphql/clanWarsOperations';
+} from '../graphql/cfOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { isChampionForgeEnabled } from '../config/featureFlags';
 import usePageTitle from '../hooks/usePageTitle';
 import BattleBracket from '../organisms/ChampionForge/BattleBracket';
-import ClanWarsDraftPanel from '../organisms/ChampionForge/ClanWarsDraftPanel';
+import CFDraftPanel from '../organisms/ChampionForge/CFDraftPanel';
 import EventPasswordBadge from '../organisms/ChampionForge/event/EventPasswordBadge';
 import PhaseBanner from '../organisms/ChampionForge/event/PhaseBanner';
 import WinnerBanner from '../organisms/ChampionForge/event/WinnerBanner';
@@ -82,7 +82,7 @@ export default function ChampionForgeEventPage() {
     onData: () => refetch(),
   });
 
-  const event = data?.getClanWarsEvent;
+  const event = data?.getCFEvent;
 
   usePageTitle(event ? `${event.eventName} — Champion Forge` : 'Champion Forge');
 
@@ -239,7 +239,7 @@ export default function ChampionForgeEventPage() {
           <VStack align="stretch" spacing={6}>
             {backNav}
             {eventHeader}
-            <ClanWarsDraftPanel event={event} refetch={refetch} />
+            <CFDraftPanel event={event} refetch={refetch} />
           </VStack>
         </Box>
       );

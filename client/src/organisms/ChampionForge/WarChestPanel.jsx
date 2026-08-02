@@ -12,7 +12,7 @@ import {
   Button,
   Divider,
 } from '@chakra-ui/react';
-import { GET_CLAN_WARS_WAR_CHEST } from '../../graphql/clanWarsOperations';
+import { GET_CLAN_WARS_WAR_CHEST } from '../../graphql/cfOperations';
 
 const RARITY_BORDER = {
   common: '#888',
@@ -173,7 +173,7 @@ export default function WarChestPanel({ team, hidden = false }) {
     fetchPolicy: 'cache-and-network',
   });
 
-  const allItems = data?.getClanWarsWarChest ?? [];
+  const allItems = data?.getCFWarChest ?? [];
 
   // Apply filters
   const filtered = allItems.filter((item) => {

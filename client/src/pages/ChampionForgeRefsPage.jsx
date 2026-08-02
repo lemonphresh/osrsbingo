@@ -22,7 +22,7 @@ import {
   GET_CLAN_WARS_WAR_CHEST,
   BATTLE_VIEWERS_UPDATED,
   GET_BATTLE_VIEWER_COUNT,
-} from '../graphql/clanWarsOperations';
+} from '../graphql/cfOperations';
 import { useAuth } from '../providers/AuthProvider';
 import { isChampionForgeEnabled } from '../config/featureFlags';
 import usePageTitle from '../hooks/usePageTitle';
@@ -85,7 +85,7 @@ function OutfittingTeamCard({ team }) {
     variables: { teamId: team.teamId },
     fetchPolicy: 'cache-and-network',
   });
-  const items = data?.getClanWarsWarChest ?? [];
+  const items = data?.getCFWarChest ?? [];
   const loadout = team.officialLoadout ?? {};
   const baseSprite = loadout.baseSprite ?? 'baseSprite1';
   const captain = (team.members ?? []).find((m) => m.discordId === team.captainDiscordId);
@@ -230,7 +230,7 @@ export default function ChampionForgeRefsPage() {
     onData: () => refetch(),
   });
 
-  const event = data?.getClanWarsEvent ?? null;
+  const event = data?.getCFEvent ?? null;
 
   const teamById = Object.fromEntries((event?.teams ?? []).map((t) => [t.teamId, t]));
   const { live: liveBattles, pending: pendingMatches } =
