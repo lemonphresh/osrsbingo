@@ -2,6 +2,7 @@
 const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { UniqueConstraintError, ValidationError } = require('sequelize');
 const { BingoBoard, BingoTile, User } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -34,8 +35,17 @@ module.exports = {
           token,
         };
       } catch (error) {
-        logger.error('Error creating user:', error);
-        throw new ApolloError('Failed to create user');
+        if (error instanceof UniqueConstraintError) {
+          const field = error.errors?.[0]?.path ?? 'field';
+          logger.warn({ username }, `Signup rejected: duplicate ${field}`);
+          throw new UserInputError(`That ${field} is already taken.`);
+        }
+        if (error instanceof ValidationError) {
+          logger.warn({ username, message: error.message }, 'Signup rejected: validation error');
+          throw new UserInputError(error.message);
+        }
+        logger.error({ err: error }, 'Error creating user');
+        throw new ApolloError(`Failed to create user: ${error.message}`);
       }
     },
 

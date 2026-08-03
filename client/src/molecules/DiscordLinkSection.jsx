@@ -260,8 +260,7 @@ const DiscordLinkSection = ({ user, shownUser, setUser, setShownUser, showToast 
               <Box flex="1">
                 <AlertTitle fontSize="sm">Why link Discord?</AlertTitle>
                 <AlertDescription fontSize="xs" lineHeight="unset">
-                  Link your Discord to use bot commands, participate in Gielinor Rush events, and
-                  verify your identity for team actions.
+                  Link your Discord to use bot commands, join events, and verify your identity for team actions across all game modes.
                 </AlertDescription>
               </Box>
             </Alert>
