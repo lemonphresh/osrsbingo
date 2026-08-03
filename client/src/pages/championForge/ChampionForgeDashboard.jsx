@@ -29,6 +29,7 @@ import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
 import CFBattle from '../../assets/cfbattle2.png';
+import Infernal from '../../assets/infernal.png';
 import CreateCFEventModal from '../../organisms/ChampionForge/CreateCFEventModal';
 import ConfirmModal from '../../organisms/ChampionForge/ConfirmModal';
 import { isChampionForgeEnabled } from '../../config/featureFlags';
@@ -221,188 +222,232 @@ function ChampionForgeDashboardContent() {
     );
   }
 
+  const hasActiveContent =
+    myEvents.length > 0 || adminRefEvents.length > 0 || otherActiveEvents.length > 0;
+
   return (
-    <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[16, 20, 24]} flex="1">
-      <HStack align="center" justify="space-between" mb={6} gap={8} flexWrap="wrap">
-        {/* Left: title, description, nav */}
-        <VStack align="flex-start" spacing={5} flex={1} minW="260px">
-          <VStack align="flex-start" spacing={2}>
-            <GemTitle gemColor="yellow">Champion Forge</GemTitle>
-            <Text fontSize="md" color="gray.300" maxW="440px" lineHeight="1.7">
-              Tournaments with real stakes. Grind for gear, outfit your champion, and fight it out
-              in a live bracket with everyone watching.
-            </Text>
-          </VStack>
+    <Box flex="1">
+      {/* Hero section */}
+      <Box
+        position="relative"
+        overflow="hidden"
+        backgroundImage={`linear-gradient(to bottom, rgba(0,0,0,0.68) 0%, rgba(13,17,23,0.97) 100%), url(${Infernal})`}
+        backgroundSize="cover"
+        backgroundPosition="center"
+      >
+        <Box
+          position="absolute"
+          top="50%"
+          left="50%"
+          transform="translate(-50%, -50%)"
+          width="900px"
+          height="900px"
+          borderRadius="50%"
+          background="radial-gradient(circle, rgba(214,158,46,0.08) 0%, transparent 65%)"
+          pointerEvents="none"
+        />
+        <Box
+          position="absolute"
+          bottom={0}
+          left={0}
+          right={0}
+          height="120px"
+          background="linear-gradient(to bottom, transparent, #051b24)"
+          pointerEvents="none"
+        />
+        <Box
+          maxW="1200px"
+          mx="auto"
+          px={[4, 6, 8]}
+          pt={[16, 20, 24]}
+          pb={[10, 12, 16]}
+          position="relative"
+          zIndex={1}
+        >
+          <HStack align="center" justify="space-between" gap={8} flexWrap="wrap">
+            {/* Left: title, description, nav */}
+            <VStack align="flex-start" spacing={5} flex={1} minW="260px">
+              <VStack align="flex-start" spacing={2}>
+                <GemTitle gemColor="yellow">Champion Forge</GemTitle>
+                <Text fontSize="md" color="gray.300" maxW="440px" lineHeight="1.7">
+                  Tournaments with real stakes. Grind for gear, outfit your champion, and fight it out
+                  in a live bracket with everyone watching.
+                </Text>
+              </VStack>
 
-          <HStack spacing={1} flexWrap="wrap" align="center">
-            {[
-              { label: 'Gathering', color: 'green' },
-              { label: 'Outfitting', color: 'blue' },
-              { label: 'Battle', color: 'red' },
-            ].map(({ label, color }, i, arr) => (
-              <React.Fragment key={label}>
-                <Badge colorScheme={color} variant="subtle" fontSize="xs" px={2} py={1}>
-                  {label}
-                </Badge>
-                {i < arr.length - 1 && (
-                  <Text fontSize="xs" color="gray.200">
-                    →
+              <HStack spacing={1} flexWrap="wrap" align="center">
+                {[
+                  { label: 'Gathering', color: 'green' },
+                  { label: 'Outfitting', color: 'blue' },
+                  { label: 'Battle', color: 'red' },
+                ].map(({ label, color }, i, arr) => (
+                  <React.Fragment key={label}>
+                    <Badge colorScheme={color} variant="subtle" fontSize="xs" px={2} py={1}>
+                      {label}
+                    </Badge>
+                    {i < arr.length - 1 && (
+                      <Text fontSize="xs" color="gray.200">
+                        →
+                      </Text>
+                    )}
+                  </React.Fragment>
+                ))}
+              </HStack>
+
+              <HStack spacing={3} align="center" flexWrap="wrap">
+                <HStack spacing={1}>
+                  <Link to="/champion-forge/gallery">
+                    <Button size="sm" variant="link" colorScheme="yellow">
+                      ⚔️ Gallery
+                    </Button>
+                  </Link>
+                  <Text color="gray.200" fontSize="lg" userSelect="none">
+                    ·
                   </Text>
-                )}
-              </React.Fragment>
-            ))}
+                  <Link to="/champion-forge/guide">
+                    <Button size="sm" variant="link" colorScheme="teal">
+                      📖 Guide
+                    </Button>
+                  </Link>
+                </HStack>
+
+                <Divider orientation="vertical" h="18px" borderColor="gray.500" />
+
+                <HStack spacing={2}>
+                  {process.env.REACT_APP_ENV !== 'production' && (
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      colorScheme="orange"
+                      onClick={() => setIsSeedConfirmOpen(true)}
+                    >
+                      🧪 Seed
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    color="gray.300"
+                    _hover={{ color: 'white', bg: 'whiteAlpha.100' }}
+                    onClick={() => setIsAboutOpen(true)}
+                  >
+                    ℹ️ How it Works
+                  </Button>
+                  <Button
+                    backgroundColor={theme.colors.yellow[500]}
+                    color={theme.colors.gray[900]}
+                    fontWeight="semibold"
+                    size="sm"
+                    _hover={{ backgroundColor: theme.colors.yellow[400] }}
+                    onClick={() => setIsCreateOpen(true)}
+                  >
+                    + New Event
+                  </Button>
+                </HStack>
+              </HStack>
+            </VStack>
+
+            {/* Right: battle preview image */}
+            <Box
+              flexShrink={0}
+              w={['100%', '100%', '340px']}
+              borderRadius="xl"
+              overflow="hidden"
+              border="1px solid"
+              borderColor="yellow.800"
+              boxShadow="0 0 32px rgba(214, 158, 46, 0.2)"
+            >
+              <Image src={CFBattle} alt="Champion Forge battle preview" w="100%" display="block" />
+            </Box>
           </HStack>
+        </Box>
+      </Box>
 
-          <HStack spacing={3} align="center" flexWrap="wrap">
-            <HStack spacing={1}>
-              <Link to="/champion-forge/gallery">
-                <Button size="sm" variant="link" colorScheme="yellow">
-                  ⚔️ Gallery
-                </Button>
-              </Link>
-              <Text color="gray.200" fontSize="lg" userSelect="none">
-                ·
+      {/* Events section */}
+      <Box maxW="1200px" mx="auto" px={[4, 6, 8]} pt={8} pb={[16, 20, 24]}>
+        {!hasAnything ? (
+          <Center py={16}>
+            <Box
+              textAlign="center"
+              maxW="480px"
+              padding={['32px', '48px']}
+              backgroundColor={theme.colors.teal[900]}
+              borderRadius="16px"
+              borderWidth="1px"
+              borderColor={theme.colors.teal[700]}
+            >
+              <Text fontSize="5xl" mb={4}>
+                ⚔️
               </Text>
-              <Link to="/champion-forge/guide">
-                <Button size="sm" variant="link" colorScheme="teal">
-                  📖 Guide
-                </Button>
-              </Link>
-            </HStack>
-
-            <Divider orientation="vertical" h="18px" borderColor="gray.500" />
-
-            <HStack spacing={2}>
-              {process.env.REACT_APP_ENV !== 'production' && (
-                <Button
-                  size="xs"
-                  variant="outline"
-                  colorScheme="orange"
-                  onClick={() => setIsSeedConfirmOpen(true)}
-                >
-                  🧪 Seed
-                </Button>
-              )}
+              <Text fontSize="xl" fontWeight="bold" color="white" mb={2}>
+                No events yet
+              </Text>
+              <Text fontSize="sm" color="gray.400" mb={8} lineHeight="1.7">
+                Start your first Champion Forge tournament and get your group competing. Four phases,
+                real loot, live battles.
+              </Text>
               <Button
-                size="sm"
-                variant="ghost"
-                color="gray.300"
-                _hover={{ color: 'white', bg: 'whiteAlpha.100' }}
-                onClick={() => setIsAboutOpen(true)}
-              >
-                ℹ️ How it Works
-              </Button>
-              <Button
-                backgroundColor={theme.colors.yellow[500]}
+                backgroundColor={theme.colors.yellow[600]}
                 color={theme.colors.gray[900]}
                 fontWeight="semibold"
-                size="sm"
-                _hover={{ backgroundColor: theme.colors.yellow[400] }}
+                size="md"
+                height="44px"
+                paddingX="32px"
+                _hover={{ backgroundColor: theme.colors.yellow[500] }}
                 onClick={() => setIsCreateOpen(true)}
               >
-                + New Event
+                Create Your First Event
               </Button>
-            </HStack>
-          </HStack>
-        </VStack>
-
-        {/* Right: battle preview image */}
-        <Box
-          flexShrink={0}
-          w={['100%', '100%', '340px']}
-          borderRadius="xl"
-          overflow="hidden"
-          border="1px solid"
-          borderColor="yellow.800"
-          boxShadow="0 0 32px rgba(214, 158, 46, 0.2)"
-        >
-          <Image src={CFBattle} alt="Champion Forge battle preview" w="100%" display="block" />
-        </Box>
-      </HStack>
-
-      <Divider mb={8} borderColor="gray.600" />
-
-      {!hasAnything ? (
-        <Center py={16}>
-          <Box
-            textAlign="center"
-            maxW="480px"
-            padding={['32px', '48px']}
-            backgroundColor={theme.colors.teal[900]}
-            borderRadius="16px"
-            borderWidth="1px"
-            borderColor={theme.colors.teal[700]}
-          >
-            <Text fontSize="5xl" mb={4}>
-              ⚔️
-            </Text>
-            <Text fontSize="xl" fontWeight="bold" color="white" mb={2}>
-              No events yet
-            </Text>
-            <Text fontSize="sm" color="gray.400" mb={8} lineHeight="1.7">
-              Start your first Champion Forge tournament and get your group competing. Four phases,
-              real loot, live battles.
-            </Text>
-            <Button
-              backgroundColor={theme.colors.yellow[600]}
-              color={theme.colors.gray[900]}
-              fontWeight="semibold"
-              size="md"
-              height="44px"
-              paddingX="32px"
-              _hover={{ backgroundColor: theme.colors.yellow[500] }}
-              onClick={() => setIsCreateOpen(true)}
-            >
-              Create Your First Event
-            </Button>
-          </Box>
-        </Center>
-      ) : (
-        <VStack align="stretch" spacing={8}>
-          {myEvents.length > 0 && (
-            <Box>
-              <SectionLabel>My Events</SectionLabel>
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {myEvents.map((event) => (
-                  <EventCard
-                    key={event.eventId}
-                    event={event}
-                    isAdmin={user?.admin || event.creatorId === uid}
-                  />
-                ))}
-              </SimpleGrid>
             </Box>
-          )}
+          </Center>
+        ) : (
+          <VStack align="stretch" spacing={8}>
+            {myEvents.length > 0 && (
+              <Box>
+                <SectionLabel>My Events</SectionLabel>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                  {myEvents.map((event) => (
+                    <EventCard
+                      key={event.eventId}
+                      event={event}
+                      isAdmin={user?.admin || event.creatorId === uid}
+                    />
+                  ))}
+                </SimpleGrid>
+              </Box>
+            )}
 
-          {adminRefEvents.length > 0 && (
-            <Box>
-              <SectionLabel>Events I'm Admining / Reffing</SectionLabel>
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {adminRefEvents.map((event) => (
-                  <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
-                ))}
-              </SimpleGrid>
-            </Box>
-          )}
+            {adminRefEvents.length > 0 && (
+              <Box>
+                <SectionLabel>Events I'm Admining / Reffing</SectionLabel>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                  {adminRefEvents.map((event) => (
+                    <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
+                  ))}
+                </SimpleGrid>
+              </Box>
+            )}
 
-          {(myEvents.length > 0 || adminRefEvents.length > 0) && otherActiveEvents.length > 0 && (
-            <Divider borderColor="gray.600" />
-          )}
-
-          {otherActiveEvents.length > 0 && (
-            <Box>
-              <SectionLabel>Active Events</SectionLabel>
-              <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-                {otherActiveEvents.map((event) => (
-                  <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
-                ))}
-              </SimpleGrid>
-            </Box>
-          )}
-
-          {pastEvents.length > 0 && (
-            <>
+            {(myEvents.length > 0 || adminRefEvents.length > 0) && otherActiveEvents.length > 0 && (
               <Divider borderColor="gray.600" />
+            )}
+
+            {otherActiveEvents.length > 0 && (
+              <Box>
+                <SectionLabel>Active Events</SectionLabel>
+                <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+                  {otherActiveEvents.map((event) => (
+                    <EventCard key={event.eventId} event={event} isAdmin={user?.admin} />
+                  ))}
+                </SimpleGrid>
+              </Box>
+            )}
+
+            {hasActiveContent && pastEvents.length > 0 && (
+              <Divider borderColor="gray.600" />
+            )}
+
+            {pastEvents.length > 0 && (
               <Box>
                 <SectionLabel>Past Events</SectionLabel>
                 <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
@@ -434,10 +479,10 @@ function ChampionForgeDashboardContent() {
                   </HStack>
                 )}
               </Box>
-            </>
-          )}
-        </VStack>
-      )}
+            )}
+          </VStack>
+        )}
+      </Box>
 
       <CreateCFEventModal
         isOpen={isCreateOpen}
