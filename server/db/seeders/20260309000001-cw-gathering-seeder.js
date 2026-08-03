@@ -17,7 +17,7 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000001-cw-gathering-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
 
 const EVENT_ID = 'cwev_gather01';
 const TEAM1_ID = 'cwt_gather_t1';
@@ -32,9 +32,9 @@ const REAL_ADMINS = [
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsPreScreenshot } = models;
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFPreScreenshot } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Gathering seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -42,7 +42,7 @@ module.exports = {
 
     const now = new Date();
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Gathering Phase',
       status: 'GATHERING',
@@ -75,7 +75,7 @@ module.exports = {
     const fishingTask    = tasks.find((t) => t.objectiveId === 'skl_fishing_xp');
     const wintertodtTask = tasks.find((t) => t.objectiveId === 'skl_wintertodt');
 
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM1_ID,
       eventId: EVENT_ID,
       teamName: 'Iron Vanguard',
@@ -97,7 +97,7 @@ module.exports = {
       updatedAt: now,
     });
 
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM2_ID,
       eventId: EVENT_ID,
       teamName: 'Shadow Sigil',
@@ -123,10 +123,10 @@ module.exports = {
       updatedAt: now,
     });
 
-    await ClanWarsTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
+    await CFTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
 
     // Pending submissions — waiting for admin review
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_g_001',
       eventId: EVENT_ID,
       teamId: TEAM1_ID,
@@ -149,7 +149,7 @@ module.exports = {
       updatedAt: now,
     });
 
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_g_002',
       eventId: EVENT_ID,
       teamId: TEAM2_ID,
@@ -173,7 +173,7 @@ module.exports = {
     });
 
     // Prescreenshots — one per real admin for the barrows task
-    await ClanWarsPreScreenshot.bulkCreate(
+    await CFPreScreenshot.bulkCreate(
       REAL_ADMINS.map((admin, i) => ({
         preScreenshotId: `cwps_g_00${i + 1}`,
         eventId: EVENT_ID,
@@ -198,13 +198,13 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsPreScreenshot } = models;
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFPreScreenshot } = models;
 
-    await ClanWarsPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsSubmission.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy({ where: { eventId: EVENT_ID } });
+    await CFPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
+    await CFSubmission.destroy({ where: { eventId: EVENT_ID } });
+    await CFTask.destroy({ where: { eventId: EVENT_ID } });
+    await CFTeam.destroy({ where: { eventId: EVENT_ID } });
+    await CFEvent.destroy({ where: { eventId: EVENT_ID } });
     console.log('✅ Dev Gathering seeder undone.');
   },
 };

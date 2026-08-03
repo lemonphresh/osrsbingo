@@ -31,9 +31,19 @@ import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
-import { isBlindDraftEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
+import {
+  isBlindDraftEnabled,
+  isChampionForgeEnabled,
+  isGroupDashboardEnabled,
+} from '../config/featureFlags';
 import { Switch, Select } from '@chakra-ui/react';
-import { HOLIDAY_PREF_KEY, HOLIDAY_PREF_EVENT, HOLIDAY_TEST_EVENT, HOLIDAYS, isHolidayActive } from '../atoms/HolidayEmojiFall';
+import {
+  HOLIDAY_PREF_KEY,
+  HOLIDAY_PREF_EVENT,
+  HOLIDAY_TEST_EVENT,
+  HOLIDAYS,
+  isHolidayActive,
+} from '../atoms/HolidayEmojiFall';
 
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
@@ -295,9 +305,19 @@ const UserDetails = () => {
 
             {/* HOLIDAY EMOJIS TOGGLE */}
             {isCurrentUser && isHolidayActive() && (
-              <Flex alignItems="center" minHeight="40px" justifyContent="space-between" width="100%">
+              <Flex
+                alignItems="center"
+                minHeight="40px"
+                justifyContent="space-between"
+                width="100%"
+              >
                 <Text>
-                  <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold" marginRight="4px">
+                  <Text
+                    as="span"
+                    color={theme.colors.teal[200]}
+                    fontWeight="semibold"
+                    marginRight="4px"
+                  >
                     Holiday Emojis:
                   </Text>
                   {holidayEmojisOn ? 'On' : 'Off'}
@@ -322,9 +342,20 @@ const UserDetails = () => {
 
             {/* ADMIN: TEST HOLIDAY EFFECTS */}
             {isCurrentUser && user?.admin && (
-              <Flex alignItems="center" minHeight="40px" justifyContent="space-between" width="100%" gap={2}>
+              <Flex
+                alignItems="center"
+                minHeight="40px"
+                justifyContent="space-between"
+                width="100%"
+                gap={2}
+              >
                 <Text flexShrink={0}>
-                  <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold" marginRight="4px">
+                  <Text
+                    as="span"
+                    color={theme.colors.teal[200]}
+                    fontWeight="semibold"
+                    marginRight="4px"
+                  >
                     Test Holiday:
                   </Text>
                 </Text>
@@ -336,12 +367,16 @@ const UserDetails = () => {
                   placeholder="Pick a holiday..."
                   onChange={(e) => {
                     if (!e.target.value) return;
-                    window.dispatchEvent(new CustomEvent(HOLIDAY_TEST_EVENT, { detail: HOLIDAYS[e.target.value] }));
+                    window.dispatchEvent(
+                      new CustomEvent(HOLIDAY_TEST_EVENT, { detail: HOLIDAYS[e.target.value] })
+                    );
                     e.target.value = '';
                   }}
                 >
                   {Object.keys(HOLIDAYS).map((name) => (
-                    <option key={name} value={name} style={{ background: '#1A202C' }}>{name}</option>
+                    <option key={name} value={name} style={{ background: '#1A202C' }}>
+                      {name}
+                    </option>
                   ))}
                 </Select>
               </Flex>
@@ -520,16 +555,36 @@ const UserDetails = () => {
               border="1px solid"
               borderColor={theme.colors.teal[600]}
               p={5}
-              _hover={{ borderColor: theme.colors.orange[400], transform: 'translateY(-2px)' }}
+              _hover={{ borderColor: theme.colors.yellow[400], transform: 'translateY(-2px)' }}
               transition="all 0.15s"
             >
-              <Text fontWeight="bold" color={theme.colors.orange[200]} mb={1}>
+              <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
                 Active Gielinor Rush Events
               </Text>
               <Text fontSize="sm" color="gray.400">
                 See all live and recent treasure hunt competitions
               </Text>
             </Box>
+            {isChampionForgeEnabled(user) && (
+              <Box
+                as={Link}
+                to="/champion-forge/gallery"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="1px solid"
+                borderColor={theme.colors.teal[600]}
+                p={5}
+                _hover={{ borderColor: theme.colors.red[400], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
+                  Champion Forge: Battle Gallery
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Watch replays from past Champion Forge tourneys
+                </Text>
+              </Box>
+            )}
           </SimpleGrid>
         </Section>
 

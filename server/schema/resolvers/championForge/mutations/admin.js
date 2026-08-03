@@ -56,6 +56,17 @@ module.exports = {
     return true;
   },
 
+  devReseedCfEvents: async (_, __, { user }) => {
+    if (!user) throw new AuthenticationError('Must be logged in');
+    if (process.env.NODE_ENV === 'production') throw new ApolloError('Not available in production');
+    const { reseedAllCfEvents } = require('../../../../utils/championForge/cfDevSeed');
+    await reseedAllCfEvents(user.id, {
+      discordId: user.discordUserId,
+      discordUsername: user.discordUsername,
+    });
+    return true;
+  },
+
   devAutoBattle: async (_, { battleId }, { user }) => {
     if (!user?.admin) throw new AuthenticationError('Admin only');
     if (process.env.NODE_ENV === 'production') throw new ApolloError('Not available in production');

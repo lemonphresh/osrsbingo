@@ -19,8 +19,8 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000004-cw-outfitting-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
-const { ITEMS } = require('../../utils/clanWarsItems');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
+const { ITEMS } = require('../../utils/championForge/cfItems');
 
 const EVENT_ID = 'cwev_outfitting01';
 const TEAM1_ID = 'cwt_out_t1';
@@ -46,9 +46,9 @@ function makeItems(teamId, idPrefix) {
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Outfitting seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -64,7 +64,7 @@ module.exports = {
     const t2VoidWand    = t2Items.find((r) => r.name === 'Void-touched Wand');
     const t2HelmForsaken = t2Items.find((r) => r.name === 'Helm of the Forsaken');
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Outfitting Phase',
       status: 'OUTFITTING',
@@ -105,7 +105,7 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Team 1: Iron Vanguard — no loadout saved yet
     // -------------------------------------------------------------------------
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM1_ID,
       eventId: EVENT_ID,
       teamName: 'Iron Vanguard',
@@ -126,7 +126,7 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Team 2: Shadow Sigil — partially saved loadout (not locked)
     // -------------------------------------------------------------------------
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM2_ID,
       eventId: EVENT_ID,
       teamName: 'Shadow Sigil',
@@ -148,14 +148,14 @@ module.exports = {
       updatedAt: now,
     });
 
-    await ClanWarsTask.bulkCreate(
+    await CFTask.bulkCreate(
       tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now }))
     );
 
     const allItems = [...t1Items, ...t2Items].map((i) => ({
       ...i, createdAt: new Date(), updatedAt: new Date(),
     }));
-    await ClanWarsItem.bulkCreate(allItems);
+    await CFItem.bulkCreate(allItems);
 
     console.log('✅ Dev Outfitting seeder complete!');
     console.log(`   Event ID   : ${EVENT_ID}`);
@@ -168,12 +168,12 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem } = models;
 
-    await ClanWarsItem.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy( { where: { eventId: EVENT_ID } });
+    await CFItem.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTask.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTeam.destroy(  { where: { eventId: EVENT_ID } });
+    await CFEvent.destroy( { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Outfitting seeder undone.');
   },
 };

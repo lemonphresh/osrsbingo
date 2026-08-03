@@ -12,9 +12,9 @@
  *   npx sequelize-cli db:seed:undo --seed 20260318000006-cw-completed-se-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
-const { ITEMS } = require('../../utils/clanWarsItems');
-const { simulateSeedBattle } = require('../../utils/cwBattleSeeder');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
+const { ITEMS } = require('../../utils/championForge/cfItems');
+const { simulateSeedBattle } = require('../../utils/championForge/cfBattleSeeder');
 
 const EVENT_ID = 'cwev_done_se01';
 
@@ -79,9 +79,9 @@ function makeItems(def, eventId, now) {
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem, CFBattle, CFBattleEvent } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Completed SE seeder already applied — skipping. Run undo first.');
       return;
@@ -90,7 +90,7 @@ module.exports = {
     const now = new Date();
     const daysAgo = (d) => new Date(now - d * 86400_000);
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'The Irongate Invitational',
       status: 'COMPLETED',
@@ -125,7 +125,7 @@ module.exports = {
 
     for (let i = 0; i < TEAM_DEFS.length; i++) {
       const def = TEAM_DEFS[i];
-      await ClanWarsTeam.create({
+      await CFTeam.create({
         teamId: def.id,
         eventId: EVENT_ID,
         teamName: def.name,
@@ -149,10 +149,10 @@ module.exports = {
       });
     }
 
-    await ClanWarsTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: daysAgo(6), updatedAt: daysAgo(6) })));
+    await CFTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: daysAgo(6), updatedAt: daysAgo(6) })));
 
     const allItems = TEAM_DEFS.flatMap((def) => makeItems(def, EVENT_ID, now));
-    await ClanWarsItem.bulkCreate(allItems);
+    await CFItem.bulkCreate(allItems);
 
     // ---- Simulate battle logs ----
     const matchups = [
@@ -171,7 +171,7 @@ module.exports = {
         now: m.endedAt,
       });
 
-      await ClanWarsBattle.create({
+      await CFBattle.create({
         battleId: m.battleId,
         eventId: EVENT_ID,
         team1Id: m.t1.id,
@@ -186,7 +186,7 @@ module.exports = {
         updatedAt: m.endedAt,
       });
 
-      await ClanWarsBattleEvent.bulkCreate(sim.battleLog);
+      await CFBattleEvent.bulkCreate(sim.battleLog);
     }
 
     console.log('✅  Completed SE seeder done!');
@@ -198,14 +198,14 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem, ClanWarsBattle, ClanWarsBattleEvent } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem, CFBattle, CFBattleEvent } = models;
 
-    await ClanWarsBattleEvent.destroy({ where: { battleId: { [require('sequelize').Op.like]: `${EVENT_ID}_%` } } });
-    await ClanWarsBattle.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsItem.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy( { where: { eventId: EVENT_ID } });
+    await CFBattleEvent.destroy({ where: { battleId: { [require('sequelize').Op.like]: `${EVENT_ID}_%` } } });
+    await CFBattle.destroy({ where: { eventId: EVENT_ID } });
+    await CFItem.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTask.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTeam.destroy(  { where: { eventId: EVENT_ID } });
+    await CFEvent.destroy( { where: { eventId: EVENT_ID } });
     console.log('✅  Completed SE seeder undone.');
   },
 };

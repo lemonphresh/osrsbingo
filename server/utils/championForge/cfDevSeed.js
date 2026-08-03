@@ -422,4 +422,38 @@ async function seedAllCfEvents(userId, { discordId, discordUsername } = {}) {
   }
 }
 
-module.exports = { seedDevCfEvent, seedAllCfEvents, tearDownDevCfEvent, EVENT_ID };
+/**
+ * Destroys all records for every known CF dev event, in dependency order.
+ * Safe to call even if some events don't exist yet.
+ */
+async function tearDownAllCfEvents() {
+  const {
+    CFEvent, CFTeam, CFItem, CFBattle, CFBattleEvent,
+    CFTask, CFSubmission, CFPreScreenshot,
+  } = require('../../db/models');
+  const { Op } = require('sequelize');
+
+  const ids = ALL_CF_EVENT_IDS;
+  const battles = await CFBattle.findAll({ where: { eventId: { [Op.in]: ids } }, attributes: ['battleId'] });
+  const battleIds = battles.map((b) => b.battleId);
+
+  if (battleIds.length) await CFBattleEvent.destroy({ where: { battleId: { [Op.in]: battleIds } } });
+  await CFBattle.destroy(       { where: { eventId: { [Op.in]: ids } } });
+  await CFPreScreenshot.destroy({ where: { eventId: { [Op.in]: ids } } });
+  await CFSubmission.destroy(   { where: { eventId: { [Op.in]: ids } } });
+  await CFItem.destroy(         { where: { eventId: { [Op.in]: ids } } });
+  await CFTask.destroy(         { where: { eventId: { [Op.in]: ids } } });
+  await CFTeam.destroy(         { where: { eventId: { [Op.in]: ids } } });
+  await CFEvent.destroy(        { where: { eventId: { [Op.in]: ids } } });
+}
+
+/**
+ * Tears down all CF dev events then re-seeds from scratch.
+ * Useful for a full reset when you want clean seed data.
+ */
+async function reseedAllCfEvents(userId, discordInfo = {}) {
+  await tearDownAllCfEvents();
+  await seedAllCfEvents(userId, discordInfo);
+}
+
+module.exports = { seedDevCfEvent, seedAllCfEvents, tearDownDevCfEvent, tearDownAllCfEvents, reseedAllCfEvents, EVENT_ID };

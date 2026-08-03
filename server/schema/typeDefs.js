@@ -802,6 +802,7 @@ const typeDefs = gql`
     getBattleViewerCount(eventId: ID!): Int!
     getCFBattle(battleId: ID!): CFBattle
     getCFBattleLog(battleId: ID!, limit: Int, offset: Int): [CFBattleEvent!]!
+    getCFBattlesByEvent(eventId: ID!): [CFBattle!]!
     getCFTaskPool(eventId: ID!): [CFTask!]!
 
     # --- Rainbow Bingo ---
@@ -1028,6 +1029,7 @@ const typeDefs = gql`
 
     # Dev-only: seed all CF scenario events; adds caller to adminIds on each
     devSeedCfEvent: Boolean!
+    devReseedCfEvents: Boolean!
     # Dev-only: auto-play a battle to completion (admin only)
     devAutoBattle(battleId: ID!): CFBattle!
     # Dev-only: start the next unstarted bracket match and simulate it to completion

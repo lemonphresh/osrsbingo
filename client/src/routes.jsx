@@ -37,6 +37,7 @@ const ChampionForgeBarracksPage = lazy(() => import('./pages/championForge/Champ
 const ChampionForgeBattlePage = lazy(() => import('./pages/championForge/ChampionForgeBattlePage'));
 const ChampionForgeGuidePage = lazy(() => import('./pages/championForge/ChampionForgeGuidePage'));
 const ChampionForgeRefsPage = lazy(() => import('./pages/championForge/ChampionForgeRefsPage'));
+const ChampionForgeBattleGallery = lazy(() => import('./pages/championForge/ChampionForgeBattleGallery'));
 const GielinorRushGuidePage = lazy(() => import('./pages/gielinorRush/GielinorRushGuidePage'));
 const TeamBalancerPage = lazy(() => import('./pages/TeamBalancerPage'));
 const GroupDashboardPage = lazy(() => import('./pages/groupDashboard/GroupDashboardPage'));
@@ -220,6 +221,11 @@ const routes = [
       {
         path: '/champion-forge/guide',
         element: withSuspense(ChampionForgeGuidePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/champion-forge/gallery',
+        element: withSuspense(ChampionForgeBattleGallery),
         errorElement: <ErrorPage />,
       },
       {

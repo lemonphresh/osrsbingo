@@ -12,6 +12,7 @@ import {
   SimpleGrid,
   Badge,
   Divider,
+  Image,
 } from '@chakra-ui/react';
 import {
   ChampionForgeLanding,
@@ -22,10 +23,12 @@ import {
   CREATE_CLAN_WARS_EVENT,
   DELETE_CLAN_WARS_EVENT,
   DEV_SEED_CF_EVENT,
+  DEV_RESEED_CF_EVENTS,
 } from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
+import CFBattle from '../../assets/cfbattle2.png';
 import CreateCFEventModal from '../../organisms/ChampionForge/CreateCFEventModal';
 import ConfirmModal from '../../organisms/ChampionForge/ConfirmModal';
 import { isChampionForgeEnabled } from '../../config/featureFlags';
@@ -160,7 +163,11 @@ function ChampionForgeDashboardContent() {
   const [createEvent] = useMutation(CREATE_CLAN_WARS_EVENT, {
     refetchQueries: ['GetAllCFEvents'],
   });
+  const isSeedOwner = user?.username === 'buttlid';
   const [seedDevEvent, { loading: seeding }] = useMutation(DEV_SEED_CF_EVENT, {
+    refetchQueries: ['GetAllCFEvents'],
+  });
+  const [reseedEvents, { loading: reseeding }] = useMutation(DEV_RESEED_CF_EVENTS, {
     refetchQueries: ['GetAllCFEvents'],
   });
 
@@ -216,52 +223,104 @@ function ChampionForgeDashboardContent() {
 
   return (
     <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[16, 20, 24]} flex="1">
-      <HStack justify="space-between" align="flex-end" mb={6}>
-        <VStack align="flex-start" spacing={1}>
-          <GemTitle gemColor="yellow">Champion Forge</GemTitle>
-          <Text fontSize="sm" color="gray.400">
-            Build your war chest, equip your champion, and battle for glory.
-          </Text>
+      <HStack align="center" justify="space-between" mb={6} gap={8} flexWrap="wrap">
+        {/* Left: title, description, nav */}
+        <VStack align="flex-start" spacing={5} flex={1} minW="260px">
+          <VStack align="flex-start" spacing={2}>
+            <GemTitle gemColor="yellow">Champion Forge</GemTitle>
+            <Text fontSize="md" color="gray.300" maxW="440px" lineHeight="1.7">
+              Tournaments with real stakes. Grind for gear, outfit your champion, and fight it out
+              in a live bracket with everyone watching.
+            </Text>
+          </VStack>
+
+          <HStack spacing={1} flexWrap="wrap" align="center">
+            {[
+              { label: 'Gathering', color: 'green' },
+              { label: 'Outfitting', color: 'blue' },
+              { label: 'Battle', color: 'red' },
+            ].map(({ label, color }, i, arr) => (
+              <React.Fragment key={label}>
+                <Badge colorScheme={color} variant="subtle" fontSize="xs" px={2} py={1}>
+                  {label}
+                </Badge>
+                {i < arr.length - 1 && (
+                  <Text fontSize="xs" color="gray.200">
+                    →
+                  </Text>
+                )}
+              </React.Fragment>
+            ))}
+          </HStack>
+
+          <HStack spacing={3} align="center" flexWrap="wrap">
+            <HStack spacing={1}>
+              <Link to="/champion-forge/gallery">
+                <Button size="sm" variant="link" colorScheme="yellow">
+                  ⚔️ Gallery
+                </Button>
+              </Link>
+              <Text color="gray.200" fontSize="lg" userSelect="none">
+                ·
+              </Text>
+              <Link to="/champion-forge/guide">
+                <Button size="sm" variant="link" colorScheme="teal">
+                  📖 Guide
+                </Button>
+              </Link>
+            </HStack>
+
+            <Divider orientation="vertical" h="18px" borderColor="gray.500" />
+
+            <HStack spacing={2}>
+              {process.env.REACT_APP_ENV !== 'production' && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  colorScheme="orange"
+                  onClick={() => setIsSeedConfirmOpen(true)}
+                >
+                  🧪 Seed
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                color="gray.300"
+                _hover={{ color: 'white', bg: 'whiteAlpha.100' }}
+                onClick={() => setIsAboutOpen(true)}
+              >
+                ℹ️ How it Works
+              </Button>
+              <Button
+                backgroundColor={theme.colors.yellow[500]}
+                color={theme.colors.gray[900]}
+                fontWeight="semibold"
+                size="sm"
+                _hover={{ backgroundColor: theme.colors.yellow[400] }}
+                onClick={() => setIsCreateOpen(true)}
+              >
+                + New Event
+              </Button>
+            </HStack>
+          </HStack>
         </VStack>
-        {process.env.REACT_APP_ENV !== 'production' && (
-          <Button
-            size="sm"
-            variant="outline"
-            colorScheme="orange"
-            flexShrink={0}
-            onClick={() => setIsSeedConfirmOpen(true)}
-          >
-            🧪 DEV/STAGE ONLY: Seed Test Events
-          </Button>
-        )}
-        <Button
-          backgroundColor={theme.colors.yellow[600]}
-          color={theme.colors.gray[900]}
-          fontWeight="semibold"
-          size="sm"
-          _hover={{ backgroundColor: theme.colors.yellow[500] }}
-          onClick={() => setIsCreateOpen(true)}
+
+        {/* Right: battle preview image */}
+        <Box
           flexShrink={0}
+          w={['100%', '100%', '340px']}
+          borderRadius="xl"
+          overflow="hidden"
+          border="1px solid"
+          borderColor="yellow.800"
+          boxShadow="0 0 32px rgba(214, 158, 46, 0.2)"
         >
-          + New Event
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          colorScheme="teal"
-          flexShrink={0}
-          onClick={() => setIsAboutOpen(true)}
-        >
-          ℹ️ How it Works
-        </Button>
-        <Link to="/champion-forge/guide">
-          <Button size="sm" variant="ghost" colorScheme="teal" flexShrink={0}>
-            📖 Event Guide
-          </Button>
-        </Link>
+          <Image src={CFBattle} alt="Champion Forge battle preview" w="100%" display="block" />
+        </Box>
       </HStack>
 
-      <Divider mb={8} borderColor="gray.700" />
+      <Divider mb={8} borderColor="gray.600" />
 
       {!hasAnything ? (
         <Center py={16}>
@@ -281,7 +340,7 @@ function ChampionForgeDashboardContent() {
               No events yet
             </Text>
             <Text fontSize="sm" color="gray.400" mb={8} lineHeight="1.7">
-              Start your first Champion Forge tournament and get your clan competing. Four phases,
+              Start your first Champion Forge tournament and get your group competing. Four phases,
               real loot, live battles.
             </Text>
             <Button
@@ -327,7 +386,7 @@ function ChampionForgeDashboardContent() {
           )}
 
           {(myEvents.length > 0 || adminRefEvents.length > 0) && otherActiveEvents.length > 0 && (
-            <Divider borderColor="gray.700" />
+            <Divider borderColor="gray.600" />
           )}
 
           {otherActiveEvents.length > 0 && (
@@ -343,7 +402,7 @@ function ChampionForgeDashboardContent() {
 
           {pastEvents.length > 0 && (
             <>
-              <Divider borderColor="gray.700" />
+              <Divider borderColor="gray.600" />
               <Box>
                 <SectionLabel>Past Events</SectionLabel>
                 <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
@@ -392,21 +451,30 @@ function ChampionForgeDashboardContent() {
         onConfirm={async () => {
           setIsSeedConfirmOpen(false);
           try {
-            await seedDevEvent();
-            showToast("Test events seeded — you're an admin on all of them!", 'success');
+            if (isSeedOwner) {
+              await reseedEvents();
+              showToast('All CF events wiped and reseeded fresh!', 'success');
+            } else {
+              await seedDevEvent();
+              showToast("Test events seeded — you're an admin on all of them!", 'success');
+            }
           } catch (e) {
             showToast(e.message ?? 'Seed failed', 'error');
           }
         }}
-        title="🧪 Seed Test Events"
-        body={`This will create all Champion Forge scenario events and add you as an admin on each one.${
-          user?.discordUserId
-            ? " Since you have Discord linked, you'll also be added as a team member on the gathering events."
-            : " You won't be added to any teams because you don't have a Discord account linked — connect Discord in your profile first if you need barracks access."
-        }`}
-        confirmLabel="Seed Events"
+        title={isSeedOwner ? '🧪 Wipe & Reseed All CF Events' : '🧪 Seed Test Events'}
+        body={
+          isSeedOwner
+            ? 'This will destroy ALL existing Champion Forge events and reseed everything from scratch. Any real event data will be lost.'
+            : `This will create all Champion Forge scenario events and add you as an admin on each one.${
+                user?.discordUserId
+                  ? " Since you have Discord linked, you'll also be added as a team member on the gathering events."
+                  : " You won't be added to any teams because you don't have a Discord account linked — connect Discord in your profile first if you need barracks access."
+              }`
+        }
+        confirmLabel={isSeedOwner ? 'Wipe & Reseed' : 'Seed Events'}
         colorScheme="orange"
-        isLoading={seeding}
+        isLoading={seeding || reseeding}
       />
 
       <ChampionForgeInfoModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />

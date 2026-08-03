@@ -93,6 +93,14 @@ module.exports = {
     return CFBattle.findByPk(battleId);
   },
 
+  getCFBattlesByEvent: async (_, { eventId }) => {
+    const { CFBattle } = getModels();
+    return CFBattle.findAll({
+      where: { eventId, status: 'COMPLETED' },
+      order: [['endedAt', 'ASC']],
+    });
+  },
+
   getCFBattleLog: async (_, { battleId, limit = 500, offset = 0 }) => {
     const { CFBattleEvent: CFBattleLog } = getModels();
     return CFBattleLog.findAll({

@@ -672,6 +672,12 @@ export const DEV_SEED_CF_EVENT = gql`
   }
 `;
 
+export const DEV_RESEED_CF_EVENTS = gql`
+  mutation DevReseedCfEvents {
+    devReseedCfEvents
+  }
+`;
+
 // ============================================================
 // SUBSCRIPTIONS
 // ============================================================
@@ -772,6 +778,22 @@ export const CLAN_WARS_EVENT_UPDATED = gql`
     cfEventUpdated(eventId: $eventId) {
       eventId
       status
+    }
+  }
+`;
+
+export const GET_CF_BATTLES_BY_EVENT = gql`
+  query GetCFBattlesByEvent($eventId: ID!) {
+    getCFBattlesByEvent(eventId: $eventId) {
+      battleId
+      eventId
+      team1Id
+      team2Id
+      status
+      winnerId
+      championSnapshots
+      startedAt
+      endedAt
     }
   }
 `;
