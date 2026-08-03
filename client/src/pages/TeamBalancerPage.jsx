@@ -673,7 +673,7 @@ export default function TeamBalancerPage() {
 
   return (
     <Box flex="1" my="36px" maxW="1100px" mx="auto" w="100%" px={4} py={8}>
-      <VStack align="flex-start" spacing={1} mb={6}>
+      <VStack align="flex-start" spacing={1} mb={4}>
         <GemTitle fontSize="2xl" fontWeight="black">
           Team Balancer
         </GemTitle>
@@ -681,6 +681,64 @@ export default function TeamBalancerPage() {
           Paste RSNs, pick a metric, and get auto-balanced teams based on WOM stats.
         </Text>
       </VStack>
+
+      <Accordion allowToggle mb={6}>
+        <AccordionItem border="none">
+          <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }} w="fit-content">
+            <Text fontSize="xs" color="gray.500" mr={1}>
+              How it works
+            </Text>
+            <AccordionIcon color="gray.500" boxSize={3} />
+          </AccordionButton>
+          <AccordionPanel px={0} pt={2} pb={4}>
+            <VStack
+              align="stretch"
+              spacing={3}
+              bg="gray.800"
+              border="1px solid"
+              borderColor="gray.700"
+              borderRadius="lg"
+              p={4}
+              maxW="640px"
+            >
+              {[
+                {
+                  step: '1',
+                  text: 'Paste RSNs one per line. Optionally add " - N" after any name (i.e. "Zezima - 4") to weight that player by their estimated hours of play per day.',
+                },
+                {
+                  step: '2',
+                  text: 'Pick a balancing preset based on your event type: All-Rounder works for most events; PvM Focused or Raid Specialist prioritize bosses; Skilling Focused ignores combat entirely.',
+                },
+                {
+                  step: '3',
+                  text: 'Stats are pulled live from Wise Old Man: EHP, EHB, EHP/Y, EHB/Y, and raid KCs (CoX, ToB, ToA). Each player gets a weighted score, then teams are distributed to minimize the gap.',
+                },
+                {
+                  step: '4',
+                  text: "After balancing, drag players between teams to fine-tune. Export to CSV when you're happy.",
+                },
+              ].map(({ step, text }) => (
+                <HStack key={step} align="flex-start" spacing={3}>
+                  <Text
+                    fontSize="xs"
+                    fontWeight="bold"
+                    color="pink.300"
+                    flexShrink={0}
+                    mt="1px"
+                    w="14px"
+                  >
+                    {step}.
+                  </Text>
+                  <Text fontSize="xs" color="gray.400" lineHeight="1.6">
+                    {text}
+                  </Text>
+                </HStack>
+              ))}
+            </VStack>
+          </AccordionPanel>
+        </AccordionItem>
+      </Accordion>
 
       {!teams ? (
         <Box bg="gray.700" borderRadius="xl" p={6} border="1px solid" borderColor="gray.600">

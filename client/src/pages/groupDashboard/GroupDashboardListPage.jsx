@@ -183,15 +183,41 @@ export default function GroupDashboardListPage() {
         )}
 
         {!loading && dashboards.length === 0 && (
-          <Box bg="gray.800" borderRadius="xl" p={12} textAlign="center">
-            <Text color="gray.400" mb={2}>
-              You don't have any group dashboards yet.
+          <Box bg="gray.800" borderRadius="xl" p={[8, 12]} textAlign="center">
+            <Text fontSize="4xl" mb={4}>📊</Text>
+            <Heading size="md" color="white" mb={3}>
+              Track collective goals for your WOM group
+            </Heading>
+            <Text fontSize="sm" color="gray.400" maxW="480px" mx="auto" lineHeight="1.8" mb={8}>
+              Connect your Wise Old Man group and set shared goals — boss KC, XP milestones, clue
+              scrolls, you name it. Run timed competitions, watch live leaderboards update as your
+              members grind, and get Discord pings when milestones are hit.
             </Text>
-            <Text fontSize="sm" color="gray.500" mb={6}>
-              Create one to start tracking collective goals for your WOM group.
-            </Text>
+
+            <HStack justify="center" flexWrap="wrap" spacing={3} mb={10}>
+              {[
+                { icon: '📈', label: 'Live leaderboards' },
+                { icon: '🏆', label: 'Timed competitions' },
+                { icon: '🔔', label: 'Discord milestone alerts' },
+                { icon: '🌐', label: 'Shareable public page' },
+              ].map(({ icon, label }) => (
+                <Box
+                  key={label}
+                  bg="gray.900"
+                  border="1px solid"
+                  borderColor="gray.700"
+                  borderRadius="lg"
+                  px={4}
+                  py={3}
+                >
+                  <Text fontSize="xl" mb={1}>{icon}</Text>
+                  <Text fontSize="xs" color="gray.400">{label}</Text>
+                </Box>
+              ))}
+            </HStack>
+
             <Button as={RouterLink} to="/group/new" colorScheme="purple" leftIcon={<AddIcon />}>
-              Create Dashboard
+              Create Your First Dashboard
             </Button>
           </Box>
         )}
