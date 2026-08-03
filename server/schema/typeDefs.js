@@ -270,6 +270,14 @@ const typeDefs = gql`
     value: Int!
   }
 
+  type AssociatedEvent {
+    type: String!
+    eventId: ID!
+    eventName: String!
+    status: String!
+    url: String!
+  }
+
   type GREvent {
     eventId: ID!
     eventName: String!
@@ -767,6 +775,7 @@ const typeDefs = gql`
     getAllGREvents(userId: ID): [GREvent!]
     getMyGREvents: [GREvent!]
     getAssociatedGREvents: [GREvent!]!
+    getAssociatedEvents: [AssociatedEvent!]!
     getPendingSubmissions(eventId: ID!): [GRSubmission!]
     getAllSubmissions(eventId: ID!): [GRSubmission!]
     getNodeSubmissionSummaries(eventId: ID!): [NodeSubmissionSummary!]!

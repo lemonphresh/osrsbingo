@@ -124,3 +124,4 @@ module.exports = {
     return CFPreScreenshot.findAll({ where: { eventId }, order: [['submittedAt', 'DESC']], limit, offset });
   },
 };
+
