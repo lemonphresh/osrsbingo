@@ -13,6 +13,9 @@ import {
   useDisclosure,
   SimpleGrid,
   Box,
+  VStack,
+  HStack,
+  Badge,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -20,7 +23,7 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import theme from '../theme';
 import { useMutation, useQuery } from '@apollo/client';
-import { GET_USER } from '../graphql/queries';
+import { GET_USER, GET_ASSOCIATED_EVENTS } from '../graphql/queries';
 
 import EditField from '../molecules/EditField';
 import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
@@ -72,6 +75,9 @@ const UserDetails = () => {
 
   const [updateUser] = useMutation(UPDATE_USER);
   const [deleteUser] = useMutation(DELETE_USER);
+
+  const { data: associatedData } = useQuery(GET_ASSOCIATED_EVENTS, { skip: !isCurrentUser });
+  const activeEvents = associatedData?.getAssociatedEvents ?? [];
 
   const onDelete = useCallback(async () => {
     if (shownUser?.id !== user?.id) {
@@ -395,6 +401,45 @@ const UserDetails = () => {
           </Section>
           {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
         </Flex>
+
+        {isCurrentUser && activeEvents.length > 0 && (
+          <Section flexDirection="column" width="100%">
+            <GemTitle size="sm" textAlign="center" mb={4}>
+              Your Active Events
+            </GemTitle>
+            <VStack align="stretch" spacing={2}>
+              {activeEvents.map((e) => (
+                <HStack
+                  key={`${e.type}-${e.eventId}`}
+                  as={Link}
+                  to={e.url}
+                  justify="space-between"
+                  px={4}
+                  py={3}
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="1px solid"
+                  borderColor={theme.colors.teal[600]}
+                  _hover={{
+                    borderColor:
+                      e.type === 'champion-forge'
+                        ? theme.colors.red[400]
+                        : theme.colors.yellow[400],
+                  }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="semibold" fontSize="sm" color="white">{e.eventName}</Text>
+                  <Badge
+                    colorScheme={e.type === 'champion-forge' ? 'red' : 'yellow'}
+                    fontSize="xs"
+                  >
+                    {e.type === 'champion-forge' ? 'Champion Forge' : 'Gielinor Rush'}
+                  </Badge>
+                </HStack>
+              ))}
+            </VStack>
+          </Section>
+        )}
 
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">

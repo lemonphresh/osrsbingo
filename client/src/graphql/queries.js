@@ -654,6 +654,18 @@ export const GET_MY_GR_EVENTS = gql`
   }
 `;
 
+export const GET_ASSOCIATED_EVENTS = gql`
+  query GetAssociatedEvents {
+    getAssociatedEvents {
+      type
+      eventId
+      eventName
+      status
+      url
+    }
+  }
+`;
+
 export const GET_ASSOCIATED_GR_EVENTS = gql`
   query GetAssociatedGREvents {
     getAssociatedGREvents {
