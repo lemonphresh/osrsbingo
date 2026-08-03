@@ -18,7 +18,7 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000003-cw-gathering-rich-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
 
 const EVENT_ID  = 'cwev_gather_rich';
 const TEAM1_ID  = 'cwt_gr_t1';
@@ -44,9 +44,9 @@ const ITEM_SNAPSHOTS = {
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem, ClanWarsPreScreenshot } = models;
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFItem, CFPreScreenshot } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Rich gathering seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -58,7 +58,7 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Event
     // -------------------------------------------------------------------------
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Gathering (Rich)',
       status: 'GATHERING',
@@ -97,7 +97,7 @@ module.exports = {
     // Team 1: Iron Vanguard
     // Completed: Barrows, DKs  |  In-progress: Zulrah
     // -------------------------------------------------------------------------
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM1_ID,
       eventId: EVENT_ID,
       teamName: 'Iron Vanguard',
@@ -122,7 +122,7 @@ module.exports = {
     // Team 2: Shadow Sigil
     // Completed: Fishing, Wintertodt  |  In-progress: Mining, Zulrah
     // -------------------------------------------------------------------------
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM2_ID,
       eventId: EVENT_ID,
       teamName: 'Shadow Sigil',
@@ -146,7 +146,7 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Tasks
     // -------------------------------------------------------------------------
-    await ClanWarsTask.bulkCreate(
+    await CFTask.bulkCreate(
       tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now }))
     );
 
@@ -155,7 +155,7 @@ module.exports = {
     // -------------------------------------------------------------------------
 
     // TEAM 1 — Barrows approved → Copper Skullcap
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_001',
       eventId: EVENT_ID, teamId: TEAM1_ID,
       submittedBy: '100000000000000001', submittedUsername: 'devuser',
@@ -170,7 +170,7 @@ module.exports = {
     });
 
     // TEAM 1 — Dagannoth Kings approved → Ironwood Shortbow
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_002',
       eventId: EVENT_ID, teamId: TEAM1_ID,
       submittedBy: '100000000000000002', submittedUsername: 'IronBow',
@@ -185,7 +185,7 @@ module.exports = {
     });
 
     // TEAM 1 — early Zulrah attempt denied (wrong screenshot)
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_003',
       eventId: EVENT_ID, teamId: TEAM1_ID,
       submittedBy: '100000000000000001', submittedUsername: 'devuser',
@@ -200,7 +200,7 @@ module.exports = {
     });
 
     // TEAM 1 — new Zulrah attempt pending review
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_004',
       eventId: EVENT_ID, teamId: TEAM1_ID,
       submittedBy: '100000000000000001', submittedUsername: 'devuser',
@@ -215,7 +215,7 @@ module.exports = {
     });
 
     // TEAM 2 — Fishing approved → Amber Band
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_005',
       eventId: EVENT_ID, teamId: TEAM2_ID,
       submittedBy: '200000000000000003', submittedUsername: 'SigilSkiller',
@@ -230,7 +230,7 @@ module.exports = {
     });
 
     // TEAM 2 — Wintertodt approved → Boar Rib
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_006',
       eventId: EVENT_ID, teamId: TEAM2_ID,
       submittedBy: '200000000000000003', submittedUsername: 'SigilSkiller',
@@ -245,7 +245,7 @@ module.exports = {
     });
 
     // TEAM 2 — Mining pending review
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_007',
       eventId: EVENT_ID, teamId: TEAM2_ID,
       submittedBy: '200000000000000003', submittedUsername: 'SigilSkiller',
@@ -260,7 +260,7 @@ module.exports = {
     });
 
     // TEAM 2 — Zulrah pending review
-    await ClanWarsSubmission.create({
+    await CFSubmission.create({
       submissionId: 'cwsub_gr_008',
       eventId: EVENT_ID, teamId: TEAM2_ID,
       submittedBy: '200000000000000002', submittedUsername: 'SigilArcher',
@@ -279,7 +279,7 @@ module.exports = {
     // -------------------------------------------------------------------------
 
     // Team 1
-    await ClanWarsItem.create({
+    await CFItem.create({
       itemId: 'cwi_gr_t1_001',
       teamId: TEAM1_ID, eventId: EVENT_ID,
       name: ITEM_SNAPSHOTS.COPPER_SKULLCAP.name,
@@ -289,7 +289,7 @@ module.exports = {
       earnedAt: ago(90), isEquipped: false, isUsed: false,
       createdAt: now, updatedAt: now,
     });
-    await ClanWarsItem.create({
+    await CFItem.create({
       itemId: 'cwi_gr_t1_002',
       teamId: TEAM1_ID, eventId: EVENT_ID,
       name: ITEM_SNAPSHOTS.IRONWOOD_SHORTBOW.name,
@@ -301,7 +301,7 @@ module.exports = {
     });
 
     // Team 2
-    await ClanWarsItem.create({
+    await CFItem.create({
       itemId: 'cwi_gr_t2_001',
       teamId: TEAM2_ID, eventId: EVENT_ID,
       name: ITEM_SNAPSHOTS.AMBER_BAND.name,
@@ -311,7 +311,7 @@ module.exports = {
       earnedAt: ago(85), isEquipped: false, isUsed: false,
       createdAt: now, updatedAt: now,
     });
-    await ClanWarsItem.create({
+    await CFItem.create({
       itemId: 'cwi_gr_t2_002',
       teamId: TEAM2_ID, eventId: EVENT_ID,
       name: ITEM_SNAPSHOTS.BOAR_RIB.name,
@@ -325,7 +325,7 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Prescreenshots — real admins + devuser on pending/in-progress tasks
     // -------------------------------------------------------------------------
-    await ClanWarsPreScreenshot.bulkCreate([
+    await CFPreScreenshot.bulkCreate([
       // buttlid prescreened the zulrah task before submitting
       {
         preScreenshotId: 'cwps_gr_001',
@@ -369,14 +369,14 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsSubmission, ClanWarsItem, ClanWarsPreScreenshot } = models;
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFItem, CFPreScreenshot } = models;
 
-    await ClanWarsPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsItem.destroy(         { where: { eventId: EVENT_ID } });
-    await ClanWarsSubmission.destroy(   { where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy(         { where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy(         { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy(        { where: { eventId: EVENT_ID } });
+    await CFPreScreenshot.destroy({ where: { eventId: EVENT_ID } });
+    await CFItem.destroy(         { where: { eventId: EVENT_ID } });
+    await CFSubmission.destroy(   { where: { eventId: EVENT_ID } });
+    await CFTask.destroy(         { where: { eventId: EVENT_ID } });
+    await CFTeam.destroy(         { where: { eventId: EVENT_ID } });
+    await CFEvent.destroy(        { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Rich Gathering seeder undone.');
   },
 };

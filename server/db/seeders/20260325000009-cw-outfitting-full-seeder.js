@@ -20,9 +20,9 @@
  *   npx sequelize-cli db:seed:undo --seed 20260325000009-cw-outfitting-full-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
-const { ITEMS } = require('../../utils/clanWarsItems');
-const { buildDEBracket8 } = require('../../utils/cwBracket');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
+const { ITEMS } = require('../../utils/championForge/cfItems');
+const { buildDEBracket8 } = require('../../utils/championForge/cfBracket');
 
 const EVENT_ID = 'cwev_outfit_full';
 
@@ -66,9 +66,9 @@ const BRACKET = buildDEBracket8(TEAM_IDS);
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Full outfitting seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -76,7 +76,7 @@ module.exports = {
 
     const now = new Date();
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Outfitting (8 Teams, Full War Chests)',
       status: 'OUTFITTING',
@@ -108,7 +108,7 @@ module.exports = {
       const base     = i * 5 + 1;
       const pad      = (n) => String(n).padStart(18, '1');
 
-      await ClanWarsTeam.create({
+      await CFTeam.create({
         teamId,
         eventId: EVENT_ID,
         teamName,
@@ -129,10 +129,10 @@ module.exports = {
       });
     }
 
-    await ClanWarsTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
+    await CFTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
 
     const allItems = TEAM_IDS.flatMap((teamId) => makeItems(teamId, EVENT_ID, now));
-    await ClanWarsItem.bulkCreate(allItems);
+    await CFItem.bulkCreate(allItems);
 
     console.log('✅ Full Outfitting seeder complete! (8 teams, 5 members each, full war chests)');
     console.log(`   Event ID     : ${EVENT_ID}`);
@@ -146,12 +146,12 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem } = models;
 
-    await ClanWarsItem.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy({ where: { eventId: EVENT_ID } });
+    await CFItem.destroy({ where: { eventId: EVENT_ID } });
+    await CFTask.destroy({ where: { eventId: EVENT_ID } });
+    await CFTeam.destroy({ where: { eventId: EVENT_ID } });
+    await CFEvent.destroy({ where: { eventId: EVENT_ID } });
     console.log('✅ Full Outfitting seeder undone.');
   },
 };

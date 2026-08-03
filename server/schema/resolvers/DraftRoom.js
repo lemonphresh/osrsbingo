@@ -12,7 +12,7 @@ const {
   startPickTimer,
   clearPickTimer,
   shuffle,
-} = require('../../utils/draftHelpers');
+} = require('../../utils/draftRoom/draftHelpers');
 const logger = require('../../utils/logger');
 
 const DRAFT_ROOM_UPDATED = 'DRAFT_ROOM_UPDATED';

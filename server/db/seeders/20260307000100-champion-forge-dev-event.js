@@ -9,7 +9,7 @@
  * To undo: npx sequelize-cli db:seed:undo --seed 20260307000100-champion-forge-dev-event.js
  */
 
-const { seedDevCfEvent, tearDownDevCfEvent, EVENT_ID } = require('../../utils/cwDevSeed');
+const { seedDevCfEvent, tearDownDevCfEvent, EVENT_ID } = require('../../utils/championForge/cfDevSeed');
 
 module.exports = {
   async up() {

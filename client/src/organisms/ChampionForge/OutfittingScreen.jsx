@@ -30,7 +30,7 @@ import {
   GET_CLAN_WARS_WAR_CHEST,
   SAVE_OFFICIAL_LOADOUT,
   UPDATE_CLAN_WARS_EVENT_STATUS,
-} from '../../graphql/clanWarsOperations';
+} from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import ChampionSprite from './ChampionSprite';
@@ -1348,7 +1348,7 @@ export function TeamOutfitter({ team, event, isAdmin }) {
 
   const [saveLoadout, { loading: saving }] = useMutation(SAVE_OFFICIAL_LOADOUT);
 
-  const items = data?.getClanWarsWarChest ?? [];
+  const items = data?.getCFWarChest ?? [];
   const slotItems = items.filter((i) => i.slot === activeSlot);
   const consumableItems = items.filter((i) => i.slot === 'consumable');
   const activeItems =

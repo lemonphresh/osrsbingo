@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@chakra-ui/react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
-import TeamAccessOverlay from '../../organisms/TreasureHunt/TeamAccessOverlay';
+import TeamAccessOverlay from '../../organisms/GielinorRush/TeamAccessOverlay';
 
 function OverlayScenario({ title, description, tags, reason }) {
   const [show, setShow] = useState(false);

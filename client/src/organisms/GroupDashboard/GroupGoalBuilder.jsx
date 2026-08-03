@@ -18,127 +18,7 @@ import {
   Button,
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
-
-const BOSS_METRICS = [
-  { value: 'abyssal_sire', label: 'Abyssal Sire' },
-  { value: 'alchemical_hydra', label: 'Alchemical Hydra' },
-  { value: 'amoxliatl', label: 'Amoxliatl' },
-  { value: 'araxxor', label: 'Araxxor' },
-  { value: 'artio', label: 'Artio' },
-  { value: 'barrows_chests', label: 'Barrows Chests' },
-  { value: 'brutus', label: 'Brutus' },
-  { value: 'bryophyta', label: 'Bryophyta' },
-  { value: 'callisto', label: 'Callisto' },
-  { value: 'calvarion', label: "Calvar'ion" },
-  { value: 'cerberus', label: 'Cerberus' },
-  { value: 'chambers_of_xeric', label: 'Chambers of Xeric' },
-  { value: 'chambers_of_xeric_challenge_mode', label: 'Chambers of Xeric (CM)' },
-  { value: 'chaos_elemental', label: 'Chaos Elemental' },
-  { value: 'chaos_fanatic', label: 'Chaos Fanatic' },
-  { value: 'commander_zilyana', label: 'Commander Zilyana (Sara)' },
-  { value: 'corporeal_beast', label: 'Corporeal Beast' },
-  { value: 'the_corrupted_gauntlet', label: 'Corrupted Gauntlet' },
-  { value: 'crazy_archaeologist', label: 'Crazy Archaeologist' },
-  { value: 'dagannoth_prime', label: 'Dagannoth Prime' },
-  { value: 'dagannoth_rex', label: 'Dagannoth Rex' },
-  { value: 'dagannoth_supreme', label: 'Dagannoth Supreme' },
-  { value: 'deranged_archaeologist', label: 'Deranged Archaeologist' },
-  { value: 'doom_of_mokhaiotl', label: 'Doom of Mokhaiotl' },
-  { value: 'duke_sucellus', label: 'Duke Sucellus' },
-  { value: 'general_graardor', label: 'General Graardor (Bandos)' },
-  { value: 'giant_mole', label: 'Giant Mole' },
-  { value: 'grotesque_guardians', label: 'Grotesque Guardians' },
-  { value: 'hespori', label: 'Hespori' },
-  { value: 'the_hueycoatl', label: 'The Hueycoatl' },
-  { value: 'kalphite_queen', label: 'Kalphite Queen' },
-  { value: 'king_black_dragon', label: 'King Black Dragon' },
-  { value: 'kraken', label: 'Kraken' },
-  { value: 'kreearra', label: "Kree'arra (Arma)" },
-  { value: 'kril_tsutsaroth', label: "K'ril Tsutsaroth (Zammy)" },
-  { value: 'lunar_chests', label: 'Lunar Chests' },
-  { value: 'mad_angel', label: 'Mad Angel' },
-  { value: 'mimic', label: 'Mimic' },
-  { value: 'nex', label: 'Nex' },
-  { value: 'nightmare', label: 'Nightmare' },
-  { value: 'obor', label: 'Obor' },
-  { value: 'phantom_muspah', label: 'Phantom Muspah' },
-  { value: 'phosanis_nightmare', label: "Phosani's Nightmare" },
-  { value: 'sarachnis', label: 'Sarachnis' },
-  { value: 'scorpia', label: 'Scorpia' },
-  { value: 'scurrius', label: 'Scurrius' },
-  { value: 'shellbane_gryphon', label: 'Shellbane Gryphon' },
-  { value: 'skotizo', label: 'Skotizo' },
-  { value: 'sol_heredit', label: 'Sol Heredit' },
-  { value: 'spindel', label: 'Spindel' },
-  { value: 'tempoross', label: 'Tempoross' },
-  { value: 'the_gauntlet', label: 'The Gauntlet' },
-  { value: 'the_leviathan', label: 'The Leviathan' },
-  { value: 'the_royal_titans', label: 'The Royal Titans' },
-  { value: 'the_whisperer', label: 'The Whisperer' },
-  { value: 'theatre_of_blood', label: 'Theatre of Blood' },
-  { value: 'theatre_of_blood_hard_mode', label: 'Theatre of Blood (HM)' },
-  { value: 'thermonuclear_smoke_devil', label: 'Thermonuclear Smoke Devil' },
-  { value: 'tombs_of_amascut', label: 'Tombs of Amascut' },
-  { value: 'tombs_of_amascut_expert', label: 'Tombs of Amascut (Expert)' },
-  { value: 'tzkal_zuk', label: 'TzKal-Zuk' },
-  { value: 'tztok_jad', label: 'TzTok-Jad' },
-  { value: 'vardorvis', label: 'Vardorvis' },
-  { value: 'venenatis', label: 'Venenatis' },
-  { value: 'vetion', label: "Vet'ion" },
-  { value: 'vorkath', label: 'Vorkath' },
-  { value: 'wintertodt', label: 'Wintertodt' },
-  { value: 'yama', label: 'Yama' },
-  { value: 'zalcano', label: 'Zalcano' },
-  { value: 'zulrah', label: 'Zulrah' },
-];
-
-const SKILL_METRICS = [
-  'overall',
-  'agility',
-  'attack',
-  'construction',
-  'cooking',
-  'crafting',
-  'defence',
-  'farming',
-  'firemaking',
-  'fishing',
-  'fletching',
-  'herblore',
-  'hitpoints',
-  'hunter',
-  'magic',
-  'mining',
-  'prayer',
-  'ranged',
-  'runecrafting',
-  'sailing',
-  'slayer',
-  'smithing',
-  'strength',
-  'thieving',
-  'woodcutting',
-].map((s) => ({ value: s, label: s.charAt(0).toUpperCase() + s.slice(1) }));
-
-const CLUE_METRICS = [
-  { value: 'clue_scrolls_all', label: 'All Clues' },
-  { value: 'clue_scrolls_beginner', label: 'Beginner' },
-  { value: 'clue_scrolls_easy', label: 'Easy' },
-  { value: 'clue_scrolls_medium', label: 'Medium' },
-  { value: 'clue_scrolls_hard', label: 'Hard' },
-  { value: 'clue_scrolls_elite', label: 'Elite' },
-  { value: 'clue_scrolls_master', label: 'Master' },
-];
-
-const MINIGAME_METRICS = [
-  { value: 'bounty_hunter_hunter', label: 'Bounty Hunter (Hunter)' },
-  { value: 'bounty_hunter_rogue', label: 'Bounty Hunter (Rogue)' },
-  { value: 'colosseum_glory', label: 'Colosseum Glory' },
-  { value: 'guardians_of_the_rift', label: 'Guardians of the Rift' },
-  { value: 'last_man_standing', label: 'Last Man Standing' },
-  { value: 'pvp_arena', label: 'PvP Arena' },
-  { value: 'soul_wars_zeal', label: 'Soul Wars (Zeal)' },
-];
+import useContentRegistry from '../../hooks/useContentRegistry';
 
 const GOAL_TYPES = [
   { value: 'boss_kc', label: 'Boss KC (group total)' },
@@ -215,18 +95,6 @@ const EMOJI_OPTIONS = [
   '🎃',
 ];
 
-function getMetricOptions(type) {
-  if (type === 'boss_kc' || type === 'individual_boss_kc') return BOSS_METRICS;
-  if (type === 'minigame_kc' || type === 'individual_minigame_kc') return MINIGAME_METRICS;
-  if (type === 'skill_xp' || type === 'individual_skill_xp') return SKILL_METRICS;
-  if (type === 'clue_kc' || type === 'individual_clue_kc') return CLUE_METRICS;
-  return []; // ehb, ehp, leagues_points have no sub-metric
-}
-
-function getDefaultMetric(type) {
-  if (type === 'leagues_points' || type === 'individual_leagues_points') return 'league_points';
-  return getMetricOptions(type)[0]?.value ?? '';
-}
 
 function EmojiPicker({ value, onChange }) {
   return (
@@ -269,8 +137,36 @@ function EmojiPicker({ value, onChange }) {
   );
 }
 
+const TYPES_WITH_METRIC = new Set([
+  'boss_kc', 'individual_boss_kc',
+  'minigame_kc', 'individual_minigame_kc',
+  'skill_xp', 'individual_skill_xp',
+  'clue_kc', 'individual_clue_kc',
+]);
+
 export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
+  const {
+    bossMetricOptions,
+    skillMetricOptions,
+    clueMetricOptions,
+    activityMetricOptions,
+  } = useContentRegistry();
+
+  function getMetricOptions(type) {
+    if (type === 'boss_kc' || type === 'individual_boss_kc') return bossMetricOptions ?? [];
+    if (type === 'minigame_kc' || type === 'individual_minigame_kc') return activityMetricOptions ?? [];
+    if (type === 'skill_xp' || type === 'individual_skill_xp') return skillMetricOptions ?? [];
+    if (type === 'clue_kc' || type === 'individual_clue_kc') return clueMetricOptions ?? [];
+    return [];
+  }
+
+  function getDefaultMetric(type) {
+    if (type === 'leagues_points' || type === 'individual_leagues_points') return 'league_points';
+    return getMetricOptions(type)[0]?.value ?? '';
+  }
+
   const metricOptions = getMetricOptions(goal.type);
+  const showMetricSelect = TYPES_WITH_METRIC.has(goal.type);
 
   function update(field, value) {
     onChange({ ...goal, [field]: value });
@@ -315,7 +211,7 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
             </Select>
           </FormControl>
 
-          {metricOptions.length > 0 && (
+          {showMetricSelect && (
             <FormControl size="sm">
               <FormLabel fontSize="xs" color="gray.400" mb={1}>
                 Metric
@@ -327,7 +223,11 @@ export default function GroupGoalBuilder({ goal, onChange, onRemove }) {
                 bg="gray.800"
                 color="gray.100"
                 borderColor="gray.600"
+                isDisabled={metricOptions.length === 0}
               >
+                {metricOptions.length === 0 && (
+                  <option value="">Loading...</option>
+                )}
                 {metricOptions.map((m) => (
                   <option key={m.value} value={m.value} style={{ background: '#1A202C', color: '#E2E8F0' }}>
                     {m.label}

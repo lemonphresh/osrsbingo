@@ -32,7 +32,7 @@ import {
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { OFFENDERS } from './WallOfShame';
-import { formatGP } from '../utils/treasureHuntHelpers';
+import { formatGP } from '../utils/grHelpers';
 import { useAuth } from '../providers/AuthProvider';
 import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
 

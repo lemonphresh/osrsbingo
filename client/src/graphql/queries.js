@@ -66,7 +66,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const SUBMISSION_FIELDS = gql`
-//   fragment SubmissionFields on TreasureSubmission {
+//   fragment SubmissionFields on GRSubmission {
 //     submissionId
 //     teamId
 //     nodeId
@@ -86,7 +86,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const TEAM_SUMMARY_FIELDS = gql`
-//   fragment TeamSummaryFields on TreasureTeam {
+//   fragment TeamSummaryFields on GRTeam {
 //     teamId
 //     teamName
 //     currentPot
@@ -95,7 +95,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const TEAM_FULL_FIELDS = gql`
-//   fragment TeamFullFields on TreasureTeam {
+//   fragment TeamFullFields on GRTeam {
 //     teamId
 //     teamName
 //     discordRoleId
@@ -111,7 +111,7 @@ const BONUS_SETTINGS_FIELDS = gql`
 // `;
 
 // const NODE_FIELDS = gql`
-//   fragment NodeFields on TreasureNode {
+//   fragment NodeFields on GRNode {
 //     nodeId
 //     nodeType
 //     title
@@ -476,9 +476,9 @@ export const GET_CALENDAR_VERSION = gql`
 // ============================================================
 
 // Public query — fires for all users. Omits heavy per-team admin-only blobs.
-export const GET_TREASURE_EVENT_PUBLIC = gql`
-  query GetTreasureEventPublic($eventId: ID!) {
-    getTreasureEvent(eventId: $eventId) {
+export const GET_GR_EVENT_PUBLIC = gql`
+  query GetGREventPublic($eventId: ID!) {
+    getGREvent(eventId: $eventId) {
       eventId
       eventName
       eventPassword
@@ -545,9 +545,9 @@ export const GET_TREASURE_EVENT_PUBLIC = gql`
 
 // Admin/ref-only extras — fires only when isEventAdminOrRef is known.
 // Fetches the heavy per-team blobs stripped from the public query above.
-export const GET_TREASURE_EVENT_ADMIN_TEAMS = gql`
-  query GetTreasureEventAdminTeams($eventId: ID!) {
-    getTreasureEvent(eventId: $eventId) {
+export const GET_GR_EVENT_ADMIN_TEAMS = gql`
+  query GetGREventAdminTeams($eventId: ID!) {
+    getGREvent(eventId: $eventId) {
       eventId
       teams {
         teamId
@@ -565,12 +565,12 @@ export const GET_TREASURE_EVENT_ADMIN_TEAMS = gql`
 `;
 
 // Keep the old name as an alias so any other consumers don't break
-export const GET_TREASURE_EVENT = GET_TREASURE_EVENT_PUBLIC;
+export const GET_GR_EVENT = GET_GR_EVENT_PUBLIC;
 
 // Lightweight event query for player team page — no teams block, no heavy config fields
-export const GET_TREASURE_EVENT_LEAN = gql`
-  query GetTreasureEventLean($eventId: ID!) {
-    getTreasureEvent(eventId: $eventId) {
+export const GET_GR_EVENT_LEAN = gql`
+  query GetGREventLean($eventId: ID!) {
+    getGREvent(eventId: $eventId) {
       eventId
       eventName
       status
@@ -603,9 +603,9 @@ export const GET_TREASURE_EVENT_LEAN = gql`
   }
 `;
 
-export const GET_ALL_TREASURE_EVENTS = gql`
-  query GetAllTreasureEvents($userId: ID) {
-    getAllTreasureEvents(userId: $userId) {
+export const GET_ALL_GR_EVENTS = gql`
+  query GetAllGREvents($userId: ID) {
+    getAllGREvents(userId: $userId) {
       eventId
       eventName
       status
@@ -633,9 +633,9 @@ export const GET_ALL_TREASURE_EVENTS = gql`
   }
 `;
 
-export const GET_MY_TREASURE_EVENTS = gql`
-  query GetMyTreasureEvents {
-    getMyTreasureEvents {
+export const GET_MY_GR_EVENTS = gql`
+  query GetMyGREvents {
+    getMyGREvents {
       eventId
       eventName
       status
@@ -654,9 +654,9 @@ export const GET_MY_TREASURE_EVENTS = gql`
   }
 `;
 
-export const GET_ASSOCIATED_TREASURE_EVENTS = gql`
-  query GetAssociatedTreasureEvents {
-    getAssociatedTreasureEvents {
+export const GET_ASSOCIATED_GR_EVENTS = gql`
+  query GetAssociatedGREvents {
+    getAssociatedGREvents {
       eventId
       eventName
       status
@@ -685,9 +685,9 @@ export const GET_ASSOCIATED_TREASURE_EVENTS = gql`
 // GIELINOR RUSH: TEAMS
 // ============================================================
 
-export const GET_TREASURE_TEAM = gql`
-  query GetTreasureTeam($eventId: ID!, $teamId: ID!) {
-    getTreasureTeam(eventId: $eventId, teamId: $teamId) {
+export const GET_GR_TEAM = gql`
+  query GetGRTeam($eventId: ID!, $teamId: ID!) {
+    getGRTeam(eventId: $eventId, teamId: $teamId) {
       teamId
       teamName
       members {
@@ -712,9 +712,9 @@ export const GET_TREASURE_TEAM = gql`
   }
 `;
 
-export const GET_TREASURE_LEADERBOARD = gql`
-  query GetTreasureEventLeaderboard($eventId: ID!) {
-    getTreasureEventLeaderboard(eventId: $eventId) {
+export const GET_GR_LEADERBOARD = gql`
+  query GetGREventLeaderboard($eventId: ID!) {
+    getGREventLeaderboard(eventId: $eventId) {
       teamId
       teamName
       currentPot
@@ -805,9 +805,9 @@ export const GET_NODE_SUBMISSIONS = gql`
 // GIELINOR RUSH: ACTIVITY FEED
 // ============================================================
 
-export const GET_TREASURE_ACTIVITIES = gql`
-  query GetTreasureActivities($eventId: ID!, $limit: Int, $offset: Int) {
-    getTreasureActivities(eventId: $eventId, limit: $limit, offset: $offset) {
+export const GET_GR_ACTIVITIES = gql`
+  query GetGRActivities($eventId: ID!, $limit: Int, $offset: Int) {
+    getGRActivities(eventId: $eventId, limit: $limit, offset: $offset) {
       id
       eventId
       teamId

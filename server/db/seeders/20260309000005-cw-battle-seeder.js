@@ -13,9 +13,9 @@
  *   npx sequelize-cli db:seed:undo --seed 20260309000005-cw-battle-seeder.js
  */
 
-const { sampleTasksFromPool } = require('../../utils/cwTaskSampler');
-const { ITEMS } = require('../../utils/clanWarsItems');
-const { buildDEBracket8 } = require('../../utils/cwBracket');
+const { sampleTasksFromPool } = require('../../utils/championForge/cfTaskSampler');
+const { ITEMS } = require('../../utils/championForge/cfItems');
+const { buildDEBracket8 } = require('../../utils/championForge/cfBracket');
 
 const EVENT_ID = 'cwev_battle01';
 
@@ -69,9 +69,9 @@ function makeItems(def, eventId, now) {
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Battle seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -79,7 +79,7 @@ module.exports = {
 
     const now = new Date();
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Battle Phase (8 Teams)',
       status: 'BATTLE',
@@ -107,7 +107,7 @@ module.exports = {
 
     for (let i = 0; i < TEAM_DEFS.length; i++) {
       const def = TEAM_DEFS[i];
-      await ClanWarsTeam.create({
+      await CFTeam.create({
         teamId: def.id,
         eventId: EVENT_ID,
         teamName: def.name,
@@ -131,10 +131,10 @@ module.exports = {
       });
     }
 
-    await ClanWarsTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
+    await CFTask.bulkCreate(tasks.map((t) => ({ ...t, createdAt: now, updatedAt: now })));
 
     const allItems = TEAM_DEFS.flatMap((def) => makeItems(def, EVENT_ID, now));
-    await ClanWarsItem.bulkCreate(allItems);
+    await CFItem.bulkCreate(allItems);
 
     console.log('✅ Dev Battle seeder complete! (8 teams, double-elimination bracket)');
     console.log(`   Event ID : ${EVENT_ID}`);
@@ -146,13 +146,13 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam, ClanWarsTask, ClanWarsItem, ClanWarsBattle } = models;
+    const { CFEvent, CFTeam, CFTask, CFItem, CFBattle } = models;
 
-    await ClanWarsBattle.destroy({ where: { eventId: EVENT_ID } });
-    await ClanWarsItem.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTask.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsTeam.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy( { where: { eventId: EVENT_ID } });
+    await CFBattle.destroy({ where: { eventId: EVENT_ID } });
+    await CFItem.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTask.destroy(  { where: { eventId: EVENT_ID } });
+    await CFTeam.destroy(  { where: { eventId: EVENT_ID } });
+    await CFEvent.destroy( { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Battle seeder undone.');
   },
 };

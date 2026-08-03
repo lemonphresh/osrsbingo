@@ -751,6 +751,9 @@ const NavBar = () => {
                       items: [
                         { label: 'View All Boards', to: '/boards' },
                         { label: 'View GR Events', to: '/gielinor-rush/active' },
+                        ...(isChampionForgeEnabled(user)
+                          ? [{ label: 'CF Battle Gallery', to: '/champion-forge/gallery' }]
+                          : []),
                       ],
                     },
                     {

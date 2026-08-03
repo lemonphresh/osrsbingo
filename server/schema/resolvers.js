@@ -3,12 +3,12 @@ const BingoBoardResolvers = require('./resolvers/BingoBoard');
 const BingoTileResolvers = require('./resolvers/BingoTile');
 const EditorInvitationResolvers = require('./resolvers/EditorInvitation');
 const CalendarResolvers = require('./resolvers/Calendar');
-const TreasureHuntResolvers = require('./resolvers/TreasureHunt');
-const TreasureHuntSubscriptions = require('./resolvers/TreasureHuntSubscriptions');
+const GielinorRushResolvers = require('./resolvers/GielinorRush');
+const GielinorRushSubscriptions = require('./resolvers/GielinorRushSubscriptions');
 const DraftRoomResolvers = require('./resolvers/DraftRoom');
 const DraftRoomSubscriptions = require('./resolvers/DraftRoomSubscriptions');
-const ClanWarsResolvers = require('./resolvers/ClanWars');
-const ClanWarsSubscriptions = require('./resolvers/ClanWarsSubscriptions');
+const CFResolvers = require('./resolvers/ChampionForge');
+const CFSubscriptions = require('./resolvers/ChampionForgeSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
 const fieldResolvers = require('./resolvers/FieldResolvers');
@@ -25,10 +25,10 @@ const resolvers = {
     ...CalendarResolvers.Query,
     ...EditorInvitationResolvers.Query,
     ...UserResolvers.Query,
-    ...TreasureHuntResolvers.Query,
+    ...GielinorRushResolvers.Query,
     ...SiteStats.Query,
     ...DraftRoomResolvers.Query,
-    ...ClanWarsResolvers.Query,
+    ...CFResolvers.Query,
     ...GroupDashboardResolvers.Query,
     ...RainbowBingoResolvers.Query,
   },
@@ -38,17 +38,17 @@ const resolvers = {
     ...CalendarResolvers.Mutation,
     ...EditorInvitationResolvers.Mutation,
     ...UserResolvers.Mutation,
-    ...TreasureHuntResolvers.Mutation,
+    ...GielinorRushResolvers.Mutation,
     ...SiteStats.Mutation,
     ...DraftRoomResolvers.Mutation,
-    ...ClanWarsResolvers.Mutation,
+    ...CFResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
     ...RainbowBingoResolvers.Mutation,
   },
   Subscription: {
-    ...TreasureHuntSubscriptions.Subscription,
+    ...GielinorRushSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
-    ...ClanWarsSubscriptions.ClanWarsSubscription,
+    ...CFSubscriptions.CFSubscription,
     ...RainbowBingoResolvers.Subscription,
   },
 
@@ -59,28 +59,28 @@ const resolvers = {
   BingoBoard: {
     ...fieldResolvers.BingoBoard,
   },
-  TreasureEvent: {
-    ...fieldResolvers.TreasureEvent,
+  GREvent: {
+    ...fieldResolvers.GREvent,
   },
-  TreasureTeam: {
-    ...fieldResolvers.TreasureTeam,
+  GRTeam: {
+    ...fieldResolvers.GRTeam,
   },
-  TreasureSubmission: {
-    ...fieldResolvers.TreasureSubmission,
+  GRSubmission: {
+    ...fieldResolvers.GRSubmission,
   },
-  ClanWarsEvent: {
-    ...ClanWarsResolvers.ClanWarsEvent,
-    ...fieldResolvers.ClanWarsEvent,
+  CFEvent: {
+    ...CFResolvers.CFEvent,
+    ...fieldResolvers.CFEvent,
   },
-  ClanWarsTeam: {
-    ...ClanWarsResolvers.ClanWarsTeam,
-    ...fieldResolvers.ClanWarsTeam,
+  CFTeam: {
+    ...CFResolvers.CFTeam,
+    ...fieldResolvers.CFTeam,
   },
-  ClanWarsSubmission: {
-    ...ClanWarsResolvers.ClanWarsSubmission,
+  CFSubmission: {
+    ...CFResolvers.CFSubmission,
   },
-  ClanWarsBattle: {
-    ...ClanWarsResolvers.ClanWarsBattle,
+  CFBattle: {
+    ...CFResolvers.CFBattle,
   },
   GroupDashboard: {
     ...GroupDashboardResolvers.GroupDashboard,

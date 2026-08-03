@@ -1,7 +1,7 @@
 import React from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
 import { useThemeColors } from '../../hooks/useThemeColors';
-import SubmissionsTab from '../../organisms/TreasureHunt/SubmissionsTab';
+import SubmissionsTab from '../../organisms/GielinorRush/SubmissionsTab';
 
 const noop = () => {};
 const hoursAgo = (h) => new Date(Date.now() - h * 3600000).toISOString();

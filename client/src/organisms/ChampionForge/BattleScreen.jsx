@@ -6,7 +6,7 @@ import {
   CLAN_WARS_BATTLE_UPDATED,
   SEND_BATTLE_EMOTE,
   BATTLE_EMOTE_RECEIVED,
-} from '../../graphql/clanWarsOperations';
+} from '../../graphql/cfOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import ChampionSprite from './ChampionSprite';
 import { BASE_SPRITES, getLayerSprite } from '../../assets/champion-forge/sprites/spriteRegistry';
@@ -127,7 +127,7 @@ export default function BattleScreen({
     variables: { battleId: battle?.battleId },
     skip: !battle?.battleId || isBattleOver,
     onData: ({ data }) => {
-      const update = data.data?.clanWarsBattleUpdated;
+      const update = data.data?.cfBattleUpdated;
       if (!update) return;
       setBattle(update.battle);
       if (update.latestEvent?.narrative) {

@@ -30,7 +30,7 @@ import {
 import { FaRocket, FaDiscord, FaQuestionCircle } from 'react-icons/fa';
 import { StoryLayout } from '../StoryLayout';
 
-// ─── Updated member shape to match TreasureTeamMember ────────────────────────
+// ─── Updated member shape to match GRTeamMember ────────────────────────
 const makeMember = (discordUserId, discordUsername, discordAvatar = null, username = null) => ({
   discordUserId,
   discordUsername,

@@ -1,7 +1,7 @@
 'use strict';
 
 const { EmbedBuilder } = require('discord.js');
-const { TILE_MAP } = require('../../server/utils/rainbowTiles');
+const { TILE_MAP } = require('../../server/utils/rainbow/rainbowTiles');
 const { graphqlRequest } = require('../utils/graphql');
 
 const COLOR_HEX = {

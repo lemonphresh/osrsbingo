@@ -27,7 +27,7 @@ import {
 const CHANGELOG_ENTRIES = [
   {
     version: '2.2.0',
-    date: 'April 2026',
+    date: isChampionForgeEnabled() ? 'September 2026' : 'Coming Soon',
     title: 'Champion Forge ⚔️',
     type: isChampionForgeEnabled() ? 'major' : 'upcoming',
     icon: FaFistRaised,
@@ -43,11 +43,26 @@ const CHANGELOG_ENTRIES = [
       'Single-elimination and double-elimination bracket support',
       'Live battle screen with real-time WebSocket updates and turn timer',
       'Battle replay: step through completed fights turn by turn',
+      'Battle Gallery: browse and rewatch completed tournament battles from any event',
       'Per-action CSS visual effects: slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs/debuffs, and more',
       'Web Audio API sound effects for every action',
       'Volume slider for battle sequences, persisted per user',
       'Admin/ref panel with pre-screenshot support and announcements channel config',
       'Event password integration for submission verification',
+    ],
+  },
+  {
+    version: '2.1.2',
+    date: 'July–August 2026',
+    title: 'Cleanup & Under the Hood',
+    type: 'improvement',
+    icon: FaRocket,
+    highlights: [
+      'Centralized content registry for all OSRS boss, skill, clue, and activity data. Group goal tracking is now more accurate and consistent across the site',
+      'Group dashboard boss and skill options now pull from the registry with correct WOM keys',
+      "Huge organization effort across all files, routes, and Discord bot commands. Now that's good dev QOL, baby!",
+      'Seeder safety overhaul: removed unfiltered bulkDelete calls that could have nuked real data if run on prod lol oop',
+      'Various nav and UI polish throughout',
     ],
   },
   {
@@ -421,7 +436,7 @@ export default function ChangelogPage() {
         </VStack>
 
         {/* Latest release callout */}
-        {isGielinorRushEnabled() && (
+        {(isChampionForgeEnabled() || isGielinorRushEnabled()) && (
           <Box
             bg="rgba(244, 211, 94, 0.1)"
             border="1px solid rgba(244, 211, 94, 0.3)"
@@ -435,31 +450,66 @@ export default function ChangelogPage() {
                 LATEST MAJOR RELEASE
               </Text>
             </HStack>
-            <Text color="white" fontWeight="semibold" fontSize="lg">
-              Gielinor Rush is here!
-            </Text>
-            <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
-              The new competitive game mode is finally live. Create maps, form teams, and race your
-              clanmates through OSRS challenges to claim the biggest GP pot. Months of work went
-              into this one, and I really hope you enjoy.
-            </Text>
-            <ChakraLink
-              href="/gielinor-rush"
-              display="inline-flex"
-              alignItems="center"
-              gap={2}
-              bg="#F4D35E"
-              color="#1a1a1a"
-              px={4}
-              py={2}
-              borderRadius="md"
-              fontWeight={600}
-              fontSize="sm"
-              mt={4}
-              _hover={{ bg: '#e5c654', textDecoration: 'none' }}
-            >
-              <FaGamepad /> Try Gielinor Rush
-            </ChakraLink>
+            {isChampionForgeEnabled() ? (
+              <>
+                <Text color="white" fontWeight="semibold" fontSize="lg">
+                  Champion Forge is here! ⚔️
+                </Text>
+                <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
+                  Run a full clan tournament right from the hub. Teams grind OSRS content to earn
+                  gear drops, outfit their champion with whatever they collected, then fight it out
+                  in a live turn-based bracket with crits, specials, consumables, and all. Every
+                  decision in the gathering phase shapes how your champion performs in battle. This
+                  is the most ambitious thing I've built for this site, and I'm really proud of it.
+                  I did all the pixel art, too!
+                </Text>
+                <ChakraLink
+                  href="/champion-forge"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={2}
+                  bg="#F4D35E"
+                  color="#1a1a1a"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                  fontWeight={600}
+                  fontSize="sm"
+                  mt={4}
+                  _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+                >
+                  <FaGamepad /> Start Forging
+                </ChakraLink>
+              </>
+            ) : (
+              <>
+                <Text color="white" fontWeight="semibold" fontSize="lg">
+                  Gielinor Rush is here!
+                </Text>
+                <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
+                  The new competitive game mode is finally live. Create maps, form teams, and race
+                  your clanmates through OSRS challenges to claim the biggest GP pot. Months of work
+                  went into this one, and I really hope you enjoy.
+                </Text>
+                <ChakraLink
+                  href="/gielinor-rush"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={2}
+                  bg="#F4D35E"
+                  color="#1a1a1a"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                  fontWeight={600}
+                  fontSize="sm"
+                  mt={4}
+                  _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+                >
+                  <FaGamepad /> Try Gielinor Rush
+                </ChakraLink>
+              </>
+            )}
           </Box>
         )}
 
@@ -475,7 +525,7 @@ export default function ChangelogPage() {
         >
           <VStack spacing={0}>
             <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
-              16+
+              21+
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">
               months
@@ -483,7 +533,7 @@ export default function ChangelogPage() {
           </VStack>
           <VStack spacing={0}>
             <Text fontSize={['xl', '2xl']} fontWeight="semibold" color="#F4D35E">
-              200+
+              600+
             </Text>
             <Text fontSize="xs" color="rgba(255,255,255,0.5)">
               commits

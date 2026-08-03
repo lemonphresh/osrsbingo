@@ -12,7 +12,7 @@ import {
   SliderTrack,
 } from '@chakra-ui/react';
 import { useToastContext } from '../../providers/ToastProvider';
-import { SET_TASK_PROGRESS } from '../../graphql/clanWarsOperations';
+import { SET_TASK_PROGRESS } from '../../graphql/cfOperations';
 
 // Admin-only slider/input to set numeric progress toward a task
 export default function TaskProgressEditor({

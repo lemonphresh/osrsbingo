@@ -21,9 +21,9 @@ const TEAM1_ID = 'cwt_draft_t1';
 module.exports = {
   async up(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam } = models;
+    const { CFEvent, CFTeam } = models;
 
-    const existing = await ClanWarsEvent.findByPk(EVENT_ID);
+    const existing = await CFEvent.findByPk(EVENT_ID);
     if (existing) {
       console.log('⚠️  Draft seeder already applied — skipping. Run undo first to re-seed.');
       return;
@@ -31,7 +31,7 @@ module.exports = {
 
     const now = new Date();
 
-    await ClanWarsEvent.create({
+    await CFEvent.create({
       eventId: EVENT_ID,
       eventName: 'Dev Draft Phase',
       status: 'DRAFT',
@@ -56,7 +56,7 @@ module.exports = {
     });
 
     // One team — not enough to launch (need 2)
-    await ClanWarsTeam.create({
+    await CFTeam.create({
       teamId: TEAM1_ID,
       eventId: EVENT_ID,
       teamName: 'The Bronze Pact',
@@ -80,10 +80,10 @@ module.exports = {
 
   async down(queryInterface) {
     const models = require('../models');
-    const { ClanWarsEvent, ClanWarsTeam } = models;
+    const { CFEvent, CFTeam } = models;
 
-    await ClanWarsTeam.destroy(  { where: { eventId: EVENT_ID } });
-    await ClanWarsEvent.destroy( { where: { eventId: EVENT_ID } });
+    await CFTeam.destroy(  { where: { eventId: EVENT_ID } });
+    await CFEvent.destroy( { where: { eventId: EVENT_ID } });
     console.log('✅ Dev Draft seeder undone.');
   },
 };

@@ -12,7 +12,7 @@
  *   DATABASE_URL=postgresql://lemon@localhost:5432/osrsbingo_local npx sequelize-cli db:seed:undo --seed 20260526000001-rainbow-completed-event.js
  */
 
-const { TILES, DEFAULT_TILE_GRAPH } = require('../../utils/rainbowTiles');
+const { TILES, DEFAULT_TILE_GRAPH } = require('../../utils/rainbow/rainbowTiles');
 
 const EVENT_ID = 'rb_seed_complete';
 const ALPHA_ID = 'rbt_seed_alpha';

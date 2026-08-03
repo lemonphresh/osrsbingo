@@ -1,7 +1,7 @@
 import React from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_NODES } from '../mocks/nodes';
-import EventSummaryPanel from '../../organisms/TreasureHunt/EventSummaryPanel';
+import EventSummaryPanel from '../../organisms/GielinorRush/EventSummaryPanel';
 
 const ALL_NODES = Object.values(MOCK_NODES);
 

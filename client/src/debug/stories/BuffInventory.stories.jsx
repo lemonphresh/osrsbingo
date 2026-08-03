@@ -2,7 +2,7 @@ import React from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_BUFFS } from '../mocks/buffs';
 import { useColorMode } from '@chakra-ui/react';
-import BuffInventory from '../../organisms/TreasureHunt/TreasureBuffInventory';
+import BuffInventory from '../../organisms/GielinorRush/GRBuffInventory';
 
 function BuffScenario({ title, description, tags, buffs }) {
   const { colorMode } = useColorMode();

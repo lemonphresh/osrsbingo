@@ -44,7 +44,7 @@ import {
   UNDO_TASK_COMPLETE,
   GET_CLAN_WARS_PRE_SCREENSHOTS,
   CLAN_WARS_PRESCREENSHOT_ADDED,
-} from '../../graphql/clanWarsOperations';
+} from '../../graphql/cfOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
 import AdminEventPanel from './AdminEventPanel';
@@ -176,9 +176,9 @@ export default function GatheringPhase({
     },
   });
 
-  const preScreenshots = prescreensData?.getClanWarsPreScreenshots ?? [];
+  const preScreenshots = prescreensData?.getCFPreScreenshots ?? [];
   const summaries = useMemo(
-    () => summariesData?.getClanWarsSubmissionSummaries ?? [],
+    () => summariesData?.getCFSubmissionSummaries ?? [],
     [summariesData]
   );
   const tasks = event.tasks ?? [];

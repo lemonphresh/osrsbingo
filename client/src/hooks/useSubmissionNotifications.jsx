@@ -96,7 +96,7 @@ export const useSubmissionNotifications = (
 
   const enableSound = useCallback(() => {
     setSoundEnabled(true);
-    localStorage.setItem('treasureHunt_sound_enabled', 'true');
+    localStorage.setItem('grush_sound_enabled', 'true');
     try {
       const ctx = getAudioContext();
       const now = ctx.currentTime;
@@ -108,22 +108,22 @@ export const useSubmissionNotifications = (
     } catch (err) {
       console.error('Failed to enable sound:', err);
       setSoundEnabled(false);
-      localStorage.setItem('treasureHunt_sound_enabled', 'false');
+      localStorage.setItem('grush_sound_enabled', 'false');
       toast({ title: 'Could not enable sound', status: 'warning', duration: 4000 });
     }
   }, [toast, getAudioContext, playTones]);
 
   const disableSound = useCallback(() => {
     setSoundEnabled(false);
-    localStorage.setItem('treasureHunt_sound_enabled', 'false');
+    localStorage.setItem('grush_sound_enabled', 'false');
     toast({ title: 'Sound disabled', status: 'info', duration: 3000 });
   }, [toast]);
 
   // ===== Load saved prefs =====
   useEffect(() => {
     if (!isBrowser) return;
-    const savedNotif = localStorage.getItem('treasureHunt_notifications_enabled');
-    const savedSound = localStorage.getItem('treasureHunt_sound_enabled');
+    const savedNotif = localStorage.getItem('grush_notifications_enabled');
+    const savedSound = localStorage.getItem('grush_sound_enabled');
     if (
       savedNotif === 'true' &&
       notificationsApiSupported &&
@@ -158,7 +158,7 @@ export const useSubmissionNotifications = (
       setPermission(perm);
       if (perm === 'granted') {
         setNotificationsEnabled(true);
-        localStorage.setItem('treasureHunt_notifications_enabled', 'true');
+        localStorage.setItem('grush_notifications_enabled', 'true');
         toast({
           title: 'Notifications Enabled',
           description: "You'll be notified of new submissions",
@@ -192,7 +192,7 @@ export const useSubmissionNotifications = (
 
   const disableNotifications = useCallback(() => {
     setNotificationsEnabled(false);
-    localStorage.setItem('treasureHunt_notifications_enabled', 'false');
+    localStorage.setItem('grush_notifications_enabled', 'false');
     toast({
       title: 'Notifications Disabled',
       description: 'You will no longer receive submission alerts',

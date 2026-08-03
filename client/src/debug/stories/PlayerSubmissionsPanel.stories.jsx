@@ -2,7 +2,7 @@ import React from 'react';
 import { StoryPage, StoryLayout } from '../StoryLayout';
 import { MOCK_SUBMISSIONS } from '../mocks/submissions';
 import { MOCK_NODES } from '../mocks/nodes';
-import PlayerSubmissionsPanel from '../../organisms/TreasureHunt/PlayerSubmissionsPanel';
+import PlayerSubmissionsPanel from '../../organisms/GielinorRush/PlayerSubmissionsPanel';
 
 const TEAM_ID = 'team_001';
 const NODES = Object.values(MOCK_NODES);

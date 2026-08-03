@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { Box, HStack, VStack, Text, Button, Badge } from '@chakra-ui/react';
-import { SET_CAPTAIN_READY } from '../../../graphql/clanWarsOperations';
+import { SET_CAPTAIN_READY } from '../../../graphql/cfOperations';
 import ConfirmModal from '../ConfirmModal';
 
 export default function MatchCard({
