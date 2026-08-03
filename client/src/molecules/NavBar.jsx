@@ -411,8 +411,8 @@ const NavBar = () => {
                 </Text>
                 {isChampionForgeEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also, event runners, go check out <strong>Champion Forge</strong>! Full clan
-                    tournaments are here! ⚔️
+                    Also, event runners, go check out <strong>Champion Forge</strong>! I've been
+                    hard at work on this one :) ⚔️
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
