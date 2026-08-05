@@ -11,6 +11,8 @@ const CFResolvers = require('./resolvers/ChampionForge');
 const CFSubscriptions = require('./resolvers/ChampionForgeSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
+const BSResolvers = require('./resolvers/Battleship');
+const BSSubscriptions = require('./resolvers/BattleshipSubscriptions');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 const { getActiveCFEventsForUser } = require('./resolvers/championForge/cfAssociatedEvents');
@@ -90,6 +92,7 @@ const resolvers = {
     ...CFResolvers.Query,
     ...GroupDashboardResolvers.Query,
     ...RainbowBingoResolvers.Query,
+    ...BSResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -103,12 +106,14 @@ const resolvers = {
     ...CFResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
     ...RainbowBingoResolvers.Mutation,
+    ...BSResolvers.Mutation,
   },
   Subscription: {
     ...GielinorRushSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
     ...CFSubscriptions.CFSubscription,
     ...RainbowBingoResolvers.Subscription,
+    ...BSSubscriptions.Subscription,
   },
 
   // type resolvers (field-level resolvers for nested data)
@@ -155,6 +160,24 @@ const resolvers = {
   },
   RainbowTeam: {
     ...RainbowBingoResolvers.RainbowTeam,
+  },
+  BSEvent: {
+    ...BSResolvers.BSEvent,
+  },
+  BSTeam: {
+    ...BSResolvers.BSTeam,
+  },
+  BSBoard: {
+    ...BSResolvers.BSBoard,
+  },
+  BSShipTemplate: {
+    ...BSResolvers.BSShipTemplate,
+  },
+  BSTile: {
+    ...BSResolvers.BSTile,
+  },
+  BSSubmission: {
+    ...BSResolvers.BSSubmission,
   },
 };
 

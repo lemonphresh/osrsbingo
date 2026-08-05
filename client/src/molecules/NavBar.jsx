@@ -470,7 +470,7 @@ const NavBar = () => {
       </Collapse>
 
       {/* Main Navigation Bar */}
-      <Box position="relative">
+      <Box position="relative" zIndex={20}>
         <Flex
           alignItems="center"
           backgroundColor={`rgba(50, 104, 107, 1)`}
