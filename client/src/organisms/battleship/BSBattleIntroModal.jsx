@@ -93,13 +93,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
       scrollBehavior="inside"
     >
       <ModalOverlay bg="blackAlpha.900" backdropFilter="blur(4px)" />
-      <ModalContent
-        bg={CARD}
-        border="1px solid"
-        borderColor={BORDER}
-        maxH="85vh"
-        overflow="hidden"
-      >
+      <ModalContent bg={CARD} border="1px solid" borderColor={BORDER} maxH="85vh" overflow="hidden">
         {/* Hero with grid background */}
         <Box position="relative" px={6} pt={6} pb={5} overflow="hidden">
           <Box
@@ -145,14 +139,13 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
           }}
         >
           <VStack align="stretch" spacing={5} pb={2} fontFamily="mono">
-
             {/* Objective */}
             <InfoCard accentColor={CYAN}>
               <SectionLabel>Objective</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7">
-                Sink all of the enemy team's ships before they sink yours. Every shot reveals a task.
-                Your team completes it whether you hit a ship or open ocean. Land hits on all of a
-                ship's cells and complete those tasks to sink it.
+                Sink all of the enemy team's ships before they sink yours. Every shot reveals a
+                task. Your team completes it whether you hit a ship or open ocean. Land hits on all
+                of a ship's cells and complete those tasks to sink it.
               </Text>
             </InfoCard>
 
@@ -161,7 +154,9 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
               <SectionLabel>Taking Shots</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
                 Fire at any unrevealed cell on the enemy board. When the cell is revealed,{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">your team</Text>{' '}
+                <Text as="span" fontWeight="bold" color="#e2e8f0">
+                  your team
+                </Text>{' '}
                 must complete the task shown. Every shot comes with a task.
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -179,20 +174,27 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
               <SectionLabel>Voting on Shots</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
                 You don't fire alone. Selecting a cell creates a{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">proposal</Text>. A popup appears
-                showing the target on a mini-board and asking your teammates to approve or veto.
+                <Text as="span" fontWeight="bold" color="#e2e8f0">
+                  proposal
+                </Text>
+                . A popup appears showing the target on a mini-board and asking your teammates to
+                approve or veto.
               </Text>
               <VStack align="stretch" spacing={2}>
                 <RuleRow badge="Approve" scheme="green">
                   Vote yes. Once enough teammates approve, the shot is locked in and fires.
                 </RuleRow>
                 <RuleRow badge="Veto" scheme="red">
-                  Any single teammate can veto. The shot is cancelled and your team proposes a new target.
+                  Any single teammate can veto. The shot is cancelled and your team proposes a new
+                  target.
                 </RuleRow>
                 <RuleRow badge="Expire" scheme="yellow">
                   Proposals expire after{' '}
-                  <Text as="span" fontWeight="bold" color="#e2e8f0">2 minutes</Text>. If nobody acts in
-                  time, the proposal cancels automatically so your team isn't stuck on an AFK teammate.
+                  <Text as="span" fontWeight="bold" color="#e2e8f0">
+                    2 minutes
+                  </Text>
+                  . If nobody acts in time, the proposal cancels automatically so your team isn't
+                  stuck on an AFK teammate.
                 </RuleRow>
               </VStack>
             </Box>
@@ -202,17 +204,20 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
               <SectionLabel>Skip Tokens</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
                 Your team starts with a limited number of{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">skip tokens</Text>. When you land an
-                ocean miss and don't want to complete that task, you can propose a skip. Your team
-                votes on it the same way as a shot proposal. If approved, one token is spent and the
-                task is bypassed so you can fire again sooner.
+                <Text as="span" fontWeight="bold" color="#e2e8f0">
+                  skip tokens
+                </Text>
+                . When you land an ocean miss and don't want to complete that task, you can propose
+                a skip. Your team votes on it the same way as a shot proposal. If approved, one
+                token is spent and the task is bypassed so you can fire again sooner.
               </Text>
               <VStack align="stretch" spacing={2}>
                 <RuleRow badge="Ocean Only" scheme="yellow">
                   Skip tokens can only be used on ocean (miss) tiles, not ship hits.
                 </RuleRow>
                 <RuleRow badge="Team Vote" scheme="yellow">
-                  The whole team votes before a skip is used. One veto cancels it and the token is preserved.
+                  The whole team votes before a skip is used. One veto cancels it and the token is
+                  preserved.
                 </RuleRow>
               </VStack>
             </Box>
@@ -260,11 +265,17 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
                 . The first team to sink all of the enemy's ships wins the campaign.
               </Text>
             </Box>
-
           </VStack>
         </ModalBody>
 
-        <ModalFooter flexDir="column" gap={3} borderTop="1px solid" borderColor={BORDER} px={6} py={4}>
+        <ModalFooter
+          flexDir="column"
+          gap={3}
+          borderTop="1px solid"
+          borderColor={BORDER}
+          px={6}
+          py={4}
+        >
           {!scrolledToBottom && (
             <Text
               fontSize="xs"

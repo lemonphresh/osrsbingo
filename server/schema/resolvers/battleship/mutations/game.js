@@ -6,12 +6,25 @@ const { pubsub } = require('../../../pubsub');
 const { runBSGameStart } = require('../../../../utils/battleship/bsGameStart');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
+const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
 
 const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
 
 module.exports = {
+  triggerBSWomSync: async (_, { eventId }, context) => {
+    const user = requireAuth(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user.id);
+    if (!event.womCompetitionId) throw new UserInputError('No WOM competition ID set for this event');
+    syncBSWomProgress(event).catch((err) => {
+      const logger = require('../../../../utils/logger');
+      logger.error({ err, eventId }, '[triggerBSWomSync] manual sync failed');
+    });
+    return true;
+  },
+
   startBSGame: async (_, { eventId }, context) => {
     const user = requireAuth(context);
     const { BSBoard } = getModels();
@@ -109,6 +122,11 @@ module.exports = {
         eventId,
       });
     }
+    // Capture WOM baseline for the defending team at reveal time (best-effort)
+    if (isHit && task) {
+      captureMetricBaseline(tile, task, event, targetTeam ?? null);
+    }
+
     if (isHit && targetTeam?.discordChannelId) {
       postBSHitOnShip({
         channelId: targetTeam.discordChannelId,

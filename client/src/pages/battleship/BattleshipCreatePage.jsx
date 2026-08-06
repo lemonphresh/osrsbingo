@@ -21,6 +21,7 @@ import { ArrowBackIcon } from '@chakra-ui/icons';
 import { CREATE_BS_EVENT } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
+import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 
 // ── Styled label ──────────────────────────────────────────────────────────
 
@@ -55,12 +56,13 @@ export default function BattleshipCreatePage() {
   const [cooldownMinutes, setCooldownMinutes] = useState(10);
   const [initialSkipTokens, setInitialSkipTokens] = useState(2);
   const [nameError, setNameError] = useState('');
+  const [createdEventId, setCreatedEventId] = useState(null);
 
   const [createBSEvent, { loading }] = useMutation(CREATE_BS_EVENT, {
     onCompleted: (data) => {
       const newEventId = data?.createBSEvent?.eventId;
-      showToast('Campaign created. Prepare your fleet.', 'success');
-      navigate(`/battleship/${newEventId}`);
+      showToast('Campaign created. Set up Discord to continue.', 'success');
+      setCreatedEventId(newEventId);
     },
     onError: (err) => {
       showToast(err.message ?? 'Failed to create campaign.', 'error');
@@ -345,6 +347,15 @@ export default function BattleshipCreatePage() {
           </Box>
         </VStack>
       </Box>
+
+      {createdEventId && (
+        <BSDiscordSetupModal
+          isOpen
+          eventId={createdEventId}
+          onConfirmed={() => navigate(`/battleship/${createdEventId}`)}
+          onClose={() => navigate(`/battleship/${createdEventId}`)}
+        />
+      )}
     </Box>
   );
 }

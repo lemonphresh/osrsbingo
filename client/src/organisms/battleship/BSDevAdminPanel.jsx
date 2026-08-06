@@ -1,20 +1,18 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Divider,
-  Input,
-  Select,
-} from '@chakra-ui/react';
-import { CREATE_BS_SUBMISSION, PROPOSE_BS_SHOT } from '../../graphql/bsOperations';
+import { Box, VStack, HStack, Text, Button, Divider, Input, Select } from '@chakra-ui/react';
+import { CREATE_BS_SUBMISSION } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { coordLabel, COL_LABELS } from '../../utils/battleship/bsClientHelpers';
 
-export function DevAdminPanel({ pendingTask, eventId, proposeShot, proposing, teams = [], cooldownMs = 0 }) {
+export function DevAdminPanel({
+  pendingTask,
+  eventId,
+  proposeShot,
+  proposing,
+  teams = [],
+  cooldownMs = 0,
+}) {
   const { showToast } = useToastContext();
   const [open, setOpen] = useState(false);
   const [fakeUsername, setFakeUsername] = useState('TestUser#1234');
@@ -218,7 +216,11 @@ export function DevAdminPanel({ pendingTask, eventId, proposeShot, proposing, te
                     fontFamily="mono"
                     isLoading={proposing}
                     isDisabled={cooldownMs > 0}
-                    title={cooldownMs > 0 ? `Cooldown: ${Math.ceil(cooldownMs / 1000 / 60)}m remaining` : undefined}
+                    title={
+                      cooldownMs > 0
+                        ? `Cooldown: ${Math.ceil(cooldownMs / 1000 / 60)}m remaining`
+                        : undefined
+                    }
                     onClick={() =>
                       proposeShot({
                         variables: {

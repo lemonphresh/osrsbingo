@@ -16,7 +16,11 @@ import {
   AccordionPanel,
   AccordionIcon,
 } from '@chakra-ui/react';
-import { UPDATE_BS_TEAM_MEMBERS, ADD_BS_TEAM } from '../../../graphql/bsOperations';
+import {
+  UPDATE_BS_TEAM_MEMBERS,
+  ADD_BS_TEAM,
+  UPDATE_BS_TEAM_DISCORD,
+} from '../../../graphql/bsOperations';
 import { GET_USER_BY_DISCORD_ID } from '../../../graphql/queries';
 import { useToastContext } from '../../../providers/ToastProvider';
 import DiscordMemberInput from '../../../molecules/DiscordMemberInput';
@@ -80,6 +84,8 @@ export function MemberTag({ discordId, onRemove, isUpdating }) {
 export function TeamCard({ team, allTeams, refetch }) {
   const { showToast } = useToastContext();
   const [pendingMemberId, setPendingMemberId] = useState('');
+  const [channelId, setChannelId] = useState(team.discordChannelId ?? '');
+  const [roleId, setRoleId] = useState(team.discordRoleId ?? '');
 
   const [updateMembers, { loading: updatingMembers }] = useMutation(UPDATE_BS_TEAM_MEMBERS, {
     onCompleted: () => {
@@ -89,6 +95,24 @@ export function TeamCard({ team, allTeams, refetch }) {
     },
     onError: (err) => showToast(err.message ?? 'Failed to update members.', 'error'),
   });
+
+  const [updateDiscord, { loading: updatingDiscord }] = useMutation(UPDATE_BS_TEAM_DISCORD, {
+    onCompleted: () => {
+      showToast('Discord channel saved.', 'success');
+      refetch();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to save Discord channel.', 'error'),
+  });
+
+  const handleSaveDiscord = () => {
+    updateDiscord({
+      variables: {
+        teamId: team.teamId,
+        discordChannelId: channelId.trim() || null,
+        discordRoleId: roleId.trim() || null,
+      },
+    });
+  };
 
   const members = team.members ?? [];
   const otherTeamMemberMap = new Map(
@@ -173,6 +197,83 @@ export function TeamCard({ team, allTeams, refetch }) {
             conflictTeam={pendingMemberId ? otherTeamMemberMap.get(pendingMemberId) ?? null : null}
             isDuplicateInForm={pendingMemberId ? members.includes(pendingMemberId) : false}
           />
+        </Box>
+
+        <Divider borderColor="#1a4028" />
+
+        <Box>
+          <Text
+            fontFamily="mono"
+            fontSize="10px"
+            color="#6b9e78"
+            letterSpacing="widest"
+            textTransform="uppercase"
+            mb={2}
+          >
+            Discord Channel
+          </Text>
+          <VStack align="stretch" spacing={2}>
+            <Box>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                CHANNEL ID
+              </Text>
+              <Input
+                value={channelId}
+                onChange={(e) => setChannelId(e.target.value)}
+                placeholder="i.e. 123456789012345678"
+                bg="#091a10"
+                border="1px solid"
+                borderColor={channelId ? '#22c55e' : '#1a4028'}
+                color="#d4f0da"
+                fontFamily="mono"
+                fontSize="sm"
+                size="sm"
+                _placeholder={{ color: '#3d6b4a' }}
+                _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
+                _hover={{ borderColor: '#1a5c2e' }}
+              />
+            </Box>
+            <Box>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                ROLE ID{' '}
+                <Text as="span" color="#2d4a35">
+                  (optional — bot will ping this role)
+                </Text>
+              </Text>
+              <Input
+                value={roleId}
+                onChange={(e) => setRoleId(e.target.value)}
+                placeholder="i.e. 123456789012345678"
+                bg="#091a10"
+                border="1px solid"
+                borderColor="#1a4028"
+                color="#d4f0da"
+                fontFamily="mono"
+                fontSize="sm"
+                size="sm"
+                _placeholder={{ color: '#3d6b4a' }}
+                _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
+                _hover={{ borderColor: '#1a5c2e' }}
+              />
+            </Box>
+            <Button
+              size="xs"
+              colorScheme="green"
+              variant="outline"
+              borderColor="#1a4028"
+              color="#4ade80"
+              fontFamily="mono"
+              fontSize="10px"
+              letterSpacing="wider"
+              textTransform="uppercase"
+              isLoading={updatingDiscord}
+              onClick={handleSaveDiscord}
+              alignSelf="flex-start"
+              _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
+            >
+              Save Channel
+            </Button>
+          </VStack>
         </Box>
       </VStack>
     </Box>
@@ -259,7 +360,7 @@ export function TeamsTab({ event, refetch }) {
                     </Text>
                   </Text>
                   <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
-                    3. Paste the 17–19 digit number (e.g.{' '}
+                    3. Paste the 17–19 digit number (i.e.{' '}
                     <Text as="span" color="#d4f0da">
                       123456789012345678
                     </Text>

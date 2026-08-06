@@ -132,3 +132,61 @@ export function formatCooldown(ms) {
   const seconds = totalSeconds % 60;
   return `${minutes}m ${seconds}s`;
 }
+
+// ── Task category helpers ─────────────────────────────────────────────────
+
+const MINIGAME_NAMES = new Set([
+  'Tempoross', 'Guardians of the Rift', 'Wintertodt', 'Zalcano',
+  'Barbarian Assault', 'Pest Control', 'Castle Wars',
+  'Fight Caves', 'Inferno', 'Colosseum',
+]);
+
+const CLUE_NAMES = new Set([
+  'Beginner Clues', 'Easy Clues', 'Medium Clues',
+  'Hard Clues', 'Elite Clues', 'Master Clues',
+]);
+
+const RAID_NAMES = new Set([
+  'Chambers of Xeric', 'Challenge Mode Chambers of Xeric',
+  'Theatre of Blood', 'Hard Mode Theatre of Blood',
+  'Tombs of Amascut', 'Tombs of Amascut (Expert)',
+]);
+
+export function getContentCategory(task) {
+  if (!task) return 'boss';
+  if (task.metricType === 'xp') return 'skill';
+  const name = task.bossOrSkill ?? task.label ?? '';
+  if (CLUE_NAMES.has(name)) return 'clue';
+  if (MINIGAME_NAMES.has(name)) return 'minigame';
+  if (RAID_NAMES.has(name)) return 'raid';
+  return 'boss';
+}
+
+export function groupedBossSkillOptions(tasks) {
+  const groups = { boss: [], raid: [], minigame: [], skill: [], clue: [] };
+  const seen = new Set();
+  for (const t of tasks) {
+    const name = t.bossOrSkill ?? t.label;
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    const cat = getContentCategory(t);
+    groups[cat].push(name);
+  }
+  for (const cat of Object.keys(groups)) {
+    groups[cat].sort((a, b) => a.localeCompare(b));
+  }
+  return groups;
+}
+
+export function metricOptionsForCategory(category) {
+  if (category === 'skill') return [{ value: 'xp', label: 'XP' }];
+  if (category === 'clue') return [{ value: 'kc', label: 'KC' }];
+  if (category === 'minigame') return [
+    { value: 'kc', label: 'KC' },
+    { value: 'unique', label: 'Uniques' },
+  ];
+  return [
+    { value: 'kc', label: 'Boss KC' },
+    { value: 'unique', label: 'Uniques' },
+  ];
+}

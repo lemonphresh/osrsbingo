@@ -37,7 +37,12 @@ import {
   BS_SUBMISSION_ADDED,
   BS_SUBMISSION_REVIEWED,
 } from '../../graphql/bsOperations';
-import { playSubmissionIncoming, playSubmissionApproved, playSubmissionDenied, warmUpAudio } from '../../utils/soundEngine';
+import {
+  playSubmissionIncoming,
+  playSubmissionApproved,
+  playSubmissionDenied,
+  warmUpAudio,
+} from '../../utils/soundEngine';
 
 const GREEN = '#4ade80';
 const DIM = '#6b9e78';
@@ -61,12 +66,16 @@ function TileProgressSlider({ tileId, initialProgress, onSave }) {
     setVal(initialProgress ?? 0);
   }, [initialProgress]);
 
-  const color = val >= 100 ? 'green' : 'cyan';
-
   return (
     <Box>
       <HStack justify="space-between" mb={2}>
-        <Text fontSize="xs" color={DIM} textTransform="uppercase" letterSpacing="wider" fontWeight="semibold">
+        <Text
+          fontSize="xs"
+          color={DIM}
+          textTransform="uppercase"
+          letterSpacing="wider"
+          fontWeight="semibold"
+        >
           Progress
         </Text>
         <Text fontSize="xs" color={val >= 100 ? '#4ade80' : '#22d3ee'} fontWeight="bold">
@@ -103,28 +112,31 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
   const subLoadKey = sub.submissionId;
 
   const borderColor = isDenied
-    ? (colorblindMode ? '#78350f' : '#7f1d1d')
+    ? colorblindMode
+      ? '#78350f'
+      : '#7f1d1d'
     : isApproved
-      ? (colorblindMode ? '#1e3a8a' : '#14532d')
-      : '#1a4028';
+    ? colorblindMode
+      ? '#1e3a8a'
+      : '#14532d'
+    : '#1a4028';
 
-  const badgeScheme = isPending ? 'yellow' : isApproved ? (colorblindMode ? 'blue' : 'green') : (colorblindMode ? 'orange' : 'red');
+  const badgeScheme = isPending
+    ? 'yellow'
+    : isApproved
+    ? colorblindMode
+      ? 'blue'
+      : 'green'
+    : colorblindMode
+    ? 'orange'
+    : 'red';
 
   return (
-    <Box
-      bg="#091a10"
-      border="1px solid"
-      borderColor={borderColor}
-      borderRadius="md"
-      p={3}
-    >
+    <Box bg="#091a10" border="1px solid" borderColor={borderColor} borderRadius="md" p={3}>
       <HStack justify="space-between" align="flex-start" mb={2}>
         <VStack align="flex-start" spacing={0.5} flex={1} minW={0}>
           <HStack spacing={2} flexWrap="wrap">
-            <Badge
-              colorScheme={badgeScheme}
-              fontSize="xs"
-            >
+            <Badge colorScheme={badgeScheme} fontSize="xs">
               {sub.status}
             </Badge>
             {sub.discordUsername && (
@@ -145,10 +157,14 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
                 View in Discord ↗
               </Text>
             )}
-            <Text fontSize="xs" color={DIM}>{formatTime(sub.submittedAt)}</Text>
+            <Text fontSize="xs" color={DIM}>
+              {formatTime(sub.submittedAt)}
+            </Text>
           </HStack>
           {isDenied && sub.denialReason && (
-            <Text fontSize="xs" color="#fca5a5" mt={1}>Reason: {sub.denialReason}</Text>
+            <Text fontSize="xs" color="#fca5a5" mt={1}>
+              Reason: {sub.denialReason}
+            </Text>
           )}
         </VStack>
 
@@ -220,7 +236,15 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
             resize="none"
           />
           <HStack justify="flex-end" spacing={2}>
-            <Button size="xs" variant="ghost" colorScheme="gray" onClick={() => { setDenying(false); setDenyReason(''); }}>
+            <Button
+              size="xs"
+              variant="ghost"
+              colorScheme="gray"
+              onClick={() => {
+                setDenying(false);
+                setDenyReason('');
+              }}
+            >
               Cancel
             </Button>
             <Button
@@ -244,7 +268,16 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
 
 // ── Tile group ─────────────────────────────────────────────────────────────
 
-function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadingId, guildId, colorblindMode }) {
+function TileGroup({
+  group,
+  onApprove,
+  onDeny,
+  onComplete,
+  onSetProgress,
+  loadingId,
+  guildId,
+  colorblindMode,
+}) {
   const { tileId, tileLabel, teamName, teamColor, submissions, tile } = group;
   const [confirming, setConfirming] = useState(false);
   const [localProgress, setLocalProgress] = useState(tile?.progress ?? 0);
@@ -281,18 +314,30 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
         <HStack flex={1} justify="space-between" align="center" mr={2}>
           <HStack spacing={2} flexWrap="wrap">
             <Box w={2} h={2} borderRadius="full" bg={dotColor} flexShrink={0} />
-            <Text fontSize="xs" fontFamily="mono" color={GREEN} fontWeight="bold" letterSpacing="wider">
+            <Text
+              fontSize="xs"
+              fontFamily="mono"
+              color={GREEN}
+              fontWeight="bold"
+              letterSpacing="wider"
+            >
               {coord}
             </Text>
             <Text fontSize="sm" fontWeight="semibold" color="#d4f0da">
               {tileLabel ?? tileId}
             </Text>
-            <Text fontSize="xs" color={DIM}>{teamName}</Text>
+            <Text fontSize="xs" color={DIM}>
+              {teamName}
+            </Text>
             {pending.length > 0 && (
-              <Badge colorScheme="yellow" fontSize="xs">{pending.length} pending</Badge>
+              <Badge colorScheme="yellow" fontSize="xs">
+                {pending.length} pending
+              </Badge>
             )}
             {isComplete && (
-              <Badge colorScheme="green" fontSize="xs">complete</Badge>
+              <Badge colorScheme="green" fontSize="xs">
+                complete
+              </Badge>
             )}
           </HStack>
 
@@ -304,11 +349,19 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
                     size="xs"
                     colorScheme="green"
                     isLoading={loadingId === tileId + '-complete'}
-                    onClick={() => { setConfirming(false); onComplete(tileId); }}
+                    onClick={() => {
+                      setConfirming(false);
+                      onComplete(tileId);
+                    }}
                   >
                     Confirm
                   </Button>
-                  <Button size="xs" variant="ghost" colorScheme="gray" onClick={() => setConfirming(false)}>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    colorScheme="gray"
+                    onClick={() => setConfirming(false)}
+                  >
                     Cancel
                   </Button>
                 </HStack>
@@ -334,13 +387,23 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
             <TileProgressSlider
               tileId={tileId}
               initialProgress={progress}
-              onSave={(tid, v) => { setLocalProgress(v); onSetProgress(tid, v); }}
+              onSave={(tid, v) => {
+                setLocalProgress(v);
+                onSetProgress(tid, v);
+              }}
             />
           )}
 
           {pending.length > 0 && (
             <Box>
-              <Text fontSize="xs" color="#fbbf24" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              <Text
+                fontSize="xs"
+                color="#fbbf24"
+                fontWeight="semibold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
                 Pending ({pending.length})
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -361,7 +424,14 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
 
           {approved.length > 0 && (
             <Box>
-              <Text fontSize="xs" color={colorblindMode ? '#60a5fa' : '#4ade80'} fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              <Text
+                fontSize="xs"
+                color={colorblindMode ? '#60a5fa' : '#4ade80'}
+                fontWeight="semibold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
                 Approved ({approved.length})
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -382,7 +452,14 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
 
           {denied.length > 0 && (
             <Box>
-              <Text fontSize="xs" color={colorblindMode ? '#fb923c' : '#f87171'} fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              <Text
+                fontSize="xs"
+                color={colorblindMode ? '#fb923c' : '#f87171'}
+                fontWeight="semibold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
                 Denied ({denied.length})
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -448,14 +525,20 @@ export default function BattleshipRefsPage() {
     setStickyTileIds((prev) => new Set([...prev, tileId]));
     if (stickyTimersRef.current[tileId]) clearTimeout(stickyTimersRef.current[tileId]);
     stickyTimersRef.current[tileId] = setTimeout(() => {
-      setStickyTileIds((prev) => { const next = new Set(prev); next.delete(tileId); return next; });
+      setStickyTileIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tileId);
+        return next;
+      });
       delete stickyTimersRef.current[tileId];
     }, 8000);
   }, []);
 
   useEffect(() => {
     const timers = stickyTimersRef.current;
-    return () => { Object.values(timers).forEach(clearTimeout); };
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, []);
 
   const event = eventData?.getBSEvent;
@@ -507,7 +590,9 @@ export default function BattleshipRefsPage() {
       map.get(sub.tileId).submissions.push(sub);
     }
 
-    const active = [], reviewed = [], completed = [];
+    const active = [],
+      reviewed = [],
+      completed = [];
     for (const group of map.values()) {
       if (group.tile?.taskCompleted) {
         completed.push(group);
@@ -527,7 +612,11 @@ export default function BattleshipRefsPage() {
   }, [subsData, event, stickyTileIds]);
 
   const totalPending = useMemo(
-    () => activeGroups.reduce((n, g) => n + g.submissions.filter((s) => s.status === 'PENDING').length, 0),
+    () =>
+      activeGroups.reduce(
+        (n, g) => n + g.submissions.filter((s) => s.status === 'PENDING').length,
+        0
+      ),
     [activeGroups]
   );
 
@@ -583,7 +672,9 @@ export default function BattleshipRefsPage() {
 
   useEffect(() => {
     document.title = totalPending > 0 ? `(${totalPending}) BS Refs` : 'Battleship Refs';
-    return () => { document.title = 'OSRS Bingo Hub'; };
+    return () => {
+      document.title = 'OSRS Bingo Hub';
+    };
   }, [totalPending]);
 
   const handleApprove = async (submissionId) => {
@@ -607,7 +698,9 @@ export default function BattleshipRefsPage() {
     const tileId = subsData?.submissions?.find((s) => s.submissionId === submissionId)?.tileId;
     if (tileId) addStickyTile(tileId);
     try {
-      await doReview({ variables: { submissionId, approved: false, denialReason: denialReason || null } });
+      await doReview({
+        variables: { submissionId, approved: false, denialReason: denialReason || null },
+      });
       if (soundEnabled) playSubmissionDenied();
       showToast('Submission denied', 'info');
       await refetchSubs();
@@ -655,7 +748,13 @@ export default function BattleshipRefsPage() {
         <VStack spacing={3}>
           <Text fontSize="2xl">🔒</Text>
           <Text color={DIM}>You don't have access to this page.</Text>
-          <Button as={RouterLink} to={`/battleship/${eventId}`} size="sm" colorScheme="green" variant="ghost">
+          <Button
+            as={RouterLink}
+            to={`/battleship/${eventId}`}
+            size="sm"
+            colorScheme="green"
+            variant="ghost"
+          >
             Back to Event
           </Button>
         </VStack>
@@ -666,7 +765,6 @@ export default function BattleshipRefsPage() {
   return (
     <Box minH="100vh" bg="#060f0a" color="#d4f0da" pt="56px" pb={8} px={{ base: 3, md: 6 }}>
       <VStack align="stretch" spacing={6} maxW="900px" mx="auto">
-
         {/* Header */}
         <HStack justify="space-between" align="flex-start" flexWrap="wrap" gap={3}>
           <VStack align="flex-start" spacing={1}>
@@ -681,7 +779,9 @@ export default function BattleshipRefsPage() {
               )}
             </HStack>
             {event && (
-              <Text color={DIM} fontSize="sm">{event.eventName}</Text>
+              <Text color={DIM} fontSize="sm">
+                {event.eventName}
+              </Text>
             )}
           </VStack>
 
@@ -740,14 +840,31 @@ export default function BattleshipRefsPage() {
           fontSize="sm"
           color={DIM}
         >
-          <Text fontWeight="semibold" color="#d4f0da" mb={2}>How reffing works</Text>
+          <Text fontWeight="semibold" color="#d4f0da" mb={2}>
+            How reffing works
+          </Text>
           <VStack align="stretch" spacing={2}>
-            <Text>Submissions come in from Discord when a team completes a tile task. Teams are paused between shots until a ref approves and marks the tile complete.</Text>
             <Text>
-              <Text as="span" color="#22d3ee" fontWeight="semibold">Approve</Text> a submission once you've verified the screenshot. Denied submissions can be resubmitted.
+              Submissions come in from Discord when a team completes a tile task. Teams are paused
+              between shots until a ref approves and marks the tile complete.
             </Text>
             <Text>
-              Use the <Text as="span" color="#d4f0da" fontWeight="semibold">progress slider</Text> to reflect how far the team is through a multi-step task. Set to 100% and click <Text as="span" color={GREEN} fontWeight="semibold">Mark Complete</Text> once verified.
+              <Text as="span" color="#22d3ee" fontWeight="semibold">
+                Approve
+              </Text>{' '}
+              a submission once you've verified the screenshot. Denied submissions can be
+              resubmitted.
+            </Text>
+            <Text>
+              Use the{' '}
+              <Text as="span" color="#d4f0da" fontWeight="semibold">
+                progress slider
+              </Text>{' '}
+              to reflect how far the team is through a multi-step task. Set to 100% and click{' '}
+              <Text as="span" color={GREEN} fontWeight="semibold">
+                Mark Complete
+              </Text>{' '}
+              once verified.
             </Text>
           </VStack>
         </Box>
@@ -775,17 +892,25 @@ export default function BattleshipRefsPage() {
         {/* Submission groups */}
         <Box>
           <HStack mb={3} spacing={2}>
-            <Heading size="sm" color={DIM} fontFamily="mono">SUBMISSIONS</Heading>
+            <Heading size="sm" color={DIM} fontFamily="mono">
+              SUBMISSIONS
+            </Heading>
             {totalPending > 0 && (
-              <Badge colorScheme="yellow" borderRadius="full">{totalPending} pending</Badge>
+              <Badge colorScheme="yellow" borderRadius="full">
+                {totalPending} pending
+              </Badge>
             )}
           </HStack>
 
-          {activeGroups.length === 0 && reviewedGroups.length === 0 && completedGroups.length === 0 && (
-            <Center py={10}>
-              <Text color={DIM} fontFamily="mono" fontSize="sm">NO SUBMISSIONS YET</Text>
-            </Center>
-          )}
+          {activeGroups.length === 0 &&
+            reviewedGroups.length === 0 &&
+            completedGroups.length === 0 && (
+              <Center py={10}>
+                <Text color={DIM} fontFamily="mono" fontSize="sm">
+                  NO SUBMISSIONS YET
+                </Text>
+              </Center>
+            )}
 
           {/* Active: has pending submissions */}
           {sortedActiveGroups.length > 0 && (
@@ -793,7 +918,9 @@ export default function BattleshipRefsPage() {
               allowMultiple
               index={openIndices}
               onChange={(newIndices) =>
-                setOpenKeys(new Set(newIndices.map((i) => sortedActiveGroups[i]?.tileId).filter(Boolean)))
+                setOpenKeys(
+                  new Set(newIndices.map((i) => sortedActiveGroups[i]?.tileId).filter(Boolean))
+                )
               }
             >
               {sortedActiveGroups.map((group) => (
@@ -814,16 +941,22 @@ export default function BattleshipRefsPage() {
 
           {/* Reviewed: all approved/denied, not yet completed */}
           {reviewedGroups.length > 0 && (
-            <Accordion
-              allowToggle
-              mt={2}
-              onChange={() => {}}
-            >
+            <Accordion allowToggle mt={2} onChange={() => {}}>
               <AccordionItem border="1px solid" borderColor="#1a4028" borderRadius="md">
-                <AccordionButton px={4} py={3} bg="#091a10" _hover={{ bg: '#0e2418' }} borderRadius="md">
+                <AccordionButton
+                  px={4}
+                  py={3}
+                  bg="#091a10"
+                  _hover={{ bg: '#0e2418' }}
+                  borderRadius="md"
+                >
                   <HStack flex={1} spacing={2}>
-                    <Text fontSize="sm" fontWeight="semibold" color="#22d3ee">Active Tiles</Text>
-                    <Badge colorScheme="cyan" fontSize="xs">{reviewedGroups.length}</Badge>
+                    <Text fontSize="sm" fontWeight="semibold" color="#22d3ee">
+                      Active Tiles
+                    </Text>
+                    <Badge colorScheme="cyan" fontSize="xs">
+                      {reviewedGroups.length}
+                    </Badge>
                   </HStack>
                   <AccordionIcon color={DIM} />
                 </AccordionButton>
@@ -834,7 +967,9 @@ export default function BattleshipRefsPage() {
                       .map((g, i) => (reviewedOpenKeys.has(g.tileId) ? i : null))
                       .filter((i) => i !== null)}
                     onChange={(newIndices) =>
-                      setReviewedOpenKeys(new Set(newIndices.map((i) => reviewedGroups[i]?.tileId).filter(Boolean)))
+                      setReviewedOpenKeys(
+                        new Set(newIndices.map((i) => reviewedGroups[i]?.tileId).filter(Boolean))
+                      )
                     }
                   >
                     {reviewedGroups.map((group) => (
@@ -857,16 +992,22 @@ export default function BattleshipRefsPage() {
 
           {/* Completed tiles */}
           {completedGroups.length > 0 && (
-            <Accordion
-              allowToggle
-              mt={2}
-              onChange={() => {}}
-            >
+            <Accordion allowToggle mt={2} onChange={() => {}}>
               <AccordionItem border="1px solid" borderColor="#14532d" borderRadius="md">
-                <AccordionButton px={4} py={3} bg="#091a10" _hover={{ bg: '#0e2418' }} borderRadius="md">
+                <AccordionButton
+                  px={4}
+                  py={3}
+                  bg="#091a10"
+                  _hover={{ bg: '#0e2418' }}
+                  borderRadius="md"
+                >
                   <HStack flex={1} spacing={2}>
-                    <Text fontSize="sm" fontWeight="semibold" color={GREEN}>Completed Tiles</Text>
-                    <Badge colorScheme="green" fontSize="xs">{completedGroups.length}</Badge>
+                    <Text fontSize="sm" fontWeight="semibold" color={GREEN}>
+                      Completed Tiles
+                    </Text>
+                    <Badge colorScheme="green" fontSize="xs">
+                      {completedGroups.length}
+                    </Badge>
                   </HStack>
                   <AccordionIcon color={DIM} />
                 </AccordionButton>
@@ -875,7 +1016,9 @@ export default function BattleshipRefsPage() {
                     allowMultiple
                     index={completedOpenIndices}
                     onChange={(newIndices) =>
-                      setCompletedOpenKeys(new Set(newIndices.map((i) => completedGroups[i]?.tileId).filter(Boolean)))
+                      setCompletedOpenKeys(
+                        new Set(newIndices.map((i) => completedGroups[i]?.tileId).filter(Boolean))
+                      )
                     }
                   >
                     {completedGroups.map((group) => (

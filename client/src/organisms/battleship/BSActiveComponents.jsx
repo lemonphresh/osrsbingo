@@ -1,6 +1,11 @@
 import React from 'react';
 import { Box, VStack, HStack, Text, Badge, Tooltip } from '@chakra-ui/react';
-import { cooldownRemaining, formatCooldown, coordLabel, timeAgo } from '../../utils/battleship/bsClientHelpers';
+import {
+  cooldownRemaining,
+  formatCooldown,
+  coordLabel,
+  timeAgo,
+} from '../../utils/battleship/bsClientHelpers';
 
 export function TeamStatusCard({ team, cooldownMinutes, isViewing }) {
   const cooldownMs = cooldownRemaining(team.lastShotAt, cooldownMinutes);
@@ -67,7 +72,13 @@ export function TeamStatusCard({ team, cooldownMinutes, isViewing }) {
             placement="top"
             hasArrow
           >
-            <Text fontFamily="mono" fontSize="xs" color="#6b9e78" cursor="help" textDecoration="underline dotted">
+            <Text
+              fontFamily="mono"
+              fontSize="xs"
+              color="#6b9e78"
+              cursor="help"
+              textDecoration="underline dotted"
+            >
               Skip tokens
             </Text>
           </Tooltip>

@@ -25,10 +25,10 @@ export function ProposalMiniBoard({ opponentTiles, proposedRow, proposedCol, col
   const tileMap = {};
   for (const t of opponentTiles) tileMap[`${t.row},${t.col}`] = t;
 
-  const proposedBg     = colorblindMode ? '#78350f' : '#7f1d1d';
+  const proposedBg = colorblindMode ? '#78350f' : '#7f1d1d';
   const proposedBorder = colorblindMode ? '#f59e0b' : '#ef4444';
-  const hitBg          = colorblindMode ? '#92400e' : '#991b1b';
-  const pulseRgb       = colorblindMode ? '245,158,11' : '239,68,68';
+  const hitBg = colorblindMode ? '#92400e' : '#991b1b';
+  const pulseRgb = colorblindMode ? '245,158,11' : '239,68,68';
 
   return (
     <Box
@@ -77,7 +77,7 @@ export function ProposalMiniBoard({ opponentTiles, proposedRow, proposedCol, col
             let bg = '#0a1f11';
             if (isProposed) bg = proposedBg;
             else if (isHit) bg = hitBg;
-            else if (isMiss) bg = '#1e3a28';
+            else if (isMiss) bg = '#2d3748';
             return (
               <Box
                 key={col}
@@ -103,7 +103,18 @@ export function ProposalMiniBoard({ opponentTiles, proposedRow, proposedCol, col
                 }
               >
                 {isHit && <Text fontSize="8px">💥</Text>}
-                {isMiss && <Box w="4px" h="4px" borderRadius="full" bg="#3d6b4a" />}
+                {isMiss && (
+                  <Text
+                    fontFamily="mono"
+                    fontSize="8px"
+                    fontWeight="bold"
+                    color="#9ca3af"
+                    lineHeight="1"
+                    userSelect="none"
+                  >
+                    X
+                  </Text>
+                )}
                 {isProposed && <Text fontSize="8px">🎯</Text>}
               </Box>
             );
@@ -172,10 +183,10 @@ export function ProposalModal({
   const countdownUrgent = secondsLeft <= 30;
   const countdownPct = Math.min(100, (secondsLeft / PROPOSAL_TTL_S) * 100);
 
-  const rejectedColor  = colorblindMode ? '#f59e0b' : '#ef4444';
-  const rejectedBg     = colorblindMode ? '#1a0e00' : '#1c0a0a';
+  const rejectedColor = colorblindMode ? '#f59e0b' : '#ef4444';
+  const rejectedBg = colorblindMode ? '#1a0e00' : '#1c0a0a';
   const rejectedBorder = colorblindMode ? '#78350f' : '#7f1d1d';
-  const rejectedText   = colorblindMode ? '#fcd34d' : '#f87171';
+  const rejectedText = colorblindMode ? '#fcd34d' : '#f87171';
 
   return (
     <Modal isOpen onClose={onClose} isCentered size="lg">
@@ -242,7 +253,13 @@ export function ProposalModal({
             {isPending && (
               <Box>
                 <HStack justify="space-between" mb={1}>
-                  <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wider" textTransform="uppercase">
+                  <Text
+                    fontFamily="mono"
+                    fontSize="10px"
+                    color="#6b9e78"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
                     Expires in
                   </Text>
                   <Text
@@ -404,8 +421,16 @@ export function ProposalModal({
                 onClick={onFire}
                 sx={{
                   '@keyframes firePulse': {
-                    '0%,100%': { boxShadow: `0 0 8px 2px rgba(${colorblindMode ? '245,158,11' : '239,68,68'},0.6)` },
-                    '50%': { boxShadow: `0 0 20px 6px rgba(${colorblindMode ? '245,158,11' : '239,68,68'},0.3)` },
+                    '0%,100%': {
+                      boxShadow: `0 0 8px 2px rgba(${
+                        colorblindMode ? '245,158,11' : '239,68,68'
+                      },0.6)`,
+                    },
+                    '50%': {
+                      boxShadow: `0 0 20px 6px rgba(${
+                        colorblindMode ? '245,158,11' : '239,68,68'
+                      },0.3)`,
+                    },
                   },
                   animation: 'firePulse 1s ease-in-out infinite',
                 }}

@@ -8,12 +8,11 @@ const ROW_COUNT = 10;
 const COL_COUNT = 10;
 
 const CELL_BG = {
-  ocean:     '#060f0a', // unrevealed
-  ship:      '#1a4028', // own ship, unrevealed
-  miss:      '#1a3a28', // shot ocean, task pending
-  miss_done: '#0a2019', // shot ocean, task completed
-  hit:       '#c0392b', // shot ship, task pending
-  hit_done:  '#1a6b3c', // shot ship, task completed
+  ocean:    '#060f0a', // unrevealed
+  ship:     '#1a4028', // own ship, unrevealed
+  miss:     '#2d3748', // shot ocean
+  hit:      '#c0392b', // shot ship, task pending
+  hit_done: '#1a6b3c', // shot ship, task completed
 };
 
 const CELL_BG_CB = {
@@ -27,9 +26,8 @@ const CELL_BG_CB = {
 function getCellState(tile, showShips) {
   if (!tile) return 'ocean';
   if (tile.isShot) {
-    const done = tile.taskCompleted || tile.skipped;
-    if (!tile.shipType) return done ? 'miss_done' : 'miss';
-    return done ? 'hit_done' : 'hit';
+    if (!tile.shipType) return 'miss';
+    return (tile.taskCompleted || tile.skipped) ? 'hit_done' : 'hit';
   }
   if (showShips && tile.shipType) return 'ship';
   return 'ocean';
@@ -81,7 +79,7 @@ function MissX() {
       fontFamily="mono"
       fontSize="13px"
       fontWeight="bold"
-      color="#4a5568"
+      color="#9ca3af"
       lineHeight="1"
       userSelect="none"
     >
@@ -103,7 +101,7 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
   if (isHighlighted && canFire) borderColor = '#22c55e';
   if (state === 'hit')      borderColor = colorblindMode ? '#f59e0b' : '#e74c3c';
   if (state === 'hit_done') borderColor = colorblindMode ? '#60a5fa' : '#27ae60';
-  if (state === 'miss_done') borderColor = '#1e4028';
+  if (state === 'miss')     borderColor = '#4b5563';
   if (isRadar) borderColor = '#f97316';
 
   return (
@@ -219,28 +217,19 @@ export default function BSGrid({
       <VStack spacing={1} pt={3} align="flex-start">
         <HStack spacing={3} flexWrap="wrap">
           <LegendDot color={palette.ocean} label="Ocean" />
-          <LegendDot color={palette.miss} label="Miss" borderColor="#1a4028">
-            <Text fontFamily="mono" fontSize="7px" color="#4a5568" lineHeight="1" userSelect="none">x</Text>
+          <LegendDot color={palette.miss} label="Miss" borderColor="#4b5563">
+            <Text fontFamily="mono" fontSize="7px" color="#9ca3af" lineHeight="1" userSelect="none">x</Text>
           </LegendDot>
+          <LegendDot color={palette.hit} label={colorblindMode ? 'Hit (amber)' : 'Hit'} borderColor={colorblindMode ? '#f59e0b' : '#e74c3c'} />
+          <LegendDot color={palette.hit_done} label={colorblindMode ? 'Hit done (blue)' : 'Hit done'} borderColor={colorblindMode ? '#60a5fa' : '#27ae60'} />
           {showShips && <LegendDot color={palette.ship} label="Ship" />}
         </HStack>
         <HStack spacing={1} flexWrap="wrap">
           <Text fontFamily="mono" fontSize="10px" color="#475569" letterSpacing="wide" mr={1}>
-            Current:
+            Radar:
           </Text>
           <LegendDot color={palette.miss} label="ocean" borderColor="#f97316" />
           <LegendDot color={palette.hit} label={colorblindMode ? 'ship (amber)' : 'ship'} borderColor="#f97316" />
-        </HStack>
-        <HStack spacing={1} flexWrap="wrap">
-          <Text fontFamily="mono" fontSize="10px" color="#475569" letterSpacing="wide" mr={1}>
-            Completed:
-          </Text>
-          <LegendDot color={palette.miss_done} label="ocean" borderColor="#1e4028" />
-          <LegendDot
-            color={palette.hit_done}
-            label={colorblindMode ? 'ship (blue)' : 'ship'}
-            borderColor={colorblindMode ? '#60a5fa' : '#27ae60'}
-          />
         </HStack>
       </VStack>
     </VStack>

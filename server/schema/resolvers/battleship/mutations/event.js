@@ -3,6 +3,7 @@
 const { getModels, requireAuth, requireAdmin, getEventOrThrow } = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { generateDefaultBSTasks, SHIP_TEMPLATE_CONTENT_IDS } = require('../../../../utils/battleship/bsDefaultTasks');
+const { UserInputError } = require('apollo-server-express');
 
 module.exports = {
   createBSEvent: async (_, { input }, context) => {
@@ -68,6 +69,7 @@ module.exports = {
       ...(input.cooldownMinutes != null && { cooldownMinutes: input.cooldownMinutes }),
       ...(input.guildId != null && { guildId: input.guildId }),
       ...(input.announcementsChannelId != null && { announcementsChannelId: input.announcementsChannelId }),
+      ...(input.womCompetitionId != null && { womCompetitionId: input.womCompetitionId || null }),
     });
     return event;
   },
@@ -125,10 +127,18 @@ module.exports = {
 
   startBSPlacementPhase: async (_, { eventId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard } = getModels();
+    const { BSBoard, BSTeam } = getModels();
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
     if (event.status !== 'DRAFT') throw new Error('Event must be in DRAFT status to start placement');
+
+    const teams = await BSTeam.findAll({ where: { eventId } });
+    const missingChannel = teams.find((t) => !t.discordChannelId);
+    if (missingChannel) {
+      throw new UserInputError(
+        `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it in the Admin page before starting.`,
+      );
+    }
 
     const now = new Date();
     const endsAt = new Date(now.getTime() + event.placementPhaseHours * 60 * 60 * 1000);
@@ -140,8 +150,6 @@ module.exports = {
     });
 
     // Ensure boards exist for all teams
-    const { BSTeam } = getModels();
-    const teams = await BSTeam.findAll({ where: { eventId } });
     for (const team of teams) {
       const existing = await BSBoard.findOne({ where: { teamId: team.teamId } });
       if (!existing) {
@@ -151,6 +159,19 @@ module.exports = {
           teamId: team.teamId,
         });
       }
+    }
+
+    // Announce placement phase to each team's Discord channel (best-effort)
+    const { postBSPlacementStarted } = require('../../../../utils/battleship/bsDiscord');
+    for (const team of teams) {
+      postBSPlacementStarted({
+        channelId: team.discordChannelId,
+        roleId: team.discordRoleId ?? null,
+        teamName: team.teamName,
+        eventName: event.eventName,
+        endsAt,
+        eventId,
+      }).catch(() => {});
     }
 
     return event;

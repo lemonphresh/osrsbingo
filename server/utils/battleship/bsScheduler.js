@@ -5,6 +5,7 @@ const logger = require('../logger');
 const { runBSGameStart } = require('./bsGameStart');
 const { sweepExpiredProposals } = require('./bsProposals');
 const { sweepExpiredSkipProposals } = require('./bsSkipProposals');
+const { syncBSWomProgress } = require('./bsWomSync');
 const { pubsub } = require('../../schema/pubsub');
 
 async function checkBSPlacementPhase() {
@@ -67,7 +68,17 @@ function startBSScheduler() {
       logger.error({ err }, '[bsScheduler] error during schedule check');
     }
   });
-  logger.info('[bsScheduler] started — checking placement phase expiry and proposal TTLs every minute');
+
+  // WOM progress sync — every 7 minutes
+  cron.schedule('*/7 * * * *', async () => {
+    try {
+      await syncBSWomProgress();
+    } catch (err) {
+      logger.error({ err }, '[bsScheduler] error during WOM progress sync');
+    }
+  });
+
+  logger.info('[bsScheduler] started — placement expiry/proposals every minute, WOM sync every 7 minutes');
 }
 
 module.exports = { startBSScheduler };

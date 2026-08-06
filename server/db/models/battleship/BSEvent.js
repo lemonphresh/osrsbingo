@@ -40,6 +40,7 @@ module.exports = (sequelize) => {
       guildId:                { type: DataTypes.STRING, allowNull: true },
       announcementsChannelId: { type: DataTypes.STRING, allowNull: true },
       eventPassword:          { type: DataTypes.STRING, allowNull: true },
+      womCompetitionId:       { type: DataTypes.STRING, allowNull: true },
       winnerId:               { type: DataTypes.STRING, allowNull: true },
       completedAt:            { type: DataTypes.DATE,   allowNull: true },
     },

@@ -1110,6 +1110,7 @@ const typeDefs = gql`
     deleteBSEvent(eventId: ID!): MutationResponse!
     addBSTeam(eventId: ID!, input: CreateBSTeamInput!): BSTeam!
     updateBSTeamMembers(teamId: ID!, members: [String!]!): BSTeam!
+    updateBSTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String, womTeamName: String): BSTeam!
     joinBSTeam(teamId: ID!): BSTeam!
     addBSAdmin(eventId: ID!, userId: ID!): BSEvent!
     addBSRef(eventId: ID!, userId: ID!): BSEvent!
@@ -1131,6 +1132,7 @@ const typeDefs = gql`
 
     # --- Battleship: Game Phase ---
     startBSGame(eventId: ID!): BSEvent!
+    triggerBSWomSync(eventId: ID!): Boolean!
     fireBS(eventId: ID!, targetTeamId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSShotLog!
     completeBSTile(tileId: ID!): BSTile!
     skipBSTile(tileId: ID!): BSTile!
@@ -1567,6 +1569,7 @@ const typeDefs = gql`
     refs: [User!]!
     guildId: String
     eventPassword: String
+    womCompetitionId: String
     winnerId: ID
     completedAt: DateTime
     teams: [BSTeam!]!
@@ -1591,6 +1594,7 @@ const typeDefs = gql`
     lastShotAt: DateTime
     discordChannelId: String
     discordRoleId: String
+    womTeamName: String
     board: BSBoard
   }
 
@@ -1650,6 +1654,7 @@ const typeDefs = gql`
     taskCompleted: Boolean!
     skipped: Boolean!
     progress: Int!
+    metricBaseline: Int
     shotAt: DateTime
     taskCompletedAt: DateTime
   }
@@ -1759,6 +1764,7 @@ const typeDefs = gql`
     cooldownMinutes: Int
     guildId: String
     announcementsChannelId: String
+    womCompetitionId: String
   }
 
   input CreateBSTeamInput {

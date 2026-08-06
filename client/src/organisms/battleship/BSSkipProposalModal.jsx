@@ -72,7 +72,6 @@ export function SkipProposalModal({
   const countdownPct = Math.min(100, (secondsLeft / PROPOSAL_TTL_S) * 100);
 
   const amber = '#f59e0b';
-  const amberDim = '#78350f';
   const amberBg = '#1a0e00';
   const amberBorder = '#92400e';
   const amberText = '#fcd34d';
@@ -140,7 +139,13 @@ export function SkipProposalModal({
             {isPending && (
               <Box>
                 <HStack justify="space-between" mb={1}>
-                  <Text fontFamily="mono" fontSize="10px" color="#78350f" letterSpacing="wider" textTransform="uppercase">
+                  <Text
+                    fontFamily="mono"
+                    fontSize="10px"
+                    color="#78350f"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
                     Expires in
                   </Text>
                   <Text

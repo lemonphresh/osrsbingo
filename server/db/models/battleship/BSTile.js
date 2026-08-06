@@ -25,6 +25,7 @@ module.exports = (sequelize) => {
       taskCompleted:   { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       skipped:         { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       progress:        { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      metricBaseline:  { type: DataTypes.INTEGER, allowNull: true },
       shotAt:          { type: DataTypes.DATE, allowNull: true },
       taskCompletedAt: { type: DataTypes.DATE, allowNull: true },
     },

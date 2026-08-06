@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       lastShotAt:       { type: DataTypes.DATE,    allowNull: true },
       discordChannelId: { type: DataTypes.STRING,  allowNull: true },
       discordRoleId:    { type: DataTypes.STRING,  allowNull: true },
+      womTeamName:      { type: DataTypes.STRING,  allowNull: true },
     },
     { sequelize, modelName: 'BSTeam', tableName: 'BattleshipTeams' }
   );

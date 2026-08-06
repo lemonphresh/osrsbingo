@@ -51,6 +51,20 @@ module.exports = {
     return team;
   },
 
+  updateBSTeamDiscord: async (_, { teamId, discordChannelId, discordRoleId, womTeamName }, context) => {
+    const user = requireAuth(context);
+    const { BSEvent } = getModels();
+    const team = await getTeamOrThrow(teamId);
+    const event = await BSEvent.findByPk(team.eventId);
+    requireAdmin(event, user.id);
+    await team.update({
+      discordChannelId: discordChannelId ?? null,
+      discordRoleId: discordRoleId ?? null,
+      womTeamName: womTeamName ?? null,
+    });
+    return team;
+  },
+
   addBSSkipTokens: async (_, { teamId, count }, context) => {
     const user = requireAuth(context);
     const team = await getTeamOrThrow(teamId);

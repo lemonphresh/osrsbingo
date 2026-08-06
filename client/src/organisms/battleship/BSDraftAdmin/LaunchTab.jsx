@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
-import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Divider,
-} from '@chakra-ui/react';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Box, VStack, HStack, Text, Button, Divider, Link } from '@chakra-ui/react';
 import { START_BS_PLACEMENT_PHASE, DELETE_BS_EVENT } from '../../../graphql/bsOperations';
 import { useToastContext } from '../../../providers/ToastProvider';
 
@@ -26,6 +19,7 @@ export function LaunchTab({ event, refetch }) {
   const teamOk = teamCount >= 2;
   const templateOk = templateCount >= 17;
   const taskGreen = taskCount >= 100;
+  const discordOk = teamOk && teams.every((t) => t.discordChannelId);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -87,6 +81,19 @@ export function LaunchTab({ event, refetch }) {
       <VStack align="stretch" spacing={2}>
         <CheckRow label={`Teams: ${teamCount}/2 enlisted`} ok={teamOk} warn={false} />
         <CheckRow
+          label={
+            discordOk
+              ? 'Discord: both team channels configured'
+              : teamOk
+              ? `Discord: ${
+                  teams.filter((t) => t.discordChannelId).length
+                }/2 channels set — set in Teams tab`
+              : 'Discord: set team channel IDs in Teams tab'
+          }
+          ok={discordOk}
+          warn={false}
+        />
+        <CheckRow
           label={`Ship templates: ${templateCount}/17 assigned`}
           ok={templateOk}
           warn={templateCount > 0 && !templateOk}
@@ -98,6 +105,28 @@ export function LaunchTab({ event, refetch }) {
           ok={taskGreen}
           warn={taskCount > 0 && !taskGreen}
         />
+        <CheckRow
+          label={
+            event.womCompetitionId ? (
+              'WOM: competition ID set — progress bars will sync automatically'
+            ) : (
+              <>
+                WOM: no competition ID set — can be added in{' '}
+                <Link
+                  as={RouterLink}
+                  to={`/battleship/${event.eventId}/admin`}
+                  color="#0ea5e9"
+                  _hover={{ color: '#38bdf8' }}
+                >
+                  Admin page
+                </Link>{' '}
+                now or after event starts
+              </>
+            )
+          }
+          ok={!!event.womCompetitionId}
+          warn={!event.womCompetitionId}
+        />
       </VStack>
 
       <Divider borderColor="#1a4028" />
@@ -107,6 +136,7 @@ export function LaunchTab({ event, refetch }) {
           onClick={handleLaunch}
           isLoading={starting}
           loadingText="Initiating..."
+          isDisabled={!teamOk || !discordOk}
           colorScheme="green"
           w="full"
           fontFamily="mono"
@@ -118,6 +148,7 @@ export function LaunchTab({ event, refetch }) {
           color="#060f0a"
           _hover={{ bg: '#4ade80' }}
           _active={{ bg: '#16a34a' }}
+          _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
         >
           Start Placement Phase
         </Button>

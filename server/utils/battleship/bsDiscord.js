@@ -98,6 +98,33 @@ async function postBSHitOnShip({ channelId, firingTeamName, coord, eventId }) {
 }
 
 /**
+ * Placement phase start — posted to both teams' channels.
+ */
+async function postBSPlacementStarted({ channelId, roleId, teamName, eventName, endsAt, eventId }) {
+  const link = `${SITE_URL}/battleship/${eventId}`;
+  const deadline = endsAt
+    ? `You have until **${new Date(endsAt).toUTCString()}** to place your ships.`
+    : '';
+  const ping = roleId ? `<@&${roleId}>` : undefined;
+  await post(channelId, [
+    ping,
+    `⚓ **${eventName} — Ship Placement Phase has begun!**`,
+    `**${teamName}**, it's time to deploy your fleet. Head to the event page and arrange your ships before time runs out.`,
+    deadline,
+    ``,
+    `📋 **How Battleship works:**`,
+    `• **Placement Phase** *(right now)*: Each team secretly places their ships on their own board. Your opponent cannot see your board.`,
+    `• **Battle Phase**: Teams alternate firing at a coordinate on the enemy board.`,
+    `• A 💥 **hit** reveals a task — your team must complete it before firing again.`,
+    `• A 🌊 **miss** also reveals a task — complete it to end your turn (no extra shot).`,
+    `• Tasks are completed by submitting a screenshot to a ref for approval.`,
+    `• First team to **sink all enemy ships** wins the campaign!`,
+    ``,
+    link,
+  ].filter(Boolean).join('\n'));
+}
+
+/**
  * End-of-event message — posted to both teams' channels.
  */
 async function postBSGameOver({ channelId, winnerName, loserName, eventId }) {
@@ -114,5 +141,6 @@ module.exports = {
   postBSTaskComplete,
   postBSShotResult,
   postBSHitOnShip,
+  postBSPlacementStarted,
   postBSGameOver,
 };

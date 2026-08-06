@@ -1,13 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useMutation, useQuery, useSubscription } from '@apollo/client';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Badge,
-  Button,
-} from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Badge, Button } from '@chakra-ui/react';
 import {
   PLACE_BS_SHIP,
   START_BS_GAME,
@@ -21,13 +14,11 @@ import { useToastContext } from '../../providers/ToastProvider';
 import {
   SHIP_CONFIGS,
   SHIP_COLORS,
-  SHIP_SIZES,
   COL_LABELS,
   getShipCells,
   isValidPlacement,
   timeAgo,
 } from '../../utils/battleship/bsClientHelpers';
-import { SectionLabel } from './BSSharedComponents';
 
 export function BSPlacementView({ event, currentUser, topBar, refetch }) {
   const { showToast } = useToastContext();

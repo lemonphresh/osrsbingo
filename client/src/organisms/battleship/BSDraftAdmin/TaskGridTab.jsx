@@ -23,6 +23,9 @@ import {
   DRAFT_OCEAN_CELLS,
   formatMetricLabel,
   metricUnitFor,
+  getContentCategory,
+  groupedBossSkillOptions,
+  metricOptionsForCategory,
 } from '../../../utils/battleship/bsClientHelpers';
 
 export function TaskGridTab({ event, refetch }) {
@@ -31,6 +34,7 @@ export function TaskGridTab({ event, refetch }) {
   const shipTemplates = event.shipTemplates ?? [];
 
   const [sel, setSel] = useState(null);
+  const [editTaskId, setEditTaskId] = useState(null);
   const [editBossOrSkill, setEditBossOrSkill] = useState('');
   const [editMetricType, setEditMetricType] = useState('kc');
   const [editMetricTarget, setEditMetricTarget] = useState('');
@@ -79,24 +83,11 @@ export function TaskGridTab({ event, refetch }) {
     return m;
   }, [tasks]);
 
-  const bossSkillOptions = useMemo(() => {
-    const seen = new Set();
-    const opts = [];
-    for (const t of tasks) {
-      const name = t.bossOrSkill ?? t.label;
-      if (!seen.has(name)) {
-        seen.add(name);
-        opts.push(name);
-      }
-    }
-    return opts.sort((a, b) => a.localeCompare(b));
-  }, [tasks]);
+  const groupedOptions = useMemo(() => groupedBossSkillOptions(tasks), [tasks]);
 
   const [setBSShipTemplate, { loading: settingTemplate }] = useMutation(SET_BS_SHIP_TEMPLATE, {
     onCompleted: () => {
       showToast('Ship cell updated.', 'success');
-      setSel(null);
-      setTaskSearch('');
       refetch();
     },
     onError: (err) => showToast(err.message ?? 'Failed to assign.', 'error'),
@@ -111,25 +102,64 @@ export function TaskGridTab({ event, refetch }) {
     onError: (err) => showToast(err.message ?? 'Failed to update task.', 'error'),
   });
 
-  const handleOceanClick = (row, col) => {
-    if (sel?.type === 'ocean' && sel.row === row && sel.col === col) {
-      setSel(null);
-      return;
-    }
-    const task = oceanCellTaskMap[`${row}-${col}`];
-    setSel({ type: 'ocean', row, col, task });
+  const fillFormFromTask = (task) => {
     setEditBossOrSkill(task?.bossOrSkill ?? task?.label ?? '');
-    setEditMetricType(task?.metricType ?? 'kc');
+    const cat = getContentCategory(task);
+    const opts = metricOptionsForCategory(cat);
+    const currentType = task?.metricType ?? 'kc';
+    const validType = opts.some((o) => o.value === currentType) ? currentType : opts[0]?.value ?? 'kc';
+    setEditMetricType(validType);
     setEditMetricTarget(String(task?.metricTarget ?? ''));
   };
 
-  const handleShipClick = (shipType, cellIndex) => {
-    if (sel?.type === 'ship' && sel.shipType === shipType && sel.cellIndex === cellIndex) {
-      setSel(null);
-      return;
-    }
-    setSel({ type: 'ship', shipType, cellIndex });
+  const handleOceanClick = (row, col) => {
+    if (sel?.type === 'ocean' && sel.row === row && sel.col === col) { setSel(null); return; }
+    const task = oceanCellTaskMap[`${row}-${col}`];
+    setSel({ type: 'ocean', row, col, task });
+    setEditTaskId(task?.taskId ?? null);
     setTaskSearch('');
+    fillFormFromTask(task);
+  };
+
+  const handleShipClick = (shipType, cellIndex) => {
+    if (sel?.type === 'ship' && sel.shipType === shipType && sel.cellIndex === cellIndex) { setSel(null); return; }
+    const task = templateMap[`${shipType}:${cellIndex}`]?.task ?? null;
+    setSel({ type: 'ship', shipType, cellIndex });
+    setEditTaskId(task?.taskId ?? null);
+    setTaskSearch('');
+    fillFormFromTask(task);
+  };
+
+  const handlePickTask = (task) => {
+    fillFormFromTask(task);
+    if (sel?.type === 'ship') {
+      setEditTaskId(task.taskId);
+      setBSShipTemplate({
+        variables: { eventId: event.eventId, shipType: sel.shipType, cellIndex: sel.cellIndex, taskId: task.taskId },
+      });
+    }
+    // ocean: keep editTaskId as the ocean tile's own task — we're just pre-filling the form
+  };
+
+  const handleSave = () => {
+    if (!editTaskId) return;
+    const target = Number(editMetricTarget);
+    const ref = contentLookup.get(editBossOrSkill);
+    updateBSTask({
+      variables: {
+        taskId: editTaskId,
+        input: {
+          label: editBossOrSkill,
+          bossOrSkill: editBossOrSkill,
+          metricType: editMetricType,
+          metricTarget: target,
+          metricUnit: metricUnitFor(editMetricType),
+          metricLabel: formatMetricLabel(editMetricType, target),
+          validDrops: editMetricType === 'unique' ? (ref?.validDrops ?? []) : [],
+          womMetric: ref?.womMetric ?? null,
+        },
+      },
+    });
   };
 
   const filteredTasks = tasks.filter((t) => {
@@ -144,6 +174,11 @@ export function TaskGridTab({ event, refetch }) {
   const assignedCount = Object.keys(templateMap).length;
   const isShipSel = sel?.type === 'ship';
   const isOceanSel = sel?.type === 'ocean';
+  const currentCategory = useMemo(
+    () => getContentCategory({ bossOrSkill: editBossOrSkill, metricType: editMetricType }),
+    [editBossOrSkill, editMetricType]
+  );
+  const currentMetricOptions = useMemo(() => metricOptionsForCategory(currentCategory), [currentCategory]);
 
   return (
     <VStack align="stretch" spacing={5}>
@@ -310,48 +345,29 @@ export function TaskGridTab({ event, refetch }) {
           </VStack>
         </Box>
 
-        {/* RIGHT: Edit panel — only visible when a cell is selected */}
+        {/* RIGHT: Unified edit panel */}
         {sel && (
           <Box flex="1" minW="280px" maxW="400px">
             <Box bg="#060f0a" border="1px solid" borderColor="#22c55e" borderRadius="md" p={4}>
-              {/* Ship cell picker */}
-              {isShipSel && (
-                <VStack align="stretch" spacing={3}>
-                  <HStack justify="space-between" align="center">
-                    <Text
-                      fontFamily="mono"
-                      fontSize="10px"
-                      color="#4ade80"
-                      letterSpacing="widest"
-                      textTransform="uppercase"
-                    >
-                      {sel.shipType} · Cell {sel.cellIndex}
-                    </Text>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      color="#3d6b4a"
-                      fontFamily="mono"
-                      fontSize="10px"
-                      px={1}
-                      minW="auto"
-                      _hover={{ color: '#d4f0da', bg: 'transparent' }}
-                      onClick={() => setSel(null)}
-                    >
-                      ✕
-                    </Button>
-                  </HStack>
-                  {templateMap[`${sel.shipType}:${sel.cellIndex}`]?.task && (
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1}>
-                      Current:{' '}
-                      {templateMap[`${sel.shipType}:${sel.cellIndex}`].task.bossOrSkill ??
-                        templateMap[`${sel.shipType}:${sel.cellIndex}`].task.label}
-                      {' · '}
-                      <Text as="span" color="#3d6b4a">
-                        {templateMap[`${sel.shipType}:${sel.cellIndex}`].task.metricLabel}
-                      </Text>
-                    </Text>
-                  )}
+              <VStack align="stretch" spacing={3}>
+
+                {/* Header */}
+                <HStack justify="space-between" align="center">
+                  <Text fontFamily="mono" fontSize="10px" color="#4ade80" letterSpacing="widest" textTransform="uppercase">
+                    {isShipSel
+                      ? `${sel.shipType} · Cell ${sel.cellIndex}`
+                      : `Ocean · ${COL_LABELS[sel.col]}${sel.row + 1}`}
+                  </Text>
+                  <Button size="xs" variant="ghost" color="#3d6b4a" fontFamily="mono" fontSize="10px" px={1} minW="auto" _hover={{ color: '#d4f0da', bg: 'transparent' }} onClick={() => setSel(null)}>
+                    ✕
+                  </Button>
+                </HStack>
+
+                {/* Premade task search */}
+                <Box>
+                  <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                    {isShipSel ? 'ASSIGN FROM POOL' : 'PICK TO PRE-FILL'}
+                  </Text>
                   <Input
                     value={taskSearch}
                     onChange={(e) => setTaskSearch(e.target.value)}
@@ -367,36 +383,22 @@ export function TaskGridTab({ event, refetch }) {
                     _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
                     _hover={{ borderColor: '#1a5c2e' }}
                   />
-                  <VStack align="stretch" spacing={0} maxH="300px" overflowY="auto">
+                  <VStack align="stretch" spacing={0} maxH="160px" overflowY="auto" mt={1}>
                     {filteredTasks.length === 0 && (
-                      <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" px={2} py={1}>
-                        No tasks match.
-                      </Text>
+                      <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" px={2} py={1}>No tasks match.</Text>
                     )}
                     {filteredTasks.map((task) => {
-                      const isCurrent =
-                        templateMap[`${sel.shipType}:${sel.cellIndex}`]?.taskId === task.taskId;
+                      const isActive = task.taskId === editTaskId;
                       return (
                         <Box
                           key={task.taskId}
                           py={2}
                           px={2}
-                          cursor={settingTemplate ? 'not-allowed' : 'pointer'}
+                          cursor="pointer"
                           borderRadius="sm"
-                          bg={isCurrent ? '#1a3a5c' : 'transparent'}
+                          bg={isActive ? '#1a3a5c' : 'transparent'}
                           _hover={{ bg: '#091a10' }}
-                          opacity={settingTemplate ? 0.5 : 1}
-                          onClick={() => {
-                            if (settingTemplate) return;
-                            setBSShipTemplate({
-                              variables: {
-                                eventId: event.eventId,
-                                shipType: sel.shipType,
-                                cellIndex: sel.cellIndex,
-                                taskId: task.taskId,
-                              },
-                            });
-                          }}
+                          onClick={() => handlePickTask(task)}
                         >
                           <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1}>
                             {task.bossOrSkill ?? task.label}
@@ -410,60 +412,90 @@ export function TaskGridTab({ event, refetch }) {
                       );
                     })}
                   </VStack>
-                </VStack>
-              )}
+                </Box>
 
-              {/* Ocean cell editor */}
-              {isOceanSel && (
-                <VStack align="stretch" spacing={3}>
-                  <HStack justify="space-between" align="center">
-                    <Text
-                      fontFamily="mono"
-                      fontSize="10px"
-                      color="#4ade80"
-                      letterSpacing="widest"
-                      textTransform="uppercase"
-                    >
-                      Ocean · {COL_LABELS[sel.col]}
-                      {sel.row + 1}
-                    </Text>
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      color="#3d6b4a"
-                      fontFamily="mono"
-                      fontSize="10px"
-                      px={1}
-                      minW="auto"
-                      _hover={{ color: '#d4f0da', bg: 'transparent' }}
-                      onClick={() => setSel(null)}
-                    >
-                      ✕
-                    </Button>
-                  </HStack>
-                  {sel.task ? (
-                    <>
-                      <Box>
-                        <Text
-                          fontFamily="mono"
-                          fontSize="10px"
-                          color="#3d6b4a"
-                          letterSpacing="wider"
-                          mb={1}
-                        >
-                          BOSS / SKILL
+                {/* Divider */}
+                <Box h="1px" bg="#1a4028" />
+
+                {/* Custom editor */}
+                {(isShipSel || sel.task) ? (
+                  <>
+                    <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider">CUSTOM EDIT</Text>
+
+                    {/* Boss / Skill grouped dropdown */}
+                    <Box>
+                      <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                        BOSS / SKILL / MINIGAME
+                      </Text>
+                      <Select
+                        value={editBossOrSkill}
+                        onChange={(e) => {
+                          const name = e.target.value;
+                          setEditBossOrSkill(name);
+                          const ref = contentLookup.get(name);
+                          const cat = getContentCategory(ref ?? { bossOrSkill: name, metricType: undefined });
+                          const opts = metricOptionsForCategory(cat);
+                          const currentValid = opts.some((o) => o.value === editMetricType);
+                          if (!currentValid) setEditMetricType(opts[0]?.value ?? 'kc');
+                          if (ref) setEditMetricTarget(String(ref.metricTarget ?? editMetricTarget));
+                        }}
+                        bg="#091a10"
+                        border="1px solid"
+                        borderColor="#1a4028"
+                        color="#d4f0da"
+                        fontFamily="mono"
+                        fontSize="xs"
+                        size="sm"
+                        _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
+                        _hover={{ borderColor: '#1a5c2e' }}
+                      >
+                        {groupedOptions.boss.length > 0 && (
+                          <optgroup label="── Bosses ──" style={{ background: '#091a10', color: '#6b9e78' }}>
+                            {groupedOptions.boss.map((n) => (
+                              <option key={n} value={n} style={{ background: '#091a10', color: '#d4f0da' }}>{n}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {groupedOptions.raid.length > 0 && (
+                          <optgroup label="── Raids ──" style={{ background: '#091a10', color: '#6b9e78' }}>
+                            {groupedOptions.raid.map((n) => (
+                              <option key={n} value={n} style={{ background: '#091a10', color: '#d4f0da' }}>{n}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {groupedOptions.minigame.length > 0 && (
+                          <optgroup label="── Minigames ──" style={{ background: '#091a10', color: '#6b9e78' }}>
+                            {groupedOptions.minigame.map((n) => (
+                              <option key={n} value={n} style={{ background: '#091a10', color: '#d4f0da' }}>{n}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {groupedOptions.skill.length > 0 && (
+                          <optgroup label="── Skills ──" style={{ background: '#091a10', color: '#6b9e78' }}>
+                            {groupedOptions.skill.map((n) => (
+                              <option key={n} value={n} style={{ background: '#091a10', color: '#d4f0da' }}>{n}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {groupedOptions.clue.length > 0 && (
+                          <optgroup label="── Clues ──" style={{ background: '#091a10', color: '#6b9e78' }}>
+                            {groupedOptions.clue.map((n) => (
+                              <option key={n} value={n} style={{ background: '#091a10', color: '#d4f0da' }}>{n}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </Select>
+                    </Box>
+
+                    {/* Metric type + target */}
+                    <HStack spacing={3} align="flex-end">
+                      <Box flex={1}>
+                        <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                          METRIC TYPE
                         </Text>
                         <Select
-                          value={editBossOrSkill}
-                          onChange={(e) => {
-                            const name = e.target.value;
-                            setEditBossOrSkill(name);
-                            const ref = contentLookup.get(name);
-                            if (ref) {
-                              setEditMetricType(ref.metricType ?? 'kc');
-                              setEditMetricTarget(String(ref.metricTarget ?? ''));
-                            }
-                          }}
+                          value={editMetricType}
+                          onChange={(e) => setEditMetricType(e.target.value)}
                           bg="#091a10"
                           border="1px solid"
                           borderColor="#1a4028"
@@ -474,187 +506,67 @@ export function TaskGridTab({ event, refetch }) {
                           _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
                           _hover={{ borderColor: '#1a5c2e' }}
                         >
-                          {bossSkillOptions.map((name) => (
-                            <option key={name} value={name} style={{ background: '#091a10' }}>
-                              {name}
+                          {currentMetricOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value} style={{ background: '#091a10' }}>
+                              {opt.label}
                             </option>
                           ))}
                         </Select>
                       </Box>
-                      <HStack spacing={3} align="flex-end">
-                        <Box flex={1}>
-                          <Text
-                            fontFamily="mono"
-                            fontSize="10px"
-                            color="#3d6b4a"
-                            letterSpacing="wider"
-                            mb={1}
-                          >
-                            METRIC TYPE
-                          </Text>
-                          <Select
-                            value={editMetricType}
-                            onChange={(e) => setEditMetricType(e.target.value)}
-                            bg="#091a10"
-                            border="1px solid"
-                            borderColor="#1a4028"
-                            color="#d4f0da"
-                            fontFamily="mono"
-                            fontSize="xs"
-                            size="sm"
-                            _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
-                            _hover={{ borderColor: '#1a5c2e' }}
-                          >
-                            <option value="kc" style={{ background: '#091a10' }}>
-                              Boss KC
-                            </option>
-                            <option value="unique" style={{ background: '#091a10' }}>
-                              Uniques
-                            </option>
-                            <option value="xp" style={{ background: '#091a10' }}>
-                              XP
-                            </option>
-                          </Select>
-                        </Box>
-                        <Box flex={1}>
-                          <Text
-                            fontFamily="mono"
-                            fontSize="10px"
-                            color="#3d6b4a"
-                            letterSpacing="wider"
-                            mb={1}
-                          >
-                            TARGET
-                          </Text>
-                          <NumberInput
-                            value={editMetricTarget}
-                            onChange={(val) => setEditMetricTarget(val)}
-                            min={1}
-                            clampValueOnBlur
-                          >
-                            <NumberInputField
-                              bg="#091a10"
-                              border="1px solid"
-                              borderColor="#1a4028"
-                              color="#d4f0da"
-                              fontFamily="mono"
-                              fontSize="xs"
-                              h="32px"
-                              px={3}
-                              _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
-                              _hover={{ borderColor: '#1a5c2e' }}
-                            />
-                            <NumberInputStepper borderColor="#1a4028">
-                              <NumberIncrementStepper
-                                borderColor="#1a4028"
-                                color="#6b9e78"
-                                _hover={{ bg: '#091a10' }}
-                              />
-                              <NumberDecrementStepper
-                                borderColor="#1a4028"
-                                color="#6b9e78"
-                                _hover={{ bg: '#091a10' }}
-                              />
-                            </NumberInputStepper>
-                          </NumberInput>
-                        </Box>
-                      </HStack>
-                      {editMetricType === 'unique' &&
-                        editBossOrSkill &&
-                        contentLookup.get(editBossOrSkill)?.validDrops?.length > 0 && (
-                          <Box>
-                            <Text
-                              fontFamily="mono"
-                              fontSize="10px"
-                              color="#3d6b4a"
-                              letterSpacing="wider"
-                              mb={1}
-                            >
-                              VALID DROPS
-                            </Text>
-                            <VStack
-                              align="stretch"
-                              spacing={0}
-                              maxH="72px"
-                              overflowY="auto"
-                              bg="#060f0a"
-                              border="1px solid"
-                              borderColor="#1a4028"
-                              borderRadius="sm"
-                              px={2}
-                              py={1}
-                            >
-                              {contentLookup.get(editBossOrSkill).validDrops.map((drop) => (
-                                <Text
-                                  key={drop}
-                                  fontFamily="mono"
-                                  fontSize="10px"
-                                  color="#6b9e78"
-                                  noOfLines={1}
-                                >
-                                  {drop}
-                                </Text>
-                              ))}
-                            </VStack>
-                          </Box>
-                        )}
-                      <HStack justify="flex-end" spacing={2}>
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          color="#3d6b4a"
-                          fontFamily="mono"
-                          fontSize="10px"
-                          _hover={{ color: '#d4f0da', bg: 'transparent' }}
-                          onClick={() => setSel(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="xs"
-                          colorScheme="green"
-                          variant="outline"
-                          borderColor="#1a4028"
-                          color="#4ade80"
-                          fontFamily="mono"
-                          fontSize="10px"
-                          letterSpacing="wider"
-                          textTransform="uppercase"
-                          isLoading={updatingTask}
-                          isDisabled={!editBossOrSkill || !Number(editMetricTarget)}
-                          onClick={() => {
-                            const target = Number(editMetricTarget);
-                            const ref = contentLookup.get(editBossOrSkill);
-                            updateBSTask({
-                              variables: {
-                                taskId: sel.task.taskId,
-                                input: {
-                                  label: editBossOrSkill,
-                                  bossOrSkill: editBossOrSkill,
-                                  metricType: editMetricType,
-                                  metricTarget: target,
-                                  metricUnit: metricUnitFor(editMetricType),
-                                  metricLabel: formatMetricLabel(editMetricType, target),
-                                  validDrops:
-                                    editMetricType === 'unique' ? ref?.validDrops ?? [] : [],
-                                  womMetric: ref?.womMetric ?? null,
-                                },
-                              },
-                            });
-                          }}
-                          _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
-                        >
-                          Save
-                        </Button>
-                      </HStack>
-                    </>
-                  ) : (
-                    <Text fontFamily="mono" fontSize="xs" color="#3d6b4a">
-                      No task at this position.
-                    </Text>
-                  )}
-                </VStack>
-              )}
+                      <Box flex={1}>
+                        <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                          TARGET
+                        </Text>
+                        <NumberInput value={editMetricTarget} onChange={(val) => setEditMetricTarget(val)} min={1} clampValueOnBlur>
+                          <NumberInputField bg="#091a10" border="1px solid" borderColor="#1a4028" color="#d4f0da" fontFamily="mono" fontSize="xs" h="32px" px={3} _focus={{ borderColor: '#22c55e', boxShadow: 'none' }} _hover={{ borderColor: '#1a5c2e' }} />
+                          <NumberInputStepper borderColor="#1a4028">
+                            <NumberIncrementStepper borderColor="#1a4028" color="#6b9e78" _hover={{ bg: '#091a10' }} />
+                            <NumberDecrementStepper borderColor="#1a4028" color="#6b9e78" _hover={{ bg: '#091a10' }} />
+                          </NumberInputStepper>
+                        </NumberInput>
+                      </Box>
+                    </HStack>
+
+                    {/* Valid drops */}
+                    {editMetricType === 'unique' && editBossOrSkill && contentLookup.get(editBossOrSkill)?.validDrops?.length > 0 && (
+                      <Box>
+                        <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>VALID DROPS</Text>
+                        <VStack align="stretch" spacing={0} maxH="72px" overflowY="auto" bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="sm" px={2} py={1}>
+                          {contentLookup.get(editBossOrSkill).validDrops.map((drop) => (
+                            <Text key={drop} fontFamily="mono" fontSize="10px" color="#6b9e78" noOfLines={1}>{drop}</Text>
+                          ))}
+                        </VStack>
+                      </Box>
+                    )}
+
+                    {/* Save */}
+                    <HStack justify="flex-end" spacing={2}>
+                      <Button size="xs" variant="ghost" color="#3d6b4a" fontFamily="mono" fontSize="10px" _hover={{ color: '#d4f0da', bg: 'transparent' }} onClick={() => setSel(null)}>
+                        Cancel
+                      </Button>
+                      <Button
+                        size="xs"
+                        colorScheme="green"
+                        variant="outline"
+                        borderColor="#1a4028"
+                        color="#4ade80"
+                        fontFamily="mono"
+                        fontSize="10px"
+                        letterSpacing="wider"
+                        textTransform="uppercase"
+                        isLoading={updatingTask}
+                        isDisabled={!editBossOrSkill || !Number(editMetricTarget) || !editTaskId}
+                        onClick={handleSave}
+                        _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
+                      >
+                        Save
+                      </Button>
+                    </HStack>
+                  </>
+                ) : (
+                  <Text fontFamily="mono" fontSize="xs" color="#3d6b4a">No task at this position.</Text>
+                )}
+              </VStack>
             </Box>
           </Box>
         )}

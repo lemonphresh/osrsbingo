@@ -221,12 +221,6 @@ export function BSGameOverScreen({ event, shotLog }) {
 
   // ── Lookup maps (computed once, game is over) ─────────────────────────────
 
-  const taskMap = useMemo(() => {
-    const m = {};
-    for (const t of event.tasks ?? []) m[t.taskId] = t.label;
-    return m;
-  }, [event.tasks]);
-
   const tileMap = useMemo(() => {
     const m = {};
     for (const team of event.teams ?? []) {

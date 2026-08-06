@@ -20,7 +20,10 @@ import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedCom
 import { TeamStatusCard, ShotLogEntry } from '../../organisms/battleship/BSActiveComponents';
 import { ProposalModal } from '../../organisms/battleship/BSProposalModal';
 import { DevAdminPanel } from '../../organisms/battleship/BSDevAdminPanel';
-import { BSBattleIntroModal, getBSBattleIntroKey } from '../../organisms/battleship/BSBattleIntroModal';
+import {
+  BSBattleIntroModal,
+  getBSBattleIntroKey,
+} from '../../organisms/battleship/BSBattleIntroModal';
 import { BSGameOverScreen } from '../../organisms/battleship/BSGameOverScreen';
 import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModal';
 import {
@@ -74,7 +77,7 @@ export default function BattleshipEventPage() {
 
   // Dev convenience — track which team index we're viewing as
   const [viewingTeamIndex, setViewingTeamIndex] = useState(0);
-  const [highlightedCell, setHighlightedCell] = useState(null);
+  const [highlightedCell] = useState(null);
   const [activeProposal, setActiveProposal] = useState(null);
   const [proposalHistory, setProposalHistory] = useState([]);
   const [activeSkipProposal, setActiveSkipProposal] = useState(null);
@@ -512,10 +515,7 @@ export default function BattleshipEventPage() {
     return (
       <Box flex="1" minH="100vh" bg="#060f0a">
         {topBar}
-        <BSGameOverScreen
-          event={event}
-          shotLog={shotLog}
-        />
+        <BSGameOverScreen event={event} shotLog={shotLog} />
       </Box>
     );
   }
@@ -537,6 +537,92 @@ export default function BattleshipEventPage() {
           {/* Main game area (3/4 width on xl) */}
           <Box gridColumn={{ xl: 'span 3' }}>
             <VStack align="stretch" spacing={6}>
+              {/* Contextual how-to strip */}
+              {(() => {
+                const isShipTask = pendingTask ? !!pendingTask.shipType : false;
+                const steps = pendingTask
+                  ? isShipTask
+                    ? [
+                        'A ship cell was hit! Complete the task shown below to take that ship section down once and for all!',
+                        'Submit your screenshot in Discord with !bssubmit',
+                        'A ref will review and mark it complete, then fire again',
+                      ]
+                    : [
+                        'You hit open ocean... Complete the task shown below to get another chance!',
+                        'Submit your screenshot in Discord with !bssubmit',
+                        'A ref will approve it, or your team can vote to use a skip token',
+                      ]
+                  : [
+                      'Click any unrevealed cell on the enemy board to propose a shot',
+                      'Your team votes: one veto cancels it, enough approvals lock it in',
+                      'Confirm to fire once the proposal is approved',
+                    ];
+                const dotColor = pendingTask
+                  ? isShipTask
+                    ? colorblindMode
+                      ? '#fbbf24'
+                      : '#f87171'
+                    : '#4ade80'
+                  : '#4ade80';
+                const borderColor = pendingTask
+                  ? isShipTask
+                    ? colorblindMode
+                      ? '#78350f'
+                      : '#2d0a0a'
+                    : '#1a4028'
+                  : '#1a4028';
+
+                return (
+                  <Box
+                    bg="#060f0a"
+                    border="1px solid"
+                    borderColor={borderColor}
+                    borderRadius="md"
+                    px={4}
+                    py={3}
+                  >
+                    <HStack
+                      spacing={0}
+                      align="center"
+                      flexWrap="wrap"
+                      rowGap={2}
+                      divider={
+                        <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
+                          /
+                        </Text>
+                      }
+                    >
+                      {steps.map((label, i) => (
+                        <HStack key={i} spacing={2}>
+                          <Box
+                            w="16px"
+                            h="16px"
+                            borderRadius="full"
+                            bg="#1a4028"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                            flexShrink={0}
+                          >
+                            <Text
+                              fontFamily="mono"
+                              fontSize="9px"
+                              color={dotColor}
+                              fontWeight="bold"
+                            >
+                              {i + 1}
+                            </Text>
+                          </Box>
+                          <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+                            {label}
+                          </Text>
+                        </HStack>
+                      ))}
+                    </HStack>
+                  </Box>
+                );
+              })()}
+
               {/* Boards */}
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
                 {/* Your board */}
@@ -779,7 +865,8 @@ export default function BattleshipEventPage() {
                         <Box borderTop="1px solid" borderColor={th.dark} pt={3} mt={2}>
                           <HStack justify="space-between" align="center">
                             <Text fontFamily="mono" fontSize="10px" color={th.muted}>
-                              {viewingTeam.skipTokens} skip token{viewingTeam.skipTokens !== 1 ? 's' : ''} remaining
+                              {viewingTeam.skipTokens} skip token
+                              {viewingTeam.skipTokens !== 1 ? 's' : ''} remaining
                             </Text>
                             <Button
                               size="xs"

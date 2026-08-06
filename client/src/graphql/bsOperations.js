@@ -27,7 +27,9 @@ const BS_TILE_FIELDS = gql`
     shipType
     cellIndex
     taskId
-    task { ...BSTaskFields }
+    task {
+      ...BSTaskFields
+    }
     isShot
     taskCompleted
     skipped
@@ -54,8 +56,12 @@ const BS_BOARD_FIELDS = gql`
     eventId
     teamId
     isPlacementLocked
-    shipPlacements { ...BSShipPlacementFields }
-    tiles { ...BSTileFields }
+    shipPlacements {
+      ...BSShipPlacementFields
+    }
+    tiles {
+      ...BSTileFields
+    }
   }
   ${BS_SHIP_PLACEMENT_FIELDS}
   ${BS_TILE_FIELDS}
@@ -87,14 +93,20 @@ const BS_EVENT_FIELDS = gql`
     refIds
     guildId
     eventPassword
-    teams { ...BSTeamFields }
-    tasks { ...BSTaskFields }
+    teams {
+      ...BSTeamFields
+    }
+    tasks {
+      ...BSTaskFields
+    }
     shipTemplates {
       templateId
       shipType
       cellIndex
       taskId
-      task { ...BSTaskFields }
+      task {
+        ...BSTaskFields
+      }
     }
   }
   ${BS_TEAM_FIELDS}
@@ -132,6 +144,9 @@ export const GET_BS_EVENT_FULL = gql`
         members
         skipTokens
         lastShotAt
+        discordChannelId
+        discordRoleId
+        womTeamName
         board {
           boardId
           shipPlacements {
@@ -153,6 +168,7 @@ export const GET_BS_EVENT_FULL = gql`
             taskCompleted
             skipped
             progress
+            metricBaseline
             shotAt
             taskCompletedAt
             task {
@@ -199,6 +215,7 @@ export const GET_BS_EVENT_FULL = gql`
         displayName
         username
       }
+      womCompetitionId
       winnerId
       completedAt
     }
@@ -213,7 +230,11 @@ export const GET_ALL_BS_EVENTS = gql`
       status
       placementPhaseHours
       cooldownMinutes
-      teams { teamId teamName color }
+      teams {
+        teamId
+        teamName
+        color
+      }
     }
   }
 `;
@@ -267,7 +288,11 @@ export const ADD_BS_REF = gql`
     addBSRef(eventId: $eventId, userId: $userId) {
       eventId
       refIds
-      refs { id displayName username }
+      refs {
+        id
+        displayName
+        username
+      }
     }
   }
 `;
@@ -277,7 +302,11 @@ export const REMOVE_BS_REF = gql`
     removeBSRef(eventId: $eventId, userId: $userId) {
       eventId
       refIds
-      refs { id displayName username }
+      refs {
+        id
+        displayName
+        username
+      }
     }
   }
 `;
@@ -289,6 +318,27 @@ export const ADD_BS_TEAM = gql`
     }
   }
   ${BS_TEAM_FIELDS}
+`;
+
+export const UPDATE_BS_TEAM_DISCORD = gql`
+  mutation UpdateBSTeamDiscord(
+    $teamId: ID!
+    $discordChannelId: String
+    $discordRoleId: String
+    $womTeamName: String
+  ) {
+    updateBSTeamDiscord(
+      teamId: $teamId
+      discordChannelId: $discordChannelId
+      discordRoleId: $discordRoleId
+      womTeamName: $womTeamName
+    ) {
+      teamId
+      discordChannelId
+      discordRoleId
+      womTeamName
+    }
+  }
 `;
 
 export const UPDATE_BS_TEAM_MEMBERS = gql`
@@ -325,13 +375,25 @@ export const REMOVE_BS_TASK = gql`
 `;
 
 export const SET_BS_SHIP_TEMPLATE = gql`
-  mutation SetBSShipTemplate($eventId: ID!, $shipType: BSShipType!, $cellIndex: Int!, $taskId: ID!) {
-    setBSShipTemplate(eventId: $eventId, shipType: $shipType, cellIndex: $cellIndex, taskId: $taskId) {
+  mutation SetBSShipTemplate(
+    $eventId: ID!
+    $shipType: BSShipType!
+    $cellIndex: Int!
+    $taskId: ID!
+  ) {
+    setBSShipTemplate(
+      eventId: $eventId
+      shipType: $shipType
+      cellIndex: $cellIndex
+      taskId: $taskId
+    ) {
       templateId
       shipType
       cellIndex
       taskId
-      task { ...BSTaskFields }
+      task {
+        ...BSTaskFields
+      }
     }
   }
   ${BS_TASK_FIELDS}
@@ -377,7 +439,13 @@ export const START_BS_GAME = gql`
 
 export const FIRE_BS = gql`
   mutation FireBS($eventId: ID!, $targetTeamId: ID!, $row: Int!, $col: Int!, $firingTeamId: ID) {
-    fireBS(eventId: $eventId, targetTeamId: $targetTeamId, row: $row, col: $col, firingTeamId: $firingTeamId) {
+    fireBS(
+      eventId: $eventId
+      targetTeamId: $targetTeamId
+      row: $row
+      col: $col
+      firingTeamId: $firingTeamId
+    ) {
       shotId
       firingTeamId
       targetBoardId
@@ -424,7 +492,9 @@ export const UPDATE_BS_TILE_TASK = gql`
     updateBSTileTask(tileId: $tileId, taskId: $taskId) {
       tileId
       taskId
-      task { ...BSTaskFields }
+      task {
+        ...BSTaskFields
+      }
     }
   }
   ${BS_TASK_FIELDS}
@@ -517,8 +587,19 @@ const BS_SUBMISSION_FIELDS = gql`
     submittedBy
     screenshot
     reviewNote
-    tile { tileId row col progress taskCompleted }
-    team { teamId teamName color discordChannelId }
+    tile {
+      tileId
+      row
+      col
+      progress
+      taskCompleted
+    }
+    team {
+      teamId
+      teamName
+      color
+      discordChannelId
+    }
   }
 `;
 
@@ -546,7 +627,11 @@ export const BS_SUBMISSION_TYPES = { PRESCREENSHOT: 'PRESCREENSHOT', SUBMISSION:
 
 export const REVIEW_BS_SUBMISSION = gql`
   mutation ReviewBSSubmission($submissionId: ID!, $approved: Boolean!, $denialReason: String) {
-    reviewBSSubmission(submissionId: $submissionId, approved: $approved, denialReason: $denialReason) {
+    reviewBSSubmission(
+      submissionId: $submissionId
+      approved: $approved
+      denialReason: $denialReason
+    ) {
       ...BSSubmissionFields
     }
   }
@@ -703,4 +788,30 @@ export const BS_SKIP_PROPOSAL_UPDATED = gql`
     }
   }
   ${BS_SKIP_PROPOSAL_FIELDS}
+`;
+
+export const UPDATE_BS_EVENT = gql`
+  mutation UpdateBSEvent($eventId: ID!, $input: UpdateBSEventInput!) {
+    updateBSEvent(eventId: $eventId, input: $input) {
+      eventId
+      guildId
+      womCompetitionId
+    }
+  }
+`;
+
+export const TRIGGER_BS_WOM_SYNC = gql`
+  mutation TriggerBSWomSync($eventId: ID!) {
+    triggerBSWomSync(eventId: $eventId)
+  }
+`;
+
+export const VERIFY_DISCORD_GUILD = gql`
+  query VerifyDiscordGuild($guildId: String!) {
+    verifyDiscordGuild(guildId: $guildId) {
+      success
+      guildName
+      error
+    }
+  }
 `;
