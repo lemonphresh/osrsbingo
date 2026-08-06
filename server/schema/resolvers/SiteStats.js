@@ -8,6 +8,7 @@ const {
   DraftRoom,
   GroupDashboard,
   CFEvent,
+  BSEvent,
 } = require('../../db/models');
 const { Op } = require('sequelize');
 const logger = require('../../utils/logger');
@@ -52,6 +53,7 @@ const resolvers = {
           gpResult,
           groupsTracked,
           championsForged,
+          navalBattlesWaged,
         ] = await Promise.all([
           BingoBoard.count(),
           User.count(),
@@ -80,6 +82,7 @@ const resolvers = {
           }),
           GroupDashboard.count(),
           CFEvent.count({ where: { status: 'COMPLETED' } }),
+          BSEvent.count({ where: { status: 'COMPLETED' } }),
         ]);
 
         const stats = {
@@ -97,6 +100,7 @@ const resolvers = {
           teamsBalanced: parseInt(visitStats?.teamsBalanced) || 0,
           groupsTracked,
           championsForged,
+          navalBattlesWaged,
         };
 
         // Cache it

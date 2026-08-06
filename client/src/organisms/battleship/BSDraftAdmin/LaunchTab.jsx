@@ -20,6 +20,7 @@ export function LaunchTab({ event, refetch }) {
   const templateOk = templateCount >= 17;
   const taskGreen = taskCount >= 100;
   const discordOk = teamOk && teams.every((t) => t.discordChannelId);
+  const guildOk = !!event.guildId;
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -82,36 +83,55 @@ export function LaunchTab({ event, refetch }) {
         <CheckRow label={`Teams: ${teamCount}/2 enlisted`} ok={teamOk} warn={false} />
         <CheckRow
           label={
+            guildOk ? (
+              'Discord bot: server connected'
+            ) : (
+              <>
+                Discord bot: not configured --{' '}
+                <Link
+                  as={RouterLink}
+                  to={`/battleship/${event.eventId}/admin`}
+                  color="#0ea5e9"
+                  _hover={{ color: '#38bdf8' }}
+                >
+                  set up in Admin page
+                </Link>
+              </>
+            )
+          }
+          ok={guildOk}
+          warn={false}
+        />
+        <CheckRow
+          label={
             discordOk
               ? 'Discord: both team channels configured'
               : teamOk
               ? `Discord: ${
                   teams.filter((t) => t.discordChannelId).length
-                }/2 channels set — set in Teams tab`
+                }/2 channels set -- set in Teams tab`
               : 'Discord: set team channel IDs in Teams tab'
           }
           ok={discordOk}
           warn={false}
         />
         <CheckRow
-          label={`Ship templates: ${templateCount}/17 assigned`}
+          label={`Ship templates: ${templateCount}/17 assigned -- sufficient`}
           ok={templateOk}
           warn={templateCount > 0 && !templateOk}
         />
         <CheckRow
-          label={`Task pool: ${taskCount} tasks${
-            taskGreen ? ' — sufficient' : ' — need 100+ ocean tasks'
-          }`}
+          label={`Task pool${taskGreen ? ' -- sufficient' : ' -- need 100+ ocean tasks'}`}
           ok={taskGreen}
           warn={taskCount > 0 && !taskGreen}
         />
         <CheckRow
           label={
             event.womCompetitionId ? (
-              'WOM: competition ID set — progress bars will sync automatically'
+              'WOM: competition ID set -- progress bars will sync automatically'
             ) : (
               <>
-                WOM: no competition ID set — can be added in{' '}
+                WOM: no competition ID set -- can be added in{' '}
                 <Link
                   as={RouterLink}
                   to={`/battleship/${event.eventId}/admin`}
@@ -160,7 +180,7 @@ export function LaunchTab({ event, refetch }) {
           textAlign="center"
           letterSpacing="wide"
         >
-          Teams and task edits can be finalized before players join.
+          Your Discord setup and tasks are finalized after this step. Check things carefully!
         </Text>
       </Box>
 

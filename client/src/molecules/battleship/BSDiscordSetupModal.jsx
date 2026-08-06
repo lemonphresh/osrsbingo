@@ -360,7 +360,8 @@ export default function BSDiscordSetupModal({ isOpen, onClose, eventId, onConfir
                 alignItems="flex-start"
               >
                 <Text fontSize="sm" color="#fcd34d">
-                  I understand team channels must be configured before the battle phase begins.
+                  I understand team channels must be configured before the ship placement phase
+                  begins.
                 </Text>
               </Checkbox>
             </Box>

@@ -29,7 +29,9 @@ module.exports = {
     const roundTarget = (val, unit) => {
       if (val == null) return val;
       if (unit === 'xp') return Math.ceil(val / 10000) * 10000;
-      return Math.ceil(val / 10) * 10;
+      if (unit === 'kc') return Math.ceil(val / 10) * 10;
+      if (unit === 'uniques') return Math.ceil(val);
+      return val;
     };
 
     // Auto-populate tasks from contentRegistry, scaling targets by the multiplier

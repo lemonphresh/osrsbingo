@@ -86,6 +86,7 @@ const resolvers = {
         status: e.status,
         url: `/gielinor-rush/${e.eventId}`,
         role,
+        createdAt: e.createdAt,
       }));
 
       // CF: staff events + member events (by discordUserId in members array of objects)
@@ -97,6 +98,7 @@ const resolvers = {
         status: e.status,
         url: `/champion-forge/${e.eventId}`,
         role: getRole(e, userId),
+        createdAt: e.createdAt,
       }));
 
       // BS: staff events + member events (by discordUserId)
@@ -141,6 +143,7 @@ const resolvers = {
         status: e.status,
         url: `/battleship/${e.eventId}`,
         role,
+        createdAt: e.createdAt,
       }));
 
       return [...grEvents, ...cfEvents, ...bsEvents];

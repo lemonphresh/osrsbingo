@@ -136,6 +136,7 @@ export const GET_BS_EVENT_FULL = gql`
       placementPhaseHours
       cooldownMinutes
       initialSkipTokens
+      metricMultiplier
       adminIds
       refIds
       creatorId

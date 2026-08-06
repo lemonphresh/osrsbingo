@@ -78,7 +78,9 @@ const UserDetails = () => {
   const [deleteUser] = useMutation(DELETE_USER);
 
   const { data: associatedData } = useQuery(GET_ASSOCIATED_EVENTS, { skip: !isCurrentUser });
-  const activeEvents = associatedData?.getAssociatedEvents ?? [];
+  const activeEvents = [...(associatedData?.getAssociatedEvents ?? [])].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
 
   const onDelete = useCallback(async () => {
     if (shownUser?.id !== user?.id) {

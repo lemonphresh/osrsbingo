@@ -663,6 +663,7 @@ export const GET_ASSOCIATED_EVENTS = gql`
       status
       url
       role
+      createdAt
     }
   }
 `;
@@ -858,6 +859,7 @@ export const GET_SITE_STATS = gql`
       teamsBalanced
       groupsTracked
       championsForged
+      navalBattlesWaged
     }
   }
 `;

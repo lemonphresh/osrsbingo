@@ -20,8 +20,9 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import { FaClipboardList, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
+import { FaClipboardList, FaDiscord, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
+import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -602,6 +603,7 @@ export default function BattleshipAdminPage() {
     onError: (err) => showToast(err.message ?? 'Failed to save team WOM name.', 'error'),
   });
 
+  const [showDiscordModal, setShowDiscordModal] = useState(false);
   const [savingWom, setSavingWom] = useState(false);
   const handleSaveWom = async () => {
     setSavingWom(true);
@@ -921,7 +923,66 @@ export default function BattleshipAdminPage() {
             </AccordionPanel>
           </AccordionItem>
 
-          {/* Section 2: WOM Integration */}
+          {/* Section 2: Discord Bot Setup */}
+          <AccordionItem
+            border="1px solid"
+            borderColor={BORDER}
+            borderRadius="lg"
+            mb={3}
+            overflow="hidden"
+          >
+            <AccordionButton
+              px={4}
+              py={3}
+              bg={CARD_BG}
+              _hover={{ bg: '#0e2418' }}
+              _expanded={{ bg: CARD_BG }}
+            >
+              <HStack flex={1} spacing={2}>
+                <FaDiscord color={DIM} />
+                <Text fontWeight="semibold" color="#d4f0da" fontFamily="mono" letterSpacing="wide" fontSize="sm">
+                  DISCORD BOT SETUP
+                </Text>
+                <Badge colorScheme={event?.guildId ? 'green' : 'yellow'} fontSize="xs">
+                  {event?.guildId ? 'Connected' : 'Not configured'}
+                </Badge>
+              </HStack>
+              <AccordionIcon color={DIM} />
+            </AccordionButton>
+            <AccordionPanel px={4} py={4} bg={BG}>
+              <VStack align="stretch" spacing={3}>
+                {event?.guildId ? (
+                  <HStack spacing={2}>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM}>Guild ID:</Text>
+                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">{event.guildId}</Text>
+                  </HStack>
+                ) : (
+                  <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                    The Discord bot has not been connected yet. Set it up to enable task submission notifications.
+                  </Text>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  colorScheme="green"
+                  borderColor={BORDER}
+                  color={GREEN}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  letterSpacing="wider"
+                  textTransform="uppercase"
+                  alignSelf="flex-start"
+                  leftIcon={<FaDiscord />}
+                  onClick={() => setShowDiscordModal(true)}
+                  _hover={{ bg: '#0e2418', borderColor: GREEN }}
+                >
+                  {event?.guildId ? 'Reconfigure Bot' : 'Set Up Bot'}
+                </Button>
+              </VStack>
+            </AccordionPanel>
+          </AccordionItem>
+
+          {/* Section 3: WOM Integration */}
           <AccordionItem
             border="1px solid"
             borderColor={BORDER}
@@ -1269,6 +1330,15 @@ export default function BattleshipAdminPage() {
           OSRS BINGO HUB / BATTLESHIP ADMIN CONSOLE
         </Text>
       </VStack>
+
+      {showDiscordModal && eventId && (
+        <BSDiscordSetupModal
+          isOpen
+          eventId={eventId}
+          onConfirmed={() => { setShowDiscordModal(false); refetchEvent(); }}
+          onClose={() => setShowDiscordModal(false)}
+        />
+      )}
     </Box>
   );
 }

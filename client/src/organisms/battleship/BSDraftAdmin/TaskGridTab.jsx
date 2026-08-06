@@ -36,8 +36,8 @@ import {
 
 export function TaskGridTab({ event, refetch }) {
   const { showToast } = useToastContext();
-  const tasks = event.tasks ?? [];
-  const shipTemplates = event.shipTemplates ?? [];
+  const tasks = useMemo(() => event.tasks ?? [], [event.tasks]);
+  const shipTemplates = useMemo(() => event.shipTemplates ?? [], [event.shipTemplates]);
 
   const [sel, setSel] = useState(null);
   const [editTaskId, setEditTaskId] = useState(null);
@@ -61,10 +61,17 @@ export function TaskGridTab({ event, refetch }) {
     [tasks, templateTaskIds]
   );
 
-  // Shuffled display order — randomised on load and on demand
+  // Shuffled display order -- randomised on load and on demand.
+  // On refetch, preserve order if the set of task IDs hasn't changed (only content updated).
   const [displayOceanTasks, setDisplayOceanTasks] = useState([]);
   useEffect(() => {
-    setDisplayOceanTasks([...oceanTasks].sort(() => Math.random() - 0.5));
+    setDisplayOceanTasks((prev) => {
+      const newTaskMap = new Map(oceanTasks.map((t) => [t.taskId, t]));
+      const sameSet =
+        prev.length === oceanTasks.length && prev.every((t) => newTaskMap.has(t.taskId));
+      if (sameSet) return prev.map((t) => newTaskMap.get(t.taskId));
+      return [...oceanTasks].sort(() => Math.random() - 0.5);
+    });
   }, [oceanTasks]);
 
   const handleRandomize = () => {
@@ -453,10 +460,8 @@ export function TaskGridTab({ event, refetch }) {
                 >
                   VALID DROPS
                 </Text>
-                <VStack
-                  align="stretch"
-                  spacing={0}
-                  maxH="72px"
+                <Box
+                  maxH="160px"
                   overflowY="auto"
                   bg="#060f0a"
                   border="1px solid"
@@ -464,6 +469,13 @@ export function TaskGridTab({ event, refetch }) {
                   borderRadius="sm"
                   px={2}
                   py={1}
+                  sx={{
+                    '&::-webkit-scrollbar': { width: '6px' },
+                    '&::-webkit-scrollbar-track': { background: '#060f0a' },
+                    '&::-webkit-scrollbar-thumb': { background: '#1a4028', borderRadius: '3px' },
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#1a4028 #060f0a',
+                  }}
                 >
                   {contentLookup.get(editBossOrSkill).validDrops.map((drop) => (
                     <Text
@@ -471,12 +483,12 @@ export function TaskGridTab({ event, refetch }) {
                       fontFamily="mono"
                       fontSize="10px"
                       color="#6b9e78"
-                      noOfLines={1}
+                      whiteSpace="nowrap"
                     >
                       {drop}
                     </Text>
                   ))}
-                </VStack>
+                </Box>
               </Box>
             )}
 
@@ -552,6 +564,71 @@ export function TaskGridTab({ event, refetch }) {
           </Text>
         </VStack>
       </Box>
+
+      {/* Multiplier callout */}
+      {(() => {
+        const m = event.metricMultiplier ?? 1;
+        const config = {
+          0.5: {
+            label: 'Casual',
+            est: '~1 week',
+            desc: 'Task targets are scaled to half of standard. Good for a shorter, more laid-back event where players can still compete without hardcore grinding.',
+          },
+          0.75: {
+            label: 'Standard',
+            est: '~10 days',
+            desc: 'Task targets are at a comfortable level -- achievable for active players without requiring full days of grinding. A solid default for most groups.',
+          },
+          1.0: {
+            label: 'Competitive',
+            est: '~2 weeks',
+            desc: 'Task targets are at full difficulty. Expect consistent daily play from most participants to keep up -- this is a real commitment.',
+          },
+          1.25: {
+            label: 'Hardcore',
+            est: '~3 weeks',
+            desc: 'Task targets are scaled up 25% above standard. Only recommended for dedicated groups who plan to grind hard for multiple weeks.',
+          },
+        }[m] ?? {
+          label: 'Custom',
+          est: 'varies',
+          desc: 'Task targets have been scaled by a custom multiplier.',
+        };
+        return (
+          <Box bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="md" p={3}>
+            <VStack align="stretch" spacing={2}>
+              <HStack spacing={3} flexWrap="wrap">
+                <Text
+                  fontFamily="mono"
+                  fontSize="xl"
+                  fontWeight="bold"
+                  color="#4ade80"
+                  lineHeight="1"
+                >
+                  {m}x
+                </Text>
+                <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+                  {config.label}
+                </Text>
+                <Text fontFamily="mono" fontSize="xs" color="#d4f0da" fontWeight="bold">
+                  {config.est}
+                </Text>
+                <Text fontFamily="mono" fontSize="10px" color="#3d6b4a">
+                  (2 teams, 10-12 players, ~10 hrs/day)
+                </Text>
+              </HStack>
+              <Text fontFamily="mono" fontSize="xs" color="#d4f0da" letterSpacing="wide">
+                {config.desc}
+              </Text>
+              <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide">
+                All generated task targets have been scaled by this multiplier. Click any cell to
+                edit individual tasks and fine-tune targets to better match your group's
+                expectations.
+              </Text>
+            </VStack>
+          </Box>
+        );
+      })()}
 
       {/* Stats + randomize */}
       <HStack justify="center" flexWrap="wrap" gap={2}>

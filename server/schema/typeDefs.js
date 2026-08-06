@@ -277,6 +277,7 @@ const typeDefs = gql`
     status: String!
     url: String!
     role: String!
+    createdAt: DateTime
   }
 
   type GREvent {
@@ -614,6 +615,7 @@ const typeDefs = gql`
     teamsBalanced: Int!
     groupsTracked: Int!
     championsForged: Int!
+    navalBattlesWaged: Int!
   }
 
   # ============================================================
