@@ -14,10 +14,12 @@ module.exports = {
       eventName: input.eventName,
       placementPhaseHours: input.placementPhaseHours ?? 24,
       cooldownMinutes: input.cooldownMinutes ?? 10,
+      initialSkipTokens: input.initialSkipTokens ?? 2,
       creatorId: String(user.id),
       adminIds: input.adminIds ?? [],
       refIds: input.refIds ?? [],
       guildId: input.guildId ?? null,
+      eventPassword: input.eventPassword ?? null,
     });
 
     // Auto-populate tasks from contentRegistry

@@ -34,21 +34,21 @@ Pre-screenshots are a parallel track — ref-only visual reference, no approval 
 
 ## What's Generic vs. What's Custom
 
-| Concern | Generic (context handles it) | Custom (callback prop) |
-|---|---|---|
-| Fetch submissions by event/team | ✅ | |
-| Real-time subscription (new/reviewed) | ✅ | |
-| Approve / deny with reason | ✅ | |
-| Undo approval | ✅ | |
-| Status filtering (pending / approved / denied) | ✅ | |
-| Screenshot lightbox | ✅ | |
-| Sound feedback | ✅ | |
-| Pre-screenshot stash (read-only) | ✅ (if enabled) | |
-| Tile mark complete / undo complete | ✅ (triggers) | |
-| Loot slot selection before approval | | `renderApproveExtras` |
-| Item creation on approve (optional) or tile complete | | `onSubmissionApprove` / `onTileComplete` |
-| Undo item creation | | `onUndoApproval` / `onUndoTileComplete` |
-| Custom per-submission metadata display | | `renderSubmissionMeta` |
+| Concern                                              | Generic (context handles it) | Custom (callback prop)                   |
+| ---------------------------------------------------- | ---------------------------- | ---------------------------------------- |
+| Fetch submissions by event/team                      | ✅                           |                                          |
+| Real-time subscription (new/reviewed)                | ✅                           |                                          |
+| Approve / deny with reason                           | ✅                           |                                          |
+| Undo approval                                        | ✅                           |                                          |
+| Status filtering (pending / approved / denied)       | ✅                           |                                          |
+| Screenshot lightbox                                  | ✅                           |                                          |
+| Sound feedback                                       | ✅                           |                                          |
+| Pre-screenshot stash (read-only)                     | ✅ (if enabled)              |                                          |
+| Tile mark complete / undo complete                   | ✅ (triggers)                |                                          |
+| Loot slot selection before approval                  |                              | `renderApproveExtras`                    |
+| Item creation on approve (optional) or tile complete |                              | `onSubmissionApprove` / `onTileComplete` |
+| Undo item creation                                   |                              | `onUndoApproval` / `onUndoTileComplete`  |
+| Custom per-submission metadata display               |                              | `renderSubmissionMeta`                   |
 
 ---
 
@@ -112,23 +112,23 @@ Pre-screenshots are a parallel track — ref-only visual reference, no approval 
 ```js
 const {
   // Data
-  submissions,          // all submissions for event/team
-  pendingSubmissions,   // filtered: status === 'PENDING'
-  approvedSubmissions,  // filtered: status === 'APPROVED'
-  deniedSubmissions,    // filtered: status === 'DENIED'
-  preScreenshots,       // pre-screenshot list (empty if not enabled)
-  newPendingCount,      // unread new submissions since last load
+  submissions, // all submissions for event/team
+  pendingSubmissions, // filtered: status === 'PENDING'
+  approvedSubmissions, // filtered: status === 'APPROVED'
+  deniedSubmissions, // filtered: status === 'DENIED'
+  preScreenshots, // pre-screenshot list (empty if not enabled)
+  newPendingCount, // unread new submissions since last load
 
   // Submission actions
-  approveSubmission,    // (submissionId, extras?) → Promise
-  denySubmission,       // (submissionId, reason) → Promise
-  undoApproval,         // (submissionId) → Promise
-  markTileComplete,     // (tileId) → Promise
-  undoTileComplete,     // (tileId) → Promise
+  approveSubmission, // (submissionId, extras?) → Promise
+  denySubmission, // (submissionId, reason) → Promise
+  undoApproval, // (submissionId) → Promise
+  markTileComplete, // (tileId) → Promise
+  undoTileComplete, // (tileId) → Promise
 
   // Pre-screenshot actions (local state only — no mutation)
-  acceptPreScreenshot,  // (preScreenshotId) → calls onPreScreenshotAccept prop
-  denyPreScreenshot,    // (preScreenshotId) → calls onPreScreenshotDeny prop
+  acceptPreScreenshot, // (preScreenshotId) → calls onPreScreenshotAccept prop
+  denyPreScreenshot, // (preScreenshotId) → calls onPreScreenshotDeny prop
 
   // UI state
   loading,
@@ -162,8 +162,8 @@ This is the single drop-in for a refs page. Thin wrapper; doesn't need many prop
 
 ```jsx
 <SubmissionsRefsPanel
-  groupBy="tile"        // 'tile' | 'team' | 'none' — how to bucket submissions
-  showTileComplete      // whether to show the "mark complete" button per group
+  groupBy="tile" // 'tile' | 'team' | 'none' — how to bucket submissions
+  showTileComplete // whether to show the "mark complete" button per group
 />
 ```
 
@@ -208,7 +208,7 @@ CF's refs page refactored to use the generic context:
   }}
   onTileComplete={async (taskId, approvedSubs) => {
     // CF-specific: marks task done; items may already exist from approval.
-    // Any approved subs that didn't get an item yet (e.g. no-reward edge cases) are resolved here.
+    // Any approved subs that didn't get an item yet (i.e. no-reward edge cases) are resolved here.
   }}
   onUndoTileComplete={async (taskId) => {
     // CF-specific: server deletes any CFItems not yet equipped, clears rewardItemIds
@@ -234,7 +234,7 @@ CF's refs page refactored to use the generic context:
 
 ---
 
-## How a New Event (e.g. Rainbow Bingo) Would Use This
+## How a New Event (i.e. Rainbow Bingo) Would Use This
 
 ```jsx
 <SubmissionsProvider
@@ -242,11 +242,9 @@ CF's refs page refactored to use the generic context:
   queries={{ getSubmissions: GET_RB_SUBMISSIONS }}
   mutations={{ reviewSubmission: REVIEW_RB_SUBMISSION, markTileComplete: MARK_RB_TILE }}
   subscriptions={{ onSubmissionAdded: RB_SUB_ADDED, onSubmissionReviewed: RB_SUB_REVIEWED }}
-
   onTileComplete={(tileId) => {
     // RB-specific: mark tile green on the bingo board
   }}
-
   // No renderApproveExtras needed — plain approve/deny is enough
   // No renderSubmissionMeta needed — base display is sufficient
   showPreScreenshots={false}

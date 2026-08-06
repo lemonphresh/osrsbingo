@@ -50,8 +50,10 @@ export default function BattleshipCreatePage() {
   const { showToast } = useToastContext();
 
   const [eventName, setEventName] = useState('');
+  const [eventPassword, setEventPassword] = useState('');
   const [placementPhaseHours, setPlacementPhaseHours] = useState(24);
   const [cooldownMinutes, setCooldownMinutes] = useState(10);
+  const [initialSkipTokens, setInitialSkipTokens] = useState(2);
   const [nameError, setNameError] = useState('');
 
   const [createBSEvent, { loading }] = useMutation(CREATE_BS_EVENT, {
@@ -79,6 +81,8 @@ export default function BattleshipCreatePage() {
           eventName: trimmed,
           placementPhaseHours: Number(placementPhaseHours),
           cooldownMinutes: Number(cooldownMinutes),
+          initialSkipTokens: Number(initialSkipTokens),
+          eventPassword: eventPassword.trim() || null,
         },
       },
     });
@@ -160,7 +164,7 @@ export default function BattleshipCreatePage() {
                     setEventName(e.target.value);
                     if (nameError) setNameError('');
                   }}
-                  placeholder="e.g. Operation Iron Tide"
+                  placeholder="i.e. Operation Iron Tide"
                   bg="#071523"
                   border="1px solid"
                   borderColor="#1e4976"
@@ -174,6 +178,29 @@ export default function BattleshipCreatePage() {
                 <FormErrorMessage fontFamily="mono" fontSize="xs">
                   {nameError}
                 </FormErrorMessage>
+              </FormControl>
+
+              {/* Event password (optional) */}
+              <FormControl>
+                <FieldLabel htmlFor="eventPassword">Event Password (optional)</FieldLabel>
+                <Input
+                  id="eventPassword"
+                  value={eventPassword}
+                  onChange={(e) => setEventPassword(e.target.value)}
+                  placeholder="i.e. ironhide"
+                  bg="#071523"
+                  border="1px solid"
+                  borderColor="#1e4976"
+                  color="#e2e8f0"
+                  fontFamily="mono"
+                  fontSize="sm"
+                  _placeholder={{ color: '#475569' }}
+                  _focus={{ borderColor: '#0ea5e9', boxShadow: 'none' }}
+                  _hover={{ borderColor: '#2d5f9a' }}
+                />
+                <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
+                  Shown to participants on the event page — used for screenshot verification.
+                </Text>
               </FormControl>
 
               {/* Placement phase hours */}
@@ -251,6 +278,45 @@ export default function BattleshipCreatePage() {
                 </NumberInput>
                 <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
                   Min 1 — Max 60
+                </Text>
+              </FormControl>
+
+              {/* Skip tokens */}
+              <FormControl>
+                <FieldLabel htmlFor="initialSkipTokens">Skip Tokens per Team</FieldLabel>
+                <NumberInput
+                  id="initialSkipTokens"
+                  value={initialSkipTokens}
+                  onChange={(val) => setInitialSkipTokens(val)}
+                  min={0}
+                  max={10}
+                  clampValueOnBlur
+                >
+                  <NumberInputField
+                    bg="#071523"
+                    border="1px solid"
+                    borderColor="#1e4976"
+                    color="#e2e8f0"
+                    fontFamily="mono"
+                    fontSize="sm"
+                    _focus={{ borderColor: '#0ea5e9', boxShadow: 'none' }}
+                    _hover={{ borderColor: '#2d5f9a' }}
+                  />
+                  <NumberInputStepper borderColor="#1e4976">
+                    <NumberIncrementStepper
+                      borderColor="#1e4976"
+                      color="#94a3b8"
+                      _hover={{ bg: '#0d2137' }}
+                    />
+                    <NumberDecrementStepper
+                      borderColor="#1e4976"
+                      color="#94a3b8"
+                      _hover={{ bg: '#0d2137' }}
+                    />
+                  </NumberInputStepper>
+                </NumberInput>
+                <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
+                  Each team starts with this many skip tokens. Default is 2.
                 </Text>
               </FormControl>
 

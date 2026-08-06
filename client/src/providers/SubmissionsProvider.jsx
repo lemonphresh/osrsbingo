@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { gql, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   playSubmissionApproved,
@@ -72,6 +72,23 @@ export function SubmissionsProvider({
 }) {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [newPendingCount, setNewPendingCount] = useState(0);
+  const [stickyTileIds, setStickyTileIds] = useState(new Set());
+  const stickyTimersRef = useRef({});
+
+  const addStickyTile = useCallback((tileId) => {
+    if (!tileId) return;
+    setStickyTileIds((prev) => new Set([...prev, tileId]));
+    if (stickyTimersRef.current[tileId]) clearTimeout(stickyTimersRef.current[tileId]);
+    stickyTimersRef.current[tileId] = setTimeout(() => {
+      setStickyTileIds((prev) => { const next = new Set(prev); next.delete(tileId); return next; });
+      delete stickyTimersRef.current[tileId];
+    }, 8000);
+  }, []);
+
+  useEffect(() => {
+    const timers = stickyTimersRef.current;
+    return () => { Object.values(timers).forEach(clearTimeout); };
+  }, []);
 
   const queryVars = { eventId, ...(teamId ? { teamId } : {}) };
 
@@ -123,24 +140,26 @@ export function SubmissionsProvider({
 
   const approveSubmission = useCallback(
     async (submission, extrasState = {}) => {
+      addStickyTile(submission.tileId);
       const result = await doReview({ variables: getApprovalVariables(submission, extrasState) });
       if (soundEnabled) playSubmissionApproved();
       await refetch();
       onSubmissionApprove?.(submission, result);
       return result;
     },
-    [doReview, getApprovalVariables, onSubmissionApprove, refetch, soundEnabled]
+    [addStickyTile, doReview, getApprovalVariables, onSubmissionApprove, refetch, soundEnabled]
   );
 
   const denySubmission = useCallback(
     async (submission, reason = '') => {
+      addStickyTile(submission.tileId);
       const result = await doReview({ variables: getDenialVariables(submission, reason) });
       if (soundEnabled) playSubmissionDenied();
       await refetch();
       onSubmissionDeny?.(submission, reason, result);
       return result;
     },
-    [doReview, getDenialVariables, onSubmissionDeny, refetch, soundEnabled]
+    [addStickyTile, doReview, getDenialVariables, onSubmissionDeny, refetch, soundEnabled]
   );
 
   const undoApproval = useCallback(
@@ -200,6 +219,7 @@ export function SubmissionsProvider({
     deniedSubmissions,
     preScreenshots,
     newPendingCount,
+    stickyTileIds,
     loading,
 
     // Actions

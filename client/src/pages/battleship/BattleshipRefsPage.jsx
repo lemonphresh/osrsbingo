@@ -93,7 +93,7 @@ function TileProgressSlider({ tileId, initialProgress, onSave }) {
 
 // ── Submission card ────────────────────────────────────────────────────────
 
-function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId }) {
+function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblindMode }) {
   const [denying, setDenying] = useState(false);
   const [denyReason, setDenyReason] = useState('');
 
@@ -102,11 +102,19 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId }) {
   const isDenied = sub.status === 'DENIED';
   const subLoadKey = sub.submissionId;
 
+  const borderColor = isDenied
+    ? (colorblindMode ? '#78350f' : '#7f1d1d')
+    : isApproved
+      ? (colorblindMode ? '#1e3a8a' : '#14532d')
+      : '#1a4028';
+
+  const badgeScheme = isPending ? 'yellow' : isApproved ? (colorblindMode ? 'blue' : 'green') : (colorblindMode ? 'orange' : 'red');
+
   return (
     <Box
       bg="#091a10"
       border="1px solid"
-      borderColor={isDenied ? '#7f1d1d' : isApproved ? '#14532d' : '#1a4028'}
+      borderColor={borderColor}
       borderRadius="md"
       p={3}
     >
@@ -114,7 +122,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId }) {
         <VStack align="flex-start" spacing={0.5} flex={1} minW={0}>
           <HStack spacing={2} flexWrap="wrap">
             <Badge
-              colorScheme={isPending ? 'yellow' : isApproved ? 'green' : 'red'}
+              colorScheme={badgeScheme}
               fontSize="xs"
             >
               {sub.status}
@@ -236,7 +244,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId }) {
 
 // ── Tile group ─────────────────────────────────────────────────────────────
 
-function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadingId, guildId }) {
+function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadingId, guildId, colorblindMode }) {
   const { tileId, tileLabel, teamName, teamColor, submissions, tile } = group;
   const [confirming, setConfirming] = useState(false);
   const [localProgress, setLocalProgress] = useState(tile?.progress ?? 0);
@@ -253,7 +261,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
   const canComplete = approved.length > 0 && !isComplete && pending.length === 0 && progress >= 100;
 
   const coord = tile ? coordLabel(tile.row, tile.col) : '?';
-  const dotColor = teamColor === 'RED' ? '#f87171' : '#60a5fa';
+  const dotColor = teamColor === 'RED' ? (colorblindMode ? '#fb923c' : '#f87171') : '#60a5fa';
 
   return (
     <AccordionItem
@@ -344,6 +352,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
                     onDeny={onDeny}
                     loadingId={loadingId}
                     guildId={guildId}
+                    colorblindMode={colorblindMode}
                   />
                 ))}
               </VStack>
@@ -352,7 +361,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
 
           {approved.length > 0 && (
             <Box>
-              <Text fontSize="xs" color="#4ade80" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              <Text fontSize="xs" color={colorblindMode ? '#60a5fa' : '#4ade80'} fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
                 Approved ({approved.length})
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -364,6 +373,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
                     onDeny={onDeny}
                     loadingId={loadingId}
                     guildId={guildId}
+                    colorblindMode={colorblindMode}
                   />
                 ))}
               </VStack>
@@ -372,7 +382,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
 
           {denied.length > 0 && (
             <Box>
-              <Text fontSize="xs" color="#f87171" fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
+              <Text fontSize="xs" color={colorblindMode ? '#fb923c' : '#f87171'} fontWeight="semibold" textTransform="uppercase" letterSpacing="wider" mb={2}>
                 Denied ({denied.length})
               </Text>
               <VStack align="stretch" spacing={2}>
@@ -384,6 +394,7 @@ function TileGroup({ group, onApprove, onDeny, onComplete, onSetProgress, loadin
                     onDeny={onDeny}
                     loadingId={loadingId}
                     guildId={guildId}
+                    colorblindMode={colorblindMode}
                   />
                 ))}
               </VStack>
@@ -405,12 +416,17 @@ export default function BattleshipRefsPage() {
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNew, setPendingNew] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
+  const [colorblindMode, setColorblindMode] = useState(
+    () => localStorage.getItem('bsColorblindMode') === 'true'
+  );
 
   const [stableGroupOrder, setStableGroupOrder] = useState(null);
   const [openKeys, setOpenKeys] = useState(new Set());
   const openKeysInitializedRef = useRef(false);
   const [reviewedOpenKeys, setReviewedOpenKeys] = useState(new Set());
   const [completedOpenKeys, setCompletedOpenKeys] = useState(new Set());
+  const [stickyTileIds, setStickyTileIds] = useState(new Set());
+  const stickyTimersRef = useRef({});
 
   const { data: eventData, loading: eventLoading } = useQuery(GET_BS_EVENT, {
     variables: { eventId },
@@ -428,9 +444,24 @@ export default function BattleshipRefsPage() {
   const [doComplete] = useMutation(COMPLETE_BS_TILE);
   const [doProgress] = useMutation(SET_BS_TILE_PROGRESS);
 
+  const addStickyTile = useCallback((tileId) => {
+    setStickyTileIds((prev) => new Set([...prev, tileId]));
+    if (stickyTimersRef.current[tileId]) clearTimeout(stickyTimersRef.current[tileId]);
+    stickyTimersRef.current[tileId] = setTimeout(() => {
+      setStickyTileIds((prev) => { const next = new Set(prev); next.delete(tileId); return next; });
+      delete stickyTimersRef.current[tileId];
+    }, 8000);
+  }, []);
+
+  useEffect(() => {
+    const timers = stickyTimersRef.current;
+    return () => { Object.values(timers).forEach(clearTimeout); };
+  }, []);
+
   const event = eventData?.getBSEvent;
   const isAdminOrRef = useMemo(() => {
     if (!event || !user) return false;
+    if (user.admin) return true;
     const uid = String(user.id);
     return (
       event.creatorId === uid ||
@@ -482,7 +513,7 @@ export default function BattleshipRefsPage() {
         completed.push(group);
       } else {
         const pendingCount = group.submissions.filter((s) => s.status === 'PENDING').length;
-        if (pendingCount > 0) active.push(group);
+        if (pendingCount > 0 || stickyTileIds.has(group.tileId)) active.push(group);
         else reviewed.push(group);
       }
     }
@@ -493,7 +524,7 @@ export default function BattleshipRefsPage() {
     });
 
     return { activeGroups: active, reviewedGroups: reviewed, completedGroups: completed };
-  }, [subsData, event]);
+  }, [subsData, event, stickyTileIds]);
 
   const totalPending = useMemo(
     () => activeGroups.reduce((n, g) => n + g.submissions.filter((s) => s.status === 'PENDING').length, 0),
@@ -557,6 +588,8 @@ export default function BattleshipRefsPage() {
 
   const handleApprove = async (submissionId) => {
     setLoadingId(submissionId + '-approve');
+    const tileId = subsData?.submissions?.find((s) => s.submissionId === submissionId)?.tileId;
+    if (tileId) addStickyTile(tileId);
     try {
       await doReview({ variables: { submissionId, approved: true } });
       if (soundEnabled) playSubmissionApproved();
@@ -571,6 +604,8 @@ export default function BattleshipRefsPage() {
 
   const handleDeny = async (submissionId, denialReason) => {
     setLoadingId(submissionId + '-deny');
+    const tileId = subsData?.submissions?.find((s) => s.submissionId === submissionId)?.tileId;
+    if (tileId) addStickyTile(tileId);
     try {
       await doReview({ variables: { submissionId, approved: false, denialReason: denialReason || null } });
       if (soundEnabled) playSubmissionDenied();
@@ -651,6 +686,23 @@ export default function BattleshipRefsPage() {
           </VStack>
 
           <HStack spacing={3} flexWrap="wrap">
+            <FormControl display="flex" alignItems="center" gap={2} w="auto">
+              <Switch
+                id="cb-toggle"
+                colorScheme="blue"
+                isChecked={colorblindMode}
+                onChange={() => {
+                  setColorblindMode((v) => {
+                    const next = !v;
+                    localStorage.setItem('bsColorblindMode', String(next));
+                    return next;
+                  });
+                }}
+              />
+              <FormLabel htmlFor="cb-toggle" mb={0} fontSize="sm" color={DIM} cursor="pointer">
+                Colorblind Mode
+              </FormLabel>
+            </FormControl>
             <FormControl display="flex" alignItems="center" gap={2} w="auto">
               <Switch
                 id="sound-toggle"
@@ -754,6 +806,7 @@ export default function BattleshipRefsPage() {
                   onSetProgress={handleSetProgress}
                   loadingId={loadingId}
                   guildId={event?.guildId}
+                  colorblindMode={colorblindMode}
                 />
               ))}
             </Accordion>

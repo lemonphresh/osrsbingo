@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Grid, Text, HStack, VStack } from '@chakra-ui/react';
+import { Box, Text, HStack, VStack } from '@chakra-ui/react';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -8,11 +8,18 @@ const ROW_COUNT = 10;
 const COL_COUNT = 10;
 
 const CELL_BG = {
-  ocean: '#060f0a',
-  ship: '#1a4028',
-  miss: '#6b9e78',
-  hit: '#c0392b',
-  done: '#1a6b3c',
+  ocean:     '#060f0a', // unrevealed
+  ship:      '#1a4028', // own ship, unrevealed
+  miss:      '#1a3a28', // shot ocean, task pending
+  miss_done: '#0a2019', // shot ocean, task completed
+  hit:       '#c0392b', // shot ship, task pending
+  hit_done:  '#1a6b3c', // shot ship, task completed
+};
+
+const CELL_BG_CB = {
+  ...CELL_BG,
+  hit:      '#c2700a', // amber
+  hit_done: '#1a55c8', // blue
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -20,19 +27,19 @@ const CELL_BG = {
 function getCellState(tile, showShips) {
   if (!tile) return 'ocean';
   if (tile.isShot) {
-    if (!tile.shipType) return 'miss';
-    if (tile.taskCompleted || tile.skipped) return 'done';
-    return 'hit';
+    const done = tile.taskCompleted || tile.skipped;
+    if (!tile.shipType) return done ? 'miss_done' : 'miss';
+    return done ? 'hit_done' : 'hit';
   }
   if (showShips && tile.shipType) return 'ship';
   return 'ocean';
 }
 
-function getCellBg(state) {
-  return CELL_BG[state] ?? CELL_BG.ocean;
+function getCellBg(state, cb) {
+  const palette = cb ? CELL_BG_CB : CELL_BG;
+  return palette[state] ?? palette.ocean;
 }
 
-// Build a lookup map from "row-col" to tile object for O(1) access
 function buildTileMap(tiles) {
   const map = {};
   if (!tiles) return map;
@@ -50,7 +57,7 @@ function GridLabel({ children, isHeader }) {
       display="flex"
       alignItems="center"
       justifyContent="center"
-      w={isHeader ? '28px' : '28px'}
+      w="28px"
       h={isHeader ? '20px' : '28px'}
       flexShrink={0}
     >
@@ -83,9 +90,9 @@ function MissX() {
   );
 }
 
-function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, onCellClick }) {
+function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, onCellClick, colorblindMode }) {
   const state = getCellState(tile, showShips);
-  const bg = getCellBg(state);
+  const bg = getCellBg(state, colorblindMode);
   const isClickable = !!onCellClick && canFire && state === 'ocean';
 
   const handleClick = () => {
@@ -94,12 +101,10 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
 
   let borderColor = '#1a4028';
   if (isHighlighted && canFire) borderColor = '#22c55e';
-  if (state === 'hit') borderColor = '#e74c3c';
-  if (state === 'done') borderColor = '#27ae60';
+  if (state === 'hit')      borderColor = colorblindMode ? '#f59e0b' : '#e74c3c';
+  if (state === 'hit_done') borderColor = colorblindMode ? '#60a5fa' : '#27ae60';
+  if (state === 'miss_done') borderColor = '#1e4028';
   if (isRadar) borderColor = '#f97316';
-
-  let boxShadow = 'none';
-  if (isHighlighted && canFire) boxShadow = '0 0 0 1px #22c55e inset';
 
   return (
     <Box
@@ -113,15 +118,11 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
       justifyContent="center"
       cursor={isClickable ? 'crosshair' : 'default'}
       onClick={handleClick}
-      boxShadow={boxShadow}
+      boxShadow={isHighlighted && canFire ? '0 0 0 1px #22c55e inset' : 'none'}
       transition="background 0.1s, border-color 0.1s"
       position="relative"
       zIndex={isRadar ? 1 : undefined}
-      _hover={
-        isClickable
-          ? { bg: '#091a10', borderColor: '#4ade80' }
-          : {}
-      }
+      _hover={isClickable ? { bg: '#091a10', borderColor: '#4ade80' } : {}}
       title={`${COL_LABELS[col]}${row + 1}`}
       sx={isRadar ? {
         '@keyframes radarPulse': {
@@ -136,10 +137,22 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
   );
 }
 
-function LegendDot({ color, label }) {
+function LegendDot({ color, label, borderColor, children }) {
   return (
     <HStack spacing={1} align="center">
-      <Box w="10px" h="10px" bg={color} border="1px solid #1a4028" flexShrink={0} />
+      <Box
+        w="10px"
+        h="10px"
+        bg={color}
+        border="1px solid"
+        borderColor={borderColor ?? '#1a4028'}
+        flexShrink={0}
+        display="flex"
+        alignItems="center"
+        justifyContent="center"
+      >
+        {children}
+      </Box>
       <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide">
         {label}
       </Text>
@@ -156,17 +169,17 @@ export default function BSGrid({
   canFire = false,
   highlightedCell,
   radarCell,
+  colorblindMode = false,
 }) {
   const tileMap = buildTileMap(tiles);
+  const palette = colorblindMode ? CELL_BG_CB : CELL_BG;
 
   return (
     <VStack spacing={0} align="flex-start">
       {/* Column headers */}
       <HStack spacing={0} pl="28px">
         {COL_LABELS.map((label) => (
-          <GridLabel key={label} isHeader>
-            {label}
-          </GridLabel>
+          <GridLabel key={label} isHeader>{label}</GridLabel>
         ))}
       </HStack>
 
@@ -195,6 +208,7 @@ export default function BSGrid({
                 isRadar={isRadar}
                 canFire={canFire}
                 onCellClick={onCellClick}
+                colorblindMode={colorblindMode}
               />
             );
           })}
@@ -202,13 +216,33 @@ export default function BSGrid({
       ))}
 
       {/* Legend */}
-      <HStack spacing={3} pt={3} flexWrap="wrap">
-        <LegendDot color={CELL_BG.ocean} label="Ocean" />
-        <LegendDot color={CELL_BG.miss} label="Miss" />
-        <LegendDot color={CELL_BG.hit} label="Hit" />
-        <LegendDot color={CELL_BG.done} label="Completed" />
-        {showShips && <LegendDot color={CELL_BG.ship} label="Ship" />}
-      </HStack>
+      <VStack spacing={1} pt={3} align="flex-start">
+        <HStack spacing={3} flexWrap="wrap">
+          <LegendDot color={palette.ocean} label="Ocean" />
+          <LegendDot color={palette.miss} label="Miss" borderColor="#1a4028">
+            <Text fontFamily="mono" fontSize="7px" color="#4a5568" lineHeight="1" userSelect="none">x</Text>
+          </LegendDot>
+          {showShips && <LegendDot color={palette.ship} label="Ship" />}
+        </HStack>
+        <HStack spacing={1} flexWrap="wrap">
+          <Text fontFamily="mono" fontSize="10px" color="#475569" letterSpacing="wide" mr={1}>
+            Current:
+          </Text>
+          <LegendDot color={palette.miss} label="ocean" borderColor="#f97316" />
+          <LegendDot color={palette.hit} label={colorblindMode ? 'ship (amber)' : 'ship'} borderColor="#f97316" />
+        </HStack>
+        <HStack spacing={1} flexWrap="wrap">
+          <Text fontFamily="mono" fontSize="10px" color="#475569" letterSpacing="wide" mr={1}>
+            Completed:
+          </Text>
+          <LegendDot color={palette.miss_done} label="ocean" borderColor="#1e4028" />
+          <LegendDot
+            color={palette.hit_done}
+            label={colorblindMode ? 'ship (blue)' : 'ship'}
+            borderColor={colorblindMode ? '#60a5fa' : '#27ae60'}
+          />
+        </HStack>
+      </VStack>
     </VStack>
   );
 }

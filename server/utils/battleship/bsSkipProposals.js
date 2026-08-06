@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * In-memory shot proposal store — one active proposal per team at a time.
+ * In-memory skip token proposal store — one active proposal per team at a time.
  * Proposals are ephemeral: server restart clears them (acceptable for game state).
  */
 
@@ -9,17 +9,16 @@ const PROPOSAL_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 const proposals = new Map(); // teamId → proposal object
 
-function makeProposal({ proposalId, eventId, firingTeamId, targetTeamId, row, col, proposedBy, threshold }) {
+function makeProposal({ proposalId, eventId, teamId, tileId, tileLabel, proposedBy, threshold }) {
   const approvals = [proposedBy];
   const status = approvals.length >= threshold ? 'APPROVED' : 'PENDING';
   const now = new Date();
   return {
     proposalId,
     eventId,
-    firingTeamId,
-    targetTeamId,
-    row,
-    col,
+    teamId,
+    tileId,
+    tileLabel: tileLabel ?? null,
     proposedBy,
     approvals,
     rejections: [],
@@ -30,25 +29,25 @@ function makeProposal({ proposalId, eventId, firingTeamId, targetTeamId, row, co
   };
 }
 
-function createProposal(data) {
+function createSkipProposal(data) {
   const p = makeProposal(data);
-  proposals.set(data.firingTeamId, p);
+  proposals.set(data.teamId, p);
   return p;
 }
 
-function getProposal(teamId) {
+function getSkipProposal(teamId) {
   return proposals.get(teamId) ?? null;
 }
 
-function getProposalById(proposalId) {
+function getSkipProposalById(proposalId) {
   for (const p of proposals.values()) {
     if (p.proposalId === proposalId) return p;
   }
   return null;
 }
 
-function vote(proposalId, discordUserId, approve) {
-  const p = getProposalById(proposalId);
+function voteOnSkip(proposalId, discordUserId, approve) {
+  const p = getSkipProposalById(proposalId);
   if (!p || p.status !== 'PENDING') return p ?? null;
 
   if (!approve) {
@@ -66,12 +65,11 @@ function vote(proposalId, discordUserId, approve) {
   return p;
 }
 
-function clearProposal(teamId) {
+function clearSkipProposal(teamId) {
   proposals.delete(teamId);
 }
 
-// Returns the teamIds of any PENDING proposals that have expired and been removed.
-function sweepExpiredProposals() {
+function sweepExpiredSkipProposals() {
   const now = Date.now();
   const expired = [];
   for (const [teamId, p] of proposals.entries()) {
@@ -83,4 +81,11 @@ function sweepExpiredProposals() {
   return expired;
 }
 
-module.exports = { createProposal, getProposal, getProposalById, vote, clearProposal, sweepExpiredProposals };
+module.exports = {
+  createSkipProposal,
+  getSkipProposal,
+  getSkipProposalById,
+  voteOnSkip,
+  clearSkipProposal,
+  sweepExpiredSkipProposals,
+};

@@ -349,7 +349,7 @@ the quantities in the registry are the shared measurement for what constitutes a
 - **drop rate** — `dropQuantities` should reflect realistic rates, not aspirational ones. if a drop is 1/500 the long quantity shouldn't be 3
 - **cross-competition consistency** — a medium-difficulty mad angel task in a bingo and in a group dashboard goal should feel roughly equivalent in time investment. the registry enforces this by being the only place those numbers live
 
-`killsPerHour` is a lightweight proxy for kill speed. it doesn't need to be exact — just enough to flag obviously miscalibrated quantities (e.g. 200 kc short task at a boss you can only do 5/hr).
+`killsPerHour` is a lightweight proxy for kill speed. it doesn't need to be exact — just enough to flag obviously miscalibrated quantities (i.e. 200 kc short task at a boss you can only do 5/hr).
 
 ---
 

@@ -86,6 +86,7 @@ const BS_EVENT_FIELDS = gql`
     adminIds
     refIds
     guildId
+    eventPassword
     teams { ...BSTeamFields }
     tasks { ...BSTaskFields }
     shipTemplates {
@@ -109,6 +110,99 @@ export const GET_BS_EVENT = gql`
     }
   }
   ${BS_EVENT_FIELDS}
+`;
+
+// Full event query used by BattleshipEventPage — includes boards nested via field resolver
+export const GET_BS_EVENT_FULL = gql`
+  query GetBSEventFull($eventId: ID!) {
+    getBSEvent(eventId: $eventId) {
+      eventId
+      eventName
+      status
+      placementPhaseHours
+      cooldownMinutes
+      initialSkipTokens
+      adminIds
+      refIds
+      creatorId
+      teams {
+        teamId
+        teamName
+        color
+        members
+        skipTokens
+        lastShotAt
+        board {
+          boardId
+          shipPlacements {
+            placementId
+            shipType
+            orientation
+            startRow
+            startCol
+            updatedAt
+          }
+          tiles {
+            tileId
+            row
+            col
+            shipType
+            cellIndex
+            taskId
+            isShot
+            taskCompleted
+            skipped
+            progress
+            shotAt
+            taskCompletedAt
+            task {
+              taskId
+              label
+              bossOrSkill
+              metricType
+              metricTarget
+              metricLabel
+            }
+          }
+        }
+      }
+      tasks {
+        taskId
+        label
+        bossOrSkill
+        metricType
+        metricTarget
+        metricUnit
+        metricLabel
+        validDrops
+        womMetric
+        description
+        isActive
+      }
+      shipTemplates {
+        templateId
+        shipType
+        cellIndex
+        taskId
+        task {
+          taskId
+          label
+          bossOrSkill
+          metricLabel
+          validDrops
+          description
+          isActive
+        }
+      }
+      refs {
+        id
+        displayName
+        username
+      }
+      winnerId
+      completedAt
+    }
+  }
 `;
 
 export const GET_ALL_BS_EVENTS = gql`
@@ -282,8 +376,8 @@ export const START_BS_GAME = gql`
 `;
 
 export const FIRE_BS = gql`
-  mutation FireBS($eventId: ID!, $targetTeamId: ID!, $row: Int!, $col: Int!) {
-    fireBS(eventId: $eventId, targetTeamId: $targetTeamId, row: $row, col: $col) {
+  mutation FireBS($eventId: ID!, $targetTeamId: ID!, $row: Int!, $col: Int!, $firingTeamId: ID) {
+    fireBS(eventId: $eventId, targetTeamId: $targetTeamId, row: $row, col: $col, firingTeamId: $firingTeamId) {
       shotId
       firingTeamId
       targetBoardId
@@ -415,6 +509,7 @@ const BS_SUBMISSION_FIELDS = gql`
     channelId
     discordMessageId
     status
+    submissionType
     reviewedBy
     reviewedAt
     denialReason
@@ -446,6 +541,8 @@ export const CREATE_BS_SUBMISSION = gql`
   }
   ${BS_SUBMISSION_FIELDS}
 `;
+
+export const BS_SUBMISSION_TYPES = { PRESCREENSHOT: 'PRESCREENSHOT', SUBMISSION: 'SUBMISSION' };
 
 export const REVIEW_BS_SUBMISSION = gql`
   mutation ReviewBSSubmission($submissionId: ID!, $approved: Boolean!, $denialReason: String) {
@@ -499,6 +596,7 @@ const BS_PROPOSAL_FIELDS = gql`
     status
     threshold
     proposedAt
+    expiresAt
   }
 `;
 
@@ -512,8 +610,8 @@ export const GET_ACTIVE_BS_PROPOSAL = gql`
 `;
 
 export const PROPOSE_BS_SHOT = gql`
-  mutation ProposeBSShot($eventId: ID!, $row: Int!, $col: Int!) {
-    proposeBSShot(eventId: $eventId, row: $row, col: $col) {
+  mutation ProposeBSShot($eventId: ID!, $row: Int!, $col: Int!, $firingTeamId: ID) {
+    proposeBSShot(eventId: $eventId, row: $row, col: $col, firingTeamId: $firingTeamId) {
       ...BSProposalFields
     }
   }
@@ -542,4 +640,67 @@ export const BS_PROPOSAL_UPDATED = gql`
     }
   }
   ${BS_PROPOSAL_FIELDS}
+`;
+
+export const BS_GAME_OVER = gql`
+  subscription BSGameOver($eventId: ID!) {
+    bsGameOver(eventId: $eventId) {
+      eventId
+      winnerId
+      losingTeamId
+      completedAt
+    }
+  }
+`;
+
+// ── Skip Token Proposals ───────────────────────────────────────────────────
+
+const BS_SKIP_PROPOSAL_FIELDS = gql`
+  fragment BSSkipProposalFields on BSSkipProposal {
+    proposalId
+    eventId
+    teamId
+    tileId
+    tileLabel
+    proposedBy
+    approvals
+    rejections
+    status
+    threshold
+    proposedAt
+    expiresAt
+  }
+`;
+
+export const PROPOSE_SKIP_TOKEN = gql`
+  mutation ProposeSkipToken($tileId: ID!, $firingTeamId: ID) {
+    proposeSkipToken(tileId: $tileId, firingTeamId: $firingTeamId) {
+      ...BSSkipProposalFields
+    }
+  }
+  ${BS_SKIP_PROPOSAL_FIELDS}
+`;
+
+export const VOTE_ON_SKIP_PROPOSAL = gql`
+  mutation VoteOnSkipProposal($proposalId: ID!, $approve: Boolean!) {
+    voteOnSkipProposal(proposalId: $proposalId, approve: $approve) {
+      ...BSSkipProposalFields
+    }
+  }
+  ${BS_SKIP_PROPOSAL_FIELDS}
+`;
+
+export const CLEAR_SKIP_PROPOSAL = gql`
+  mutation ClearSkipProposal($teamId: ID!) {
+    clearSkipProposal(teamId: $teamId)
+  }
+`;
+
+export const BS_SKIP_PROPOSAL_UPDATED = gql`
+  subscription BSSkipProposalUpdated($teamId: ID!) {
+    bsSkipProposalUpdated(teamId: $teamId) {
+      ...BSSkipProposalFields
+    }
+  }
+  ${BS_SKIP_PROPOSAL_FIELDS}
 `;

@@ -7,7 +7,7 @@ const { pubsub } = require('../../../pubsub');
 const { createProposal, getProposalById, vote, clearProposal, getProposal } = require('../../../../utils/battleship/bsProposals');
 
 module.exports = {
-  proposeBSShot: async (_, { eventId, row, col }, context) => {
+  proposeBSShot: async (_, { eventId, row, col, firingTeamId }, context) => {
     const user = requireAuth(context);
     const { BSTeam, BSBoard, BSTile } = getModels();
     const event = await getEventOrThrow(eventId);
@@ -15,11 +15,13 @@ module.exports = {
 
     const teams = await BSTeam.findAll({ where: { eventId } });
 
-    const firingTeam = teams.find(
-      (t) => t.members.includes(user.discordUserId) ||
-             (event.adminIds ?? []).includes(String(user.id)) ||
-             event.creatorId === String(user.id)
-    );
+    let firingTeam;
+    if (firingTeamId) {
+      firingTeam = teams.find((t) => t.teamId === firingTeamId);
+      if (!firingTeam) throw new UserInputError('Specified team not found');
+    } else {
+      firingTeam = teams.find((t) => t.members.includes(user.discordUserId));
+    }
     if (!firingTeam) throw new UserInputError('You are not a member of any team');
 
     const targetTeam = teams.find((t) => t.teamId !== firingTeam.teamId);

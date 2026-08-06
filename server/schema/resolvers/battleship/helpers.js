@@ -15,8 +15,8 @@ function isRef(event, userId) {
   return (event.refIds ?? []).includes(String(userId));
 }
 
-function isAdminOrRef(event, userId) {
-  return isAdmin(event, userId) || isRef(event, userId);
+function isAdminOrRef(event, userId, siteAdmin = false) {
+  return siteAdmin || isAdmin(event, userId) || isRef(event, userId);
 }
 
 function isTeamMember(team, discordUserId) {
@@ -61,8 +61,8 @@ function requireAdmin(event, userId) {
   if (!isAdmin(event, userId)) throw new ForbiddenError('Admin access required');
 }
 
-function requireAdminOrRef(event, userId) {
-  if (!isAdminOrRef(event, userId)) throw new ForbiddenError('Staff access required');
+function requireAdminOrRef(event, userId, siteAdmin = false) {
+  if (!isAdminOrRef(event, userId, siteAdmin)) throw new ForbiddenError('Staff access required');
 }
 
 module.exports = {

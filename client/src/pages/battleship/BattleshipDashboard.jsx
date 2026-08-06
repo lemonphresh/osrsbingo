@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import {
@@ -13,6 +13,7 @@ import {
   SimpleGrid,
 } from '@chakra-ui/react';
 import { GET_ALL_BS_EVENTS } from '../../graphql/bsOperations';
+import { BSInfoModal } from '../../organisms/battleship/BSInfoModal';
 import usePageTitle from '../../hooks/usePageTitle';
 
 // ── Constants ─────────────────────────────────────────────────────────────
@@ -121,12 +122,15 @@ function EventCard({ event }) {
 
 export default function BattleshipDashboard() {
   usePageTitle('Battleship');
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const { data, loading, error } = useQuery(GET_ALL_BS_EVENTS);
 
   const events = data?.getAllBSEvents ?? [];
 
   return (
+    <>
+    <BSInfoModal isOpen={infoOpen} onClose={() => setInfoOpen(false)} />
     <Box flex="1" minH="100vh" bg="#071523">
       {/* Hero Header */}
       <Box
@@ -174,23 +178,37 @@ export default function BattleshipDashboard() {
                 <Box w="4px" h="1px" bg="#1e4976" />
               </HStack>
             </VStack>
-            <RouterLink to="/battleship/create">
+            <HStack spacing={2} mt={[0, 2]}>
               <Button
                 size="sm"
-                variant="outline"
-                colorScheme="cyan"
-                borderColor="#1e4976"
-                color="#38bdf8"
+                variant="ghost"
+                color="#94a3b8"
                 fontFamily="mono"
                 fontSize="10px"
                 letterSpacing="widest"
                 textTransform="uppercase"
-                _hover={{ bg: '#0d2137', borderColor: '#38bdf8' }}
-                mt={[0, 2]}
+                _hover={{ color: '#38bdf8', bg: 'transparent' }}
+                onClick={() => setInfoOpen(true)}
               >
-                New Campaign
+                How It Works
               </Button>
-            </RouterLink>
+              <RouterLink to="/battleship/create">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  colorScheme="cyan"
+                  borderColor="#1e4976"
+                  color="#38bdf8"
+                  fontFamily="mono"
+                  fontSize="10px"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                  _hover={{ bg: '#0d2137', borderColor: '#38bdf8' }}
+                >
+                  New Campaign
+                </Button>
+              </RouterLink>
+            </HStack>
           </HStack>
         </Box>
       </Box>
@@ -259,5 +277,6 @@ export default function BattleshipDashboard() {
         )}
       </Box>
     </Box>
+    </>
   );
 }

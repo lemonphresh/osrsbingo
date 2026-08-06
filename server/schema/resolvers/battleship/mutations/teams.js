@@ -25,6 +25,7 @@ module.exports = {
       teamName: input.teamName,
       color: input.color ?? null,
       members: input.members ?? [],
+      skipTokens: event.initialSkipTokens ?? 2,
     });
     return team;
   },

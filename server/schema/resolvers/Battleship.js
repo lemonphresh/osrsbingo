@@ -12,6 +12,7 @@ const Mutation = {
   ...require('./battleship/mutations/viewers'),
   ...require('./battleship/mutations/submissions'),
   ...require('./battleship/mutations/proposals'),
+  ...require('./battleship/mutations/skip'),
 };
 
 const { getModels } = require('./battleship/helpers');

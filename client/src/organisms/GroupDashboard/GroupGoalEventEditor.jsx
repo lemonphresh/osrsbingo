@@ -35,10 +35,12 @@ function toInputDatetime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 }
 
-// Get local UTC offset label e.g. "UTC-7" or "UTC+5:30"
+// Get local UTC offset label i.e. "UTC-7" or "UTC+5:30"
 function localUtcLabel() {
   const offset = -new Date().getTimezoneOffset();
   const sign = offset >= 0 ? '+' : '-';
@@ -48,7 +50,13 @@ function localUtcLabel() {
   return m ? `UTC${sign}${h}:${String(m).padStart(2, '0')}` : `UTC${sign}${h}`;
 }
 
-export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, loading, templates = [] }) {
+export default function GroupGoalEventEditor({
+  initialValues,
+  onSave,
+  onCancel,
+  loading,
+  templates = [],
+}) {
   const [eventName, setEventName] = useState(initialValues?.eventName ?? '');
   const [description, setDescription] = useState(initialValues?.description ?? '');
   const [startDate, setStartDate] = useState(toInputDatetime(initialValues?.startDate));
@@ -106,9 +114,15 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
             color="gray.100"
             borderColor="gray.600"
           >
-            <option value="" style={{ background: '#1A202C', color: '#E2E8F0' }}>— select —</option>
+            <option value="" style={{ background: '#1A202C', color: '#E2E8F0' }}>
+              — select —
+            </option>
             {templates.map((t) => (
-              <option key={t.name} value={t.name} style={{ background: '#1A202C', color: '#E2E8F0' }}>
+              <option
+                key={t.name}
+                value={t.name}
+                style={{ background: '#1A202C', color: '#E2E8F0' }}
+              >
                 {t.name}
               </option>
             ))}
@@ -130,7 +144,10 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
 
       <FormControl>
         <FormLabel fontSize="sm" color="gray.300">
-          Description <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">(optional)</Text>
+          Description{' '}
+          <Text as="span" fontSize="xs" color="gray.500" fontWeight="normal">
+            (optional)
+          </Text>
         </FormLabel>
         <Textarea
           value={description}
@@ -149,7 +166,9 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
             Event Dates
           </Text>
           <HStack spacing={2}>
-            <Text fontSize="xs" color="gray.500">{localUtcLabel()}</Text>
+            <Text fontSize="xs" color="gray.500">
+              {localUtcLabel()}
+            </Text>
             <TimezoneToggle />
           </HStack>
         </HStack>
@@ -214,12 +233,21 @@ export default function GroupGoalEventEditor({ initialValues, onSave, onCancel, 
 
       <HStack justify="flex-end" spacing={3}>
         {onCancel && (
-          <Button size="sm" variant="ghost" colorScheme="gray" color="gray.300" onClick={onCancel} isDisabled={loading}>
+          <Button
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+            color="gray.300"
+            onClick={onCancel}
+            isDisabled={loading}
+          >
             Cancel
           </Button>
         )}
         {dateRangeInvalid && (
-          <Text fontSize="xs" color="red.400">End date must be after start date.</Text>
+          <Text fontSize="xs" color="red.400">
+            End date must be after start date.
+          </Text>
         )}
         <Button
           size="sm"

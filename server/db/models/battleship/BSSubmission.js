@@ -32,6 +32,11 @@ module.exports = (sequelize) => {
       reviewedAt:   { type: DataTypes.DATE,   allowNull: true },
       denialReason: { type: DataTypes.TEXT,   allowNull: true },
       submittedAt:  { type: DataTypes.DATE,   allowNull: true },
+      submissionType: {
+        type: DataTypes.ENUM('PRESCREENSHOT', 'SUBMISSION'),
+        allowNull: false,
+        defaultValue: 'SUBMISSION',
+      },
     },
     { sequelize, modelName: 'BSSubmission', tableName: 'BattleshipSubmissions' }
   );

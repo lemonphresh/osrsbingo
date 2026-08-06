@@ -1131,7 +1131,7 @@ const typeDefs = gql`
 
     # --- Battleship: Game Phase ---
     startBSGame(eventId: ID!): BSEvent!
-    fireBS(eventId: ID!, targetTeamId: ID!, row: Int!, col: Int!): BSShotLog!
+    fireBS(eventId: ID!, targetTeamId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSShotLog!
     completeBSTile(tileId: ID!): BSTile!
     skipBSTile(tileId: ID!): BSTile!
     addBSSkipTokens(teamId: ID!, count: Int!): BSTeam!
@@ -1143,9 +1143,14 @@ const typeDefs = gql`
     reviewBSSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): BSSubmission!
 
     # --- Battleship: Shot proposals ---
-    proposeBSShot(eventId: ID!, row: Int!, col: Int!): BSProposal!
+    proposeBSShot(eventId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSProposal!
     voteOnBSProposal(proposalId: ID!, approve: Boolean!): BSProposal!
     clearBSProposal(teamId: ID!): Boolean!
+
+    # --- Battleship: Skip token proposals ---
+    proposeSkipToken(tileId: ID!, firingTeamId: ID): BSSkipProposal!
+    voteOnSkipProposal(proposalId: ID!, approve: Boolean!): BSSkipProposal!
+    clearSkipProposal(teamId: ID!): Boolean!
   }
 
   # ============================================================
@@ -1553,6 +1558,7 @@ const typeDefs = gql`
     status: BSEventStatus!
     placementPhaseHours: Int!
     cooldownMinutes: Int!
+    initialSkipTokens: Int!
     placementStartsAt: DateTime
     placementEndsAt: DateTime
     creatorId: String
@@ -1560,9 +1566,19 @@ const typeDefs = gql`
     refIds: [String!]!
     refs: [User!]!
     guildId: String
+    eventPassword: String
+    winnerId: ID
+    completedAt: DateTime
     teams: [BSTeam!]!
     tasks: [BSTask!]!
     shipTemplates: [BSShipTemplate!]!
+  }
+
+  type BSGameOver {
+    eventId: ID!
+    winnerId: ID!
+    losingTeamId: ID!
+    completedAt: DateTime!
   }
 
   type BSTeam {
@@ -1667,6 +1683,22 @@ const typeDefs = gql`
     status: BSProposalStatus!
     threshold: Int
     proposedAt: DateTime
+    expiresAt: DateTime
+  }
+
+  type BSSkipProposal {
+    proposalId: ID
+    eventId: ID
+    teamId: ID!
+    tileId: ID
+    tileLabel: String
+    proposedBy: String
+    approvals: [String!]!
+    rejections: [String!]!
+    status: BSProposalStatus!
+    threshold: Int
+    proposedAt: DateTime
+    expiresAt: DateTime
   }
 
   type BSSubmission {
@@ -1683,6 +1715,7 @@ const typeDefs = gql`
     channelId: String
     discordMessageId: String
     status: BSSubmissionStatus!
+    submissionType: BSSubmissionType!
     reviewedBy: String
     reviewedAt: DateTime
     denialReason: String
@@ -1694,6 +1727,11 @@ const typeDefs = gql`
     team: BSTeam
   }
 
+  enum BSSubmissionType {
+    PRESCREENSHOT
+    SUBMISSION
+  }
+
   input CreateBSSubmissionInput {
     tileId: ID!
     discordUserId: String
@@ -1701,15 +1739,18 @@ const typeDefs = gql`
     screenshotUrl: String
     channelId: String
     discordMessageId: String
+    submissionType: BSSubmissionType
   }
 
   input CreateBSEventInput {
     eventName: String!
     placementPhaseHours: Int
     cooldownMinutes: Int
+    initialSkipTokens: Int
     adminIds: [String!]
     refIds: [String!]
     guildId: String
+    eventPassword: String
   }
 
   input UpdateBSEventInput {
@@ -1786,6 +1827,8 @@ const typeDefs = gql`
     bsSubmissionAdded(eventId: ID!): BSSubmission!
     bsSubmissionReviewed(eventId: ID!): BSSubmission!
     bsProposalUpdated(teamId: ID!): BSProposal!
+    bsSkipProposalUpdated(teamId: ID!): BSSkipProposal!
+    bsGameOver(eventId: ID!): BSGameOver!
   }
 `;
 

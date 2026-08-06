@@ -57,6 +57,8 @@ const BattleshipDashboard = lazy(() => import('./pages/battleship/BattleshipDash
 const BattleshipEventPage = lazy(() => import('./pages/battleship/BattleshipEventPage'));
 const BattleshipCreatePage = lazy(() => import('./pages/battleship/BattleshipCreatePage'));
 const BattleshipRefsPage = lazy(() => import('./pages/battleship/BattleshipRefsPage'));
+const BattleshipGuidePage = lazy(() => import('./pages/battleship/BattleshipGuidePage'));
+const BattleshipAdminPage = lazy(() => import('./pages/battleship/BattleshipAdminPage'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -338,6 +340,11 @@ const routes = [
         errorElement: <ErrorPage />,
       },
       {
+        path: '/battleship/guide',
+        element: withSuspense(BattleshipGuidePage),
+        errorElement: <ErrorPage />,
+      },
+      {
         path: '/battleship/:eventId',
         element: withSuspense(BattleshipEventPage),
         errorElement: <ErrorPage />,
@@ -345,6 +352,11 @@ const routes = [
       {
         path: '/battleship/:eventId/refs',
         element: withSuspense(BattleshipRefsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/battleship/:eventId/admin',
+        element: withSuspense(BattleshipAdminPage),
         errorElement: <ErrorPage />,
       },
       {

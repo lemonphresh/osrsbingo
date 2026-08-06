@@ -443,7 +443,7 @@ Supports Gielinor Rush event coordination and Champion Forge task submission fro
 1. Create a Discord app at [discord.com/developers](https://discord.com/developers)
 2. Add a bot and copy the token to your `.env`
 3. Invite bot to your server with permissions: Send Messages, Read Messages, Embed Links
-4. Set the channel **topic** to your Event ID (e.g., `event_abc123`) for Gielinor Rush channels
+4. Set the channel **topic** to your Event ID (i.e., `event_abc123`) for Gielinor Rush channels
 
 ### Commands
 
