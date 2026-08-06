@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, Navigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { Box, HStack, Text, SimpleGrid, Button, Icon } from '@chakra-ui/react';
 import { FaArrowLeft, FaExclamationTriangle, FaInfoCircle, FaLock } from 'react-icons/fa';
 import usePageTitle from '../../hooks/usePageTitle';
-import { useAuth } from '../../providers/AuthProvider';
-import { isBattleshipEnabled } from '../../config/featureFlags';
 
 const NAVY = '#071523';
 const BORDER = '#1e4976';
@@ -239,10 +237,8 @@ function RefGuide() {
 
 export default function BattleshipGuidePage() {
   usePageTitle('Battleship / Game Guide');
-  const { user } = useAuth();
   const [tab, setTab] = useState(0);
 
-  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   return (
     <Box flex="1" minH="100vh" bg={NAVY}>

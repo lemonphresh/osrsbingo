@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, Navigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box,
@@ -15,7 +15,7 @@ import {
 } from '@chakra-ui/react';
 import { SettingsIcon } from '@chakra-ui/icons';
 import { GET_ALL_BS_EVENTS, DELETE_BS_EVENT } from '../../graphql/bsOperations';
-import { BSInfoModal } from '../../organisms/battleship/BSInfoModal';
+import { BSInfoModal, BSLanding } from '../../organisms/battleship/BSInfoModal';
 import usePageTitle from '../../hooks/usePageTitle';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
@@ -160,7 +160,7 @@ export default function BattleshipDashboard() {
   });
   const [deleteBSEvent] = useMutation(DELETE_BS_EVENT);
 
-  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
+  if (!isBattleshipEnabled(user)) return <BSLanding />;
 
   const events = data?.getAllBSEvents ?? [];
 

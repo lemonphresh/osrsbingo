@@ -12,6 +12,7 @@ import {
   Text,
   SimpleGrid,
   Icon,
+  Button,
 } from '@chakra-ui/react';
 import {
   FaCog,
@@ -121,36 +122,38 @@ function Section({ title, children }) {
   );
 }
 
-function BSInfoContent() {
+function BSInfoContent({ embedded = false }) {
   return (
-    <Box bg={NAVY} color="#e2e8f0" fontFamily="mono" p={[5, 8]}>
-      <Box position="relative" mx={-8} mt={-8} mb={8} px={8} pt={8} pb={6} overflow="hidden">
-        <Box
-          position="absolute"
-          inset={0}
-          opacity={0.04}
-          pointerEvents="none"
-          backgroundImage="repeating-linear-gradient(0deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px)"
-        />
-        <VStack align="flex-start" spacing={2} position="relative" zIndex={1}>
-          <Text
-            fontSize={['2xl', '3xl']}
-            fontWeight="bold"
-            letterSpacing="widest"
-            textTransform="uppercase"
-          >
-            BATTLESHIP
-          </Text>
-          <Text fontSize="sm" color={DIM} letterSpacing="wide">
-            A strategic OSRS naval warfare event. Sink the enemy fleet by completing in-game tasks.
-          </Text>
-          <HStack spacing={2} pt={1}>
-            <Box w="32px" h="1px" bg={CYAN} />
-            <Box w="8px" h="1px" bg={BORDER} />
-            <Box w="4px" h="1px" bg={BORDER} />
-          </HStack>
-        </VStack>
-      </Box>
+    <Box bg={NAVY} color="#e2e8f0" fontFamily="mono" p={embedded ? 0 : [5, 8]}>
+      {!embedded && (
+        <Box position="relative" mx={-8} mt={-8} mb={8} px={8} pt={8} pb={6} overflow="hidden">
+          <Box
+            position="absolute"
+            inset={0}
+            opacity={0.04}
+            pointerEvents="none"
+            backgroundImage="repeating-linear-gradient(0deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px)"
+          />
+          <VStack align="flex-start" spacing={2} position="relative" zIndex={1}>
+            <Text
+              fontSize={['2xl', '3xl']}
+              fontWeight="bold"
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              BATTLESHIP
+            </Text>
+            <Text fontSize="sm" color={DIM} letterSpacing="wide">
+              A strategic OSRS naval warfare event. Sink the enemy fleet by completing in-game tasks.
+            </Text>
+            <HStack spacing={2} pt={1}>
+              <Box w="32px" h="1px" bg={CYAN} />
+              <Box w="8px" h="1px" bg={BORDER} />
+              <Box w="4px" h="1px" bg={BORDER} />
+            </HStack>
+          </VStack>
+        </Box>
+      )}
 
       <Section title="The Four Phases">
         <SimpleGrid columns={[1, 2]} spacing={4}>
@@ -256,6 +259,80 @@ function BSInfoContent() {
             </Text>
           </HStack>
         </RouterLink>
+      </Box>
+    </Box>
+  );
+}
+
+export function BSLanding() {
+  return (
+    <Box flex="1" minH="100vh" bg={NAVY}>
+      {/* Hero */}
+      <Box borderBottom="1px solid" borderColor={BORDER} position="relative" overflow="hidden">
+        <Box
+          position="absolute"
+          inset={0}
+          opacity={0.04}
+          pointerEvents="none"
+          backgroundImage="repeating-linear-gradient(0deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px)"
+        />
+        <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[12, 16, 20]} position="relative" zIndex={1}>
+          <VStack align="flex-start" spacing={4}>
+            <Text
+              fontFamily="mono"
+              fontSize={['3xl', '5xl', '6xl']}
+              fontWeight="bold"
+              color="#e2e8f0"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              lineHeight="1"
+            >
+              BATTLESHIP
+            </Text>
+            <Text fontFamily="mono" fontSize={['xs', 'sm']} color={DIM} letterSpacing="wider" textTransform="uppercase">
+              A strategic OSRS naval warfare event
+            </Text>
+            <HStack spacing={2} pt={1}>
+              <Box w="32px" h="1px" bg={CYAN} />
+              <Box w="8px" h="1px" bg={BORDER} />
+              <Box w="4px" h="1px" bg={BORDER} />
+            </HStack>
+            <HStack spacing={3} pt={2} flexWrap="wrap">
+              <RouterLink to="/login">
+                <Button
+                  size="sm"
+                  colorScheme="cyan"
+                  fontFamily="mono"
+                  fontSize="xs"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                >
+                  Log In to Get Started
+                </Button>
+              </RouterLink>
+              <RouterLink to="/battleship/guide">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderColor={BORDER}
+                  color={CYAN}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                  _hover={{ bg: '#0d2137', borderColor: CYAN }}
+                >
+                  Full Guide
+                </Button>
+              </RouterLink>
+            </HStack>
+          </VStack>
+        </Box>
+      </Box>
+
+      {/* Info content */}
+      <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[8, 10, 12]}>
+        <BSInfoContent embedded />
       </Box>
     </Box>
   );
