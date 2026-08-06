@@ -25,6 +25,7 @@ import {
   getBSBattleIntroKey,
 } from '../../organisms/battleship/BSBattleIntroModal';
 import { BSGameOverScreen } from '../../organisms/battleship/BSGameOverScreen';
+import { BSSpectatorView } from '../../organisms/battleship/BSSpectatorView';
 import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModal';
 import {
   GET_BS_EVENT_FULL,
@@ -259,6 +260,12 @@ export default function BattleshipEventPage() {
   );
   const isAdminOrRef =
     isAdmin || !!(event && currentUser && (event.refIds ?? []).includes(String(currentUser.id)));
+
+  const myTeam =
+    event && currentUser?.discordUserId
+      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
+      : null;
+  const isSpectator = !!event && event.status === 'ACTIVE' && !myTeam;
 
   const resolvedTeamMembers = useDiscordUsernames(
     viewingTeam?.members ?? [],
@@ -521,6 +528,12 @@ export default function BattleshipEventPage() {
         <BSGameOverScreen event={event} shotLog={shotLog} />
       </Box>
     );
+  }
+
+  // ── Status: ACTIVE (spectator) ────────────────────────────────────────────
+
+  if (isSpectator) {
+    return <BSSpectatorView event={event} refetch={refetchEvent} />;
   }
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────

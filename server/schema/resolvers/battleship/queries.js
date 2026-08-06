@@ -28,8 +28,7 @@ module.exports = {
     return BSBoard.findByPk(boardId);
   },
 
-  getBSShotLog: async (_, { eventId }, context) => {
-    requireAuth(context);
+  getBSShotLog: async (_, { eventId }, _context) => {
     const { BSShotLog } = getModels();
     return BSShotLog.findAll({ where: { eventId }, order: [['shotAt', 'DESC']] });
   },
