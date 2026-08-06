@@ -662,6 +662,7 @@ export const GET_ASSOCIATED_EVENTS = gql`
       eventName
       status
       url
+      role
     }
   }
 `;

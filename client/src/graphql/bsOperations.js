@@ -86,6 +86,8 @@ const BS_EVENT_FIELDS = gql`
     status
     placementPhaseHours
     cooldownMinutes
+    initialSkipTokens
+    metricMultiplier
     placementStartsAt
     placementEndsAt
     creatorId
@@ -223,8 +225,8 @@ export const GET_BS_EVENT_FULL = gql`
 `;
 
 export const GET_ALL_BS_EVENTS = gql`
-  query GetAllBSEvents {
-    getAllBSEvents {
+  query GetAllBSEvents($creatorId: ID) {
+    getAllBSEvents(creatorId: $creatorId) {
       eventId
       eventName
       status

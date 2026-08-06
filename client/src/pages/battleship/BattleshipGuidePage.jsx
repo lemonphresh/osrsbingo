@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, Navigate } from 'react-router-dom';
 import { Box, HStack, Text, SimpleGrid, Button, Icon } from '@chakra-ui/react';
 import { FaArrowLeft, FaExclamationTriangle, FaInfoCircle, FaLock } from 'react-icons/fa';
 import usePageTitle from '../../hooks/usePageTitle';
+import { useAuth } from '../../providers/AuthProvider';
+import { isBattleshipEnabled } from '../../config/featureFlags';
 
 const NAVY = '#071523';
 const BORDER = '#1e4976';
@@ -114,11 +116,11 @@ function ParticipantGuide() {
         enough team members approve the proposal, the team member who proposed the shot must press
         "FIRE".
       </Step>
-      <Step num="2" title="Hit — complete the task" color={CYAN}>
+      <Step num="2" title="Hit / complete the task" color={CYAN}>
         If you hit an enemy ship cell, a task is revealed. Submit a pre-screenshot first if
         applicable, complete the task, then submit your completion screenshot(s).
       </Step>
-      <Step num="3" title="Miss — skip or complete" color={CYAN}>
+      <Step num="3" title="Miss / skip or complete" color={CYAN}>
         If you hit ocean, a task still appears. Ocean tasks can be skipped using a skip token. Skip
         tokens are limited, so use them wisely. You can also just complete the task normally.
       </Step>
@@ -236,8 +238,11 @@ function RefGuide() {
 }
 
 export default function BattleshipGuidePage() {
-  usePageTitle('Battleship — Game Guide');
+  usePageTitle('Battleship / Game Guide');
+  const { user } = useAuth();
   const [tab, setTab] = useState(0);
+
+  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   return (
     <Box flex="1" minH="100vh" bg={NAVY}>

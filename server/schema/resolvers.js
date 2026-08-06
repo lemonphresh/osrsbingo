@@ -18,7 +18,7 @@ const SiteStats = require('./resolvers/SiteStats');
 const { getActiveCFEventsForUser } = require('./resolvers/championForge/cfAssociatedEvents');
 const { AuthenticationError } = require('apollo-server-express');
 const { Op } = require('sequelize');
-const { GREvent, GRTeam, User } = require('../db/models');
+const { GREvent, GRTeam, BSEvent, BSTeam, User } = require('../db/models');
 
 const { DateTimeResolver, JSONResolver } = require('graphql-scalars');
 
@@ -36,6 +36,14 @@ const resolvers = {
     getAssociatedEvents: async (_, __, context) => {
       if (!context.user) throw new AuthenticationError('Not authenticated');
       const userId = context.user.id;
+
+      function getRole(event, uid) {
+        const id = String(uid);
+        if (String(event.creatorId) === id) return 'Creator';
+        if ((event.adminIds ?? []).includes(id)) return 'Admin';
+        if ((event.refIds ?? []).includes(id)) return 'Ref';
+        return 'Member';
+      }
       const dbUser = await User.findByPk(userId, { attributes: ['discordUserId'] });
       const discordUserId = dbUser?.discordUserId ?? null;
 
@@ -68,12 +76,16 @@ const resolvers = {
           });
         }
       }
-      const grEvents = [...grStaff, ...grMember].map((e) => ({
+      const grEvents = [
+        ...grStaff.map((e) => ({ e, role: getRole(e, userId) })),
+        ...grMember.map((e) => ({ e, role: 'Member' })),
+      ].map(({ e, role }) => ({
         type: 'gielinor-rush',
         eventId: e.eventId,
         eventName: e.eventName,
         status: e.status,
         url: `/gielinor-rush/${e.eventId}`,
+        role,
       }));
 
       // CF: staff events + member events (by discordUserId in members array of objects)
@@ -84,9 +96,54 @@ const resolvers = {
         eventName: e.eventName,
         status: e.status,
         url: `/champion-forge/${e.eventId}`,
+        role: getRole(e, userId),
       }));
 
-      return [...grEvents, ...cfEvents];
+      // BS: staff events + member events (by discordUserId)
+      const bsStaff = await BSEvent.findAll({
+        where: {
+          status: { [Op.in]: ['PLACEMENT', 'ACTIVE'] },
+          [Op.or]: [
+            { creatorId: String(userId) },
+            { adminIds: { [Op.contains]: [String(userId)] } },
+            { refIds: { [Op.contains]: [String(userId)] } },
+          ],
+        },
+        order: [['createdAt', 'DESC']],
+      });
+      let bsMember = [];
+      if (discordUserId) {
+        const bsStaffIds = new Set(bsStaff.map((e) => e.eventId));
+        const bsTeams = await BSTeam.findAll({
+          where: { members: { [Op.contains]: [discordUserId] } },
+          attributes: ['eventId'],
+        });
+        const bsMemberIds = [...new Set(bsTeams.map((t) => t.eventId))].filter(
+          (id) => !bsStaffIds.has(id)
+        );
+        if (bsMemberIds.length > 0) {
+          bsMember = await BSEvent.findAll({
+            where: {
+              eventId: { [Op.in]: bsMemberIds },
+              status: { [Op.in]: ['PLACEMENT', 'ACTIVE'] },
+            },
+            order: [['createdAt', 'DESC']],
+          });
+        }
+      }
+      const bsEvents = [
+        ...bsStaff.map((e) => ({ e, role: getRole(e, userId) })),
+        ...bsMember.map((e) => ({ e, role: 'Member' })),
+      ].map(({ e, role }) => ({
+        type: 'battleship',
+        eventId: e.eventId,
+        eventName: e.eventName,
+        status: e.status,
+        url: `/battleship/${e.eventId}`,
+        role,
+      }));
+
+      return [...grEvents, ...cfEvents, ...bsEvents];
     },
     ...DraftRoomResolvers.Query,
     ...CFResolvers.Query,

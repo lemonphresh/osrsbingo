@@ -6,9 +6,11 @@ const { getModels } = require('./helpers');
 async function getActiveCFEventsForUser(userId, discordUserId) {
   const { CFEvent, CFTeam } = getModels();
 
+  const CF_ACTIVE_STATUSES = ['GATHERING', 'OUTFITTING', 'BATTLE'];
+
   const staffEvents = await CFEvent.findAll({
     where: {
-      status: { [Op.ne]: 'COMPLETED' },
+      status: { [Op.in]: CF_ACTIVE_STATUSES },
       [Op.or]: [
         { creatorId: String(userId) },
         { adminIds: { [Op.contains]: [String(userId)] } },
@@ -32,7 +34,7 @@ async function getActiveCFEventsForUser(userId, discordUserId) {
       memberEvents = await CFEvent.findAll({
         where: {
           eventId: { [Op.in]: memberEventIds },
-          status: { [Op.ne]: 'COMPLETED' },
+          status: { [Op.in]: CF_ACTIVE_STATUSES },
         },
         order: [['createdAt', 'DESC']],
       });

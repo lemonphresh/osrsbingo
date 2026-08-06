@@ -80,6 +80,12 @@ const DiscordMemberInput = ({
       subtext: 'gray.400',
       hover: 'gray.500',
       border: 'gray.500',
+      selectedBg: 'green.100',
+      selectedBgError: 'red.100',
+      selectedBorder: 'green.500',
+      selectedBorderError: 'red.500',
+      selectedText: 'gray.800',
+      selectedSubtext: 'gray.500',
     },
     light: {
       bg: 'white',
@@ -88,9 +94,33 @@ const DiscordMemberInput = ({
       subtext: 'gray.600',
       hover: 'gray.100',
       border: 'gray.300',
+      selectedBg: 'green.50',
+      selectedBgError: 'red.50',
+      selectedBorder: 'green.400',
+      selectedBorderError: 'red.400',
+      selectedText: 'gray.800',
+      selectedSubtext: 'gray.500',
+    },
+    bs: {
+      bg: '#060f0a',
+      inputBg: '#091a10',
+      text: '#d4f0da',
+      subtext: '#6b9e78',
+      placeholder: '#3d6b4a',
+      hover: '#0d2a18',
+      border: '#1a4028',
+      focusBorder: '#22c55e',
+      fontFamily: 'mono',
+      fontSize: 'xs',
+      selectedBg: '#091a10',
+      selectedBgError: '#2e0a0a',
+      selectedBorder: '#22c55e',
+      selectedBorderError: '#ef4444',
+      selectedText: '#d4f0da',
+      selectedSubtext: '#6b9e78',
     },
   };
-  const c = colors[colorMode];
+  const c = colors[colorMode] ?? colors.dark;
 
   useEffect(() => {
     if (resolvedUser?.discordUserId) {
@@ -230,10 +260,10 @@ const DiscordMemberInput = ({
       {isSelected && (
         <Box
           p={2}
-          bg={hasError ? 'red.100' : 'green.100'}
+          bg={hasError ? c.selectedBgError : c.selectedBg}
           borderRadius="md"
           borderWidth={1}
-          borderColor={hasError ? 'red.500' : 'green.500'}
+          borderColor={hasError ? c.selectedBorderError : c.selectedBorder}
         >
           <HStack justify="space-between">
             <HStack spacing={3}>
@@ -245,7 +275,7 @@ const DiscordMemberInput = ({
               />
               <VStack align="start" spacing={0}>
                 <HStack>
-                  <Text fontSize="sm" fontWeight="semibold" color="gray.800">
+                  <Text fontSize={c.fontSize ?? 'sm'} fontFamily={c.fontFamily} fontWeight="semibold" color={c.selectedText}>
                     {discordUserInfo?.globalName || discordUserInfo?.username || 'Discord User'}
                   </Text>
                   {discordUserInfo?.siteUser && (
@@ -259,11 +289,11 @@ const DiscordMemberInput = ({
                     </Tooltip>
                   )}
                 </HStack>
-                <Text fontSize="xs" color="gray.500">
+                <Text fontSize="xs" color={c.selectedSubtext}>
                   {value}
                 </Text>
                 {discordUserInfo?.siteUser?.rsn && (
-                  <Text fontSize="xs" color="gray.300">
+                  <Text fontSize="xs" color={c.selectedSubtext}>
                     RSN: {discordUserInfo.siteUser.rsn}
                   </Text>
                 )}
@@ -304,8 +334,8 @@ const DiscordMemberInput = ({
 
       {/* Loading state */}
       {value && isValidDiscordId(value) && loadingDiscord && !discordUserInfo && (
-        <HStack p={3} bg={c.inputBg} borderRadius="md" justify="center">
-          <Spinner size="sm" />
+        <HStack p={3} bg={c.inputBg} borderRadius="md" justify="center" border="1px solid" borderColor={c.border}>
+          <Spinner size="sm" color={c.subtext} />
           <Text fontSize="sm" color={c.subtext}>
             Loading Discord user...
           </Text>
@@ -330,6 +360,11 @@ const DiscordMemberInput = ({
               bg={c.inputBg}
               color={c.text}
               borderColor={c.border}
+              fontFamily={c.fontFamily}
+              fontSize={c.fontSize}
+              _placeholder={{ color: c.placeholder ?? c.subtext }}
+              _focus={{ borderColor: c.focusBorder ?? c.border, boxShadow: 'none' }}
+              _hover={{ borderColor: c.focusBorder ?? c.hover }}
             />
             {showRemove && (
               <InputRightElement>
@@ -348,7 +383,7 @@ const DiscordMemberInput = ({
           {!searchQuery && (
             <HStack mt={1} spacing={1}>
               <Icon as={FaDiscord} boxSize={3} color={c.subtext} />
-              <Text fontSize="xs" color={c.subtext}>
+              <Text fontSize={c.fontSize ?? 'xs'} fontFamily={c.fontFamily} color={c.subtext}>
                 Tip: Discord ID is most reliable (works even if user hasn't linked their account)
               </Text>
             </HStack>
@@ -356,14 +391,14 @@ const DiscordMemberInput = ({
 
           {/* Helper text */}
           {searchQuery.length > 0 && searchQuery.length < 2 && (
-            <Text fontSize="xs" color={c.subtext} mt={1}>
+            <Text fontSize={c.fontSize ?? 'xs'} fontFamily={c.fontFamily} color={c.subtext} mt={1}>
               Type at least 2 characters to search
             </Text>
           )}
           {looksLikeDiscordId(searchQuery) &&
             searchQuery.length < 17 &&
             searchQuery.length >= 2 && (
-              <Text fontSize="xs" color={c.subtext} mt={1}>
+              <Text fontSize={c.fontSize ?? 'xs'} fontFamily={c.fontFamily} color={c.subtext} mt={1}>
                 <Icon as={FaDiscord} boxSize={3} mr={1} />
                 Looks like a Discord ID - keep typing ({searchQuery.length}/17-19 digits)
               </Text>
@@ -407,7 +442,7 @@ const DiscordMemberInput = ({
                 />
                 <VStack align="start" spacing={0} flex={1}>
                   <HStack>
-                    <Text fontSize="sm" fontWeight="semibold" color={c.text}>
+                    <Text fontSize={c.fontSize ?? 'sm'} fontFamily={c.fontFamily} fontWeight="semibold" color={c.text}>
                       {user.displayName || user.discordUsername || 'Unknown'}
                     </Text>
                     {user.type === 'site' ? (

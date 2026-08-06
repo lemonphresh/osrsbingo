@@ -288,7 +288,7 @@ export function BSGameOverScreen({ event, shotLog }) {
 
     return [
       BLANK(),
-      I('> OSRS BINGO HUB — BATTLESHIP COMMAND TERMINAL', DIM, { pauseAfter: 300 }),
+      I('> OSRS BINGO HUB / BATTLESHIP COMMAND TERMINAL', DIM, { pauseAfter: 300 }),
       SEP_H(100),
       BLANK(100),
       C('> LOADING BATTLE ASSESSMENT REPORT...', DIM),

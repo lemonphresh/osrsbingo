@@ -23,6 +23,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import { FaClipboardList, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import { useAuth } from '../../providers/AuthProvider';
+import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
   ADD_BS_REF,
@@ -203,7 +204,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
           >
             Members ({memberIds.filter(isValidDiscordId).length})
           </Text>
-          <VStack align="stretch" spacing={3}>
+          <VStack align="stretch" spacing={3} maxW="400px">
             {memberIds.map((id, i) => (
               <DiscordMemberInput
                 key={i}
@@ -303,6 +304,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 color="#d4f0da"
                 fontFamily="mono"
                 fontSize="sm"
+                maxW="320px"
                 _placeholder={{ color: '#3d6b4a' }}
                 _focus={{ borderColor: GREEN, boxShadow: 'none' }}
                 _hover={{ borderColor: DIM }}
@@ -325,6 +327,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 color="#d4f0da"
                 fontFamily="mono"
                 fontSize="sm"
+                maxW="320px"
                 _placeholder={{ color: '#3d6b4a' }}
                 _focus={{ borderColor: GREEN, boxShadow: 'none' }}
                 _hover={{ borderColor: DIM }}
@@ -447,7 +450,7 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
       )}
 
       {refs.length > 0 && (
-        <VStack align="stretch" spacing={2}>
+        <VStack align="stretch" spacing={2} maxW="400px">
           {refs.map((ref) => (
             <HStack
               key={ref.id}
@@ -458,6 +461,7 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
               borderRadius="md"
               px={3}
               py={2}
+              overflow="hidden"
             >
               <VStack align="flex-start" spacing={0}>
                 <Text fontSize="sm" color="#d4f0da" fontWeight="semibold">
@@ -504,13 +508,14 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
           color="#d4f0da"
           fontFamily="mono"
           fontSize="sm"
+          maxW="320px"
           _focus={{ borderColor: GREEN, boxShadow: 'none' }}
           _hover={{ borderColor: DIM }}
           _placeholder={{ color: DIM }}
         />
 
         {filteredResults.length > 0 && (
-          <VStack align="stretch" spacing={1} mt={2}>
+          <VStack align="stretch" spacing={1} mt={2} maxW="320px">
             {filteredResults.map((u) => (
               <HStack
                 key={u.id}
@@ -521,6 +526,7 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
                 borderRadius="md"
                 px={3}
                 py={2}
+                overflow="hidden"
               >
                 <VStack align="flex-start" spacing={0}>
                   <Text fontSize="sm" color="#d4f0da">
@@ -645,6 +651,7 @@ export default function BattleshipAdminPage() {
   }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   if (!isAdmin && event) {
     return (
@@ -1004,7 +1011,7 @@ export default function BattleshipAdminPage() {
                           textTransform="uppercase"
                           letterSpacing="wider"
                         >
-                          {t.teamName} — WOM Team Name
+                          {t.teamName} / WOM Team Name
                         </Text>
                       </HStack>
                       <Input

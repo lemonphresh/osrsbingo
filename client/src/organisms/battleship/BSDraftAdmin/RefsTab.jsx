@@ -72,8 +72,9 @@ export function BSRefsTab({ event, refetch }) {
           _placeholder={{ color: '#3d6b4a' }}
           _focus={{ borderColor: '#4ade80', boxShadow: 'none' }}
           mb={2}
+          maxW="320px"
         />
-        <VStack align="stretch" spacing={1}>
+        <VStack align="stretch" spacing={1} maxW="320px">
           {results.map((u) => (
             <HStack
               key={u.id}
@@ -84,13 +85,14 @@ export function BSRefsTab({ event, refetch }) {
               border="1px solid"
               borderColor="#1a4028"
               borderRadius="sm"
+              overflow="hidden"
             >
-              <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+              <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1} flex={1} minW={0}>
                 {u.displayName ?? u.username}
                 {u.rsn && (
                   <Text as="span" color="#6b9e78">
                     {' '}
-                    — {u.rsn}
+                    / {u.rsn}
                   </Text>
                 )}
               </Text>
@@ -131,7 +133,7 @@ export function BSRefsTab({ event, refetch }) {
             No refs added yet.
           </Text>
         ) : (
-          <VStack align="stretch" spacing={1}>
+          <VStack align="stretch" spacing={1} maxW="320px">
             {(event.refs ?? []).map((ref) => (
               <HStack
                 key={ref.id}
@@ -142,8 +144,9 @@ export function BSRefsTab({ event, refetch }) {
                 border="1px solid"
                 borderColor="#1a4028"
                 borderRadius="sm"
+                overflow="hidden"
               >
-                <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+                <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1} flex={1} minW={0}>
                   {ref.displayName ?? ref.username}
                 </Text>
                 <IconButton

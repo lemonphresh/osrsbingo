@@ -27,6 +27,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { useAuth } from '../../providers/AuthProvider';
+import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
   GET_BS_EVENT,
@@ -741,6 +742,7 @@ export default function BattleshipRefsPage() {
   }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   if (!isAdminOrRef) {
     return (
@@ -770,7 +772,7 @@ export default function BattleshipRefsPage() {
           <VStack align="flex-start" spacing={1}>
             <HStack spacing={3} align="center">
               <Heading size="lg" color={GREEN} fontFamily="mono" letterSpacing="tight">
-                ⚓ BATTLESHIP — REFS
+                ⚓ BATTLESHIP / REFS
               </Heading>
               {totalPending > 0 && (
                 <Badge colorScheme="yellow" borderRadius="full" fontSize="sm" px={2} py={0.5}>
@@ -1042,7 +1044,7 @@ export default function BattleshipRefsPage() {
 
         <Divider borderColor="#1a4028" />
         <Text fontSize="xs" color={DIM} textAlign="center" fontFamily="mono">
-          OSRS BINGO HUB — BATTLESHIP REFS CONSOLE
+          OSRS BINGO HUB / BATTLESHIP REFS CONSOLE
         </Text>
       </VStack>
     </Box>

@@ -158,4 +158,4 @@ function generateDefaultBSTasks() {
   return entries;
 }
 
-module.exports = { SHIP_TEMPLATE_CONTENT_IDS, generateDefaultBSTasks };
+module.exports = { SHIP_TEMPLATE_CONTENT_IDS, generateDefaultBSTasks, formatXp };

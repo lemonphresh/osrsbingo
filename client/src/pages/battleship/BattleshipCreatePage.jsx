@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, Navigate, useNavigate } from 'react-router-dom';
 import { useMutation } from '@apollo/client';
 import {
   Box,
@@ -21,6 +21,8 @@ import { ArrowBackIcon } from '@chakra-ui/icons';
 import { CREATE_BS_EVENT } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import usePageTitle from '../../hooks/usePageTitle';
+import { useAuth } from '../../providers/AuthProvider';
+import { isBattleshipEnabled } from '../../config/featureFlags';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 
 // ── Styled label ──────────────────────────────────────────────────────────
@@ -45,7 +47,7 @@ function FieldLabel({ children, htmlFor }) {
 // ── Main Export ───────────────────────────────────────────────────────────
 
 export default function BattleshipCreatePage() {
-  usePageTitle('New Campaign — Battleship');
+  usePageTitle('New Campaign / Battleship');
 
   const navigate = useNavigate();
   const { showToast } = useToastContext();
@@ -55,6 +57,7 @@ export default function BattleshipCreatePage() {
   const [placementPhaseHours, setPlacementPhaseHours] = useState(24);
   const [cooldownMinutes, setCooldownMinutes] = useState(10);
   const [initialSkipTokens, setInitialSkipTokens] = useState(2);
+  const [metricMultiplier, setMetricMultiplier] = useState(1.0);
   const [nameError, setNameError] = useState('');
   const [createdEventId, setCreatedEventId] = useState(null);
 
@@ -68,6 +71,10 @@ export default function BattleshipCreatePage() {
       showToast(err.message ?? 'Failed to create campaign.', 'error');
     },
   });
+
+  const { user } = useAuth();
+
+  if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -85,6 +92,7 @@ export default function BattleshipCreatePage() {
           cooldownMinutes: Number(cooldownMinutes),
           initialSkipTokens: Number(initialSkipTokens),
           eventPassword: eventPassword.trim() || null,
+          metricMultiplier,
         },
       },
     });
@@ -166,7 +174,7 @@ export default function BattleshipCreatePage() {
                     setEventName(e.target.value);
                     if (nameError) setNameError('');
                   }}
-                  placeholder="i.e. Operation Iron Tide"
+                  placeholder="i.e. Operation Lemon Juice"
                   bg="#071523"
                   border="1px solid"
                   borderColor="#1e4976"
@@ -189,7 +197,7 @@ export default function BattleshipCreatePage() {
                   id="eventPassword"
                   value={eventPassword}
                   onChange={(e) => setEventPassword(e.target.value)}
-                  placeholder="i.e. ironhide"
+                  placeholder="i.e. lemonissocool"
                   bg="#071523"
                   border="1px solid"
                   borderColor="#1e4976"
@@ -201,7 +209,8 @@ export default function BattleshipCreatePage() {
                   _hover={{ borderColor: '#2d5f9a' }}
                 />
                 <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
-                  Shown to participants on the event page — used for screenshot verification.
+                  Shown to participants on the event page. Used for screenshot verification when
+                  placed on an overlay RuneLite plugin or in chat box.
                 </Text>
               </FormControl>
 
@@ -240,7 +249,7 @@ export default function BattleshipCreatePage() {
                   </NumberInputStepper>
                 </NumberInput>
                 <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
-                  Min 1 — Max 168 (one week)
+                  Min 1 / Max 168 (one week)
                 </Text>
               </FormControl>
 
@@ -279,7 +288,7 @@ export default function BattleshipCreatePage() {
                   </NumberInputStepper>
                 </NumberInput>
                 <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
-                  Min 1 — Max 60
+                  Min 1 / Max 60
                 </Text>
               </FormControl>
 
@@ -319,6 +328,48 @@ export default function BattleshipCreatePage() {
                 </NumberInput>
                 <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
                   Each team starts with this many skip tokens. Default is 2.
+                </Text>
+              </FormControl>
+
+              {/* Task difficulty / event length */}
+              <FormControl>
+                <FieldLabel>Task Difficulty / Event Length</FieldLabel>
+                {[
+                  { value: 0.5, label: '0.5×', hint: '~1 week' },
+                  { value: 0.75, label: '0.75×', hint: '~10 days' },
+                  { value: 1.0, label: '1×', hint: '~2 weeks' },
+                  { value: 1.25, label: '1.25×', hint: '~3 weeks' },
+                ].map(({ value, label, hint }) => {
+                  const active = metricMultiplier === value;
+                  return (
+                    <Button
+                      key={value}
+                      onClick={() => setMetricMultiplier(value)}
+                      size="sm"
+                      mr={2}
+                      mb={2}
+                      fontFamily="mono"
+                      fontSize="xs"
+                      fontWeight="bold"
+                      letterSpacing="wide"
+                      bg={active ? '#0ea5e9' : '#071523'}
+                      color={active ? '#071523' : '#94a3b8'}
+                      border="1px solid"
+                      borderColor={active ? '#0ea5e9' : '#1e4976'}
+                      _hover={{ borderColor: '#0ea5e9', color: active ? '#071523' : '#e2e8f0' }}
+                    >
+                      {label}{' '}
+                      <Box as="span" fontWeight="normal" ml={1} opacity={0.75}>
+                        {hint}
+                      </Box>
+                    </Button>
+                  );
+                })}
+                <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
+                  Scales all initially generated tasks' KC and XP goal amounts up or down. Affects
+                  estimated event duration. Tasks can be edited in the next screen. This is
+                  estimated for two teams of 10-12 of average playing time averaging to 10 hours per
+                  person, so your mileage may vary.
                 </Text>
               </FormControl>
 

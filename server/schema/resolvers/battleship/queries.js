@@ -10,9 +10,10 @@ module.exports = {
     return BSEvent.findByPk(eventId);
   },
 
-  getAllBSEvents: async () => {
+  getAllBSEvents: async (_, { creatorId } = {}) => {
     const { BSEvent } = getModels();
-    return BSEvent.findAll({ order: [['createdAt', 'DESC']] });
+    const where = creatorId ? { creatorId: String(creatorId) } : {};
+    return BSEvent.findAll({ where, order: [['createdAt', 'DESC']] });
   },
 
   getBSTaskPool: async (_, { eventId }, context) => {

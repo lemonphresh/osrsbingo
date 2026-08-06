@@ -168,7 +168,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                 letterSpacing="widest"
                 textTransform="uppercase"
               >
-                Placement Phase — Admin View
+                Placement Phase / Admin View
               </Text>
               {viewerBadge}
             </HStack>

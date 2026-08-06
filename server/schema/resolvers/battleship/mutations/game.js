@@ -5,7 +5,7 @@ const { UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const { runBSGameStart } = require('../../../../utils/battleship/bsGameStart');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
-const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
+const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSShipSunk, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
 const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
 
@@ -173,12 +173,29 @@ module.exports = {
       });
     }
 
-    // Win condition: only ship tiles can trigger a win
+    // Ship sunk + win condition: only ship tiles can trigger either
     if (tile.shipType && event.status === 'ACTIVE') {
       const { Op } = require('sequelize');
       const shipTiles = await BSTile.findAll({
         where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
       });
+
+      // Per-ship sunk check
+      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
+      const thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+      if (thisShipSunk) {
+        const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
+        const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
+        postBSShipSunk({
+          firingChannelId: firingTeam?.discordChannelId,
+          defendingChannelId: defendingTeam?.discordChannelId,
+          shipType: tile.shipType,
+          firingTeamName: firingTeam?.teamName,
+          defendingTeamName: defendingTeam?.teamName,
+          eventId: event.eventId,
+        });
+      }
+
       const allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
       if (allSunk) {
         const winningTeam = allTeams.find((t) => t.teamId !== board.teamId);

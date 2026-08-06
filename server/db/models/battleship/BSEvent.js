@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       placementPhaseHours: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 24 },
       cooldownMinutes:     { type: DataTypes.INTEGER, allowNull: false, defaultValue: 10 },
       initialSkipTokens:   { type: DataTypes.INTEGER, allowNull: false, defaultValue: 2 },
+      metricMultiplier:    { type: DataTypes.FLOAT,   allowNull: false, defaultValue: 1.0 },
       placementStartsAt:   { type: DataTypes.DATE, allowNull: true },
       placementEndsAt:     { type: DataTypes.DATE, allowNull: true },
       creatorId:           { type: DataTypes.STRING, allowNull: true },

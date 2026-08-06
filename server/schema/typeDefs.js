@@ -276,6 +276,7 @@ const typeDefs = gql`
     eventName: String!
     status: String!
     url: String!
+    role: String!
   }
 
   type GREvent {
@@ -836,7 +837,7 @@ const typeDefs = gql`
 
     # --- Battleship ---
     getBSEvent(eventId: ID!): BSEvent
-    getAllBSEvents: [BSEvent!]!
+    getAllBSEvents(creatorId: ID): [BSEvent!]!
     getBSTaskPool(eventId: ID!): [BSTask!]!
     getBSBoard(boardId: ID!): BSBoard
     getBSShotLog(eventId: ID!): [BSShotLog!]!
@@ -1561,6 +1562,7 @@ const typeDefs = gql`
     placementPhaseHours: Int!
     cooldownMinutes: Int!
     initialSkipTokens: Int!
+    metricMultiplier: Float!
     placementStartsAt: DateTime
     placementEndsAt: DateTime
     creatorId: String
@@ -1752,6 +1754,7 @@ const typeDefs = gql`
     placementPhaseHours: Int
     cooldownMinutes: Int
     initialSkipTokens: Int
+    metricMultiplier: Float
     adminIds: [String!]
     refIds: [String!]
     guildId: String

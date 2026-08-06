@@ -2,7 +2,7 @@
 
 const { getModels, requireAuth, requireAdmin, getEventOrThrow } = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
-const { generateDefaultBSTasks, SHIP_TEMPLATE_CONTENT_IDS } = require('../../../../utils/battleship/bsDefaultTasks');
+const { generateDefaultBSTasks, SHIP_TEMPLATE_CONTENT_IDS, formatXp } = require('../../../../utils/battleship/bsDefaultTasks');
 const { UserInputError } = require('apollo-server-express');
 
 module.exports = {
@@ -10,12 +10,15 @@ module.exports = {
     const user = requireAuth(context);
     const { BSEvent, BSTask, BSShipTemplate } = getModels();
     const eventId = generateId('bs');
+    const multiplier = input.metricMultiplier ?? 1.0;
+
     const event = await BSEvent.create({
       eventId,
       eventName: input.eventName,
       placementPhaseHours: input.placementPhaseHours ?? 24,
       cooldownMinutes: input.cooldownMinutes ?? 10,
       initialSkipTokens: input.initialSkipTokens ?? 2,
+      metricMultiplier: multiplier,
       creatorId: String(user.id),
       adminIds: input.adminIds ?? [],
       refIds: input.refIds ?? [],
@@ -23,20 +26,37 @@ module.exports = {
       eventPassword: input.eventPassword ?? null,
     });
 
-    // Auto-populate tasks from contentRegistry
+    const roundTarget = (val, unit) => {
+      if (val == null) return val;
+      if (unit === 'xp') return Math.ceil(val / 10000) * 10000;
+      return Math.ceil(val / 10) * 10;
+    };
+
+    // Auto-populate tasks from contentRegistry, scaling targets by the multiplier
     const defaultEntries = generateDefaultBSTasks();
-    const taskRecords = defaultEntries.map((e) => ({
-      taskId:      generateId('bstk'),
-      eventId,
-      label:       e.label,
-      bossOrSkill: e.bossOrSkill ?? null,
-      metricType:  e.metricType ?? null,
-      metricTarget:e.metricTarget ?? null,
-      metricUnit:  e.metricUnit ?? null,
-      metricLabel: e.metricLabel ?? null,
-      validDrops:  e.validDrops ?? [],
-      womMetric:   e.womMetric ?? null,
-    }));
+    const taskRecords = defaultEntries.map((e) => {
+      const rawTarget = e.metricTarget ?? null;
+      const unit = e.metricUnit;
+      const scaledTarget = rawTarget != null ? roundTarget(rawTarget * multiplier, unit) : null;
+      let scaledLabel = e.metricLabel ?? null;
+      if (scaledTarget != null) {
+        if (unit === 'kc')           scaledLabel = `${scaledTarget} kc`;
+        else if (unit === 'xp')      scaledLabel = formatXp(scaledTarget);
+        else if (unit === 'uniques') scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
+      }
+      return {
+        taskId:      generateId('bstk'),
+        eventId,
+        label:       e.label,
+        bossOrSkill: e.bossOrSkill ?? null,
+        metricType:  e.metricType ?? null,
+        metricTarget: scaledTarget,
+        metricUnit:  e.metricUnit ?? null,
+        metricLabel: scaledLabel,
+        validDrops:  e.validDrops ?? [],
+        womMetric:   e.womMetric ?? null,
+      };
+    });
     await BSTask.bulkCreate(taskRecords);
 
     // Build contentId → taskId map for template wiring

@@ -5,8 +5,12 @@
  * Best-effort — all functions swallow errors so they never break the main flow.
  */
 
+const fs = require('fs');
+const path = require('path');
+
 const DISCORD_API = 'https://discord.com/api/v10';
-const SITE_URL = process.env.SITE_URL || 'https://osrsbingohub.com';
+const SITE_URL = process.env.FRONTEND_URL || process.env.SITE_URL || 'https://osrsbingohub.com';
+const SINKING_SHIP_GIF = path.join(__dirname, '../assets/sinkingship.gif');
 
 async function discordFetch(path, options = {}) {
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -22,6 +26,26 @@ async function discordFetch(path, options = {}) {
     });
   } catch (_) {
     return null;
+  }
+}
+
+async function postWithFile(channelId, content, filePath) {
+  if (!channelId) return;
+  const token = process.env.DISCORD_BOT_TOKEN;
+  if (!token) return;
+  try {
+    const fileBuffer = fs.readFileSync(filePath);
+    const fileName = path.basename(filePath);
+    const form = new FormData();
+    form.append('files[0]', new Blob([fileBuffer], { type: 'image/gif' }), fileName);
+    form.append('payload_json', JSON.stringify({ content, attachments: [{ id: 0, filename: fileName }] }));
+    await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: { Authorization: `Bot ${token}` },
+      body: form,
+    });
+  } catch (_) {
+    // best-effort
   }
 }
 
@@ -42,7 +66,7 @@ async function post(channelId, content) {
  */
 async function postBSPreScreenshotResult({ channelId, discordUserId, taskLabel, approved, denialReason }) {
   if (approved) {
-    await post(channelId, `<@${discordUserId}> ✅ Your pre-screenshot for **${taskLabel}** was accepted as a baseline — go ahead and complete the task!`);
+    await post(channelId, `<@${discordUserId}> ✅ Your pre-screenshot for **${taskLabel}** was accepted as a baseline -- go ahead and complete the task!`);
   } else {
     const reason = denialReason || 'No reason given.';
     await post(channelId, `<@${discordUserId}> ❌ Your pre-screenshot for **${taskLabel}** was rejected.\n**Reason:** ${reason}\nPlease resubmit.`);
@@ -77,11 +101,11 @@ async function postBSTaskComplete({ channelId, teamName, taskLabel, coord, event
  */
 async function postBSShotResult({ channelId, firingTeamName, coord, taskLabel, metric, isHit, eventId }) {
   const link = `${SITE_URL}/battleship/${eventId}`;
-  const hitStr = isHit ? '💥 **SHIP HIT**' : '🌊 **OCEAN — MISS**';
+  const hitStr = isHit ? '💥 **SHIP HIT**' : '🌊 **OCEAN -- MISS**';
   const metricStr = metric ? `\n**Target:** ${metric}` : '';
   await post(
     channelId,
-    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nSubmit your screenshot once complete — your team is paused until a ref marks it done.\n${link}`,
+    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nSubmit your screenshot once complete -- your team is paused until a ref marks it done.\n${link}`,
   );
 }
 
@@ -108,20 +132,44 @@ async function postBSPlacementStarted({ channelId, roleId, teamName, eventName, 
   const ping = roleId ? `<@&${roleId}>` : undefined;
   await post(channelId, [
     ping,
-    `⚓ **${eventName} — Ship Placement Phase has begun!**`,
+    `⚓ **${eventName} -- Ship Placement Phase has begun!**`,
     `**${teamName}**, it's time to deploy your fleet. Head to the event page and arrange your ships before time runs out.`,
     deadline,
     ``,
     `📋 **How Battleship works:**`,
     `• **Placement Phase** *(right now)*: Each team secretly places their ships on their own board. Your opponent cannot see your board.`,
     `• **Battle Phase**: Teams alternate firing at a coordinate on the enemy board.`,
-    `• A 💥 **hit** reveals a task — your team must complete it before firing again.`,
-    `• A 🌊 **miss** also reveals a task — complete it to end your turn (no extra shot).`,
+    `• A 💥 **hit** reveals a task -- your team must complete it before firing again.`,
+    `• A 🌊 **miss** also reveals a task -- complete it to end your turn.`,
     `• Tasks are completed by submitting a screenshot to a ref for approval.`,
     `• First team to **sink all enemy ships** wins the campaign!`,
     ``,
+    `⚠️ Make sure you are **logged in** to OSRS Bingo Hub and have your **Discord account linked** -- this is required to view your team's board.`,
+    ``,
     link,
   ].filter(Boolean).join('\n'));
+}
+
+/**
+ * When all tiles of a specific ship are completed — posted to both teams' channels with gif.
+ */
+async function postBSShipSunk({ firingChannelId, defendingChannelId, shipType, firingTeamName, defendingTeamName, eventId }) {
+  const link = `${SITE_URL}/battleship/${eventId}`;
+  const shipName = shipType.charAt(0) + shipType.slice(1).toLowerCase();
+  if (firingChannelId) {
+    await postWithFile(
+      firingChannelId,
+      `🚢💥 **${firingTeamName}** has sunk the enemy **${shipName}**! The fleet shrinks...\n${link}`,
+      SINKING_SHIP_GIF,
+    );
+  }
+  if (defendingChannelId) {
+    await postWithFile(
+      defendingChannelId,
+      `💀 Your **${shipName}** has been sunk by **${firingTeamName}**!\n${link}`,
+      SINKING_SHIP_GIF,
+    );
+  }
 }
 
 /**
@@ -142,5 +190,6 @@ module.exports = {
   postBSShotResult,
   postBSHitOnShip,
   postBSPlacementStarted,
+  postBSShipSunk,
   postBSGameOver,
 };

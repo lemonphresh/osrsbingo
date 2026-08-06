@@ -26,7 +26,11 @@ import { GET_PENDING_INVITATIONS } from '../graphql/queries';
 import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOperations';
 import { GET_ACTIVE_RAINBOW_EVENT } from '../graphql/rainbowBingoOperations';
 import { FaHeart } from 'react-icons/fa';
-import { isChampionForgeEnabled, isGroupDashboardEnabled } from '../config/featureFlags';
+import {
+  isBattleshipEnabled,
+  isChampionForgeEnabled,
+  isGroupDashboardEnabled,
+} from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import HolidayEmojiFall, {
   HOLIDAY_PREF_KEY,
@@ -409,14 +413,19 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors. Just me and my server bills. If OSRS
                   Bingo Hub has helped your clan, consider helping me keep it running 💛
                 </Text>
-                {isChampionForgeEnabled(user) ? (
+                {isBattleshipEnabled(user) ? (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    Also... OSRS Battleship is live! ⚓ Check out <strong>Battleship</strong> for a
+                    whole new way to compete.
+                  </Text>
+                ) : isChampionForgeEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
                     Also, event runners, go check out <strong>Champion Forge</strong>! I've been
                     hard at work on this one :) ⚔️
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    <strong>Champion Forge</strong> is coming soon... clan tournaments, get hype 👀
+                    <strong>Battleship</strong> is coming soon... Big two-team OSRS competition ⚓
                   </Text>
                 )}
               </VStack>
@@ -448,7 +457,13 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isChampionForgeEnabled(user) ? (
+              {isBattleshipEnabled(user) ? (
+                <Link to="/battleship">
+                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                    Battleship →
+                  </Text>
+                </Link>
+              ) : isChampionForgeEnabled(user) ? (
                 <Link to="/champion-forge">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Champion Forge →
@@ -457,7 +472,7 @@ const NavBar = () => {
               ) : (
                 <HStack spacing={1}>
                   <Text color={theme.colors.gray[400]} fontSize="sm" textAlign="center">
-                    Champion Forge
+                    Battleship
                   </Text>
                   <Badge colorScheme="yellow" fontSize="xs">
                     Soon
@@ -747,27 +762,33 @@ const NavBar = () => {
                       ],
                     },
                     {
-                      section: 'Public',
+                      section: 'Create Events',
                       items: [
-                        { label: 'View All Boards', to: '/boards' },
-                        { label: 'View GR Events', to: '/gielinor-rush/active' },
-                        ...(isChampionForgeEnabled(user)
-                          ? [{ label: 'CF Battle Gallery', to: '/champion-forge/gallery' }]
+                        { label: 'Bingo Creator', to: '/boards/create' },
+                        { label: 'Gielinor Rush', to: '/gielinor-rush' },
+                        { label: 'Champion Forge', to: '/champion-forge' },
+                        ...(isBattleshipEnabled(user)
+                          ? [{ label: 'Battleship', to: '/battleship', isNew: true }]
+                          : []),
+                        ...(isGroupDashboardEnabled(user)
+                          ? [{ label: 'Group Dashboard', to: '/group' }]
                           : []),
                       ],
                     },
                     {
-                      section: 'Site Tools',
+                      section: 'Tools',
                       items: [
-                        { label: 'Bingo Creator', to: '/boards/create' },
-                        { label: 'Blind Draft', to: '/blind-draft' },
                         { label: 'Team Balancer', to: '/team-balancer' },
-                        { label: 'Gielinor Rush', to: '/gielinor-rush' },
+                        { label: 'Blind Draft', to: '/blind-draft' },
+                      ],
+                    },
+                    {
+                      section: 'Discover',
+                      items: [
+                        { label: 'Browse All Boards', to: '/boards' },
+                        { label: 'Active GR Events', to: '/gielinor-rush/active' },
                         ...(isChampionForgeEnabled(user)
-                          ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
-                          : []),
-                        ...(isGroupDashboardEnabled(user)
-                          ? [{ label: 'Group Dashboard Creator', to: '/group', isNew: true }]
+                          ? [{ label: 'CF Battle Gallery', to: '/champion-forge/gallery' }]
                           : []),
                       ],
                     },

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useParams, Link as RouterLink } from 'react-router-dom';
+import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -51,6 +51,7 @@ import {
   formatCooldown,
   coordLabel,
 } from '../../utils/battleship/bsClientHelpers';
+import { isBattleshipEnabled } from '../../config/featureFlags';
 
 export default function BattleshipEventPage() {
   const { eventId } = useParams();
@@ -282,6 +283,8 @@ export default function BattleshipEventPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
+  if (!isBattleshipEnabled(currentUser)) return <Navigate to="/" replace />;
+
   if (eventLoading) {
     return (
       <Center flex="1" minH="60vh" bg="#060f0a">
@@ -377,7 +380,7 @@ export default function BattleshipEventPage() {
           </Badge>
           {event.status === 'PLACEMENT' && (
             <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-              Placement phase — {event.placementPhaseHours}h window
+              Placement phase / {event.placementPhaseHours}h window
             </Text>
           )}
         </HStack>
@@ -477,7 +480,7 @@ export default function BattleshipEventPage() {
                 letterSpacing="widest"
                 textTransform="uppercase"
               >
-                Admin — Campaign Setup
+                Admin / Campaign Setup
               </Text>
               <Text
                 fontFamily="mono"
@@ -627,7 +630,7 @@ export default function BattleshipEventPage() {
               <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={5}>
                 {/* Your board */}
                 <BoardPanel
-                  title={`Your Waters — ${viewingTeam?.teamName ?? 'Team'}`}
+                  title={`Your Waters / ${viewingTeam?.teamName ?? 'Team'}`}
                   tiles={myTiles}
                   showShips
                   canFire={false}
@@ -636,7 +639,7 @@ export default function BattleshipEventPage() {
 
                 {/* Opponent board */}
                 <BoardPanel
-                  title={`Enemy Waters — ${opponentTeam?.teamName ?? 'Opponent'}`}
+                  title={`Enemy Waters / ${opponentTeam?.teamName ?? 'Opponent'}`}
                   tiles={opponentTiles}
                   showShips={false}
                   onCellClick={event.status === 'ACTIVE' ? handleFireCell : undefined}
@@ -713,7 +716,7 @@ export default function BattleshipEventPage() {
                             letterSpacing="widest"
                             textTransform="uppercase"
                           >
-                            Task Revealed — {coordLabel(pendingTask.row, pendingTask.col)}
+                            Task Revealed / {coordLabel(pendingTask.row, pendingTask.col)}
                           </Text>
                         </HStack>
                         <Badge
@@ -781,7 +784,7 @@ export default function BattleshipEventPage() {
                               textTransform="uppercase"
                               mb={1}
                             >
-                              📸 Step 1 — Pre-screenshot your current state:
+                              📸 Step 1 / Pre-screenshot your current state:
                             </Text>
                             <Text fontFamily="mono" fontSize="9px" color={th.muted} mb={2}>
                               Run this before you start so refs can verify your progress gain.
@@ -823,7 +826,7 @@ export default function BattleshipEventPage() {
                           mb={1}
                         >
                           {hasMetric
-                            ? '🏆 Step 2 — Submit when done:'
+                            ? '🏆 Step 2 / Submit when done:'
                             : '🏆 Submit via Discord when done:'}
                         </Text>
                         <Text fontFamily="mono" fontSize="9px" color={th.muted} mb={2}>
@@ -902,7 +905,7 @@ export default function BattleshipEventPage() {
                   py={2}
                 >
                   <Text fontFamily="mono" fontSize="xs" color="yellow.400" letterSpacing="wide">
-                    WEAPONS COOLING DOWN — {cooldownLabel} remaining before next salvo
+                    WEAPONS COOLING DOWN / {cooldownLabel} remaining before next salvo
                   </Text>
                 </Box>
               )}

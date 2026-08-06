@@ -165,7 +165,7 @@ export function TeamCard({ team, allTeams, refetch }) {
           letterSpacing="widest"
           textTransform="uppercase"
         >
-          Members — {members.length}
+          Members / {members.length}
         </Text>
 
         {members.length > 0 && (
@@ -181,7 +181,7 @@ export function TeamCard({ team, allTeams, refetch }) {
           </VStack>
         )}
 
-        <Box>
+        <Box maxW="320px">
           <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
             ADD MEMBER
           </Text>
@@ -193,7 +193,7 @@ export function TeamCard({ team, allTeams, refetch }) {
             }}
             onRemove={() => setPendingMemberId('')}
             showRemove={false}
-            colorMode="dark"
+            colorMode="bs"
             conflictTeam={pendingMemberId ? otherTeamMemberMap.get(pendingMemberId) ?? null : null}
             isDuplicateInForm={pendingMemberId ? members.includes(pendingMemberId) : false}
           />
@@ -228,6 +228,7 @@ export function TeamCard({ team, allTeams, refetch }) {
                 fontFamily="mono"
                 fontSize="sm"
                 size="sm"
+                maxW="320px"
                 _placeholder={{ color: '#3d6b4a' }}
                 _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
                 _hover={{ borderColor: '#1a5c2e' }}
@@ -251,6 +252,7 @@ export function TeamCard({ team, allTeams, refetch }) {
                 fontFamily="mono"
                 fontSize="sm"
                 size="sm"
+                maxW="320px"
                 _placeholder={{ color: '#3d6b4a' }}
                 _focus={{ borderColor: '#22c55e', boxShadow: 'none' }}
                 _hover={{ borderColor: '#1a5c2e' }}
