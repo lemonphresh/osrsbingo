@@ -160,7 +160,7 @@ export default function BattleshipDashboard() {
   });
   const [deleteBSEvent] = useMutation(DELETE_BS_EVENT);
 
-  if (!isBattleshipEnabled(user)) return <BSLanding />;
+  if (!user || !isBattleshipEnabled(user)) return <BSLanding />;
 
   const events = data?.getAllBSEvents ?? [];
 
