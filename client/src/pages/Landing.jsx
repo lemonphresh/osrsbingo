@@ -15,6 +15,7 @@ import ClanIcon from '../assets/clanicon.png';
 import Gold from '../assets/gold-small.webp';
 import Lemon from '../assets/selfie.webp';
 import ExampleCf from '../assets/cfoutfittingpreview.webp';
+import BsPreview from '../assets/bs.webp';
 import TeamBalancerPreview from '../assets/teambalancer.webp';
 import usePageTitle from '../hooks/usePageTitle';
 import {
@@ -22,6 +23,7 @@ import {
   isBlindDraftEnabled,
   isChampionForgeEnabled,
   isGroupDashboardEnabled,
+  isBattleshipEnabled,
 } from '../config/featureFlags';
 
 const Landing = () => {
@@ -305,6 +307,92 @@ const Landing = () => {
                 }}
               >
                 {isChampionForgeEnabled(user) ? 'Start Forging' : 'Learn More'}
+              </Button>
+            </Link>
+          </Box>
+        </Flex>
+
+        {/* Battleship */}
+        <Flex
+          flexDirection={['column', 'column', 'row']}
+          gap="24px"
+          marginBottom="48px"
+          justifyContent="center"
+        >
+          <Box
+            flex="1"
+            maxW="800px"
+            display="flex"
+            flexDirection="column"
+            backgroundColor={theme.colors.teal[900]}
+            borderRadius="12px"
+            padding={['16px', '20px']}
+            borderWidth="2px"
+            borderColor="#1e4976"
+          >
+            <HStack marginBottom="16px" justifyContent="space-between" alignItems="center">
+              <Text fontFamily="Raleway" fontSize="xl" fontWeight="semibold" color="#76e4f7">
+                Battleship
+              </Text>
+              <Text
+                fontSize="xs"
+                bg={isBattleshipEnabled(user) ? '#0e7490' : 'rgba(244, 211, 94, 0.12)'}
+                border={isBattleshipEnabled(user) ? 'none' : '1px solid rgba(244, 211, 94, 0.35)'}
+                color={isBattleshipEnabled(user) ? theme.colors.gray[900] : '#76e4f7'}
+                px={2}
+                py={1}
+                borderRadius="full"
+                fontWeight="semibold"
+                whiteSpace="nowrap"
+              >
+                {isBattleshipEnabled(user) ? 'NEW' : 'SOON'}
+              </Text>
+            </HStack>
+            <Box
+              marginBottom="20px"
+              borderRadius="8px"
+              overflow="hidden"
+              border="1px solid #1e4976"
+              height="180px"
+              position="relative"
+              sx={{
+                backgroundColor: '#060f0a',
+                backgroundImage: [
+                  'linear-gradient(#0d2a3a 1px, transparent 1px)',
+                  'linear-gradient(90deg, #0d2a3a 1px, transparent 1px)',
+                ].join(', '),
+                backgroundSize: '22px 22px',
+              }}
+            >
+              <Image
+                src={BsPreview}
+                position="absolute"
+                top="50%"
+                left="50%"
+                transform="translate(-50%, -50%)"
+                maxHeight="160px"
+                maxWidth="90%"
+                objectFit="contain"
+              />
+            </Box>
+            <Text fontSize="sm" marginBottom="20px" lineHeight="1.7" color="gray.300">
+              Big two-team OSRS competition built around the classic game of Battleship. Place your
+              fleet, fire shots at the enemy board, and complete OSRS tasks to score hits. First
+              team to sink all ships wins.
+            </Text>
+            <Link to="/battleship" style={{ marginTop: 'auto' }}>
+              <Button
+                width="100%"
+                backgroundColor={isBattleshipEnabled(user) ? '#0e7490' : 'transparent'}
+                color={isBattleshipEnabled(user) ? theme.colors.gray[900] : '#76e4f7'}
+                border={isBattleshipEnabled(user) ? 'none' : '1px solid #0e7490'}
+                _hover={{
+                  backgroundColor: isBattleshipEnabled(user)
+                    ? '#0891b2'
+                    : 'rgba(14, 116, 144, 0.1)',
+                }}
+              >
+                {isBattleshipEnabled(user) ? 'Set Sail' : 'Learn More'}
               </Button>
             </Link>
           </Box>

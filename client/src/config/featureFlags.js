@@ -29,3 +29,11 @@ export const isGroupDashboardEnabled = (user) => {
     user?.admin === true
   );
 };
+
+export const isBattleshipEnabled = (user) => {
+  return (
+    process.env.REACT_APP_BS_ENABLED === true ||
+    process.env.REACT_APP_BS_ENABLED === 'true' ||
+    user?.admin === true
+  );
+};

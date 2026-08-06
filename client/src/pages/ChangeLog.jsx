@@ -21,10 +21,33 @@ import {
   isGielinorRushEnabled,
   isBlindDraftEnabled,
   isChampionForgeEnabled,
+  isBattleshipEnabled,
 } from '../config/featureFlags';
 
 // Changelog data - newest first, parsed from git history
 const CHANGELOG_ENTRIES = [
+  {
+    version: '2.3.0',
+    date: isBattleshipEnabled() ? 'September 2026' : 'Coming Soon',
+    title: 'Battleship',
+    type: isBattleshipEnabled() ? 'major' : 'upcoming',
+    icon: FaShieldAlt,
+    details:
+      'Big two-team OSRS competition built around the classic game of Battleship. Place your fleet, fire at the enemy board, and complete OSRS tasks to score hits. First team to sink all ships wins.',
+    highlights: [
+      'Full 10×10 grid board with ship placement phase. Each team secretly deploys their fleet',
+      'Turn-based firing with coordinate selection and team vote/proposal system',
+      'Hit reveals an OSRS task, complete it (with screenshot proof) to score the hit and fire again',
+      'Miss also reveals a task, complete it to end your turn',
+      'WOM (Wise Old Man) integration: track metric progress automatically for revealed tasks',
+      'Skip token system: teams can spend tokens to skip unwanted tasks',
+      'Placement phase cooldown and time limit configuration',
+      'Per-team Discord channel integration: shot results, task reveals, and submission feedback posted automatically',
+      'Refs page for approving/denying pre-screenshots and completion submissions',
+      'Admin console with team management, shot log, WOM setup, and manual sync',
+      'Real-time updates via WebSocket subscriptions',
+    ],
+  },
   {
     version: '2.2.0',
     date: isChampionForgeEnabled() ? 'September 2026' : 'Coming Soon',
@@ -436,7 +459,7 @@ export default function ChangelogPage() {
         </VStack>
 
         {/* Latest release callout */}
-        {(isChampionForgeEnabled() || isGielinorRushEnabled()) && (
+        {(isBattleshipEnabled() || isChampionForgeEnabled() || isGielinorRushEnabled()) && (
           <Box
             bg="rgba(244, 211, 94, 0.1)"
             border="1px solid rgba(244, 211, 94, 0.3)"
@@ -450,7 +473,36 @@ export default function ChangelogPage() {
                 LATEST MAJOR RELEASE
               </Text>
             </HStack>
-            {isChampionForgeEnabled() ? (
+            {isBattleshipEnabled() ? (
+              <>
+                <Text color="white" fontWeight="semibold" fontSize="lg">
+                  Battleship is here! ⚓
+                </Text>
+                <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
+                  Two big teams, one ocean, and a whole lot of OSRS tasks standing between you and
+                  victory. Place your fleet, fire shots at the enemy board, and complete challenges
+                  to score hits. First team to sink all ships wins. Refs oversee the whole campaign
+                  from a dedicated dashboard with a live shot log and submission queue.
+                </Text>
+                <ChakraLink
+                  href="/battleship"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={2}
+                  bg="#F4D35E"
+                  color="#1a1a1a"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                  fontWeight={600}
+                  fontSize="sm"
+                  mt={4}
+                  _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+                >
+                  <FaGamepad /> Set Sail
+                </ChakraLink>
+              </>
+            ) : isChampionForgeEnabled() ? (
               <>
                 <Text color="white" fontWeight="semibold" fontSize="lg">
                   Champion Forge is here! ⚔️

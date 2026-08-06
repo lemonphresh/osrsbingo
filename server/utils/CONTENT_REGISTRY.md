@@ -50,7 +50,7 @@ giant_mole: {
 
   // Champion Forge task definitions — one entry per task variant.
   // cfTasks is the pattern to follow for any future event that needs to associate
-  // extra per-content data with a boss/raid/skill/minigame (e.g. a different event's
+  // extra per-content data with a boss/raid/skill/minigame (i.e. a different event's
   // task list, drop overrides, or custom quantities). Add a new top-level array field
   // named after the event rather than extending cfTasks.
   cfTasks: [
@@ -72,7 +72,7 @@ giant_mole: {
 }
 ```
 
-RAIDS have the same shape plus a `shortName` field (e.g. `'CoX'`, `'ToB'`, `'ToA'`).
+RAIDS have the same shape plus a `shortName` field (i.e. `'CoX'`, `'ToB'`, `'ToA'`).
 
 ### SKILLS
 
@@ -207,7 +207,7 @@ Consumers: `ContentSelectionModal`, `NodeDetailModal`, `GRMapVisualization`, `Su
 
 ### Adding data for a new event type
 
-If a future event needs to associate extra metadata with bosses, skills, or minigames (custom task lists, drop overrides, event-specific quantities, etc.), follow the `cfTasks` pattern: add a new top-level array field on the relevant entries named after the event (e.g. `grTasks`, `myEventTasks`). Then write a new resolver function in the exports block that reads only that field. This keeps each event's data self-contained inside the registry without coupling event systems to each other.
+If a future event needs to associate extra metadata with bosses, skills, or minigames (custom task lists, drop overrides, event-specific quantities, etc.), follow the `cfTasks` pattern: add a new top-level array field on the relevant entries named after the event (i.e. `grTasks`, `myEventTasks`). Then write a new resolver function in the exports block that reads only that field. This keeps each event's data self-contained inside the registry without coupling event systems to each other.
 
 ### New boss or raid
 
@@ -237,7 +237,7 @@ Set `enabled: false` to exclude an entry from all systems without deleting it. D
 
 ## Raw Registry Access
 
-If you need the raw maps (e.g. for a one-off script or a new resolver that doesn't fit an existing helper):
+If you need the raw maps (i.e. for a one-off script or a new resolver that doesn't fit an existing helper):
 
 ```js
 const { registry } = require('../utils/contentRegistry');

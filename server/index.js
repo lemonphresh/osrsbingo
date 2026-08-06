@@ -31,6 +31,7 @@ const { startGroupGoalScheduler } = require('./utils/groupDashboard/groupGoalSch
 const { startTrackScapeScheduler } = require('./utils/trackScape/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventScheduler');
 const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
+const { startBSScheduler } = require('./utils/battleship/bsScheduler');
 const logger = require('./utils/logger');
 
 if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'staging') {
@@ -514,7 +515,12 @@ router.post('/auth/login', async (req, res) => {
       return res.status(400).json({ msg: 'Invalid credentials' });
     }
 
-    const payload = { id: user.rows[0].id, username: user.rows[0].username };
+    const payload = {
+      userId: user.rows[0].id,
+      admin: user.rows[0].admin ?? false,
+      username: user.rows[0].username,
+      discordUserId: user.rows[0].discordUserId ?? null,
+    };
     const token = jwt.sign(payload, SECRET, { expiresIn: '3d' });
 
     res.cookie('token', token, {
@@ -553,6 +559,7 @@ server.start().then(async () => {
   startTrackScapeScheduler();
   startRainbowEventScheduler();
   startCFTurnTimer();
+  startBSScheduler();
 
   httpServer.listen(PORT, () => {
     logger.info({ port: PORT }, 'Server running');
