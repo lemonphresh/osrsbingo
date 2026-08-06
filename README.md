@@ -2,7 +2,7 @@
 
 **The ultimate competitive event platform for Old School RuneScape clans.**
 
-Create custom bingo boards to track your goals, run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, host a **Blind Draft** to build balanced teams, or run a full clan tournament with **Champion Forge**.
+Create custom bingo boards to track your goals, run full-scale **Gielinor Rush** events where teams race across procedurally generated maps, wage **Battleship** events where two clans fire at each other's hidden fleets and complete OSRS tasks to sink ships, host a **Blind Draft** to build balanced teams, or run a full clan tournament with **Champion Forge**.
 
 🌐 **[osrsbingohub.com](https://www.osrsbingohub.com)** • 3,000+ boards created • Built for the community
 
@@ -26,6 +26,22 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 - Automated prize distribution with hard-capped budget guarantees
 - Discord bot integration — submit proofs, check progress, all from Discord
 - Live updates via WebSocket subscriptions
+
+### Battleship
+
+- Two-team PvP format played on a pair of 10×10 grids
+- Ship placement phase — each team secretly positions five ships (Carrier, Battleship, Cruiser, Submarine, Destroyer) before battle begins
+- Democratic shot system — any team member proposes a target coordinate; the shot fires automatically when enough teammates approve (teams of 1–3 auto-fire on proposal, larger teams need 3 approvals)
+- Hit = OSRS task unlocked — hitting a ship tile reveals a task the defending team must complete in-game
+- Miss = OSRS task for the attacker — landing on an ocean tile assigns a task to the firing team; use a skip token to skip it instead
+- Win condition — sink the entire enemy fleet: all ship tiles shot and their tasks completed
+- Skip tokens — each team starts with a limited supply to bypass unwanted miss tasks
+- Multiplier system — scale all task targets up or down (0.5×–1.25×) to tune difficulty and event length
+- WOM sync — progress on revealed ship tile tasks is tracked automatically via a Wise Old Man competition, with baselines captured at the moment of each hit
+- Proof submissions — players submit screenshot proof of task completion via Discord bot; admins approve or deny
+- Real-time updates — shots, task completions, and ship sinks are broadcast live via WebSocket subscriptions
+- Spectator mode — non-participants get a live flashy read-only view with a combat log and shot flash overlays, no task details shown
+- Discord notifications — shot results, hits, ship sinks, and game-over are announced to each team's configured channel
 
 ### Champion Forge
 
@@ -99,6 +115,16 @@ Create custom bingo boards to track your goals, run full-scale **Gielinor Rush**
 | **5. Payout**    | Winners calculated automatically — you're done!      |
 
 > **Budget Guarantee**: The hard-capped system ensures you'll _never_ owe more than your prize pool, no matter what teams achieve.
+
+### Running a Battleship
+
+| Step              | Action                                                                                           |
+| ----------------- | ------------------------------------------------------------------------------------------------ |
+| **1. Configure**  | Set event name, team names, cooldown, WOM competition ID, and metric multiplier                  |
+| **2. Add tasks**  | Build a task pool and assign specific tasks to ship cell slots via ship templates                |
+| **3. Placement**  | Each team places their five ships — any unplaced ships are auto-placed when the event starts     |
+| **4. Battle**     | Teams propose and vote on shots; hits assign tasks to defenders, misses assign tasks to attackers |
+| **5. Victory**    | First team to sink all five enemy ships (all cells shot + tasks completed) wins                  |
 
 ### Running a Champion Forge
 
@@ -343,6 +369,66 @@ Buffs are earned from nodes and Inn purchases. They reduce objective requirement
 
 ---
 
+## Battleship: How It Works
+
+### The Fleet
+
+| Ship           | Cells | Ship tasks |
+| -------------- | ----- | ---------- |
+| **Carrier**    | 5     | 5          |
+| **Battleship** | 4     | 4          |
+| **Cruiser**    | 3     | 3          |
+| **Submarine**  | 3     | 3          |
+| **Destroyer**  | 2     | 2          |
+
+Each ship cell has one task assigned at game start. The remaining 83 cells are ocean tiles, each randomly assigned a task from the leftover pool.
+
+### The Game Loop
+
+1. **Place** — Both teams secretly position their five ships on their private 10×10 grid (admins can also auto-place any unplaced ships at game start)
+2. **Propose** — Any team member proposes a target coordinate on the enemy board — this opens a 2-minute vote window
+3. **Vote** — Teammates approve or reject the proposal; one rejection kills it immediately
+4. **Fire** — When approval threshold is met, the shot fires; the result is broadcast live to both teams
+5. **Complete tasks** — A **hit** reveals a ship tile task the *defending* team must complete in OSRS; a **miss** assigns that ocean tile task to the *firing* team (they can skip it with a skip token instead)
+6. **Sink ships** — A ship is sunk when all its cells are hit and their tasks are completed
+7. **Win** — First team to sink all five enemy ships wins
+
+### Voting and Proposals
+
+| Mechanic          | Description                                                                |
+| ----------------- | -------------------------------------------------------------------------- |
+| **Shot proposal** | Any team member proposes a row/col — auto-approves if they're the sole proposer on a team of 1–3 |
+| **Threshold**     | Teams with more than 3 members require 3 approvals before the shot fires   |
+| **Rejection**     | Any single voter can veto a proposal immediately                           |
+| **Skip proposal** | Separate vote to skip an unwanted miss (ocean) task, consuming a skip token |
+| **Expiry**        | Proposals that don't resolve within 2 minutes are swept automatically     |
+
+### Hits vs. Misses
+
+| Result  | Tile type         | Who does the task?           | Alternative          |
+| ------- | ----------------- | ---------------------------- | -------------------- |
+| **Hit** | Ship tile         | Defending team completes it  | —                    |
+| **Miss**| Ocean tile        | Firing team completes it     | Use a skip token     |
+
+A ship tile is fully sunk only when it's been shot *and* its task marked complete. The win condition checks ship tiles only — ocean task completion doesn't affect the outcome.
+
+### WOM Tracking
+
+When a ship tile is hit, the server immediately captures a WOM baseline: the defending team's total gains for that metric at the moment of reveal. Progress toward the task target is then measured as gains earned *after* that baseline, synced periodically from the WOM competition.
+
+### Multiplier Tiers
+
+| Multiplier | Difficulty   | Estimated Duration (2 teams, 10–12 players, ~10 hrs/day) |
+| ---------- | ------------ | --------------------------------------------------------- |
+| **0.5×**   | Casual       | ~1 week                                                   |
+| **0.75×**  | Standard     | ~10 days                                                  |
+| **1.0×**   | Competitive  | ~2 weeks                                                  |
+| **1.25×**  | Hardcore     | ~3 weeks                                                  |
+
+Task targets are scaled by the multiplier at event creation. KC targets round up to the nearest 10, XP to the nearest 10k, and unique counts ceil to the nearest whole number.
+
+---
+
 ## Champion Forge: How It Works
 
 ### The Four Phases
@@ -485,6 +571,12 @@ The code uses renamed model classes (GREvent, CFEvent, etc.) while the underlyin
 | `ClanWarsBattleEvents` | Turn-by-turn battle log          |
 | `RainbowEvents`        | EG Rainbow bingo event config    |
 | `RainbowTeams`         | Competing teams                  |
+| `BSEvents`             | Battleship event config        |
+| `BSTeams`              | Competing teams and ship grids   |
+| `BSTasks`              | Task definitions per event       |
+| `BSBoards`             | Per-team board state             |
+| `BSSubmissions`        | Task completion submissions      |
+| `BSShotLogs`           | Shot-by-shot battle history      |
 
 ### Migration Commands
 
@@ -565,6 +657,7 @@ server/
     ├── championForge/                  # cfBracket, cfTurnTimer, cfScheduler, cfNotifications, etc.
     ├── groupDashboard/                 # groupDashboardHelpers, groupGoalScheduler
     ├── rainbow/                        # rainbowTiles, rainbowDiscord, rainbowWomSync, etc.
+    ├── battleship/                     # bsConfig, bsGameStart, bsProposals, bsSkipProposals, bsDiscord, bsWomSync, bsScheduler, bsViewers
     ├── trackScape/                     # trackScapeScraper, trackScapeScheduler
     ├── contentRegistry.js              # OSRS content definitions (bosses, skills, etc.)
     ├── dataLoaders.js
@@ -575,6 +668,7 @@ client/src/
 ├── pages/
 │   ├── gielinorRush/
 │   ├── championForge/
+│   ├── battleship/
 │   ├── draftRoom/
 │   ├── groupDashboard/
 │   ├── bingo/
