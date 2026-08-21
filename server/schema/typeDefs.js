@@ -1128,6 +1128,8 @@ const typeDefs = gql`
     setBSShipTemplate(eventId: ID!, shipType: BSShipType!, cellIndex: Int!, taskId: ID!): BSShipTemplate!
 
     # --- Battleship: Placement Phase ---
+    updateBSContentSelections(eventId: ID!, contentSelections: JSON!): BSEvent!
+    updateBSMultiplier(eventId: ID!, multiplier: Float!): BSEvent!
     startBSPlacementPhase(eventId: ID!): BSEvent!
     placeBSShip(boardId: ID!, input: BSShipPlacementInput!): BSShipPlacement!
     joinBSView(eventId: ID!): Boolean
@@ -1574,11 +1576,13 @@ const typeDefs = gql`
     guildId: String
     eventPassword: String
     womCompetitionId: String
+    contentSelections: JSON
     winnerId: ID
     completedAt: DateTime
     teams: [BSTeam!]!
     tasks: [BSTask!]!
     shipTemplates: [BSShipTemplate!]!
+    templateBoard: BSBoard
   }
 
   type BSGameOver {
@@ -1629,7 +1633,7 @@ const typeDefs = gql`
   type BSBoard {
     boardId: ID!
     eventId: ID!
-    teamId: ID!
+    teamId: ID
     isPlacementLocked: Boolean!
     shipPlacements: [BSShipPlacement!]!
     tiles: [BSTile!]!
@@ -1648,8 +1652,8 @@ const typeDefs = gql`
   type BSTile {
     tileId: ID!
     boardId: ID!
-    row: Int!
-    col: Int!
+    row: Int
+    col: Int
     shipType: BSShipType
     cellIndex: Int
     taskId: String
@@ -1761,6 +1765,7 @@ const typeDefs = gql`
     refIds: [String!]
     guildId: String
     eventPassword: String
+    contentSelections: JSON
   }
 
   input UpdateBSEventInput {

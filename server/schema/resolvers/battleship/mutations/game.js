@@ -88,6 +88,8 @@ module.exports = {
     await tile.update({ isShot: true, shotAt: now });
     if (!isAdminFiring) await firingTeam.update({ lastShotAt: now });
 
+    const effectiveShotTaskId = tile.shipTaskId ?? tile.taskId;
+
     const shot = await BSShotLog.create({
       shotId:        generateId('bssl'),
       eventId,
@@ -96,7 +98,7 @@ module.exports = {
       tileId:        tile.tileId,
       row, col,
       result: isHit ? 'HIT' : 'MISS',
-      taskId: tile.taskId,
+      taskId: effectiveShotTaskId,
       shotAt: now,
     });
 
@@ -105,7 +107,7 @@ module.exports = {
 
     // Discord notifications (best-effort, don't await)
     const { BSTask } = getModels();
-    const task = tile.taskId ? await BSTask.findByPk(tile.taskId) : null;
+    const task = effectiveShotTaskId ? await BSTask.findByPk(effectiveShotTaskId) : null;
     const taskLabel = task?.label ?? 'Unknown task';
     const metric = task?.metricLabel ?? null;
     const coord = bsCoord(row, col);
@@ -154,7 +156,8 @@ module.exports = {
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
 
     // Resolve task info for Discord messages
-    const task = tile.taskId ? await BSTask.findByPk(tile.taskId) : null;
+    const effectiveTaskId = tile.shipTaskId ?? tile.taskId;
+    const task = effectiveTaskId ? await BSTask.findByPk(effectiveTaskId) : null;
     const taskLabel = task?.label ?? 'task';
     const coord = bsCoord(tile.row, tile.col);
 

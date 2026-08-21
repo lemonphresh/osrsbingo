@@ -11,6 +11,8 @@ import {
   BS_BOARD_UPDATED,
 } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
+import { BSPlacementCountdown } from './BSFlipClock';
+
 import {
   SHIP_CONFIGS,
   SHIP_COLORS,
@@ -172,6 +174,12 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
               </Text>
               {viewerBadge}
             </HStack>
+            <Box display="flex" flexDirection="column" alignItems="center" py={2} gap={2}>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase">
+                countdown til launch:
+              </Text>
+              <BSPlacementCountdown event={event} />
+            </Box>
             {teams.map((team) => {
               const board = team.board;
               const placed = (board?.shipPlacements ?? []).length;
@@ -238,7 +246,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
     <Box flex="1" minH="100vh" bg="#060f0a">
       {topBar}
       <Box maxW="1100px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
-        <HStack spacing={3} mb={5} align="center" justify="space-between">
+        <HStack spacing={3} mb={2} align="center" justify="space-between">
           <HStack spacing={2}>
             <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
             <Text
@@ -253,6 +261,12 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
           </HStack>
           {viewerBadge}
         </HStack>
+        <Box display="flex" flexDirection="column" alignItems="center" py={4} mb={6} gap={2}>
+          <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase">
+            countdown til launch:
+          </Text>
+          <BSPlacementCountdown event={event} />
+        </Box>
 
         <Box display="flex" gap={8} alignItems="flex-start" flexWrap="wrap">
           {/* Grid */}

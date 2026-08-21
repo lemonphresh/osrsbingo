@@ -12,11 +12,12 @@
 
 const { getShipCells, shuffle, SHIP_CONFIG, SHIP_TYPES } = require('../../utils/battleship/bsConfig');
 
-const EVENT_ID   = 'bs_dev_event01';
-const TEAM_1_ID  = 'bst_dev_red01';
-const TEAM_2_ID  = 'bst_dev_blu01';
-const BOARD_1_ID = 'bsb_dev_red01';
-const BOARD_2_ID = 'bsb_dev_blu01';
+const EVENT_ID        = 'bs_dev_event01';
+const TEAM_1_ID       = 'bst_dev_red01';
+const TEAM_2_ID       = 'bst_dev_blu01';
+const BOARD_1_ID      = 'bsb_dev_red01';
+const BOARD_2_ID      = 'bsb_dev_blu01';
+const TEMPLATE_BOARD_ID = 'bsb_dev_tmpl01';
 
 const TASK_LABELS = [
   // Bosses (25)
@@ -161,6 +162,32 @@ module.exports = {
 
     const shipTaskLabels = new Set(Object.values(SHIP_TEMPLATE_TASKS).flat());
     const oceanPool = TASK_LABELS.filter((l) => !shipTaskLabels.has(l)).map((l) => taskMap.get(l));
+
+    // Template board (teamId=null) with ship tiles + ocean tiles at assigned positions
+    await BSBoard.create({ boardId: TEMPLATE_BOARD_ID, eventId: EVENT_ID, teamId: null });
+
+    const templateShipTiles = [];
+    for (const [shipType, labels] of Object.entries(SHIP_TEMPLATE_TASKS)) {
+      for (let i = 0; i < labels.length; i++) {
+        templateShipTiles.push({
+          tileId: genId('bstl'), boardId: TEMPLATE_BOARD_ID,
+          row: null, col: null, shipType, cellIndex: i,
+          taskId: templateMap.get(`${shipType}:${i}`) ?? null,
+        });
+      }
+    }
+    await BSTile.bulkCreate(templateShipTiles);
+
+    const allPositions = [];
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) allPositions.push({ row: r, col: c });
+    const shuffledPositions = shuffle(allPositions);
+    await BSTile.bulkCreate(
+      oceanPool.slice(0, 83).map((taskId, i) => ({
+        tileId: genId('bstl'), boardId: TEMPLATE_BOARD_ID,
+        row: shuffledPositions[i].row, col: shuffledPositions[i].col,
+        shipType: null, cellIndex: null, taskId,
+      }))
+    );
 
     // Boards & placements
     await BSBoard.create({ boardId: BOARD_1_ID, eventId: EVENT_ID, teamId: TEAM_1_ID, isPlacementLocked: true });

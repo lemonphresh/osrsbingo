@@ -1221,4 +1221,91 @@ describe('Subscriptions', () => {
   });
 });
 
+describe('Battleship Mutations', () => {
+  test('CREATE_BS_EVENT', () => {
+    const result = validateOperation(`
+      mutation CreateBSEvent($input: CreateBSEventInput!) {
+        createBSEvent(input: $input) {
+          eventId
+          eventName
+          status
+          contentSelections
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('UPDATE_BS_CONTENT_SELECTIONS', () => {
+    const result = validateOperation(`
+      mutation UpdateBSContentSelections($eventId: ID!, $contentSelections: JSON!) {
+        updateBSContentSelections(eventId: $eventId, contentSelections: $contentSelections) {
+          eventId
+          contentSelections
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('START_BS_PLACEMENT_PHASE', () => {
+    const result = validateOperation(`
+      mutation StartBSPlacementPhase($eventId: ID!) {
+        startBSPlacementPhase(eventId: $eventId) {
+          eventId
+          status
+          placementStartsAt
+          placementEndsAt
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_BS_EVENT', () => {
+    const result = validateOperation(`
+      mutation DeleteBSEvent($eventId: ID!) {
+        deleteBSEvent(eventId: $eventId) {
+          success
+          message
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
+describe('Battleship Queries', () => {
+  test('GET_BS_EVENT with templateBoard and contentSelections', () => {
+    const result = validateOperation(`
+      query GetBSEvent($eventId: ID!) {
+        getBSEvent(eventId: $eventId) {
+          eventId
+          contentSelections
+          templateBoard {
+            boardId
+            teamId
+            tiles {
+              tileId
+              row
+              col
+              shipType
+              cellIndex
+              taskId
+            }
+          }
+          teams {
+            teamId
+            board {
+              boardId
+              teamId
+            }
+          }
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
 console.log('✅ GraphQL Schema Validation Tests Loaded');

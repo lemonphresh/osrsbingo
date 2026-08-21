@@ -4,8 +4,11 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Box, VStack, HStack, Text, Button, Divider, Link } from '@chakra-ui/react';
 import { START_BS_PLACEMENT_PHASE, DELETE_BS_EVENT } from '../../../graphql/bsOperations';
 import { useToastContext } from '../../../providers/ToastProvider';
+import { useAuth } from '../../../providers/AuthProvider';
 
 export function LaunchTab({ event, refetch }) {
+  const { user } = useAuth();
+  const isLocalSiteAdmin = process.env.NODE_ENV === 'development' && user?.admin === true;
   const { showToast } = useToastContext();
   const navigate = useNavigate();
   const teams = event.teams ?? [];
@@ -156,7 +159,7 @@ export function LaunchTab({ event, refetch }) {
           onClick={handleLaunch}
           isLoading={starting}
           loadingText="Initiating..."
-          isDisabled={!teamOk || !discordOk}
+          isDisabled={!isLocalSiteAdmin && (!teamOk || !discordOk)}
           colorScheme="green"
           w="full"
           fontFamily="mono"

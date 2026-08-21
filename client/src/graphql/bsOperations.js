@@ -95,6 +95,7 @@ const BS_EVENT_FIELDS = gql`
     refIds
     guildId
     eventPassword
+    contentSelections
     teams {
       ...BSTeamFields
     }
@@ -137,6 +138,8 @@ export const GET_BS_EVENT_FULL = gql`
       cooldownMinutes
       initialSkipTokens
       metricMultiplier
+      placementStartsAt
+      placementEndsAt
       adminIds
       refIds
       creatorId
@@ -218,6 +221,30 @@ export const GET_BS_EVENT_FULL = gql`
         displayName
         username
       }
+      eventPassword
+      contentSelections
+      templateBoard {
+        boardId
+        tiles {
+          tileId
+          row
+          col
+          taskId
+          shipType
+          cellIndex
+          task {
+            taskId
+            label
+            bossOrSkill
+            metricType
+            metricTarget
+            metricUnit
+            metricLabel
+            validDrops
+            womMetric
+          }
+        }
+      }
       womCompetitionId
       winnerId
       completedAt
@@ -266,6 +293,15 @@ export const GET_BS_SHOT_LOG = gql`
   }
 `;
 
+export const UPDATE_BS_MULTIPLIER = gql`
+  mutation UpdateBSMultiplier($eventId: ID!, $multiplier: Float!) {
+    updateBSMultiplier(eventId: $eventId, multiplier: $multiplier) {
+      eventId
+      metricMultiplier
+    }
+  }
+`;
+
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 export const CREATE_BS_EVENT = gql`
@@ -282,6 +318,15 @@ export const DELETE_BS_EVENT = gql`
     deleteBSEvent(eventId: $eventId) {
       success
       message
+    }
+  }
+`;
+
+export const UPDATE_BS_CONTENT_SELECTIONS = gql`
+  mutation UpdateBSContentSelections($eventId: ID!, $contentSelections: JSON!) {
+    updateBSContentSelections(eventId: $eventId, contentSelections: $contentSelections) {
+      eventId
+      contentSelections
     }
   }
 `;

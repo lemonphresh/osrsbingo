@@ -42,6 +42,7 @@ module.exports = (sequelize) => {
       announcementsChannelId: { type: DataTypes.STRING, allowNull: true },
       eventPassword:          { type: DataTypes.STRING, allowNull: true },
       womCompetitionId:       { type: DataTypes.STRING, allowNull: true },
+      contentSelections:      { type: DataTypes.JSONB,   allowNull: true },
       winnerId:               { type: DataTypes.STRING, allowNull: true },
       completedAt:            { type: DataTypes.DATE,   allowNull: true },
     },

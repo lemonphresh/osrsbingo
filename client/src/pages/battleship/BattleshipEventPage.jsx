@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { playBSSound } from '../../utils/battleship/bsAudio';
 import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
@@ -37,6 +38,7 @@ import {
   PROPOSE_SKIP_TOKEN,
   VOTE_ON_SKIP_PROPOSAL,
   BS_TILE_UPDATED,
+  BS_SHOT_FIRED,
   BS_PROPOSAL_UPDATED,
   BS_SKIP_PROPOSAL_UPDATED,
   BS_GAME_OVER,
@@ -83,6 +85,7 @@ export default function BattleshipEventPage() {
   const [activeProposal, setActiveProposal] = useState(null);
   const [proposalHistory, setProposalHistory] = useState([]);
   const [activeSkipProposal, setActiveSkipProposal] = useState(null);
+  const prevApprovalsRef = useRef(0);
 
   // ── Queries ─────────────────────────────────────────────────────────────
 
@@ -184,21 +187,42 @@ export default function BattleshipEventPage() {
     onData: () => refetchEvent(),
   });
 
+  useSubscription(BS_SHOT_FIRED, {
+    variables: { eventId },
+    skip: event?.status !== 'ACTIVE',
+    onData: ({ data }) => {
+      const shot = data?.data?.bsShotFired;
+      if (!shot) return;
+      const isFiringTeam = shot.firingTeamId === viewingTeam?.teamId;
+      if (shot.result === 'HIT') {
+        if (isFiringTeam) playBSSound('directhit');
+        else playBSSound('imhitimhit');
+      } else {
+        playBSSound('splash');
+      }
+    },
+  });
+
   useSubscription(BS_PROPOSAL_UPDATED, {
     variables: { teamId: viewingTeam?.teamId },
     skip: !viewingTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
+        prevApprovalsRef.current = 0;
         setActiveProposal(null);
         return;
       }
       if (p.status === 'REJECTED') {
+        prevApprovalsRef.current = 0;
         setProposalHistory((h) => [...h, p]);
         setActiveProposal(null);
         showToast('Shot proposal vetoed. Pick a new target.', 'warning');
         return;
       }
+      const newCount = (p.approvals ?? []).length;
+      if (newCount > prevApprovalsRef.current) playBSSound('radar');
+      prevApprovalsRef.current = newCount;
       setActiveProposal(p);
     },
   });

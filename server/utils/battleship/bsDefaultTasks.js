@@ -158,4 +158,36 @@ function generateDefaultBSTasks() {
   return entries;
 }
 
-module.exports = { SHIP_TEMPLATE_CONTENT_IDS, generateDefaultBSTasks, formatXp };
+/**
+ * Builds the shuffled ocean task ID pool for a board, filtered by contentSelections.
+ *
+ * Ship template tasks are always excluded (they live on ship cells, not ocean cells).
+ * contentSelections uses the same shape as the GR modal:
+ *   { bosses: { cerberus: false, ... }, raids: {...}, skills: {...}, minigames: {...}, clues: {...} }
+ * A missing key or `true` means enabled; `false` means disabled.
+ * Null/undefined contentSelections means all content is enabled.
+ */
+function buildOceanPool(tasks, contentSelections, shipTaskIds, shuffleFn) {
+  const { registry } = require('../contentRegistry');
+
+  function isEnabled(contentId) {
+    if (!contentSelections) return true;
+    // _kc variant shares its parent's enabled state
+    const baseId = contentId.endsWith('_kc') ? contentId.slice(0, -3) : contentId;
+    if (registry.BOSSES?.[baseId])    return contentSelections.bosses?.[baseId]    !== false;
+    if (registry.RAIDS?.[baseId])     return contentSelections.raids?.[baseId]     !== false;
+    if (registry.SKILLS?.[baseId])    return contentSelections.skills?.[baseId]    !== false;
+    if (registry.MINIGAMES?.[baseId]) return contentSelections.minigames?.[baseId] !== false;
+    if (registry.CLUES?.[baseId])     return contentSelections.clues?.[baseId]     !== false;
+    return true;
+  }
+
+  const pool = tasks
+    .filter((t) => !shipTaskIds.has(t.taskId))
+    .filter((t) => isEnabled(t.contentId ?? ''))
+    .map((t) => t.taskId);
+
+  return shuffleFn ? shuffleFn(pool) : pool;
+}
+
+module.exports = { SHIP_TEMPLATE_CONTENT_IDS, generateDefaultBSTasks, formatXp, buildOceanPool };

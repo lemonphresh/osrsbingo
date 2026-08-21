@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { playBSSound } from '../../utils/battleship/bsAudio';
 import {
   Modal,
   ModalOverlay,
@@ -80,6 +81,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
 
   const handleConfirm = () => {
     localStorage.setItem(getBSBattleIntroKey(eventId), 'true');
+    playBSSound('gogogo');
     onClose();
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMutation } from '@apollo/client';
 import {
   Box,
@@ -19,14 +19,22 @@ import {
   ModalContent,
   ModalCloseButton,
   ModalBody,
+  ModalHeader,
+  ModalFooter,
 } from '@chakra-ui/react';
-import { SET_BS_SHIP_TEMPLATE, UPDATE_BS_TASK } from '../../../graphql/bsOperations';
+import {
+  SET_BS_SHIP_TEMPLATE,
+  UPDATE_BS_TASK,
+  UPDATE_BS_CONTENT_SELECTIONS,
+  UPDATE_BS_MULTIPLIER,
+} from '../../../graphql/bsOperations';
+import BSContentSelectionModal from '../BSContentSelectionModal';
+import BSMultiplierModal from '../BSMultiplierModal';
 import { useToastContext } from '../../../providers/ToastProvider';
 import {
   COL_LABELS,
   SHIP_CONFIGS,
   SHIP_COLORS,
-  DRAFT_OCEAN_CELLS,
   formatMetricLabel,
   metricUnitFor,
   getContentCategory,
@@ -34,10 +42,17 @@ import {
   metricOptionsForCategory,
 } from '../../../utils/battleship/bsClientHelpers';
 
+function stableStringify(val) {
+  if (val === null || val === undefined) return 'null';
+  if (typeof val !== 'object' || Array.isArray(val)) return JSON.stringify(val);
+  return '{' + Object.keys(val).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(val[k])}`).join(',') + '}';
+}
+
 export function TaskGridTab({ event, refetch }) {
   const { showToast } = useToastContext();
   const tasks = useMemo(() => event.tasks ?? [], [event.tasks]);
   const shipTemplates = useMemo(() => event.shipTemplates ?? [], [event.shipTemplates]);
+  const templateBoardTiles = useMemo(() => event.templateBoard?.tiles ?? [], [event.templateBoard]);
 
   const [sel, setSel] = useState(null);
   const [editTaskId, setEditTaskId] = useState(null);
@@ -52,40 +67,16 @@ export function TaskGridTab({ event, refetch }) {
     return m;
   }, [shipTemplates]);
 
-  const templateTaskIds = useMemo(
-    () => new Set(shipTemplates.map((t) => t.taskId)),
-    [shipTemplates]
-  );
-  const oceanTasks = useMemo(
-    () => tasks.filter((t) => !templateTaskIds.has(t.taskId)),
-    [tasks, templateTaskIds]
-  );
-
-  // Shuffled display order -- randomised on load and on demand.
-  // On refetch, preserve order if the set of task IDs hasn't changed (only content updated).
-  const [displayOceanTasks, setDisplayOceanTasks] = useState([]);
-  useEffect(() => {
-    setDisplayOceanTasks((prev) => {
-      const newTaskMap = new Map(oceanTasks.map((t) => [t.taskId, t]));
-      const sameSet =
-        prev.length === oceanTasks.length && prev.every((t) => newTaskMap.has(t.taskId));
-      if (sameSet) return prev.map((t) => newTaskMap.get(t.taskId));
-      return [...oceanTasks].sort(() => Math.random() - 0.5);
-    });
-  }, [oceanTasks]);
-
-  const handleRandomize = () => {
-    setDisplayOceanTasks((prev) => [...prev].sort(() => Math.random() - 0.5));
-    setSel(null);
-  };
-
+  // Ocean cell → task map driven by server-assigned row/col on template board tiles.
   const oceanCellTaskMap = useMemo(() => {
     const m = {};
-    DRAFT_OCEAN_CELLS.forEach((cell, i) => {
-      if (displayOceanTasks[i]) m[`${cell.row}-${cell.col}`] = displayOceanTasks[i];
-    });
+    for (const tile of templateBoardTiles) {
+      if (!tile.shipType && tile.row !== null && tile.col !== null && tile.task) {
+        m[`${tile.row}-${tile.col}`] = tile.task;
+      }
+    }
     return m;
-  }, [displayOceanTasks]);
+  }, [templateBoardTiles]);
 
   const contentLookup = useMemo(() => {
     const m = new Map();
@@ -97,6 +88,47 @@ export function TaskGridTab({ event, refetch }) {
   }, [tasks]);
 
   const groupedOptions = useMemo(() => groupedBossSkillOptions(tasks), [tasks]);
+
+  const [contentModalOpen, setContentModalOpen] = useState(false);
+  const [pendingSelections, setPendingSelections] = useState(null);
+
+  const [updateBSContentSelections, { loading: updatingContent }] = useMutation(
+    UPDATE_BS_CONTENT_SELECTIONS,
+    {
+      onCompleted: () => {
+        showToast('Ocean tiles regenerated.', 'success');
+        setPendingSelections(null);
+        refetch();
+      },
+      onError: (err) => showToast(err.message ?? 'Failed to update content.', 'error'),
+    }
+  );
+
+  const handleContentSave = (sel) => {
+    if (stableStringify(sel) === stableStringify(event.contentSelections ?? null)) {
+      setContentModalOpen(false);
+      return;
+    }
+    setContentModalOpen(false);
+    setPendingSelections(sel);
+  };
+
+  const handleConfirmRegenerate = () => {
+    updateBSContentSelections({
+      variables: { eventId: event.eventId, contentSelections: pendingSelections },
+    });
+  };
+
+  const [multiplierModalOpen, setMultiplierModalOpen] = useState(false);
+
+  const [updateBSMultiplier, { loading: updatingMultiplier }] = useMutation(UPDATE_BS_MULTIPLIER, {
+    onCompleted: () => {
+      showToast('Tasks regenerated.', 'success');
+      setMultiplierModalOpen(false);
+      refetch();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to update multiplier.', 'error'),
+  });
 
   const [setBSShipTemplate, { loading: settingTemplate }] = useMutation(SET_BS_SHIP_TEMPLATE, {
     onCompleted: () => {
@@ -197,7 +229,7 @@ export function TaskGridTab({ event, refetch }) {
     );
   });
 
-  const [isWide] = useMediaQuery('(min-width: 1085px)');
+  const [isWide] = useMediaQuery('(min-width: 1224px)');
   const [isNarrow] = useMediaQuery('(max-width: 632px)');
 
   const isShipSel = sel?.type === 'ship';
@@ -643,9 +675,43 @@ export function TaskGridTab({ event, refetch }) {
           letterSpacing="wider"
           textTransform="uppercase"
           _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
-          onClick={handleRandomize}
+          isLoading={updatingContent && !pendingSelections}
+          onClick={() => {
+            setSel(null);
+            updateBSContentSelections({
+              variables: { eventId: event.eventId, contentSelections: event.contentSelections ?? null },
+            });
+          }}
         >
           Randomize Ocean
+        </Button>
+        <Button
+          size="xs"
+          variant="outline"
+          borderColor={event.contentSelections ? '#0ea5e9' : '#1a4028'}
+          color={event.contentSelections ? '#0ea5e9' : '#6b9e78'}
+          fontFamily="mono"
+          fontSize="10px"
+          letterSpacing="wider"
+          textTransform="uppercase"
+          _hover={{ bg: '#091a10', borderColor: '#0ea5e9', color: '#0ea5e9' }}
+          onClick={() => setContentModalOpen(true)}
+        >
+          {event.contentSelections ? '✓ Content Settings' : 'Content Settings'}
+        </Button>
+        <Button
+          size="xs"
+          variant="outline"
+          borderColor={(event.metricMultiplier ?? 1.0) !== 1.0 ? '#0ea5e9' : '#1a4028'}
+          color={(event.metricMultiplier ?? 1.0) !== 1.0 ? '#0ea5e9' : '#6b9e78'}
+          fontFamily="mono"
+          fontSize="10px"
+          letterSpacing="wider"
+          textTransform="uppercase"
+          _hover={{ bg: '#091a10', borderColor: '#0ea5e9', color: '#0ea5e9' }}
+          onClick={() => setMultiplierModalOpen(true)}
+        >
+          Difficulty ({event.metricMultiplier ?? 1.0}×)
         </Button>
       </HStack>
 
@@ -683,7 +749,7 @@ export function TaskGridTab({ event, refetch }) {
               {COL_LABELS.map((lbl) => (
                 <Box
                   key={lbl}
-                  w={['52px', '52px', '64px']}
+                  w={['52px', '52px', '64px', '80px']}
                   h="18px"
                   display="flex"
                   alignItems="center"
@@ -699,7 +765,7 @@ export function TaskGridTab({ event, refetch }) {
               <HStack key={row} spacing={0}>
                 <Box
                   w="22px"
-                  h={['52px', '52px', '64px']}
+                  h={['52px', '52px', '64px', '80px']}
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
@@ -715,8 +781,8 @@ export function TaskGridTab({ event, refetch }) {
                   return (
                     <Box
                       key={col}
-                      w={['52px', '52px', '64px']}
-                      h={['52px', '52px', '64px']}
+                      w={['52px', '52px', '64px', '80px']}
+                      h={['52px', '52px', '64px', '80px']}
                       border="1px solid"
                       borderColor={isSelected ? '#22c55e' : '#1a4028'}
                       bg="#060f0a"
@@ -731,23 +797,25 @@ export function TaskGridTab({ event, refetch }) {
                       }`}
                     >
                       {task ? (
-                        <VStack spacing={0} align="stretch" h="full" justify="center">
+                        <VStack spacing={0} align="center" h="full" justify="center">
                           <Text
                             fontFamily="mono"
-                            fontSize={['7px', '7px', '8px']}
+                            fontSize={['7px', '7px', '8px', '10px']}
                             color="#b8d4c0"
                             noOfLines={2}
                             lineHeight="1.3"
+                            textAlign="center"
                           >
                             {task.bossOrSkill ?? task.label}
                           </Text>
                           <Text
                             fontFamily="mono"
-                            fontSize={['6px', '6px', '7px']}
+                            fontSize={['6px', '6px', '7px', '9px']}
                             color="#2a6040"
                             noOfLines={1}
                             lineHeight="1.3"
                             mt="1px"
+                            textAlign="center"
                           >
                             {task.metricLabel}
                           </Text>
@@ -779,9 +847,11 @@ export function TaskGridTab({ event, refetch }) {
               letterSpacing="widest"
               textTransform="uppercase"
               textAlign="center"
-              mb={3}
             >
               Ship Templates
+            </Text>
+            <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" textAlign="center" mb={3}>
+              When teams place a ship, its tiles overwrite whatever ocean tiles were at those positions.
             </Text>
             <VStack align="center" spacing={4}>
               {SHIP_CONFIGS.map(({ shipType, label, cells }) => (
@@ -811,8 +881,8 @@ export function TaskGridTab({ event, refetch }) {
                       return (
                         <Box
                           key={i}
-                          w={['52px', '52px', '64px']}
-                          h={['52px', '52px', '64px']}
+                          w={['52px', '52px', '64px', '80px']}
+                          h={['52px', '52px', '64px', '80px']}
                           bg={SHIP_BG[shipType] ?? '#0e1f30'}
                           border="1px solid"
                           borderColor={isSel ? '#22c55e' : shipColor}
@@ -833,23 +903,25 @@ export function TaskGridTab({ event, refetch }) {
                           }
                         >
                           {tmpl?.task ? (
-                            <VStack spacing={0} align="stretch">
+                            <VStack spacing={0} align="center" h="full" justify="center">
                               <Text
                                 fontFamily="mono"
-                                fontSize={['7px', '7px', '8px']}
+                                fontSize={['7px', '7px', '8px', '10px']}
                                 color="#e2e8f0"
                                 noOfLines={2}
                                 lineHeight="1.3"
+                                textAlign="center"
                               >
                                 {tmpl.task.bossOrSkill ?? tmpl.task.label}
                               </Text>
                               <Text
                                 fontFamily="mono"
-                                fontSize={['6px', '6px', '7px']}
+                                fontSize={['6px', '6px', '7px', '9px']}
                                 color={`${shipColor}99`}
                                 noOfLines={1}
                                 lineHeight="1.3"
                                 mt="1px"
+                                textAlign="center"
                               >
                                 {tmpl.task.metricLabel}
                               </Text>
@@ -896,6 +968,65 @@ export function TaskGridTab({ event, refetch }) {
           </ModalContent>
         </Modal>
       )}
+
+      <BSMultiplierModal
+        isOpen={multiplierModalOpen}
+        onClose={() => setMultiplierModalOpen(false)}
+        currentMultiplier={event.metricMultiplier ?? 1.0}
+        isLoading={updatingMultiplier}
+        onSave={(mult) => updateBSMultiplier({ variables: { eventId: event.eventId, multiplier: mult } })}
+      />
+
+      <BSContentSelectionModal
+        isOpen={contentModalOpen}
+        onClose={() => setContentModalOpen(false)}
+        currentSelections={event.contentSelections ?? null}
+        onSave={handleContentSave}
+      />
+
+      <Modal isOpen={!!pendingSelections} onClose={() => setPendingSelections(null)} size="sm" isCentered>
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="#060f0a" border="1px solid" borderColor="#22c55e" mx={3}>
+          <ModalHeader fontFamily="mono" fontSize="xs" letterSpacing="widest" textTransform="uppercase" color="#4ade80">
+            Regenerate Ocean Tiles?
+          </ModalHeader>
+          <ModalCloseButton color="#6b9e78" />
+          <ModalBody pb={2}>
+            <Text fontFamily="mono" fontSize="xs" color="#d4f0da" letterSpacing="wide">
+              This will replace all ocean tile assignments with a new random selection based on your updated content settings. Ship tile tasks are not affected.
+            </Text>
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <Button
+              size="xs"
+              variant="ghost"
+              color="#6b9e78"
+              fontFamily="mono"
+              fontSize="10px"
+              _hover={{ color: '#d4f0da', bg: 'transparent' }}
+              onClick={() => setPendingSelections(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              size="xs"
+              colorScheme="green"
+              variant="outline"
+              borderColor="#1a4028"
+              color="#4ade80"
+              fontFamily="mono"
+              fontSize="10px"
+              letterSpacing="wider"
+              textTransform="uppercase"
+              isLoading={updatingContent}
+              onClick={handleConfirmRegenerate}
+              _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
+            >
+              Regenerate
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </VStack>
   );
 }

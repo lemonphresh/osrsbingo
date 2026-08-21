@@ -1,5 +1,6 @@
 'use strict';
 
+const { Op, literal } = require('sequelize');
 const { getModels } = require('./helpers');
 
 const BSEvent = {
@@ -20,6 +21,10 @@ const BSEvent = {
     const { User } = getModels();
     return User.findAll({ where: { id: event.refIds } });
   },
+  templateBoard: (event) => {
+    const { BSBoard } = getModels();
+    return BSBoard.findOne({ where: { eventId: event.eventId, teamId: null } });
+  },
 };
 
 const BSTeam = {
@@ -36,7 +41,11 @@ const BSBoard = {
   },
   tiles: (board) => {
     const { BSTile } = getModels();
-    return BSTile.findAll({ where: { boardId: board.boardId }, order: [['row', 'ASC'], ['col', 'ASC']] });
+    // NULLS LAST keeps pre-placement tiles (row=null) from breaking sorted views
+    return BSTile.findAll({
+      where: { boardId: board.boardId },
+      order: [literal('"row" ASC NULLS LAST, "col" ASC NULLS LAST')],
+    });
   },
 };
 
@@ -50,9 +59,10 @@ const BSShipTemplate = {
 
 const BSTile = {
   task: (tile) => {
-    if (!tile.taskId) return null;
+    const activeTaskId = tile.shipTaskId ?? tile.taskId;
+    if (!activeTaskId) return null;
     const { BSTask } = getModels();
-    return BSTask.findByPk(tile.taskId);
+    return BSTask.findByPk(activeTaskId);
   },
 };
 
