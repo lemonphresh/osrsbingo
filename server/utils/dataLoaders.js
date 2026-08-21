@@ -120,8 +120,8 @@ const createLoaders = (models) => {
     // TREASURE EVENT LOADERS
     // ============================================================
 
-    treasureEventById: new DataLoader(async (eventIds) => {
-      log(`📦 Batching ${eventIds.length} treasure events`);
+    grEventById: new DataLoader(async (eventIds) => {
+      log(`📦 Batching ${eventIds.length} GR events`);
 
       const events = await GREvent.findAll({
         where: { eventId: { [Op.in]: eventIds } },

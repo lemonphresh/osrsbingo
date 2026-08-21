@@ -103,7 +103,7 @@ const fieldResolvers = {
     },
 
     event: async (team, _, { loaders }) => {
-      return loaders.treasureEventById.load(team.eventId);
+      return loaders.grEventById.load(team.eventId);
     },
 
     members: async (team) => {

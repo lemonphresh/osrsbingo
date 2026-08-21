@@ -9,6 +9,7 @@ import {
   VStack,
   FormControl,
   FormLabel,
+  FormHelperText,
   Input,
   Select,
   NumberInput,
@@ -18,6 +19,8 @@ import {
   Tooltip,
   Icon,
   HStack,
+  Switch,
+  Box,
   Text,
 } from '@chakra-ui/react';
 import { InfoIcon } from '@chakra-ui/icons';
@@ -26,6 +29,7 @@ import { CREATE_GR_EVENT } from '../../graphql/mutations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useNavigate } from 'react-router-dom';
 import ContentSelectionModal from './ContentSelectionModal';
+import TileExamplesPanel from './TileExamplesPanel';
 import {
   dateTimeInputToISO,
   getTodayDateTimeInputValue,
@@ -52,9 +56,10 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
     eventName: '',
     prizePoolTotal: 500000000,
     numOfTeams: 5,
-    playersPerTeam: 5,
+    playersPerTeam: 8,
     nodeToInnRatio: 5,
     difficulty: 'normal',
+    smallTeam: false,
     startDate: '',
     endDate: '',
     estimatedHoursPerPlayerPerDay: 3.0,
@@ -104,8 +109,6 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
         showToast(`Maximum prize pool is ${(MAX_GP / 1e9).toFixed(0)}B GP`, 'warning');
         return { ...prev, prizePoolTotal: MAX_GP };
       }
-
-
 
       if (field === 'endDate' && prev.startDate) {
         const diff = Math.ceil(
@@ -206,6 +209,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
               players_per_team: formData.playersPerTeam,
               node_to_inn_ratio: formData.nodeToInnRatio,
               difficulty: formData.difficulty,
+              small_team: formData.smallTeam,
               reward_split_ratio: { nodes: 0.6, inns: 0.25, bonus_tasks: 0.15 },
               keys_expire: true,
               estimated_hours_per_player_per_day: formData.estimatedHoursPerPlayerPerDay,
@@ -288,15 +292,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             {/* Dates */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <HStack justify="space-between" align="center" mb={1}>
-                  <LabelWithTooltip
-                    label="Start Date & Time"
-                    tooltip="When teams can begin completing objectives. Entered in your local timezone."
-                  />
-                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
-                    {viewerTZ}
-                  </Text>
-                </HStack>
+                <FormLabel color="gray.100" mb={1}>Start Date & Time</FormLabel>
                 <Input
                   type="datetime-local"
                   min={today}
@@ -305,17 +301,8 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   {...inputStyles}
                 />
               </FormControl>
-
               <FormControl isRequired>
-                <HStack justify="space-between" align="center" mb={1}>
-                  <LabelWithTooltip
-                    label="End Date & Time"
-                    tooltip={`Final deadline. Max ${MAX_EVENT_DURATION_DAYS} days from start.`}
-                  />
-                  <Text fontSize="xs" color="gray.500" flexShrink={0}>
-                    {viewerTZ}
-                  </Text>
-                </HStack>
+                <FormLabel color="gray.100" mb={1}>End Date & Time</FormLabel>
                 <Input
                   type="datetime-local"
                   min={formData.startDate || today}
@@ -326,18 +313,21 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 />
               </FormControl>
             </SimpleGrid>
-
-            {formData.startDate && formData.endDate && (
-              <Text
-                fontSize="sm"
-                color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.400' : 'gray.400'}
-                fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
-              >
-                Event Duration: {eventDuration} day{eventDuration !== 1 ? 's' : ''} •{' '}
-                {MAX_EVENT_DURATION_DAYS} days max
-                {eventDuration > MAX_EVENT_DURATION_DAYS && ' ⚠️ Exceeds maximum!'}
+            <HStack justify="space-between" w="full">
+              <Text fontSize="xs" color="gray.500">
+                {viewerTZ} · max {MAX_EVENT_DURATION_DAYS} days
               </Text>
-            )}
+              {formData.startDate && formData.endDate && (
+                <Text
+                  fontSize="xs"
+                  color={eventDuration > MAX_EVENT_DURATION_DAYS ? 'red.400' : 'gray.500'}
+                  fontWeight={eventDuration > MAX_EVENT_DURATION_DAYS ? 'bold' : 'normal'}
+                >
+                  {eventDuration} day{eventDuration !== 1 ? 's' : ''}
+                  {eventDuration > MAX_EVENT_DURATION_DAYS && ' ⚠️ Exceeds max!'}
+                </Text>
+              )}
+            </HStack>
 
             {/* Difficulty */}
             <FormControl isRequired>
@@ -363,7 +353,33 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                   Sweatlord (2.0x objectives) — Extreme
                 </option>
               </Select>
+              <FormHelperText color="gray.500" mt={1}>
+                Content is balanced for teams of 8–10+. For smaller groups, use Small Team Mode
+                below.
+              </FormHelperText>
             </FormControl>
+
+            {/* Small team mode */}
+            <FormControl>
+              <HStack justify="space-between">
+                <Box>
+                  <FormLabel color="gray.100" mb={0}>
+                    Small Team Mode
+                  </FormLabel>
+                  <Text fontSize="xs" color="gray.500">
+                    4–5 players. Halves all objective quantities (e.g. Easy becomes 0.4x)
+                  </Text>
+                </Box>
+                <Switch
+                  isChecked={formData.smallTeam}
+                  onChange={(e) => handleInputChange('smallTeam', e.target.checked)}
+                  colorScheme="purple"
+                  size="lg"
+                />
+              </HStack>
+            </FormControl>
+
+            <TileExamplesPanel difficulty={formData.difficulty} smallTeam={formData.smallTeam} />
 
             {/* Hours per player */}
             <FormControl isRequired>

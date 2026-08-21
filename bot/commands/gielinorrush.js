@@ -2,7 +2,7 @@ const { EmbedBuilder } = require('discord.js');
 
 module.exports = {
   name: 'gielinorrush',
-  aliases: ['th'],
+  aliases: ['gr'],
   description: 'Gielinor Rush help and commands',
   async execute(message, args) {
     const embed = new EmbedBuilder()

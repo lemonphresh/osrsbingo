@@ -395,7 +395,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                     cmd: '!gielinorrush',
                     color: 'purple.300',
                     desc: 'Show all commands and help',
-                    alias: '!th',
+                    alias: '!gr',
                   },
                 ].map(({ cmd, color, desc, alias }) => (
                   <Box key={cmd} p={2} bg="gray.800" borderRadius="md">
