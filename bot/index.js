@@ -14,7 +14,7 @@ const client = new Client({
   ],
 });
 
-const treasurehunt = require('./commands/gielinorrush');
+const gielinorrush = require('./commands/gielinorrush');
 const nodes = require('./commands/nodes');
 const submit = require('./commands/submit');
 const leaderboard = require('./commands/leaderboard');
@@ -25,14 +25,14 @@ const rainbowbingo = require('./commands/rainbowbingo');
 const rbpre = rainbowbingo.rbpre;
 const ping = require('./commands/ping');
 
-const commands = [treasurehunt, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, ping];
+const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, ping];
 
-let TreasureEvent, TreasureTeam, CFEvent, CFTeam;
+let GREvent, GRTeam, CFEvent, CFTeam;
 
 try {
   const models = require('../server/db/models');
-  TreasureEvent = models.TreasureEvent;
-  TreasureTeam = models.TreasureTeam;
+  GREvent = models.GREvent;
+  GRTeam = models.GRTeam;
   CFEvent = models.CFEvent;
   CFTeam = models.CFTeam;
   console.log('✅ Scheduler models loaded');
@@ -101,20 +101,20 @@ async function checkCFScheduledStarts() {
 }
 
 async function checkEventStarts() {
-  if (!TreasureEvent || !TreasureTeam) {
+  if (!GREvent || !GRTeam) {
     console.warn('[eventStartScheduler] models not loaded, skipping');
     return;
   }
 
   const now = new Date();
 
-  const events = await TreasureEvent.findAll({
+  const events = await GREvent.findAll({
     where: {
       status: 'PUBLIC',
       startMessageSent: false,
       startDate: { [Op.lte]: now },
     },
-    include: [{ model: TreasureTeam, as: 'teams' }],
+    include: [{ model: GRTeam, as: 'teams' }],
   });
 
   for (const event of events) {
