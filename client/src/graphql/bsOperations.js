@@ -422,15 +422,6 @@ export const PLACE_BS_SHIP = gql`
   ${BS_SHIP_PLACEMENT_FIELDS}
 `;
 
-export const LOCK_BS_BOARD = gql`
-  mutation LockBSBoard($boardId: ID!) {
-    lockBSBoard(boardId: $boardId) {
-      boardId
-      isPlacementLocked
-    }
-  }
-`;
-
 export const START_BS_GAME = gql`
   mutation StartBSGame($eventId: ID!) {
     startBSGame(eventId: $eventId) {

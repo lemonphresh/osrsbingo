@@ -140,29 +140,74 @@ module.exports = {
           throw new AuthenticationError('Not authorized to modify this board');
         }
 
-        const size = newType === 'FIVE' ? 5 : 7;
+        const oldSize = board.type === 'FIVE' ? 5 : 7;
+        const newSize = newType === 'FIVE' ? 5 : 7;
+        const growing = newSize > oldSize;
 
-        // Remove old tiles
-        await BingoTile.destroy({ where: { board: boardId } });
+        let layout;
 
-        // Create new tiles
-        const tiles = [];
-        for (let row = 0; row < size; row++) {
-          for (let col = 0; col < size; col++) {
-            tiles.push({
-              name: `Tile ${row * size + col + 1}`,
-              isComplete: false,
-              value: 0,
-              board: board.id,
-            });
+        if (growing) {
+          // Preserve existing tiles centered in the new grid.
+          // e.g. 5x5 → 7x7: old tiles occupy rows/cols 1–5, new border tiles fill the ring.
+          const offset = (newSize - oldSize) / 2;
+          const oldLayout = board.layout;
+          const newTiles = [];
+
+          for (let row = 0; row < newSize; row++) {
+            for (let col = 0; col < newSize; col++) {
+              const isOld =
+                row >= offset && row < offset + oldSize && col >= offset && col < offset + oldSize;
+              if (isOld) continue;
+              newTiles.push({
+                name: `Tile ${row * newSize + col + 1}`,
+                isComplete: false,
+                value: 0,
+                board: board.id,
+              });
+            }
           }
-        }
-        const createdTiles = await BingoTile.bulkCreate(tiles, { returning: true });
 
-        // Create new layout
-        const layout = [];
-        for (let row = 0; row < size; row++) {
-          layout.push(createdTiles.slice(row * size, (row + 1) * size).map((tile) => tile.id));
+          const createdTiles = await BingoTile.bulkCreate(newTiles, { returning: true });
+          let newTileIdx = 0;
+
+          layout = [];
+          for (let row = 0; row < newSize; row++) {
+            const layoutRow = [];
+            for (let col = 0; col < newSize; col++) {
+              const isOld =
+                row >= offset && row < offset + oldSize && col >= offset && col < offset + oldSize;
+              if (isOld) {
+                layoutRow.push(oldLayout[row - offset][col - offset]);
+              } else {
+                layoutRow.push(createdTiles[newTileIdx++].id);
+              }
+            }
+            layout.push(layoutRow);
+          }
+        } else {
+          // Shrinking: keep the center newSize×newSize tiles, destroy the border ring.
+          // e.g. 7x7 → 5x5: offset=1, keep rows/cols 1–5, destroy the 24 border tiles.
+          const offset = (oldSize - newSize) / 2;
+          const oldLayout = board.layout;
+
+          const keptIds = new Set();
+          layout = [];
+          for (let row = 0; row < newSize; row++) {
+            const layoutRow = [];
+            for (let col = 0; col < newSize; col++) {
+              const id = oldLayout[row + offset][col + offset];
+              keptIds.add(id);
+              layoutRow.push(id);
+            }
+            layout.push(layoutRow);
+          }
+
+          // Destroy only the border tiles that didn't make the cut.
+          const allTileIds = oldLayout.flat();
+          const borderIds = allTileIds.filter((id) => !keptIds.has(id));
+          if (borderIds.length > 0) {
+            await BingoTile.destroy({ where: { id: borderIds } });
+          }
         }
 
         board.layout = layout;

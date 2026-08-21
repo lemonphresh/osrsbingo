@@ -350,7 +350,7 @@ describe('GielinorRush Queries', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('GET_TREASURE_LEADERBOARD', () => {
+  test('GET_GR_LEADERBOARD', () => {
     const result = validateOperation(`
       query GetGREventLeaderboard($eventId: ID!) {
         getGREventLeaderboard(eventId: $eventId) {
@@ -417,6 +417,80 @@ describe('GielinorRush Queries', () => {
           type
           data
           timestamp
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GET_ASSOCIATED_GR_EVENTS', () => {
+    const result = validateOperation(`
+      query GetAssociatedGREvents {
+        getAssociatedGREvents {
+          eventId
+          eventName
+          status
+          startDate
+          endDate
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GET_ASSOCIATED_EVENTS', () => {
+    const result = validateOperation(`
+      query GetAssociatedEvents {
+        getAssociatedEvents {
+          type
+          eventId
+          eventName
+          status
+          url
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GET_NODE_SUBMISSIONS', () => {
+    const result = validateOperation(`
+      query GetNodeSubmissions($nodeId: ID!, $teamId: ID!) {
+        getNodeSubmissions(nodeId: $nodeId, teamId: $teamId) {
+          submissionId
+          teamId
+          nodeId
+          status
+          proofUrl
+          submittedBy
+          submittedAt
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GET_NODE_SUBMISSION_SUMMARIES', () => {
+    const result = validateOperation(`
+      query GetNodeSubmissionSummaries($eventId: ID!) {
+        getNodeSubmissionSummaries(eventId: $eventId) {
+          nodeId
+          teamId
+          teamName
+          pendingCount
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('VERIFY_DISCORD_GUILD', () => {
+    const result = validateOperation(`
+      query VerifyDiscordGuild($guildId: String!) {
+        verifyDiscordGuild(guildId: $guildId) {
+          success
+          guildName
+          error
         }
       }
     `);
@@ -844,6 +918,67 @@ describe('GielinorRush Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
+  test('LAUNCH_EVENT', () => {
+    const result = validateOperation(`
+      mutation LaunchEvent($eventId: ID!) {
+        launchEvent(eventId: $eventId) {
+          eventId
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('COMPLETE_EVENT', () => {
+    const result = validateOperation(`
+      mutation CompleteEvent($eventId: ID!) {
+        completeEvent(eventId: $eventId) {
+          eventId
+          status
+          eventName
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('CONFIRM_DISCORD_SETUP', () => {
+    const result = validateOperation(`
+      mutation ConfirmDiscordSetup($eventId: ID!, $guildId: String!) {
+        confirmDiscordSetup(eventId: $eventId, guildId: $guildId) {
+          success
+          guildId
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('ADD_EVENT_REF', () => {
+    const result = validateOperation(`
+      mutation AddEventRef($eventId: ID!, $userId: ID!) {
+        addEventRef(eventId: $eventId, userId: $userId) {
+          eventId
+          adminIds
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('REMOVE_EVENT_REF', () => {
+    const result = validateOperation(`
+      mutation RemoveEventRef($eventId: ID!, $userId: ID!) {
+        removeEventRef(eventId: $eventId, userId: $userId) {
+          eventId
+          adminIds
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
   test('ADMIN_COMPLETE_NODE', () => {
     const result = validateOperation(`
       mutation AdminCompleteNode($eventId: ID!, $teamId: ID!, $nodeId: ID!, $congratsMessage: String) {
@@ -1034,6 +1169,51 @@ describe('Subscriptions', () => {
           nodeId
           teamName
           nodeName
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GR_ACTIVITY', () => {
+    const result = validateOperation(`
+      subscription GrActivity($eventId: ID!) {
+        grActivity(eventId: $eventId) {
+          id
+          eventId
+          teamId
+          type
+          data
+          timestamp
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('TEAM_UPDATED', () => {
+    const result = validateOperation(`
+      subscription TeamUpdated($eventId: ID!) {
+        teamUpdated(eventId: $eventId) {
+          teamId
+          teamName
+          currentPot
+          completedNodes
+          availableNodes
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('NODE_PROGRESS_UPDATED', () => {
+    const result = validateOperation(`
+      subscription NodeProgressUpdated($eventId: ID!) {
+        nodeProgressUpdated(eventId: $eventId) {
+          eventId
+          teamId
+          nodeId
+          value
         }
       }
     `);
