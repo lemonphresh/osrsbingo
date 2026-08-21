@@ -45,8 +45,8 @@ async function graphqlRequest(query, variables = {}, discordUserId = null) {
 // Helper to find team by Discord user
 async function findTeamForUser(eventId, userId, userRoles) {
   const query = `
-    query GetTreasureEvent($eventId: ID!) {
-      getTreasureEvent(eventId: $eventId) {
+    query GetGREvent($eventId: ID!) {
+      getGREvent(eventId: $eventId) {
         teams {
           teamId
           teamName
@@ -63,7 +63,7 @@ async function findTeamForUser(eventId, userId, userRoles) {
   `;
 
   const data = await graphqlRequest(query, { eventId });
-  const teams = data.getTreasureEvent.teams;
+  const teams = data.getGREvent.teams;
 
   // Check if user's role matches a team's discordRoleId
   const teamByRole = teams.find(

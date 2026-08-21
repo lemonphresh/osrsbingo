@@ -696,7 +696,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
             <VStack align="stretch" spacing={3}>
               <Box>
                 <Badge colorScheme="purple" mb={1}>
-                  !treasurehunt
+                  !gielinorrush
                 </Badge>
                 <Text fontSize="xs" color="orange">
                   Show all available commands and help information

@@ -392,7 +392,7 @@ const DiscordSetupModal = ({ isOpen, onClose, eventId, onConfirmed, eventStatus 
                     alias: '!lb',
                   },
                   {
-                    cmd: '!treasurehunt',
+                    cmd: '!gielinorrush',
                     color: 'purple.300',
                     desc: 'Show all commands and help',
                     alias: '!th',
