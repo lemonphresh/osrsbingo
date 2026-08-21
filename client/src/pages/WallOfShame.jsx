@@ -23,10 +23,20 @@ export const OFFENDERS = [
     quote: 'upset about my discord status saying fuck ICE',
   },
   {
+    name: 'khaotic02',
+    date: 'Aug 2026',
+    quote: 'upset about my discord status saying fuck ICE',
+  },
+  {
+    name: 'gunnatural',
+    date: 'Aug 2026',
+    quote: 'upset about my discord status saying fuck ICE',
+  },
+  {
     name: 'osrs_brian',
     date: 'Aug 2026',
     quote:
-      'apparently NOT upset about my discord status saying fuck ICE but enables his friends to cry about it',
+      'apparently NOT upset about my discord status saying fuck ICE but enables his "friends" to cry about it (none of them even like each other idk why they keep trying to make a GIM)',
   },
 ];
 
