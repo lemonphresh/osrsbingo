@@ -135,6 +135,14 @@ async function checkEventStarts() {
   }
 }
 
+client.on('error', (err) => {
+  console.error('[bot] WebSocket error:', err.message);
+});
+
+client.on('shardDisconnect', (event, shardId) => {
+  console.warn(`[bot] Shard ${shardId} disconnected (code ${event.code}) — Discord.js will attempt reconnect`);
+});
+
 client.on('ready', () => {
   registerClient(client);
   // Register bot client for CF Discord notifications
