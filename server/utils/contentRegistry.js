@@ -26,9 +26,9 @@ const BOSSES = {
     },
     drops: ['Baby Mole', 'Immaculate Mole Skin'],
     dropQuantities: {
-      casual: { min: 4, max: 6 },
-      standard: { min: 6, max: 10 },
-      hardcore: { min: 10, max: 14 },
+      short: { min: 1, max: 2 },
+      medium: { min: 2, max: 3 },
+      long: { min: 3, max: 4 },
     },
     killsPerHour: null,
     cfTasks: [
@@ -61,6 +61,7 @@ const BOSSES = {
     },
     drops: ['Sraracha', 'Sarachnis Cudgel', 'Jar of Eyes', 'Pristine Spider Silk'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
       medium: { min: 1, max: 1 },
       long: { min: 2, max: 2 },
     },
@@ -95,6 +96,8 @@ const BOSSES = {
     },
     drops: ['Hill Giant Club', 'Giant Key'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
+      medium: { min: 1, max: 1 },
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
@@ -233,6 +236,8 @@ const BOSSES = {
     },
     drops: ["Bryophyta's Essence", "Bryophyta's Staff", 'Mossy Key'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
+      medium: { min: 1, max: 1 },
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
@@ -3278,7 +3283,7 @@ function getAcceptableDrops(id) {
 }
 
 // Returns sorted [{value: womKey, label: displayName}] for bosses + raids.
-// Excludes entries with womKey: null (e.g. dagannoth_kings composite entry).
+// Excludes entries with womKey: null (i.e. dagannoth_kings composite entry).
 // Intended for group dashboard dropdown.
 function getBossMetricOptions() {
   const bossOpts = Object.values(BOSSES)
@@ -3446,36 +3451,41 @@ function getValidWomActivityKeys() {
 // MINIGAME entries whose womKey falls under WOM's Boss enum (not Activity).
 // They appear in the group dashboard "Boss KC" goal type.
 const MINIGAME_BOSS_KEYS = new Set([
-  'tempoross', 'wintertodt', 'zalcano', 'tztok_jad', 'tzkal_zuk', 'sol_heredit',
+  'tempoross',
+  'wintertodt',
+  'zalcano',
+  'tztok_jad',
+  'tzkal_zuk',
+  'sol_heredit',
 ]);
 
 // Skills that are valid WOM Skill metrics but excluded from event objectives.
 const COMBAT_SKILL_OPTIONS = [
-  { value: 'overall',   label: 'Overall' },
-  { value: 'attack',    label: 'Attack' },
-  { value: 'defence',   label: 'Defence' },
-  { value: 'strength',  label: 'Strength' },
+  { value: 'overall', label: 'Overall' },
+  { value: 'attack', label: 'Attack' },
+  { value: 'defence', label: 'Defence' },
+  { value: 'strength', label: 'Strength' },
   { value: 'hitpoints', label: 'Hitpoints' },
-  { value: 'ranged',    label: 'Ranged' },
-  { value: 'prayer',    label: 'Prayer' },
-  { value: 'magic',     label: 'Magic' },
+  { value: 'ranged', label: 'Ranged' },
+  { value: 'prayer', label: 'Prayer' },
+  { value: 'magic', label: 'Magic' },
 ];
 
 // WOM Activity metrics excluded from event objectives but valid for group goals.
 const EXTRA_ACTIVITY_OPTIONS = [
   { value: 'bounty_hunter_hunter', label: 'Bounty Hunter (Hunter)' },
-  { value: 'bounty_hunter_rogue',  label: 'Bounty Hunter (Rogue)' },
-  { value: 'colosseum_glory',      label: 'Colosseum Glory' },
-  { value: 'last_man_standing',    label: 'Last Man Standing' },
-  { value: 'pvp_arena',            label: 'PvP Arena' },
-  { value: 'soul_wars_zeal',       label: 'Soul Wars (Zeal)' },
+  { value: 'bounty_hunter_rogue', label: 'Bounty Hunter (Rogue)' },
+  { value: 'colosseum_glory', label: 'Colosseum Glory' },
+  { value: 'last_man_standing', label: 'Last Man Standing' },
+  { value: 'pvp_arena', label: 'PvP Arena' },
+  { value: 'soul_wars_zeal', label: 'Soul Wars (Zeal)' },
 ];
 
 // The registry uses a composite dagannoth_kings entry (womKey: null) for event
 // objectives, but WOM tracks the three kings individually. Expose them for group goals.
 const DAGANNOTH_KINGS_OPTIONS = [
-  { value: 'dagannoth_prime',   label: 'Dagannoth Prime' },
-  { value: 'dagannoth_rex',     label: 'Dagannoth Rex' },
+  { value: 'dagannoth_prime', label: 'Dagannoth Prime' },
+  { value: 'dagannoth_rex', label: 'Dagannoth Rex' },
   { value: 'dagannoth_supreme', label: 'Dagannoth Supreme' },
 ];
 

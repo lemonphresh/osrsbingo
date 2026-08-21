@@ -230,7 +230,7 @@ function buildClueScrollObjectives(contentSelections = {}) {
   };
 
   return {
-    short: buildForDifficulty('short', (c) => ['easy', 'medium'].includes(c.id)),
+    short: buildForDifficulty('short', (c) => ['beginner', 'easy', 'medium'].includes(c.id)),
     medium: buildForDifficulty('medium', (c) => ['hard', 'elite'].includes(c.id)),
     long: buildForDifficulty('long', (c) => c.id === 'master'),
   };

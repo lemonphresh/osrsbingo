@@ -29,6 +29,7 @@ import {
   FaChartBar,
   FaTrophy,
   FaFire,
+  FaAnchor,
 } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import { OFFENDERS } from './WallOfShame';
@@ -156,6 +157,7 @@ const StatsPage = () => {
             { label: 'Teams Balanced', value: stats?.teamsBalanced, icon: FaBalanceScale, color: 'cyan.300' },
             ...(showGroupStats ? [{ label: 'Groups Tracked', value: stats?.groupsTracked, icon: FaChartBar, color: 'orange.300' }] : []),
             ...(showForgeStats ? [{ label: 'Champions Forged', value: stats?.championsForged, icon: FaTrophy, color: 'yellow.300' }] : []),
+            { label: 'Naval Battles Waged', value: stats?.navalBattlesWaged, icon: FaAnchor, color: 'teal.300' },
             {
               label: 'Dorks Added to Wall of Shame',
               value: OFFENDERS.length,

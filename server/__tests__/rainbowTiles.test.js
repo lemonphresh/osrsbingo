@@ -21,9 +21,9 @@ describe('TILES', () => {
   });
 
   test('color-1 tiles are R1, O1, Y1, G1, B1, I1, V1', () => {
-    const colorOnes = TILES
-      .filter((t) => t.colorIndex === 1 && t.color !== 'capstone')
-      .map((t) => t.tileCode);
+    const colorOnes = TILES.filter((t) => t.colorIndex === 1 && t.color !== 'capstone').map(
+      (t) => t.tileCode
+    );
     expect(colorOnes.sort()).toEqual(['B1', 'G1', 'I1', 'O1', 'R1', 'V1', 'Y1']);
   });
 
@@ -75,7 +75,7 @@ describe('getStartTiles', () => {
     expect(starts.every((code) => !code.startsWith('C'))).toBe(true);
   });
 
-  test('does not include any higher-index tiles (e.g. R2, G4, V7)', () => {
+  test('does not include any higher-index tiles (i.e. R2, G4, V7)', () => {
     const starts = getStartTiles();
     expect(starts).not.toContain('R2');
     expect(starts).not.toContain('G4');

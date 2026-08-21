@@ -35,6 +35,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 import {
+  isBattleshipEnabled,
   isBlindDraftEnabled,
   isChampionForgeEnabled,
   isGroupDashboardEnabled,
@@ -77,7 +78,9 @@ const UserDetails = () => {
   const [deleteUser] = useMutation(DELETE_USER);
 
   const { data: associatedData } = useQuery(GET_ASSOCIATED_EVENTS, { skip: !isCurrentUser });
-  const activeEvents = associatedData?.getAssociatedEvents ?? [];
+  const activeEvents = [...(associatedData?.getAssociatedEvents ?? [])].sort(
+    (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+  );
 
   const onDelete = useCallback(async () => {
     if (shownUser?.id !== user?.id) {
@@ -407,7 +410,7 @@ const UserDetails = () => {
             <GemTitle size="sm" textAlign="center" mb={4}>
               Your Active Events
             </GemTitle>
-            <VStack align="stretch" spacing={2}>
+            <VStack align="stretch" spacing={2} maxH="300px" overflowY="auto">
               {activeEvents.map((e) => (
                 <HStack
                   key={`${e.type}-${e.eventId}`}
@@ -424,17 +427,48 @@ const UserDetails = () => {
                     borderColor:
                       e.type === 'champion-forge'
                         ? theme.colors.red[400]
+                        : e.type === 'battleship'
+                        ? '#76e4f7'
                         : theme.colors.yellow[400],
                   }}
                   transition="all 0.15s"
                 >
-                  <Text fontWeight="semibold" fontSize="sm" color="white">{e.eventName}</Text>
-                  <Badge
-                    colorScheme={e.type === 'champion-forge' ? 'red' : 'yellow'}
-                    fontSize="xs"
-                  >
-                    {e.type === 'champion-forge' ? 'Champion Forge' : 'Gielinor Rush'}
-                  </Badge>
+                  <Text fontWeight="semibold" fontSize="sm" color="white" minW={0} noOfLines={1}>
+                    {e.eventName}
+                  </Text>
+                  <HStack spacing={1} flexShrink={0}>
+                    <Badge
+                      colorScheme={
+                        e.type === 'champion-forge'
+                          ? 'red'
+                          : e.type === 'battleship'
+                          ? 'cyan'
+                          : 'yellow'
+                      }
+                      fontSize="xs"
+                    >
+                      {e.type === 'champion-forge'
+                        ? 'Champion Forge'
+                        : e.type === 'battleship'
+                        ? 'Battleship'
+                        : 'Gielinor Rush'}
+                    </Badge>
+                    <Badge
+                      colorScheme={
+                        e.role === 'Creator'
+                          ? 'purple'
+                          : e.role === 'Admin'
+                          ? 'orange'
+                          : e.role === 'Ref'
+                          ? 'blue'
+                          : 'gray'
+                      }
+                      fontSize="xs"
+                      variant="outline"
+                    >
+                      {e.role}
+                    </Badge>
+                  </HStack>
                 </HStack>
               ))}
             </VStack>
@@ -444,7 +478,7 @@ const UserDetails = () => {
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
             <GemTitle size="sm" textAlign="center" mb={4}>
-              Site Tools
+              Create Events
             </GemTitle>
             <SimpleGrid columns={[1, 3]} spacing={4}>
               <Box
@@ -504,43 +538,24 @@ const UserDetails = () => {
                   in this competitive clan event. Good for short term events.
                 </Text>
               </Box>
-              <Box
-                as={Link}
-                to="/team-balancer"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.green[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.green[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.green[300]} mb={1}>
-                  Team Balancer
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Auto-balance a list of RSNs into fair and balanced teams using WOM stats. Perfect
-                  to use before planning an event on here!
-                </Text>
-              </Box>
-              {isBlindDraftEnabled(user) && (
+              {isBattleshipEnabled(user) && (
                 <Box
                   as={Link}
-                  to="/blind-draft"
+                  to="/battleship"
                   bg={theme.colors.teal[800]}
                   borderRadius="lg"
                   border="2px solid"
-                  borderColor={theme.colors.pink[500]}
+                  borderColor="#47b3d1"
                   p={5}
-                  _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
+                  _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
                   transition="all 0.15s"
                 >
-                  <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
-                    Blind Draft
+                  <Text fontWeight="bold" color="#76e4f7" mb={1}>
+                    Battleship
                   </Text>
                   <Text fontSize="sm" color="gray.400">
-                    Anonymous player draft rooms for fair team selection. Both captains can pick
-                    their teams live based off of anonymous cards.
+                    Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
+                    sink the enemy.
                   </Text>
                 </Box>
               )}
@@ -561,7 +576,57 @@ const UserDetails = () => {
                   </Text>
                   <Text fontSize="sm" color="gray.400">
                     Create shared goals and track group progress over time with this dashboard built
-                    for clans, GIMs, and pals. Great for long term projects and goals!
+                    for clans, GIMs, and pals.
+                  </Text>
+                </Box>
+              )}
+            </SimpleGrid>
+          </Section>
+        )}
+
+        {isCurrentUser && (
+          <Section flexDirection="column" width="100%">
+            <GemTitle size="sm" textAlign="center" mb={4}>
+              Tools
+            </GemTitle>
+            <SimpleGrid columns={[1, 3]} spacing={4}>
+              <Box
+                as={Link}
+                to="/team-balancer"
+                bg={theme.colors.teal[800]}
+                borderRadius="lg"
+                border="2px solid"
+                borderColor={theme.colors.green[500]}
+                p={5}
+                _hover={{ borderColor: theme.colors.green[300], transform: 'translateY(-2px)' }}
+                transition="all 0.15s"
+              >
+                <Text fontWeight="bold" color={theme.colors.green[300]} mb={1}>
+                  Team Balancer
+                </Text>
+                <Text fontSize="sm" color="gray.400">
+                  Auto-balance a list of RSNs into fair teams using WOM stats. Perfect before
+                  planning an event.
+                </Text>
+              </Box>
+              {isBlindDraftEnabled(user) && (
+                <Box
+                  as={Link}
+                  to="/blind-draft"
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="2px solid"
+                  borderColor={theme.colors.pink[500]}
+                  p={5}
+                  _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
+                    Blind Draft
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Anonymous player draft rooms for fair team selection. Both captains pick live
+                    from anonymous cards.
                   </Text>
                 </Box>
               )}

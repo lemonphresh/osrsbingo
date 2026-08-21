@@ -273,7 +273,7 @@ const GielinorRushResolvers = {
               {
                 status: 'APPROVED',
                 [Op.and]: Sequelize.literal(
-                  `"TreasureSubmission"."nodeId" != ALL("team"."completedNodes")`
+                  `"TreasureSubmissions"."nodeId" != ALL("team"."completedNodes")`
                 ),
               },
             ],

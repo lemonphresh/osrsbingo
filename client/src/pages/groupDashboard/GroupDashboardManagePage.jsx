@@ -615,7 +615,7 @@ function LeaguesGroupPanel({ dashboard, onRefetch }) {
         <Input
           value={leaguesId}
           onChange={(e) => setLeaguesId(e.target.value)}
-          placeholder="Group ID or URL (e.g. 211 or league.wiseoldman.net/groups/211)"
+          placeholder="Group ID or URL (i.e. 211 or league.wiseoldman.net/groups/211)"
           bg="gray.900"
           borderColor="gray.600"
           fontFamily="mono"

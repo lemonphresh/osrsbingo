@@ -276,6 +276,8 @@ const typeDefs = gql`
     eventName: String!
     status: String!
     url: String!
+    role: String!
+    createdAt: DateTime
   }
 
   type GREvent {
@@ -613,6 +615,7 @@ const typeDefs = gql`
     teamsBalanced: Int!
     groupsTracked: Int!
     championsForged: Int!
+    navalBattlesWaged: Int!
   }
 
   # ============================================================
@@ -833,6 +836,16 @@ const typeDefs = gql`
     getMyGroupActivity: [GroupActivityItem!]!
     getUnreadGroupNotificationCount: Int!
     getMyGroupAssociations: [GroupAssociation!]!
+
+    # --- Battleship ---
+    getBSEvent(eventId: ID!): BSEvent
+    getAllBSEvents(creatorId: ID): [BSEvent!]!
+    getBSTaskPool(eventId: ID!): [BSTask!]!
+    getBSBoard(boardId: ID!): BSBoard
+    getBSShotLog(eventId: ID!): [BSShotLog!]!
+    getBSViewerCount(eventId: ID!): Int!
+    getBSSubmissions(eventId: ID!, status: BSSubmissionStatus, tileId: ID): [BSSubmission!]!
+    getActiveBSProposal(teamId: ID!): BSProposal
   }
 
   # ============================================================
@@ -1093,6 +1106,56 @@ const typeDefs = gql`
     finalizeTeamWomSync(teamId: ID!): FinalizeTeamWomSyncResult!
     resetTeamWomCooldown(teamId: ID!): Boolean!
     generateRainbowTeamToken(teamId: ID!): RainbowTeam!
+
+    # --- Battleship: Event & Teams ---
+    createBSEvent(input: CreateBSEventInput!): BSEvent!
+    updateBSEvent(eventId: ID!, input: UpdateBSEventInput!): BSEvent!
+    deleteBSEvent(eventId: ID!): MutationResponse!
+    addBSTeam(eventId: ID!, input: CreateBSTeamInput!): BSTeam!
+    updateBSTeamMembers(teamId: ID!, members: [String!]!): BSTeam!
+    updateBSTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String, womTeamName: String): BSTeam!
+    joinBSTeam(teamId: ID!): BSTeam!
+    addBSAdmin(eventId: ID!, userId: ID!): BSEvent!
+    addBSRef(eventId: ID!, userId: ID!): BSEvent!
+    removeBSRef(eventId: ID!, userId: ID!): BSEvent!
+
+    # --- Battleship: Task Pool ---
+    addBSTask(eventId: ID!, input: BSTaskInput!): BSTask!
+    updateBSTask(taskId: ID!, input: BSTaskInput!): BSTask!
+    removeBSTask(taskId: ID!): Boolean!
+
+    # --- Battleship: Ship Templates ---
+    setBSShipTemplate(eventId: ID!, shipType: BSShipType!, cellIndex: Int!, taskId: ID!): BSShipTemplate!
+
+    # --- Battleship: Placement Phase ---
+    startBSPlacementPhase(eventId: ID!): BSEvent!
+    placeBSShip(boardId: ID!, input: BSShipPlacementInput!): BSShipPlacement!
+    joinBSView(eventId: ID!): Boolean
+    leaveBSView(eventId: ID!): Boolean
+
+    # --- Battleship: Game Phase ---
+    startBSGame(eventId: ID!): BSEvent!
+    triggerBSWomSync(eventId: ID!): Boolean!
+    fireBS(eventId: ID!, targetTeamId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSShotLog!
+    completeBSTile(tileId: ID!): BSTile!
+    skipBSTile(tileId: ID!): BSTile!
+    addBSSkipTokens(teamId: ID!, count: Int!): BSTeam!
+    updateBSTileTask(tileId: ID!, taskId: ID!): BSTile!
+    setBSTileProgress(tileId: ID!, progress: Int!): BSTile!
+
+    # --- Battleship: Submissions ---
+    createBSSubmission(input: CreateBSSubmissionInput!): BSSubmission!
+    reviewBSSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): BSSubmission!
+
+    # --- Battleship: Shot proposals ---
+    proposeBSShot(eventId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSProposal!
+    voteOnBSProposal(proposalId: ID!, approve: Boolean!): BSProposal!
+    clearBSProposal(teamId: ID!): Boolean!
+
+    # --- Battleship: Skip token proposals ---
+    proposeSkipToken(tileId: ID!, firingTeamId: ID): BSSkipProposal!
+    voteOnSkipProposal(proposalId: ID!, approve: Boolean!): BSSkipProposal!
+    clearSkipProposal(teamId: ID!): Boolean!
   }
 
   # ============================================================
@@ -1465,6 +1528,278 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # BATTLESHIP
+  # ============================================================
+
+  enum BSEventStatus {
+    DRAFT
+    PLACEMENT
+    ACTIVE
+    COMPLETED
+    ARCHIVED
+  }
+
+  enum BSShipType {
+    CARRIER
+    BATTLESHIP
+    CRUISER
+    SUBMARINE
+    DESTROYER
+  }
+
+  enum BSShipOrientation {
+    HORIZONTAL
+    VERTICAL
+  }
+
+  enum BSShotResult {
+    HIT
+    MISS
+  }
+
+  type BSEvent {
+    eventId: ID!
+    eventName: String!
+    status: BSEventStatus!
+    placementPhaseHours: Int!
+    cooldownMinutes: Int!
+    initialSkipTokens: Int!
+    metricMultiplier: Float!
+    placementStartsAt: DateTime
+    placementEndsAt: DateTime
+    creatorId: String
+    adminIds: [String!]!
+    refIds: [String!]!
+    refs: [User!]!
+    guildId: String
+    eventPassword: String
+    womCompetitionId: String
+    winnerId: ID
+    completedAt: DateTime
+    teams: [BSTeam!]!
+    tasks: [BSTask!]!
+    shipTemplates: [BSShipTemplate!]!
+  }
+
+  type BSGameOver {
+    eventId: ID!
+    winnerId: ID!
+    losingTeamId: ID!
+    completedAt: DateTime!
+  }
+
+  type BSTeam {
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
+    color: String
+    members: [String!]!
+    skipTokens: Int!
+    lastShotAt: DateTime
+    discordChannelId: String
+    discordRoleId: String
+    womTeamName: String
+    board: BSBoard
+  }
+
+  type BSTask {
+    taskId: ID!
+    eventId: ID!
+    label: String!
+    bossOrSkill: String
+    metricType: String
+    metricTarget: Int
+    metricUnit: String
+    metricLabel: String
+    validDrops: [String!]!
+    womMetric: String
+    description: String
+    isActive: Boolean!
+  }
+
+  type BSShipTemplate {
+    templateId: ID!
+    eventId: ID!
+    shipType: BSShipType!
+    cellIndex: Int!
+    taskId: String
+    task: BSTask
+  }
+
+  type BSBoard {
+    boardId: ID!
+    eventId: ID!
+    teamId: ID!
+    isPlacementLocked: Boolean!
+    shipPlacements: [BSShipPlacement!]!
+    tiles: [BSTile!]!
+  }
+
+  type BSShipPlacement {
+    placementId: ID!
+    boardId: ID!
+    shipType: BSShipType!
+    orientation: BSShipOrientation!
+    startRow: Int!
+    startCol: Int!
+    updatedAt: String
+  }
+
+  type BSTile {
+    tileId: ID!
+    boardId: ID!
+    row: Int!
+    col: Int!
+    shipType: BSShipType
+    cellIndex: Int
+    taskId: String
+    task: BSTask
+    isShot: Boolean!
+    taskCompleted: Boolean!
+    skipped: Boolean!
+    progress: Int!
+    metricBaseline: Int
+    shotAt: DateTime
+    taskCompletedAt: DateTime
+  }
+
+  type BSShotLog {
+    shotId: ID!
+    eventId: ID!
+    firingTeamId: ID!
+    targetBoardId: ID!
+    tileId: ID!
+    row: Int!
+    col: Int!
+    result: BSShotResult!
+    taskId: String
+    shotAt: DateTime!
+  }
+
+  enum BSProposalStatus { PENDING APPROVED REJECTED CLEARED }
+  enum BSSubmissionStatus { PENDING APPROVED DENIED }
+
+  type BSProposal {
+    proposalId: ID
+    eventId: ID
+    firingTeamId: ID!
+    targetTeamId: ID
+    row: Int
+    col: Int
+    proposedBy: String
+    approvals: [String!]!
+    rejections: [String!]!
+    status: BSProposalStatus!
+    threshold: Int
+    proposedAt: DateTime
+    expiresAt: DateTime
+  }
+
+  type BSSkipProposal {
+    proposalId: ID
+    eventId: ID
+    teamId: ID!
+    tileId: ID
+    tileLabel: String
+    proposedBy: String
+    approvals: [String!]!
+    rejections: [String!]!
+    status: BSProposalStatus!
+    threshold: Int
+    proposedAt: DateTime
+    expiresAt: DateTime
+  }
+
+  type BSSubmission {
+    submissionId: ID!
+    id: ID!
+    eventId: ID!
+    tileId: ID!
+    boardId: ID!
+    teamId: ID!
+    tileLabel: String
+    discordUserId: String
+    discordUsername: String
+    screenshotUrl: String
+    channelId: String
+    discordMessageId: String
+    status: BSSubmissionStatus!
+    submissionType: BSSubmissionType!
+    reviewedBy: String
+    reviewedAt: DateTime
+    denialReason: String
+    submittedAt: DateTime
+    submittedBy: String
+    screenshot: String
+    reviewNote: String
+    tile: BSTile
+    team: BSTeam
+  }
+
+  enum BSSubmissionType {
+    PRESCREENSHOT
+    SUBMISSION
+  }
+
+  input CreateBSSubmissionInput {
+    tileId: ID!
+    discordUserId: String
+    discordUsername: String
+    screenshotUrl: String
+    channelId: String
+    discordMessageId: String
+    submissionType: BSSubmissionType
+  }
+
+  input CreateBSEventInput {
+    eventName: String!
+    placementPhaseHours: Int
+    cooldownMinutes: Int
+    initialSkipTokens: Int
+    metricMultiplier: Float
+    adminIds: [String!]
+    refIds: [String!]
+    guildId: String
+    eventPassword: String
+  }
+
+  input UpdateBSEventInput {
+    eventName: String
+    placementPhaseHours: Int
+    cooldownMinutes: Int
+    guildId: String
+    announcementsChannelId: String
+    womCompetitionId: String
+  }
+
+  input CreateBSTeamInput {
+    teamName: String!
+    color: String
+    members: [String!]
+    discordChannelId: String
+    discordRoleId: String
+  }
+
+  input BSTaskInput {
+    label: String!
+    bossOrSkill: String
+    metricType: String
+    metricTarget: Int
+    metricUnit: String
+    metricLabel: String
+    validDrops: [String!]
+    womMetric: String
+    description: String
+  }
+
+  input BSShipPlacementInput {
+    shipType: BSShipType!
+    orientation: BSShipOrientation!
+    startRow: Int!
+    startCol: Int!
+  }
+
+  # ============================================================
   # SUBSCRIPTIONS
   # ============================================================
 
@@ -1494,6 +1829,17 @@ const typeDefs = gql`
     rainbowTeamBoardUpdated(teamId: ID!): [RainbowTeamTile!]!
     rainbowEventBoardUpdated(eventId: ID!): ID!
     rainbowSyncStatusChanged: Boolean!
+
+    # --- Battleship ---
+    bsBoardUpdated(eventId: ID!): BSBoard!
+    bsShotFired(eventId: ID!): BSShotLog!
+    bsTileUpdated(boardId: ID!): BSTile!
+    bsViewersUpdated(eventId: ID!): Int!
+    bsSubmissionAdded(eventId: ID!): BSSubmission!
+    bsSubmissionReviewed(eventId: ID!): BSSubmission!
+    bsProposalUpdated(teamId: ID!): BSProposal!
+    bsSkipProposalUpdated(teamId: ID!): BSSkipProposal!
+    bsGameOver(eventId: ID!): BSGameOver!
   }
 `;
 

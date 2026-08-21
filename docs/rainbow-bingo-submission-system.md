@@ -11,7 +11,8 @@ The concrete implementation lives in `bot/commands/rainbowbingo.js`, `server/sch
 Submissions happen through Discord. Players run a bot command in their team's private channel with a screenshot attached. The bot records the submission and a refs panel in the web app surfaces it for review. Refs approve or deny submissions individually, track progress on objectives, and then manually mark an objective complete when satisfied. Completion triggers Discord notifications and can unlock successor objectives automatically.
 
 There are two submission types used in this system:
-- **Pre-screenshots** — proof of starting state before beginning an objective (e.g., current kc, current xp, 0 reward points). Informational only, do not advance objective state.
+
+- **Pre-screenshots** — proof of starting state before beginning an objective (i.e., current kc, current xp, 0 reward points). Informational only, do not advance objective state.
 - **Final submissions** — proof of completion once the objective is done.
 
 Not all event types require both. An event that only tracks drops may only need final submissions. The pre/final distinction is implemented in the data model and bot but can be simplified for future events if pre-screenshots aren't needed.
@@ -23,6 +24,7 @@ Not all event types require both. An event that only tracks drops may only need 
 **Reference file:** `bot/commands/rainbowbingo.js`
 
 The bot exposes two commands per event type. For Rainbow Bingo:
+
 - `!rbpre <objectiveCode>` — submits a pre-screenshot (alias: `!rbp`)
 - `!rbsubmit <objectiveCode>` — submits a final completion screenshot (alias: `!rbs`)
 
@@ -55,6 +57,7 @@ The bot does not use Discord user identity to determine which team a player belo
 Called by the Discord bot only. No user authentication — the channel ID is the sole identity mechanism on this path.
 
 **Validation chain:**
+
 1. Find team by `discordChannelId` — if no team is registered for this channel, reject silently (the bot's pre-check should have caught this, but defense in depth)
 2. Find event by team's `eventId` — reject if missing
 3. Check event status — SETUP and COMPLETE both throw specific messages; anything other than ACTIVE is rejected
@@ -62,6 +65,7 @@ Called by the Discord bot only. No user authentication — the channel ID is the
 5. Check objective status — LOCKED rejects (player shouldn't be able to see this objective yet), COMPLETE rejects (no submitting against a finished objective)
 
 **On success:**
+
 - Creates a submission row with status `PENDING`
 - Stores: objectiveCode, type, screenshotUrl, discordMessageId, channelId, discordUsername, discordUserId, submittedAt
 - If the submission is FINAL and the objective is currently UNLOCKED, advances objective status to `SUBMITTED` — this signals to refs and spectators that the team is actively working on this objective
@@ -75,14 +79,15 @@ Called by the Discord bot only. No user authentication — the channel ID is the
 
 The lifecycle of a team's objective through the event:
 
-| Status | Meaning |
-|--------|---------|
-| `LOCKED` | Not yet reachable. Hidden from players. |
-| `UNLOCKED` | Available to work on. No final submissions yet. |
+| Status      | Meaning                                                             |
+| ----------- | ------------------------------------------------------------------- |
+| `LOCKED`    | Not yet reachable. Hidden from players.                             |
+| `UNLOCKED`  | Available to work on. No final submissions yet.                     |
 | `SUBMITTED` | At least one final submission exists (regardless of review status). |
-| `COMPLETE` | Manually marked complete by a ref. Requires progress at 100. |
+| `COMPLETE`  | Manually marked complete by a ref. Requires progress at 100.        |
 
 Transitions:
+
 - LOCKED → UNLOCKED: triggered when a prerequisite objective is completed (or at event start for starting objectives)
 - UNLOCKED → SUBMITTED: triggered automatically when the first FINAL submission is received
 - SUBMITTED → COMPLETE: triggered manually by a ref
@@ -96,11 +101,11 @@ The SUBMITTED state is purely visual — it tells refs and spectators that work 
 
 Each individual submission has its own independent status:
 
-| Status | Meaning |
-|--------|---------|
-| `PENDING` | Awaiting ref review |
-| `APPROVED` | Ref accepted it |
-| `DENIED` | Ref rejected it, with an optional written reason |
+| Status     | Meaning                                          |
+| ---------- | ------------------------------------------------ |
+| `PENDING`  | Awaiting ref review                              |
+| `APPROVED` | Ref accepted it                                  |
+| `DENIED`   | Ref rejected it, with an optional written reason |
 
 Submission status does not directly advance objective status. A ref approving a submission does not complete the objective — that is always a separate explicit manual action. This is intentional: it gives refs full control over timing and lets them approve submissions as they come in without prematurely locking in a completion.
 
@@ -118,7 +123,7 @@ The refs panel is a web interface accessible only to logged-in users listed as a
 
 - **Sound alerts** — plays a chime when a new submission arrives via WebSocket. Requires a click interaction first to unlock audio (browser policy).
 - **Browser push notifications** — sends a system notification even when the tab is not focused.
-- **Tab title** — updates to show the count of pending submissions, e.g. `(3) Rainbow Bingo Refs`.
+- **Tab title** — updates to show the count of pending submissions, i.e. `(3) Rainbow Bingo Refs`.
 - **On tab focus** — the page automatically refetches submissions and board state.
 
 These alert mechanisms together mean refs can have the tab open in the background and still be notified promptly of new submissions.
@@ -132,6 +137,7 @@ Submissions are grouped by `objectiveCode + teamId`. Each group shows all pre-sc
 ### Reviewing a Submission
 
 For each submission the ref sees:
+
 - Type badge (Pre-screenshot / Final), status badge, Discord username, timestamp
 - "View in Discord ↗" jump link — only present when the event has a `guildId` configured and the submission has both a `channelId` and `discordMessageId`. Constructs a direct jump URL: `discord.com/channels/{guildId}/{channelId}/{messageId}`. The `guildId` is set in the event admin panel.
 - Screenshot thumbnail — click to open full size in a modal
@@ -147,7 +153,7 @@ Both notifications go to the team's registered Discord channel. The @mention use
 
 Each objective group has a progress input (number field) and a slider. Progress is stored as a 0–100 integer percentage on the objective row.
 
-For objectives with a defined metric target (e.g., 500 kc, 1000 xp gained), the input and slider can operate in raw value mode and convert to percentage internally. For objectives without a metric target, it's a straight 0–100% slider.
+For objectives with a defined metric target (i.e., 500 kc, 1000 xp gained), the input and slider can operate in raw value mode and convert to percentage internally. For objectives without a metric target, it's a straight 0–100% slider.
 
 Progress saves live — no save button. The slider saves on drag end, the number input saves on blur or Enter key. Each save re-publishes board state via WebSocket so the team's visual progress indicators update immediately for both the team and spectators.
 
@@ -156,16 +162,18 @@ Progress saves live — no save button. The slider saves on drag end, the number
 ### Completing an Objective
 
 The complete button is enabled only when:
+
 - At least one FINAL submission for that objective+team is `APPROVED`
 - Progress is at 100
 
 Requires a two-click confirmation. On confirm:
+
 1. Sets objective status to COMPLETE with a timestamp (atomic — rejects if already COMPLETE)
 2. Calculates which successor objectives are newly unlocked based on the event's objective graph
 3. Sets newly unlocked objectives to UNLOCKED with timestamps
 4. Publishes WebSocket events — updates the team board and spectator board in real time
 5. Sends a Discord embed to the team's channel listing the completed objective and any newly unlocked ones
-6. Checks for a win condition (e.g., all capstones complete) and fires a board-complete embed if met
+6. Checks for a win condition (i.e., all capstones complete) and fires a board-complete embed if met
 
 ### Undoing a Completion
 
@@ -174,6 +182,7 @@ A completed objectives accordion shows all completions across all teams. Only th
 The restriction exists because undoing an earlier completion in a chain would need to cascade-lock objectives that were unlocked by it, and those objectives may have had work done on them in the meantime. Enforcing newest-first prevents refs from accidentally unraveling progress.
 
 Undo:
+
 1. Reverts objective status to SUBMITTED (if approved finals exist) or UNLOCKED
 2. Re-locks any objectives that were only unlocked as a consequence of this completion
 3. Re-publishes board state
@@ -187,6 +196,7 @@ If a mistake was made earlier in the chain, undo that team's completions in reve
 Players access their team board via a secret token URL. The token is generated at team creation and should be kept private to the team.
 
 **Visual indicators on the board:**
+
 - No ring, no dot: unlocked, no activity
 - Partial progress ring: progress has been logged by a ref
 - Orange dot: a final submission exists (SUBMITTED status)
@@ -201,6 +211,7 @@ When an objective is completed, the board updates in real time, a celebration an
 ## Data Model
 
 **Submission row fields:**
+
 - `submissionId` — prefixed unique ID
 - `teamId`, `eventId`, `objectiveCode`
 - `type` — `PRE` or `FINAL`
@@ -212,6 +223,7 @@ When an objective is completed, the board updates in real time, a celebration an
 - `submittedAt`, `reviewedAt`, `reviewedBy`, `denialReason`
 
 **Team objective row fields relevant to submissions:**
+
 - `status` — LOCKED / UNLOCKED / SUBMITTED / COMPLETE
 - `progress` — 0–100 integer, set by refs
 - `unlockedAt`, `completedAt`
@@ -221,12 +233,12 @@ When an objective is completed, the board updates in real time, a celebration an
 
 ## Discord Notifications Summary
 
-| Trigger | Recipient | Content |
-|---------|-----------|---------|
-| Submission approved | Team channel, @submitter | "your screenshot for **X** was approved ✅" |
-| Submission denied | Team channel, @submitter | "your screenshot for **X** was denied ❌ — {reason}" |
-| Objective completed | Team channel | Embed: completed objective, newly unlocked objectives, optional thematic note |
-| Win condition met | Team channel | Separate celebratory embed |
+| Trigger             | Recipient                | Content                                                                       |
+| ------------------- | ------------------------ | ----------------------------------------------------------------------------- |
+| Submission approved | Team channel, @submitter | "your screenshot for **X** was approved ✅"                                   |
+| Submission denied   | Team channel, @submitter | "your screenshot for **X** was denied ❌ — {reason}"                          |
+| Objective completed | Team channel             | Embed: completed objective, newly unlocked objectives, optional thematic note |
+| Win condition met   | Team channel             | Separate celebratory embed                                                    |
 
 ---
 
