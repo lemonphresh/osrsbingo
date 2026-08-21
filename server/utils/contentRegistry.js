@@ -26,9 +26,9 @@ const BOSSES = {
     },
     drops: ['Baby Mole', 'Immaculate Mole Skin'],
     dropQuantities: {
-      casual: { min: 4, max: 6 },
-      standard: { min: 6, max: 10 },
-      hardcore: { min: 10, max: 14 },
+      short: { min: 1, max: 2 },
+      medium: { min: 2, max: 3 },
+      long: { min: 3, max: 4 },
     },
     killsPerHour: null,
     cfTasks: [
@@ -61,6 +61,7 @@ const BOSSES = {
     },
     drops: ['Sraracha', 'Sarachnis Cudgel', 'Jar of Eyes', 'Pristine Spider Silk'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
       medium: { min: 1, max: 1 },
       long: { min: 2, max: 2 },
     },
@@ -95,6 +96,8 @@ const BOSSES = {
     },
     drops: ['Hill Giant Club', 'Giant Key'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
+      medium: { min: 1, max: 1 },
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
@@ -233,6 +236,8 @@ const BOSSES = {
     },
     drops: ["Bryophyta's Essence", "Bryophyta's Staff", 'Mossy Key'],
     dropQuantities: {
+      short: { min: 1, max: 1 },
+      medium: { min: 1, max: 1 },
       long: { min: 1, max: 1 },
     },
     killsPerHour: null,
