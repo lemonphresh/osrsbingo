@@ -12,6 +12,22 @@ export const OFFENDERS = [
     quote:
       '"its people like you who keep shubbing [politics] down my throat [...] okay you are jsut r*******"',
   },
+  {
+    name: 'xalastar',
+    date: 'Aug 2026',
+    quote: 'upset about my discord status saying fuck ICE',
+  },
+  {
+    name: 'pug9956',
+    date: 'Aug 2026',
+    quote: 'upset about my discord status saying fuck ICE',
+  },
+  {
+    name: 'osrs_brian',
+    date: 'Aug 2026',
+    quote:
+      'apparently NOT upset about my discord status saying fuck ICE but enables his friends to cry about it',
+  },
 ];
 
 const CSS = `
