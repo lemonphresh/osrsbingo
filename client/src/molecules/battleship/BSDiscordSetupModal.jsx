@@ -192,6 +192,8 @@ export default function BSDiscordSetupModal({ isOpen, onClose, eventId, onConfir
                 as={Link}
                 href={botInstallUrl}
                 isExternal
+                target="_blank"
+                rel="noopener noreferrer"
                 size="sm"
                 w="full"
                 bg={CYAN}
