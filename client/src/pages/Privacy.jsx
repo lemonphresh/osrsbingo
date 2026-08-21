@@ -41,7 +41,7 @@ const PrivacyPage = () => {
                 completion status, and settings.
               </ListItem>
               <ListItem>
-                <strong>Discord User ID:</strong> If you link your Discord account for Treasure Hunt
+                <strong>Discord User ID:</strong> If you link your Discord account for Gielinor Rush
                 events.
               </ListItem>
               <ListItem>
@@ -70,7 +70,7 @@ const PrivacyPage = () => {
             <UnorderedList spacing={2} pl={4}>
               <ListItem>To provide and maintain the service</ListItem>
               <ListItem>To save your boards and track your progress</ListItem>
-              <ListItem>To enable multiplayer features like Treasure Hunt events</ListItem>
+              <ListItem>To enable multiplayer features like Gielinor Rush events</ListItem>
               <ListItem>To improve the site based on usage patterns</ListItem>
             </UnorderedList>
           </Box>

@@ -26,7 +26,7 @@ module.exports = {
     submissionAdded: createSubscription((args) => `SUBMISSION_ADDED_${args.eventId}`),
     submissionReviewed: createSubscription((args) => `SUBMISSION_REVIEWED_${args.eventId}`),
     nodeCompleted: createSubscription((args) => `NODE_COMPLETED_${args.eventId}`),
-    grActivity: createSubscription((args) => `TREASURE_ACTIVITY_${args.eventId}`),
+    grActivity: createSubscription((args) => `GR_ACTIVITY_${args.eventId}`),
     teamUpdated: createSubscription((args) => `TEAM_UPDATED_${args.eventId}`),
     nodeProgressUpdated: createSubscription((args) => `NODE_PROGRESS_UPDATED_${args.eventId}`),
   },

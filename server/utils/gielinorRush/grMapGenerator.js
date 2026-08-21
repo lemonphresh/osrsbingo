@@ -264,7 +264,13 @@ function buildDeck(difficulty, formattedObjectives) {
  * we just take the front of the deck rather than getting stuck.
  * When the deck runs empty it is rebuilt and reshuffled automatically.
  */
-function drawFromDeck(difficulty, difficultyMultiplier, usedTargetsInGroup, deckByDifficulty, formattedObjectives) {
+function drawFromDeck(
+  difficulty,
+  difficultyMultiplier,
+  usedTargetsInGroup,
+  deckByDifficulty,
+  formattedObjectives
+) {
   let deck = deckByDifficulty[difficulty];
 
   if (deck.length === 0) {
@@ -333,8 +339,9 @@ function generateInnRewards(innTier, avgGpPerInn) {
 }
 
 function generateMap(eventConfig, derivedValues, contentSelections = null) {
-  const { node_to_inn_ratio, difficulty = 'normal' } = eventConfig;
-  const difficultyMultiplier = DIFFICULTY_MULTIPLIERS[difficulty] || 1.0;
+  const { node_to_inn_ratio, difficulty = 'normal', small_team = false } = eventConfig;
+  const difficultyMultiplier =
+    (DIFFICULTY_MULTIPLIERS[difficulty] || 1.0) * (small_team ? 0.5 : 1.0);
 
   const { avg_gp_per_node, avg_gp_per_inn, num_of_inns, total_nodes } = derivedValues;
 
@@ -442,9 +449,10 @@ function generateMap(eventConfig, derivedValues, contentSelections = null) {
         rewards: {
           gp: calculateGPReward(tier, avg_gp_per_node),
           // ~30% of short, ~20% of medium, ~10% of long nodes are keyless (pure GP)
-          keys: Math.random() < { short: 0.3, medium: 0.2, long: 0.1 }[name]
-            ? []
-            : [{ color: pathInfo.key_color, quantity: name === 'long' ? 2 : 1 }],
+          keys:
+            Math.random() < { short: 0.3, medium: 0.2, long: 0.1 }[name]
+              ? []
+              : [{ color: pathInfo.key_color, quantity: name === 'long' ? 2 : 1 }],
         },
         difficultyTier: tier,
         innTier: null,

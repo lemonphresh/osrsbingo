@@ -69,7 +69,7 @@ const logGRActivity = async (eventId, teamId, type, data = {}) => {
     logger.error('❌ Failed to save activity:', err.message);
   }
 
-  const topic = `TREASURE_ACTIVITY_${eventId}`;
+  const topic = `GR_ACTIVITY_${eventId}`;
   await pubsub.publish(topic, { grActivity: activity });
   return activity;
 };
@@ -273,7 +273,7 @@ const GielinorRushResolvers = {
               {
                 status: 'APPROVED',
                 [Op.and]: Sequelize.literal(
-                  `"TreasureSubmissions"."nodeId" != ALL("team"."completedNodes")`
+                  `"GRSubmission"."nodeId" != ALL("team"."completedNodes")`
                 ),
               },
             ],
@@ -1617,7 +1617,7 @@ const GielinorRushResolvers = {
       await team.save();
 
       try {
-        await pubsub.publish(`TREASURE_ACTIVITY_${eventId}`, {
+        await pubsub.publish(`GR_ACTIVITY_${eventId}`, {
           grActivity: {
             id: `buff_applied_${Date.now()}`,
             eventId,

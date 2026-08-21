@@ -487,8 +487,12 @@ const BoardDetails = () => {
               actionButtonText="Swap"
               buttonText={`Swap to ${board.type === 'FIVE' ? '7x7' : '5x5'} Board`}
               colorScheme="purple"
-              dialogHeader="Swap Board Type and Replace Tiles"
-              dialogBody="Are you sure? You can't undo this action afterwards, and it will erase any tile data you've changed so far."
+              dialogHeader={board.type === 'FIVE' ? 'Expand to 7x7 Board' : 'Shrink to 5x5 Board'}
+              dialogBody={
+                board.type === 'FIVE'
+                  ? 'Your existing 5x5 tiles will be kept in place. The 24 new border tiles will start blank.'
+                  : 'Your center 5x5 tiles will be kept. The 24 border tiles will be removed.'
+              }
               icon={<EditIcon />}
               onClickAction={async () => await onSwap(board.type === 'FIVE' ? 'SEVEN' : 'FIVE')}
             />

@@ -250,7 +250,7 @@ const EventSettingsTab = ({
                 <Heading size="sm">Discord Integration</Heading>
               </HStack>
               <Text fontSize="sm">
-                Connect your Discord server to let teams interact with the Treasure Hunt directly
+                Connect your Discord server to let teams interact with Gielinor Rush directly
                 from Discord.
               </Text>
               <Button

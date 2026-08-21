@@ -702,7 +702,7 @@ const GameRulesTab = ({ colorMode, currentColors, event }) => {
                   Show all available commands and help information
                 </Text>
                 <Text fontSize="xs" color={currentColors.white} mt={1}>
-                  Aliases: <Badge size="sm">!th</Badge>
+                  Aliases: <Badge size="sm">!gr</Badge>
                 </Text>
               </Box>
 
