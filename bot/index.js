@@ -14,7 +14,7 @@ const client = new Client({
   ],
 });
 
-const treasurehunt = require('./commands/treasurehunt');
+const treasurehunt = require('./commands/gielinorrush');
 const nodes = require('./commands/nodes');
 const submit = require('./commands/submit');
 const leaderboard = require('./commands/leaderboard');
@@ -23,8 +23,9 @@ const championforgeHelp = championforge.help;
 const championforgePresubmit = championforge.cfpresubmit;
 const rainbowbingo = require('./commands/rainbowbingo');
 const rbpre = rainbowbingo.rbpre;
+const ping = require('./commands/ping');
 
-const commands = [treasurehunt, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre];
+const commands = [treasurehunt, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, ping];
 
 let TreasureEvent, TreasureTeam, CFEvent, CFTeam;
 
