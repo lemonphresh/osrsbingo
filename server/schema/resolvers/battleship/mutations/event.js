@@ -145,29 +145,42 @@ module.exports = {
       throw new UserInputError('Content selections can only be changed while the event is in DRAFT.');
     }
 
-    const templateBoard = await BSBoard.findOne({ where: { eventId, teamId: null } });
-    if (!templateBoard) throw new Error('Template board not found for this event.');
+    let templateBoard = await BSBoard.findOne({ where: { eventId, teamId: null } });
 
-    // Delete only ocean tiles — ship tiles are untouched
-    await BSTile.destroy({ where: { boardId: templateBoard.boardId, shipType: null } });
-
-    // Rebuild ocean pool with new selections
     const allTasks = await BSTask.findAll({ where: { eventId } });
     const templates = await BSShipTemplate.findAll({ where: { eventId } });
     const shipTaskIds = new Set(templates.map((t) => t.taskId).filter(Boolean));
     const oceanPool = buildOceanPool(allTasks, contentSelections, shipTaskIds, shuffle);
 
-    const positions = shuffledGridPositions();
-    const oceanTiles = oceanPool.slice(0, 100).map((taskId, i) => ({
-      tileId:    generateId('bstl'),
-      boardId:   templateBoard.boardId,
-      row:       positions[i].row,
-      col:       positions[i].col,
-      shipType:  null,
-      cellIndex: null,
-      taskId,
-    }));
-    await BSTile.bulkCreate(oceanTiles);
+    if (!templateBoard) {
+      // Event predates template board — create it now from existing ship templates
+      templateBoard = await BSBoard.create({
+        boardId: generateId('bsb'),
+        eventId,
+        teamId: null,
+      });
+      const templateRecords = templates.map((t) => ({
+        shipType:  t.shipType,
+        cellIndex: t.cellIndex,
+        taskId:    t.taskId,
+      }));
+      await createTemplateTiles(templateBoard.boardId, templateRecords, oceanPool, BSTile);
+    } else {
+      // Delete only ocean tiles — ship tiles are untouched
+      await BSTile.destroy({ where: { boardId: templateBoard.boardId, shipType: null } });
+
+      const positions = shuffledGridPositions();
+      const oceanTiles = oceanPool.slice(0, 100).map((taskId, i) => ({
+        tileId:    generateId('bstl'),
+        boardId:   templateBoard.boardId,
+        row:       positions[i].row,
+        col:       positions[i].col,
+        shipType:  null,
+        cellIndex: null,
+        taskId,
+      }));
+      await BSTile.bulkCreate(oceanTiles);
+    }
 
     await event.update({ contentSelections });
     return event;
