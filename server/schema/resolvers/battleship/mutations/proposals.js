@@ -4,7 +4,13 @@ const { getModels, requireAuth, getEventOrThrow } = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
-const { createProposal, getProposalById, vote, clearProposal, getProposal } = require('../../../../utils/battleship/bsProposals');
+const {
+  createProposal,
+  getProposalById,
+  vote,
+  clearProposal,
+  getProposal,
+} = require('../../../../utils/battleship/bsProposals');
 
 module.exports = {
   proposeBSShot: async (_, { eventId, row, col, firingTeamId }, context) => {
@@ -40,17 +46,34 @@ module.exports = {
     const threshold = firingTeam.members.length > 3 ? 3 : 1;
 
     const proposal = createProposal({
-      proposalId:   generateId('bsprop'),
+      proposalId: generateId('bsprop'),
       eventId,
       firingTeamId: firingTeam.teamId,
       targetTeamId: targetTeam.teamId,
       row,
       col,
-      proposedBy:   user.discordUserId,
+      proposedBy: user.discordUserId,
       threshold,
     });
 
     await pubsub.publish(`BS_PROPOSAL_${firingTeam.teamId}`, { bsProposalUpdated: proposal });
+
+    // Discord ping — best-effort, non-blocking. Skip if the proposal is auto-approved
+    // (threshold=1 on solo/small teams) since there's nothing for teammates to vote on.
+    if (proposal.status === 'PENDING' && firingTeam.discordChannelId) {
+      const { postBSProposalCreated } = require('../../../../utils/battleship/bsDiscord');
+      const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+      const coord = `${COL_LABELS[col] ?? col}${row + 1}`;
+      postBSProposalCreated({
+        channelId: firingTeam.discordChannelId,
+        roleId: firingTeam.discordRoleId ?? null,
+        proposerDiscordId: user.discordUserId,
+        teamName: firingTeam.teamName,
+        coord,
+        eventId,
+      }).catch(() => {});
+    }
+
     return proposal;
   },
 
@@ -65,7 +88,8 @@ module.exports = {
     // Verify the user is on the firing team
     const event = await getEventOrThrow(existing.eventId);
     const team = await BSTeam.findByPk(existing.firingTeamId);
-    const isAdmin = (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
+    const isAdmin =
+      (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
     if (!team?.members.includes(user.discordUserId) && !isAdmin) {
       throw new UserInputError('You are not on this team');
     }

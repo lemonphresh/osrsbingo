@@ -33,6 +33,7 @@ import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
   REMOVE_BS_REF,
+  START_BS_GAME,
   TRIGGER_BS_WOM_SYNC,
   UPDATE_BS_EVENT,
   UPDATE_BS_TEAM_DISCORD,
@@ -603,6 +604,14 @@ export default function BattleshipAdminPage() {
   const [updateTeamWomName] = useMutation(UPDATE_BS_TEAM_DISCORD, {
     onError: (err) => showToast(err.message ?? 'Failed to save team WOM name.', 'error'),
   });
+  const [startBSGame, { loading: startingBattle }] = useMutation(START_BS_GAME, {
+    onCompleted: () => {
+      showToast('Battle phase started.', 'success');
+      refetchEvent();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to start battle phase.', 'error'),
+  });
+  const [confirmStartBattle, setConfirmStartBattle] = useState(false);
 
   const [showDiscordModal, setShowDiscordModal] = useState(false);
   const [savingWom, setSavingWom] = useState(false);
@@ -961,6 +970,101 @@ export default function BattleshipAdminPage() {
               </AccordionButton>
               <AccordionPanel px={4} py={4} bg={BG}>
                 <BSLaunchControl event={event} refetch={refetchEvent} />
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.6: Advance to Battle Phase (PLACEMENT only) */}
+          {event?.status === 'PLACEMENT' && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    ADVANCE TO BATTLE PHASE
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                    Battle phase starts automatically when the placement timer expires. Use this
+                    to skip ahead manually. Any teams with missing ships will have their fleet
+                    randomly positioned.
+                  </Text>
+                  {!confirmStartBattle ? (
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      fontFamily="mono"
+                      fontSize="xs"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      bg="#22c55e"
+                      color="#060f0a"
+                      _hover={{ bg: '#4ade80' }}
+                      alignSelf="flex-start"
+                      onClick={() => setConfirmStartBattle(true)}
+                    >
+                      Start Battle Phase
+                    </Button>
+                  ) : (
+                    <Box bg="#060f0a" border="1px solid" borderColor={BORDER} borderRadius="md" p={3}>
+                      <Text fontFamily="mono" fontSize="xs" color="#fbbf24" mb={3}>
+                        This will end placement immediately and lock in current ship positions.
+                        Any team without ships placed will be randomized. This cannot be undone.
+                      </Text>
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          fontFamily="mono"
+                          fontSize="10px"
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                          isLoading={startingBattle}
+                          loadingText="Launching..."
+                          bg="#22c55e"
+                          color="#060f0a"
+                          _hover={{ bg: '#4ade80' }}
+                          onClick={() => startBSGame({ variables: { eventId } })}
+                        >
+                          Confirm
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          color={DIM}
+                          fontFamily="mono"
+                          fontSize="10px"
+                          _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                          onClick={() => setConfirmStartBattle(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </HStack>
+                    </Box>
+                  )}
+                </VStack>
               </AccordionPanel>
             </AccordionItem>
           )}

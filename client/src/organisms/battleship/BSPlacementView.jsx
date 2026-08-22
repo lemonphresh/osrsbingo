@@ -3,7 +3,6 @@ import { useMutation, useQuery, useSubscription } from '@apollo/client';
 import { Box, VStack, HStack, Text, Badge, Button } from '@chakra-ui/react';
 import {
   PLACE_BS_SHIP,
-  START_BS_GAME,
   JOIN_BS_VIEW,
   LEAVE_BS_VIEW,
   GET_BS_VIEWER_COUNT,
@@ -43,14 +42,6 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
   const [placeBSShip, { loading: placing }] = useMutation(PLACE_BS_SHIP, {
     onCompleted: () => refetch(),
     onError: (err) => showToast(err.message ?? 'Failed to place ship.', 'error'),
-  });
-
-  const [startBSGame, { loading: startingGame }] = useMutation(START_BS_GAME, {
-    onCompleted: () => {
-      showToast('Battle phase started.', 'success');
-      refetch();
-    },
-    onError: (err) => showToast(err.message ?? 'Failed to start battle phase.', 'error'),
   });
 
   const [joinBSView] = useMutation(JOIN_BS_VIEW);
@@ -198,7 +189,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                 letterSpacing="widest"
                 textTransform="uppercase"
               >
-                Placement Phase / Admin View
+                Placement Phase / {isAdmin ? 'Admin View' : 'Spectator View'}
               </Text>
               {viewerBadge}
             </HStack>
@@ -242,26 +233,15 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
             })}
 
             <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
-              <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide" mb={3}>
-                Any teams with missing ships will have their fleet randomly positioned when battle
-                begins.
+              <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide">
+                Battle phase starts automatically when the placement timer expires. Any teams with
+                missing ships will have their fleet randomly positioned.
               </Text>
-              <Button
-                size="sm"
-                colorScheme="green"
-                fontFamily="mono"
-                fontSize="xs"
-                letterSpacing="widest"
-                textTransform="uppercase"
-                isLoading={startingGame}
-                loadingText="Launching..."
-                onClick={() => startBSGame({ variables: { eventId: event.eventId } })}
-                bg="#22c55e"
-                color="#060f0a"
-                _hover={{ bg: '#4ade80' }}
-              >
-                Start Battle Phase
-              </Button>
+              {isAdmin && (
+                <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" mt={2}>
+                  Admins can manually advance from the event's Admin page.
+                </Text>
+              )}
             </Box>
           </VStack>
         </Box>
@@ -512,46 +492,6 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                 </VStack>
               </Box>
 
-              {isAdmin && (
-                <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={3}>
-                  <Text
-                    fontFamily="mono"
-                    fontSize="9px"
-                    color="#3d6b4a"
-                    letterSpacing="wide"
-                    mb={2}
-                    textTransform="uppercase"
-                  >
-                    Admin
-                  </Text>
-                  <Text
-                    fontFamily="mono"
-                    fontSize="10px"
-                    color="#6b9e78"
-                    letterSpacing="wide"
-                    mb={3}
-                  >
-                    Any teams with missing ships will be randomly positioned.
-                  </Text>
-                  <Button
-                    size="xs"
-                    colorScheme="green"
-                    fontFamily="mono"
-                    fontSize="10px"
-                    letterSpacing="widest"
-                    textTransform="uppercase"
-                    isLoading={startingGame}
-                    loadingText="Launching..."
-                    onClick={() => startBSGame({ variables: { eventId: event.eventId } })}
-                    bg="#22c55e"
-                    color="#060f0a"
-                    _hover={{ bg: '#4ade80' }}
-                    w="full"
-                  >
-                    Start Battle Phase
-                  </Button>
-                </Box>
-              )}
             </VStack>
           </Box>
         </Box>

@@ -149,6 +149,21 @@ async function runBSGameStart(event) {
   }
 
   await event.update({ status: 'ACTIVE' });
+
+  // Announce battle phase to each team's Discord channel (best-effort).
+  const { BSTeam } = require('../../db/models');
+  const teams = await BSTeam.findAll({ where: { eventId } });
+  const { postBSBattleStarted } = require('./bsDiscord');
+  for (const team of teams) {
+    postBSBattleStarted({
+      channelId: team.discordChannelId,
+      roleId: team.discordRoleId ?? null,
+      teamName: team.teamName,
+      eventName: event.eventName,
+      eventId,
+    }).catch(() => {});
+  }
+
   return event;
 }
 

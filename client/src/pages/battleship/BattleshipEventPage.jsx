@@ -15,6 +15,7 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
+import { FaCrown } from 'react-icons/fa';
 import BSEventDraftAdmin from '../../organisms/battleship/BSDraftAdmin';
 import { BSPlacementView } from '../../organisms/battleship/BSPlacementView';
 import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedComponents';
@@ -56,6 +57,34 @@ import {
   coordLabel,
 } from '../../utils/battleship/bsClientHelpers';
 import { isBattleshipEnabled } from '../../config/featureFlags';
+import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
+
+// Resolves a single team member: RSN → Discord username → truncated ID.
+function TeamMemberRow({ discordId }) {
+  const { data, loading } = useQuery(GET_USER_BY_DISCORD_ID, {
+    variables: { discordUserId: discordId },
+    fetchPolicy: 'cache-first',
+    skip: !discordId,
+  });
+  const u = data?.getUserByDiscordId;
+  const label =
+    u?.rsn ||
+    u?.discordUsername ||
+    u?.displayName ||
+    (loading ? '…' : `${(discordId ?? '').slice(0, 8)}…`);
+  return (
+    <HStack justify="space-between" spacing={2}>
+      <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1}>
+        {label}
+      </Text>
+      {u?.rsn && u?.discordUsername && (
+        <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" noOfLines={1}>
+          @{u.discordUsername}
+        </Text>
+      )}
+    </HStack>
+  );
+}
 
 export default function BattleshipEventPage() {
   const { eventId } = useParams();
@@ -178,15 +207,8 @@ export default function BattleshipEventPage() {
   // members (spectators/refs/admins) default to team 0. This is computed
   // synchronously so refreshes don't flash the wrong team's board before an
   // effect can snap the index.
-  const myTeamIndex = myTeam
-    ? teams.findIndex((t) => t.teamId === myTeam.teamId)
-    : -1;
-  const viewingTeamIndex =
-    povOverride != null
-      ? povOverride
-      : myTeamIndex >= 0
-      ? myTeamIndex
-      : 0;
+  const myTeamIndex = myTeam ? teams.findIndex((t) => t.teamId === myTeam.teamId) : -1;
+  const viewingTeamIndex = povOverride != null ? povOverride : myTeamIndex >= 0 ? myTeamIndex : 0;
 
   // Hydrate the active proposal on page load — the subscription only delivers
   // future events, so refreshing mid-proposal (or arriving after a teammate
@@ -269,6 +291,24 @@ export default function BattleshipEventPage() {
     },
   });
 
+  // Close the proposal modal client-side the moment the TTL runs out.
+  // Server sweep also clears state, but its cron only runs every ~60s, so
+  // the modal would otherwise linger on "Expired" for up to a minute.
+  useEffect(() => {
+    if (!activeProposal?.expiresAt || activeProposal.status !== 'PENDING') return;
+    const msRemaining = new Date(activeProposal.expiresAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+    }, msRemaining);
+    return () => clearTimeout(timeoutId);
+  }, [activeProposal?.expiresAt, activeProposal?.status]);
+
   useSubscription(BS_SKIP_PROPOSAL_UPDATED, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
@@ -286,6 +326,18 @@ export default function BattleshipEventPage() {
       setActiveSkipProposal(p);
     },
   });
+
+  // Same client-side TTL cleanup for skip proposals.
+  useEffect(() => {
+    if (!activeSkipProposal?.expiresAt || activeSkipProposal.status !== 'PENDING') return;
+    const msRemaining = new Date(activeSkipProposal.expiresAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      setActiveSkipProposal(null);
+      return;
+    }
+    const timeoutId = setTimeout(() => setActiveSkipProposal(null), msRemaining);
+    return () => clearTimeout(timeoutId);
+  }, [activeSkipProposal?.expiresAt, activeSkipProposal?.status]);
 
   const myTiles = myBoard?.tiles ?? [];
   const opponentTiles = opponentBoard?.tiles ?? [];
@@ -348,7 +400,7 @@ export default function BattleshipEventPage() {
 
   const handleSwitchPov = () => {
     if (teams.length <= 1) return;
-    setPovOverride((teams.length > 0 ? (viewingTeamIndex + 1) % teams.length : 0));
+    setPovOverride(teams.length > 0 ? (viewingTeamIndex + 1) % teams.length : 0);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -476,6 +528,7 @@ export default function BattleshipEventPage() {
               fontFamily="mono"
               fontSize="10px"
               letterSpacing="wider"
+              leftIcon={<FaCrown />}
               onClick={handleSwitchPov}
               _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
             >
@@ -523,6 +576,7 @@ export default function BattleshipEventPage() {
                 fontFamily="mono"
                 fontSize="10px"
                 letterSpacing="wider"
+                leftIcon={<FaCrown />}
                 _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
               >
                 Admin
@@ -1083,6 +1137,27 @@ export default function BattleshipEventPage() {
                     </Text>
                   </HStack>
                 </VStack>
+
+                {(viewingTeam?.members ?? []).length > 0 && (
+                  <>
+                    <Divider borderColor="#1a4028" my={3} />
+                    <Text
+                      fontFamily="mono"
+                      fontSize="10px"
+                      color="#6b9e78"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      mb={2}
+                    >
+                      {viewingTeam?.teamName ?? 'Team'} Members
+                    </Text>
+                    <VStack align="stretch" spacing={1}>
+                      {(viewingTeam?.members ?? []).map((discordId) => (
+                        <TeamMemberRow key={discordId} discordId={discordId} />
+                      ))}
+                    </VStack>
+                  </>
+                )}
               </Box>
             </VStack>
           </Box>
