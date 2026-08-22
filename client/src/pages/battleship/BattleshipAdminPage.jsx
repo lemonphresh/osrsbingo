@@ -23,6 +23,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import { FaClipboardList, FaDiscord, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
+import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -922,6 +923,47 @@ export default function BattleshipAdminPage() {
               )}
             </AccordionPanel>
           </AccordionItem>
+
+          {/* Section 1.5: Launch Event (DRAFT only) */}
+          {event?.status === 'DRAFT' && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    LAUNCH EVENT
+                  </Text>
+                  {event.scheduledPlacementStart && (
+                    <Badge colorScheme="purple" fontFamily="mono" fontSize="xs">
+                      SCHEDULED
+                    </Badge>
+                  )}
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <BSLaunchControl event={event} refetch={refetchEvent} />
+              </AccordionPanel>
+            </AccordionItem>
+          )}
 
           {/* Section 2: Discord Bot Setup */}
           <AccordionItem

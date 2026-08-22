@@ -1569,6 +1569,7 @@ const typeDefs = gql`
     metricMultiplier: Float!
     placementStartsAt: DateTime
     placementEndsAt: DateTime
+    scheduledPlacementStart: DateTime
     creatorId: String
     adminIds: [String!]!
     refIds: [String!]!
@@ -1775,6 +1776,7 @@ const typeDefs = gql`
     guildId: String
     announcementsChannelId: String
     womCompetitionId: String
+    scheduledPlacementStart: DateTime
   }
 
   input CreateBSTeamInput {

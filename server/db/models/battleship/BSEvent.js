@@ -27,6 +27,7 @@ module.exports = (sequelize) => {
       metricMultiplier:    { type: DataTypes.FLOAT,   allowNull: false, defaultValue: 1.0 },
       placementStartsAt:   { type: DataTypes.DATE, allowNull: true },
       placementEndsAt:     { type: DataTypes.DATE, allowNull: true },
+      scheduledPlacementStart: { type: DataTypes.DATE, allowNull: true },
       creatorId:           { type: DataTypes.STRING, allowNull: true },
       adminIds: {
         type: DataTypes.ARRAY(DataTypes.STRING),

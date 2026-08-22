@@ -3,10 +3,34 @@
 const cron = require('node-cron');
 const logger = require('../logger');
 const { runBSGameStart } = require('./bsGameStart');
+const { runBSPlacementStart } = require('./bsPlacementStart');
 const { sweepExpiredProposals } = require('./bsProposals');
 const { sweepExpiredSkipProposals } = require('./bsSkipProposals');
 const { syncBSWomProgress } = require('./bsWomSync');
 const { pubsub } = require('../../schema/pubsub');
+
+async function checkBSScheduledPlacementStarts() {
+  const { BSEvent } = require('../../db/models');
+  const { Op } = require('sequelize');
+
+  const now = new Date();
+  const events = await BSEvent.findAll({
+    where: {
+      status: 'DRAFT',
+      scheduledPlacementStart: { [Op.ne]: null, [Op.lte]: now },
+    },
+  });
+
+  for (const event of events) {
+    logger.info({ eventId: event.eventId }, '[bsScheduler] scheduled launch reached — starting placement phase');
+    try {
+      await runBSPlacementStart(event);
+      logger.info({ eventId: event.eventId }, '[bsScheduler] placement phase started (scheduled)');
+    } catch (err) {
+      logger.error({ err, eventId: event.eventId }, '[bsScheduler] failed to auto-start placement phase');
+    }
+  }
+}
 
 async function checkBSPlacementPhase() {
   const { BSEvent, BSBoard } = require('../../db/models');
@@ -61,6 +85,11 @@ function sweepProposals() {
 
 function startBSScheduler() {
   cron.schedule('* * * * *', async () => {
+    try {
+      await checkBSScheduledPlacementStarts();
+    } catch (err) {
+      logger.error({ err }, '[bsScheduler] error checking scheduled placement starts');
+    }
     try {
       await checkBSPlacementPhase();
       sweepProposals();

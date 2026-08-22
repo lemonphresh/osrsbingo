@@ -62,7 +62,20 @@ const splitLink = split(
 
 const client = new ApolloClient({
   link: splitLink,
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({
+    typePolicies: {
+      BSEvent:          { keyFields: ['eventId'] },
+      BSTeam:           { keyFields: ['teamId'] },
+      BSTask:           { keyFields: ['taskId'] },
+      BSShipTemplate:   { keyFields: ['templateId'] },
+      BSBoard:          { keyFields: ['boardId'] },
+      BSShipPlacement:  { keyFields: ['placementId'] },
+      BSTile:           { keyFields: ['tileId'] },
+      BSShotLog:        { keyFields: ['shotId'] },
+      BSProposal:       { keyFields: ['proposalId'] },
+      BSSkipProposal:   { keyFields: ['proposalId'] },
+    },
+  }),
 });
 
 const router = createBrowserRouter(routes);

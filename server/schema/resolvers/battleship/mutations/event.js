@@ -233,8 +233,33 @@ module.exports = {
 
   updateBSEvent: async (_, { eventId, input }, context) => {
     const user = requireAuth(context);
+    const { BSTeam } = getModels();
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
+
+    if (input.scheduledPlacementStart !== undefined && input.scheduledPlacementStart !== null) {
+      if (event.status !== 'DRAFT') {
+        throw new UserInputError('Cannot schedule launch — event is not in DRAFT.');
+      }
+      const scheduled = new Date(input.scheduledPlacementStart);
+      if (Number.isNaN(scheduled.getTime())) {
+        throw new UserInputError('scheduledPlacementStart is not a valid date.');
+      }
+      if (scheduled.getTime() <= Date.now()) {
+        throw new UserInputError('Scheduled launch time must be in the future.');
+      }
+      const teams = await BSTeam.findAll({ where: { eventId } });
+      if (teams.length < 2) {
+        throw new UserInputError('At least 2 teams are required to schedule a launch.');
+      }
+      const missingChannel = teams.find((t) => !t.discordChannelId);
+      if (missingChannel) {
+        throw new UserInputError(
+          `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it before scheduling a launch.`,
+        );
+      }
+    }
+
     await event.update({
       ...(input.eventName != null && { eventName: input.eventName }),
       ...(input.placementPhaseHours != null && { placementPhaseHours: input.placementPhaseHours }),
@@ -242,6 +267,9 @@ module.exports = {
       ...(input.guildId != null && { guildId: input.guildId }),
       ...(input.announcementsChannelId != null && { announcementsChannelId: input.announcementsChannelId }),
       ...(input.womCompetitionId != null && { womCompetitionId: input.womCompetitionId || null }),
+      ...(input.scheduledPlacementStart !== undefined && {
+        scheduledPlacementStart: input.scheduledPlacementStart ?? null,
+      }),
     });
     return event;
   },
@@ -299,15 +327,15 @@ module.exports = {
 
   startBSPlacementPhase: async (_, { eventId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard, BSTeam, BSTile } = getModels();
+    const { BSTeam } = getModels();
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
     const isSiteAdmin = process.env.DEV_MODE === 'true' && user.admin === true;
 
     if (!isSiteAdmin && event.status !== 'DRAFT') throw new Error('Event must be in DRAFT status to start placement');
 
-    const teams = await BSTeam.findAll({ where: { eventId } });
     if (!isSiteAdmin) {
+      const teams = await BSTeam.findAll({ where: { eventId } });
       const missingChannel = teams.find((t) => !t.discordChannelId);
       if (missingChannel) {
         throw new UserInputError(
@@ -316,64 +344,8 @@ module.exports = {
       }
     }
 
-    const now = new Date();
-    const endsAt = new Date(now.getTime() + event.placementPhaseHours * 60 * 60 * 1000);
-
-    await event.update({
-      status: 'PLACEMENT',
-      placementStartsAt: now,
-      placementEndsAt: endsAt,
-    });
-
-    // Load the template board's tiles to clone into each team board
-    const templateBoard = await BSBoard.findOne({ where: { eventId, teamId: null } });
-    const templateTiles = templateBoard
-      ? await BSTile.findAll({ where: { boardId: templateBoard.boardId }, order: [['createdAt', 'ASC']] })
-      : [];
-
-    for (const team of teams) {
-      const existing = await BSBoard.findOne({ where: { teamId: team.teamId } });
-      const teamBoard = existing ?? await BSBoard.create({
-        boardId: generateId('bsb'),
-        eventId,
-        teamId: team.teamId,
-      });
-
-      // Clone only ocean tiles from the template board, preserving their row/col positions.
-      // Ship overlays are applied at game start based on actual team placements.
-      const oceanTemplateTiles = templateTiles.filter((t) => t.shipType === null);
-      if (oceanTemplateTiles.length > 0) {
-        const existingTiles = await BSTile.count({ where: { boardId: teamBoard.boardId } });
-        if (existingTiles === 0) {
-          await BSTile.bulkCreate(
-            oceanTemplateTiles.map((t) => ({
-              tileId:     generateId('bstl'),
-              boardId:    teamBoard.boardId,
-              row:        t.row,
-              col:        t.col,
-              shipType:   null,
-              cellIndex:  null,
-              taskId:     t.taskId ?? null,
-              shipTaskId: null,
-            })),
-          );
-        }
-      }
-    }
-
-    // Announce placement phase to each team's Discord channel (best-effort)
-    const { postBSPlacementStarted } = require('../../../../utils/battleship/bsDiscord');
-    for (const team of teams) {
-      postBSPlacementStarted({
-        channelId: team.discordChannelId,
-        roleId: team.discordRoleId ?? null,
-        teamName: team.teamName,
-        eventName: event.eventName,
-        endsAt,
-        eventId,
-      }).catch(() => {});
-    }
-
+    const { runBSPlacementStart } = require('../../../../utils/battleship/bsPlacementStart');
+    await runBSPlacementStart(event);
     return event;
   },
 };

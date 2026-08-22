@@ -90,6 +90,7 @@ const BS_EVENT_FIELDS = gql`
     metricMultiplier
     placementStartsAt
     placementEndsAt
+    scheduledPlacementStart
     creatorId
     adminIds
     refIds
@@ -140,6 +141,7 @@ export const GET_BS_EVENT_FULL = gql`
       metricMultiplier
       placementStartsAt
       placementEndsAt
+      scheduledPlacementStart
       adminIds
       refIds
       creatorId

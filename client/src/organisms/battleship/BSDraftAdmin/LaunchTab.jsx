@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import { useMutation } from '@apollo/client';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { Box, VStack, HStack, Text, Button, Divider, Link } from '@chakra-ui/react';
-import { START_BS_PLACEMENT_PHASE, DELETE_BS_EVENT } from '../../../graphql/bsOperations';
+import { DELETE_BS_EVENT } from '../../../graphql/bsOperations';
 import { useToastContext } from '../../../providers/ToastProvider';
-import { useAuth } from '../../../providers/AuthProvider';
+import BSLaunchControl from '../BSLaunchControl';
 
 export function LaunchTab({ event, refetch }) {
-  const { user } = useAuth();
-  const isLocalSiteAdmin = process.env.NODE_ENV === 'development' && user?.admin === true;
   const { showToast } = useToastContext();
   const navigate = useNavigate();
   const teams = event.teams ?? [];
@@ -27,14 +25,6 @@ export function LaunchTab({ event, refetch }) {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const [startPlacement, { loading: starting }] = useMutation(START_BS_PLACEMENT_PHASE, {
-    onCompleted: () => {
-      showToast('Placement phase initiated. Teams may now place ships.', 'success');
-      refetch();
-    },
-    onError: (err) => showToast(err.message ?? 'Failed to start placement phase.', 'error'),
-  });
-
   const [deleteBSEvent, { loading: deleting }] = useMutation(DELETE_BS_EVENT, {
     onCompleted: () => {
       showToast('Campaign deleted.', 'success');
@@ -42,10 +32,6 @@ export function LaunchTab({ event, refetch }) {
     },
     onError: (err) => showToast(err.message ?? 'Failed to delete campaign.', 'error'),
   });
-
-  const handleLaunch = () => {
-    startPlacement({ variables: { eventId: event.eventId } });
-  };
 
   function CheckRow({ label, ok, warn }) {
     const color = ok ? 'green.400' : warn ? 'yellow.400' : 'red.400';
@@ -154,38 +140,7 @@ export function LaunchTab({ event, refetch }) {
 
       <Divider borderColor="#1a4028" />
 
-      <Box>
-        <Button
-          onClick={handleLaunch}
-          isLoading={starting}
-          loadingText="Initiating..."
-          isDisabled={!isLocalSiteAdmin && (!teamOk || !discordOk)}
-          colorScheme="green"
-          w="full"
-          fontFamily="mono"
-          fontSize="xs"
-          fontWeight="bold"
-          letterSpacing="widest"
-          textTransform="uppercase"
-          bg="#22c55e"
-          color="#060f0a"
-          _hover={{ bg: '#4ade80' }}
-          _active={{ bg: '#16a34a' }}
-          _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
-        >
-          Start Placement Phase
-        </Button>
-        <Text
-          fontFamily="mono"
-          fontSize="10px"
-          color="#3d6b4a"
-          mt={2}
-          textAlign="center"
-          letterSpacing="wide"
-        >
-          Your Discord setup and tasks are finalized after this step. Check things carefully!
-        </Text>
-      </Box>
+      <BSLaunchControl event={event} refetch={refetch} />
 
       <Divider borderColor="#1a4028" />
 
