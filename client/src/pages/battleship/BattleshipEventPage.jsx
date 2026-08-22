@@ -162,6 +162,18 @@ export default function BattleshipEventPage() {
   const teams = event?.teams ?? [];
   const shotLog = shotLogData?.getBSShotLog ?? [];
 
+  // On first load, snap the viewer to their own team so proposal subscriptions
+  // and initial POV target the correct channel. Non-team members (refs/admins/
+  // spectators) stay on the default (team 0).
+  const didSnapPovRef = useRef(false);
+  useEffect(() => {
+    if (didSnapPovRef.current) return;
+    if (!teams.length || !currentUser?.discordUserId) return;
+    const myIndex = teams.findIndex((t) => (t.members ?? []).includes(currentUser.discordUserId));
+    if (myIndex > 0) setViewingTeamIndex(myIndex);
+    didSnapPovRef.current = true;
+  }, [teams.length, currentUser?.discordUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
   const opponentTeam = teams.find((_, i) => i !== viewingTeamIndex) ?? null;
