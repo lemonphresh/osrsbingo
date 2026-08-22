@@ -47,7 +47,12 @@ module.exports = {
 
     clearSkipProposal(firingTeam.teamId);
 
-    const threshold = firingTeam.members.length > 3 ? 3 : 1;
+    // Use event.voteThreshold if set (clamped to team size), otherwise the auto formula.
+    const teamSize = firingTeam.members.length || 1;
+    const threshold =
+      event.voteThreshold != null
+        ? Math.max(1, Math.min(event.voteThreshold, teamSize))
+        : teamSize > 3 ? 3 : 1;
 
     const proposal = createSkipProposal({
       proposalId: generateId('bsskip'),

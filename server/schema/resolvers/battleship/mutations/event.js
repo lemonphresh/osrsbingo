@@ -260,10 +260,17 @@ module.exports = {
       }
     }
 
+    if (input.voteThreshold !== undefined && input.voteThreshold !== null) {
+      if (!Number.isInteger(input.voteThreshold) || input.voteThreshold < 1) {
+        throw new UserInputError('voteThreshold must be a positive integer.');
+      }
+    }
+
     await event.update({
       ...(input.eventName != null && { eventName: input.eventName }),
       ...(input.placementPhaseHours != null && { placementPhaseHours: input.placementPhaseHours }),
       ...(input.cooldownMinutes != null && { cooldownMinutes: input.cooldownMinutes }),
+      ...(input.voteThreshold !== undefined && { voteThreshold: input.voteThreshold ?? null }),
       ...(input.guildId != null && { guildId: input.guildId }),
       ...(input.announcementsChannelId != null && { announcementsChannelId: input.announcementsChannelId }),
       ...(input.womCompetitionId != null && { womCompetitionId: input.womCompetitionId || null }),

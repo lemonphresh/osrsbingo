@@ -60,6 +60,104 @@ function fmtDateTime(iso) {
   return `${day} ${time}`;
 }
 
+function VoteThresholdEditor({ event, onSave }) {
+  const teams = event?.teams ?? [];
+  const maxTeamSize = teams.reduce((m, t) => Math.max(m, (t.members ?? []).length), 0);
+  const currentValue = event?.voteThreshold;
+  const [input, setInput] = useState(currentValue ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setInput(currentValue ?? '');
+  }, [currentValue]);
+
+  const effective = (() => {
+    // Mirror server logic: explicit value clamped to team size, else auto formula.
+    const teamSize = maxTeamSize || 1;
+    if (currentValue != null) return Math.max(1, Math.min(currentValue, teamSize));
+    return teamSize > 3 ? 3 : 1;
+  })();
+
+  const handleSave = async () => {
+    const trimmed = String(input).trim();
+    const parsed = trimmed === '' ? null : Number(trimmed);
+    if (parsed !== null && (!Number.isInteger(parsed) || parsed < 1)) return;
+    setSaving(true);
+    try {
+      await onSave(parsed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <VStack align="stretch" spacing={3}>
+      <Text fontFamily="mono" fontSize="xs" color="#6b9e78" letterSpacing="wide" textTransform="uppercase">
+        Vote Threshold
+      </Text>
+      <Text fontFamily="mono" fontSize="xs" color="#6b9e78" lineHeight="1.6">
+        Number of approvals required before a shot or skip proposal fires. Leave blank to use
+        the default (1 vote for teams of 1–3 members, 3 votes for larger teams). The value is
+        clamped to the size of the firing team.
+      </Text>
+      <HStack spacing={2} align="center">
+        <Input
+          type="number"
+          min={1}
+          size="sm"
+          maxW="120px"
+          placeholder="Auto"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          bg="#060f0a"
+          borderColor="#1a4028"
+          color="#d4f0da"
+          fontFamily="mono"
+        />
+        <Button
+          size="sm"
+          colorScheme="green"
+          fontFamily="mono"
+          fontSize="10px"
+          letterSpacing="wider"
+          textTransform="uppercase"
+          isLoading={saving}
+          onClick={handleSave}
+        >
+          Save
+        </Button>
+        {currentValue != null && (
+          <Button
+            size="sm"
+            variant="ghost"
+            color="#6b9e78"
+            fontFamily="mono"
+            fontSize="10px"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            _hover={{ color: '#d4f0da', bg: 'transparent' }}
+            onClick={async () => {
+              setInput('');
+              setSaving(true);
+              try {
+                await onSave(null);
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            Reset to Auto
+          </Button>
+        )}
+      </HStack>
+      <Text fontFamily="mono" fontSize="10px" color="#3d6b4a">
+        Currently effective: <Text as="span" color="#d4f0da">{effective}</Text>{' '}
+        {currentValue != null ? `(admin set to ${currentValue})` : '(auto)'}
+      </Text>
+    </VStack>
+  );
+}
+
 function StatBox({ label, value }) {
   return (
     <Box
@@ -1068,6 +1166,49 @@ export default function BattleshipAdminPage() {
               </AccordionPanel>
             </AccordionItem>
           )}
+
+          {/* Section 1.7: Game Settings (always available) */}
+          <AccordionItem
+            border="1px solid"
+            borderColor={BORDER}
+            borderRadius="lg"
+            mb={3}
+            overflow="hidden"
+          >
+            <AccordionButton
+              px={4}
+              py={3}
+              bg={CARD_BG}
+              _hover={{ bg: '#0e2418' }}
+              _expanded={{ bg: CARD_BG }}
+            >
+              <HStack flex={1} spacing={2}>
+                <FaShieldAlt color={DIM} />
+                <Text
+                  fontWeight="semibold"
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  letterSpacing="wide"
+                  fontSize="sm"
+                >
+                  GAME SETTINGS
+                </Text>
+              </HStack>
+              <AccordionIcon color={DIM} />
+            </AccordionButton>
+            <AccordionPanel px={4} py={4} bg={BG}>
+              <VoteThresholdEditor
+                event={event}
+                onSave={async (value) => {
+                  await updateBSEvent({
+                    variables: { eventId, input: { voteThreshold: value } },
+                  });
+                  showToast('Vote threshold updated.', 'success');
+                  refetchEvent();
+                }}
+              />
+            </AccordionPanel>
+          </AccordionItem>
 
           {/* Section 2: Discord Bot Setup */}
           <AccordionItem

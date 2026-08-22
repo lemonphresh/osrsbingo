@@ -43,7 +43,14 @@ module.exports = {
     // Clear any previous proposal for this team
     clearProposal(firingTeam.teamId);
 
-    const threshold = firingTeam.members.length > 3 ? 3 : 1;
+    // If the event has an explicit voteThreshold, use it (clamped to team size so a
+    // large threshold on a small team can't lock them out). Otherwise fall back to
+    // the auto formula: 1 for teams <=3, 3 for larger teams.
+    const teamSize = firingTeam.members.length || 1;
+    const threshold =
+      event.voteThreshold != null
+        ? Math.max(1, Math.min(event.voteThreshold, teamSize))
+        : teamSize > 3 ? 3 : 1;
 
     const proposal = createProposal({
       proposalId: generateId('bsprop'),

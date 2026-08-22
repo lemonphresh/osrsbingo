@@ -1566,6 +1566,7 @@ const typeDefs = gql`
     placementPhaseHours: Int!
     cooldownMinutes: Int!
     initialSkipTokens: Int!
+    voteThreshold: Int
     metricMultiplier: Float!
     placementStartsAt: DateTime
     placementEndsAt: DateTime
@@ -1774,6 +1775,7 @@ const typeDefs = gql`
     eventName: String
     placementPhaseHours: Int
     cooldownMinutes: Int
+    voteThreshold: Int
     guildId: String
     announcementsChannelId: String
     womCompetitionId: String

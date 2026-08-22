@@ -87,6 +87,7 @@ const BS_EVENT_FIELDS = gql`
     placementPhaseHours
     cooldownMinutes
     initialSkipTokens
+    voteThreshold
     metricMultiplier
     placementStartsAt
     placementEndsAt
@@ -138,6 +139,7 @@ export const GET_BS_EVENT_FULL = gql`
       placementPhaseHours
       cooldownMinutes
       initialSkipTokens
+      voteThreshold
       metricMultiplier
       placementStartsAt
       placementEndsAt
