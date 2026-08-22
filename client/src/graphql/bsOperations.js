@@ -145,6 +145,8 @@ export const GET_BS_EVENT_FULL = gql`
       adminIds
       refIds
       creatorId
+      guildId
+      announcementsChannelId
       teams {
         teamId
         teamName
