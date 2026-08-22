@@ -1575,6 +1575,7 @@ const typeDefs = gql`
     refIds: [String!]!
     refs: [User!]!
     guildId: String
+    announcementsChannelId: String
     eventPassword: String
     womCompetitionId: String
     contentSelections: JSON
