@@ -23,9 +23,12 @@ const championforgeHelp = championforge.help;
 const championforgePresubmit = championforge.cfpresubmit;
 const rainbowbingo = require('./commands/rainbowbingo');
 const rbpre = rainbowbingo.rbpre;
+const battleship = require('./commands/battleship');
+const battleshipHelp = battleship.help;
+const battleshipPre = battleship.bspre;
 const ping = require('./commands/ping');
 
-const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, ping];
+const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, battleship, battleshipHelp, battleshipPre, ping];
 
 let GREvent, GRTeam, CFEvent, CFTeam;
 

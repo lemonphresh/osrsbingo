@@ -16,6 +16,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { FaCrown } from 'react-icons/fa';
+import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 import BSEventDraftAdmin from '../../organisms/battleship/BSDraftAdmin';
 import { BSPlacementView } from '../../organisms/battleship/BSPlacementView';
 import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedComponents';
@@ -264,6 +265,12 @@ export default function BattleshipEventPage() {
       } else {
         playBSSound('splash');
       }
+      // Refresh boards + shot log so the defending team's board reflects the new
+      // shot without requiring a page reload. The firing team's client already
+      // refetches via the fireBS onCompleted hook, but subscription-driven refetch
+      // is what keeps everyone else in sync.
+      refetchEvent();
+      refetchShotLog();
     },
   });
 
@@ -535,6 +542,7 @@ export default function BattleshipEventPage() {
               Switch POV
             </Button>
           )}
+          <BSVolumeControl />
           <Button
             size="xs"
             variant={colorblindMode ? 'solid' : 'outline'}

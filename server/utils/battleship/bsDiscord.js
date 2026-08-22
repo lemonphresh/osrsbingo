@@ -11,6 +11,9 @@ const path = require('path');
 const DISCORD_API = 'https://discord.com/api/v10';
 const SITE_URL = process.env.FRONTEND_URL || process.env.SITE_URL || 'https://osrsbingohub.com';
 const SINKING_SHIP_GIF = path.join(__dirname, '../assets/sinkingship.gif');
+// Discord message flag: SUPPRESS_EMBEDS (1 << 2). Set on every post so URLs render
+// as bare links instead of expanding the site's Open Graph preview card.
+const SUPPRESS_EMBEDS = 4;
 
 async function discordFetch(path, options = {}) {
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -40,7 +43,11 @@ async function postWithFile(channelId, content, filePath) {
     form.append('files[0]', new Blob([fileBuffer], { type: 'image/gif' }), fileName);
     form.append(
       'payload_json',
-      JSON.stringify({ content, attachments: [{ id: 0, filename: fileName }] })
+      JSON.stringify({
+        content,
+        flags: SUPPRESS_EMBEDS,
+        attachments: [{ id: 0, filename: fileName }],
+      })
     );
     await fetch(`${DISCORD_API}/channels/${channelId}/messages`, {
       method: 'POST',
@@ -57,7 +64,7 @@ async function post(channelId, content) {
   try {
     await discordFetch(`/channels/${channelId}/messages`, {
       method: 'POST',
-      body: JSON.stringify({ content }),
+      body: JSON.stringify({ content, flags: SUPPRESS_EMBEDS }),
     });
   } catch (_) {
     // best-effort

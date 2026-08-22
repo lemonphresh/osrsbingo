@@ -8,6 +8,7 @@ const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSShipSunk, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
 const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
+const { clearProposal } = require('../../../../utils/battleship/bsProposals');
 
 const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -105,6 +106,13 @@ module.exports = {
 
     await pubsub.publish(`BS_SHOT_FIRED_${eventId}`, { bsShotFired: shot });
     await pubsub.publish(`BS_BOARD_UPDATED_${eventId}`, { bsBoardUpdated: targetBoard });
+
+    // Dismiss any pending proposal for the firing team — the shot has been fired, so
+    // teammates who were still on the vote modal need it to close.
+    clearProposal(firingTeam.teamId);
+    await pubsub.publish(`BS_PROPOSAL_${firingTeam.teamId}`, {
+      bsProposalUpdated: { proposalId: null, firingTeamId: firingTeam.teamId, status: 'CLEARED' },
+    });
 
     // Discord notifications (best-effort, don't await)
     const { BSTask } = getModels();

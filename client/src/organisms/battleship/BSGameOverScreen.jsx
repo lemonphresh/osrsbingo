@@ -3,7 +3,8 @@ import { Box, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-u
 import { Link as RouterLink } from 'react-router-dom';
 import BSGrid from './BSGrid';
 import { coordLabel } from '../../utils/battleship/bsClientHelpers';
-import { playBSSong, stopBSSong, setSongMuted, isSongMuted } from '../../utils/battleship/bsAudio';
+import { playBSSong, stopBSSong } from '../../utils/battleship/bsAudio';
+import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 
 const G = '#4ade80';
 const DIM = '#3d6b4a';
@@ -387,19 +388,11 @@ export function BSGameOverScreen({ event, shotLog }) {
     window.scrollTo(0, 0);
   }, []);
 
-  const [muted, setMuted] = useState(false);
-
   // Play song during typewriter animation, stop when leaving
   useEffect(() => {
     if (!alreadySeen) playBSSong();
     return () => stopBSSong();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const toggleMute = () => {
-    const next = !muted;
-    setMuted(next);
-    setSongMuted(next);
-  };
 
   // Mark seen in sessionStorage once animation finishes
   useEffect(() => {
@@ -412,22 +405,10 @@ export function BSGameOverScreen({ event, shotLog }) {
 
   return (
     <Box minH="100vh" bg={BG} color={G} fontFamily="mono" position="relative">
-      {/* Mute button */}
+      {/* Volume control */}
       {!alreadySeen && (
         <Box position="fixed" top={4} right={4} zIndex={10}>
-          <Button
-            size="xs"
-            variant="outline"
-            borderColor="#1a4028"
-            color={muted ? '#3d6b4a' : '#6b9e78'}
-            fontFamily="mono"
-            fontSize="10px"
-            letterSpacing="wider"
-            onClick={toggleMute}
-            _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
-          >
-            {muted ? '🔇 unmute' : '🔊 mute'}
-          </Button>
+          <BSVolumeControl size="sm" />
         </Box>
       )}
 
