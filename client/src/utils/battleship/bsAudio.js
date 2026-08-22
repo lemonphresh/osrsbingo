@@ -14,11 +14,24 @@ const SOUNDS = {
   bssong:     bsSongSrc,
 };
 
+// Per-sound gain multipliers to normalize loudness across the source files.
+// Multiplied into the slider volume so every sound sits at a similar perceived
+// level at any given slider position. Tuned by ear at volume=1.0.
+const SOUND_GAINS = {
+  directhit:  0.35,
+  imhitimhit: 0.15,
+  splash:     0.15,
+  gogogo:     0.15,
+  radar:      0.5,
+  bssong:     0.35,
+};
+
 const VOLUME_KEY = 'bsVolume';
 const DEFAULT_VOLUME = 0.7;
 
 // Cache of every audio instance created so a live volume change updates them
-// mid-playback (mostly relevant for the game-over song).
+// mid-playback. Stored as { audio, gain } so we can re-apply the per-sound
+// gain multiplier when the slider moves.
 const liveInstances = new Set();
 const volumeListeners = new Set();
 
@@ -45,8 +58,8 @@ export function setBSVolume(v) {
   } catch (_) {
     // ignore quota errors
   }
-  for (const audio of liveInstances) {
-    try { audio.volume = next; } catch (_) {}
+  for (const entry of liveInstances) {
+    try { entry.audio.volume = Math.max(0, Math.min(1, next * entry.gain)); } catch (_) {}
   }
   for (const listener of volumeListeners) {
     try { listener(next); } catch (_) {}
@@ -58,9 +71,10 @@ export function subscribeBSVolume(listener) {
   return () => volumeListeners.delete(listener);
 }
 
-function track(audio) {
-  liveInstances.add(audio);
-  const cleanup = () => liveInstances.delete(audio);
+function track(audio, gain = 1) {
+  const entry = { audio, gain };
+  liveInstances.add(entry);
+  const cleanup = () => liveInstances.delete(entry);
   audio.addEventListener('ended', cleanup);
   audio.addEventListener('pause', cleanup);
   audio.addEventListener('error', cleanup);
@@ -73,19 +87,21 @@ let songInstance = null;
 export function playBSSound(name) {
   const src = SOUNDS[name];
   if (!src) return;
+  const gain = SOUND_GAINS[name] ?? 1;
   const audio = new Audio(src);
-  audio.volume = currentVolume;
-  track(audio);
+  audio.volume = Math.max(0, Math.min(1, currentVolume * gain));
+  track(audio, gain);
   audio.play().catch(() => {});
   return audio;
 }
 
 export function playBSSong() {
   if (songInstance) return; // already playing
+  const gain = SOUND_GAINS.bssong ?? 1;
   songInstance = new Audio(bsSongSrc);
   songInstance.loop = false;
-  songInstance.volume = currentVolume;
-  track(songInstance);
+  songInstance.volume = Math.max(0, Math.min(1, currentVolume * gain));
+  track(songInstance, gain);
   songInstance.play().catch(() => {});
   songInstance.addEventListener('ended', () => { songInstance = null; });
 }
