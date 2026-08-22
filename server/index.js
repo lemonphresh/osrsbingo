@@ -377,7 +377,14 @@ const serverCleanup = useServer(
       if (token) {
         try {
           const decoded = jwt.verify(token, SECRET);
-          user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
+          let freshDiscordUserId = decoded.discordUserId ?? null;
+          try {
+            const dbUser = await models.User.findByPk(decoded.userId, { attributes: ['discordUserId'] });
+            if (dbUser) freshDiscordUserId = dbUser.discordUserId ?? null;
+          } catch (err) {
+            logger.warn({ err: err.message }, 'failed to refresh discordUserId from DB (ws)');
+          }
+          user = { id: decoded.userId, admin: decoded.admin, discordUserId: freshDiscordUserId };
           logger.info({ userId: user.id }, 'WebSocket authenticated');
         } catch (err) {
           logger.warn('Invalid WebSocket token');
@@ -397,7 +404,7 @@ const serverCleanup = useServer(
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req, res }) => {
+  context: async ({ req, res }) => {
     const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
     const discordUserId = req.headers['x-discord-user-id'];
@@ -408,7 +415,16 @@ const server = new ApolloServer({
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
-        user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
+        // JWT can hold a stale discordUserId (OAuth linking updates the DB but doesn't reissue).
+        // Refresh from DB so team-membership checks always see the current value.
+        let freshDiscordUserId = decoded.discordUserId ?? null;
+        try {
+          const dbUser = await models.User.findByPk(decoded.userId, { attributes: ['discordUserId'] });
+          if (dbUser) freshDiscordUserId = dbUser.discordUserId ?? null;
+        } catch (err) {
+          logger.warn({ err: err.message }, 'failed to refresh discordUserId from DB');
+        }
+        user = { id: decoded.userId, admin: decoded.admin, discordUserId: freshDiscordUserId };
       } catch (err) {
         logger.warn('Invalid or expired token');
       }
