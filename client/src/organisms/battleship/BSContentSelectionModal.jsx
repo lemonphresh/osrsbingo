@@ -119,20 +119,21 @@ function EntityRow({ id, name, isSelected, onChange, isShipContent }) {
 export default function BSContentSelectionModal({ isOpen, onClose, currentSelections, onSave, isLoading = false }) {
   const { soloBosses, raids, skills, minigames, clueTiers, loading: registryLoading } = useContentRegistry();
 
-  const [selections, setSelections] = useState(
-    currentSelections ?? { bosses: {}, raids: {}, skills: {}, minigames: {}, clues: {} }
-  );
+  const normalizeSelections = (s) => ({
+    bosses: {}, raids: {}, skills: {}, minigames: {}, clues: {},
+    metricTypes: { kc: true, unique: true, xp: true },
+    ...s,
+    metricTypes: { kc: true, unique: true, xp: true, ...(s?.metricTypes ?? {}) },
+  });
+
+  const [selections, setSelections] = useState(() => normalizeSelections(currentSelections));
 
   // Re-sync internal state every time the modal opens, so currentSelections changes are picked up.
   const currentSelectionsRef = useRef(currentSelections);
   currentSelectionsRef.current = currentSelections;
   useEffect(() => {
-    if (isOpen) {
-      setSelections(
-        currentSelectionsRef.current ?? { bosses: {}, raids: {}, skills: {}, minigames: {}, clues: {} }
-      );
-    }
-  }, [isOpen]);
+    if (isOpen) setSelections(normalizeSelections(currentSelectionsRef.current));
+  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const isSelected = (category, id) => selections[category]?.[id] ?? true;
 
@@ -140,6 +141,15 @@ export default function BSContentSelectionModal({ isOpen, onClose, currentSelect
     setSelections((prev) => ({
       ...prev,
       [category]: { ...(prev[category] ?? {}), [id]: !isSelected(category, id) },
+    }));
+  };
+
+  const isMetricEnabled = (key) => selections.metricTypes?.[key] !== false;
+
+  const handleToggleMetric = (key) => {
+    setSelections((prev) => ({
+      ...prev,
+      metricTypes: { ...(prev.metricTypes ?? {}), [key]: !isMetricEnabled(key) },
     }));
   };
 
@@ -223,6 +233,30 @@ export default function BSContentSelectionModal({ isOpen, onClose, currentSelect
                     always appear on ship cells regardless — you can reassign individual ship tile
                     tasks in the next step if you'd like.
                   </Text>
+                </HStack>
+              </Box>
+
+              {/* Tile type toggles */}
+              <Box p={3} bg="#071523" borderRadius="md" border="1px solid" borderColor="#1e4976">
+                <Text {...headerStyle} mb={2}>Tile Types</Text>
+                <HStack spacing={4}>
+                  {[
+                    { key: 'kc',     label: 'Kill Count' },
+                    { key: 'unique', label: 'Unique Drops' },
+                    { key: 'xp',     label: 'Skilling XP' },
+                  ].map(({ key, label }) => (
+                    <Checkbox
+                      key={key}
+                      isChecked={isMetricEnabled(key)}
+                      onChange={() => handleToggleMetric(key)}
+                      colorScheme="cyan"
+                      size="sm"
+                    >
+                      <Text fontSize="sm" color={isMetricEnabled(key) ? '#e2e8f0' : '#475569'}>
+                        {label}
+                      </Text>
+                    </Checkbox>
+                  ))}
                 </HStack>
               </Box>
 

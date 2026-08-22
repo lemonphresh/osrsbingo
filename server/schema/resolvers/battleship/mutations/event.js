@@ -128,8 +128,12 @@ module.exports = {
       teamId: null,
     });
 
-    const shipTaskIds = new Set(templateRecords.map((t) => t.taskId));
-    const oceanPool = buildOceanPool(taskRecords, contentSelections, shipTaskIds, shuffle);
+    const shipBaseContentIds = new Set(
+      Object.values(SHIP_TEMPLATE_CONTENT_IDS).flat().map((cid) =>
+        cid.endsWith('_kc') ? cid.slice(0, -3) : cid
+      )
+    );
+    const oceanPool = buildOceanPool(taskRecords, contentSelections, shipBaseContentIds, shuffle);
     await createTemplateTiles(templateBoard.boardId, templateRecords, oceanPool, BSTile);
 
     return event;
@@ -149,8 +153,12 @@ module.exports = {
 
     const allTasks = await BSTask.findAll({ where: { eventId } });
     const templates = await BSShipTemplate.findAll({ where: { eventId } });
-    const shipTaskIds = new Set(templates.map((t) => t.taskId).filter(Boolean));
-    const oceanPool = buildOceanPool(allTasks, contentSelections, shipTaskIds, shuffle);
+    const shipBaseContentIds = new Set(
+      Object.values(SHIP_TEMPLATE_CONTENT_IDS).flat().map((cid) =>
+        cid.endsWith('_kc') ? cid.slice(0, -3) : cid
+      )
+    );
+    const oceanPool = buildOceanPool(allTasks, contentSelections, shipBaseContentIds, shuffle);
 
     if (!templateBoard) {
       // Event predates template board — create it now from existing ship templates

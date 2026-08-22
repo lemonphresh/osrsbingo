@@ -167,27 +167,53 @@ function generateDefaultBSTasks() {
  * A missing key or `true` means enabled; `false` means disabled.
  * Null/undefined contentSelections means all content is enabled.
  */
-function buildOceanPool(tasks, contentSelections, shipTaskIds, shuffleFn) {
+function buildOceanPool(tasks, contentSelections, shipBaseContentIds, shuffleFn) {
   const { registry } = require('../contentRegistry');
+
+  // Registry keys are snake_case but contentIds are camelCase — build id-keyed sets.
+  const bossIds     = new Set(Object.values(registry.BOSSES).map((b) => b.id));
+  const raidIds     = new Set(Object.values(registry.RAIDS).map((r) => r.id));
+  const skillIds    = new Set(Object.values(registry.SKILLS).map((s) => s.id));
+  const minigameIds = new Set(Object.values(registry.MINIGAMES).map((m) => m.id));
+  const clueIds     = new Set(Object.values(registry.CLUES).map((c) => c.id));
 
   function isEnabled(contentId) {
     if (!contentSelections) return true;
     // _kc variant shares its parent's enabled state
     const baseId = contentId.endsWith('_kc') ? contentId.slice(0, -3) : contentId;
-    if (registry.BOSSES?.[baseId])    return contentSelections.bosses?.[baseId]    !== false;
-    if (registry.RAIDS?.[baseId])     return contentSelections.raids?.[baseId]     !== false;
-    if (registry.SKILLS?.[baseId])    return contentSelections.skills?.[baseId]    !== false;
-    if (registry.MINIGAMES?.[baseId]) return contentSelections.minigames?.[baseId] !== false;
-    if (registry.CLUES?.[baseId])     return contentSelections.clues?.[baseId]     !== false;
+    if (bossIds.has(baseId))     return contentSelections.bosses?.[baseId]    !== false;
+    if (raidIds.has(baseId))     return contentSelections.raids?.[baseId]     !== false;
+    if (skillIds.has(baseId))    return contentSelections.skills?.[baseId]    !== false;
+    if (minigameIds.has(baseId)) return contentSelections.minigames?.[baseId] !== false;
+    if (clueIds.has(baseId))     return contentSelections.clues?.[baseId]     !== false;
     return true;
   }
 
+  function isMetricEnabled(metricType) {
+    if (!contentSelections?.metricTypes || !metricType) return true;
+    return contentSelections.metricTypes[metricType] !== false;
+  }
+
+  function baseContentId(cid) {
+    return cid.endsWith('_kc') ? cid.slice(0, -3) : cid;
+  }
+
   const pool = tasks
-    .filter((t) => !shipTaskIds.has(t.taskId))
+    .filter((t) => !shipBaseContentIds.has(baseContentId(t.contentId ?? '')))
     .filter((t) => isEnabled(t.contentId ?? ''))
+    .filter((t) => isMetricEnabled(t.metricType))
     .map((t) => t.taskId);
 
-  return shuffleFn ? shuffleFn(pool) : pool;
+  const shuffled = shuffleFn ? shuffleFn(pool) : pool;
+
+  if (shuffled.length === 0 || shuffled.length >= 100) return shuffled;
+
+  // Fewer than 100 eligible tasks — cycle through until we have 100
+  const padded = [...shuffled];
+  while (padded.length < 100) {
+    padded.push(...shuffled.slice(0, 100 - padded.length));
+  }
+  return padded;
 }
 
 module.exports = { SHIP_TEMPLATE_CONTENT_IDS, generateDefaultBSTasks, formatXp, buildOceanPool };
