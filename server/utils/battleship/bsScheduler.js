@@ -46,7 +46,7 @@ async function checkBSPlacementPhase() {
   });
 
   for (const event of expired) {
-    const boards = await BSBoard.findAll({ where: { eventId: event.eventId } });
+    const boards = await BSBoard.findAll({ where: { eventId: event.eventId, teamId: { [Op.ne]: null } } });
     if (boards.length !== 2) {
       logger.warn(
         { eventId: event.eventId, boardCount: boards.length },

@@ -79,15 +79,43 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
     onData: () => refetch(),
   });
 
-  // Heartbeat join (30s interval) — only team members register
+  // Presence tracking:
+  //   - Heartbeat every 30s while the tab is visible.
+  //   - Pause heartbeats + fire leave when the tab is hidden (background/minimized).
+  //   - Rejoin when the tab becomes visible again.
+  //   - On tab close, Apollo's in-flight request usually completes; if it doesn't,
+  //     the server-side TTL (45s) sweeps the entry.
   useEffect(() => {
-    joinBSView({ variables: { eventId: event.eventId } });
-    const interval = setInterval(
-      () => joinBSView({ variables: { eventId: event.eventId } }),
-      30_000
-    );
+    let intervalId = null;
+
+    const startHeartbeat = () => {
+      joinBSView({ variables: { eventId: event.eventId } });
+      if (intervalId) clearInterval(intervalId);
+      intervalId = setInterval(
+        () => joinBSView({ variables: { eventId: event.eventId } }),
+        30_000
+      );
+    };
+
+    const stopHeartbeat = () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+      leaveBSView({ variables: { eventId: event.eventId } });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') startHeartbeat();
+      else stopHeartbeat();
+    };
+
+    if (document.visibilityState === 'visible') startHeartbeat();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
-      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (intervalId) clearInterval(intervalId);
       leaveBSView({ variables: { eventId: event.eventId } });
     };
   }, [event.eventId]); // eslint-disable-line react-hooks/exhaustive-deps

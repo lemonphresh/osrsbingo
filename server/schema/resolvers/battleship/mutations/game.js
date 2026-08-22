@@ -32,7 +32,8 @@ module.exports = {
     requireAdmin(event, user.id);
     if (event.status !== 'PLACEMENT') throw new UserInputError('Event must be in PLACEMENT status to start game');
 
-    const boards = await BSBoard.findAll({ where: { eventId } });
+    const { Op } = require('sequelize');
+    const boards = await BSBoard.findAll({ where: { eventId, teamId: { [Op.ne]: null } } });
     if (boards.length !== 2) throw new UserInputError('Exactly 2 teams with boards are required');
 
     return runBSGameStart(event);

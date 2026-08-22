@@ -2,7 +2,7 @@
 
 // In-memory presence store: Map<eventId, Map<userId, { lastSeenAt }>>
 const viewers = new Map();
-const TTL_MS = 65_000;
+const TTL_MS = 45_000;
 
 function joinView(eventId, userId) {
   if (!viewers.has(eventId)) viewers.set(eventId, new Map());
