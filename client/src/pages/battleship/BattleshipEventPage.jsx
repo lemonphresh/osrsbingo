@@ -31,6 +31,7 @@ import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModa
 import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
+  GET_ACTIVE_BS_PROPOSAL,
   FIRE_BS,
   PROPOSE_BS_SHOT,
   VOTE_ON_BS_PROPOSAL,
@@ -79,8 +80,10 @@ export default function BattleshipEventPage() {
     () => !localStorage.getItem(getBSBattleIntroKey(eventId))
   );
 
-  // Dev convenience — track which team index we're viewing as
-  const [viewingTeamIndex, setViewingTeamIndex] = useState(0);
+  // POV override: null = auto (follow the user's own team), otherwise the flipped index.
+  // Kept as an override so we don't render team[0] as a flash on refresh before we
+  // know which team the user is actually on.
+  const [povOverride, setPovOverride] = useState(null);
   const [highlightedCell] = useState(null);
   const [activeProposal, setActiveProposal] = useState(null);
   const [proposalHistory, setProposalHistory] = useState([]);
@@ -162,17 +165,44 @@ export default function BattleshipEventPage() {
   const teams = event?.teams ?? [];
   const shotLog = shotLogData?.getBSShotLog ?? [];
 
-  // On first load, snap the viewer to their own team so proposal subscriptions
-  // and initial POV target the correct channel. Non-team members (refs/admins/
-  // spectators) stay on the default (team 0).
-  const didSnapPovRef = useRef(false);
-  useEffect(() => {
-    if (didSnapPovRef.current) return;
-    if (!teams.length || !currentUser?.discordUserId) return;
-    const myIndex = teams.findIndex((t) => (t.members ?? []).includes(currentUser.discordUserId));
-    if (myIndex > 0) setViewingTeamIndex(myIndex);
-    didSnapPovRef.current = true;
-  }, [teams.length, currentUser?.discordUserId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The user's actual team (independent of viewingTeam, which can be flipped by
+  // the POV toggle). Proposal subscriptions/queries must use this so a spectator
+  // or a user viewing the opposing board doesn't get vote prompts scoped to
+  // the wrong team's channel.
+  const myTeam =
+    event && currentUser?.discordUserId
+      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
+      : null;
+
+  // Derived POV: if the user hasn't flipped, follow their own team. Non-team
+  // members (spectators/refs/admins) default to team 0. This is computed
+  // synchronously so refreshes don't flash the wrong team's board before an
+  // effect can snap the index.
+  const myTeamIndex = myTeam
+    ? teams.findIndex((t) => t.teamId === myTeam.teamId)
+    : -1;
+  const viewingTeamIndex =
+    povOverride != null
+      ? povOverride
+      : myTeamIndex >= 0
+      ? myTeamIndex
+      : 0;
+
+  // Hydrate the active proposal on page load — the subscription only delivers
+  // future events, so refreshing mid-proposal (or arriving after a teammate
+  // proposed) would otherwise leave activeProposal null and let this user
+  // silently overwrite the pending proposal.
+  useQuery(GET_ACTIVE_BS_PROPOSAL, {
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
+    fetchPolicy: 'network-only',
+    onCompleted: (data) => {
+      const p = data?.getActiveBSProposal;
+      if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') return;
+      prevApprovalsRef.current = (p.approvals ?? []).length;
+      setActiveProposal(p);
+    },
+  });
 
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
@@ -216,8 +246,8 @@ export default function BattleshipEventPage() {
   });
 
   useSubscription(BS_PROPOSAL_UPDATED, {
-    variables: { teamId: viewingTeam?.teamId },
-    skip: !viewingTeam?.teamId || event?.status !== 'ACTIVE',
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
@@ -240,8 +270,8 @@ export default function BattleshipEventPage() {
   });
 
   useSubscription(BS_SKIP_PROPOSAL_UPDATED, {
-    variables: { teamId: viewingTeam?.teamId },
-    skip: !viewingTeam?.teamId || event?.status !== 'ACTIVE',
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsSkipProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
@@ -297,10 +327,6 @@ export default function BattleshipEventPage() {
   const isAdminOrRef =
     isAdmin || !!(event && currentUser && (event.refIds ?? []).includes(String(currentUser.id)));
 
-  const myTeam =
-    event && currentUser?.discordUserId
-      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
-      : null;
   const isSpectator = !!event && event.status === 'ACTIVE' && !myTeam;
 
   const resolvedTeamMembers = useDiscordUsernames(
@@ -321,7 +347,8 @@ export default function BattleshipEventPage() {
   );
 
   const handleSwitchPov = () => {
-    setViewingTeamIndex((prev) => (teams.length > 1 ? (prev + 1) % teams.length : prev));
+    if (teams.length <= 1) return;
+    setPovOverride((teams.length > 0 ? (viewingTeamIndex + 1) % teams.length : 0));
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
