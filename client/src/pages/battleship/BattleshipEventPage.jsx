@@ -292,6 +292,14 @@ export default function BattleshipEventPage() {
       // is what keeps everyone else in sync.
       refetchEvent();
       refetchShotLog();
+      // Close any stale proposal modal on the firing team's clients. The
+      // BS_PROPOSAL_UPDATED CLEARED broadcast usually handles this, but this
+      // extra check makes sure a dropped/reordered subscription frame doesn't
+      // leave teammates staring at a modal for a proposal that already fired.
+      if (shot.firingTeamId === myTeam?.teamId) {
+        prevApprovalsRef.current = 0;
+        setActiveProposal(null);
+      }
     },
   });
 
@@ -372,14 +380,26 @@ export default function BattleshipEventPage() {
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    if (!viewingTeam?.lastShotAt || !event?.cooldownMinutes) return;
-    const remaining = cooldownRemaining(viewingTeam.lastShotAt, event.cooldownMinutes);
+    const lastShot = (myTeam ?? viewingTeam)?.lastShotAt ?? viewingTeam?.lastShotAt;
+    if (!lastShot || !event?.cooldownMinutes) return;
+    const remaining = cooldownRemaining(lastShot, event.cooldownMinutes);
     if (remaining <= 0) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [viewingTeam?.lastShotAt, event?.cooldownMinutes]);
+    // Depend on the primitive timestamps rather than the parent objects to avoid
+    // re-running the effect on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myTeam?.lastShotAt, viewingTeam?.lastShotAt, event?.cooldownMinutes]);
 
   const cooldownMs = cooldownRemaining(viewingTeam?.lastShotAt, event?.cooldownMinutes, now);
+  // Alert-light + fire-gate should follow the USER's team, not whichever team
+  // the POV is currently on. If the user isn't on a team (spectator), fall back
+  // to the viewing team so the light still reads sensibly.
+  const myCooldownMs = cooldownRemaining(
+    (myTeam ?? viewingTeam)?.lastShotAt,
+    event?.cooldownMinutes,
+    now,
+  );
 
   // The viewing team's active task: the last tile THEY fired at (on the opponent's board)
   // that hasn't been marked complete yet. Blocks firing until done.
@@ -735,16 +755,21 @@ export default function BattleshipEventPage() {
                   : '#1a4028';
 
                 // Alert-light state: red while on a task, yellow while a vote is
-                // pending, green when the team is free to fire.
+                // pending or the cooldown is active, green when the team is free
+                // to fire. Yellow uses distinct labels so the reason is clear.
                 const alertState = pendingTask
                   ? 'RED'
                   : hasPendingProposal
-                  ? 'YELLOW'
-                  : 'GREEN';
+                  ? 'VOTING'
+                  : myCooldownMs > 0
+                  ? 'COOLDOWN'
+                  : 'READY';
+                const YELLOW = { core: '#facc15', glow: 'rgba(250,204,21,0.7)' };
                 const alertPalette = {
-                  RED:    { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
-                  YELLOW: { core: '#facc15', glow: 'rgba(250,204,21,0.7)',  label: 'VOTING' },
-                  GREEN:  { core: '#4ade80', glow: 'rgba(74,222,128,0.7)',  label: 'READY' },
+                  RED:      { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
+                  VOTING:   { ...YELLOW, label: 'VOTING' },
+                  COOLDOWN: { ...YELLOW, label: 'COOLDOWN' },
+                  READY:    { core: '#4ade80', glow: 'rgba(74,222,128,0.7)',  label: 'READY' },
                 }[alertState];
 
                 return (
