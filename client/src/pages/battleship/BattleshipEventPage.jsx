@@ -215,17 +215,38 @@ export default function BattleshipEventPage() {
   // future events, so refreshing mid-proposal (or arriving after a teammate
   // proposed) would otherwise leave activeProposal null and let this user
   // silently overwrite the pending proposal.
-  useQuery(GET_ACTIVE_BS_PROPOSAL, {
+  const applyActiveProposal = useCallback((p) => {
+    // Sync client state with server truth. Called from both the initial hydrate
+    // and the tab-focus refetch — closes any stale modal if the server has
+    // nothing pending (proposal was fired/vetoed while the tab was hidden).
+    if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+      return;
+    }
+    prevApprovalsRef.current = (p.approvals ?? []).length;
+    setActiveProposal(p);
+  }, []);
+
+  const { refetch: refetchActiveProposal } = useQuery(GET_ACTIVE_BS_PROPOSAL, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     fetchPolicy: 'network-only',
-    onCompleted: (data) => {
-      const p = data?.getActiveBSProposal;
-      if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') return;
-      prevApprovalsRef.current = (p.approvals ?? []).length;
-      setActiveProposal(p);
-    },
+    onCompleted: (data) => applyActiveProposal(data?.getActiveBSProposal),
   });
+
+  // When the user tabs back, re-sync the proposal state from the server.
+  useEffect(() => {
+    if (!myTeam?.teamId || event?.status !== 'ACTIVE') return;
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return;
+      refetchActiveProposal({ teamId: myTeam.teamId })
+        .then(({ data }) => applyActiveProposal(data?.getActiveBSProposal))
+        .catch(() => {});
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [myTeam?.teamId, event?.status, refetchActiveProposal, applyActiveProposal]);
 
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
@@ -713,6 +734,19 @@ export default function BattleshipEventPage() {
                     : '#1a4028'
                   : '#1a4028';
 
+                // Alert-light state: red while on a task, yellow while a vote is
+                // pending, green when the team is free to fire.
+                const alertState = pendingTask
+                  ? 'RED'
+                  : hasPendingProposal
+                  ? 'YELLOW'
+                  : 'GREEN';
+                const alertPalette = {
+                  RED:    { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
+                  YELLOW: { core: '#facc15', glow: 'rgba(250,204,21,0.7)',  label: 'VOTING' },
+                  GREEN:  { core: '#4ade80', glow: 'rgba(74,222,128,0.7)',  label: 'READY' },
+                }[alertState];
+
                 return (
                   <Box
                     bg="#060f0a"
@@ -722,43 +756,95 @@ export default function BattleshipEventPage() {
                     px={4}
                     py={3}
                   >
-                    <HStack
-                      spacing={0}
-                      align="center"
-                      flexWrap="wrap"
-                      rowGap={2}
-                      divider={
-                        <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
-                          /
+                    <HStack spacing={4} align="center" flexWrap="wrap">
+                      {/* Submarine alert light */}
+                      <HStack
+                        spacing={2}
+                        align="center"
+                        flexShrink={0}
+                        px={2}
+                        py={1}
+                        bg="#020604"
+                        border="1px solid"
+                        borderColor="#1a4028"
+                        borderRadius="sm"
+                        title={`Status: ${alertPalette.label}`}
+                      >
+                        <Box
+                          w="14px"
+                          h="14px"
+                          borderRadius="full"
+                          bg={alertPalette.core}
+                          position="relative"
+                          sx={{
+                            background: `radial-gradient(circle at 35% 30%, #ffffffaa 0%, ${alertPalette.core} 40%, ${alertPalette.core} 100%)`,
+                            boxShadow: `0 0 6px 1px ${alertPalette.glow}, 0 0 14px 2px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                            animation: 'bsAlertPulse 1.6s ease-in-out infinite',
+                            '@keyframes bsAlertPulse': {
+                              '0%, 100%': {
+                                boxShadow: `0 0 4px 1px ${alertPalette.glow}, 0 0 8px 1px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                                opacity: 0.85,
+                              },
+                              '50%': {
+                                boxShadow: `0 0 10px 2px ${alertPalette.glow}, 0 0 20px 4px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                                opacity: 1,
+                              },
+                            },
+                          }}
+                        />
+                        <Text
+                          fontFamily="mono"
+                          fontSize="9px"
+                          letterSpacing="widest"
+                          color={alertPalette.core}
+                          fontWeight="bold"
+                          textTransform="uppercase"
+                        >
+                          {alertPalette.label}
                         </Text>
-                      }
-                    >
-                      {steps.map((label, i) => (
-                        <HStack key={i} spacing={2}>
-                          <Box
-                            w="16px"
-                            h="16px"
-                            borderRadius="full"
-                            bg="#1a4028"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            flexShrink={0}
-                          >
-                            <Text
-                              fontFamily="mono"
-                              fontSize="9px"
-                              color={dotColor}
-                              fontWeight="bold"
-                            >
-                              {i + 1}
-                            </Text>
-                          </Box>
-                          <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                            {label}
+                      </HStack>
+
+                      {/* Steps */}
+                      <HStack
+                        spacing={0}
+                        align="center"
+                        flexWrap="wrap"
+                        rowGap={2}
+                        flex={1}
+                        minW={0}
+                        divider={
+                          <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
+                            /
                           </Text>
-                        </HStack>
-                      ))}
+                        }
+                      >
+                        {steps.map((label, i) => (
+                          <HStack key={i} spacing={2}>
+                            <Box
+                              w="16px"
+                              h="16px"
+                              borderRadius="full"
+                              bg="#1a4028"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              flexShrink={0}
+                            >
+                              <Text
+                                fontFamily="mono"
+                                fontSize="9px"
+                                color={dotColor}
+                                fontWeight="bold"
+                              >
+                                {i + 1}
+                              </Text>
+                            </Box>
+                            <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+                              {label}
+                            </Text>
+                          </HStack>
+                        ))}
+                      </HStack>
                     </HStack>
                   </Box>
                 );

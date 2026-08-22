@@ -268,7 +268,16 @@ module.exports = {
 
     if (firingTeam.skipTokens <= 0 && !isAdmin) throw new UserInputError('No skip tokens remaining');
 
-    if (!isAdmin) await firingTeam.update({ skipTokens: firingTeam.skipTokens - 1 });
+    // Skipping consumes a token but resets the cooldown so the team can fire
+    // again immediately — no penalty on top of the token cost.
+    if (!isAdmin) {
+      await firingTeam.update({
+        skipTokens: firingTeam.skipTokens - 1,
+        lastShotAt: null,
+      });
+    } else {
+      await firingTeam.update({ lastShotAt: null });
+    }
     await tile.update({ skipped: true, taskCompletedAt: new Date() });
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
     clearSkipProposal(firingTeam.teamId);

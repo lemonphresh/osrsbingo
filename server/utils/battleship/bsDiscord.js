@@ -15,6 +15,11 @@ const SINKING_SHIP_GIF = path.join(__dirname, '../assets/sinkingship.gif');
 // as bare links instead of expanding the site's Open Graph preview card.
 const SUPPRESS_EMBEDS = 4;
 
+// Discord renders `[text](url)` as a clickable hyperlink in message bodies.
+function dashLink(eventId, label = 'view your dashboard') {
+  return `[${label}](${SITE_URL}/battleship/${eventId})`;
+}
+
 async function discordFetch(path, options = {}) {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) return null;
@@ -123,10 +128,9 @@ async function postBSSubmissionResult({
  * When a ref marks a tile complete — posted to the team that owns the board (they fired and completed the task).
  */
 async function postBSTaskComplete({ channelId, teamName, taskLabel, coord, eventId }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   await post(
     channelId,
-    `✅ **${taskLabel}** (${coord}) has been marked complete by a ref!\n**${teamName}**, you may now fire at a new tile. Get your team ready to vote on the next shot!\n${link}`
+    `✅ **${taskLabel}** (${coord}) has been marked complete by a ref!\n**${teamName}**, you may now fire at a new tile. Get your team ready to vote on the next shot!\n${dashLink(eventId)}`
   );
 }
 
@@ -142,12 +146,11 @@ async function postBSShotResult({
   isHit,
   eventId,
 }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   const hitStr = isHit ? '💥 **SHIP HIT**' : '🌊 **OCEAN -- MISS**';
   const metricStr = metric ? `\n**Target:** ${metric}` : '';
   await post(
     channelId,
-    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nSubmit your screenshot once complete -- your team is paused until a ref marks it done.\n${link}`
+    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nSubmit your screenshots to show your progress or completion -- your team cannot fire again until a ref marks this task done.\n${dashLink(eventId)}`
   );
 }
 
@@ -156,10 +159,9 @@ async function postBSShotResult({
  * No task details — that's for the firing team to worry about.
  */
 async function postBSHitOnShip({ channelId, firingTeamName, coord, eventId }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   await post(
     channelId,
-    `⚠️ **${firingTeamName}** has hit one of your ships at **${coord}**!\n${link}`
+    `⚠️ **${firingTeamName}** has hit one of your ships at **${coord}**!\n${dashLink(eventId)}`
   );
 }
 
@@ -167,7 +169,6 @@ async function postBSHitOnShip({ channelId, firingTeamName, coord, eventId }) {
  * Placement phase start — posted to both teams' channels.
  */
 async function postBSPlacementStarted({ channelId, roleId, teamName, eventName, endsAt, eventId }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   const deadline = endsAt
     ? `You have until **${new Date(endsAt).toUTCString()}** to place your ships.`
     : '';
@@ -190,7 +191,7 @@ async function postBSPlacementStarted({ channelId, roleId, teamName, eventName, 
       ``,
       `⚠️ Make sure you are **logged in** to OSRS Bingo Hub and have your **Discord account linked** -- this is required to view your team's board.`,
       ``,
-      link,
+      dashLink(eventId),
     ]
       .filter(Boolean)
       .join('\n')
@@ -208,7 +209,7 @@ async function postBSShipSunk({
   defendingTeamName,
   eventId,
 }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
+  const link = dashLink(eventId);
   const shipName = shipType.charAt(0) + shipType.slice(1).toLowerCase();
   if (firingChannelId) {
     await postWithFile(
@@ -238,7 +239,6 @@ async function postBSProposalCreated({
   coord,
   eventId,
 }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   const ping = roleId ? `<@&${roleId}>` : '';
   const proposer = proposerDiscordId ? `<@${proposerDiscordId}>` : 'A teammate';
   await post(
@@ -246,8 +246,7 @@ async function postBSProposalCreated({
     [
       ping,
       `🎯 **${proposer}** just proposed a shot at **${coord}**.`,
-      `Head to the dashboard to vote yes or no before the proposal expires.`,
-      link,
+      `${dashLink(eventId, 'View your dashboard')} to vote yes or no before the proposal expires.`,
     ]
       .filter(Boolean)
       .join('\n')
@@ -258,7 +257,6 @@ async function postBSProposalCreated({
  * When the battle phase kicks off — posted to both teams' channels.
  */
 async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eventId }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   const ping = roleId ? `<@&${roleId}>` : '';
   await post(
     channelId,
@@ -272,7 +270,7 @@ async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eve
       `• A 🌊 **miss** also reveals a task -- complete it to end your turn.`,
       `• Sink every enemy ship to win the campaign!`,
       ``,
-      link,
+      dashLink(eventId),
     ]
       .filter(Boolean)
       .join('\n')
@@ -283,10 +281,9 @@ async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eve
  * End-of-event message — posted to both teams' channels.
  */
 async function postBSGameOver({ channelId, winnerName, loserName, eventId }) {
-  const link = `${SITE_URL}/battleship/${eventId}`;
   await post(
     channelId,
-    `🏁 **The battle is over!**\n🏆 **${winnerName}** has sunk all of **${loserName}**'s ships and won the campaign!\nView the full battle report:\n${link}`
+    `🏁 **The battle is over!**\n🏆 **${winnerName}** has sunk all of **${loserName}**'s ships and won the campaign!\n${dashLink(eventId, 'View the full battle report')}.`
   );
 }
 

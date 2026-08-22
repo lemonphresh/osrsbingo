@@ -16,6 +16,12 @@ import {
   FormLabel,
   HStack,
   Heading,
+  Image,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalOverlay,
   Slider,
   SliderFilledTrack,
   SliderThumb,
@@ -25,6 +31,7 @@ import {
   Text,
   Textarea,
   VStack,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
@@ -56,6 +63,52 @@ function formatTime(iso) {
 function coordLabel(row, col) {
   if (row == null || col == null) return '?';
   return `${String.fromCharCode(65 + col)}${row + 1}`;
+}
+
+// ── Inline screenshot thumbnail with a click-to-expand modal (matches Rainbow's) ─
+
+function ScreenshotThumb({ url }) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  return (
+    <>
+      <Image
+        src={url}
+        alt="screenshot"
+        boxSize="72px"
+        objectFit="cover"
+        borderRadius="md"
+        cursor="pointer"
+        flexShrink={0}
+        border="1px solid"
+        borderColor="#1a4028"
+        _hover={{ opacity: 0.8, borderColor: GREEN }}
+        onClick={onOpen}
+      />
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="#091a10" border="1px solid" borderColor="#1a4028">
+          <ModalCloseButton color="white" />
+          <ModalBody p={4}>
+            <Image src={url} alt="screenshot" w="100%" borderRadius="md" objectFit="contain" />
+            <Text
+              as="a"
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="xs"
+              color="#22d3ee"
+              _hover={{ textDecoration: 'underline' }}
+              display="block"
+              mt={2}
+              textAlign="right"
+            >
+              Open full size ↗
+            </Text>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
+  );
 }
 
 // ── Progress slider ────────────────────────────────────────────────────────
@@ -169,23 +222,11 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
           )}
         </VStack>
 
-        <HStack spacing={2} flexShrink={0}>
-          {sub.screenshotUrl && (
-            <Button
-              as="a"
-              href={sub.screenshotUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="xs"
-              variant="outline"
-              borderColor="#1a4028"
-              color={DIM}
-              _hover={{ borderColor: GREEN, color: GREEN }}
-            >
-              Screenshot
-            </Button>
-          )}
-        </HStack>
+        {sub.screenshotUrl && (
+          <Box flexShrink={0}>
+            <ScreenshotThumb url={sub.screenshotUrl} />
+          </Box>
+        )}
       </HStack>
 
       {isDenied && (
