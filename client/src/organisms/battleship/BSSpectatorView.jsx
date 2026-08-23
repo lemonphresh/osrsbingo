@@ -94,7 +94,7 @@ function ShotFlash({ flash, onDone }) {
   );
 }
 
-export function BSSpectatorView({ event, refetch }) {
+export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
   const teams = event.teams ?? [];
   const teamA = teams[0] ?? null;
   const teamB = teams[1] ?? null;
@@ -346,6 +346,7 @@ export function BSSpectatorView({ event, refetch }) {
                   tiles={tilesA}
                   showShips={false}
                   canFire={false}
+                  colorblindMode={colorblindMode}
                 />
               </Box>
             </Box>
@@ -368,6 +369,7 @@ export function BSSpectatorView({ event, refetch }) {
                   tiles={tilesB}
                   showShips={false}
                   canFire={false}
+                  colorblindMode={colorblindMode}
                 />
               </Box>
             </Box>

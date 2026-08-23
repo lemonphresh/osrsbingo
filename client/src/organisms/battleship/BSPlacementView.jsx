@@ -223,7 +223,11 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
   );
 }
 
-export function BSPlacementView({ event, currentUser, topBar, refetch }) {
+export function BSPlacementView({ event, currentUser, topBar, refetch, colorblindMode = false }) {
+  // In colorblind mode, swap red-tinted cues (invalid-placement warning,
+  // RED-team dot) for amber/orange to stay distinguishable from ship colors.
+  const invalidColor = colorblindMode ? '#f59e0b' : '#ef4444';
+  const redTeamDot = colorblindMode ? '#fb923c' : '#f87171';
   const { showToast } = useToastContext();
   const teams = event.teams ?? [];
 
@@ -521,7 +525,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
     setConfirmClearWorkshop(false);
   };
 
-  const dotColor = myTeam?.color === 'RED' ? '#f87171' : '#60a5fa';
+  const dotColor = myTeam?.color === 'RED' ? redTeamDot : '#60a5fa';
 
   const viewerBadge =
     viewerCount > 0 ? (
@@ -565,7 +569,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
               <BSPlacementCountdown event={event} />
             </Box>
             {teams.map((team) => {
-              const tc = team.color === 'RED' ? '#f87171' : '#60a5fa';
+              const tc = team.color === 'RED' ? redTeamDot : '#60a5fa';
               return (
                 <Box
                   key={team.teamId}
@@ -697,7 +701,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                     const isHistoryHighlight =
                       hoveredHistoryShip && shipType === hoveredHistoryShip;
                     const shipColor = shipType ? SHIP_COLORS[shipType] : null;
-                    const previewColor = previewValid ? SHIP_COLORS[selectedShip] : '#ef4444';
+                    const previewColor = previewValid ? SHIP_COLORS[selectedShip] : invalidColor;
                     return (
                       <Box
                         key={col}
@@ -710,7 +714,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                             : inPreview
                             ? previewValid
                               ? previewColor
-                              : '#ef4444'
+                              : invalidColor
                             : shipType
                             ? `${shipColor}99`
                             : '#1a4028'
@@ -719,7 +723,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                           isHistoryHighlight
                             ? `${shipColor}55`
                             : inPreview
-                            ? `${previewValid ? previewColor : '#ef4444'}22`
+                            ? `${previewValid ? previewColor : invalidColor}22`
                             : shipType
                             ? `${shipColor}22`
                             : '#060f0a'

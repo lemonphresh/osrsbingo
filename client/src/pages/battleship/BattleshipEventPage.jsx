@@ -689,6 +689,7 @@ export default function BattleshipEventPage() {
         currentUser={currentUser}
         topBar={topBar}
         refetch={refetchEvent}
+        colorblindMode={colorblindMode}
       />
     );
   }
@@ -707,7 +708,7 @@ export default function BattleshipEventPage() {
   // ── Status: ACTIVE (spectator) ────────────────────────────────────────────
 
   if (isSpectator) {
-    return <BSSpectatorView event={event} refetch={refetchEvent} />;
+    return <BSSpectatorView event={event} refetch={refetchEvent} colorblindMode={colorblindMode} />;
   }
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────

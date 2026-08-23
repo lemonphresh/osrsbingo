@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Text, HStack, VStack } from '@chakra-ui/react';
+import { SHIP_SIZES } from '../../utils/battleship/bsClientHelpers';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -8,26 +9,45 @@ const ROW_COUNT = 10;
 const COL_COUNT = 10;
 
 const CELL_BG = {
-  ocean:    '#060f0a', // unrevealed
-  ship:     '#1a4028', // own ship, unrevealed
-  miss:     '#2d3748', // shot ocean
-  hit:      '#c0392b', // shot ship, task pending
-  hit_done: '#1a6b3c', // shot ship, task completed
+  ocean: '#060f0a', // unrevealed
+  ship:  '#1a4028', // own ship, unrevealed
+  miss:  '#2d3748', // shot ocean
+  hit:   '#c0392b', // shot ship cell (regardless of task status)
+  sunk:  '#4c0519', // every cell of this ship has been resolved
 };
 
 const CELL_BG_CB = {
   ...CELL_BG,
-  hit:      '#c2700a', // amber
-  hit_done: '#1a55c8', // blue
+  hit:  '#c2700a', // amber
+  sunk: '#4a2a05', // deep amber/brown
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-function getCellState(tile, showShips) {
+// Precompute which ship types on this board are fully sunk. A ship is sunk
+// when the number of shot+resolved cells matches the ship's total size.
+function computeSunkShips(tiles) {
+  const counts = {};
+  for (const tile of tiles ?? []) {
+    if (!tile.shipType) continue;
+    if (!tile.isShot) continue;
+    if (!(tile.taskCompleted || tile.skipped)) continue;
+    counts[tile.shipType] = (counts[tile.shipType] ?? 0) + 1;
+  }
+  const sunk = new Set();
+  for (const [shipType, count] of Object.entries(counts)) {
+    const size = SHIP_SIZES[shipType];
+    if (size && count >= size) sunk.add(shipType);
+  }
+  return sunk;
+}
+
+function getCellState(tile, showShips, sunkShips) {
   if (!tile) return 'ocean';
   if (tile.isShot) {
     if (!tile.shipType) return 'miss';
-    return (tile.taskCompleted || tile.skipped) ? 'hit_done' : 'hit';
+    if (sunkShips && sunkShips.has(tile.shipType)) return 'sunk';
+    return 'hit';
   }
   if (showShips && tile.shipType) return 'ship';
   return 'ocean';
@@ -88,8 +108,8 @@ function MissX() {
   );
 }
 
-function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, onCellClick, colorblindMode }) {
-  const state = getCellState(tile, showShips);
+function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, onCellClick, colorblindMode, sunkShips }) {
+  const state = getCellState(tile, showShips, sunkShips);
   const bg = getCellBg(state, colorblindMode);
   const isClickable = !!onCellClick && canFire && state === 'ocean';
 
@@ -99,9 +119,9 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
 
   let borderColor = '#1a4028';
   if (isHighlighted && canFire) borderColor = '#22c55e';
-  if (state === 'hit')      borderColor = colorblindMode ? '#f59e0b' : '#e74c3c';
-  if (state === 'hit_done') borderColor = colorblindMode ? '#60a5fa' : '#27ae60';
-  if (state === 'miss')     borderColor = '#4b5563';
+  if (state === 'hit')  borderColor = colorblindMode ? '#f59e0b' : '#e74c3c';
+  if (state === 'sunk') borderColor = colorblindMode ? '#78350f' : '#7f1d1d';
+  if (state === 'miss') borderColor = '#4b5563';
   if (isRadar) borderColor = '#f97316';
 
   return (
@@ -121,7 +141,7 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
       position="relative"
       zIndex={isRadar ? 1 : undefined}
       _hover={isClickable ? { bg: '#091a10', borderColor: '#4ade80' } : {}}
-      title={`${COL_LABELS[col]}${row + 1}`}
+      title={`${COL_LABELS[col]}${row + 1}${state === 'sunk' ? ` — ${tile.shipType} sunk` : ''}`}
       sx={isRadar ? {
         '@keyframes radarPulse': {
           '0%,100%': { boxShadow: '0 0 6px 3px rgba(249,115,22,0.8)', borderColor: '#f97316' },
@@ -131,6 +151,19 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
       } : undefined}
     >
       {state === 'miss' && <MissX />}
+      {state === 'sunk' && (
+        <Text
+          fontFamily="mono"
+          fontSize="15px"
+          fontWeight="bold"
+          color={colorblindMode ? '#fbbf24' : '#fca5a5'}
+          lineHeight="1"
+          userSelect="none"
+          aria-label="ship sunk"
+        >
+          ✕
+        </Text>
+      )}
     </Box>
   );
 }
@@ -171,6 +204,7 @@ export default function BSGrid({
 }) {
   const tileMap = buildTileMap(tiles);
   const palette = colorblindMode ? CELL_BG_CB : CELL_BG;
+  const sunkShips = computeSunkShips(tiles);
 
   return (
     <VStack spacing={0} align="flex-start">
@@ -207,6 +241,7 @@ export default function BSGrid({
                 canFire={canFire}
                 onCellClick={onCellClick}
                 colorblindMode={colorblindMode}
+                sunkShips={sunkShips}
               />
             );
           })}
@@ -221,7 +256,17 @@ export default function BSGrid({
             <Text fontFamily="mono" fontSize="7px" color="#9ca3af" lineHeight="1" userSelect="none">x</Text>
           </LegendDot>
           <LegendDot color={palette.hit} label={colorblindMode ? 'Hit (amber)' : 'Hit'} borderColor={colorblindMode ? '#f59e0b' : '#e74c3c'} />
-          <LegendDot color={palette.hit_done} label={colorblindMode ? 'Hit done (blue)' : 'Hit done'} borderColor={colorblindMode ? '#60a5fa' : '#27ae60'} />
+          <LegendDot color={palette.sunk} label="Sunk" borderColor={colorblindMode ? '#78350f' : '#7f1d1d'}>
+            <Text
+              fontFamily="mono"
+              fontSize="8px"
+              color={colorblindMode ? '#fbbf24' : '#fca5a5'}
+              lineHeight="1"
+              userSelect="none"
+            >
+              ✕
+            </Text>
+          </LegendDot>
           {showShips && <LegendDot color={palette.ship} label="Ship" />}
         </HStack>
         <HStack spacing={1} flexWrap="wrap">
