@@ -311,11 +311,23 @@ module.exports = {
   deleteBSEvent: async (_, { eventId }, context) => {
     const user = requireAuth(context);
     const models = getModels();
-    const { BSTask, BSTeam, BSBoard, BSShipTemplate, BSShotLog, BSShipPlacement, BSTile, BSSubmission } = models;
+    const {
+      BSTask,
+      BSTeam,
+      BSBoard,
+      BSShipTemplate,
+      BSShotLog,
+      BSShipPlacement,
+      BSTile,
+      BSSubmission,
+      BSPlacementSuggestion,
+    } = models;
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
 
-    // Run the cascade in a transaction so a mid-flight failure doesn't leave
+    // Cascade order matters — child tables that reference tiles/boards/tasks
+    // must be deleted before the parent rows, or the FK constraints trip.
+    // Everything wrapped in a transaction so a mid-flight failure leaves no
     // orphaned rows referencing a deleted event.
     await models.sequelize.transaction(async (transaction) => {
       const boards = await BSBoard.findAll({
@@ -324,17 +336,34 @@ module.exports = {
         transaction,
       });
       const boardIds = boards.map((b) => b.boardId);
-      if (boardIds.length > 0) {
-        await BSTile.destroy({ where: { boardId: boardIds }, transaction });
-        await BSShipPlacement.destroy({ where: { boardId: boardIds }, transaction });
-      }
+
+      // 1. Submissions reference tileId (FK) — must drop before tiles.
       if (BSSubmission) {
         await BSSubmission.destroy({ where: { eventId }, transaction });
       }
-      await BSBoard.destroy({ where: { eventId }, transaction });
+      // 2. Shot log references tileId/targetBoardId/taskId (soft refs) — drop
+      //    before the corresponding rows to be safe.
       await BSShotLog.destroy({ where: { eventId }, transaction });
+
+      // 3. Board-scoped children.
+      if (boardIds.length > 0) {
+        await BSShipPlacement.destroy({ where: { boardId: boardIds }, transaction });
+        await BSTile.destroy({ where: { boardId: boardIds }, transaction });
+      }
+
+      // 4. Placement-phase suggestions (added for the new placement flow).
+      if (BSPlacementSuggestion) {
+        await BSPlacementSuggestion.destroy({ where: { eventId }, transaction });
+      }
+
+      // 5. Boards.
+      await BSBoard.destroy({ where: { eventId }, transaction });
+
+      // 6. Ship templates reference taskId — drop before tasks.
       await BSShipTemplate.destroy({ where: { eventId }, transaction });
+      // 7. Tasks.
       await BSTask.destroy({ where: { eventId }, transaction });
+      // 8. Teams + event itself.
       await BSTeam.destroy({ where: { eventId }, transaction });
       await event.destroy({ transaction });
     });
