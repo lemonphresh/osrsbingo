@@ -562,7 +562,29 @@ export default function BattleshipRefsPage() {
 
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNew, setPendingNew] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(
+    () => localStorage.getItem('bsRefsSoundEnabled') === 'true',
+  );
+  useEffect(() => {
+    try { localStorage.setItem('bsRefsSoundEnabled', String(soundEnabled)); } catch (_) {}
+  }, [soundEnabled]);
+  // If sound was persisted ON from a prior visit, prime the audio context on
+  // the first user gesture so incoming-submission chimes aren't blocked by
+  // the browser's autoplay policy after a refresh.
+  useEffect(() => {
+    if (!soundEnabled) return;
+    const kick = () => {
+      warmUpAudio();
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('keydown', kick);
+    };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('keydown', kick);
+    };
+  }, [soundEnabled]);
   const [colorblindMode, setColorblindMode] = useState(
     () => localStorage.getItem('bsColorblindMode') === 'true'
   );
@@ -853,6 +875,22 @@ export default function BattleshipRefsPage() {
               <Text color={DIM} fontSize="sm">
                 {event.eventName}
               </Text>
+            )}
+            {event?.eventPassword && (
+              <HStack spacing={2} align="center">
+                <Text fontSize="xs" color={DIM} letterSpacing="wider" textTransform="uppercase">
+                  Password
+                </Text>
+                <Text
+                  fontSize="sm"
+                  color="#facc15"
+                  fontFamily="mono"
+                  fontWeight="bold"
+                  letterSpacing="wider"
+                >
+                  {event.eventPassword}
+                </Text>
+              </HStack>
             )}
           </VStack>
 

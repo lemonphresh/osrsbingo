@@ -119,13 +119,21 @@ function Cursor() {
 // ── Terminal line ────────────────────────────────────────────────────────────
 
 function TermLine({ line }) {
+  // Some browsers render the ▓ block glyph tall enough to visually clip into
+  // the line above it — add a bit of vertical breathing room on those lines.
+  const isBlockBar = typeof line.text === 'string' && line.text.includes('▓');
   const textProps = {
     fontSize: 'xs',
     color: line.color ?? G,
     letterSpacing: 'wide',
     lineHeight: '1.85',
-    whiteSpace: 'pre',
+    // Preserve the terminal's monospace alignment on desktop, but allow
+    // wrapping on narrow screens so the animation doesn't overflow off-page.
+    whiteSpace: { base: 'pre-wrap', md: 'pre' },
+    wordBreak: { base: 'break-word', md: 'normal' },
     display: 'block',
+    mt: isBlockBar ? 2 : undefined,
+    mb: isBlockBar ? 1 : undefined,
     sx: line.glow ? { textShadow: `0 0 8px ${line.color ?? G}` } : undefined,
   };
   const inner = (

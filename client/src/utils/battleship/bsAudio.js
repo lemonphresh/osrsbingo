@@ -71,13 +71,27 @@ export function subscribeBSVolume(listener) {
   return () => volumeListeners.delete(listener);
 }
 
-function track(audio, gain = 1) {
+// Every audio ever created ends up in this map so a live volume change
+// re-applies to it. Pooled clips stay for the lifetime of the tab; the
+// one-off game-over song is removed on ended/error.
+const trackedByAudio = new WeakMap();
+function track(audio, gain = 1, { persistent = false } = {}) {
+  const existing = trackedByAudio.get(audio);
+  if (existing) {
+    existing.gain = gain;
+    return audio;
+  }
   const entry = { audio, gain };
+  trackedByAudio.set(audio, entry);
   liveInstances.add(entry);
-  const cleanup = () => liveInstances.delete(entry);
-  audio.addEventListener('ended', cleanup);
-  audio.addEventListener('pause', cleanup);
-  audio.addEventListener('error', cleanup);
+  if (!persistent) {
+    const cleanup = () => {
+      liveInstances.delete(entry);
+      trackedByAudio.delete(audio);
+    };
+    audio.addEventListener('ended', cleanup, { once: true });
+    audio.addEventListener('error', cleanup, { once: true });
+  }
   return audio;
 }
 
@@ -111,13 +125,70 @@ export function toggleBSSong() {
   else playBSSong();
 }
 
-export function playBSSound(name) {
+// One-shot autoplay warm-up. Browsers block programmatic .play() until the
+// user has interacted with the page; without this, sounds triggered by a
+// subscription while the tab is backgrounded silently fail. Attaches a
+// one-shot pointer/keyboard listener that plays a muted primer on each
+// pooled Audio element, then removes itself.
+let warmedUp = false;
+const audioPool = new Map(); // name -> Audio (persistent, reused)
+
+function getPooledAudio(name) {
   const src = SOUNDS[name];
-  if (!src) return;
+  if (!src) return null;
+  let audio = audioPool.get(name);
+  if (!audio) {
+    audio = new Audio(src);
+    audio.preload = 'auto';
+    audioPool.set(name, audio);
+  }
+  return audio;
+}
+
+export function warmUpBSAudio() {
+  if (warmedUp) return;
+  const kick = () => {
+    if (warmedUp) return;
+    warmedUp = true;
+    for (const name of Object.keys(SOUNDS)) {
+      const audio = getPooledAudio(name);
+      if (!audio) continue;
+      const restoreVolume = audio.volume;
+      audio.muted = true;
+      audio.volume = 0;
+      const p = audio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+          audio.volume = restoreVolume;
+        }).catch(() => {
+          audio.muted = false;
+          audio.volume = restoreVolume;
+        });
+      }
+    }
+    window.removeEventListener('pointerdown', kick);
+    window.removeEventListener('keydown', kick);
+    window.removeEventListener('touchstart', kick);
+  };
+  window.addEventListener('pointerdown', kick, { once: true });
+  window.addEventListener('keydown', kick, { once: true });
+  window.addEventListener('touchstart', kick, { once: true, passive: true });
+}
+
+export function playBSSound(name) {
+  const audio = getPooledAudio(name);
+  if (!audio) return;
   const gain = SOUND_GAINS[name] ?? 1;
-  const audio = new Audio(src);
   audio.volume = Math.max(0, Math.min(1, currentVolume * gain));
-  track(audio, gain);
+  // Reusing a pooled Audio means we need to rewind before replaying —
+  // otherwise consecutive fires (rapid-fire radar pings) don't start over.
+  try { audio.currentTime = 0; } catch (_) {}
+  // Pooled audio stays tracked for the lifetime of the tab so a mid-play
+  // volume drag still applies. Idempotent — no duplicate listeners.
+  track(audio, gain, { persistent: true });
   audio.play().catch(() => {});
   return audio;
 }

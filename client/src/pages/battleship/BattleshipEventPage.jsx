@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { playBSSound } from '../../utils/battleship/bsAudio';
+import { playBSSound, warmUpBSAudio } from '../../utils/battleship/bsAudio';
 import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
@@ -93,6 +93,14 @@ export default function BattleshipEventPage() {
   const { user: currentUser } = useAuth();
 
   usePageTitle('Battleship');
+
+  // Register the audio warm-up so sound effects can fire even when the tab
+  // is unfocused. Browsers block programmatic .play() until the user has
+  // interacted with the page; this attaches a one-shot pointer/keyboard
+  // listener that primes every pooled sound on first interaction.
+  useEffect(() => {
+    warmUpBSAudio();
+  }, []);
 
   const [colorblindMode, setColorblindMode] = useState(
     () => localStorage.getItem('bsColorblindMode') === 'true'
