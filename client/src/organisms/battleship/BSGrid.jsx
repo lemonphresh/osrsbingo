@@ -93,17 +93,20 @@ function GridLabel({ children, isHeader }) {
   );
 }
 
-function MissX() {
+// Shared X glyph — unicode multiplication sign so it renders centered and
+// consistent across fonts. Used for both "miss" and "sunk" cells (color
+// distinguishes them, not the character).
+function GridX({ color = '#9ca3af', size = '14px' }) {
   return (
     <Text
       fontFamily="mono"
-      fontSize="13px"
+      fontSize={size}
       fontWeight="bold"
-      color="#9ca3af"
+      color={color}
       lineHeight="1"
       userSelect="none"
     >
-      X
+      ✕
     </Text>
   );
 }
@@ -130,14 +133,23 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
       h="28px"
       bg={bg}
       border="1px solid"
-      borderColor={borderColor}
+      // When radar-pulse is active, don't set border/boxShadow via Chakra
+      // props — the sx keyframes drive those and inline styles would win
+      // otherwise.
+      borderColor={isRadar ? undefined : borderColor}
       display="flex"
       alignItems="center"
       justifyContent="center"
       cursor={isClickable ? 'crosshair' : 'default'}
       onClick={handleClick}
-      boxShadow={isHighlighted && canFire ? '0 0 0 1px #22c55e inset' : 'none'}
-      transition="background 0.1s, border-color 0.1s"
+      boxShadow={
+        isRadar
+          ? undefined
+          : isHighlighted && canFire
+          ? '0 0 0 1px #22c55e inset'
+          : undefined
+      }
+      transition={isRadar ? undefined : 'background 0.1s, border-color 0.1s'}
       position="relative"
       zIndex={isRadar ? 1 : undefined}
       _hover={isClickable ? { bg: '#091a10', borderColor: '#4ade80' } : {}}
@@ -145,24 +157,14 @@ function GridCell({ tile, row, col, showShips, isHighlighted, isRadar, canFire, 
       sx={isRadar ? {
         '@keyframes radarPulse': {
           '0%,100%': { boxShadow: '0 0 6px 3px rgba(249,115,22,0.8)', borderColor: '#f97316' },
-          '50%': { boxShadow: '0 0 14px 6px rgba(249,115,22,0.2)', borderColor: '#fb923c' },
+          '50%':     { boxShadow: '0 0 14px 6px rgba(249,115,22,0.2)', borderColor: '#fb923c' },
         },
         animation: 'radarPulse 1.4s ease-in-out infinite',
       } : undefined}
     >
-      {state === 'miss' && <MissX />}
+      {state === 'miss' && <GridX />}
       {state === 'sunk' && (
-        <Text
-          fontFamily="mono"
-          fontSize="15px"
-          fontWeight="bold"
-          color={colorblindMode ? '#fbbf24' : '#fca5a5'}
-          lineHeight="1"
-          userSelect="none"
-          aria-label="ship sunk"
-        >
-          ✕
-        </Text>
+        <GridX color={colorblindMode ? '#fbbf24' : '#fca5a5'} />
       )}
     </Box>
   );
@@ -253,28 +255,13 @@ export default function BSGrid({
         <HStack spacing={3} flexWrap="wrap">
           <LegendDot color={palette.ocean} label="Ocean" />
           <LegendDot color={palette.miss} label="Miss" borderColor="#4b5563">
-            <Text fontFamily="mono" fontSize="7px" color="#9ca3af" lineHeight="1" userSelect="none">x</Text>
+            <GridX size="8px" />
           </LegendDot>
           <LegendDot color={palette.hit} label={colorblindMode ? 'Hit (amber)' : 'Hit'} borderColor={colorblindMode ? '#f59e0b' : '#e74c3c'} />
           <LegendDot color={palette.sunk} label="Sunk" borderColor={colorblindMode ? '#78350f' : '#7f1d1d'}>
-            <Text
-              fontFamily="mono"
-              fontSize="8px"
-              color={colorblindMode ? '#fbbf24' : '#fca5a5'}
-              lineHeight="1"
-              userSelect="none"
-            >
-              ✕
-            </Text>
+            <GridX size="8px" color={colorblindMode ? '#fbbf24' : '#fca5a5'} />
           </LegendDot>
           {showShips && <LegendDot color={palette.ship} label="Ship" />}
-        </HStack>
-        <HStack spacing={1} flexWrap="wrap">
-          <Text fontFamily="mono" fontSize="10px" color="#475569" letterSpacing="wide" mr={1}>
-            Radar:
-          </Text>
-          <LegendDot color={palette.miss} label="ocean" borderColor="#f97316" />
-          <LegendDot color={palette.hit} label={colorblindMode ? 'ship (amber)' : 'ship'} borderColor="#f97316" />
         </HStack>
       </VStack>
     </VStack>

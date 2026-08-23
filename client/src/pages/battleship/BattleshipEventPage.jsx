@@ -463,7 +463,10 @@ export default function BattleshipEventPage() {
 
   if (!isBattleshipEnabled(currentUser)) return <Navigate to="/" replace />;
 
-  if (eventLoading) {
+  // Only show the full-page spinner on the initial load — once we have data,
+  // keep showing the current view during background refetches so the screen
+  // doesn't flash a spinner every time something updates.
+  if (eventLoading && !event) {
     return (
       <Center flex="1" minH="60vh" bg="#060f0a">
         <Spinner size="xl" color="green.500" thickness="3px" speed="0.8s" emptyColor="#1a4028" />

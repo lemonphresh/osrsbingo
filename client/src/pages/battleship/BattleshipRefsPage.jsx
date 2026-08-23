@@ -824,7 +824,8 @@ export default function BattleshipRefsPage() {
     }
   };
 
-  if (isCheckingAuth || eventLoading) {
+  // Only spin on initial load — background refetches keep the current view.
+  if (isCheckingAuth || (eventLoading && !event)) {
     return (
       <Center h="60vh" bg="#060f0a">
         <Spinner size="xl" color={GREEN} />

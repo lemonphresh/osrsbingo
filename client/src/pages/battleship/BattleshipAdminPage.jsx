@@ -983,7 +983,8 @@ export default function BattleshipAdminPage() {
     return event.creatorId === uid || (event.adminIds ?? []).includes(uid);
   }, [event, user]);
 
-  if (isCheckingAuth || eventLoading) {
+  // Only spin on initial load — background refetches keep the current view.
+  if (isCheckingAuth || (eventLoading && !event)) {
     return (
       <Center h="60vh" bg={BG}>
         <Spinner size="xl" color={GREEN} />
