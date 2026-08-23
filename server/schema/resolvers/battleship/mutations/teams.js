@@ -67,13 +67,32 @@ module.exports = {
     return team;
   },
 
-  addBSSkipTokens: async (_, { teamId, count }, context) => {
+  addBSSkipTokens: async (_, { teamId, count, reason }, context) => {
     const user = requireAuth(context);
     const team = await getTeamOrThrow(teamId);
     const { BSEvent } = getModels();
     const event = await BSEvent.findByPk(team.eventId);
     requireAdmin(event, user.id);
-    await team.update({ skipTokens: team.skipTokens + count });
+    if (!Number.isInteger(count) || count === 0) {
+      throw new UserInputError('count must be a non-zero integer.');
+    }
+    const newTotal = Math.max(0, team.skipTokens + count);
+    await team.update({ skipTokens: newTotal });
+
+    // Announce in the team's Discord channel — best-effort, non-blocking.
+    if (team.discordChannelId) {
+      const { postBSSkipTokensAwarded } = require('../../../../utils/battleship/bsDiscord');
+      postBSSkipTokensAwarded({
+        channelId: team.discordChannelId,
+        roleId:    team.discordRoleId ?? null,
+        teamName:  team.teamName,
+        count,
+        newTotal,
+        reason:    reason?.trim() || null,
+        eventId:   team.eventId,
+      }).catch(() => {});
+    }
+
     return team;
   },
 };

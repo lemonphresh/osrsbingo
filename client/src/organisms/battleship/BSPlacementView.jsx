@@ -26,6 +26,7 @@ import {
   BS_PLACEMENT_SUGGESTIONS_UPDATED,
 } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
+import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
 import { BSPlacementCountdown } from './BSFlipClock';
 
 import {
@@ -93,6 +94,130 @@ export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
             })}
           </HStack>
         ))}
+      </VStack>
+    </Box>
+  );
+}
+
+// ── Team participation footer ──────────────────────────────────────────────
+// Shows the team's roster with icons indicating who has shared a suggestion
+// and who has cast a vote. Includes a small legend below.
+function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
+  const members = team?.members ?? [];
+  const resolved = useDiscordUsernames(members);
+
+  // Precompute per-member status.
+  const statusFor = (discordId) => {
+    const suggested = suggestions.some((s) => s.proposerDiscordId === discordId);
+    const voted = suggestions.some((s) => (s.votes ?? []).includes(discordId));
+    return { suggested, voted };
+  };
+
+  if (members.length === 0) return null;
+
+  return (
+    <Box mt={8} pt={5} borderTop="1px solid" borderColor="#1a4028">
+      <HStack justify="space-between" align="baseline" mb={3} flexWrap="wrap" gap={2}>
+        <Text
+          fontFamily="mono"
+          fontSize="10px"
+          color="#6b9e78"
+          letterSpacing="widest"
+          textTransform="uppercase"
+        >
+          Team Participation ({members.length})
+        </Text>
+        <HStack spacing={3} fontSize="9px" fontFamily="mono" color="#3d6b4a" letterSpacing="wide">
+          <HStack spacing={1}>
+            <Box w="8px" h="8px" borderRadius="full" bg="#22d3ee" />
+            <Text>Shared a suggestion</Text>
+          </HStack>
+          <HStack spacing={1}>
+            <Box w="8px" h="8px" borderRadius="full" bg="#4ade80" />
+            <Text>Cast a vote</Text>
+          </HStack>
+          <HStack spacing={1}>
+            <Box w="8px" h="8px" borderRadius="full" bg="#3d6b4a" opacity={0.4} />
+            <Text>No activity yet</Text>
+          </HStack>
+        </HStack>
+      </HStack>
+      <VStack align="stretch" spacing={1}>
+        {resolved.map(({ discordUserId, discordUsername }) => {
+          const { suggested, voted } = statusFor(discordUserId);
+          const isMe = discordUserId === myDiscordId;
+          return (
+            <HStack
+              key={discordUserId}
+              spacing={3}
+              align="center"
+              bg="#060f0a"
+              border="1px solid"
+              borderColor="#1a4028"
+              borderRadius="sm"
+              px={3}
+              py={2}
+              flexWrap="wrap"
+            >
+              {/* Status dots */}
+              <HStack spacing={1} flexShrink={0}>
+                <Box
+                  w="8px"
+                  h="8px"
+                  borderRadius="full"
+                  bg={suggested ? '#22d3ee' : '#3d6b4a'}
+                  opacity={suggested ? 1 : 0.35}
+                  title={suggested ? 'Shared a suggestion' : 'Has not shared'}
+                />
+                <Box
+                  w="8px"
+                  h="8px"
+                  borderRadius="full"
+                  bg={voted ? '#4ade80' : '#3d6b4a'}
+                  opacity={voted ? 1 : 0.35}
+                  title={voted ? 'Cast a vote' : 'Has not voted'}
+                />
+              </HStack>
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                color="#d4f0da"
+                noOfLines={1}
+                flex={1}
+                minW={0}
+              >
+                {discordUsername || `${discordUserId.slice(0, 8)}…`}
+                {isMe && (
+                  <Text as="span" color="#6b9e78" ml={2} fontSize="10px">
+                    (you)
+                  </Text>
+                )}
+              </Text>
+              <HStack spacing={1} flexShrink={0}>
+                {suggested && (
+                  <Badge
+                    colorScheme="cyan"
+                    fontSize="9px"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    Shared
+                  </Badge>
+                )}
+                {voted && (
+                  <Badge
+                    colorScheme="green"
+                    fontSize="9px"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    Voted
+                  </Badge>
+                )}
+              </HStack>
+            </HStack>
+          );
+        })}
       </VStack>
     </Box>
   );
@@ -746,6 +871,13 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
             )}
           </Box>
         </Box>
+
+        {/* Team footer — participation-at-a-glance */}
+        <TeamParticipationFooter
+          team={myTeam}
+          suggestions={suggestions}
+          myDiscordId={myDiscordId}
+        />
       </Box>
 
       {/* Re-share warning modal */}

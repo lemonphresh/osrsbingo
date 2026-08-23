@@ -332,7 +332,7 @@ export function TeamsTab({ event, refetch }) {
           <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide">
             Admins can always view all boards regardless of team membership.
           </Text>
-          <Accordion allowToggle width="fit-content">
+          <Accordion allowToggle allowMultiple width="fit-content">
             <AccordionItem border="none">
               <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }}>
                 <Text
@@ -367,6 +367,53 @@ export function TeamsTab({ event, refetch }) {
                       123456789012345678
                     </Text>
                     )
+                  </Text>
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+            <AccordionItem border="none">
+              <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }}>
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color="#0ea5e9"
+                  letterSpacing="wide"
+                  flex="1"
+                  textAlign="left"
+                >
+                  How do I find a Discord channel ID?
+                </Text>
+                <AccordionIcon color="#0ea5e9" boxSize={3} />
+              </AccordionButton>
+              <AccordionPanel px={0} pb={1}>
+                <VStack align="stretch" spacing={1}>
+                  <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
+                    1. Open Discord → User Settings → Advanced → enable{' '}
+                    <Text as="span" color="#d4f0da">
+                      Developer Mode
+                    </Text>{' '}
+                    (same one-time setup as above).
+                  </Text>
+                  <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
+                    2. In your server, right-click the channel name (in the sidebar) →{' '}
+                    <Text as="span" color="#d4f0da">
+                      Copy Channel ID
+                    </Text>
+                  </Text>
+                  <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
+                    3. Paste the 17–19 digit number here — that&apos;s where the bot will post
+                    shot results, prompts, and other team notifications.
+                  </Text>
+                  <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
+                    4. Make sure the bot has access to that channel (it needs{' '}
+                    <Text as="span" color="#d4f0da">
+                      View Channel
+                    </Text>{' '}
+                    and{' '}
+                    <Text as="span" color="#d4f0da">
+                      Send Messages
+                    </Text>{' '}
+                    permissions).
                   </Text>
                 </VStack>
               </AccordionPanel>

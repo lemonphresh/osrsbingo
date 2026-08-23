@@ -524,8 +524,8 @@ export const SKIP_BS_TILE = gql`
 `;
 
 export const ADD_BS_SKIP_TOKENS = gql`
-  mutation AddBSSkipTokens($teamId: ID!, $count: Int!) {
-    addBSSkipTokens(teamId: $teamId, count: $count) {
+  mutation AddBSSkipTokens($teamId: ID!, $count: Int!, $reason: String) {
+    addBSSkipTokens(teamId: $teamId, count: $count, reason: $reason) {
       teamId
       skipTokens
     }

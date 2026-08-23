@@ -273,6 +273,29 @@ async function postBSPlacementVoteReminder({ channelId, roleId, teamName, eventI
 }
 
 /**
+ * When an admin manually awards skip tokens to a team — announce in the
+ * team's channel with an optional reason so members know why.
+ */
+async function postBSSkipTokensAwarded({ channelId, roleId, teamName, count, newTotal, reason, eventId }) {
+  const ping = roleId ? `<@&${roleId}>` : '';
+  const noun = Math.abs(count) === 1 ? 'skip token' : 'skip tokens';
+  const verb = count >= 0 ? 'awarded' : 'removed';
+  const displayCount = Math.abs(count);
+  const reasonLine = reason ? `**Reason:** ${reason}` : null;
+  await post(
+    channelId,
+    [
+      ping,
+      `🎟️ **${teamName}** — ${displayCount} ${noun} ${verb} by admin. New balance: **${newTotal}**.`,
+      reasonLine,
+      dashLink(eventId),
+    ]
+      .filter(Boolean)
+      .join('\n')
+  );
+}
+
+/**
  * When the battle phase kicks off — posted to both teams' channels.
  */
 async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eventId }) {
@@ -314,6 +337,7 @@ module.exports = {
   postBSHitOnShip,
   postBSPlacementStarted,
   postBSPlacementVoteReminder,
+  postBSSkipTokensAwarded,
   postBSProposalCreated,
   postBSBattleStarted,
   postBSShipSunk,

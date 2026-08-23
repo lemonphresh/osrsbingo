@@ -1148,7 +1148,7 @@ const typeDefs = gql`
     fireBS(eventId: ID!, targetTeamId: ID!, row: Int!, col: Int!, firingTeamId: ID): BSShotLog!
     completeBSTile(tileId: ID!): BSTile!
     skipBSTile(tileId: ID!): BSTile!
-    addBSSkipTokens(teamId: ID!, count: Int!): BSTeam!
+    addBSSkipTokens(teamId: ID!, count: Int!, reason: String): BSTeam!
     updateBSTileTask(tileId: ID!, taskId: ID!): BSTile!
     setBSTileProgress(tileId: ID!, progress: Int!): BSTile!
 

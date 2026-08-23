@@ -17,6 +17,7 @@ import {
   Input,
   Spinner,
   Text,
+  Textarea,
   VStack,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
@@ -249,6 +250,8 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
   const [memberIds, setMemberIds] = useState(team.members ?? []);
   const [saving, setSaving] = useState(false);
   const [addingTokens, setAddingTokens] = useState(false);
+  const [customTokenCount, setCustomTokenCount] = useState('');
+  const [tokenReason, setTokenReason] = useState('');
   const [channelId, setChannelId] = useState(team.discordChannelId ?? '');
   const [roleId, setRoleId] = useState(team.discordRoleId ?? '');
   const [savingDiscord, setSavingDiscord] = useState(false);
@@ -293,14 +296,18 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
     }
   };
 
-  const handleAddTokens = async (count) => {
+  const handleAddTokens = async (count, reason) => {
     setAddingTokens(true);
     try {
-      await doAddSkipTokens({ variables: { teamId: team.teamId, count } });
-      showToast(`Added ${count} skip token${count !== 1 ? 's' : ''}`, 'success');
+      await doAddSkipTokens({
+        variables: { teamId: team.teamId, count, reason: reason?.trim() || null },
+      });
+      const verb = count >= 0 ? 'Added' : 'Removed';
+      const noun = Math.abs(count) === 1 ? 'skip token' : 'skip tokens';
+      showToast(`${verb} ${Math.abs(count)} ${noun}`, 'success');
       await refetchEvent();
     } catch (e) {
-      showToast(e.message ?? 'Failed to add skip tokens', 'error');
+      showToast(e.message ?? 'Failed to update skip tokens', 'error');
     } finally {
       setAddingTokens(false);
     }
@@ -424,21 +431,96 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
               {team.skipTokens ?? 0}
             </Text>
           </HStack>
-          <HStack spacing={2}>
-            {[1, 3, 5].map((n) => (
+          <VStack align="stretch" spacing={2}>
+            <Text fontSize="10px" color={DIM} letterSpacing="wider">
+              Reason (optional — posted to the team's Discord channel)
+            </Text>
+            <Textarea
+              value={tokenReason}
+              onChange={(e) => setTokenReason(e.target.value)}
+              placeholder="e.g. Compensating for a bugged tile"
+              size="sm"
+              rows={2}
+              maxW="360px"
+              bg={BG}
+              borderColor={BORDER}
+              color="#d4f0da"
+              fontFamily="mono"
+              fontSize="xs"
+              _placeholder={{ color: '#3d6b4a' }}
+              _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+              _hover={{ borderColor: DIM }}
+            />
+            <HStack spacing={2} flexWrap="wrap">
+              {[1, 3, 5].map((n) => (
+                <Button
+                  key={n}
+                  size="xs"
+                  colorScheme="green"
+                  variant="outline"
+                  isLoading={addingTokens}
+                  isDisabled={addingTokens}
+                  onClick={() => {
+                    handleAddTokens(n, tokenReason);
+                    setTokenReason('');
+                  }}
+                >
+                  +{n}
+                </Button>
+              ))}
               <Button
-                key={n}
                 size="xs"
-                colorScheme="green"
                 variant="outline"
+                colorScheme="red"
+                borderColor="#4c1a1a"
+                color="#f87171"
                 isLoading={addingTokens}
-                isDisabled={addingTokens}
-                onClick={() => handleAddTokens(n)}
+                isDisabled={addingTokens || (team.skipTokens ?? 0) <= 0}
+                _hover={{ bg: '#1a0a0a', borderColor: '#f87171' }}
+                onClick={() => {
+                  handleAddTokens(-1, tokenReason);
+                  setTokenReason('');
+                }}
               >
-                +{n}
+                −1
               </Button>
-            ))}
-          </HStack>
+              <HStack spacing={1} align="center">
+                <Input
+                  value={customTokenCount}
+                  onChange={(e) => setCustomTokenCount(e.target.value)}
+                  placeholder="±N"
+                  size="xs"
+                  maxW="70px"
+                  bg={BG}
+                  borderColor={BORDER}
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  _placeholder={{ color: '#3d6b4a' }}
+                  _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                  _hover={{ borderColor: DIM }}
+                />
+                <Button
+                  size="xs"
+                  colorScheme="green"
+                  isLoading={addingTokens}
+                  isDisabled={
+                    addingTokens ||
+                    !Number.isInteger(Number(customTokenCount)) ||
+                    Number(customTokenCount) === 0
+                  }
+                  onClick={() => {
+                    const n = Number(customTokenCount);
+                    if (!Number.isInteger(n) || n === 0) return;
+                    handleAddTokens(n, tokenReason);
+                    setCustomTokenCount('');
+                    setTokenReason('');
+                  }}
+                >
+                  Apply
+                </Button>
+              </HStack>
+            </HStack>
+          </VStack>
         </Box>
 
         {/* Discord Channel */}

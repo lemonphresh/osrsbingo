@@ -32,7 +32,12 @@ async function canSeeShips(board, context) {
 const BSEvent = {
   teams: (event) => {
     const { BSTeam } = getModels();
-    return BSTeam.findAll({ where: { eventId: event.eventId } });
+    // Ordered so the UI doesn't reshuffle team cards when a team's row is
+    // touched (e.g., adding/removing members).
+    return BSTeam.findAll({
+      where: { eventId: event.eventId },
+      order: [['createdAt', 'ASC']],
+    });
   },
   tasks: (event) => {
     const { BSTask } = getModels();
