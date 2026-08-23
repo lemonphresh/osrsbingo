@@ -114,12 +114,38 @@ function ScreenshotThumb({ url }) {
 
 // ── Progress slider ────────────────────────────────────────────────────────
 
-function TileProgressSlider({ tileId, initialProgress, onSave }) {
-  const [val, setVal] = useState(initialProgress ?? 0);
+function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
+  // For "uniques" tasks the slider walks 1..N (N = metricTarget) instead of
+  // 0-100%. Progress is still stored server-side as a 0-100 percentage, so
+  // we translate between the two here.
+  const isUniques = task?.metricType === 'unique' || task?.metricType === 'uniques';
+  const target = Number.isFinite(task?.metricTarget) && task.metricTarget > 0
+    ? task.metricTarget
+    : null;
+  const useCountMode = isUniques && target != null;
+
+  const pctToCount = (pct) => {
+    if (!useCountMode) return pct;
+    return Math.max(0, Math.min(target, Math.round((pct / 100) * target)));
+  };
+  const countToPct = (count) => {
+    if (!useCountMode) return count;
+    if (target <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((count / target) * 100)));
+  };
+
+  const [val, setVal] = useState(pctToCount(initialProgress ?? 0));
 
   useEffect(() => {
-    setVal(initialProgress ?? 0);
-  }, [initialProgress]);
+    setVal(pctToCount(initialProgress ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProgress, useCountMode, target]);
+
+  const displayMax = useCountMode ? target : 100;
+  const displayComplete = val >= displayMax;
+  const label = useCountMode
+    ? `${val} / ${target} unique${target === 1 ? '' : 's'}`
+    : `${val}%`;
 
   return (
     <Box>
@@ -133,23 +159,23 @@ function TileProgressSlider({ tileId, initialProgress, onSave }) {
         >
           Progress
         </Text>
-        <Text fontSize="xs" color={val >= 100 ? '#4ade80' : '#22d3ee'} fontWeight="bold">
-          {val}%
+        <Text fontSize="xs" color={displayComplete ? '#4ade80' : '#22d3ee'} fontWeight="bold">
+          {label}
         </Text>
       </HStack>
       <Slider
         min={0}
-        max={100}
+        max={displayMax}
         step={1}
         value={val}
         onChange={setVal}
-        onChangeEnd={(v) => onSave(tileId, v)}
+        onChangeEnd={(v) => onSave(tileId, useCountMode ? countToPct(v) : v)}
         focusThumbOnChange={false}
       >
         <SliderTrack bg="#1a4028" h="6px" borderRadius="full">
-          <SliderFilledTrack bg={val >= 100 ? '#4ade80' : '#22d3ee'} />
+          <SliderFilledTrack bg={displayComplete ? '#4ade80' : '#22d3ee'} />
         </SliderTrack>
-        <SliderThumb boxSize={4} bg={val >= 100 ? '#4ade80' : '#22d3ee'} />
+        <SliderThumb boxSize={4} bg={displayComplete ? '#4ade80' : '#22d3ee'} />
       </Slider>
     </Box>
   );
@@ -430,6 +456,7 @@ function TileGroup({
             <TileProgressSlider
               tileId={tileId}
               initialProgress={progress}
+              task={tile?.task ?? null}
               onSave={(tid, v) => {
                 setLocalProgress(v);
                 onSetProgress(tid, v);

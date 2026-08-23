@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Badge,
@@ -73,7 +73,14 @@ export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
     }
   }
   return (
-    <Box display="inline-block" p={1} bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="sm">
+    <Box
+      display="inline-block"
+      p={1}
+      bg="#060f0a"
+      border="1px solid"
+      borderColor="#1a4028"
+      borderRadius="sm"
+    >
       <VStack spacing={0} align="stretch">
         {Array.from({ length: 10 }, (_, row) => (
           <HStack key={row} spacing={0}>
@@ -178,14 +185,7 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
                   title={voted ? 'Cast a vote' : 'Has not voted'}
                 />
               </HStack>
-              <Text
-                fontFamily="mono"
-                fontSize="xs"
-                color="#d4f0da"
-                noOfLines={1}
-                flex={1}
-                minW={0}
-              >
+              <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1} flex={1} minW={0}>
                 {discordUsername || `${discordUserId.slice(0, 8)}…`}
                 {isMe && (
                   <Text as="span" color="#6b9e78" ml={2} fontSize="10px">
@@ -231,8 +231,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
     (event.adminIds ?? []).includes(String(currentUser?.id)) ||
     event.creatorId === String(currentUser?.id);
 
-  const myTeam =
-    teams.find((t) => (t.members ?? []).includes(currentUser?.discordUserId)) ?? null;
+  const myTeam = teams.find((t) => (t.members ?? []).includes(currentUser?.discordUserId)) ?? null;
 
   // ── Workshop state (localStorage) ────────────────────────────────────────
   const eventId = event.eventId;
@@ -246,7 +245,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
       setWorkshop(nextShips);
       saveWorkshop(eventId, myDiscordId, nextShips);
     },
-    [eventId, myDiscordId],
+    [eventId, myDiscordId]
   );
 
   const [selectedShip, setSelectedShip] = useState('CARRIER');
@@ -283,7 +282,10 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
       intervalId = setInterval(() => joinBSView({ variables: { eventId } }), 30_000);
     };
     const stopHeartbeat = () => {
-      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
       leaveBSView({ variables: { eventId } });
     };
     const handleVisibilityChange = () => {
@@ -301,14 +303,14 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
 
   // ── Suggestions (server) ─────────────────────────────────────────────────
   const teamId = myTeam?.teamId ?? null;
-  const {
-    data: suggestionsData,
-    refetch: refetchSuggestions,
-  } = useQuery(GET_BS_PLACEMENT_SUGGESTIONS, {
-    variables: { teamId },
-    skip: !teamId,
-    fetchPolicy: 'cache-and-network',
-  });
+  const { data: suggestionsData, refetch: refetchSuggestions } = useQuery(
+    GET_BS_PLACEMENT_SUGGESTIONS,
+    {
+      variables: { teamId },
+      skip: !teamId,
+      fetchPolicy: 'cache-and-network',
+    }
+  );
   useSubscription(BS_PLACEMENT_SUGGESTIONS_UPDATED, {
     variables: { teamId },
     skip: !teamId,
@@ -316,7 +318,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
   });
   const suggestions = useMemo(
     () => suggestionsData?.getBSPlacementSuggestions ?? [],
-    [suggestionsData],
+    [suggestionsData]
   );
 
   const [shareSuggestion, { loading: sharing }] = useMutation(SHARE_BS_PLACEMENT_SUGGESTION, {
@@ -331,11 +333,57 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
 
   const mySharedSuggestion = useMemo(
     () => suggestions.find((s) => s.proposerDiscordId === myDiscordId) ?? null,
-    [suggestions, myDiscordId],
+    [suggestions, myDiscordId]
   );
 
   const teamMemberCount = (myTeam?.members ?? []).length;
   const isSoloTeam = teamMemberCount <= 1;
+
+  const myActiveVote = useMemo(
+    () => suggestions.find((s) => (s.votes ?? []).includes(myDiscordId)) ?? null,
+    [suggestions, myDiscordId]
+  );
+
+  // Resolve every proposer's Discord ID to a display name for the gallery.
+  // Includes team members too so we don't refetch names the footer already has.
+  const proposerIds = useMemo(() => {
+    const ids = new Set(suggestions.map((s) => s.proposerDiscordId).filter(Boolean));
+    for (const m of myTeam?.members ?? []) ids.add(m);
+    return Array.from(ids);
+  }, [suggestions, myTeam]);
+  const resolvedProposers = useDiscordUsernames(proposerIds);
+  const proposerNameMap = useMemo(() => {
+    const m = new Map();
+    for (const r of resolvedProposers) m.set(r.discordUserId, r.discordUsername);
+    return m;
+  }, [resolvedProposers]);
+  const nameForProposer = (id) => {
+    if (!id) return '—';
+    if (id.startsWith('admin_')) return 'Admin';
+    const name = proposerNameMap.get(id);
+    if (name && name !== id) return name;
+    return `${id.slice(0, 8)}…`;
+  };
+
+  // If the suggestion the user was voting for suddenly vanishes (proposer
+  // deleted it or was replaced by a re-share), let them know their vote is
+  // now free. We compare against the previous render so we only fire on
+  // transitions, not on every refetch.
+  const prevVotedIdRef = useRef(null);
+  useEffect(() => {
+    const prev = prevVotedIdRef.current;
+    const currentId = myActiveVote?.suggestionId ?? null;
+    if (prev && !currentId) {
+      const stillExists = suggestions.some((s) => s.suggestionId === prev);
+      if (!stillExists) {
+        showToast(
+          'The suggestion you voted for was removed! You have a free vote to cast.',
+          'info'
+        );
+      }
+    }
+    prevVotedIdRef.current = currentId;
+  }, [myActiveVote, suggestions, showToast]);
 
   // ── Placement helpers (workshop-scoped) ──────────────────────────────────
   const placedCellMap = useMemo(() => {
@@ -364,7 +412,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
       hoveredCell.row,
       hoveredCell.col,
       workshop,
-      selectedShip,
+      selectedShip
     );
   }, [hoveredCell, selectedShip, orientation, workshop]);
 
@@ -403,26 +451,25 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
       variables: {
         teamId,
         ships: workshop.map(({ shipType, orientation: o, startRow, startCol }) => ({
-          shipType, orientation: o, startRow, startCol,
+          shipType,
+          orientation: o,
+          startRow,
+          startCol,
         })),
       },
       onCompleted: (data) => {
         const returned = data?.shareBSPlacementSuggestion;
         // If the server matched our layout to a teammate's, it returns their
         // suggestion (with us added as a voter) instead of creating a duplicate.
-        const wasMatched =
-          returned && myDiscordId && returned.proposerDiscordId !== myDiscordId;
+        const wasMatched = returned && myDiscordId && returned.proposerDiscordId !== myDiscordId;
         if (wasMatched) {
-          showToast(
-            'Your layout matches a teammate\'s exactly — voted for theirs instead.',
-            'info',
-          );
+          showToast("Your layout matches a teammate's exactly — voted for theirs instead.", 'info');
         } else {
           showToast(
             isSoloTeam
               ? 'Layout locked in — no teammates to vote.'
               : 'Suggestion shared — teammates can now vote.',
-            'success',
+            'success'
           );
         }
         refetchSuggestions();
@@ -448,7 +495,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
               votingForOwn
                 ? 'Vote moved to your own suggestion.'
                 : 'Vote moved to this suggestion.',
-              'info',
+              'info'
             );
           } else {
             showToast('Vote added.', 'success');
@@ -476,14 +523,15 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
 
   const dotColor = myTeam?.color === 'RED' ? '#f87171' : '#60a5fa';
 
-  const viewerBadge = viewerCount > 0 ? (
-    <HStack spacing={1} align="center">
-      <Box w="6px" h="6px" borderRadius="full" bg="green.400" />
-      <Text fontFamily="mono" fontSize="9px" color="#3d6b4a" letterSpacing="wide">
-        {viewerCount} team member{viewerCount !== 1 ? 's' : ''} viewing
-      </Text>
-    </HStack>
-  ) : null;
+  const viewerBadge =
+    viewerCount > 0 ? (
+      <HStack spacing={1} align="center">
+        <Box w="6px" h="6px" borderRadius="full" bg="green.400" />
+        <Text fontFamily="mono" fontSize="9px" color="#3d6b4a" letterSpacing="wide">
+          {viewerCount} team member{viewerCount !== 1 ? 's' : ''} viewing
+        </Text>
+      </HStack>
+    ) : null;
 
   // ── Admin / spectator view (no team) ─────────────────────────────────────
   if (!myTeam) {
@@ -493,13 +541,25 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
         <Box maxW="700px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
           <VStack align="stretch" spacing={5}>
             <HStack justify="space-between" align="center">
-              <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="widest" textTransform="uppercase">
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color="#6b9e78"
+                letterSpacing="widest"
+                textTransform="uppercase"
+              >
                 Placement Phase / {isAdmin ? 'Admin View' : 'Spectator View'}
               </Text>
               {viewerBadge}
             </HStack>
             <Box display="flex" flexDirection="column" alignItems="center" py={2} gap={2}>
-              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase">
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color="#3d6b4a"
+                letterSpacing="widest"
+                textTransform="uppercase"
+              >
                 countdown til launch:
               </Text>
               <BSPlacementCountdown event={event} />
@@ -507,7 +567,14 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
             {teams.map((team) => {
               const tc = team.color === 'RED' ? '#f87171' : '#60a5fa';
               return (
-                <Box key={team.teamId} bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
+                <Box
+                  key={team.teamId}
+                  bg="#091a10"
+                  border="1px solid"
+                  borderColor="#1a4028"
+                  borderRadius="md"
+                  p={4}
+                >
                   <HStack justify="space-between" align="center">
                     <HStack spacing={2}>
                       <Box w="8px" h="8px" borderRadius="full" bg={tc} />
@@ -515,7 +582,12 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                         {team.teamName}
                       </Text>
                     </HStack>
-                    <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider" textTransform="uppercase">
+                    <Badge
+                      colorScheme="cyan"
+                      fontSize="9px"
+                      letterSpacing="wider"
+                      textTransform="uppercase"
+                    >
                       workshopping
                     </Badge>
                   </HStack>
@@ -524,9 +596,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
             })}
             <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
               <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
-                Each team member workshops a layout privately then shares it to their team. Teammates
-                vote on the shared suggestions, and the highest-voted layout wins at phase end.
-                Ties break at random. Teams with zero suggestions get a random auto-placement.
+                Each team member workshops a layout privately then shares it to their team.
+                Teammates vote on the shared suggestions, and the highest-voted layout wins at phase
+                end. Ties break at random. Teams with zero suggestions get a random auto-placement.
               </Text>
               {isAdmin && (
                 <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" mt={2}>
@@ -548,14 +620,26 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
         <HStack spacing={3} mb={2} align="center" justify="space-between">
           <HStack spacing={2}>
             <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
-            <Text fontFamily="mono" fontSize="xs" fontWeight="bold" color="#d4f0da" letterSpacing="wide">
+            <Text
+              fontFamily="mono"
+              fontSize="xs"
+              fontWeight="bold"
+              color="#d4f0da"
+              letterSpacing="wide"
+            >
               {myTeam.teamName}
             </Text>
           </HStack>
           {viewerBadge}
         </HStack>
         <Box display="flex" flexDirection="column" alignItems="center" py={4} mb={6} gap={2}>
-          <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase">
+          <Text
+            fontFamily="mono"
+            fontSize="10px"
+            color="#3d6b4a"
+            letterSpacing="widest"
+            textTransform="uppercase"
+          >
             countdown til launch:
           </Text>
           <BSPlacementCountdown event={event} />
@@ -563,12 +647,18 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
 
         {/* Intro copy */}
         <Box bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="md" p={3} mb={5}>
-          <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide" lineHeight="tall">
+          <Text
+            fontFamily="mono"
+            fontSize="10px"
+            color="#6b9e78"
+            letterSpacing="wide"
+            lineHeight="tall"
+          >
             Workshop your fleet on the board below — it's saved locally and only you can see it.
-            When you're happy, hit <strong>Share Suggestion</strong> so your teammates can vote on it.
-            The highest-voted suggestion at phase end becomes your team's fleet.
+            When you're happy, hit <strong>Share Suggestion</strong> so your teammates can vote on
+            it. The highest-voted suggestion at phase end becomes your team's fleet.
             {isSoloTeam
-              ? ' You\'re the only member of this team, so your shared suggestion wins by default.'
+              ? " You're the only member of this team, so your shared suggestion wins by default."
               : ' Ties break at random.'}
           </Text>
         </Box>
@@ -579,21 +669,33 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
             <VStack spacing={0} align="flex-start">
               <HStack spacing={0} pl="22px">
                 {COL_LABELS.map((lbl) => (
-                  <Box key={lbl} w="52px" h="18px" display="flex" alignItems="center" justifyContent="center">
-                    <Text fontFamily="mono" fontSize="9px" fontWeight="bold" color="#6b9e78">{lbl}</Text>
+                  <Box
+                    key={lbl}
+                    w="52px"
+                    h="18px"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                  >
+                    <Text fontFamily="mono" fontSize="9px" fontWeight="bold" color="#6b9e78">
+                      {lbl}
+                    </Text>
                   </Box>
                 ))}
               </HStack>
               {Array.from({ length: 10 }, (_, row) => (
                 <HStack key={row} spacing={0}>
                   <Box w="22px" h="52px" display="flex" alignItems="center" justifyContent="center">
-                    <Text fontFamily="mono" fontSize="9px" fontWeight="bold" color="#6b9e78">{row + 1}</Text>
+                    <Text fontFamily="mono" fontSize="9px" fontWeight="bold" color="#6b9e78">
+                      {row + 1}
+                    </Text>
                   </Box>
                   {Array.from({ length: 10 }, (_, col) => {
                     const key = `${row}-${col}`;
                     const shipType = placedCellMap.get(key);
                     const inPreview = previewCells.has(key);
-                    const isHistoryHighlight = hoveredHistoryShip && shipType === hoveredHistoryShip;
+                    const isHistoryHighlight =
+                      hoveredHistoryShip && shipType === hoveredHistoryShip;
                     const shipColor = shipType ? SHIP_COLORS[shipType] : null;
                     const previewColor = previewValid ? SHIP_COLORS[selectedShip] : '#ef4444';
                     return (
@@ -606,7 +708,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                           isHistoryHighlight
                             ? shipColor
                             : inPreview
-                            ? previewValid ? previewColor : '#ef4444'
+                            ? previewValid
+                              ? previewColor
+                              : '#ef4444'
                             : shipType
                             ? `${shipColor}99`
                             : '#1a4028'
@@ -631,7 +735,13 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                         boxShadow={isHistoryHighlight ? `0 0 6px ${shipColor}66` : undefined}
                       >
                         {shipType && (
-                          <Box w="8px" h="8px" borderRadius="sm" bg={shipColor} opacity={isHistoryHighlight ? 1 : 0.75} />
+                          <Box
+                            w="8px"
+                            h="8px"
+                            borderRadius="sm"
+                            bg={shipColor}
+                            opacity={isHistoryHighlight ? 1 : 0.75}
+                          />
                         )}
                       </Box>
                     );
@@ -648,7 +758,14 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
           <Box flex="1" minW="220px" maxW="280px">
             <VStack align="stretch" spacing={5}>
               <Box>
-                <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase" mb={2}>
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color="#3d6b4a"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                  mb={2}
+                >
                   Orientation
                 </Text>
                 <HStack spacing={2}>
@@ -674,7 +791,14 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
               </Box>
 
               <Box>
-                <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase" mb={2}>
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color="#3d6b4a"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                  mb={2}
+                >
                   Ships
                 </Text>
                 <VStack align="stretch" spacing={1}>
@@ -714,7 +838,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                             </Text>
                           </HStack>
                           {isPlaced && (
-                            <Badge colorScheme="green" fontSize="9px" letterSpacing="wider">placed</Badge>
+                            <Badge colorScheme="green" fontSize="9px" letterSpacing="wider">
+                              placed
+                            </Badge>
                           )}
                         </HStack>
                       </Box>
@@ -762,7 +888,13 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                 )}
                 {confirmClearWorkshop && (
                   <HStack spacing={2} justify="center">
-                    <Button size="xs" colorScheme="red" fontFamily="mono" fontSize="10px" onClick={handleClearWorkshop}>
+                    <Button
+                      size="xs"
+                      colorScheme="red"
+                      fontFamily="mono"
+                      fontSize="10px"
+                      onClick={handleClearWorkshop}
+                    >
                       Confirm Clear
                     </Button>
                     <Button
@@ -784,9 +916,37 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
 
           {/* Right panel: suggestions gallery */}
           <Box flex="1" minW="280px">
-            <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="widest" textTransform="uppercase" mb={3}>
+            <Text
+              fontFamily="mono"
+              fontSize="10px"
+              color="#3d6b4a"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              mb={3}
+            >
               Team Suggestions ({suggestions.length})
             </Text>
+            {suggestions.length > 0 && !myActiveVote && !isSoloTeam && (
+              <Box
+                mb={3}
+                bg="#1a1a00"
+                border="1px solid"
+                borderColor="#facc15"
+                borderRadius="md"
+                px={3}
+                py={2}
+              >
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color="#facc15"
+                  letterSpacing="wide"
+                  lineHeight="tall"
+                >
+                  ⚡ You have a free vote! Cast it on the suggestion you want to see locked in.
+                </Text>
+              </Box>
+            )}
             {suggestions.length === 0 ? (
               <Box bg="#091a10" border="1px dashed" borderColor="#1a4028" borderRadius="md" p={4}>
                 <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
@@ -812,8 +972,16 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
                         <BSPlacementMiniBoard ships={s.ships ?? []} />
                         <VStack align="stretch" spacing={2} flex="1" minW="140px">
                           <HStack justify="space-between" spacing={2} flexWrap="wrap">
-                            <Text fontFamily="mono" fontSize="xs" color="#d4f0da" fontWeight="bold" noOfLines={1}>
-                              {isMine ? 'Your suggestion' : `by ${s.proposerDiscordId.slice(0, 8)}…`}
+                            <Text
+                              fontFamily="mono"
+                              fontSize="xs"
+                              color="#d4f0da"
+                              fontWeight="bold"
+                              noOfLines={1}
+                            >
+                              {isMine
+                                ? 'Your suggestion'
+                                : `by ${nameForProposer(s.proposerDiscordId)}`}
                             </Text>
                             <HStack spacing={1} flexWrap="wrap" justify="flex-end">
                               {iVoted && (
@@ -884,7 +1052,13 @@ export function BSPlacementView({ event, currentUser, topBar, refetch }) {
       <Modal isOpen={reshareWarning} onClose={() => setReshareWarning(false)} isCentered size="sm">
         <ModalOverlay bg="blackAlpha.700" />
         <ModalContent bg="#091a10" border="1px solid" borderColor="#1a4028">
-          <ModalHeader fontFamily="mono" fontSize="sm" color="#facc15" letterSpacing="widest" textTransform="uppercase">
+          <ModalHeader
+            fontFamily="mono"
+            fontSize="sm"
+            color="#facc15"
+            letterSpacing="widest"
+            textTransform="uppercase"
+          >
             Replace your suggestion?
           </ModalHeader>
           <ModalBody>

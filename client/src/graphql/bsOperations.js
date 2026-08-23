@@ -638,6 +638,14 @@ const BS_SUBMISSION_FIELDS = gql`
       col
       progress
       taskCompleted
+      task {
+        taskId
+        label
+        metricType
+        metricTarget
+        metricUnit
+        metricLabel
+      }
     }
     team {
       teamId

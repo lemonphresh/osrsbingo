@@ -30,7 +30,7 @@ export const SHIP_SIZES = { CARRIER: 5, BATTLESHIP: 4, CRUISER: 3, SUBMARINE: 3,
 
 export const SHIP_COLORS = {
   CARRIER: '#a855f7',
-  BATTLESHIP: '#ef4444',
+  BATTLESHIP: '#ec4899', // pink — was #ef4444 (red), too close to the invalid-placement highlight
   CRUISER: '#22d3ee',
   SUBMARINE: '#f97316',
   DESTROYER: '#84cc16',

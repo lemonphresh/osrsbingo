@@ -21,13 +21,23 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import { FaClipboardList, FaDiscord, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
+import {
+  FaClipboardList,
+  FaDiscord,
+  FaHistory,
+  FaLink,
+  FaShieldAlt,
+  FaUsers,
+} from 'react-icons/fa';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
 import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
-import { GET_BS_PLACEMENT_SUGGESTIONS, BS_PLACEMENT_SUGGESTIONS_UPDATED } from '../../graphql/bsOperations';
+import {
+  GET_BS_PLACEMENT_SUGGESTIONS,
+  BS_PLACEMENT_SUGGESTIONS_UPDATED,
+} from '../../graphql/bsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -82,7 +92,13 @@ function TeamPlacementSuggestions({ team }) {
     <Box>
       <HStack spacing={2} mb={3}>
         <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
-        <Text fontFamily="mono" fontSize="xs" fontWeight="bold" color="#d4f0da" letterSpacing="wide">
+        <Text
+          fontFamily="mono"
+          fontSize="xs"
+          fontWeight="bold"
+          color="#d4f0da"
+          letterSpacing="wide"
+        >
           {team.teamName}
         </Text>
         <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider">
@@ -156,13 +172,19 @@ function VoteThresholdEditor({ event, onSave }) {
 
   return (
     <VStack align="stretch" spacing={3}>
-      <Text fontFamily="mono" fontSize="xs" color="#6b9e78" letterSpacing="wide" textTransform="uppercase">
+      <Text
+        fontFamily="mono"
+        fontSize="xs"
+        color="#6b9e78"
+        letterSpacing="wide"
+        textTransform="uppercase"
+      >
         Vote Threshold
       </Text>
       <Text fontFamily="mono" fontSize="xs" color="#6b9e78" lineHeight="1.6">
-        Number of approvals required before a shot or skip proposal fires. Leave blank to use
-        the default (1 vote for teams of 1–3 members, 3 votes for larger teams). The value is
-        clamped to the size of the firing team.
+        Number of approvals required before a shot or skip proposal fires. Leave blank to use the
+        default (1 vote for teams of 1–3 members, 3 votes for larger teams). The value is clamped to
+        the size of the firing team.
       </Text>
       <HStack spacing={2} align="center">
         <Input
@@ -215,7 +237,10 @@ function VoteThresholdEditor({ event, onSave }) {
         )}
       </HStack>
       <Text fontFamily="mono" fontSize="10px" color="#3d6b4a">
-        Currently effective: <Text as="span" color="#d4f0da">{effective}</Text>{' '}
+        Currently effective:{' '}
+        <Text as="span" color="#d4f0da">
+          {effective}
+        </Text>{' '}
         {currentValue != null ? `(admin set to ${currentValue})` : '(auto)'}
       </Text>
     </VStack>
@@ -415,113 +440,174 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
           </Button>
         </Box>
 
-        {/* Skip Tokens */}
-        <Box>
-          <HStack spacing={3} align="center" mb={2}>
-            <Text
-              fontSize="xs"
-              color={DIM}
-              textTransform="uppercase"
-              letterSpacing="wider"
-              fontWeight="semibold"
-            >
-              Skip Tokens
-            </Text>
-            <Text fontWeight="bold" color={GREEN} fontFamily="mono">
-              {team.skipTokens ?? 0}
-            </Text>
-          </HStack>
-          <VStack align="stretch" spacing={2}>
-            <Text fontSize="10px" color={DIM} letterSpacing="wider">
-              Reason (optional — posted to the team's Discord channel)
-            </Text>
-            <Textarea
-              value={tokenReason}
-              onChange={(e) => setTokenReason(e.target.value)}
-              placeholder="e.g. Compensating for a bugged tile"
-              size="sm"
-              rows={2}
-              maxW="360px"
-              bg={BG}
-              borderColor={BORDER}
-              color="#d4f0da"
-              fontFamily="mono"
-              fontSize="xs"
-              _placeholder={{ color: '#3d6b4a' }}
-              _focus={{ borderColor: GREEN, boxShadow: 'none' }}
-              _hover={{ borderColor: DIM }}
-            />
-            <HStack spacing={2} flexWrap="wrap">
-              {[1, 3, 5].map((n) => (
-                <Button
-                  key={n}
-                  size="xs"
-                  colorScheme="green"
-                  variant="outline"
-                  isLoading={addingTokens}
-                  isDisabled={addingTokens}
-                  onClick={() => {
-                    handleAddTokens(n, tokenReason);
-                    setTokenReason('');
-                  }}
+        {/* Skip Tokens — stage a delta + reason, then submit once. */}
+        {(() => {
+          const currentBalance = team.skipTokens ?? 0;
+          const parsedPending = Number(customTokenCount);
+          const pendingValid =
+            customTokenCount !== '' &&
+            customTokenCount !== '-' &&
+            Number.isInteger(parsedPending) &&
+            parsedPending !== 0;
+          const bumpPending = (delta) => {
+            const base = pendingValid ? parsedPending : 0;
+            const next = base + delta;
+            setCustomTokenCount(String(next));
+          };
+          const resetPending = () => {
+            setCustomTokenCount('');
+            setTokenReason('');
+          };
+          const submitPending = async () => {
+            if (!pendingValid) return;
+            await handleAddTokens(parsedPending, tokenReason);
+            resetPending();
+          };
+          const newBalance = pendingValid
+            ? Math.max(0, currentBalance + parsedPending)
+            : currentBalance;
+          const isAward = pendingValid && parsedPending > 0;
+          const submitDisabled =
+            addingTokens || !pendingValid || (parsedPending < 0 && currentBalance <= 0);
+          return (
+            <Box>
+              <HStack spacing={3} align="center" mb={2}>
+                <Text
+                  fontSize="xs"
+                  color={DIM}
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  fontWeight="semibold"
                 >
-                  +{n}
-                </Button>
-              ))}
-              <Button
-                size="xs"
-                variant="outline"
-                colorScheme="red"
-                borderColor="#4c1a1a"
-                color="#f87171"
-                isLoading={addingTokens}
-                isDisabled={addingTokens || (team.skipTokens ?? 0) <= 0}
-                _hover={{ bg: '#1a0a0a', borderColor: '#f87171' }}
-                onClick={() => {
-                  handleAddTokens(-1, tokenReason);
-                  setTokenReason('');
-                }}
-              >
-                −1
-              </Button>
-              <HStack spacing={1} align="center">
-                <Input
-                  value={customTokenCount}
-                  onChange={(e) => setCustomTokenCount(e.target.value)}
-                  placeholder="±N"
-                  size="xs"
-                  maxW="70px"
-                  bg={BG}
-                  borderColor={BORDER}
-                  color="#d4f0da"
-                  fontFamily="mono"
-                  _placeholder={{ color: '#3d6b4a' }}
-                  _focus={{ borderColor: GREEN, boxShadow: 'none' }}
-                  _hover={{ borderColor: DIM }}
-                />
-                <Button
-                  size="xs"
-                  colorScheme="green"
-                  isLoading={addingTokens}
-                  isDisabled={
-                    addingTokens ||
-                    !Number.isInteger(Number(customTokenCount)) ||
-                    Number(customTokenCount) === 0
-                  }
-                  onClick={() => {
-                    const n = Number(customTokenCount);
-                    if (!Number.isInteger(n) || n === 0) return;
-                    handleAddTokens(n, tokenReason);
-                    setCustomTokenCount('');
-                    setTokenReason('');
-                  }}
-                >
-                  Apply
-                </Button>
+                  Skip Tokens
+                </Text>
+                <Text fontWeight="bold" color={GREEN} fontFamily="mono">
+                  {currentBalance}
+                </Text>
+                {pendingValid && (
+                  <Text fontSize="10px" color={DIM} fontFamily="mono">
+                    →{' '}
+                    <Text as="span" color={isAward ? '#4ade80' : '#f87171'} fontWeight="bold">
+                      {newBalance}
+                    </Text>
+                    <Text as="span" color={DIM}>
+                      {' '}
+                      ({parsedPending > 0 ? '+' : ''}
+                      {parsedPending})
+                    </Text>
+                  </Text>
+                )}
               </HStack>
-            </HStack>
-          </VStack>
-        </Box>
+              <VStack align="stretch" spacing={3} maxW="360px">
+                {/* Preset bumpers */}
+                <HStack spacing={2} flexWrap="wrap">
+                  {[1, 3, 5].map((n) => (
+                    <Button
+                      key={n}
+                      size="xs"
+                      variant="outline"
+                      colorScheme="green"
+                      borderColor="#1a4028"
+                      color={GREEN}
+                      _hover={{ borderColor: GREEN }}
+                      onClick={() => bumpPending(n)}
+                    >
+                      +{n}
+                    </Button>
+                  ))}
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    colorScheme="red"
+                    borderColor="#4c1a1a"
+                    color="#f87171"
+                    _hover={{ bg: '#1a0a0a', borderColor: '#f87171' }}
+                    onClick={() => bumpPending(-1)}
+                  >
+                    −1
+                  </Button>
+                </HStack>
+
+                {/* Staged amount input */}
+                <HStack spacing={2} align="center">
+                  <Text fontSize="10px" color={DIM} letterSpacing="wider" minW="70px">
+                    Amount
+                  </Text>
+                  <Input
+                    value={customTokenCount}
+                    onChange={(e) => setCustomTokenCount(e.target.value)}
+                    placeholder="±N"
+                    size="xs"
+                    maxW="90px"
+                    bg={BG}
+                    borderColor={BORDER}
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    _placeholder={{ color: '#3d6b4a' }}
+                    _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                    _hover={{ borderColor: DIM }}
+                  />
+                  {pendingValid && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      color={DIM}
+                      fontFamily="mono"
+                      fontSize="10px"
+                      _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                      onClick={resetPending}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </HStack>
+
+                {/* Reason */}
+                <Box>
+                  <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
+                    Reason (optional — posted to the team's Discord channel)
+                  </Text>
+                  <Textarea
+                    value={tokenReason}
+                    onChange={(e) => setTokenReason(e.target.value)}
+                    placeholder="i.e. Compensating for a bugged tile, awarded for completing challenge, etc"
+                    size="sm"
+                    rows={2}
+                    bg={BG}
+                    borderColor={BORDER}
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    _placeholder={{ color: '#3d6b4a' }}
+                    _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                    _hover={{ borderColor: DIM }}
+                  />
+                </Box>
+
+                {/* Single submit button */}
+                <Button
+                  size="sm"
+                  colorScheme={isAward ? 'green' : 'red'}
+                  isLoading={addingTokens}
+                  isDisabled={submitDisabled}
+                  onClick={submitPending}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  letterSpacing="wider"
+                  textTransform="uppercase"
+                >
+                  {pendingValid
+                    ? isAward
+                      ? `Award ${parsedPending} Token${parsedPending === 1 ? '' : 's'}`
+                      : `Revoke ${Math.abs(parsedPending)} Token${
+                          Math.abs(parsedPending) === 1 ? '' : 's'
+                        }`
+                    : 'Stage an amount'}
+                </Button>
+              </VStack>
+            </Box>
+          );
+        })()}
 
         {/* Discord Channel */}
         <Box>
@@ -1294,9 +1380,9 @@ export default function BattleshipAdminPage() {
               <AccordionPanel px={4} py={4} bg={BG}>
                 <VStack align="stretch" spacing={3}>
                   <Text fontFamily="mono" fontSize="xs" color={DIM}>
-                    Battle phase starts automatically when the placement timer expires. Use this
-                    to skip ahead manually. Any teams with missing ships will have their fleet
-                    randomly positioned.
+                    Battle phase starts automatically when the placement timer expires. Use this to
+                    skip ahead manually. Any teams with missing ships will have their fleet randomly
+                    positioned.
                   </Text>
                   {!confirmStartBattle ? (
                     <Button
@@ -1315,10 +1401,16 @@ export default function BattleshipAdminPage() {
                       Start Battle Phase
                     </Button>
                   ) : (
-                    <Box bg="#060f0a" border="1px solid" borderColor={BORDER} borderRadius="md" p={3}>
+                    <Box
+                      bg="#060f0a"
+                      border="1px solid"
+                      borderColor={BORDER}
+                      borderRadius="md"
+                      p={3}
+                    >
                       <Text fontFamily="mono" fontSize="xs" color="#fbbf24" mb={3}>
-                        This will end placement immediately and lock in current ship positions.
-                        Any team without ships placed will be randomized. This cannot be undone.
+                        This will end placement immediately and lock in current ship positions. Any
+                        team without ships placed will be randomized. This cannot be undone.
                       </Text>
                       <HStack spacing={2}>
                         <Button
@@ -1390,7 +1482,8 @@ export default function BattleshipAdminPage() {
                 <VStack align="stretch" spacing={5}>
                   <Text fontFamily="mono" fontSize="xs" color={DIM} lineHeight="tall">
                     Teams are workshopping placements privately, sharing suggestions to their team,
-                    and voting. Highest-voted layout per team wins at phase end. Ties break at random.
+                    and voting. Highest-voted layout per team wins at phase end. Ties break at
+                    random.
                   </Text>
                   {(event.teams ?? []).map((team) => (
                     <TeamPlacementSuggestions key={team.teamId} team={team} />
@@ -1460,7 +1553,13 @@ export default function BattleshipAdminPage() {
             >
               <HStack flex={1} spacing={2}>
                 <FaDiscord color={DIM} />
-                <Text fontWeight="semibold" color="#d4f0da" fontFamily="mono" letterSpacing="wide" fontSize="sm">
+                <Text
+                  fontWeight="semibold"
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  letterSpacing="wide"
+                  fontSize="sm"
+                >
                   DISCORD BOT SETUP
                 </Text>
                 <Badge colorScheme={event?.guildId ? 'green' : 'yellow'} fontSize="xs">
@@ -1473,12 +1572,17 @@ export default function BattleshipAdminPage() {
               <VStack align="stretch" spacing={3}>
                 {event?.guildId ? (
                   <HStack spacing={2}>
-                    <Text fontFamily="mono" fontSize="xs" color={DIM}>Guild ID:</Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">{event.guildId}</Text>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                      Guild ID:
+                    </Text>
+                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+                      {event.guildId}
+                    </Text>
                   </HStack>
                 ) : (
                   <Text fontFamily="mono" fontSize="xs" color={DIM}>
-                    The Discord bot has not been connected yet. Set it up to enable task submission notifications.
+                    The Discord bot has not been connected yet. Set it up to enable task submission
+                    notifications.
                   </Text>
                 )}
                 <Button
@@ -1855,7 +1959,10 @@ export default function BattleshipAdminPage() {
         <BSDiscordSetupModal
           isOpen
           eventId={eventId}
-          onConfirmed={() => { setShowDiscordModal(false); refetchEvent(); }}
+          onConfirmed={() => {
+            setShowDiscordModal(false);
+            refetchEvent();
+          }}
           onClose={() => setShowDiscordModal(false)}
         />
       )}
