@@ -181,13 +181,31 @@ module.exports = {
     const taskLabel = task?.label ?? 'task';
     const coord = bsCoord(tile.row, tile.col);
 
-    // The board that was shot belongs to the team that must complete the task (they fired last)
-    // That team's firing unlocked this tile — they get the "you can fire again" message
+    // Precompute ship-sunk / all-sunk status so we can decide what to post
+    // and in what order. Ship-related checks only apply to ship tiles while
+    // the event is ACTIVE.
     const allTeams = await BSTeam.findAll({ where: { eventId: event.eventId } });
     const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
+    const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
 
-    if (firingTeam?.discordChannelId) {
-      postBSTaskComplete({
+    let thisShipSunk = false;
+    let allSunk = false;
+    if (tile.shipType && event.status === 'ACTIVE') {
+      const { Op } = require('sequelize');
+      const shipTiles = await BSTile.findAll({
+        where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
+      });
+      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
+      thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+      allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+    }
+
+    // Post messages in a deterministic order (task-complete → ship-sunk →
+    // game-over) by awaiting each in turn. Skip the "you can fire again"
+    // task-complete post when the game is over — the win announcement makes
+    // the fire-again invite nonsensical.
+    if (!allSunk && firingTeam?.discordChannelId) {
+      await postBSTaskComplete({
         channelId: firingTeam.discordChannelId,
         teamName: firingTeam.teamName,
         taskLabel,
@@ -196,56 +214,43 @@ module.exports = {
       });
     }
 
-    // Ship sunk + win condition: only ship tiles can trigger either
-    if (tile.shipType && event.status === 'ACTIVE') {
-      const { Op } = require('sequelize');
-      const shipTiles = await BSTile.findAll({
-        where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
+    if (thisShipSunk) {
+      await postBSShipSunk({
+        firingChannelId:    firingTeam?.discordChannelId,
+        defendingChannelId: defendingTeam?.discordChannelId,
+        shipType:           tile.shipType,
+        firingTeamName:     firingTeam?.teamName,
+        defendingTeamName:  defendingTeam?.teamName,
+        eventId:            event.eventId,
       });
+    }
 
-      // Per-ship sunk check
-      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
-      const thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
-      if (thisShipSunk) {
-        const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
-        const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
-        postBSShipSunk({
-          firingChannelId: firingTeam?.discordChannelId,
-          defendingChannelId: defendingTeam?.discordChannelId,
-          shipType: tile.shipType,
-          firingTeamName: firingTeam?.teamName,
-          defendingTeamName: defendingTeam?.teamName,
+    if (allSunk) {
+      const winningTeam = firingTeam;
+      const losingTeam  = defendingTeam;
+      const completedAt = new Date();
+      await BSEvent.update(
+        { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
+        { where: { eventId: event.eventId } }
+      );
+      await pubsub.publish(`BS_GAME_OVER_${event.eventId}`, {
+        bsGameOver: {
           eventId: event.eventId,
-        });
-      }
-
-      const allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
-      if (allSunk) {
-        const winningTeam = allTeams.find((t) => t.teamId !== board.teamId);
-        const losingTeam  = allTeams.find((t) => t.teamId === board.teamId);
-        const completedAt = new Date();
-        await BSEvent.update(
-          { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
-          { where: { eventId: event.eventId } }
-        );
-        await pubsub.publish(`BS_GAME_OVER_${event.eventId}`, {
-          bsGameOver: {
+          winnerId: winningTeam.teamId,
+          losingTeamId: board.teamId,
+          completedAt,
+        },
+      });
+      // Notify both teams — sequential await so both posts land after the
+      // ship-sunk one (and thus in a logical read-order).
+      for (const team of allTeams) {
+        if (team.discordChannelId) {
+          await postBSGameOver({
+            channelId: team.discordChannelId,
+            winnerName: winningTeam.teamName,
+            loserName: losingTeam.teamName,
             eventId: event.eventId,
-            winnerId: winningTeam.teamId,
-            losingTeamId: board.teamId,
-            completedAt,
-          },
-        });
-        // Notify both teams
-        for (const team of allTeams) {
-          if (team.discordChannelId) {
-            postBSGameOver({
-              channelId: team.discordChannelId,
-              winnerName: winningTeam.teamName,
-              loserName: losingTeam.teamName,
-              eventId: event.eventId,
-            });
-          }
+          });
         }
       }
     }

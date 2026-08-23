@@ -183,7 +183,7 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
             p={4}
             bg="#060f0a"
           >
-            <VStack align="flex-start" spacing={3}>
+            <VStack align="stretch" spacing={3}>
               <VStack align="flex-start" spacing={0}>
                 <Text
                   fontSize="9px"
@@ -204,7 +204,9 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
                   {team?.teamName ?? '—'}
                 </Text>
               </VStack>
-              <BSGrid tiles={team?.board?.tiles ?? []} showShips colorblindMode={colorblindMode} />
+              <Box display="flex" justifyContent="center" w="100%">
+                <BSGrid tiles={team?.board?.tiles ?? []} showShips colorblindMode={colorblindMode} />
+              </Box>
             </VStack>
           </Box>
         ))}
@@ -217,10 +219,18 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
 
 export function BSGameOverScreen({ event, shotLog }) {
   const colorblindMode = localStorage.getItem('bsColorblindMode') === 'true';
-  const sessionKey = `bs_gameover_typed_${event.eventId}`;
-  const alreadySeen = Boolean(
-    typeof sessionStorage !== 'undefined' && sessionStorage.getItem(sessionKey)
-  );
+  // The typewriter animation runs on every visit/refresh. Once someone has
+  // seen it through at least once (per browser, per event), we surface a
+  // "Skip to end" button so they can bypass on re-watches.
+  const seenKey = `bs_gameover_seen_${event.eventId}`;
+  const [hasSeenBefore, setHasSeenBefore] = useState(() => {
+    try {
+      return localStorage.getItem(seenKey) === 'true';
+    } catch (_) {
+      return false;
+    }
+  });
+  const [manualSkip, setManualSkip] = useState(false);
 
   const winnerTeam = event.teams.find((t) => t.teamId === event.winnerId);
   const loserTeam = event.teams.find((t) => t.teamId !== event.winnerId);
@@ -388,16 +398,18 @@ export function BSGameOverScreen({ event, shotLog }) {
     ];
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { displayLines, done } = useTypewriter(lines, alreadySeen);
+  // Typewriter runs on every mount; if the user hit "Skip to end" we flip
+  // its `skip` flag so it jumps straight to the done state.
+  const { displayLines, done } = useTypewriter(lines, manualSkip);
 
   // Scroll to top on first load only
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Play song during typewriter animation, stop when leaving
+  // Play the victory song alongside the typewriter animation.
   useEffect(() => {
-    if (!alreadySeen) playBSSong();
+    playBSSong();
     return () => stopBSSong();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -406,20 +418,39 @@ export function BSGameOverScreen({ event, shotLog }) {
   const [songState, setSongState] = useState(() => getBSSongState());
   useEffect(() => subscribeBSSongState(setSongState), []);
 
-  // Mark seen in sessionStorage once animation finishes
+  // Mark seen in localStorage once the animation completes so the Skip
+  // button becomes available on future visits/refreshes.
   useEffect(() => {
-    if (done && !alreadySeen) {
+    if (done && !hasSeenBefore) {
       try {
-        sessionStorage.setItem(sessionKey, 'true');
+        localStorage.setItem(seenKey, 'true');
       } catch (_) {}
+      setHasSeenBefore(true);
     }
-  }, [done, alreadySeen, sessionKey]);
+  }, [done, hasSeenBefore, seenKey]);
 
   return (
     <Box minH="100vh" bg={BG} color={G} fontFamily="mono" position="relative">
       {/* Volume + song play/pause. Always visible so revisitors can start the
-          song back up from the top. */}
+          song back up from the top. Skip-to-end shows only after the user has
+          watched the animation through at least once. */}
       <HStack position="fixed" top={4} right={4} zIndex={10} spacing={2}>
+        {hasSeenBefore && !done && (
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor="#1a4028"
+            color="#6b9e78"
+            fontFamily="mono"
+            fontSize="10px"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            _hover={{ borderColor: G, color: G }}
+            onClick={() => setManualSkip(true)}
+          >
+            Skip to end
+          </Button>
+        )}
         <IconButton
           size="sm"
           variant="outline"
