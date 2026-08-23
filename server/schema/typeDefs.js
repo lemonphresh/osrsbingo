@@ -846,6 +846,7 @@ const typeDefs = gql`
     getBSViewerCount(eventId: ID!): Int!
     getBSSubmissions(eventId: ID!, status: BSSubmissionStatus, tileId: ID): [BSSubmission!]!
     getActiveBSProposal(teamId: ID!): BSProposal
+    getBSPlacementSuggestions(teamId: ID!): [BSPlacementSuggestion!]!
   }
 
   # ============================================================
@@ -1132,6 +1133,12 @@ const typeDefs = gql`
     updateBSMultiplier(eventId: ID!, multiplier: Float!): BSEvent!
     startBSPlacementPhase(eventId: ID!): BSEvent!
     placeBSShip(boardId: ID!, input: BSShipPlacementInput!): BSShipPlacement!
+
+    # Placement-phase workshop: share a layout suggestion (replaces caller's
+    # previous one if any), toggle a vote, or delete a suggestion.
+    shareBSPlacementSuggestion(teamId: ID!, ships: [BSShipPlacementInput!]!): BSPlacementSuggestion!
+    voteBSPlacementSuggestion(suggestionId: ID!): BSPlacementSuggestion!
+    deleteBSPlacementSuggestion(suggestionId: ID!): Boolean!
     joinBSView(eventId: ID!): Boolean
     leaveBSView(eventId: ID!): Boolean
 
@@ -1809,6 +1816,28 @@ const typeDefs = gql`
     startCol: Int!
   }
 
+  # Placement-phase suggestions — team members workshop layouts privately,
+  # then share a suggestion the team votes on. The highest-voted suggestion
+  # becomes the team's final placement when the phase ends.
+  type BSPlacementSuggestion {
+    suggestionId: ID!
+    eventId: ID!
+    teamId: ID!
+    proposerDiscordId: String!
+    proposerUsername: String
+    ships: [BSPlacementSuggestionShip!]!
+    votes: [String!]!
+    voteCount: Int!
+    createdAt: DateTime
+  }
+
+  type BSPlacementSuggestionShip {
+    shipType: BSShipType!
+    orientation: BSShipOrientation!
+    startRow: Int!
+    startCol: Int!
+  }
+
   # ============================================================
   # SUBSCRIPTIONS
   # ============================================================
@@ -1849,6 +1878,7 @@ const typeDefs = gql`
     bsSubmissionReviewed(eventId: ID!): BSSubmission!
     bsProposalUpdated(teamId: ID!): BSProposal!
     bsSkipProposalUpdated(teamId: ID!): BSSkipProposal!
+    bsPlacementSuggestionsUpdated(teamId: ID!): [BSPlacementSuggestion!]!
     bsGameOver(eventId: ID!): BSGameOver!
   }
 `;

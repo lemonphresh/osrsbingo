@@ -26,5 +26,8 @@ module.exports = {
     bsProposalUpdated:     createSubscription((args) => `BS_PROPOSAL_${args.teamId}`),
     bsGameOver:            createSubscription((args) => `BS_GAME_OVER_${args.eventId}`),
     bsSkipProposalUpdated: createSubscription((args) => `BS_SKIP_PROPOSAL_${args.teamId}`),
+    bsPlacementSuggestionsUpdated: createSubscription(
+      (args) => `BS_PLACEMENT_SUGGESTIONS_${args.teamId}`,
+    ),
   },
 };

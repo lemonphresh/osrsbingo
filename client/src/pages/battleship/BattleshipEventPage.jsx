@@ -781,6 +781,16 @@ export default function BattleshipEventPage() {
                     px={4}
                     py={3}
                   >
+                    <Text
+                      fontFamily="mono"
+                      fontSize="10px"
+                      color="#6b9e78"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      mb={2}
+                    >
+                      Current Orders
+                    </Text>
                     <HStack spacing={4} align="center" flexWrap="wrap">
                       {/* Submarine alert light */}
                       <HStack
@@ -1197,18 +1207,27 @@ export default function BattleshipEventPage() {
             </VStack>
           </Box>
 
-          {/* Right sidebar — team status */}
+          {/* Right sidebar — team status. Regular players only see their own
+              team (skip tokens etc. are intel the opposing team shouldn't have);
+              admins and refs see both teams for oversight. */}
           <Box>
             <VStack align="stretch" spacing={4}>
-              <SectionLabel>Fleet Status</SectionLabel>
-              {teams.map((team, i) => (
-                <TeamStatusCard
-                  key={team.teamId}
-                  team={team}
-                  cooldownMinutes={event.cooldownMinutes}
-                  isViewing={i === viewingTeamIndex}
-                />
-              ))}
+              <SectionLabel>
+                {isAdminOrRef ? 'Fleet Status' : 'Your Team'}
+              </SectionLabel>
+              {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map(
+                (team) => {
+                  const i = teams.findIndex((t) => t.teamId === team.teamId);
+                  return (
+                    <TeamStatusCard
+                      key={team.teamId}
+                      team={team}
+                      cooldownMinutes={event.cooldownMinutes}
+                      isViewing={i === viewingTeamIndex}
+                    />
+                  );
+                },
+              )}
 
               <Divider borderColor="#1a4028" />
 

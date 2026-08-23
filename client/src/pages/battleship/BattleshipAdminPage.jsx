@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
-import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
   AccordionButton,
@@ -24,6 +24,9 @@ import { FaClipboardList, FaDiscord, FaHistory, FaLink, FaShieldAlt, FaUsers } f
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
+import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
+import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
+import { GET_BS_PLACEMENT_SUGGESTIONS, BS_PLACEMENT_SUGGESTIONS_UPDATED } from '../../graphql/bsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -58,6 +61,66 @@ function fmtDateTime(iso) {
   const day = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return `${day} ${time}`;
+}
+
+// Live-queries the placement suggestions for a single team. Server-side auth
+// returns [] for a ref who isn't on the team, so refs only see their own team;
+// admins see everything.
+function TeamPlacementSuggestions({ team }) {
+  const { data, refetch } = useQuery(GET_BS_PLACEMENT_SUGGESTIONS, {
+    variables: { teamId: team.teamId },
+    fetchPolicy: 'cache-and-network',
+  });
+  useSubscription(BS_PLACEMENT_SUGGESTIONS_UPDATED, {
+    variables: { teamId: team.teamId },
+    onData: () => refetch(),
+  });
+  const suggestions = data?.getBSPlacementSuggestions ?? [];
+  const dotColor = team.color === 'RED' ? '#f87171' : '#60a5fa';
+  return (
+    <Box>
+      <HStack spacing={2} mb={3}>
+        <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
+        <Text fontFamily="mono" fontSize="xs" fontWeight="bold" color="#d4f0da" letterSpacing="wide">
+          {team.teamName}
+        </Text>
+        <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider">
+          {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
+        </Badge>
+      </HStack>
+      {suggestions.length === 0 ? (
+        <Text fontFamily="mono" fontSize="10px" color={DIM}>
+          No suggestions shared yet.
+        </Text>
+      ) : (
+        <VStack align="stretch" spacing={2}>
+          {suggestions.map((s) => (
+            <HStack
+              key={s.suggestionId}
+              align="flex-start"
+              spacing={3}
+              flexWrap="wrap"
+              bg="#060f0a"
+              border="1px solid"
+              borderColor="#1a4028"
+              borderRadius="md"
+              p={2}
+            >
+              <BSPlacementMiniBoard ships={s.ships ?? []} />
+              <VStack align="flex-start" spacing={1} minW="120px">
+                <Text fontFamily="mono" fontSize="10px" color="#d4f0da" noOfLines={1}>
+                  {s.proposerDiscordId?.slice(0, 12) ?? 'unknown'}
+                </Text>
+                <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider">
+                  {s.voteCount ?? 0} vote{(s.voteCount ?? 0) !== 1 ? 's' : ''}
+                </Badge>
+              </VStack>
+            </HStack>
+          ))}
+        </VStack>
+      )}
+    </Box>
+  );
 }
 
 function VoteThresholdEditor({ event, onSave }) {
@@ -1031,6 +1094,50 @@ export default function BattleshipAdminPage() {
             </AccordionPanel>
           </AccordionItem>
 
+          {/* Section 1.25: Fleet Status (ACTIVE only) — both teams' live intel */}
+          {event?.status === 'ACTIVE' && (event.teams ?? []).length > 0 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    FLEET STATUS
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  {(event.teams ?? []).map((team) => (
+                    <TeamStatusCard
+                      key={team.teamId}
+                      team={team}
+                      cooldownMinutes={event.cooldownMinutes}
+                    />
+                  ))}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
           {/* Section 1.5: Launch Event (DRAFT only) */}
           {event?.status === 'DRAFT' && (
             <AccordionItem
@@ -1162,6 +1269,50 @@ export default function BattleshipAdminPage() {
                       </HStack>
                     </Box>
                   )}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.65: Placement Suggestions (PLACEMENT only) */}
+          {event?.status === 'PLACEMENT' && (event.teams ?? []).length > 0 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    PLACEMENT SUGGESTIONS
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={5}>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM} lineHeight="tall">
+                    Teams are workshopping placements privately, sharing suggestions to their team,
+                    and voting. Highest-voted layout per team wins at phase end. Ties break at random.
+                  </Text>
+                  {(event.teams ?? []).map((team) => (
+                    <TeamPlacementSuggestions key={team.teamId} team={team} />
+                  ))}
                 </VStack>
               </AccordionPanel>
             </AccordionItem>

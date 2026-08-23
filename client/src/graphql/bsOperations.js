@@ -835,6 +835,69 @@ export const BS_SKIP_PROPOSAL_UPDATED = gql`
   ${BS_SKIP_PROPOSAL_FIELDS}
 `;
 
+// ── Placement suggestions ──────────────────────────────────────────────────
+
+const BS_PLACEMENT_SUGGESTION_FIELDS = gql`
+  fragment BSPlacementSuggestionFields on BSPlacementSuggestion {
+    suggestionId
+    eventId
+    teamId
+    proposerDiscordId
+    proposerUsername
+    ships {
+      shipType
+      orientation
+      startRow
+      startCol
+    }
+    votes
+    voteCount
+    createdAt
+  }
+`;
+
+export const GET_BS_PLACEMENT_SUGGESTIONS = gql`
+  query GetBSPlacementSuggestions($teamId: ID!) {
+    getBSPlacementSuggestions(teamId: $teamId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const SHARE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation ShareBSPlacementSuggestion($teamId: ID!, $ships: [BSShipPlacementInput!]!) {
+    shareBSPlacementSuggestion(teamId: $teamId, ships: $ships) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const VOTE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation VoteBSPlacementSuggestion($suggestionId: ID!) {
+    voteBSPlacementSuggestion(suggestionId: $suggestionId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const DELETE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation DeleteBSPlacementSuggestion($suggestionId: ID!) {
+    deleteBSPlacementSuggestion(suggestionId: $suggestionId)
+  }
+`;
+
+export const BS_PLACEMENT_SUGGESTIONS_UPDATED = gql`
+  subscription BSPlacementSuggestionsUpdated($teamId: ID!) {
+    bsPlacementSuggestionsUpdated(teamId: $teamId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
 export const UPDATE_BS_EVENT = gql`
   mutation UpdateBSEvent($eventId: ID!, $input: UpdateBSEventInput!) {
     updateBSEvent(eventId: $eventId, input: $input) {

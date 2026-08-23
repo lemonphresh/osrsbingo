@@ -8,7 +8,7 @@ const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSShipSunk, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
 const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
-const { clearProposal } = require('../../../../utils/battleship/bsProposals');
+const { clearProposal, getProposal } = require('../../../../utils/battleship/bsProposals');
 
 const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -48,20 +48,31 @@ module.exports = {
 
     // Determine firing team — explicit override (dev/admin) or membership lookup
     const teams = await BSTeam.findAll({ where: { eventId } });
+    const isAdminFiring = user.admin || (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
     let firingTeam;
     if (firingTeamId) {
       firingTeam = teams.find((t) => t.teamId === firingTeamId);
       if (!firingTeam) throw new UserInputError('Specified firing team not found');
+      // Only admins can fire on behalf of a team they aren't on.
+      if (!isAdminFiring && !(firingTeam.members ?? []).includes(user.discordUserId)) {
+        throw new UserInputError('You are not on this team');
+      }
     } else {
-      firingTeam = teams.find((t) => t.members.includes(user.discordUserId));
+      firingTeam = teams.find((t) => (t.members ?? []).includes(user.discordUserId));
     }
     if (!firingTeam) throw new UserInputError('You are not a member of any team in this event');
 
-    // Refs/admins must specify teamId explicitly — for regular players it's derived above.
-    // If user is admin firing on behalf, we still require them to be scoped to a team.
-    // (Admins can use addBSTeam to add themselves to a team for testing.)
-
-    const isAdminFiring = user.admin || (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
+    // Regular players can only fire via an approved proposal at these coordinates.
+    // Admins bypass — they're allowed direct overrides for moderation.
+    if (!isAdminFiring) {
+      const proposal = getProposal(firingTeam.teamId);
+      if (!proposal || proposal.status !== 'APPROVED') {
+        throw new UserInputError('No approved shot proposal for this team.');
+      }
+      if (proposal.row !== row || proposal.col !== col) {
+        throw new UserInputError('Firing coordinates do not match the approved proposal.');
+      }
+    }
 
     // Cooldown check (admins bypass)
     if (!isAdminFiring && firingTeam.lastShotAt) {
@@ -258,15 +269,17 @@ module.exports = {
     const firingTeam = teams.find((t) => t.teamId !== board.teamId);
     if (!firingTeam) throw new UserInputError('Could not determine firing team');
 
-    const isAdmin = (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
-    if (!isAdmin) {
+    // Only a true site-admin (user.admin) bypasses tokens/proposals — event
+    // creators/admins who are ALSO on the team should follow the same rules as
+    // other team members, otherwise they can skip infinitely.
+    const isSiteAdmin = user.admin === true;
+    if (!isSiteAdmin) {
       if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
       if (!firingTeam.members.includes(user.discordUserId)) {
         throw new UserInputError('Only the firing team can use skip tokens');
       }
     }
-
-    if (firingTeam.skipTokens <= 0 && !isAdmin) throw new UserInputError('No skip tokens remaining');
+    const isAdmin = isSiteAdmin;
 
     // Skipping consumes a token but resets the cooldown so the team can fire
     // again immediately — no penalty on top of the token cost.

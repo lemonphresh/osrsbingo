@@ -254,6 +254,25 @@ async function postBSProposalCreated({
 }
 
 /**
+ * One hour before the placement phase ends — nudge each team to lock in
+ * their votes on the workshop suggestions.
+ */
+async function postBSPlacementVoteReminder({ channelId, roleId, teamName, eventId }) {
+  const ping = roleId ? `<@&${roleId}>` : '';
+  await post(
+    channelId,
+    [
+      ping,
+      `⏰ **${teamName}** — 1 hour left in the placement phase!`,
+      `Get your last votes in on your team's placement suggestions. Highest-voted layout wins; ties break at random.`,
+      dashLink(eventId, 'View your dashboard'),
+    ]
+      .filter(Boolean)
+      .join('\n')
+  );
+}
+
+/**
  * When the battle phase kicks off — posted to both teams' channels.
  */
 async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eventId }) {
@@ -294,6 +313,7 @@ module.exports = {
   postBSShotResult,
   postBSHitOnShip,
   postBSPlacementStarted,
+  postBSPlacementVoteReminder,
   postBSProposalCreated,
   postBSBattleStarted,
   postBSShipSunk,

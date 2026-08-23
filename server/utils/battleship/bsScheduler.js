@@ -32,6 +32,41 @@ async function checkBSScheduledPlacementStarts() {
   }
 }
 
+// Fires once per event, ~1h before placementEndsAt: nudges teams to lock in
+// their placement-suggestion votes via Discord. The `placementVoteReminderSentAt`
+// flag on the event guards against double-sending.
+async function checkBSPlacementVoteReminders() {
+  const { BSEvent, BSTeam } = require('../../db/models');
+  const { Op } = require('sequelize');
+  const { postBSPlacementVoteReminder } = require('./bsDiscord');
+
+  const now = new Date();
+  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+
+  const events = await BSEvent.findAll({
+    where: {
+      status: 'PLACEMENT',
+      placementEndsAt: { [Op.ne]: null, [Op.lte]: oneHourFromNow, [Op.gt]: now },
+      placementVoteReminderSentAt: null,
+    },
+  });
+
+  for (const event of events) {
+    const teams = await BSTeam.findAll({ where: { eventId: event.eventId } });
+    for (const team of teams) {
+      if (!team.discordChannelId) continue;
+      postBSPlacementVoteReminder({
+        channelId: team.discordChannelId,
+        roleId: team.discordRoleId ?? null,
+        teamName: team.teamName,
+        eventId: event.eventId,
+      }).catch(() => {});
+    }
+    await event.update({ placementVoteReminderSentAt: now });
+    logger.info({ eventId: event.eventId }, '[bsScheduler] placement vote reminder sent');
+  }
+}
+
 async function checkBSPlacementPhase() {
   const { BSEvent, BSBoard } = require('../../db/models');
   const { Op } = require('sequelize');
@@ -89,6 +124,11 @@ function startBSScheduler() {
       await checkBSScheduledPlacementStarts();
     } catch (err) {
       logger.error({ err }, '[bsScheduler] error checking scheduled placement starts');
+    }
+    try {
+      await checkBSPlacementVoteReminders();
+    } catch (err) {
+      logger.error({ err }, '[bsScheduler] error sending placement vote reminders');
     }
     try {
       await checkBSPlacementPhase();

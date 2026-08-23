@@ -33,6 +33,7 @@ import {
   VStack,
   useDisclosure,
 } from '@chakra-ui/react';
+import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -872,6 +873,25 @@ export default function BattleshipRefsPage() {
             </Button>
           </HStack>
         </HStack>
+
+        {/* Fleet status — refs see both teams' skip tokens + cooldown state so
+            they can gauge pressure while reviewing submissions. */}
+        {event?.status === 'ACTIVE' && (event.teams ?? []).length > 0 && (
+          <Box>
+            <Heading size="xs" color={DIM} fontFamily="mono" letterSpacing="widest" mb={3} textTransform="uppercase">
+              Fleet Status
+            </Heading>
+            <VStack align="stretch" spacing={3}>
+              {(event.teams ?? []).map((team) => (
+                <TeamStatusCard
+                  key={team.teamId}
+                  team={team}
+                  cooldownMinutes={event.cooldownMinutes}
+                />
+              ))}
+            </VStack>
+          </Box>
+        )}
 
         {/* Info card */}
         <Box

@@ -1,9 +1,16 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Box, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-ui/react';
+import { Box, IconButton, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { FaPlay, FaPause } from 'react-icons/fa';
 import BSGrid from './BSGrid';
 import { coordLabel } from '../../utils/battleship/bsClientHelpers';
-import { playBSSong, stopBSSong } from '../../utils/battleship/bsAudio';
+import {
+  playBSSong,
+  stopBSSong,
+  toggleBSSong,
+  getBSSongState,
+  subscribeBSSongState,
+} from '../../utils/battleship/bsAudio';
 import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 
 const G = '#4ade80';
@@ -394,6 +401,11 @@ export function BSGameOverScreen({ event, shotLog }) {
     return () => stopBSSong();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Track song state so the play/pause button reflects reality (including the
+  // 'stopped' state that fires when the song ends naturally).
+  const [songState, setSongState] = useState(() => getBSSongState());
+  useEffect(() => subscribeBSSongState(setSongState), []);
+
   // Mark seen in sessionStorage once animation finishes
   useEffect(() => {
     if (done && !alreadySeen) {
@@ -405,12 +417,22 @@ export function BSGameOverScreen({ event, shotLog }) {
 
   return (
     <Box minH="100vh" bg={BG} color={G} fontFamily="mono" position="relative">
-      {/* Volume control */}
-      {!alreadySeen && (
-        <Box position="fixed" top={4} right={4} zIndex={10}>
-          <BSVolumeControl size="sm" />
-        </Box>
-      )}
+      {/* Volume + song play/pause. Always visible so revisitors can start the
+          song back up from the top. */}
+      <HStack position="fixed" top={4} right={4} zIndex={10} spacing={2}>
+        <IconButton
+          size="sm"
+          variant="outline"
+          borderColor="#1a4028"
+          color={songState === 'playing' ? G : '#6b9e78'}
+          _hover={{ borderColor: G, color: G }}
+          aria-label={songState === 'playing' ? 'Pause victory song' : 'Play victory song'}
+          title={songState === 'playing' ? 'Pause song' : 'Play song'}
+          icon={songState === 'playing' ? <FaPause /> : <FaPlay />}
+          onClick={toggleBSSong}
+        />
+        <BSVolumeControl size="sm" />
+      </HStack>
 
       {/* CRT scanline overlay */}
       <Box
@@ -473,6 +495,54 @@ export function BSGameOverScreen({ event, shotLog }) {
                 ♥ Support the Dev
               </Button>
             </HStack>
+          </Center>
+
+          {/* Special thanks — shoutout to the folks who helped test/build Battleship,
+              plus this event's refs. */}
+          <Center mt={10}>
+            <VStack spacing={5} textAlign="center">
+              {(event.refs ?? []).length > 0 && (
+                <VStack spacing={2}>
+                  <Text
+                    fontFamily="mono"
+                    fontSize="10px"
+                    color={AMBER}
+                    letterSpacing="widest"
+                    textTransform="uppercase"
+                  >
+                    ── Referees ──
+                  </Text>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM} letterSpacing="wide">
+                    {event.refs
+                      .map((r) => r.displayName || r.username)
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                  <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide">
+                    for verifying every submission this campaign and volunteering their free time to
+                    help us have fun
+                  </Text>
+                </VStack>
+              )}
+            </VStack>
+
+            <VStack spacing={2}>
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color={AMBER}
+                letterSpacing="widest"
+                textTransform="uppercase"
+              >
+                ── Special Thanks from the Dev ──
+              </Text>
+              <Text fontFamily="mono" fontSize="xs" color={DIM} letterSpacing="wide">
+                Pirate Kanye · Callalillly · Mossy Way · Healsha · Lyreth
+              </Text>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide">
+                for testing, feedback, and keeping the fleet afloat
+              </Text>
+            </VStack>
           </Center>
         </Box>
       )}

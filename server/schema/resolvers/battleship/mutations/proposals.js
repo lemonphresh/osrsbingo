@@ -20,13 +20,21 @@ module.exports = {
     if (event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
 
     const teams = await BSTeam.findAll({ where: { eventId } });
+    const isAdmin =
+      user.admin ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
 
     let firingTeam;
     if (firingTeamId) {
       firingTeam = teams.find((t) => t.teamId === firingTeamId);
       if (!firingTeam) throw new UserInputError('Specified team not found');
+      // Non-admins can't act on behalf of a team they aren't on.
+      if (!isAdmin && !(firingTeam.members ?? []).includes(user.discordUserId)) {
+        throw new UserInputError('You are not on this team');
+      }
     } else {
-      firingTeam = teams.find((t) => t.members.includes(user.discordUserId));
+      firingTeam = teams.find((t) => (t.members ?? []).includes(user.discordUserId));
     }
     if (!firingTeam) throw new UserInputError('You are not a member of any team');
 
@@ -96,8 +104,10 @@ module.exports = {
     const event = await getEventOrThrow(existing.eventId);
     const team = await BSTeam.findByPk(existing.firingTeamId);
     const isAdmin =
-      (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
-    if (!team?.members.includes(user.discordUserId) && !isAdmin) {
+      user.admin ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
+    if (!(team?.members ?? []).includes(user.discordUserId) && !isAdmin) {
       throw new UserInputError('You are not on this team');
     }
 
@@ -107,7 +117,18 @@ module.exports = {
   },
 
   clearBSProposal: async (_, { teamId }, context) => {
-    requireAuth(context);
+    const user = requireAuth(context);
+    const { BSTeam } = getModels();
+    const team = await BSTeam.findByPk(teamId);
+    if (!team) throw new UserInputError('Team not found');
+    const event = await getEventOrThrow(team.eventId);
+    const isAdmin =
+      user.admin ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
+    if (!isAdmin && !(team.members ?? []).includes(user.discordUserId)) {
+      throw new UserInputError('You are not on this team');
+    }
     clearProposal(teamId);
     const empty = { proposalId: null, firingTeamId: teamId, status: 'CLEARED' };
     await pubsub.publish(`BS_PROPOSAL_${teamId}`, { bsProposalUpdated: empty });

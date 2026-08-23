@@ -1,16 +1,18 @@
 'use strict';
 
-const { getModels, requireAuth } = require('./helpers');
+const { getModels, requireAuth, isAdminOrRef } = require('./helpers');
 const { getViewerCount } = require('../../../utils/battleship/bsViewers');
 const { getProposal } = require('../../../utils/battleship/bsProposals');
 
 module.exports = {
-  getBSEvent: async (_, { eventId }) => {
+  getBSEvent: async (_, { eventId }, context) => {
+    requireAuth(context);
     const { BSEvent } = getModels();
     return BSEvent.findByPk(eventId);
   },
 
-  getAllBSEvents: async (_, { creatorId } = {}) => {
+  getAllBSEvents: async (_, { creatorId } = {}, context) => {
+    requireAuth(context);
     const { BSEvent } = getModels();
     const where = creatorId ? { creatorId: String(creatorId) } : {};
     return BSEvent.findAll({ where, order: [['createdAt', 'DESC']] });
@@ -28,7 +30,8 @@ module.exports = {
     return BSBoard.findByPk(boardId);
   },
 
-  getBSShotLog: async (_, { eventId }, _context) => {
+  getBSShotLog: async (_, { eventId }, context) => {
+    requireAuth(context);
     const { BSShotLog } = getModels();
     return BSShotLog.findAll({ where: { eventId }, order: [['shotAt', 'DESC']] });
   },
@@ -39,8 +42,19 @@ module.exports = {
   },
 
   getBSSubmissions: async (_, { eventId, status, tileId }, context) => {
-    requireAuth(context);
-    const { BSSubmission } = getModels();
+    const user = requireAuth(context);
+    const { BSSubmission, BSEvent, BSTeam } = getModels();
+    const event = await BSEvent.findByPk(eventId);
+    if (!event) return [];
+    // Site admins, event admins/refs, and members of any team in the event
+    // can see submissions. Everyone else gets nothing.
+    const staffAccess = user.admin === true || isAdminOrRef(event, user.id);
+    if (!staffAccess) {
+      if (!user.discordUserId) return [];
+      const teams = await BSTeam.findAll({ where: { eventId } });
+      const onTeam = teams.some((t) => (t.members ?? []).includes(user.discordUserId));
+      if (!onTeam) return [];
+    }
     const where = { eventId };
     if (status) where.status = status;
     if (tileId) where.tileId = tileId;
@@ -50,5 +64,29 @@ module.exports = {
   getActiveBSProposal: async (_, { teamId }, context) => {
     requireAuth(context);
     return getProposal(teamId) ?? null;
+  },
+
+  getBSPlacementSuggestions: async (_, { teamId }, context) => {
+    const user = requireAuth(context);
+    const { BSTeam, BSPlacementSuggestion } = getModels();
+    const team = await BSTeam.findByPk(teamId);
+    if (!team) return [];
+    const { BSEvent } = getModels();
+    const event = await BSEvent.findByPk(team.eventId);
+    if (!event) return [];
+    const uid = String(user.id);
+    const isSiteAdmin = user.admin === true;
+    const isEventAdmin =
+      isSiteAdmin ||
+      (event.adminIds ?? []).includes(uid) ||
+      event.creatorId === uid;
+    // Team members always see their own team's suggestions. Refs can only see
+    // if they're on the team. Admins see everything.
+    const onTeam = !!user.discordUserId && (team.members ?? []).includes(user.discordUserId);
+    if (!isEventAdmin && !onTeam) return [];
+    return BSPlacementSuggestion.findAll({
+      where: { teamId },
+      order: [['createdAt', 'ASC']],
+    });
   },
 };

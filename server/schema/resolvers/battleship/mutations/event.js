@@ -310,24 +310,34 @@ module.exports = {
 
   deleteBSEvent: async (_, { eventId }, context) => {
     const user = requireAuth(context);
-    const { BSTask, BSTeam, BSBoard, BSShipTemplate, BSShotLog, BSShipPlacement, BSTile } = getModels();
+    const models = getModels();
+    const { BSTask, BSTeam, BSBoard, BSShipTemplate, BSShotLog, BSShipPlacement, BSTile, BSSubmission } = models;
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
 
-    // Collect board IDs before deletion so we can cascade board-level children
-    const boards = await BSBoard.findAll({ where: { eventId }, attributes: ['boardId'] });
-    const boardIds = boards.map((b) => b.boardId);
-
-    if (boardIds.length > 0) {
-      await BSTile.destroy({ where: { boardId: boardIds } });
-      await BSShipPlacement.destroy({ where: { boardId: boardIds } });
-    }
-    await BSBoard.destroy({ where: { eventId } });
-    await BSShotLog.destroy({ where: { eventId } });
-    await BSShipTemplate.destroy({ where: { eventId } });
-    await BSTask.destroy({ where: { eventId } });
-    await BSTeam.destroy({ where: { eventId } });
-    await event.destroy();
+    // Run the cascade in a transaction so a mid-flight failure doesn't leave
+    // orphaned rows referencing a deleted event.
+    await models.sequelize.transaction(async (transaction) => {
+      const boards = await BSBoard.findAll({
+        where: { eventId },
+        attributes: ['boardId'],
+        transaction,
+      });
+      const boardIds = boards.map((b) => b.boardId);
+      if (boardIds.length > 0) {
+        await BSTile.destroy({ where: { boardId: boardIds }, transaction });
+        await BSShipPlacement.destroy({ where: { boardId: boardIds }, transaction });
+      }
+      if (BSSubmission) {
+        await BSSubmission.destroy({ where: { eventId }, transaction });
+      }
+      await BSBoard.destroy({ where: { eventId }, transaction });
+      await BSShotLog.destroy({ where: { eventId }, transaction });
+      await BSShipTemplate.destroy({ where: { eventId }, transaction });
+      await BSTask.destroy({ where: { eventId }, transaction });
+      await BSTeam.destroy({ where: { eventId }, transaction });
+      await event.destroy({ transaction });
+    });
 
     return { success: true, message: 'Event deleted.' };
   },

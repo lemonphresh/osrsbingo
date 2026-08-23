@@ -239,6 +239,9 @@ const resolvers = {
   BSSubmission: {
     ...BSResolvers.BSSubmission,
   },
+  BSPlacementSuggestion: {
+    ...BSResolvers.BSPlacementSuggestion,
+  },
 };
 
 module.exports = resolvers;

@@ -14,12 +14,39 @@ const { buildOceanPool } = require('./bsDefaultTasks');
  * back to the original bulk-create path.
  */
 async function runBSGameStart(event) {
-  const { BSBoard, BSShipPlacement, BSShipTemplate, BSTask, BSTile } = require('../../db/models');
+  const { BSBoard, BSShipPlacement, BSShipTemplate, BSTask, BSTile, BSPlacementSuggestion } = require('../../db/models');
 
   const eventId = event.eventId;
   // Exclude the template board (teamId IS NULL) — only process team boards
   const boards = await BSBoard.findAll({ where: { eventId }, order: [['createdAt', 'ASC']] });
   const teamBoards = boards.filter((b) => b.teamId !== null);
+
+  // ── Pick a winning placement suggestion per team (if any exist) ───────────
+  // Highest vote count wins; ties are broken randomly. If a team has no
+  // suggestions, we fall through to the random auto-placement below.
+  for (const board of teamBoards) {
+    const suggestions = BSPlacementSuggestion
+      ? await BSPlacementSuggestion.findAll({ where: { teamId: board.teamId } })
+      : [];
+    if (suggestions.length === 0) continue;
+    const maxVotes = Math.max(...suggestions.map((s) => (s.votes ?? []).length));
+    const topTier = suggestions.filter((s) => (s.votes ?? []).length === maxVotes);
+    const winner = topTier[Math.floor(Math.random() * topTier.length)];
+    // Wipe any prior placements on this board and lock in the winner's ships.
+    await BSShipPlacement.destroy({ where: { boardId: board.boardId } });
+    for (const ship of winner.ships ?? []) {
+      await BSShipPlacement.create({
+        placementId: generateId('bsp'),
+        boardId:     board.boardId,
+        shipType:    ship.shipType,
+        orientation: ship.orientation,
+        startRow:    ship.startRow,
+        startCol:    ship.startCol,
+      });
+    }
+    // Cleanup: suggestions are ephemeral, delete once the game locks in.
+    await BSPlacementSuggestion.destroy({ where: { teamId: board.teamId } });
+  }
 
   // Auto-place any ships that were never manually placed
   for (const board of teamBoards) {

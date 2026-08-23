@@ -81,8 +81,35 @@ function track(audio, gain = 1) {
   return audio;
 }
 
-// Holds the game-over song instance so it can be stopped if needed
+// Holds the game-over song instance so it can be stopped/paused/resumed.
 let songInstance = null;
+const songListeners = new Set();
+
+export function getBSSongState() {
+  if (!songInstance) return 'stopped';
+  return songInstance.paused ? 'paused' : 'playing';
+}
+
+export function subscribeBSSongState(cb) {
+  songListeners.add(cb);
+  return () => songListeners.delete(cb);
+}
+
+function notifySongState() {
+  const state = getBSSongState();
+  for (const cb of songListeners) {
+    try { cb(state); } catch (_) {}
+  }
+}
+
+export function pauseBSSong() {
+  if (songInstance && !songInstance.paused) songInstance.pause();
+}
+
+export function toggleBSSong() {
+  if (getBSSongState() === 'playing') pauseBSSong();
+  else playBSSong();
+}
 
 export function playBSSound(name) {
   const src = SOUNDS[name];
@@ -96,14 +123,26 @@ export function playBSSound(name) {
 }
 
 export function playBSSong() {
-  if (songInstance) return; // already playing
+  // Already playing? no-op. Paused? resume. Otherwise start fresh.
+  if (songInstance) {
+    if (songInstance.paused) {
+      songInstance.play().catch(() => {});
+      notifySongState();
+    }
+    return;
+  }
   const gain = SOUND_GAINS.bssong ?? 1;
   songInstance = new Audio(bsSongSrc);
   songInstance.loop = false;
   songInstance.volume = Math.max(0, Math.min(1, currentVolume * gain));
   track(songInstance, gain);
+  songInstance.addEventListener('ended', () => {
+    songInstance = null;
+    notifySongState();
+  });
+  songInstance.addEventListener('play', notifySongState);
+  songInstance.addEventListener('pause', notifySongState);
   songInstance.play().catch(() => {});
-  songInstance.addEventListener('ended', () => { songInstance = null; });
 }
 
 export function stopBSSong() {
@@ -111,6 +150,7 @@ export function stopBSSong() {
   songInstance.pause();
   songInstance.currentTime = 0;
   songInstance = null;
+  notifySongState();
 }
 
 export function setSongMuted(muted) {

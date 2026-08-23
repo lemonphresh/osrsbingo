@@ -57,10 +57,12 @@ module.exports = {
     const team = await getTeamOrThrow(teamId);
     const event = await BSEvent.findByPk(team.eventId);
     requireAdmin(event, user.id);
+    // Only overwrite fields explicitly passed in — otherwise partial updates
+    // (like saving only womTeamName) would wipe the other Discord IDs.
     await team.update({
-      discordChannelId: discordChannelId ?? null,
-      discordRoleId: discordRoleId ?? null,
-      womTeamName: womTeamName ?? null,
+      ...(discordChannelId !== undefined && { discordChannelId: discordChannelId || null }),
+      ...(discordRoleId !== undefined && { discordRoleId: discordRoleId || null }),
+      ...(womTeamName !== undefined && { womTeamName: womTeamName || null }),
     });
     return team;
   },

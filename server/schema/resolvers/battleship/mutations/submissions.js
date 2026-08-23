@@ -12,8 +12,8 @@ const {
 
 module.exports = {
   createBSSubmission: async (_, { input }, context) => {
-    requireAuth(context);
-    const { BSSubmission, BSTile, BSTask, BSBoard, BSTeam } = getModels();
+    const user = requireAuth(context);
+    const { BSSubmission, BSTile, BSTask, BSBoard, BSTeam, BSEvent } = getModels();
 
     const tile = await getTileOrThrow(input.tileId);
     if (!tile.isShot) throw new UserInputError('Cannot submit for a tile that has not been shot');
@@ -22,10 +22,27 @@ module.exports = {
     const board = await BSBoard.findByPk(tile.boardId);
     if (!board) throw new UserInputError('Board not found');
 
+    // The tile is on the DEFENDING team's board; only members of the FIRING
+    // team (or a staff role) should be able to submit for it. Trust the
+    // caller's own discord ID from JWT — never the caller-supplied field.
+    const event = await BSEvent.findByPk(board.eventId);
+    const isStaff =
+      user.admin === true ||
+      (event?.adminIds ?? []).includes(String(user.id)) ||
+      event?.creatorId === String(user.id) ||
+      (event?.refIds ?? []).includes(String(user.id));
+
+    const teams = await BSTeam.findAll({ where: { eventId: board.eventId } });
     let team = null;
-    if (input.discordUserId) {
-      const teams = await BSTeam.findAll({ where: { eventId: board.eventId } });
-      team = teams.find((t) => (t.members ?? []).includes(input.discordUserId));
+    if (user.discordUserId) {
+      team = teams.find((t) => (t.members ?? []).includes(user.discordUserId));
+    }
+
+    if (!isStaff) {
+      if (!team) throw new UserInputError('You are not on a team in this event');
+      if (team.teamId === board.teamId) {
+        throw new UserInputError('You can only submit for tiles you fired at');
+      }
     }
 
     let tileLabel = null;
@@ -34,6 +51,16 @@ module.exports = {
       tileLabel = task?.label ?? null;
     }
 
+    // Staff acting on someone's behalf can pass discordUserId/discordUsername
+    // explicitly. For regular players, use their own JWT identity so people
+    // can't spoof submissions as someone else.
+    const submitterDiscordId = isStaff
+      ? (input.discordUserId ?? user.discordUserId ?? null)
+      : (user.discordUserId ?? null);
+    const submitterDiscordUsername = isStaff
+      ? (input.discordUsername ?? null)
+      : null;
+
     const submission = await BSSubmission.create({
       submissionId:     generateId('bssub'),
       eventId:          board.eventId,
@@ -41,8 +68,8 @@ module.exports = {
       boardId:          tile.boardId,
       teamId:           team?.teamId ?? '',
       tileLabel,
-      discordUserId:    input.discordUserId    ?? null,
-      discordUsername:  input.discordUsername  ?? null,
+      discordUserId:    submitterDiscordId,
+      discordUsername:  submitterDiscordUsername,
       screenshotUrl:    input.screenshotUrl    ?? null,
       channelId:        input.channelId        ?? null,
       discordMessageId: input.discordMessageId ?? null,

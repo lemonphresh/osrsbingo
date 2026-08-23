@@ -29,6 +29,7 @@ module.exports = (sequelize) => {
       placementStartsAt:   { type: DataTypes.DATE, allowNull: true },
       placementEndsAt:     { type: DataTypes.DATE, allowNull: true },
       scheduledPlacementStart: { type: DataTypes.DATE, allowNull: true },
+      placementVoteReminderSentAt: { type: DataTypes.DATE, allowNull: true },
       creatorId:           { type: DataTypes.STRING, allowNull: true },
       adminIds: {
         type: DataTypes.ARRAY(DataTypes.STRING),

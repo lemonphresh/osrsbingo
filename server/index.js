@@ -378,13 +378,19 @@ const serverCleanup = useServer(
         try {
           const decoded = jwt.verify(token, SECRET);
           let freshDiscordUserId = decoded.discordUserId ?? null;
+          let freshAdmin = decoded.admin === true;
           try {
-            const dbUser = await models.User.findByPk(decoded.userId, { attributes: ['discordUserId'] });
-            if (dbUser) freshDiscordUserId = dbUser.discordUserId ?? null;
+            const dbUser = await models.User.findByPk(decoded.userId, {
+              attributes: ['discordUserId', 'admin'],
+            });
+            if (dbUser) {
+              freshDiscordUserId = dbUser.discordUserId ?? null;
+              freshAdmin = dbUser.admin === true;
+            }
           } catch (err) {
-            logger.warn({ err: err.message }, 'failed to refresh discordUserId from DB (ws)');
+            logger.warn({ err: err.message }, 'failed to refresh user fields from DB (ws)');
           }
-          user = { id: decoded.userId, admin: decoded.admin, discordUserId: freshDiscordUserId };
+          user = { id: decoded.userId, admin: freshAdmin, discordUserId: freshDiscordUserId };
           logger.info({ userId: user.id }, 'WebSocket authenticated');
         } catch (err) {
           logger.warn('Invalid WebSocket token');
@@ -415,16 +421,24 @@ const server = new ApolloServer({
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
-        // JWT can hold a stale discordUserId (OAuth linking updates the DB but doesn't reissue).
-        // Refresh from DB so team-membership checks always see the current value.
+        // JWT holds a snapshot of user fields at login. Refresh from DB so
+        // discordUserId (updated by OAuth link) and admin (revoked by settings)
+        // are always current — otherwise privilege changes don't take effect
+        // until a new token is issued.
         let freshDiscordUserId = decoded.discordUserId ?? null;
+        let freshAdmin = decoded.admin === true;
         try {
-          const dbUser = await models.User.findByPk(decoded.userId, { attributes: ['discordUserId'] });
-          if (dbUser) freshDiscordUserId = dbUser.discordUserId ?? null;
+          const dbUser = await models.User.findByPk(decoded.userId, {
+            attributes: ['discordUserId', 'admin'],
+          });
+          if (dbUser) {
+            freshDiscordUserId = dbUser.discordUserId ?? null;
+            freshAdmin = dbUser.admin === true;
+          }
         } catch (err) {
-          logger.warn({ err: err.message }, 'failed to refresh discordUserId from DB');
+          logger.warn({ err: err.message }, 'failed to refresh user fields from DB');
         }
-        user = { id: decoded.userId, admin: decoded.admin, discordUserId: freshDiscordUserId };
+        user = { id: decoded.userId, admin: freshAdmin, discordUserId: freshDiscordUserId };
       } catch (err) {
         logger.warn('Invalid or expired token');
       }
