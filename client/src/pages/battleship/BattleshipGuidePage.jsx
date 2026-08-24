@@ -91,75 +91,127 @@ function ParticipantGuide() {
   return (
     <Box>
       <Callout color={GREEN} icon={FaInfoCircle}>
-        You are on a team competing against another team. Your goal is to sink all five of the enemy
-        ships by completing OSRS tasks, one hit at a time.
+        You&apos;re on a team of OSRS players squaring off against another team. Your goal: sink all
+        five enemy ships by proposing shots, voting with your team, and completing the OSRS tasks
+        that get revealed on every hit and miss.
       </Callout>
 
-      <SectionHeader>Before the Game Starts</SectionHeader>
-      <Step num="1" title="Join your team" color={GREEN}>
-        The event creator assigns you to a team. Make sure your Discord account is linked so your
-        submissions are properly attributed.
+      <SectionHeader>Before You Play</SectionHeader>
+      <Step num="1" title="Get on the roster" color={GREEN}>
+        The event admin adds you by Discord ID. Link your Discord to your OSRS Bingo Hub account so
+        the site can recognize you as a team member. Without it, you can&apos;t propose, vote, or
+        submit tasks.
       </Step>
-      <Step num="2" title="Ship placement phase" color={GREEN}>
-        Your team decides where to place your five ships on a 10x10 grid. Ships range from 2 to 5
-        cells. The enemy cannot see your board.
-      </Step>
-      <Step num="3" title="Placement lock" color={GREEN}>
-        Once your team is happy with the layout, leave it be until the Battle Phase begins.
-      </Step>
-
-      <SectionHeader>During the Battle</SectionHeader>
-      <Step num="1" title="Vote on a shot" color={CYAN}>
-        When it is time to fire, your team proposes coordinates to target on the enemy board. Once
-        enough team members approve the proposal, the team member who proposed the shot must press
-        "FIRE".
-      </Step>
-      <Step num="2" title="Hit / complete the task" color={CYAN}>
-        If you hit an enemy ship cell, a task is revealed. Submit a pre-screenshot first if
-        applicable, complete the task, then submit your completion screenshot(s).
-      </Step>
-      <Step num="3" title="Miss / skip or complete" color={CYAN}>
-        If you hit ocean, a task still appears. Ocean tasks can be skipped using a skip token. Skip
-        tokens are limited, so use them wisely. You can also just complete the task normally.
-      </Step>
-      <Step num="4" title="Wait for ref sign-off" color={CYAN}>
-        Your team is locked from firing until a ref reviews your screenshot and marks the task
-        complete. Check the event page to see when you are cleared.
-      </Step>
-      <Step num="5" title="Cooldown" color={CYAN}>
-        After each shot there is a cooldown before your team can fire again. The timer is shown on
-        the event page.
-      </Step>
-      <Step num="6" title="Getting hit" color={AMBER}>
-        The enemy fires at your board too. If they hit one of your ship cells, you will get a
-        Discord notification.
+      <Step num="2" title="Turn on sound and pick a volume" color={GREEN}>
+        The volume icon in the top bar sets a master level for radar pings, splashes, and ship-hit
+        SFX. There&apos;s a test-sound button in the popover so you can dial it in. Sounds fire even
+        when the tab is backgrounded once you&apos;ve interacted with the page, so treat them like
+        notifications.
       </Step>
 
-      <SectionHeader>Submissions</SectionHeader>
+      <SectionHeader>Placement Phase</SectionHeader>
+      <Callout color={GREEN} icon={FaInfoCircle}>
+        Everyone on your team workshops a ship layout privately, then shares it as a suggestion for
+        the team to vote on. Whichever layout has the most votes when placement ends becomes the
+        team&apos;s fleet. Ties break at random.
+      </Callout>
+      <Step num="1" title="Workshop your layout" color={GREEN}>
+        Click cells on your board to place all five ships (Carrier 5, Battleship 4, Cruiser 3,
+        Submarine 3, Destroyer 2). It&apos;s saved locally to your browser and only you can see it
+        until you share.
+      </Step>
+      <Step num="2" title="Share a suggestion" color={GREEN}>
+        Hit <strong>Share Suggestion →</strong> once all five ships are placed. Your layout gets an
+        automatic vote from you (you can move it later). Re-sharing a modified layout wipes your
+        previous suggestion&apos;s votes.
+      </Step>
+      <Step num="3" title="Vote on teammates' suggestions" color={GREEN}>
+        Everyone gets exactly one vote per team. Voting on a new suggestion moves your vote off the
+        previous one. The UI shows a green &quot;✓ Your vote&quot; badge on whichever suggestion
+        currently holds your vote. If a teammate&apos;s layout matches yours exactly, sharing yours
+        just votes for theirs instead of duplicating.
+      </Step>
+      <Step num="4" title="Track team participation" color={GREEN}>
+        The footer below the workshop shows every teammate with icons for &quot;shared&quot; and
+        &quot;voted&quot; so you can see who&apos;s still catching up. A Discord reminder pings the
+        channel one hour before placement ends. Get your votes in before the clock runs out.
+      </Step>
+      <Callout color={AMBER} icon={FaExclamationTriangle}>
+        If nobody on your team shares a suggestion, the game randomly places your fleet for you. If
+        it&apos;s just you on the team, your shared suggestion wins by default.
+      </Callout>
+
+      <SectionHeader>Battle Phase</SectionHeader>
+      <Step num="1" title="Propose a shot" color={CYAN}>
+        Click any unrevealed cell on the enemy board to propose firing there. Your teammates get a
+        Discord ping and a modal opens on the event page so they can vote yes or no.
+      </Step>
+      <Step num="2" title="Vote your team's plan" color={CYAN}>
+        The vote threshold (how many approvals are needed) is set per event. Usually it&apos;s 1 for
+        small teams and up to 3 for larger ones, though the admin can change this. One veto rejects
+        the proposal outright. Proposals expire after 2 minutes; if that happens, someone else can
+        propose.
+      </Step>
+      <Step num="3" title="Fire (proposer only)" color={CYAN}>
+        Once approved, only the person who proposed the shot sees the red <strong>FIRE</strong>
+        button. Everyone else sees &quot;waiting for [name] to fire.&quot; This keeps chaos down;
+        one person pulls the trigger.
+      </Step>
+      <Step num="4" title="Complete the revealed task" color={CYAN}>
+        Every shot reveals an OSRS task on that tile, whether it&apos;s a hit or a miss. If
+        it&apos;s a metric task (KC, XP), start with a <strong>!bspre</strong> baseline in Discord,
+        then <strong>!bssubmit</strong> once you&apos;ve done the work. Non-metric tasks (unique
+        drops, minigames) skip the baseline and go straight to <strong>!bssubmit</strong>.
+      </Step>
+      <Step num="5" title="Wait for a ref to mark complete" color={CYAN}>
+        Your team can&apos;t fire again until a ref reviews your screenshot(s) and marks the tile
+        complete. Watch the status light on the event page:{' '}
+        <strong style={{ color: '#4ade80' }}>READY</strong> (free to propose),{' '}
+        <strong style={{ color: '#facc15' }}>VOTING</strong> (proposal in flight),{' '}
+        <strong style={{ color: '#facc15' }}>COOLDOWN</strong> (post-shot cooldown active),{' '}
+        <strong style={{ color: '#f87171' }}>ON TASK</strong> (waiting on ref sign-off).
+      </Step>
+      <Step num="6" title="Skip a miss (if you have tokens)" color={AMBER}>
+        If a miss task feels like it&apos;s not worth doing, the team can vote to spend a skip token
+        instead. Skip proposals work the same way as shot proposals: teammates vote yes or no, and
+        if approved the token is consumed and the tile is resolved. Skipping{' '}
+        <strong>also clears your cooldown</strong> so you can propose the next shot immediately.
+      </Step>
+      <Step num="7" title="Under fire" color={AMBER}>
+        The enemy shoots at your board too. Your Discord channel pings when a ship of yours takes a
+        hit. Sunk ships get a distinct dark-red state with a ✕ marker across every cell.
+      </Step>
+
+      <SectionHeader>Submissions via Discord</SectionHeader>
       <Callout color={CYAN} icon={FaInfoCircle}>
-        All proof is submitted via Discord. Your team channel receives a notification when a task is
-        assigned.
+        All proof goes through your team&apos;s Discord channel. Attach a screenshot to any
+        submission command, make sure it includes the event password if the admin set one. The bot
+        picks up whichever tile your team is currently on.
       </Callout>
-      <Step num="1" title="Pre-screenshot (baseline)" color={CYAN}>
-        Before doing the task, submit a screenshot showing your current state: collection log, total
-        xp or kill count depending on the task. This establishes a verifiable starting point.
+      <Step num="1" title="!bspre — pre-screenshot" color={CYAN}>
+        For tasks with a numeric target (X kc, N xp), post <strong>!bspre</strong> with a screenshot
+        showing your current baseline (KC counter, XP total, whatever the task tracks). Refs approve
+        this before you start grinding.
       </Step>
-      <Step num="2" title="Completion screenshot" color={CYAN}>
-        After completing the task, submit your proof. The ref compares it against your baseline and
-        approves or denies.
+      <Step num="2" title="!bssubmit — completion / progress" color={CYAN}>
+        Post <strong>!bssubmit</strong> with a screenshot to show progress or completion. Refs can
+        adjust a progress slider along the way. For tasks with a unique-drops target the slider
+        walks &quot;N / Total uniques,&quot; and for others it&apos;s 0 to 100%.
       </Step>
 
       <SectionHeader>Skip Tokens</SectionHeader>
       <Callout color={AMBER} icon={FaExclamationTriangle}>
-        Skip tokens let your team bypass an ocean (miss) task without completing it. The event
-        creator sets the starting count. Use them strategically: save them for tasks that would take
-        too long or when you need to fire quickly.
+        Every team starts with a small pool of skip tokens (event admin picks the count). Admins can
+        also award or revoke tokens mid-game via the admin panel. When they do, your team channel
+        gets a Discord post explaining why. Skipping consumes one token and resets your cooldown so
+        you can immediately propose again.
       </Callout>
 
       <SectionHeader>Winning</SectionHeader>
       <Callout color={GREEN} icon={FaInfoCircle}>
-        You win when all five enemy ships are sunk. A ship is sunk when every cell has been hit and
-        its task completed and verified by a ref.
+        You win when all five enemy ships are fully sunk (every ship cell shot AND ref-approved).
+        The game-over screen animates through the whole engagement log with sound, so make sure your
+        volume is on for the finale.
       </Callout>
     </Box>
   );
@@ -169,67 +221,92 @@ function RefGuide() {
   return (
     <Box>
       <Callout color={PINK} icon={FaInfoCircle}>
-        As a ref, you review submissions and keep the game moving. You have access to the refs panel
-        for any event you are assigned to. The event creator has the same access plus the ability to
-        manage event settings.
+        As a ref, you keep the game moving by reviewing screenshots and marking tiles complete. The
+        event admin adds you via Discord ID. From then on you have access to the refs panel for that
+        event and can see live team status. Event admins have all your powers plus event settings.
       </Callout>
 
-      <SectionHeader>Your Responsibilities</SectionHeader>
-      <Step num="1" title="Review pre-screenshots" color={PINK}>
-        When a task is assigned after a shot fires, players must submit a baseline screenshot before
-        doing the task. Check that it shows a credible starting state: kill count, starting xp, or
-        collection log. Approve to confirm the baseline, or deny with a reason.
+      <SectionHeader>Your Refs Panel At A Glance</SectionHeader>
+      <Callout color={PINK} icon={FaInfoCircle}>
+        The refs panel updates live via subscriptions, so no refresh is needed. At the top
+        you&apos;ll see the event password (if one is set), a live &quot;Fleet Status&quot; block
+        showing both teams&apos; skip tokens and cooldown, a Colorblind toggle, and a Sound toggle
+        (your setting persists across visits). Below that: pending submissions grouped by tile, with
+        an inline screenshot thumbnail on each. Click any thumbnail to zoom.
+      </Callout>
+
+      <SectionHeader>The Review Loop</SectionHeader>
+      <Step num="1" title="Skim the pending queue" color={PINK}>
+        Pending submissions collect at the top of each tile group. Every tile also shows a live
+        progress slider you can drag up as the player nears completion. Approving a submission alone
+        does NOT unblock the firing team; the tile itself has to be marked complete.
       </Step>
-      <Step num="2" title="Review completion screenshots" color={PINK}>
-        After a player submits their completion proof, compare it against the baseline. Did they
-        complete the task from that starting point? Approve or deny with a clear reason and update
-        the progress bar. This will also update the team's interface with their progress.
+      <Step num="2" title="Review pre-screenshots" color={PINK}>
+        For tasks with a numeric metric (KC, XP), players post <strong>!bspre</strong> before
+        starting. Verify the baseline reads correctly, then Approve. If it looks staged or wrong,
+        Deny with a specific reason. The reason posts to the team channel with a mention.
       </Step>
-      <Step num="3" title="Mark tasks complete" color={PINK}>
-        Once satisfied with the proof, explicitly mark the tile as complete on the refs panel. This
-        is what unlocks the team to fire again. Approving a screenshot alone does not do this.
+      <Step num="3" title="Review completion screenshots" color={PINK}>
+        When a completion (<strong>!bssubmit</strong>) comes in, compare against the baseline you
+        approved earlier. Approve when the gain matches the task target. Deny with a reason if
+        anything looks off.
+      </Step>
+      <Step num="4" title="Slide progress as you verify" color={PINK}>
+        The progress slider shows partial work. For most tasks it&apos;s a 0 to 100% percentage.{' '}
+        <strong>For unique-drop tasks it walks 1 / N uniques</strong> so you can tick off drops
+        one-by-one. The slider must hit 100% (or full N uniques) before Mark Complete unlocks.
+      </Step>
+      <Step num="5" title="Mark Complete" color={PINK}>
+        This is the button that actually resolves the tile and lets the firing team fire again. It
+        also triggers ship-sunk and game-over checks. If clicking Mark Complete finishes the last
+        ship on the losing team&apos;s board, the game ends and the game-over Discord posts fire
+        automatically.
       </Step>
 
-      <SectionHeader>The Refs Panel</SectionHeader>
+      <SectionHeader>Placement Suggestions (During Placement Phase)</SectionHeader>
       <Callout color={PINK} icon={FaInfoCircle}>
-        Access the refs panel via the link on the event page. It shows all pending submissions
-        grouped by tile, updating live as new ones come in. Reviewed submissions stay visible
-        briefly so you can take follow-up actions before they filter away.
+        On the admin page you can see each team&apos;s placement suggestions and vote counts.
+        You&apos;ll only see the team you&apos;re actually on, unless you&apos;re also an event
+        admin. This is read-only: refs don&apos;t vote, they just observe.
       </Callout>
 
       <SectionHeader>Submission Types</SectionHeader>
       <SimpleGrid columns={[1, 2]} spacing={4} mb={4}>
         <Box bg="#0d2137" border="1px solid" borderColor={BORDER} borderRadius="md" p={4}>
           <Text fontFamily="mono" fontSize="xs" fontWeight="bold" color={CYAN} mb={2}>
-            Pre-Screenshot
+            Pre-Screenshot (!bspre)
           </Text>
           <Text fontFamily="mono" fontSize="xs" color={DIM} lineHeight="1.8">
-            Submitted before the task starts. Establishes a baseline. Approve it to confirm you have
-            seen a valid starting point. Deny if it looks invalid or staged.
+            Only needed for numeric-metric tasks (KC/XP). Establishes a baseline before the player
+            starts grinding. Approve if it shows a credible starting value; deny if it looks staged
+            or unclear.
           </Text>
         </Box>
         <Box bg="#0d2137" border="1px solid" borderColor={BORDER} borderRadius="md" p={4}>
           <Text fontFamily="mono" fontSize="xs" fontWeight="bold" color={GREEN} mb={2}>
-            Completion Screenshot
+            Completion (!bssubmit)
           </Text>
           <Text fontFamily="mono" fontSize="xs" color={DIM} lineHeight="1.8">
-            Submitted after completing the task. Compare against the baseline. If the gain is
-            verified, approve and then mark the tile complete to unblock the team.
+            Progress and/or completion proof. Compare against the pre-screenshot; the gain has to
+            match the task target. Approve, adjust the slider to reflect verified progress, and hit
+            Mark Complete when it&apos;s truly done.
           </Text>
         </Box>
       </SimpleGrid>
 
       <SectionHeader>Discord Notifications</SectionHeader>
       <Callout color={AMBER} icon={FaInfoCircle}>
-        Discord messages are sent automatically when you approve or deny a submission. Players are
-        mentioned so they know the status immediately. You do not need to post manually in team
-        channels.
+        Approving/denying a submission auto-posts a message to the team&apos;s Discord channel with
+        a mention. Marking a tile complete posts a &quot;fire again&quot; message unless it was the
+        game-winning move — in which case only the ship-sunk + game-over messages fire. You
+        don&apos;t have to type anything by hand.
       </Callout>
 
-      <SectionHeader>What You Cannot Do</SectionHeader>
+      <SectionHeader>What Refs Can't Do</SectionHeader>
       <Callout color={RED} icon={FaLock}>
-        Refs cannot create or delete events, add or remove teams, change event settings, or manage
-        other refs. Those actions belong to the event creator only.
+        Refs can&apos;t create/delete events, add or remove teams, change vote thresholds, award
+        skip tokens, launch the placement or battle phase, or vote on placement suggestions. All of
+        those belong to the event admin/creator only.
       </Callout>
     </Box>
   );
@@ -238,7 +315,6 @@ function RefGuide() {
 export default function BattleshipGuidePage() {
   usePageTitle('Battleship / Game Guide');
   const [tab, setTab] = useState(0);
-
 
   return (
     <Box flex="1" minH="100vh" bg={NAVY}>

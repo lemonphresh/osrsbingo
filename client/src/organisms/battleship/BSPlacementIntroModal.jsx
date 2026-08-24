@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { playBSSound } from '../../utils/battleship/bsAudio';
 import {
   Modal,
   ModalOverlay,
@@ -66,11 +65,11 @@ function InfoCard({ children, accentColor = BORDER }) {
   );
 }
 
-export function getBSBattleIntroKey(eventId) {
-  return `bs_battle_intro_seen_${eventId}`;
+export function getBSPlacementIntroKey(eventId) {
+  return `bs_placement_intro_seen_${eventId}`;
 }
 
-export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }) {
+export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhaseHours }) {
   const [scrolledToBottom, setScrolledToBottom] = useState(false);
   const [checked, setChecked] = useState(false);
 
@@ -80,8 +79,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
   };
 
   const handleConfirm = () => {
-    localStorage.setItem(getBSBattleIntroKey(eventId), 'true');
-    playBSSound('gogogo');
+    localStorage.setItem(getBSPlacementIntroKey(eventId), 'true');
     onClose();
   };
 
@@ -124,10 +122,10 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
               letterSpacing="widest"
               textTransform="uppercase"
             >
-              Battle Phase
+              Placement Phase
             </Text>
             <Text fontFamily="mono" fontSize="xs" color={DIM} letterSpacing="wide">
-              Read through how the battle phase works before you begin.
+              Read through how ship placement works before you begin.
             </Text>
             <HStack spacing={2} pt={1}>
               <Box w="24px" h="1px" bg={CYAN} />
@@ -154,126 +152,107 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
             <InfoCard accentColor={CYAN}>
               <SectionLabel>Objective</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7">
-                Sink all of the enemy team's ships before they sink yours. Every shot reveals a
-                task. Your team completes it whether you hit a ship or open ocean. Land hits on all
-                of a ship's cells and complete those tasks to sink it.
+                Each team plays with a single fleet layout. Everyone on your team designs a layout
+                privately, then shares it as a suggestion for the team to vote on. Whichever
+                suggestion has the most votes when placement ends becomes the team's fleet.
               </Text>
             </InfoCard>
 
-            {/* Taking Shots */}
+            {/* Workshop */}
             <Box>
-              <SectionLabel>Taking Shots</SectionLabel>
+              <SectionLabel>Your Private Workshop</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
-                Fire at any unrevealed cell on the enemy board. When the cell is revealed,{' '}
+                Your workshop is a private draft board only you can see. Place every ship there,
+                rotate them, and rearrange as much as you want. Nothing is shared with your team
+                until you click{' '}
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  your team
-                </Text>{' '}
-                must complete the task shown. Every shot comes with a task.
-              </Text>
-              <VStack align="stretch" spacing={2}>
-                <RuleRow badge="Ship Hit" scheme="red">
-                  You hit a ship cell. Complete the task to score the hit and damage their fleet.
-                </RuleRow>
-                <RuleRow badge="Ocean Miss" scheme="gray">
-                  You hit open water. Complete the task to earn your next shot.
-                </RuleRow>
-              </VStack>
-            </Box>
-
-            {/* Voting on Shots */}
-            <Box>
-              <SectionLabel>Voting on Shots</SectionLabel>
-              <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
-                You don't fire alone. Selecting a cell creates a{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  proposal
+                  Share as Suggestion
                 </Text>
-                . A popup appears showing the target on a mini-board and asking your teammates to
-                approve or veto.
+                .
               </Text>
               <VStack align="stretch" spacing={2}>
-                <RuleRow badge="Approve" scheme="green">
-                  Vote yes. Once enough teammates approve, the shot is locked in and fires.
+                <RuleRow badge="Autosaves" scheme="cyan">
+                  Your workshop saves to this browser automatically. Come back later on the same
+                  device and pick up where you left off.
                 </RuleRow>
-                <RuleRow badge="Veto" scheme="red">
-                  Any single teammate can veto. The shot is cancelled and your team proposes a new
-                  target.
-                </RuleRow>
-                <RuleRow badge="Expire" scheme="yellow">
-                  Proposals expire after{' '}
-                  <Text as="span" fontWeight="bold" color="#e2e8f0">
-                    2 minutes
-                  </Text>
-                  . If nobody acts in time, the proposal cancels automatically so your team isn't
-                  stuck on an AFK teammate.
+                <RuleRow badge="Full Fleet" scheme="yellow">
+                  You must place every ship in your workshop before you can share it.
                 </RuleRow>
               </VStack>
             </Box>
 
-            {/* Skip Tokens */}
+            {/* Suggestions */}
             <Box>
-              <SectionLabel>Skip Tokens</SectionLabel>
+              <SectionLabel>Sharing a Suggestion</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
-                Your team starts with a limited number of{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  skip tokens
-                </Text>
-                . When you land an ocean miss and don't want to complete that task, you can propose
-                a skip. Your team votes on it the same way as a shot proposal. If approved, one
-                token is spent and the task is bypassed so you can fire again sooner.
+                Sharing turns your workshop into a suggestion your teammates can see and vote on.
+                You can un-share, edit, and re-share as often as you like during placement.
               </Text>
               <VStack align="stretch" spacing={2}>
-                <RuleRow badge="Ocean Only" scheme="yellow">
-                  Skip tokens can only be used on ocean (miss) tiles, not ship hits.
+                <RuleRow badge="One At A Time" scheme="cyan">
+                  You can only have one active suggestion. Re-sharing replaces your previous one.
                 </RuleRow>
-                <RuleRow badge="Team Vote" scheme="yellow">
-                  The whole team votes before a skip is used. One veto cancels it and the token is
-                  preserved.
+                <RuleRow badge="Votes Reset" scheme="yellow">
+                  Editing and re-sharing clears any votes your previous suggestion had picked up.
+                  Only share when you're happy with the layout.
                 </RuleRow>
               </VStack>
             </Box>
 
-            {/* Cooldown */}
-            <InfoCard>
-              <SectionLabel>Cooldown</SectionLabel>
-              <Text fontSize="sm" color={BODY} lineHeight="1.7">
-                After each shot, your team must wait{' '}
-                <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  {cooldownMinutes ?? '?'} minute{cooldownMinutes !== 1 ? 's' : ''}
-                </Text>{' '}
-                before firing again. Use this time to coordinate on your next target. The countdown
-                is shown on the board.
-              </Text>
-            </InfoCard>
-
-            {/* Submitting Evidence */}
+            {/* Voting */}
             <Box>
-              <SectionLabel>Submitting Evidence</SectionLabel>
-              <Text fontSize="sm" color={BODY} lineHeight="1.7">
-                After firing, complete the revealed task and submit your screenshot via the Discord
-                bot command shown on the tile. A ref will review and approve or deny it.
+              <SectionLabel>Voting</SectionLabel>
+              <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
+                Every teammate gets{' '}
+                <Text as="span" fontWeight="bold" color="#e2e8f0">
+                  one vote
+                </Text>
+                . You can vote for any shared suggestion, including your own. You can change your
+                vote at any time before placement ends.
               </Text>
+              <VStack align="stretch" spacing={2}>
+                <RuleRow badge="Winner" scheme="green">
+                  The suggestion with the most votes when placement ends becomes the team fleet.
+                </RuleRow>
+                <RuleRow badge="Ties" scheme="yellow">
+                  If two or more suggestions are tied, the winner is picked at random from the
+                  tied set.
+                </RuleRow>
+                <RuleRow badge="No Votes" scheme="red">
+                  If nobody on your team has shared a suggestion, the team enters battle without a
+                  fleet and cannot be hit. Make sure someone shares.
+                </RuleRow>
+              </VStack>
             </Box>
 
-            {/* Refs notice */}
+            {/* Solo teams */}
             <InfoCard accentColor={AMBER}>
-              <SectionLabel>Be Patient With Refs</SectionLabel>
+              <SectionLabel>Solo Teams</SectionLabel>
               <Text fontSize="sm" color="#fcd34d" lineHeight="1.7">
-                Refs are volunteers reviewing submissions in their own time. They may not respond
-                immediately. Do not spam or pressure them. If your submission has been waiting a
-                long time, reach out politely to the event organiser.
+                If you're the only player on your team, whatever you share becomes the fleet by
+                default. You still need to share a suggestion before placement ends.
               </Text>
             </InfoCard>
 
-            {/* Sinking Ships */}
-            <Box>
-              <SectionLabel>Sinking a Ship</SectionLabel>
+            {/* Deadline */}
+            <InfoCard>
+              <SectionLabel>Placement Window</SectionLabel>
               <Text fontSize="sm" color={BODY} lineHeight="1.7">
-                A ship is sunk once{' '}
+                Placement lasts{' '}
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  every cell has been hit and the task for each hit approved
+                  {placementPhaseHours ?? '?'} hour{placementPhaseHours !== 1 ? 's' : ''}
                 </Text>
-                . The first team to sink all of the enemy's ships wins the campaign.
+                . When the timer runs out, votes are locked in, the winning suggestion becomes
+                your team fleet, and the battle phase begins.
+              </Text>
+            </InfoCard>
+
+            {/* Secrecy */}
+            <Box>
+              <SectionLabel>Secrecy</SectionLabel>
+              <Text fontSize="sm" color={BODY} lineHeight="1.7">
+                Neither team can see the other's board. Suggestions and votes are visible only to
+                your own teammates.
               </Text>
             </Box>
           </VStack>
@@ -308,7 +287,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
             w="full"
           >
             <Text fontSize="sm" color="#e2e8f0" fontFamily="mono">
-              I understand how Battleship works and I'll be patient with the refs
+              I understand how placement suggestions and voting work
             </Text>
           </Checkbox>
           <Button
@@ -326,7 +305,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
             _active={{ bg: '#0284c7' }}
             _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
           >
-            Battle Stations
+            Man the Shipyard
           </Button>
         </ModalFooter>
       </ModalContent>

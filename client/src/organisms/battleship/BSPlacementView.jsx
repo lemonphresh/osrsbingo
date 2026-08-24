@@ -28,6 +28,7 @@ import {
 import { useToastContext } from '../../providers/ToastProvider';
 import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
 import { BSPlacementCountdown } from './BSFlipClock';
+import { BSPlacementIntroModal, getBSPlacementIntroKey } from './BSPlacementIntroModal';
 
 import {
   SHIP_CONFIGS,
@@ -259,6 +260,11 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   const [viewerCount, setViewerCount] = useState(0);
   const [reshareWarning, setReshareWarning] = useState(false);
   const [confirmClearWorkshop, setConfirmClearWorkshop] = useState(false);
+
+  // Intro modal: only prompt actual team members (not spectators/admin refs).
+  const [showPlacementIntro, setShowPlacementIntro] = useState(
+    () => !!myTeam && !localStorage.getItem(getBSPlacementIntroKey(event.eventId))
+  );
 
   // ── Presence tracking (unchanged from prior implementation) ──────────────
   const [joinBSView] = useMutation(JOIN_BS_VIEW);
@@ -619,6 +625,12 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   // ── Team member view ─────────────────────────────────────────────────────
   return (
     <Box flex="1" minH="100vh" bg="#060f0a">
+      <BSPlacementIntroModal
+        isOpen={showPlacementIntro}
+        onClose={() => setShowPlacementIntro(false)}
+        eventId={event.eventId}
+        placementPhaseHours={event.placementPhaseHours}
+      />
       {topBar}
       <Box maxW="1400px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
         <HStack spacing={3} mb={2} align="center" justify="space-between">

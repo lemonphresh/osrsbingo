@@ -244,6 +244,9 @@ export default function BattleshipEventPage() {
   });
 
   // When the user tabs back, re-sync the proposal state from the server.
+  // Also refetch the event so tile state is fresh — this catches the case
+  // where the skip proposal was resolved while the tab was hidden and the
+  // CLEARED broadcast was missed.
   useEffect(() => {
     if (!myTeam?.teamId || event?.status !== 'ACTIVE') return;
     const handler = () => {
@@ -251,10 +254,11 @@ export default function BattleshipEventPage() {
       refetchActiveProposal({ teamId: myTeam.teamId })
         .then(({ data }) => applyActiveProposal(data?.getActiveBSProposal))
         .catch(() => {});
+      refetchEvent().catch(() => {});
     };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
-  }, [myTeam?.teamId, event?.status, refetchActiveProposal, applyActiveProposal]);
+  }, [myTeam?.teamId, event?.status, refetchActiveProposal, applyActiveProposal, refetchEvent]);
 
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
@@ -263,16 +267,25 @@ export default function BattleshipEventPage() {
   const myBoard = viewingTeam?.board ?? null;
   const opponentBoard = opponentTeam?.board ?? null;
 
-  // Live-update when a ref marks any tile complete on either board
+  // Live-update when a ref marks any tile complete on either board. Also
+  // close a stale skip-proposal modal if the tile it targeted just flipped
+  // to `skipped` — belt-and-suspenders for the pubsub CLEARED broadcast.
+  const handleTileUpdate = ({ data }) => {
+    const tile = data?.data?.bsTileUpdated;
+    if (tile?.skipped && tile?.tileId && tile.tileId === activeSkipProposal?.tileId) {
+      setActiveSkipProposal(null);
+    }
+    refetchEvent();
+  };
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: myBoard?.boardId },
     skip: !myBoard?.boardId || event?.status !== 'ACTIVE',
-    onData: () => refetchEvent(),
+    onData: handleTileUpdate,
   });
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: opponentBoard?.boardId },
     skip: !opponentBoard?.boardId || event?.status !== 'ACTIVE',
-    onData: () => refetchEvent(),
+    onData: handleTileUpdate,
   });
 
   useSubscription(BS_GAME_OVER, {
@@ -382,6 +395,21 @@ export default function BattleshipEventPage() {
     const timeoutId = setTimeout(() => setActiveSkipProposal(null), msRemaining);
     return () => clearTimeout(timeoutId);
   }, [activeSkipProposal?.expiresAt, activeSkipProposal?.status]);
+
+  // If the target tile is already resolved (skipped or task-complete) in the
+  // freshly-fetched event, drop the modal — covers the case where the CLEARED
+  // subscription frame was missed.
+  useEffect(() => {
+    if (!activeSkipProposal?.tileId) return;
+    const boards = [myBoard, opponentBoard].filter(Boolean);
+    for (const b of boards) {
+      const target = (b.tiles ?? []).find((t) => t.tileId === activeSkipProposal.tileId);
+      if (target && (target.skipped || target.taskCompleted)) {
+        setActiveSkipProposal(null);
+        return;
+      }
+    }
+  }, [activeSkipProposal?.tileId, myBoard, opponentBoard]);
 
   const myTiles = myBoard?.tiles ?? [];
   const opponentTiles = opponentBoard?.tiles ?? [];
