@@ -732,6 +732,174 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # SPOOPY (halloween trick-or-treat)
+  # ============================================================
+
+  enum SpoopyEventStatus { SETUP ACTIVE COMPLETE }
+  # Tile statuses are exchanged as strings ('locked'|'unlocked'|'submitted'|'complete')
+  # to match the state machine's lowercase constants exactly.
+
+  type SpoopyEvent {
+    eventId:          ID!
+    eventName:        String!
+    status:           SpoopyEventStatus!
+    curfewStart:      DateTime
+    curfewEnd:        DateTime
+    eventPassword:    String
+    adminIds:         [String!]!
+    staffChannelId:   String
+    board:            JSON!
+    contentById:      JSON!
+    hauntedHouse:     JSON
+    startingTileIds:  [String!]!
+    # Total gp budget the admin allocated for house rewards. Editable while
+    # status=SETUP via setSpoopyEventPrizePool. Split evenly across teams at
+    # activation; haunted house pays 3× the per-house share on top.
+    prizePool:        Int!
+    teams:            [SpoopyTeam!]!
+    admins:           [User!]!
+    createdAt:        DateTime
+    updatedAt:        DateTime
+  }
+
+  type SpoopyTeam {
+    teamId:           ID!
+    eventId:          ID!
+    teamName:         String!
+    color:            String
+    members:          [String!]!
+    discordChannelId: String!
+    discordRoleId:    String
+    teamToken:        String
+    gpEarned:         Int!
+    cashedOut:        JSON
+    # Escalating counter for the spooky-house step-inside gauntlet. See
+    # bot/commands/spoopy.js for the command sequence and reset rules.
+    hauntedGauntletLevel: Int!
+    # Snapshot of the team's share of event.prizePool, set at SETUP→ACTIVE.
+    poolAllocation:   Int!
+    createdAt:        DateTime
+  }
+
+  # Snapshot of a team's per-tile progress, returned by spoopyTeamBoard(teamId).
+  type SpoopyTeamBoardState {
+    eventId:   ID!
+    teamId:    ID!
+    roster:    [String!]!
+    gpEarned:  Int!
+    cashedOut: JSON
+    # Mirrors SpoopyTeam.hauntedGauntletLevel — surfaced here so the
+    # team-board subscription can drive live updates to the spooky-house
+    # modal without a separate team query.
+    hauntedGauntletLevel: Int!
+    tiles:     JSON!   # { [tileId]: { status, choice, outcome, submissionId, completedAt, rewardEarned } }
+  }
+
+  enum SpoopySubmissionType { PRE FINAL }
+
+  # Per-team, per-tile state used by refs (progress slider) and the team's
+  # tile-detail modal. Field resolver on SpoopySubmission surfaces the current
+  # row for the submitting team so we don't need extra client round-trips.
+  type SpoopyTeamTile {
+    teamTileId:   ID!
+    teamId:       ID!
+    eventId:      ID!
+    tileId:       String!
+    status:       String!
+    choice:       String
+    outcome:      String
+    submissionId: String
+    completedAt:  DateTime
+    rewardEarned: Int
+    progress:     Int!
+  }
+
+  type SpoopySubmission {
+    submissionId:     ID!
+    teamId:           ID!
+    eventId:          ID!
+    tileId:           String!
+    type:             SpoopySubmissionType!
+    screenshotUrl:    String
+    discordMessageId: String
+    channelId:        String!
+    status:           String!
+    discordUsername:  String
+    discordUserId:    String
+    reviewedBy:       String
+    reviewedAt:       DateTime
+    denialReason:     String
+    submittedAt:      DateTime
+    teamTile:         SpoopyTeamTile
+  }
+
+  # Returned by enterSpoopyHauntedHouse — the team must acknowledge the warning
+  # before the candybag task is actually attempted (via createSpoopySubmission).
+  type SpoopyHauntedHouseResult {
+    warningDialog:    String
+    msRemaining:      Float!
+    candybagTileId:   String
+    currentGp:        Int!
+  }
+
+  # One-shot response used by /spoopy-event: gives the client everything it
+  # needs to render (event, caller's team on this event, and team board state).
+  # All fields may be null so the page can render empty states cleanly.
+  type SpoopySituation {
+    event:     SpoopyEvent
+    myTeam:    SpoopyTeam
+    teamBoard: SpoopyTeamBoardState
+  }
+
+  input CreateSpoopyEventInput {
+    eventName:        String!
+    curfewStart:      DateTime
+    curfewEnd:        DateTime
+    eventPassword:    String
+    staffChannelId:   String
+    board:            JSON
+    contentById:      JSON
+    hauntedHouse:     JSON
+    startingTileIds:  [String!]
+  }
+
+  input CreateSpoopyTeamInput {
+    teamName:         String!
+    color:            String
+    members:          [String!]
+    discordChannelId: String!
+    discordRoleId:    String
+  }
+
+  # Team-member actions — caller must be logged in with a Discord id linked
+  # to their site profile that appears in the team members list, or hold staff
+  # privileges. Bot-originated actions bypass this resolver via direct DB
+  # access, matching the battleship pattern.
+
+  input CreateSpoopyChoiceInput {
+    teamId:           ID!
+    tileId:           String!
+    option:           String!   # 'a' | 'b'
+  }
+
+  input CreateSpoopySubmissionInput {
+    teamId:           ID!
+    tileId:           String!
+    type:             SpoopySubmissionType!
+    screenshotUrl:    String
+    discordMessageId: String
+    submittedAt:      DateTime
+    # Staff may override discordUserId / discordUsername (dev/testing).
+    # Regular members are always recorded as themselves.
+    discordUsername:  String
+    discordUserId:    String
+  }
+
+  input EnterSpoopyHauntedHouseInput {
+    teamId:           ID!
+  }
+
+  # ============================================================
   # QUERIES
   # ============================================================
 
@@ -827,6 +995,16 @@ const typeDefs = gql`
     getRainbowSubmissions(eventId: ID!, status: RainbowSubmissionStatus, teamId: ID, tileCode: String): [RainbowSubmission!]!
     getRainbowTileDefs: [RainbowTileDef!]!
     getRainbowSyncInProgress: Boolean!
+
+    # --- Spoopy Halloween ---
+    spoopyEvent(eventId: ID!): SpoopyEvent
+    spoopyEvents: [SpoopyEvent!]!
+    getActiveSpoopyEvent: SpoopyEvent
+    mySpoopySituation(eventId: ID): SpoopySituation!
+    spoopyTeam(teamId: ID!): SpoopyTeam
+    spoopyTeamBoard(teamId: ID!): SpoopyTeamBoardState
+    spoopyTeamBoardByToken(token: String!): SpoopyTeamBoardState
+    spoopySubmissions(eventId: ID!, status: String): [SpoopySubmission!]!
 
     # --- Group Goal Dashboard ---
     getGroupDashboard(slug: String!): GroupDashboard
@@ -1101,6 +1279,29 @@ const typeDefs = gql`
     testRainbowNotification(teamId: ID!, type: String!): Boolean!
     deleteRainbowEvent(eventId: ID!): Boolean!
     deleteRainbowTeam(teamId: ID!): Boolean!
+
+    # --- Spoopy Halloween ---
+    createSpoopyEvent(input: CreateSpoopyEventInput!): SpoopyEvent!
+    updateSpoopyEventStatus(eventId: ID!, status: SpoopyEventStatus!): SpoopyEvent!
+    updateSpoopyEventBoard(eventId: ID!, board: JSON, contentById: JSON, hauntedHouse: JSON, startingTileIds: [String!]): SpoopyEvent!
+    setSpoopyEventPassword(eventId: ID!, password: String): SpoopyEvent!
+    # Admin-only, SETUP-only. Total gp budget for house rewards. Each team's
+    # share is snapshotted at SETUP→ACTIVE and cannot be changed after.
+    setSpoopyEventPrizePool(eventId: ID!, prizePool: Int!): SpoopyEvent!
+    createSpoopyTeam(eventId: ID!, input: CreateSpoopyTeamInput!): SpoopyTeam!
+    updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
+    addSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
+    removeSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
+    reviewSpoopySubmission(submissionId: ID!, approved: Boolean!, denialReason: String): SpoopySubmission!
+    setSpoopyTileProgress(teamId: ID!, tileId: String!, progress: Int!): SpoopyTeamBoardState!
+    completeSpoopyTile(teamId: ID!, tileId: String!): SpoopyTeamBoardState!
+    seedSpoopyMockEvent: SpoopyEvent!
+    refreshSpoopyEventFromMock(eventId: ID!): SpoopyEvent!
+    deleteSpoopyEvent(eventId: ID!): Boolean!
+    deleteSpoopyTeam(teamId: ID!): Boolean!
+    createSpoopyChoice(input: CreateSpoopyChoiceInput!): SpoopyTeamBoardState!
+    createSpoopySubmission(input: CreateSpoopySubmissionInput!): SpoopySubmission!
+    enterSpoopyHauntedHouse(input: EnterSpoopyHauntedHouseInput!): SpoopyHauntedHouseResult!
     syncTeamWomProgress(teamId: ID!): SyncTeamWomResult!
     startTeamWomSync(teamId: ID!): StartTeamWomSyncResult!
     syncTeamWomTile(teamId: ID!, tileCode: String!): SyncTeamWomTileResult!
@@ -1868,6 +2069,11 @@ const typeDefs = gql`
     rainbowTeamBoardUpdated(teamId: ID!): [RainbowTeamTile!]!
     rainbowEventBoardUpdated(eventId: ID!): ID!
     rainbowSyncStatusChanged: Boolean!
+
+    # --- Spoopy Halloween ---
+    spoopySubmissionAdded(eventId: ID!): SpoopySubmission!
+    spoopySubmissionReviewed(eventId: ID!): SpoopySubmission!
+    spoopyTeamBoardUpdated(teamId: ID!): SpoopyTeamBoardState!
 
     # --- Battleship ---
     bsBoardUpdated(eventId: ID!): BSBoard!

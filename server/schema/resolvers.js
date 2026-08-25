@@ -11,6 +11,7 @@ const CFResolvers = require('./resolvers/ChampionForge');
 const CFSubscriptions = require('./resolvers/ChampionForgeSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
+const SpoopyResolvers = require('./resolvers/SpoopyBingo');
 const BSResolvers = require('./resolvers/Battleship');
 const BSSubscriptions = require('./resolvers/BattleshipSubscriptions');
 const fieldResolvers = require('./resolvers/FieldResolvers');
@@ -152,6 +153,7 @@ const resolvers = {
     ...CFResolvers.Query,
     ...GroupDashboardResolvers.Query,
     ...RainbowBingoResolvers.Query,
+    ...SpoopyResolvers.Query,
     ...BSResolvers.Query,
   },
   Mutation: {
@@ -166,6 +168,7 @@ const resolvers = {
     ...CFResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
     ...RainbowBingoResolvers.Mutation,
+    ...SpoopyResolvers.Mutation,
     ...BSResolvers.Mutation,
   },
   Subscription: {
@@ -173,6 +176,7 @@ const resolvers = {
     ...DraftRoomSubscriptions.DraftSubscription,
     ...CFSubscriptions.CFSubscription,
     ...RainbowBingoResolvers.Subscription,
+    ...SpoopyResolvers.Subscription,
     ...BSSubscriptions.Subscription,
   },
 
@@ -211,6 +215,12 @@ const resolvers = {
   },
   GroupGoalEvent: {
     ...GroupDashboardResolvers.GroupGoalEvent,
+  },
+  SpoopyEvent: {
+    ...SpoopyResolvers.SpoopyEvent,
+  },
+  SpoopySubmission: {
+    ...SpoopyResolvers.SpoopySubmission,
   },
   RainbowEvent: {
     ...RainbowBingoResolvers.RainbowEvent,

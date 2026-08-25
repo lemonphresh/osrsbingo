@@ -30,6 +30,7 @@ const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupDashboard/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScape/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventScheduler');
+const { startSpoopyEventScheduler } = require('./utils/spoopy/spoopyEventScheduler');
 const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
 const { startBSScheduler } = require('./utils/battleship/bsScheduler');
 const logger = require('./utils/logger');
@@ -588,6 +589,7 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
+  startSpoopyEventScheduler();
   startCFTurnTimer();
   startBSScheduler();
 

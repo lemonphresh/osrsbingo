@@ -52,6 +52,10 @@ const RainbowBingoBoardPage = lazy(() => import('./pages/rainbow/RainbowBingoBoa
 const RainbowTeamBoardPage = lazy(() => import('./pages/rainbow/RainbowTeamBoardPage'));
 const RainbowRefsPage = lazy(() => import('./pages/rainbow/RainbowRefsPage'));
 const RainbowAdminPage = lazy(() => import('./pages/rainbow/RainbowAdminPage'));
+const SpoopyEventPage = lazy(() => import('./pages/spoopy/SpoopyEventPage'));
+const SpoopyRefsPage = lazy(() => import('./pages/spoopy/SpoopyRefsPage'));
+const SpoopyAdminPage = lazy(() => import('./pages/spoopy/SpoopyAdminPage'));
+const SpoopyPlaygroundPage = lazy(() => import('./pages/spoopy/SpoopyPlaygroundPage'));
 const EternalGemsPage = lazy(() => import('./pages/EternalGemsPage'));
 const BattleshipDashboard = lazy(() => import('./pages/battleship/BattleshipDashboard'));
 const BattleshipEventPage = lazy(() => import('./pages/battleship/BattleshipEventPage'));
@@ -322,6 +326,26 @@ const routes = [
       {
         path: '/eg-rainbow/admin',
         element: withSuspense(RainbowAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event',
+        element: withSuspense(SpoopyEventPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/refs',
+        element: withSuspense(SpoopyRefsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/admin',
+        element: withSuspense(SpoopyAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/playground',
+        element: withSuspense(SpoopyPlaygroundPage),
         errorElement: <ErrorPage />,
       },
       {
