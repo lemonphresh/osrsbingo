@@ -5,9 +5,12 @@
 // team member can submit trick-or-treat proof from their Discord channel
 // without touching the site.
 
-const { Op } = require('sequelize');
-
 const getModels = () => require('../../server/db/models');
+
+// `Op` isn't available as its own module inside bot/node_modules — the bot
+// only transitively pulls sequelize via the server models. Re-export it
+// off the models bundle so we don't need to add a duplicate dep.
+const Op = () => getModels().Sequelize.Op;
 
 function generateId(prefix) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -38,7 +41,7 @@ async function resolveContext(message) {
 async function findEligibleTiles(teamId, eventId) {
   const { SpoopyTeamTile } = getModels();
   return SpoopyTeamTile.findAll({
-    where: { teamId, eventId, status: { [Op.in]: ['unlocked', 'submitted'] } },
+    where: { teamId, eventId, status: { [Op().in]: ['unlocked', 'submitted'] } },
   });
 }
 
