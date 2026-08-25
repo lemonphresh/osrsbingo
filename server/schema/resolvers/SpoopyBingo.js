@@ -338,20 +338,35 @@ const Mutation = {
       startingTileIds: mock.startingTileIds,
     });
 
-    // Auto-seed a test team with the operator (lemon) on it so the seed is
-    // immediately playable without hand-adding a team + member every time.
-    const teamMemberDiscordId = user.discordUserId ?? '221415080514945035';
-    const team = await SpoopyTeam.create({
+    // Auto-seed two test teams so the seed is immediately playable and the
+    // final recap has something to rank. Team 1 gets the operator (lemon)
+    // by default; team 2 gets a hand-picked partner discord id.
+    const team1MemberDiscordId = user.discordUserId ?? '221415080514945035';
+    const team2MemberDiscordId = '136602347999592448';
+
+    const team1 = await SpoopyTeam.create({
       teamId: generateId('spt'),
       eventId: event.eventId,
       teamName: 'test team spoopy',
       color: null,
-      members: [String(teamMemberDiscordId)],
-      discordChannelId: 'test-channel',
+      members: [String(team1MemberDiscordId)],
+      discordChannelId: 'test-channel-1',
       discordRoleId: null,
       teamToken: generateId('tok').slice(0, 16),
     });
-    await createInitialTeamTiles(event.eventId, team.teamId, mock.board, mock.startingTileIds);
+    await createInitialTeamTiles(event.eventId, team1.teamId, mock.board, mock.startingTileIds);
+
+    const team2 = await SpoopyTeam.create({
+      teamId: generateId('spt'),
+      eventId: event.eventId,
+      teamName: 'the ghouls next door',
+      color: null,
+      members: [String(team2MemberDiscordId)],
+      discordChannelId: 'test-channel-2',
+      discordRoleId: null,
+      teamToken: generateId('tok').slice(0, 16),
+    });
+    await createInitialTeamTiles(event.eventId, team2.teamId, mock.board, mock.startingTileIds);
 
     return event;
   },

@@ -445,8 +445,11 @@ function buildRealBoardMockEvent() {
     id: 'spoopy-real-board-mock',
     name: 'Spooptober (mock — real board)',
     curfew: {
-      start: new Date().toISOString(), // start now
-      end: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // +8h
+      // +15 min so the seed lands in SETUP with a small buffer before the
+      // event auto-activates — enough time to set the prize pool, add a
+      // second team, etc. before the scheduler flips it to ACTIVE.
+      start: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
+      end: new Date(Date.now() + (15 * 60 * 1000) + 8 * 60 * 60 * 1000).toISOString(), // +8h from start
     },
     board: {
       dimensions: board.dimensions,
