@@ -83,25 +83,63 @@ function chooseOption(state, event, tileId, option) {
   return withTile(state, tileId, { choice: option, outcome: optionData.outcome });
 }
 
-function submitProof(state, event, tileId, submissionId) {
+// `type` is 'FINAL' (default) or 'PRE'. FINAL flips the tile to SUBMITTED and
+// captures the submission id for the review flow. PRE is informational — the
+// tile stays in whatever status it was, and the pre-shot exists only as an
+// audit record on the submissions table.
+//
+// Multiple FINAL submissions are allowed while the ref reviews — the tile
+// can stay in SUBMITTED across many submissions (some may be denied, others
+// re-submitted). Only completeTile advances the tile out of SUBMITTED.
+function submitProof(state, event, tileId, submissionId, type = 'FINAL') {
   assertLive(state);
   const tile = requireTile(event, tileId);
-  requireStatus(state, tileId, TILE_STATUSES.UNLOCKED);
+  const status = state.tiles[tileId]?.status;
+  if (status !== TILE_STATUSES.UNLOCKED && status !== TILE_STATUSES.SUBMITTED) {
+    throw new StateMachineError(
+      `tile ${tileId} expected status "${TILE_STATUSES.UNLOCKED}" or "${TILE_STATUSES.SUBMITTED}", got "${status}"`,
+    );
+  }
   if (tile.tile_type === TILE_TYPES.HOUSE && !state.tiles[tileId].choice) {
     throw new StateMachineError(`cannot submit for house tile ${tileId} before choosing an option`);
   }
+  if (type === 'PRE') return state; // no tile-state change
   return withTile(state, tileId, { status: TILE_STATUSES.SUBMITTED, submissionId });
 }
 
-function approveSubmission(state, event, tileId, now = new Date()) {
+// Count how many trick-or-treat house tiles exist on the board. Used to
+// derive the per-house reward from the team's frozen pool allocation.
+function countHouseTiles(event) {
+  return (event.board?.tiles ?? []).filter((t) => t.tile_type === TILE_TYPES.HOUSE).length;
+}
+
+// Derived per-house gp reward. Every trick-or-treat house on the board pays
+// the same amount — the team's poolAllocation split evenly across the
+// board's houses. Returns 0 if the event has no pool or no houses.
+function perHouseReward(event, teamPoolAllocation) {
+  const houseCount = countHouseTiles(event);
+  if (!teamPoolAllocation || houseCount <= 0) return 0;
+  return Math.floor(teamPoolAllocation / houseCount);
+}
+
+// Ref explicitly marks a tile complete after reviewing submissions. Requires
+// the tile to be in SUBMITTED status (at least one submission on file);
+// approve/deny alone doesn't advance the tile — that's a deliberate ref
+// action so partial credit / multi-step tasks work like battleship's flow.
+//
+// `teamPoolAllocation` is passed by the resolver (from SpoopyTeam.poolAllocation,
+// snapshotted at SETUP→ACTIVE). Every trick-or-treat house pays the same
+// derived amount; the haunted house pays 3× that on top.
+function completeTile(state, event, tileId, now = new Date(), teamPoolAllocation = 0) {
   assertLive(state);
   const tile = requireTile(event, tileId);
   requireStatus(state, tileId, TILE_STATUSES.SUBMITTED);
-  const content = requireContent(event, tileId);
+  requireContent(event, tileId);
 
+  const houseReward = perHouseReward(event, teamPoolAllocation);
   let reward = 0;
   if (tile.tile_type === TILE_TYPES.HOUSE) {
-    reward = content.dialog.options[state.tiles[tileId].choice].reward_gp;
+    reward = houseReward;
   }
   // Non-house tiles award nothing directly — progression is their reward.
 
@@ -118,8 +156,22 @@ function approveSubmission(state, event, tileId, now = new Date()) {
     }
   }
 
+  // Completing any HOUSE also unlocks the scary house (candybag) globally,
+  // so teams can rush the end after any successful trick-or-treat instead
+  // of grinding the full main road first. Only affects LOCKED — if it's
+  // already unlocked / submitted / complete we leave it alone.
+  if (tile.tile_type === TILE_TYPES.HOUSE) {
+    const candybagId = event.board?.candybagTileId;
+    if (candybagId && next.tiles[candybagId]?.status === TILE_STATUSES.LOCKED) {
+      next = withTile(next, candybagId, { status: TILE_STATUSES.UNLOCKED });
+    }
+  }
+
+  // Candybag is the terminal tile — completing it cashes the team out with a
+  // 3× per-house bonus on top of anything already banked.
   if (tile.tile_type === TILE_TYPES.CANDYBAG) {
-    const bonus = event.hauntedHouse?.bonusReward_gp || 0;
+    const bonus = houseReward * 3;
+    next = withTile(next, tileId, { rewardEarned: bonus });
     next = {
       ...next,
       gpEarned: next.gpEarned + bonus,
@@ -130,11 +182,14 @@ function approveSubmission(state, event, tileId, now = new Date()) {
   return next;
 }
 
+// Denial is a submission-level action — the tile itself stays in whatever
+// status it was (usually SUBMITTED). Other submissions on the same tile may
+// still be pending or approved, and the team can freely submit again.
+// Mirrors battleship's flow where deny only marks the row DENIED.
 function denySubmission(state, event, tileId) {
   assertLive(state);
   requireTile(event, tileId);
-  requireStatus(state, tileId, TILE_STATUSES.SUBMITTED);
-  return withTile(state, tileId, { status: TILE_STATUSES.UNLOCKED, submissionId: null });
+  return state;
 }
 
 // Team clicks "enter the haunted house." Returns the current state (unchanged)
@@ -177,9 +232,11 @@ module.exports = {
   unlockTile,
   chooseOption,
   submitProof,
-  approveSubmission,
+  completeTile,
   denySubmission,
   enterHauntedHouse,
   handleCurfew,
   getActiveTask,
+  perHouseReward,
+  countHouseTiles,
 };

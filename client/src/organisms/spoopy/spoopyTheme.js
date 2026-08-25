@@ -43,6 +43,12 @@ export const SPOOPY_COLORS = {
 // swap the `icon` field for `<img src="/assets/spoopy/{type}.png" />`.
 
 export const TILE_META = {
+  start: {
+    label: 'ready up (selfie)',
+    fillColor: SPOOPY_COLORS.green,
+    stickerBg: SPOOPY_COLORS.paper,
+    faIcon:    'FaCamera',
+  },
   house: {
     label: 'trick or treat',
     fillColor: SPOOPY_COLORS.pumpkin,
@@ -74,10 +80,10 @@ export const TILE_META = {
     faIcon:    'GiCat',
   },
   candybag: {
-    label: 'bag of sweets',
+    label: 'scary castle (end)',
     fillColor: SPOOPY_COLORS.ember,
     stickerBg: SPOOPY_COLORS.paper,
-    faIcon:    'GiCandy',
+    faIcon:    'GiSpookyHouse',
   },
 };
 

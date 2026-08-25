@@ -9,14 +9,40 @@ export const SPOOPY_EVENT_FIELDS = gql`
     status
     curfewStart
     curfewEnd
+    eventPassword
     adminIds
     staffChannelId
     board
     contentById
     hauntedHouse
     startingTileIds
+    prizePool
     createdAt
   }
+`;
+
+// Fuller shape for the admin page — includes teams + admins User records.
+export const SPOOPY_ADMIN_EVENT_FIELDS = gql`
+  fragment SpoopyAdminEventFields on SpoopyEvent {
+    ...SpoopyEventFields
+    teams {
+      teamId
+      teamName
+      color
+      members
+      discordChannelId
+      discordRoleId
+      teamToken
+      gpEarned
+      cashedOut
+    }
+    admins {
+      id
+      displayName
+      username
+    }
+  }
+  ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const SPOOPY_TEAM_FIELDS = gql`
@@ -31,6 +57,8 @@ export const SPOOPY_TEAM_FIELDS = gql`
     teamToken
     gpEarned
     cashedOut
+    hauntedGauntletLevel
+    poolAllocation
   }
 `;
 
@@ -41,6 +69,7 @@ export const SPOOPY_TEAM_BOARD_FIELDS = gql`
     roster
     gpEarned
     cashedOut
+    hauntedGauntletLevel
     tiles
   }
 `;
@@ -51,6 +80,7 @@ export const SPOOPY_SUBMISSION_FIELDS = gql`
     teamId
     eventId
     tileId
+    type
     screenshotUrl
     discordMessageId
     channelId
@@ -61,16 +91,27 @@ export const SPOOPY_SUBMISSION_FIELDS = gql`
     reviewedAt
     denialReason
     submittedAt
+    teamTile {
+      status
+      progress
+      choice
+      outcome
+    }
   }
 `;
 
 // ── Queries ──────────────────────────────────────────────────────────────
 
 // One-shot for /spoopy-event — resolves current event + caller's team + board.
+// The event.teams inline selection is used by the CompleteRecap so the final
+// standings render without a second round-trip.
 export const MY_SPOOPY_SITUATION = gql`
   query MySpoopySituation($eventId: ID) {
     mySpoopySituation(eventId: $eventId) {
-      event { ...SpoopyEventFields }
+      event {
+        ...SpoopyEventFields
+        teams { ...SpoopyTeamFields }
+      }
       myTeam { ...SpoopyTeamFields }
       teamBoard { ...SpoopyTeamBoardFields }
     }
@@ -85,6 +126,16 @@ export const GET_ACTIVE_SPOOPY_EVENT = gql`
     getActiveSpoopyEvent { ...SpoopyEventFields }
   }
   ${SPOOPY_EVENT_FIELDS}
+`;
+
+// Admin variant — fetches the "current" event (any status via spoopyEvents[0])
+// with teams + admins expanded so the admin page can render everything in one
+// round trip. If no event exists returns null.
+export const GET_SPOOPY_ADMIN_EVENT = gql`
+  query GetSpoopyAdminEvent {
+    spoopyEvents { ...SpoopyAdminEventFields }
+  }
+  ${SPOOPY_ADMIN_EVENT_FIELDS}
 `;
 
 export const GET_SPOOPY_EVENT = gql`
@@ -129,6 +180,7 @@ export const GET_SPOOPY_SUBMISSIONS = gql`
   ${SPOOPY_SUBMISSION_FIELDS}
 `;
 
+
 // ── Admin mutations ──────────────────────────────────────────────────────
 
 export const CREATE_SPOOPY_EVENT = gql`
@@ -141,6 +193,20 @@ export const CREATE_SPOOPY_EVENT = gql`
 export const UPDATE_SPOOPY_EVENT_STATUS = gql`
   mutation UpdateSpoopyEventStatus($eventId: ID!, $status: SpoopyEventStatus!) {
     updateSpoopyEventStatus(eventId: $eventId, status: $status) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SET_SPOOPY_EVENT_PASSWORD = gql`
+  mutation SetSpoopyEventPassword($eventId: ID!, $password: String) {
+    setSpoopyEventPassword(eventId: $eventId, password: $password) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SET_SPOOPY_EVENT_PRIZE_POOL = gql`
+  mutation SetSpoopyEventPrizePool($eventId: ID!, $prizePool: Int!) {
+    setSpoopyEventPrizePool(eventId: $eventId, prizePool: $prizePool) { ...SpoopyEventFields }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -190,6 +256,52 @@ export const REMOVE_SPOOPY_ADMIN = gql`
     removeSpoopyAdmin(eventId: $eventId, userId: $userId) { ...SpoopyEventFields }
   }
   ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SEED_SPOOPY_MOCK_EVENT = gql`
+  mutation SeedSpoopyMockEvent {
+    seedSpoopyMockEvent { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const REFRESH_SPOOPY_EVENT_FROM_MOCK = gql`
+  mutation RefreshSpoopyEventFromMock($eventId: ID!) {
+    refreshSpoopyEventFromMock(eventId: $eventId) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const DELETE_SPOOPY_EVENT = gql`
+  mutation DeleteSpoopyEvent($eventId: ID!) {
+    deleteSpoopyEvent(eventId: $eventId)
+  }
+`;
+
+export const DELETE_SPOOPY_TEAM = gql`
+  mutation DeleteSpoopyTeam($teamId: ID!) {
+    deleteSpoopyTeam(teamId: $teamId)
+  }
+`;
+
+export const SET_SPOOPY_TILE_PROGRESS = gql`
+  mutation SetSpoopyTileProgress($teamId: ID!, $tileId: String!, $progress: Int!) {
+    setSpoopyTileProgress(teamId: $teamId, tileId: $tileId, progress: $progress) {
+      teamId
+      tiles
+    }
+  }
+`;
+
+export const COMPLETE_SPOOPY_TILE = gql`
+  mutation CompleteSpoopyTile($teamId: ID!, $tileId: String!) {
+    completeSpoopyTile(teamId: $teamId, tileId: $tileId) {
+      teamId
+      tiles
+      gpEarned
+      cashedOut
+    }
+  }
 `;
 
 export const REVIEW_SPOOPY_SUBMISSION = gql`

@@ -49,11 +49,14 @@ describe('SpoopyTileDialog', () => {
     expect(screen.getByText(/no take-backsies/i)).toBeInTheDocument();
   });
 
-  test('fires onChoose with the picked option letter', () => {
-    const handler = jest.fn();
-    render(<SpoopyTileDialog isOpen dialog={dialog} onChoose={handler} onClose={() => {}} />);
-    fireEvent.click(screen.getByText('be nice'));
-    expect(handler).toHaveBeenCalledWith('a');
+  test('shows discord commands and does not fire any handler when an option label is clicked', () => {
+    // Options are now read-only cards — the actual choice is committed via
+    // the Discord bot so the whole team can weigh in before locking anything.
+    render(<SpoopyTileDialog isOpen dialog={dialog} tileId="t-r0-c0" onClose={() => {}} />);
+    fireEvent.click(screen.getByText('be nice')); // should be a no-op
+    expect(screen.getByText(/discuss with the gang/i)).toBeInTheDocument();
+    expect(screen.getByText(/!spoopya t-r0-c0/)).toBeInTheDocument();
+    expect(screen.getByText(/!spoopyb t-r0-c0/)).toBeInTheDocument();
   });
 
   test('hides options and shows the resolved task node when a choice is locked', () => {

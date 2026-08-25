@@ -22,10 +22,14 @@ function fresh() {
   return makeInitialTeamState('team-1', ['user-a', 'user-b']);
 }
 
+// Prize pool used by these tests. Small mock board has 2 house tiles, so a
+// pool of 1,000,000 → 500,000 per house, 1,500,000 (3×) for the candybag.
+const TEAM_POOL = 1_000_000;
+
 // Walks a non-house tile UNLOCKED → COMPLETE.
 function completeNonHouse(state, tileId) {
   state = sm.submitProof(state, mockEvent, tileId, `sub-${tileId}`);
-  state = sm.approveSubmission(state, mockEvent, tileId);
+  state = sm.completeTile(state, mockEvent, tileId, undefined, TEAM_POOL);
   return state;
 }
 
@@ -33,7 +37,7 @@ function completeNonHouse(state, tileId) {
 function completeHouse(state, tileId, option) {
   state = sm.chooseOption(state, mockEvent, tileId, option);
   state = sm.submitProof(state, mockEvent, tileId, `sub-${tileId}`);
-  state = sm.approveSubmission(state, mockEvent, tileId);
+  state = sm.completeTile(state, mockEvent, tileId, undefined, TEAM_POOL);
   return state;
 }
 
@@ -49,7 +53,7 @@ describe('initial state', () => {
 describe('house tile flow', () => {
   test('happy path: choose treat → submit → approve → gp banked → neighbors unlocked', () => {
     let s = fresh();
-    s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');       // treat, 500k
+    s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');       // treat
     expect(s.tiles[HOUSE_TL].choice).toBe('a');
     expect(s.tiles[HOUSE_TL].outcome).toBe('treat');
 
@@ -57,17 +61,19 @@ describe('house tile flow', () => {
     expect(s.tiles[HOUSE_TL].status).toBe(TILE_STATUSES.SUBMITTED);
     expect(s.tiles[HOUSE_TL].submissionId).toBe('sub-1');
 
-    s = sm.approveSubmission(s, mockEvent, HOUSE_TL);
+    // Reward is derived from team pool / house count. Small mock has 2
+    // houses, so a pool of 1M gives 500k per house.
+    s = sm.completeTile(s, mockEvent, HOUSE_TL, undefined, TEAM_POOL);
     expect(s.tiles[HOUSE_TL].status).toBe(TILE_STATUSES.COMPLETE);
-    expect(s.tiles[HOUSE_TL].rewardEarned).toBe(500000);
-    expect(s.gpEarned).toBe(500000);
+    expect(s.tiles[HOUSE_TL].rewardEarned).toBe(500_000);
+    expect(s.gpEarned).toBe(500_000);
     expect(s.tiles[PUMPKIN].status).toBe(TILE_STATUSES.UNLOCKED);
   });
 
-  test('trick option pays out the trick reward', () => {
+  test('trick option pays the same as treat (choice is flavor only, not payout)', () => {
     let s = fresh();
-    s = completeHouse(s, HOUSE_TL, 'b'); // trick, 200k
-    expect(s.gpEarned).toBe(200000);
+    s = completeHouse(s, HOUSE_TL, 'b'); // trick
+    expect(s.gpEarned).toBe(500_000);
   });
 
   test('choice is write-once (no take-backsies)', () => {
@@ -89,6 +95,31 @@ describe('house tile flow', () => {
     s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');
     expect(sm.getActiveTask(s, mockEvent, HOUSE_TL))
       .toEqual({ kind: 'skilling_xp', target: 'firemaking', amount: 100000 });
+  });
+
+  test('completing any house unlocks the candybag immediately', () => {
+    let s = fresh();
+    expect(s.tiles[CANDYBAG].status).toBe(TILE_STATUSES.LOCKED);
+    s = completeHouse(s, HOUSE_TL, 'a');
+    expect(s.tiles[CANDYBAG].status).toBe(TILE_STATUSES.UNLOCKED);
+  });
+
+  test('non-house tile completion does NOT unlock the candybag on its own', () => {
+    let s = fresh();
+    // Unlock PUMPKIN via HOUSE_TL, but the point is: PUMPKIN completion alone
+    // doesn't touch CANDYBAG — the house unlock did that. Simulate by
+    // unlocking PUMPKIN "manually" without going through the house.
+    s = { ...s, tiles: { ...s.tiles, [PUMPKIN]: { ...s.tiles[PUMPKIN], status: TILE_STATUSES.UNLOCKED } } };
+    s = sm.submitProof(s, mockEvent, PUMPKIN, 'sub-p');
+    s = sm.completeTile(s, mockEvent, PUMPKIN);
+    expect(s.tiles[CANDYBAG].status).toBe(TILE_STATUSES.LOCKED);
+  });
+
+  test('candybag stays unlocked if already opened by a prior house completion', () => {
+    let s = fresh();
+    s = completeHouse(s, HOUSE_TL, 'a'); // unlocks candybag
+    s = completeHouse(s, HOUSE_BL, 'a'); // completing another house shouldn't corrupt it
+    expect(s.tiles[CANDYBAG].status).toBe(TILE_STATUSES.UNLOCKED);
   });
 });
 
@@ -112,14 +143,46 @@ describe('non-house tile flow', () => {
 });
 
 describe('deny submission', () => {
-  test('rolls back to unlocked but preserves the house choice', () => {
+  test('leaves the tile untouched — deny is submission-level only', () => {
     let s = fresh();
     s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');
     s = sm.submitProof(s, mockEvent, HOUSE_TL, 'sub-1');
+    const before = s.tiles[HOUSE_TL];
     s = sm.denySubmission(s, mockEvent, HOUSE_TL);
-    expect(s.tiles[HOUSE_TL].status).toBe(TILE_STATUSES.UNLOCKED);
-    expect(s.tiles[HOUSE_TL].choice).toBe('a');  // no take-backsies even on deny
-    expect(s.tiles[HOUSE_TL].submissionId).toBeNull();
+    // Tile status/choice/submissionId all unchanged. Mirrors battleship:
+    // denying one submission doesn't wipe out the tile state so other
+    // submissions on the same tile can keep flowing.
+    expect(s.tiles[HOUSE_TL]).toEqual(before);
+  });
+});
+
+describe('multi-submission', () => {
+  test('submitProof accepts a second submission while tile is already SUBMITTED', () => {
+    let s = fresh();
+    s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');
+    s = sm.submitProof(s, mockEvent, HOUSE_TL, 'sub-1');
+    expect(s.tiles[HOUSE_TL].status).toBe(TILE_STATUSES.SUBMITTED);
+
+    // Ref denies sub-1 (submission-level), team re-submits sub-2. Tile was
+    // never rolled back, and submitProof should tolerate it.
+    s = sm.denySubmission(s, mockEvent, HOUSE_TL);
+    s = sm.submitProof(s, mockEvent, HOUSE_TL, 'sub-2');
+    expect(s.tiles[HOUSE_TL].status).toBe(TILE_STATUSES.SUBMITTED);
+    expect(s.tiles[HOUSE_TL].submissionId).toBe('sub-2');
+  });
+
+  test('submitProof still rejects LOCKED tiles', () => {
+    const s = fresh();
+    // PUMPKIN starts LOCKED — only the two starting houses are open at fresh().
+    expect(() => sm.submitProof(s, mockEvent, PUMPKIN, 'sub-x'))
+      .toThrow(/expected status/);
+  });
+
+  test('submitProof still rejects COMPLETE tiles', () => {
+    let s = fresh();
+    s = completeHouse(s, HOUSE_TL, 'a'); // HOUSE_TL → COMPLETE
+    expect(() => sm.submitProof(s, mockEvent, HOUSE_TL, 'sub-x'))
+      .toThrow(/expected status/);
   });
 });
 
@@ -155,25 +218,27 @@ describe('haunted house / cashout', () => {
       .toThrow(/not unlocked/);
   });
 
-  test('completing the candybag tile cashes the team out and adds the bonus', () => {
+  test('completing the candybag tile cashes the team out and adds a 3× per-house bonus', () => {
     let s = fresh();
     s = walkToCandybag(s);
     const gpBefore = s.gpEarned;
     expect(s.cashedOut).toBeNull();
 
     s = sm.submitProof(s, mockEvent, CANDYBAG, 'sub-hh');
-    s = sm.approveSubmission(s, mockEvent, CANDYBAG);
+    s = sm.completeTile(s, mockEvent, CANDYBAG, undefined, TEAM_POOL);
 
+    // Small mock has 2 houses → per-house = 1M / 2 = 500k. Bonus = 3× = 1.5M.
     expect(s.cashedOut).not.toBeNull();
     expect(s.cashedOut.forfeited).toBe(false);
-    expect(s.gpEarned).toBe(gpBefore + mockEvent.hauntedHouse.bonusReward_gp);
+    expect(s.cashedOut.bonusEarned).toBe(1_500_000);
+    expect(s.gpEarned).toBe(gpBefore + 1_500_000);
   });
 
   test('no transitions allowed after cashout', () => {
     let s = fresh();
     s = walkToCandybag(s);
     s = sm.submitProof(s, mockEvent, CANDYBAG, 'sub-hh');
-    s = sm.approveSubmission(s, mockEvent, CANDYBAG);
+    s = sm.completeTile(s, mockEvent, CANDYBAG, undefined, TEAM_POOL);
 
     expect(() => sm.chooseOption(s, mockEvent, HOUSE_BL, 'a'))
       .toThrow(/already cashed out/);
@@ -195,9 +260,9 @@ describe('curfew forfeit', () => {
 
   test('forfeits ALL banked gp if curfew hits without cashout', () => {
     let s = fresh();
-    s = completeHouse(s, HOUSE_TL, 'a');   // bank 500k
-    s = completeHouse(s, HOUSE_BL, 'a');   // bank another 750k
-    expect(s.gpEarned).toBe(1250000);
+    s = completeHouse(s, HOUSE_TL, 'a');   // bank 500k (pool 1M / 2 houses)
+    s = completeHouse(s, HOUSE_BL, 'a');   // bank another 500k
+    expect(s.gpEarned).toBe(1_000_000);
 
     const after = new Date(mockEvent.curfew.end).getTime() + 60 * 1000;
     s = sm.handleCurfew(s, mockEvent, new Date(after));
@@ -215,12 +280,33 @@ describe('curfew forfeit', () => {
     s = completeNonHouse(s, GHOST);
     s = completeNonHouse(s, GRAVE);
     s = sm.submitProof(s, mockEvent, CANDYBAG, 'sub-hh');
-    s = sm.approveSubmission(s, mockEvent, CANDYBAG);
+    s = sm.completeTile(s, mockEvent, CANDYBAG, undefined, TEAM_POOL);
     const snapshot = s;
 
     const after = new Date(mockEvent.curfew.end).getTime() + 60 * 1000;
     s = sm.handleCurfew(s, mockEvent, new Date(after));
     expect(s).toEqual(snapshot);
+  });
+});
+
+describe('reward derivation', () => {
+  test('perHouseReward = poolAllocation / houseCount (integer floor)', () => {
+    expect(sm.perHouseReward(mockEvent, 1_000_000)).toBe(500_000);
+    expect(sm.perHouseReward(mockEvent, 999_999)).toBe(499_999); // floor
+    expect(sm.perHouseReward(mockEvent, 0)).toBe(0);
+  });
+
+  test('countHouseTiles reflects the board', () => {
+    expect(sm.countHouseTiles(mockEvent)).toBe(2);
+  });
+
+  test('completeTile with 0 poolAllocation pays nothing on a house', () => {
+    let s = fresh();
+    s = sm.chooseOption(s, mockEvent, HOUSE_TL, 'a');
+    s = sm.submitProof(s, mockEvent, HOUSE_TL, 'sub-1');
+    s = sm.completeTile(s, mockEvent, HOUSE_TL, undefined, 0);
+    expect(s.tiles[HOUSE_TL].rewardEarned).toBe(0);
+    expect(s.gpEarned).toBe(0);
   });
 });
 

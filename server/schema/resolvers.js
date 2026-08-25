@@ -216,6 +216,12 @@ const resolvers = {
   GroupGoalEvent: {
     ...GroupDashboardResolvers.GroupGoalEvent,
   },
+  SpoopyEvent: {
+    ...SpoopyResolvers.SpoopyEvent,
+  },
+  SpoopySubmission: {
+    ...SpoopyResolvers.SpoopySubmission,
+  },
   RainbowEvent: {
     ...RainbowBingoResolvers.RainbowEvent,
   },

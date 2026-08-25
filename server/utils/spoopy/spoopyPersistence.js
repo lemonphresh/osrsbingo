@@ -28,6 +28,7 @@ async function loadTeamState(teamId) {
       submissionId: row.submissionId,
       completedAt: row.completedAt ? new Date(row.completedAt).toISOString() : null,
       rewardEarned: row.rewardEarned,
+      progress: row.progress ?? 0,
     };
   }
 
@@ -37,6 +38,7 @@ async function loadTeamState(teamId) {
     roster: team.members ?? [],
     gpEarned: team.gpEarned,
     cashedOut: team.cashedOut,
+    hauntedGauntletLevel: team.hauntedGauntletLevel ?? 0,
     tiles,
   };
 }
@@ -66,6 +68,7 @@ async function persistTeamState(prevState, nextState) {
         submissionId: next.submissionId,
         completedAt: next.completedAt ? new Date(next.completedAt) : null,
         rewardEarned: next.rewardEarned,
+        progress: next.progress ?? 0,
       },
       { where: { teamId: nextState.teamId, tileId } },
     );

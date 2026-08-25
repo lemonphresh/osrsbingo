@@ -7,6 +7,7 @@ import SpoopyTile from '../../organisms/spoopy/SpoopyTile';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
 import SpoopyTileDialog from '../../organisms/spoopy/SpoopyTileDialog';
 import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
+import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
 import {
   SPOOPY_COLORS, SPOOPY_FONTS, TILE_META, STATUS_META,
@@ -100,6 +101,8 @@ export default function SpoopyPlaygroundPage() {
         <TileMatrixSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <BoardSection />
+        <Divider borderColor={SPOOPY_COLORS.nightMist} />
+        <StartTileSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <DialogSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -227,6 +230,50 @@ function BoardSection() {
         board={MOCK_BOARD}
         teamState={MOCK_TEAM_STATE_MIXED}
         onTileClick={(id) => console.log('tile clicked', id)}
+      />
+    </VStack>
+  );
+}
+
+const MOCK_START_STORY = {
+  intro:
+    "it's spooky season, and it's time to get the gang together to go trick-or-treating... you've come to the most haunted neighborhood with the main goal to visit as many houses as possible before curfew is up. the group has agreed you absolutely MUST visit the scary house at the other end of the street before curfew is up though, even if it comes at the cost of not visiting the rest of the houses first... time to balance your trick-or-treating time with curfew, and see how much candy (gp) you can gather up for the team!",
+  task:
+    "for this first task, to get you familiar with the submission flow, the ask is for several of your team members to take an in-game selfie (individual){{passwordClause}} and submit it via {{command}} in your team channel.",
+  passwordClauseTemplate: ' with the event password "{{password}}" visible in the WOM plugin overlay',
+  command: '!spoopysubmit',
+  footer: 'refs will approve and set you on your spooky way as soon as this is done! stay safe out there!!!',
+};
+
+function StartTileSection() {
+  const [openWithPw, setOpenWithPw] = useState(false);
+  const [openWithoutPw, setOpenWithoutPw] = useState(false);
+  return (
+    <VStack spacing={4} align="stretch">
+      <Heading size="md" fontFamily={SPOOPY_FONTS.heading}>start tile (ready up)</Heading>
+      <Text fontSize="sm" opacity={0.7}>
+        story-driven kickoff modal shown when the team clicks the start tile. copy adapts to whether
+        the admin has set an event password.
+      </Text>
+      <HStack>
+        <Button onClick={() => setOpenWithPw(true)} bg={SPOOPY_COLORS.pumpkin} color={SPOOPY_COLORS.paper} _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}>
+          with event password
+        </Button>
+        <Button onClick={() => setOpenWithoutPw(true)} variant="outline" borderColor={SPOOPY_COLORS.nightMist} color={SPOOPY_COLORS.paper} _hover={{ bg: SPOOPY_COLORS.nightMist }}>
+          no event password
+        </Button>
+      </HStack>
+      <SpoopyStartModal
+        isOpen={openWithPw}
+        onClose={() => setOpenWithPw(false)}
+        story={MOCK_START_STORY}
+        eventPassword="spooptober2026"
+      />
+      <SpoopyStartModal
+        isOpen={openWithoutPw}
+        onClose={() => setOpenWithoutPw(false)}
+        story={MOCK_START_STORY}
+        eventPassword={null}
       />
     </VStack>
   );

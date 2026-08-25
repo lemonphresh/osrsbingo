@@ -1,3 +1,81 @@
+// ╔══════════════════════════════════════════════════════════════════════════╗
+// ║  SUBMISSIONS REVIEW FLOW — canonical convention for every event mode.    ║
+// ║                                                                          ║
+// ║  If you're building a new event mode with ref review, follow this.       ║
+// ║  Battleship is the reference implementation; rainbow bingo, champion     ║
+// ║  forge, and spoopy all match. Do not invent new patterns per event.      ║
+// ╚══════════════════════════════════════════════════════════════════════════╝
+//
+// # Tile lifecycle
+//
+//   LOCKED → UNLOCKED → SUBMITTED → COMPLETE
+//                            ↑
+//                            └─ tile stays here across many submissions;
+//                               approve/deny do NOT advance the tile.
+//                               Only "mark complete" moves it forward.
+//
+// # Submission-level actions (per row)
+//
+// - **Approve**: sets the submission row to APPROVED. Does NOT touch the
+//   tile status. A tile can accumulate many approved submissions.
+// - **Deny**: sets the submission row to DENIED with a reason. Does NOT
+//   touch the tile. Team can submit again immediately.
+// - Both play a sound cue and add the tile to `stickyTileIds` for 8s so
+//   the row stays visible in the "active" pool while the ref works.
+//
+// # Tile-level action (per tile)
+//
+// - **Mark Complete**: the ONLY thing that advances the tile to COMPLETE,
+//   banks rewards, and unlocks neighbors. Gated by `canMarkTileComplete`
+//   in `molecules/TileReviewControls.jsx`:
+//
+//     canMarkComplete = !isComplete && hasApproved && !hasPending && progress >= 100
+//
+//   If any gate fails, `markCompleteBlockedReason` returns a human-readable
+//   string explaining what's missing so refs never have to guess.
+//
+// # Multi-submission
+//
+// A tile can carry many submissions. Some approved, some denied, some
+// pending. This is expected for multi-step tasks (e.g. "get 5 uniques" —
+// each drop can be its own screenshot). Don't gate submitProof on tile
+// status other than "UNLOCKED or SUBMITTED".
+//
+// # Progress slider + `TileReviewControls`
+//
+// Progress is stored on the server as 0-100 (percent) regardless of task
+// shape. The shared `<TileReviewControls>` molecule handles display:
+// - Task has a numeric metric (kc/xp/uniques) → count mode: "3 / 5 kc".
+// - No task or non-numeric → percent mode: "60%".
+//
+// Every new event mode should:
+//   1. Ship a `normalize<Mode>Task(task)` helper next to the other
+//      normalizers in TileReviewControls.jsx.
+//   2. Pass the normalized props to `<TileReviewControls>` on the refs UI.
+//   3. NOT re-implement the mark-complete gate anywhere.
+//
+// # Grouping and sorting (refs page)
+//
+// Group submissions by tileId. Three pools:
+//   - **Active**: has pending submissions OR is in stickyTileIds (recent
+//     ref action). Sort by pending count DESC, stabilized via
+//     `stableGroupOrder` so tiles don't jump around during review.
+//   - **Reviewed**: all submissions reviewed (approved/denied), tile not
+//     yet marked complete. Collapsed by default.
+//   - **Completed**: `teamTile.status === 'complete'` per authoritative
+//     server state — never inferred from submission statuses. Collapsed.
+//
+// Within a group, render sections pending → approved → denied. Server
+// orders submissions by `submittedAt DESC`.
+//
+// # Live updates
+//
+// Board pages (team-facing) MUST also add a `visibilitychange` refetch —
+// WebSocket subscriptions can drop when the tab is backgrounded, so
+// pubsub events fired while hidden never reach the client. The visibility
+// listener recovers the state on refocus. See SpoopyEventPage /
+// BattleshipEventPage for the pattern.
+
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { gql, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
@@ -9,6 +87,15 @@ import {
 
 const NOOP_QUERY = gql`
   query SubmissionsNoopQ {
+    __typename
+  }
+`;
+// A separate no-op mutation doc — passing NOOP_QUERY to useMutation trips
+// Apollo's invariant check (operation type mismatch). This is only used as
+// a placeholder when the caller hasn't wired up a particular mutation; the
+// corresponding action is gated so it never fires.
+const NOOP_MUTATION = gql`
+  mutation SubmissionsNoopM {
     __typename
   }
 `;
@@ -108,10 +195,10 @@ export function SubmissionsProvider({
 
   // ── Mutations ─────────────────────────────────────────────────────────────
 
-  const [doReview] = useMutation(reviewSubmission ?? NOOP_QUERY);
-  const [doMarkComplete] = useMutation(markTileComplete ?? NOOP_QUERY);
-  const [doUndoApproval] = useMutation(undoApprovalDoc ?? NOOP_QUERY);
-  const [doUndoTileComplete] = useMutation(undoTileCompleteDoc ?? NOOP_QUERY);
+  const [doReview] = useMutation(reviewSubmission ?? NOOP_MUTATION);
+  const [doMarkComplete] = useMutation(markTileComplete ?? NOOP_MUTATION);
+  const [doUndoApproval] = useMutation(undoApprovalDoc ?? NOOP_MUTATION);
+  const [doUndoTileComplete] = useMutation(undoTileCompleteDoc ?? NOOP_MUTATION);
 
   // ── Subscriptions ─────────────────────────────────────────────────────────
 

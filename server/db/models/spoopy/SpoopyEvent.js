@@ -20,6 +20,7 @@ module.exports = (sequelize) => {
       },
       curfewStart:      { type: DataTypes.DATE,   allowNull: true },
       curfewEnd:        { type: DataTypes.DATE,   allowNull: true },
+      eventPassword:    { type: DataTypes.STRING, allowNull: true },
       adminIds:         { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: false, defaultValue: [] },
       staffChannelId:   { type: DataTypes.STRING, allowNull: true },
       // Board layout + tile adjacency, produced by spoopyBoardImporter.parseBoard.
@@ -29,6 +30,10 @@ module.exports = (sequelize) => {
       // Haunted-house warning tiers, bonus task, and bonus gp reward.
       hauntedHouse:     { type: DataTypes.JSONB,  allowNull: true },
       startingTileIds:  { type: DataTypes.ARRAY(DataTypes.STRING), allowNull: false, defaultValue: [] },
+      // Total gp budget for house rewards, editable while status=SETUP.
+      // Split evenly across teams at SETUP→ACTIVE, then across each team's
+      // houses. Haunted house pays 3× the per-house amount on top.
+      prizePool:        { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     },
     { sequelize, modelName: 'SpoopyEvent' },
   );

@@ -1,33 +1,49 @@
 import React from 'react';
 import {
-  Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton,
-  Box, Button, Text, VStack, HStack, Heading, Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  ModalCloseButton,
+  Box,
+  Text,
+  VStack,
+  HStack,
+  Heading,
+  Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import { MockDevButton, MockDevChoiceButtons } from './SpoopyStartModal';
 
 // Trick-or-treat dialog for a house tile. Renders the prompt + two options
 // (labels only — outcomes are hidden until choice is locked, per the
 // "no take-backsies" rule).
 //
-// If `choiceMade` is set (the team already picked), the dialog shows the
-// resolved task instead (via `resolvedTaskNode`). This lets us keep the
-// dialog open post-choice while the team works on the task.
+// The options are *not* clickable — the choice is always locked in via the
+// Discord bot so the whole team can debate together before committing.
+// The DiscordChoiceHint below spells out the commands.
+//
+// If `choiceMade` is set (the team already picked from Discord), the dialog
+// shows the resolved task instead (via `resolvedTaskNode`). This lets us
+// keep the dialog open post-choice while the team works on the task.
 //
 // Props:
 //   isOpen, onClose
 //   dialog          { prompt, options: { a: { label, ... }, b: { label, ... } } }
 //   choiceMade      null | 'a' | 'b'
-//   onChoose        fn(option 'a'|'b')
 //   resolvedTaskNode  ReactNode — usually a <SpoopyTaskCard />
-//   locked          if true, disables the option buttons (submission in flight)
+//   tileId          the tile's id — used to render tile-specific discord commands
 export default function SpoopyTileDialog({
   isOpen,
   onClose,
   dialog,
   choiceMade = null,
-  onChoose,
   resolvedTaskNode = null,
-  locked = false,
+  tileId = null,
+  onMockSubmit = null,
+  mockSubmitting = false,
+  onMockChoose = null,
+  mockChoosingLetter = null,
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
@@ -64,21 +80,19 @@ export default function SpoopyTileDialog({
 
             {!choiceMade ? (
               <VStack spacing={3} align="stretch" pt={2}>
-                <OptionButton
-                  label={options.a?.label}
-                  onClick={() => onChoose?.('a')}
-                  disabled={locked}
-                  optionLetter="a"
-                />
-                <OptionButton
-                  label={options.b?.label}
-                  onClick={() => onChoose?.('b')}
-                  disabled={locked}
-                  optionLetter="b"
-                />
+                <OptionCard label={options.a?.label} optionLetter="a" />
+                <OptionCard label={options.b?.label} optionLetter="b" />
                 <Text fontSize="xs" opacity={0.65} textAlign="center" pt={1}>
                   once you pick, there's no take-backsies
                 </Text>
+                {tileId && <DiscordChoiceHint tileId={tileId} />}
+                {onMockChoose && (
+                  <MockDevChoiceButtons
+                    onChoose={onMockChoose}
+                    loading={Boolean(mockChoosingLetter)}
+                    disabledLetter={mockChoosingLetter}
+                  />
+                )}
               </VStack>
             ) : (
               <VStack spacing={3} align="stretch" pt={1}>
@@ -90,7 +104,11 @@ export default function SpoopyTileDialog({
                   opacity={0.9}
                 >
                   <HStack spacing={2} mb={1}>
-                    <Badge bg={SPOOPY_COLORS.night} color={SPOOPY_COLORS.paper} textTransform="lowercase">
+                    <Badge
+                      bg={SPOOPY_COLORS.night}
+                      color={SPOOPY_COLORS.paper}
+                      textTransform="lowercase"
+                    >
                       option {choiceMade}
                     </Badge>
                     <OutcomeBadge outcome={chosenOption?.outcome} />
@@ -98,6 +116,8 @@ export default function SpoopyTileDialog({
                   <Text fontFamily={SPOOPY_FONTS.hand}>{chosenOption?.label}</Text>
                 </Box>
                 {resolvedTaskNode}
+                {tileId && <DiscordSubmitHint tileId={tileId} />}
+                {onMockSubmit && <MockDevButton onClick={onMockSubmit} loading={mockSubmitting} />}
               </VStack>
             )}
           </VStack>
@@ -107,15 +127,12 @@ export default function SpoopyTileDialog({
   );
 }
 
-function OptionButton({ label, onClick, disabled, optionLetter }) {
+// Read-only option display. The team commits their choice through Discord —
+// see DiscordChoiceHint for the commands. Keeps the paper-sticker card look
+// but drops the hover-lift / press-down so it doesn't read as a button.
+function OptionCard({ label, optionLetter }) {
   return (
-    <Button
-      onClick={onClick}
-      isDisabled={disabled}
-      justifyContent="flex-start"
-      whiteSpace="normal"
-      textAlign="left"
-      height="auto"
+    <Box
       py={4}
       px={4}
       bg={SPOOPY_COLORS.paper}
@@ -124,12 +141,6 @@ function OptionButton({ label, onClick, disabled, optionLetter }) {
       borderColor={SPOOPY_COLORS.paperEdge}
       borderRadius="md"
       boxShadow="0 3px 0 rgba(0,0,0,0.12)"
-      _hover={{
-        bg: SPOOPY_COLORS.paperShadow,
-        transform: 'translateY(-1px)',
-        boxShadow: '0 5px 0 rgba(0,0,0,0.14)',
-      }}
-      _active={{ transform: 'translateY(1px)', boxShadow: '0 1px 0 rgba(0,0,0,0.1)' }}
     >
       <HStack align="start" spacing={3} width="100%">
         <Badge
@@ -147,7 +158,7 @@ function OptionButton({ label, onClick, disabled, optionLetter }) {
           {label}
         </Text>
       </HStack>
-    </Button>
+    </Box>
   );
 }
 
@@ -162,5 +173,71 @@ function OutcomeBadge({ outcome }) {
     >
       {isTreat ? '🍬 treat' : '👻 trick'}
     </Badge>
+  );
+}
+
+// Rendered under the option cards when no choice is locked yet — the only
+// way to actually commit a choice. Encourages team-wide discussion so the
+// pick isn't made by whoever happened to click first.
+function DiscordChoiceHint({ tileId }) {
+  return (
+    <Box
+      bg={SPOOPY_COLORS.night}
+      color={SPOOPY_COLORS.paper}
+      p={3}
+      borderRadius="md"
+      fontSize="sm"
+      mt={1}
+    >
+      <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
+        discuss with the gang which option to pick, and send your choice via discord with one of
+        these commands:
+      </Text>
+      <Text fontSize="xs" opacity={0.85}>
+        option A —{' '}
+        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+          !spoopya {tileId}
+        </Text>
+      </Text>
+      <Text fontSize="xs" opacity={0.85}>
+        option B —{' '}
+        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+          !spoopyb {tileId}
+        </Text>
+      </Text>
+    </Box>
+  );
+}
+
+// Rendered post-choice — the team knows the task, needs to submit proof.
+function DiscordSubmitHint({ tileId }) {
+  return (
+    <Box
+      bg={SPOOPY_COLORS.night}
+      color={SPOOPY_COLORS.paper}
+      p={3}
+      borderRadius="md"
+      fontSize="sm"
+      mt={1}
+    >
+      <Text fontFamily={SPOOPY_FONTS.hand} mb={1}>
+        📸 submit from discord
+      </Text>
+      <Text fontSize="xs" opacity={0.85}>
+        pre-screenshot baseline:{' '}
+        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+          !spoopypre {tileId}
+        </Text>
+      </Text>
+      <Text fontSize="xs" opacity={0.85}>
+        completion proof:{' '}
+        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+          !spoopysubmit {tileId}
+        </Text>
+      </Text>
+      <Text fontSize="xs" opacity={0.6} mt={1}>
+        include the event password visible in your screenshot.
+      </Text>
+    </Box>
   );
 }

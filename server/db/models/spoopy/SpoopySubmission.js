@@ -15,6 +15,11 @@ module.exports = (sequelize) => {
       teamId:           { type: DataTypes.STRING, allowNull: false },
       eventId:          { type: DataTypes.STRING, allowNull: false },
       tileId:           { type: DataTypes.STRING, allowNull: false },
+      type: {
+        type: DataTypes.ENUM('PRE', 'FINAL'),
+        allowNull: false,
+        defaultValue: 'FINAL',
+      },
       screenshotUrl:    { type: DataTypes.TEXT,   allowNull: true },
       discordMessageId: { type: DataTypes.STRING, allowNull: true },
       channelId:        { type: DataTypes.STRING, allowNull: false },

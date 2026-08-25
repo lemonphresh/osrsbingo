@@ -51,45 +51,56 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(container.textContent).toBe('');
   });
 
-  test('warning phase shows the server-supplied dialog', () => {
+  test('stage 1 (gauntletLevel=0) shows !stepinside + the server dialog', () => {
     render(
       <SpoopyHauntedHouseModal
         isOpen
-        phase="warning"
+        gauntletLevel={0}
         warningDialog="you sure about this?"
         msRemaining={3600000}
         currentGp={1000000}
-        onProceed={() => {}}
         onClose={() => {}}
       />,
     );
     expect(screen.getByText('you sure about this?')).toBeInTheDocument();
-    expect(screen.getByText(/1,000,000 gp/)).toBeInTheDocument();
+    expect(screen.getByText(/stage 1 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText('!stepinside')).toBeInTheDocument();
+    // 1,000,000 gp = 100 candies at the 10k:1 ratio.
+    expect(screen.getByText(/100 candies/)).toBeInTheDocument();
     expect(screen.getByText(/1h 0m/)).toBeInTheDocument();
   });
 
-  test('warning phase fires onProceed', () => {
-    const proceed = jest.fn();
+  test('stage 2 (gauntletLevel=1) shows !imserious', () => {
     render(
       <SpoopyHauntedHouseModal
         isOpen
-        phase="warning"
-        warningDialog="hello"
-        msRemaining={1000}
+        gauntletLevel={1}
         currentGp={0}
-        onProceed={proceed}
         onClose={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText(/step inside/i));
-    expect(proceed).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/stage 2 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText('!imserious')).toBeInTheDocument();
   });
 
-  test('confirm phase reveals the bonus task and reward', () => {
+  test('stage 3 (gauntletLevel=2) shows !nogoingback', () => {
     render(
       <SpoopyHauntedHouseModal
         isOpen
-        phase="confirm"
+        gauntletLevel={2}
+        currentGp={0}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText(/stage 3 of 3/i)).toBeInTheDocument();
+    expect(screen.getByText('!nogoingback')).toBeInTheDocument();
+  });
+
+  test('confirm (gauntletLevel>=3) reveals the bonus task and reward', () => {
+    render(
+      <SpoopyHauntedHouseModal
+        isOpen
+        gauntletLevel={3}
         bonusTask={{ kind: 'custom', target: 'group photo', amount: 1 }}
         bonusRewardGp={1000000}
         onSubmit={() => {}}
@@ -100,18 +111,33 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(screen.getByText(/\+1,000,000 gp/)).toBeInTheDocument();
   });
 
-  test('confirm phase fires onSubmit', () => {
+  test('confirm shows the discord submit commands when a tileId is present', () => {
+    render(
+      <SpoopyHauntedHouseModal
+        isOpen
+        gauntletLevel={3}
+        tileId="t-r99-c99"
+        bonusTask={{ kind: 'custom', target: 'photo', amount: 1 }}
+        onSubmit={() => {}}
+        onClose={() => {}}
+      />,
+    );
+    expect(screen.getByText(/!spoopypre t-r99-c99/)).toBeInTheDocument();
+    expect(screen.getByText(/!spoopysubmit t-r99-c99/)).toBeInTheDocument();
+  });
+
+  test('confirm close button fires onSubmit (parent uses it to close)', () => {
     const submit = jest.fn();
     render(
       <SpoopyHauntedHouseModal
         isOpen
-        phase="confirm"
+        gauntletLevel={3}
         bonusTask={{ kind: 'custom', target: 'photo', amount: 1 }}
         onSubmit={submit}
         onClose={() => {}}
       />,
     );
-    fireEvent.click(screen.getByText(/submit proof/i));
+    fireEvent.click(screen.getByText(/^close$/i));
     expect(submit).toHaveBeenCalledTimes(1);
   });
 });

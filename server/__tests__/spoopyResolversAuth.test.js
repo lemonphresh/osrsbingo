@@ -74,14 +74,39 @@ describe('admin-gated mutations reject unauthenticated callers', () => {
     ['createSpoopyEvent', { input: { eventName: 'x' } }],
     ['updateSpoopyEventStatus', { eventId: EVENT_ID, status: 'ACTIVE' }],
     ['updateSpoopyEventBoard', { eventId: EVENT_ID }],
+    ['setSpoopyEventPassword', { eventId: EVENT_ID, password: 'pw' }],
     ['createSpoopyTeam', { eventId: EVENT_ID, input: { teamName: 't', discordChannelId: 'c' } }],
     ['updateSpoopyTeamMembers', { teamId: TEAM_ID, members: [] }],
+    ['deleteSpoopyTeam', { teamId: TEAM_ID }],
     ['addSpoopyAdmin', { eventId: EVENT_ID, userId: 'u-1' }],
     ['removeSpoopyAdmin', { eventId: EVENT_ID, userId: 'u-1' }],
     ['reviewSpoopySubmission', { submissionId: 'x', approved: true }],
+    ['setSpoopyTileProgress', { teamId: TEAM_ID, tileId: 't', progress: 50 }],
+    ['completeSpoopyTile', { teamId: TEAM_ID, tileId: 't' }],
   ];
   test.each(cases)('%s throws for missing context.user', async (name, args) => {
     await expect(Mutation[name](null, args, NO_CTX)).rejects.toThrow(/logged in/i);
+  });
+});
+
+describe('site-admin-only mutations (seed + refresh + delete) reject event admins who aren\'t site admins', () => {
+  test('seedSpoopyMockEvent throws for non-site-admin', async () => {
+    await expect(Mutation.seedSpoopyMockEvent(null, {}, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+  });
+  test('seedSpoopyMockEvent throws for unauthenticated', async () => {
+    await expect(Mutation.seedSpoopyMockEvent(null, {}, NO_CTX)).rejects.toThrow(/logged in/i);
+  });
+  test('refreshSpoopyEventFromMock throws for non-site-admin', async () => {
+    await expect(Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+  });
+  test('refreshSpoopyEventFromMock throws for unauthenticated', async () => {
+    await expect(Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+  });
+  test('deleteSpoopyEvent throws for non-site-admin', async () => {
+    await expect(Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+  });
+  test('deleteSpoopyEvent throws for unauthenticated', async () => {
+    await expect(Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
   });
 });
 
@@ -89,10 +114,14 @@ describe('admin-gated mutations reject non-admin users', () => {
   const cases = [
     ['updateSpoopyEventStatus', { eventId: EVENT_ID, status: 'ACTIVE' }],
     ['updateSpoopyEventBoard', { eventId: EVENT_ID }],
+    ['setSpoopyEventPassword', { eventId: EVENT_ID, password: 'pw' }],
     ['createSpoopyTeam', { eventId: EVENT_ID, input: { teamName: 't', discordChannelId: 'c' } }],
     ['updateSpoopyTeamMembers', { teamId: TEAM_ID, members: [] }],
+    ['deleteSpoopyTeam', { teamId: TEAM_ID }],
     ['addSpoopyAdmin', { eventId: EVENT_ID, userId: 'u-1' }],
     ['removeSpoopyAdmin', { eventId: EVENT_ID, userId: 'u-1' }],
+    ['setSpoopyTileProgress', { teamId: TEAM_ID, tileId: 't', progress: 50 }],
+    ['completeSpoopyTile', { teamId: TEAM_ID, tileId: 't' }],
   ];
   test.each(cases)('%s throws for a logged-in non-admin', async (name, args) => {
     await expect(Mutation[name](null, args, NON_ADMIN_CTX)).rejects.toThrow(/admin only/i);
@@ -110,7 +139,7 @@ describe('admin-gated mutations reject non-admin users', () => {
 describe('team-member mutations reject unauthenticated callers', () => {
   const cases = [
     ['createSpoopyChoice', { input: { teamId: TEAM_ID, tileId: 't', option: 'a' } }],
-    ['createSpoopySubmission', { input: { teamId: TEAM_ID, tileId: 't' } }],
+    ['createSpoopySubmission', { input: { teamId: TEAM_ID, tileId: 't', type: 'FINAL' } }],
     ['enterSpoopyHauntedHouse', { input: { teamId: TEAM_ID } }],
   ];
   test.each(cases)('%s throws for missing context.user', async (name, args) => {
@@ -121,7 +150,7 @@ describe('team-member mutations reject unauthenticated callers', () => {
 describe('team-member mutations reject logged-in non-members without staff role', () => {
   const cases = [
     ['createSpoopyChoice', { input: { teamId: TEAM_ID, tileId: 't', option: 'a' } }],
-    ['createSpoopySubmission', { input: { teamId: TEAM_ID, tileId: 't' } }],
+    ['createSpoopySubmission', { input: { teamId: TEAM_ID, tileId: 't', type: 'FINAL' } }],
     ['enterSpoopyHauntedHouse', { input: { teamId: TEAM_ID } }],
   ];
   test.each(cases)('%s rejects a non-member logged-in user', async (name, args) => {

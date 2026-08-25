@@ -1,9 +1,21 @@
 import React from 'react';
 import {
-  Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton,
-  Box, Button, Text, VStack, HStack, Heading, Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  ModalCloseButton,
+  Box,
+  Button,
+  Text,
+  VStack,
+  HStack,
+  Heading,
+  Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import { formatCandy } from './spoopyCurrency';
+import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
 
 // Formats a raw msRemaining into a compact 'Xd Yh Zm' string. Used in the
 // haunted-house modal so the team knows what "before curfew" means concretely.
@@ -21,23 +33,53 @@ export function formatMsRemaining(ms) {
   return parts.join(' ');
 }
 
-// Haunted-house cash-out modal. Two phases:
-//   1. Warning phase — server-supplied warningDialog copy (severity based on
-//      time left; strong wall if curfew is far away, light nudge if near).
-//   2. Confirmation phase — reveal the actual bonus task and let the team
-//      submit it. Confirming does NOT bank gp on its own; approval of the
-//      submission is what triggers cashOut in the state machine.
+// Haunted-house cash-out modal. Walks the "step-inside gauntlet" — the team
+// has to run three escalating Discord commands in order to unlock the
+// candybag submission. Any command out of sequence resets them to 0.
+//
+// Phase is driven entirely by the server-side gauntlet level, streamed to
+// the client via the team-board subscription. The modal is a viewer, not
+// the source of truth.
+//
+//   gauntletLevel 0 → warning stage 1  (needs !stepinside)
+//   gauntletLevel 1 → warning stage 2  (needs !imserious)
+//   gauntletLevel 2 → warning stage 3  (needs !nogoingback)
+//   gauntletLevel 3 → confirm phase    (submit via !spoopysubmit castle)
 //
 // Props:
 //   isOpen, onClose
-//   warningDialog   string — copy chosen server-side by tier
+//   warningDialog   string — server-supplied prose for stage 1 severity
 //   msRemaining     number — used for the countdown line
 //   currentGp       number — shown so the team sees what's at stake
 //   bonusTask       optional { kind, target, amount }
 //   bonusRewardGp   optional number
-//   onProceed       fn() — user acknowledges the warning + wants to attempt
-//   onSubmit        fn() — proof submitted (real submission call lives outside)
-//   phase           'warning' | 'confirm' — driven by parent
+//   tileId          candybag tile id — used in the submit command
+//   gauntletLevel   0-3, live from server (drives which stage renders)
+//   onSubmit        fn() — close callback for the terminal phase
+const GAUNTLET_STAGES = [
+  {
+    level: 1,
+    heading: '🚪 approach the door',
+    command: '!stepinside',
+    prompt:
+      "you're standing on the porch. the door groans in the wind. type the command below in your team's discord channel to crack it open.",
+  },
+  {
+    level: 2,
+    heading: '🕯️ a candle flickers',
+    command: '!imserious',
+    prompt:
+      'you can hear whispering behind the walls. this is your chance to walk away, or double down. one wrong command and the door slams shut, you know.',
+  },
+  {
+    level: 3,
+    heading: '💀 last chance',
+    command: '!nogoingback',
+    prompt:
+      "the floorboards creak. the temperature drops. if you're really sure, type the words. after this, there's no turning back to get more candy. this is your final stop of the night before you go home... hopefully.",
+  },
+];
+
 export default function SpoopyHauntedHouseModal({
   isOpen,
   onClose,
@@ -46,11 +88,12 @@ export default function SpoopyHauntedHouseModal({
   currentGp = 0,
   bonusTask,
   bonusRewardGp,
-  onProceed,
   onSubmit,
-  phase = 'warning',
+  tileId = null,
+  gauntletLevel = 0,
 }) {
-  const isWarning = phase === 'warning';
+  const isConfirm = gauntletLevel >= 3;
+  const currentStage = !isConfirm ? GAUNTLET_STAGES[gauntletLevel] ?? GAUNTLET_STAGES[0] : null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -78,13 +121,22 @@ export default function SpoopyHauntedHouseModal({
               🏚️ the spooky house
             </Heading>
 
-            {isWarning ? (
+            {!isConfirm ? (
               <>
                 <HStack justify="space-between" fontSize="sm" opacity={0.75}>
                   <Text>banked so far</Text>
-                  <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
-                    {currentGp.toLocaleString()} gp
-                  </Text>
+                  <HStack spacing={2}>
+                    <img
+                      src={candyIconAsset}
+                      alt=""
+                      width={16}
+                      height={16}
+                      style={{ objectFit: 'contain', pointerEvents: 'none' }}
+                    />
+                    <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
+                      {formatCandy(currentGp)}
+                    </Text>
+                  </HStack>
                 </HStack>
                 <HStack justify="space-between" fontSize="sm" opacity={0.75}>
                   <Text>time until curfew</Text>
@@ -100,14 +152,55 @@ export default function SpoopyHauntedHouseModal({
                   borderLeft="4px solid"
                   borderColor={SPOOPY_COLORS.ember}
                 >
+                  <Text
+                    fontFamily={SPOOPY_FONTS.hand}
+                    fontSize="md"
+                    color={SPOOPY_COLORS.emberDeep}
+                    fontWeight="bold"
+                    mb={2}
+                  >
+                    stage {currentStage.level} of 3 — {currentStage.heading}
+                  </Text>
+                  {gauntletLevel === 0 && warningDialog && (
+                    <Text
+                      fontFamily={SPOOPY_FONTS.hand}
+                      fontSize="md"
+                      lineHeight={1.5}
+                      mb={2}
+                      opacity={0.9}
+                    >
+                      {warningDialog}
+                    </Text>
+                  )}
                   <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" lineHeight={1.5}>
-                    {warningDialog ?? 'the door creaks open…'}
+                    {currentStage.prompt}
+                  </Text>
+                </Box>
+
+                <Box bg={SPOOPY_COLORS.night} color={SPOOPY_COLORS.paper} p={3} borderRadius="md">
+                  <Text fontSize="xs" opacity={0.75} mb={1}>
+                    type this in your team's discord channel:
+                  </Text>
+                  <Text fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight} fontSize="md">
+                    {currentStage.command}
+                  </Text>
+                  <Text fontSize="10px" opacity={0.55} mt={2}>
+                    any other spoopy command (or{' '}
+                    <Text as="span" fontFamily="mono">
+                      !nevermind
+                    </Text>
+                    ) will reset you back to stage 1.
                   </Text>
                 </Box>
 
                 <Text fontSize="xs" opacity={0.65} textAlign="center">
                   reminder: if you don't complete the spooky house task before curfew,
-                  <br />your team loses all banked gp
+                  <br />
+                  your team loses all banked candies. if you visit now, you will go home
+                  <br />
+                  with the loot you've gotten so far!
+                  <br />
+                  you can't go back for more, though, so choose wisely!
                 </Text>
 
                 <HStack pt={2} spacing={3} justify="center">
@@ -118,14 +211,6 @@ export default function SpoopyHauntedHouseModal({
                     _hover={{ bg: SPOOPY_COLORS.paperShadow }}
                   >
                     turn back
-                  </Button>
-                  <Button
-                    onClick={onProceed}
-                    bg={SPOOPY_COLORS.ember}
-                    color={SPOOPY_COLORS.paper}
-                    _hover={{ bg: SPOOPY_COLORS.emberDeep }}
-                  >
-                    step inside 👻
                   </Button>
                 </HStack>
               </>
@@ -143,11 +228,7 @@ export default function SpoopyHauntedHouseModal({
                 >
                   the bonus task
                 </Badge>
-                <Box
-                  bg={SPOOPY_COLORS.paperShadow}
-                  p={4}
-                  borderRadius="md"
-                >
+                <Box bg={SPOOPY_COLORS.paperShadow} p={4} borderRadius="md">
                   <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" lineHeight={1.4}>
                     {bonusTask
                       ? `${bonusTask.amount ?? 1}× ${bonusTask.target ?? 'complete the bonus'}`
@@ -156,20 +237,55 @@ export default function SpoopyHauntedHouseModal({
                 </Box>
                 {typeof bonusRewardGp === 'number' && bonusRewardGp > 0 && (
                   <HStack justify="space-between">
-                    <Text fontSize="sm" opacity={0.7}>bonus on approval</Text>
-                    <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" color={SPOOPY_COLORS.pumpkinDeep}>
+                    <Text fontSize="sm" opacity={0.7}>
+                      bonus on approval
+                    </Text>
+                    <Text
+                      fontFamily={SPOOPY_FONTS.hand}
+                      fontSize="lg"
+                      color={SPOOPY_COLORS.pumpkinDeep}
+                    >
                       +{bonusRewardGp.toLocaleString()} gp
                     </Text>
                   </HStack>
                 )}
+                {tileId && (
+                  <Box
+                    bg={SPOOPY_COLORS.night}
+                    color={SPOOPY_COLORS.paper}
+                    p={3}
+                    borderRadius="md"
+                    fontSize="sm"
+                    mt={1}
+                  >
+                    <Text fontFamily={SPOOPY_FONTS.hand} mb={1}>
+                      📸 submit from discord
+                    </Text>
+                    <Text fontSize="xs" opacity={0.85}>
+                      pre-screenshot baseline:{' '}
+                      <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+                        !spoopypre {tileId}
+                      </Text>
+                    </Text>
+                    <Text fontSize="xs" opacity={0.85}>
+                      completion proof:{' '}
+                      <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+                        !spoopysubmit {tileId}
+                      </Text>
+                    </Text>
+                    <Text fontSize="xs" opacity={0.6} mt={1}>
+                      include the event password visible in your screenshot.
+                    </Text>
+                  </Box>
+                )}
                 <HStack justify="center" pt={2}>
                   <Button
                     onClick={onSubmit}
-                    bg={SPOOPY_COLORS.pumpkin}
-                    color={SPOOPY_COLORS.paper}
-                    _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+                    variant="ghost"
+                    color={SPOOPY_COLORS.paperInk}
+                    _hover={{ bg: SPOOPY_COLORS.paperShadow }}
                   >
-                    submit proof 🎃
+                    close
                   </Button>
                 </HStack>
               </>

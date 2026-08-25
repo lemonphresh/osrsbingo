@@ -1328,6 +1328,8 @@ describe('Spoopy Queries', () => {
           contentById
           hauntedHouse
           startingTileIds
+          teams { teamId teamName members }
+          admins { id displayName username }
         }
       }
     `);
@@ -1487,6 +1489,18 @@ describe('Spoopy Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
+  test('SET_SPOOPY_EVENT_PASSWORD', () => {
+    const result = validateOperation(`
+      mutation SetSpoopyEventPassword($eventId: ID!, $password: String) {
+        setSpoopyEventPassword(eventId: $eventId, password: $password) {
+          eventId
+          eventPassword
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
   test('UPDATE_SPOOPY_EVENT_BOARD', () => {
     const result = validateOperation(`
       mutation UpdateSpoopyEventBoard(
@@ -1535,6 +1549,30 @@ describe('Spoopy Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
+  test('COMPLETE_SPOOPY_TILE', () => {
+    const result = validateOperation(`
+      mutation CompleteSpoopyTile($teamId: ID!, $tileId: String!) {
+        completeSpoopyTile(teamId: $teamId, tileId: $tileId) {
+          teamId
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SET_SPOOPY_TILE_PROGRESS', () => {
+    const result = validateOperation(`
+      mutation SetSpoopyTileProgress($teamId: ID!, $tileId: String!, $progress: Int!) {
+        setSpoopyTileProgress(teamId: $teamId, tileId: $tileId, progress: $progress) {
+          teamId
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
   test('REVIEW_SPOOPY_SUBMISSION', () => {
     const result = validateOperation(`
       mutation ReviewSpoopySubmission($submissionId: ID!, $approved: Boolean!, $denialReason: String) {
@@ -1562,13 +1600,14 @@ describe('Spoopy Mutations', () => {
     expect(result.valid).toBe(true);
   });
 
-  test('CREATE_SPOOPY_SUBMISSION (bot)', () => {
+  test('CREATE_SPOOPY_SUBMISSION (with type)', () => {
     const result = validateOperation(`
       mutation CreateSpoopySubmission($input: CreateSpoopySubmissionInput!) {
         createSpoopySubmission(input: $input) {
           submissionId
           teamId
           tileId
+          type
           status
         }
       }
@@ -1597,6 +1636,46 @@ describe('Spoopy Mutations', () => {
           eventId
           adminIds
         }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('REFRESH_SPOOPY_EVENT_FROM_MOCK', () => {
+    const result = validateOperation(`
+      mutation RefreshSpoopyEventFromMock($eventId: ID!) {
+        refreshSpoopyEventFromMock(eventId: $eventId) {
+          eventId
+          board
+          contentById
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SEED_SPOOPY_MOCK_EVENT', () => {
+    const result = validateOperation(`
+      mutation SeedSpoopyMockEvent {
+        seedSpoopyMockEvent { eventId eventName status }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_SPOOPY_EVENT', () => {
+    const result = validateOperation(`
+      mutation DeleteSpoopyEvent($eventId: ID!) {
+        deleteSpoopyEvent(eventId: $eventId)
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_SPOOPY_TEAM', () => {
+    const result = validateOperation(`
+      mutation DeleteSpoopyTeam($teamId: ID!) {
+        deleteSpoopyTeam(teamId: $teamId)
       }
     `);
     expect(result.valid).toBe(true);

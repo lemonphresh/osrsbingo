@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       submissionId: { type: DataTypes.STRING, allowNull: true },
       completedAt:  { type: DataTypes.DATE,   allowNull: true },
       rewardEarned: { type: DataTypes.INTEGER, allowNull: true },
+      progress:     { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
     },
     {
       sequelize,

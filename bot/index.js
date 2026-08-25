@@ -26,9 +26,14 @@ const rbpre = rainbowbingo.rbpre;
 const battleship = require('./commands/battleship');
 const battleshipHelp = battleship.help;
 const battleshipPre = battleship.bspre;
+const spoopy = require('./commands/spoopy');
+const spoopyPre = spoopy.spoopypre;
+const spoopyA = spoopy.spoopya;
+const spoopyB = spoopy.spoopyb;
+const spoopyHelp = spoopy.help;
 const ping = require('./commands/ping');
 
-const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, battleship, battleshipHelp, battleshipPre, ping];
+const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, battleship, battleshipHelp, battleshipPre, spoopy, spoopyPre, spoopyA, spoopyB, spoopyHelp, ping];
 
 let GREvent, GRTeam, CFEvent, CFTeam;
 

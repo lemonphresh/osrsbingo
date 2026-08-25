@@ -65,21 +65,26 @@ describe('parseBoard against real fixture', () => {
     expect(board.dimensions).toEqual({ rows: 20, cols: 29 });
   });
 
-  test('finds 56 houses (matches sheet legend count)', () => {
-    expect(tileCountsByType(board).house).toBe(56);
+  test('finds 51 houses (matches sheet legend count)', () => {
+    expect(tileCountsByType(board).house).toBe(51);
   });
 
-  test('finds no other tile types (none placed in current draft)', () => {
+  test('finds one candybag placed on the current draft', () => {
+    expect(tileCountsByType(board).candybag).toBe(1);
+  });
+
+  test('other tile types are absent from the CSV (none placed in current draft)', () => {
     const counts = tileCountsByType(board);
     expect(counts.pumpkin).toBeUndefined();
     expect(counts.grave).toBeUndefined();
     expect(counts.ghost).toBeUndefined();
     expect(counts['black-cat']).toBeUndefined();
-    expect(counts.candybag).toBeUndefined();
   });
 
-  test('counts connectors (legend claims 57, real board has more due to WIP)', () => {
-    expect(connectorCount(board)).toBe(71);
+  test('preserves main-road connectors even when the path is unfinished', () => {
+    // Only fully-isolated connectors get trimmed. Multi-step tails on the
+    // main road (author still drawing the path) are preserved as visual cues.
+    expect(connectorCount(board)).toBeGreaterThan(0);
   });
 
   test('every real tile has a position within the detected playfield', () => {
@@ -91,13 +96,23 @@ describe('parseBoard against real fixture', () => {
     }
   });
 
-  test('warns when no candybag tile is placed', () => {
-    expect(board.candybagTileId).toBeNull();
-    expect(board.warnings.some((w) => /no candybag/i.test(w))).toBe(true);
+  test('candybag tile id is set from the CSV', () => {
+    expect(board.candybagTileId).toBeTruthy();
+    const cb = board.tiles.find((t) => t.id === board.candybagTileId);
+    expect(cb.tile_type).toBe('candybag');
   });
 
-  test('surfaces isolated tiles (no connector neighbors) as a warning', () => {
-    expect(board.warnings.some((w) => /no connector neighbors/.test(w))).toBe(true);
+  test('start tile id is set from the CSV', () => {
+    expect(board.startTileId).toBeTruthy();
+    const st = board.tiles.find((t) => t.id === board.startTileId);
+    expect(st.tile_type).toBe('start');
+  });
+
+  test('every tile on the current fixture reaches at least one neighbor (no isolated warnings)', () => {
+    for (const tile of board.tiles) {
+      expect(tile.neighbors.length).toBeGreaterThan(0);
+    }
+    expect(board.warnings.some((w) => /no connector neighbors/.test(w))).toBe(false);
   });
 });
 

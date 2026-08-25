@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, Icon } from '@chakra-ui/react';
-import { FaHome } from 'react-icons/fa';
-import { GiPumpkin, GiTombstone, GiGhost, GiHollowCat, GiCandyCanes } from 'react-icons/gi';
+import { FaHome, FaCamera } from 'react-icons/fa';
+import { GiPumpkin, GiTombstone, GiGhost, GiHollowCat, GiSpookyHouse } from 'react-icons/gi';
 import {
   TILE_META,
   STATUS_META,
@@ -11,15 +11,32 @@ import {
   SPOOPY_COLORS,
 } from './spoopyTheme';
 
-// Placeholder icon components per tile type — swap for hand-drawn PNGs when
-// they land. Assets will live at client/src/assets/spoopy/{type}.png.
+import houseAsset from '../../assets/spoopy/house.webp';
+import pumpkinAsset from '../../assets/spoopy/pumpkin.webp';
+import graveAsset from '../../assets/spoopy/grave.webp';
+import ghostAsset from '../../assets/spoopy/ghost.webp';
+import blackCatAsset from '../../assets/spoopy/black_cat.webp';
+
+// Hand-drawn paper-sticker assets per tile type. Types without an entry here
+// fall back to the react-icons placeholder below. Candybag deliberately keeps
+// the GiSpookyHouse icon — bag_of_sweets.webp is reserved for the "candy
+// shower" flourish that plays when a team engages with the scary castle.
+const TILE_ASSETS = {
+  house: houseAsset,
+  pumpkin: pumpkinAsset,
+  grave: graveAsset,
+  ghost: ghostAsset,
+  'black-cat': blackCatAsset,
+};
+
 const PLACEHOLDER_ICONS = {
-  house:       FaHome,
-  pumpkin:     GiPumpkin,
-  grave:       GiTombstone,
-  ghost:       GiGhost,
+  start: FaCamera,
+  house: FaHome,
+  pumpkin: GiPumpkin,
+  grave: GiTombstone,
+  ghost: GiGhost,
   'black-cat': GiHollowCat,
-  candybag:    GiCandyCanes,
+  candybag: GiSpookyHouse,
 };
 
 // Sticker-styled tile — used inside SpoopyBoard for each real tile position.
@@ -41,12 +58,19 @@ export default function SpoopyTile({
   assetSrc,
   showLabel = false,
   ariaLabel,
+  progress = 0,
 }) {
   const meta = TILE_META[tileType] ?? TILE_META.house;
   const statusMeta = STATUS_META[status] ?? STATUS_META.locked;
   const IconComponent = PLACEHOLDER_ICONS[tileType] ?? FaHome;
+  const resolvedAsset = assetSrc ?? TILE_ASSETS[tileType] ?? null;
   const rotation = stickerRotationDeg(tileId);
   const isInteractive = status !== 'locked' && typeof onClick === 'function';
+  const clampedProgress = Math.max(0, Math.min(100, Number(progress) || 0));
+  const showProgress =
+    clampedProgress > 0 &&
+    clampedProgress < 100 &&
+    (status === 'unlocked' || status === 'submitted');
 
   return (
     <Box
@@ -84,13 +108,13 @@ export default function SpoopyTile({
       outlineColor={statusMeta.ring}
       outlineOffset="0px"
     >
-      {assetSrc ? (
+      {resolvedAsset ? (
         <img
-          src={assetSrc}
+          src={resolvedAsset}
           alt=""
           style={{
-            width: '72%',
-            height: '72%',
+            width: '85%',
+            height: '85%',
             objectFit: 'contain',
             pointerEvents: 'none',
           }}
@@ -102,6 +126,30 @@ export default function SpoopyTile({
           color={meta.fillColor}
           aria-hidden="true"
         />
+      )}
+
+      {showProgress && (
+        <Box
+          position="absolute"
+          top={`-${Math.max(16, Math.floor(size * 0.14))}px`}
+          left="50%"
+          transform="translateX(-50%)"
+          width={`${Math.floor(size * 0.7)}px`}
+          height="4px"
+          borderRadius="full"
+          bg={SPOOPY_COLORS.nightMist}
+          border={`1px solid ${SPOOPY_COLORS.paperEdge}`}
+          overflow="hidden"
+          pointerEvents="none"
+          aria-hidden="true"
+        >
+          <Box
+            width={`${clampedProgress}%`}
+            height="100%"
+            bg={SPOOPY_COLORS.pumpkin}
+            transition="width 200ms ease-out"
+          />
+        </Box>
       )}
 
       {status === 'complete' && (

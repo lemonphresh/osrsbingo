@@ -33,6 +33,16 @@ export default function SpoopyBoard({
     return m;
   }, [teamState]);
 
+  const progressById = useMemo(() => {
+    const m = {};
+    if (teamState?.tiles) {
+      for (const [id, s] of Object.entries(teamState.tiles)) {
+        m[id] = s?.progress ?? 0;
+      }
+    }
+    return m;
+  }, [teamState]);
+
   return (
     <Box
       // The dusty-night "stage" around the paper
@@ -87,6 +97,7 @@ export default function SpoopyBoard({
                   tileId={tile.id}
                   tileType={tile.tile_type}
                   status={status}
+                  progress={progressById[tile.id] ?? 0}
                   size={Math.floor(cellSize * 0.88)}
                   onClick={onTileClick ? () => onTileClick(tile.id) : undefined}
                 />

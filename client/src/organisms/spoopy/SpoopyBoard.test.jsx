@@ -13,13 +13,20 @@ jest.mock('@chakra-ui/react', () => {
   };
 });
 
-jest.mock('react-icons/fa', () => ({ FaHome: () => null }));
+jest.mock('react-icons/fa', () => ({ FaHome: () => null, FaCamera: () => null }));
+
+jest.mock('../../assets/spoopy/house.webp',         () => 'house.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/pumpkin.webp',       () => 'pumpkin.webp',     { virtual: true });
+jest.mock('../../assets/spoopy/grave.webp',         () => 'grave.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/ghost.webp',         () => 'ghost.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/black_cat.webp',     () => 'black_cat.webp',   { virtual: true });
+jest.mock('../../assets/spoopy/bag_of_sweets.webp', () => 'bag_of_sweets.webp', { virtual: true });
 jest.mock('react-icons/gi', () => ({
   GiPumpkin: () => null,
   GiTombstone: () => null,
   GiGhost: () => null,
   GiHollowCat: () => null,
-  GiCandyCanes: () => null,
+  GiSpookyHouse: () => null,
 }));
 
 import SpoopyBoard from './SpoopyBoard';
@@ -51,7 +58,7 @@ describe('SpoopyBoard', () => {
     render(<SpoopyBoard board={boardFixture} teamState={teamState} />);
     expect(screen.getByLabelText(/trick or treat.*unlocked/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/pumpkin.*locked/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/bag of sweets.*locked/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/scary castle.*locked/i)).toBeInTheDocument();
   });
 
   test('defaults status to locked when teamState omits a tile', () => {
@@ -59,7 +66,7 @@ describe('SpoopyBoard', () => {
     // No teamState — every tile should end up locked
     expect(screen.getByLabelText(/trick or treat.*locked/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/pumpkin.*locked/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/bag of sweets.*locked/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/scary castle.*locked/i)).toBeInTheDocument();
   });
 
   test('invokes onTileClick with the tile id for unlocked tiles', () => {

@@ -17,13 +17,22 @@ jest.mock('@chakra-ui/react', () => {
 // react-icons/fa + gi mocks
 jest.mock('react-icons/fa', () => ({
   FaHome: () => null,
+  FaCamera: () => null,
 }));
+
+// Mock the webp asset imports so Jest doesn't try to parse them as JS.
+jest.mock('../../assets/spoopy/house.webp',         () => 'house.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/pumpkin.webp',       () => 'pumpkin.webp',     { virtual: true });
+jest.mock('../../assets/spoopy/grave.webp',         () => 'grave.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/ghost.webp',         () => 'ghost.webp',       { virtual: true });
+jest.mock('../../assets/spoopy/black_cat.webp',     () => 'black_cat.webp',   { virtual: true });
+jest.mock('../../assets/spoopy/bag_of_sweets.webp', () => 'bag_of_sweets.webp', { virtual: true });
 jest.mock('react-icons/gi', () => ({
   GiPumpkin: () => null,
   GiTombstone: () => null,
   GiGhost: () => null,
   GiHollowCat: () => null,
-  GiCandyCanes: () => null,
+  GiSpookyHouse: () => null,
 }));
 
 import SpoopyTile from './SpoopyTile';
