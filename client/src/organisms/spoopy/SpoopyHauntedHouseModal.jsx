@@ -16,6 +16,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { formatCandy } from './spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
+import SpoopyCommandCopy from './SpoopyCommandCopy';
 
 // Formats a raw msRemaining into a compact 'Xd Yh Zm' string. Used in the
 // haunted-house modal so the team knows what "before curfew" means concretely.
@@ -178,12 +179,10 @@ export default function SpoopyHauntedHouseModal({
                 </Box>
 
                 <Box bg={SPOOPY_COLORS.night} color={SPOOPY_COLORS.paper} p={3} borderRadius="md">
-                  <Text fontSize="xs" opacity={0.75} mb={1}>
+                  <Text fontSize="xs" opacity={0.75} mb={2}>
                     type this in your team's discord channel:
                   </Text>
-                  <Text fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight} fontSize="md">
-                    {currentStage.command}
-                  </Text>
+                  <SpoopyCommandCopy command={currentStage.command} />
                   <Text fontSize="10px" opacity={0.55} mt={2}>
                     any other spoopy command (or{' '}
                     <Text as="span" fontFamily="mono">
@@ -258,22 +257,36 @@ export default function SpoopyHauntedHouseModal({
                     fontSize="sm"
                     mt={1}
                   >
-                    <Text fontFamily={SPOOPY_FONTS.hand} mb={1}>
+                    <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
                       📸 submit from discord
                     </Text>
-                    <Text fontSize="xs" opacity={0.85}>
-                      pre-screenshot baseline:{' '}
-                      <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                        !spoopypre {tileId}
-                      </Text>
-                    </Text>
-                    <Text fontSize="xs" opacity={0.85}>
-                      completion proof:{' '}
-                      <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                        !spoopysubmit {tileId}
-                      </Text>
-                    </Text>
-                    <Text fontSize="xs" opacity={0.6} mt={1}>
+                    <VStack align="stretch" spacing={2}>
+                      <Box>
+                        <Text
+                          fontSize="10px"
+                          opacity={0.7}
+                          mb={1}
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                        >
+                          pre-screenshot baseline
+                        </Text>
+                        <SpoopyCommandCopy command={`!spoopypre ${tileId}`} size="sm" />
+                      </Box>
+                      <Box>
+                        <Text
+                          fontSize="10px"
+                          opacity={0.7}
+                          mb={1}
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                        >
+                          completion proof
+                        </Text>
+                        <SpoopyCommandCopy command={`!spoopysubmit ${tileId}`} size="sm" />
+                      </Box>
+                    </VStack>
+                    <Text fontSize="xs" opacity={0.6} mt={2}>
                       include the event password visible in your screenshot.
                     </Text>
                   </Box>

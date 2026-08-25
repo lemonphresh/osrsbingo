@@ -6,6 +6,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
 import { taskLine } from './SpoopyTaskCard';
 import { MockDevButton } from './SpoopyStartModal';
+import SpoopyCommandCopy from './SpoopyCommandCopy';
 
 // Read-only team-facing modal for a non-house tile: shows the task, current
 // progress (0-100% bar), status, and the discord submission commands. All
@@ -135,22 +136,36 @@ export default function SpoopyTaskModal({
               fontSize="sm"
               opacity={0.9}
             >
-              <Text fontFamily={SPOOPY_FONTS.hand} mb={1}>
+              <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
                 📸 submit from discord
               </Text>
-              <Text fontSize="xs" opacity={0.85}>
-                pre-screenshot baseline:{' '}
-                <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                  !spoopypre {content.id}
-                </Text>
-              </Text>
-              <Text fontSize="xs" opacity={0.85}>
-                completion proof:{' '}
-                <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                  !spoopysubmit {content.id}
-                </Text>
-              </Text>
-              <Text fontSize="xs" opacity={0.6} mt={1}>
+              <VStack align="stretch" spacing={2}>
+                <Box>
+                  <Text
+                    fontSize="10px"
+                    opacity={0.7}
+                    mb={1}
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    pre-screenshot baseline
+                  </Text>
+                  <SpoopyCommandCopy command={`!spoopypre ${content.id}`} size="sm" />
+                </Box>
+                <Box>
+                  <Text
+                    fontSize="10px"
+                    opacity={0.7}
+                    mb={1}
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    completion proof
+                  </Text>
+                  <SpoopyCommandCopy command={`!spoopysubmit ${content.id}`} size="sm" />
+                </Box>
+              </VStack>
+              <Text fontSize="xs" opacity={0.6} mt={2}>
                 include the event password visible in your screenshot.
               </Text>
             </Box>

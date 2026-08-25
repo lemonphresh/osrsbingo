@@ -14,6 +14,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import SpoopyCommandCopy from './SpoopyCommandCopy';
 
 // Renders the ready-up dialog for the start tile: story intro + task
 // description. Purely informational — actual submissions happen via the
@@ -119,13 +120,12 @@ export default function SpoopyStartModal({
                 ) : null}
               </Text>
               {command && (
-                <Text fontSize="sm" mt={2} opacity={0.75}>
-                  submit via{' '}
-                  <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinDeep}>
-                    {command}
-                  </Text>{' '}
-                  in your team's discord channel
-                </Text>
+                <Box mt={3}>
+                  <Text fontSize="xs" opacity={0.65} mb={1}>
+                    submit in your team's discord channel:
+                  </Text>
+                  <SpoopyCommandCopy command={command} size="sm" />
+                </Box>
               )}
             </Box>
 

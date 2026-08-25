@@ -20,6 +20,7 @@ jest.mock('@chakra-ui/react', () => {
     ModalContent: passthrough('div'),
     ModalBody: passthrough('div'),
     ModalCloseButton: () => React.createElement('button', { 'aria-label': 'close' }),
+    useClipboard: () => ({ onCopy: () => {}, hasCopied: false }),
   };
 });
 

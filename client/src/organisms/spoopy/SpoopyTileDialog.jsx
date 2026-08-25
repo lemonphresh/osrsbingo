@@ -14,6 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { MockDevButton, MockDevChoiceButtons } from './SpoopyStartModal';
+import SpoopyCommandCopy from './SpoopyCommandCopy';
 
 // Trick-or-treat dialog for a house tile. Renders the prompt + two options
 // (labels only — outcomes are hidden until choice is locked, per the
@@ -193,18 +194,20 @@ function DiscordChoiceHint({ tileId }) {
         discuss with the gang which option to pick, and send your choice via discord with one of
         these commands:
       </Text>
-      <Text fontSize="xs" opacity={0.85}>
-        option A —{' '}
-        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-          !spoopya {tileId}
-        </Text>
-      </Text>
-      <Text fontSize="xs" opacity={0.85}>
-        option B —{' '}
-        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-          !spoopyb {tileId}
-        </Text>
-      </Text>
+      <VStack align="stretch" spacing={2}>
+        <Box>
+          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+            option A
+          </Text>
+          <SpoopyCommandCopy command={`!spoopya ${tileId}`} size="sm" />
+        </Box>
+        <Box>
+          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+            option B
+          </Text>
+          <SpoopyCommandCopy command={`!spoopyb ${tileId}`} size="sm" />
+        </Box>
+      </VStack>
     </Box>
   );
 }
@@ -220,21 +223,23 @@ function DiscordSubmitHint({ tileId }) {
       fontSize="sm"
       mt={1}
     >
-      <Text fontFamily={SPOOPY_FONTS.hand} mb={1}>
+      <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
         📸 submit from discord
       </Text>
-      <Text fontSize="xs" opacity={0.85}>
-        pre-screenshot baseline:{' '}
-        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-          !spoopypre {tileId}
-        </Text>
-      </Text>
-      <Text fontSize="xs" opacity={0.85}>
-        completion proof:{' '}
-        <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-          !spoopysubmit {tileId}
-        </Text>
-      </Text>
+      <VStack align="stretch" spacing={2}>
+        <Box>
+          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+            pre-screenshot baseline
+          </Text>
+          <SpoopyCommandCopy command={`!spoopypre ${tileId}`} size="sm" />
+        </Box>
+        <Box>
+          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+            completion proof
+          </Text>
+          <SpoopyCommandCopy command={`!spoopysubmit ${tileId}`} size="sm" />
+        </Box>
+      </VStack>
       <Text fontSize="xs" opacity={0.6} mt={1}>
         include the event password visible in your screenshot.
       </Text>

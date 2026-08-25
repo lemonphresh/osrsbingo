@@ -75,7 +75,32 @@ async function postSpoopySubmissionResult({
   }
 }
 
+/**
+ * When an event auto-transitions from SETUP to ACTIVE, ping each team's
+ * channel so players know the night has started and where to go on the
+ * site. Best-effort — a failed post shouldn't block the transition.
+ */
+async function postSpoopyEventStarted({ channelId, eventName }) {
+  const label = eventName ? `**${eventName}**` : 'the spooktober event';
+  await post(
+    channelId,
+    [
+      `🎃 the night has begun — ${label} is live!`,
+      '',
+      'proceed (if you dare…!) to the spoopy event dashboard:',
+      'https://osrsbingo.com/spoopy-event',
+      '',
+      "🔑 be sure to log in and have your discord linked to access the board — you'll only see " +
+        "your team's view.",
+      '',
+      "check the trick-or-treat houses, and don't forget the scary house at the end of the street. " +
+        'curfew is coming — good luck out there. 🕯️',
+    ].join('\n'),
+  );
+}
+
 module.exports = {
   postSpoopyPreScreenshotResult,
   postSpoopySubmissionResult,
+  postSpoopyEventStarted,
 };

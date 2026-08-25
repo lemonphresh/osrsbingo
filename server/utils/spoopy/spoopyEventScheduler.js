@@ -4,6 +4,7 @@ const cron = require('node-cron');
 const logger = require('../logger');
 const { pubsub } = require('../../schema/pubsub');
 const { loadTeamState, persistTeamState, toEventDefinition } = require('./spoopyPersistence');
+const { postSpoopyEventStarted } = require('./spoopyDiscord');
 const sm = require('./spoopyStateMachine');
 
 // Auto-transitions spoopy events based on their curfew fields:
@@ -19,6 +20,12 @@ async function checkSpoopyEventSchedule() {
   const now = new Date();
 
   // ── SETUP → ACTIVE ────────────────────────────────────────────────────
+  //
+  // Freezes each team's share of the prize pool at this point (same logic
+  // the graphql `updateSpoopyEventStatus` resolver uses when an admin flips
+  // status manually). Also pings each team's Discord channel that the
+  // night is on. Both are best-effort — a single team's failure doesn't
+  // stop the transition or block other teams.
   const toStart = await SpoopyEvent.findAll({
     where: {
       status: 'SETUP',
@@ -27,7 +34,34 @@ async function checkSpoopyEventSchedule() {
   });
   for (const event of toStart) {
     logger.info(`[spoopyScheduler] auto-starting event ${event.eventId}`);
+    const teams = await SpoopyTeam.findAll({ where: { eventId: event.eventId } });
+    const pool = event.prizePool ?? 0;
+    const perTeam = teams.length > 0 ? Math.floor(pool / teams.length) : 0;
+    for (const team of teams) {
+      if (team.poolAllocation !== perTeam) {
+        try {
+          await team.update({ poolAllocation: perTeam });
+        } catch (err) {
+          logger.error({ err, teamId: team.teamId }, '[spoopyScheduler] pool snapshot failed');
+        }
+      }
+    }
     await event.update({ status: 'ACTIVE' });
+
+    // Notify each team channel — fire-and-forget in parallel.
+    await Promise.all(
+      teams.map((team) =>
+        postSpoopyEventStarted({
+          channelId: team.discordChannelId,
+          eventName: event.eventName,
+        }).catch((err) => {
+          logger.error(
+            { err, teamId: team.teamId, channelId: team.discordChannelId },
+            '[spoopyScheduler] event-started discord post failed',
+          );
+        }),
+      ),
+    );
   }
 
   // ── ACTIVE → COMPLETE (+ curfew forfeit) ──────────────────────────────

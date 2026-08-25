@@ -10,30 +10,40 @@ import {
   Text,
   Tooltip,
 } from '@chakra-ui/react';
-import { FaPlay, FaPause, FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
+import {
+  FaChevronDown,
+  FaChevronUp,
+  FaPause,
+  FaPlay,
+  FaVolumeMute,
+  FaVolumeUp,
+} from 'react-icons/fa';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 
-// Floating ambient-audio widget for /spoopy-event. Loads a YouTube video
-// invisibly and gives the user a play/pause + volume control. Autoplay is
-// intentionally never triggered — browsers block audible autoplay without
-// a user gesture, so the first play requires a click.
+// Floating spooky-lofi ambiance widget. Mounts a *youtube-nocookie* iframe
+// (same domain rainbow uses on its "event not started" screen — reliably
+// survives ad-blockers and tracking-protection extensions). Playback and
+// volume are driven from our own controls via YouTube's postMessage bridge
+// (`?enablejsapi=1`), so we don't need the external `iframe_api.js` script
+// that gets blocked in most locked-down browser environments.
 //
-// State persists to localStorage so the user's choice carries across page
-// reloads. Ad-blockers that block youtube.com will cause the API script
-// to fail — we detect that and hide the widget so nothing looks broken.
+// The iframe stays mounted the whole session — even when collapsed — so
+// audio keeps playing while the widget is hidden. Collapse just hides it
+// visually via `visibility: hidden` (still in layout, so browsers don't
+// throttle it as "background media").
 
-const YT_API_SRC = 'https://www.youtube.com/iframe_api';
-const LS_KEY_VOL = 'spoopyAmbianceVolume';
-const LS_KEY_ENABLED = 'spoopyAmbianceEnabled';
-// Playback position (in seconds) that the user was last at. Persisted while
-// playing so a refresh doesn't restart the whole loop from 0. Scoped by
-// videoId so switching to a new loop starts fresh.
+const LS_KEY_COLLAPSED = 'spoopyAmbianceCollapsed';
+const LS_KEY_VOLUME = 'spoopyAmbianceVolume';
+const LS_KEY_PLAYING = 'spoopyAmbiancePlaying';
+// Scoped per video so switching to a different loop later starts fresh.
 const LS_KEY_TIME_PREFIX = 'spoopyAmbianceTime_';
+
+const YT_ORIGIN = 'https://www.youtube-nocookie.com';
 
 function readStoredTime(videoId) {
   try {
-    const raw = Number(localStorage.getItem(LS_KEY_TIME_PREFIX + videoId));
-    return Number.isFinite(raw) && raw > 0 ? raw : 0;
+    const n = Number(localStorage.getItem(LS_KEY_TIME_PREFIX + videoId));
+    return Number.isFinite(n) && n > 0 ? n : 0;
   } catch (_) {
     return 0;
   }
@@ -45,230 +55,218 @@ function writeStoredTime(videoId, seconds) {
   } catch (_) {}
 }
 
-// Load the YT IFrame API once, return a promise that resolves when the
-// global `YT.Player` is ready. Cached so multiple mounts share one load.
-let ytApiPromise = null;
-function loadYouTubeApi() {
-  if (ytApiPromise) return ytApiPromise;
-  ytApiPromise = new Promise((resolve, reject) => {
-    if (window.YT?.Player) return resolve(window.YT);
-
-    const priorCallback = window.onYouTubeIframeAPIReady;
-    window.onYouTubeIframeAPIReady = () => {
-      if (typeof priorCallback === 'function') priorCallback();
-      resolve(window.YT);
-    };
-
-    const existing = document.querySelector(`script[src="${YT_API_SRC}"]`);
-    if (existing) return; // waiting on the same script
-
-    const script = document.createElement('script');
-    script.src = YT_API_SRC;
-    script.async = true;
-    script.onerror = () => reject(new Error('Failed to load YouTube API'));
-    document.head.appendChild(script);
-  });
-  return ytApiPromise;
+// Tells the embedded player to run a function. YT's postMessage protocol
+// accepts a JSON string with `{ event: 'command', func, args }`.
+function sendCommand(iframe, func, args = []) {
+  const win = iframe?.contentWindow;
+  if (!win) return;
+  try {
+    win.postMessage(JSON.stringify({ event: 'command', func, args }), YT_ORIGIN);
+  } catch (_) {}
 }
 
 export default function SpoopyAmbiancePlayer({ videoId }) {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(() => {
-    const stored = Number(localStorage.getItem(LS_KEY_VOL));
-    return Number.isFinite(stored) && stored >= 0 && stored <= 100 ? stored : 40;
+  // Default to collapsed + muted on FIRST visit so the widget isn't loud or
+  // in the user's face. Once they touch it, their choices persist and get
+  // restored on subsequent loads.
+  const [collapsed, setCollapsed] = useState(() => {
+    const stored = localStorage.getItem(LS_KEY_COLLAPSED);
+    return stored == null ? true : stored === 'true';
   });
+  const [volume, setVolume] = useState(() => {
+    const stored = localStorage.getItem(LS_KEY_VOLUME);
+    const n = Number(stored);
+    if (stored == null) return 0;
+    return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 0;
+  });
+  // Playback state we drive ourselves. Autoplay-muted lands the iframe in
+  // `playing` immediately (browser autoplay policy allows silent playback),
+  // so we default to true and only flip to false if the user explicitly
+  // paused in a prior session.
+  const [playing, setPlaying] = useState(
+    () => localStorage.getItem(LS_KEY_PLAYING) !== 'false',
+  );
   const [ready, setReady] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const playerRef = useRef(null);
-  const containerRef = useRef(null);
-  const wantedPlayingRef = useRef(false);
-  const saveTimerRef = useRef(null);
+  const iframeRef = useRef(null);
+  // Latest reported currentTime from YT's infoDelivery messages. Written on
+  // an interval + on hide so refresh picks up close to where we left off.
+  const currentTimeRef = useRef(0);
+  // Guard so we only apply the resume-seek once per mount.
+  const seekedRef = useRef(false);
 
   useEffect(() => {
-    try { localStorage.setItem(LS_KEY_VOL, String(volume)); } catch (_) {}
+    try { localStorage.setItem(LS_KEY_COLLAPSED, String(collapsed)); } catch (_) {}
+  }, [collapsed]);
+  useEffect(() => {
+    try { localStorage.setItem(LS_KEY_VOLUME, String(volume)); } catch (_) {}
   }, [volume]);
-
   useEffect(() => {
-    let cancelled = false;
-    let player = null;
+    try { localStorage.setItem(LS_KEY_PLAYING, String(playing)); } catch (_) {}
+  }, [playing]);
 
-    loadYouTubeApi()
-      .then((YT) => {
-        if (cancelled || !containerRef.current) return;
-        player = new YT.Player(containerRef.current, {
-          height: '1',
-          width: '1',
-          videoId,
-          playerVars: {
-            autoplay: 0,
-            controls: 0,
-            disablekb: 1,
-            fs: 0,
-            loop: 1,
-            playlist: videoId, // required for loop=1 to work on a single video
-            playsinline: 1,
-            modestbranding: 1,
-          },
-          events: {
-            onReady: (e) => {
-              if (cancelled) return;
-              e.target.setVolume(volume);
-              playerRef.current = e.target;
-              setReady(true);
-              // Restore prior enabled state — but only start playing if the
-              // user had it on and the browser lets us. Muted playback is
-              // allowed without a gesture, but we don't want silent audio,
-              // so we skip auto-resume and let the user click.
-            },
-            onStateChange: (e) => {
-              // YT.PlayerState: -1 unstarted, 0 ended, 1 playing, 2 paused,
-              // 3 buffering, 5 cued
-              if (e.data === 1) setIsPlaying(true);
-              else if (e.data === 2 || e.data === 0) {
-                setIsPlaying(false);
-                if (e.data === 0) {
-                  // Video ended — the loop wraps back to 0, so the stored
-                  // resume-time from earlier in this play would jump us
-                  // forward on a refresh. Reset it so the next start is
-                  // fresh.
-                  try { writeStoredTime(videoId, 0); } catch (_) {}
-                  // Loop safety net — some videos don't loop cleanly via
-                  // the param alone. If the user wanted playback, kick
-                  // it back on.
-                  if (wantedPlayingRef.current) {
-                    try { e.target.playVideo(); } catch (_) {}
-                  }
-                }
-              }
-            },
-          },
-        });
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
+  // On mount we listen for the player's postMessage events. `onReady` fires
+  // once when the player finishes booting; `infoDelivery` fires repeatedly
+  // with state updates (including `currentTime`, which we need for resume).
+  useEffect(() => {
+    function onMessage(e) {
+      if (e.origin !== YT_ORIGIN) return;
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (data?.event === 'onReady' || data?.event === 'infoDelivery') {
+          setReady(true);
+        }
+        // currentTime shows up under two shapes depending on payload —
+        // top-level on some messages, nested under `info` on others.
+        const t = data?.info?.currentTime ?? data?.currentTime;
+        if (Number.isFinite(t) && t > 0) {
+          currentTimeRef.current = t;
+        }
+      } catch (_) {}
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
-    return () => {
-      cancelled = true;
-      try { player?.destroy?.(); } catch (_) {}
-      playerRef.current = null;
-    };
+  // Once the player signals ready: register as a state listener (so it
+  // starts broadcasting infoDelivery updates back to us), apply the
+  // persisted volume/mute/pause state, and seek to the last-known
+  // position so refresh doesn't restart the loop from 0.
+  useEffect(() => {
+    if (!ready) return;
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+
+    // Registering as a listener is what makes YT push `infoDelivery`
+    // messages back to us. Without this we can send commands but never
+    // hear the currentTime updates.
+    try {
+      iframe.contentWindow?.postMessage(
+        JSON.stringify({ event: 'listening', id: 'spoopy-ambiance' }),
+        YT_ORIGIN,
+      );
+    } catch (_) {}
+
+    sendCommand(iframe, 'setVolume', [volume]);
+    if (volume > 0) sendCommand(iframe, 'unMute');
+    if (!playing) sendCommand(iframe, 'pauseVideo');
+
+    // One-shot resume seek. `seekTo(seconds, allowSeekAhead=true)` — the
+    // second arg lets the request go through even if that segment isn't
+    // buffered yet.
+    if (!seekedRef.current) {
+      const resumeAt = readStoredTime(videoId);
+      if (resumeAt > 0) {
+        try { sendCommand(iframe, 'seekTo', [resumeAt, true]); } catch (_) {}
+      }
+      seekedRef.current = true;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId]);
+  }, [ready]);
 
-  // Periodically snapshot the current time to localStorage while playing so
-  // a refresh can resume where the user left off. 3s cadence balances "good
-  // enough resume" against localStorage write frequency.
+  // Periodically flush the last-known currentTime to localStorage so a
+  // refresh resumes near where we were. 3s cadence balances resume
+  // accuracy against write frequency. Also flush on visibility change /
+  // page hide to catch the "user closed the tab" case.
   useEffect(() => {
     if (!ready) return undefined;
-    const tick = () => {
-      const p = playerRef.current;
-      if (!p) return;
-      if (typeof p.getPlayerState !== 'function') return;
-      // YT.PlayerState.PLAYING === 1
-      if (p.getPlayerState() !== 1) return;
-      try { writeStoredTime(videoId, p.getCurrentTime()); } catch (_) {}
-    };
-    saveTimerRef.current = setInterval(tick, 3000);
 
-    // Also save on tab hide / page unload so the last few seconds don't get
-    // lost. `pagehide` covers the mobile-safari case better than `beforeunload`.
-    const flush = () => tick();
+    const flush = () => {
+      if (playing && currentTimeRef.current > 0) {
+        writeStoredTime(videoId, currentTimeRef.current);
+      }
+    };
+
+    const timer = setInterval(flush, 3000);
     window.addEventListener('pagehide', flush);
     document.addEventListener('visibilitychange', flush);
 
     return () => {
-      clearInterval(saveTimerRef.current);
-      saveTimerRef.current = null;
+      clearInterval(timer);
       window.removeEventListener('pagehide', flush);
       document.removeEventListener('visibilitychange', flush);
       flush();
     };
-  }, [ready, videoId]);
+  }, [ready, playing, videoId]);
 
   const togglePlay = useCallback(() => {
-    const p = playerRef.current;
-    if (!p) return;
-    if (isPlaying) {
-      wantedPlayingRef.current = false;
-      // Snapshot current position before pausing so a refresh right now
-      // still resumes where we were.
-      try { writeStoredTime(videoId, p.getCurrentTime()); } catch (_) {}
-      p.pauseVideo();
-      try { localStorage.setItem(LS_KEY_ENABLED, 'false'); } catch (_) {}
-    } else {
-      wantedPlayingRef.current = true;
-      p.setVolume(volume);
-      // Resume from wherever the user left off across the refresh. seekTo
-      // second arg = true means "allow seek ahead" so the request goes
-      // through even if that segment isn't buffered yet.
-      const resumeAt = readStoredTime(videoId);
-      if (resumeAt > 0) {
-        try { p.seekTo(resumeAt, true); } catch (_) {}
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    setPlaying((wasPlaying) => {
+      if (wasPlaying) {
+        // Snapshot the current position before pausing so a refresh right
+        // now still resumes from where we were.
+        if (currentTimeRef.current > 0) writeStoredTime(videoId, currentTimeRef.current);
+        sendCommand(iframe, 'pauseVideo');
+        return false;
       }
-      p.playVideo();
-      try { localStorage.setItem(LS_KEY_ENABLED, 'true'); } catch (_) {}
-    }
-  }, [isPlaying, volume, videoId]);
+      sendCommand(iframe, 'setVolume', [volume]);
+      if (volume > 0) sendCommand(iframe, 'unMute');
+      sendCommand(iframe, 'playVideo');
+      return true;
+    });
+  }, [videoId, volume]);
 
   const handleVolume = useCallback((v) => {
     setVolume(v);
-    playerRef.current?.setVolume?.(v);
-  }, []);
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    sendCommand(iframe, 'setVolume', [v]);
+    if (v === 0) {
+      // Sliding down to 0 acts as a soft mute — we don't pause the video,
+      // just silence it, so the user can slide back up without a restart.
+      sendCommand(iframe, 'mute');
+    } else {
+      // First real interaction with volume from a muted state: unmute AND
+      // kick playback back on if it was paused. This is the "touch the
+      // slider to start the music" gesture — no separate play button needed.
+      sendCommand(iframe, 'unMute');
+      if (!playing) {
+        sendCommand(iframe, 'playVideo');
+        setPlaying(true);
+      }
+    }
+  }, [playing]);
 
-  if (failed) return null;
+  if (!videoId) return null;
+
+  // playlist=<id> is required for loop=1 to work on a single video.
+  // enablejsapi=1 unlocks the postMessage bridge. origin= is best-practice
+  // per YouTube's docs so cross-frame messages are scoped.
+  const embedSrc =
+    `${YT_ORIGIN}/embed/${videoId}` +
+    `?autoplay=1&mute=1&loop=1&playlist=${videoId}` +
+    `&controls=0&modestbranding=1&playsinline=1&rel=0&enablejsapi=1` +
+    `&origin=${encodeURIComponent(window.location.origin)}`;
 
   const muted = volume === 0;
 
   return (
-    <>
-      {/* The invisible YouTube player. Sits offscreen so it never affects
-          layout. Kept in the DOM so the player can control it. */}
-      <Box
-        position="fixed"
-        left="-9999px"
-        top="-9999px"
-        width="1px"
-        height="1px"
-        aria-hidden="true"
-        pointerEvents="none"
-      >
-        <div ref={containerRef} />
-      </Box>
-
-      <Box
-        position="fixed"
-        bottom={{ base: 3, md: 5 }}
-        right={{ base: 3, md: 5 }}
-        zIndex={20}
-        bg={SPOOPY_COLORS.night}
-        color={SPOOPY_COLORS.paper}
-        border="1px solid"
-        borderColor={SPOOPY_COLORS.nightMist}
-        borderRadius="full"
-        px={3}
-        py={2}
-        boxShadow="0 10px 24px rgba(0,0,0,0.55)"
-        opacity={ready ? 1 : 0.5}
-        transition="opacity 200ms ease-out"
-      >
-        <HStack spacing={3} align="center">
-          <Tooltip
-            label={isPlaying ? 'pause spooky ambiance' : 'play spooky ambiance'}
-            fontSize="xs"
-          >
+    <Box
+      position="fixed"
+      bottom={{ base: 3, md: 5 }}
+      right={{ base: 3, md: 5 }}
+      zIndex={20}
+      bg={SPOOPY_COLORS.night}
+      border="1px solid"
+      borderColor={SPOOPY_COLORS.nightMist}
+      borderRadius="lg"
+      p={2}
+      boxShadow="0 10px 24px rgba(0,0,0,0.55)"
+      color={SPOOPY_COLORS.paper}
+    >
+      <HStack spacing={2} justify="space-between">
+        <HStack spacing={2}>
+          <Tooltip label={playing ? 'pause ambiance' : 'play ambiance'} fontSize="xs">
             <IconButton
-              size="sm"
-              aria-label={isPlaying ? 'pause spooky ambiance' : 'play spooky ambiance'}
-              icon={isPlaying ? <FaPause /> : <FaPlay />}
+              size="xs"
               variant="ghost"
               color={SPOOPY_COLORS.pumpkinLight}
               _hover={{ bg: SPOOPY_COLORS.nightMist }}
-              isDisabled={!ready}
+              aria-label={playing ? 'pause ambiance' : 'play ambiance'}
+              icon={playing ? <FaPause /> : <FaPlay />}
               onClick={togglePlay}
             />
           </Tooltip>
-
           <Text
             fontSize="xs"
             fontFamily={SPOOPY_FONTS.hand}
@@ -276,31 +274,72 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
             display={{ base: 'none', md: 'block' }}
             whiteSpace="nowrap"
           >
-            {ready ? (isPlaying ? '🎃 spooky ambiance' : 'ambiance') : 'loading…'}
+            🎃 spooky ambiance
           </Text>
-
-          <HStack spacing={2} align="center" minW="110px">
-            <Box color={muted ? SPOOPY_COLORS.paper : SPOOPY_COLORS.pumpkinLight} opacity={0.75}>
-              {muted ? <FaVolumeMute size={12} /> : <FaVolumeUp size={12} />}
-            </Box>
-            <Slider
-              aria-label="ambiance volume"
-              value={volume}
-              min={0}
-              max={100}
-              step={1}
-              onChange={handleVolume}
-              focusThumbOnChange={false}
-              isDisabled={!ready}
-            >
-              <SliderTrack bg={SPOOPY_COLORS.nightMist} h="4px" borderRadius="full">
-                <SliderFilledTrack bg={SPOOPY_COLORS.pumpkin} />
-              </SliderTrack>
-              <SliderThumb boxSize={3} bg={SPOOPY_COLORS.pumpkin} />
-            </Slider>
-          </HStack>
         </HStack>
+
+        <HStack spacing={2} minW="110px">
+          <Box color={muted ? SPOOPY_COLORS.paper : SPOOPY_COLORS.pumpkinLight} opacity={0.75}>
+            {muted ? <FaVolumeMute size={12} /> : <FaVolumeUp size={12} />}
+          </Box>
+          <Slider
+            aria-label="ambiance volume"
+            value={volume}
+            min={0}
+            max={100}
+            step={1}
+            onChange={handleVolume}
+            focusThumbOnChange={false}
+          >
+            <SliderTrack bg={SPOOPY_COLORS.nightMist} h="4px" borderRadius="full">
+              <SliderFilledTrack bg={SPOOPY_COLORS.pumpkin} />
+            </SliderTrack>
+            <SliderThumb boxSize={3} bg={SPOOPY_COLORS.pumpkin} />
+          </Slider>
+        </HStack>
+
+        <Tooltip label={collapsed ? 'show video' : 'hide video'} fontSize="xs">
+          <IconButton
+            size="xs"
+            variant="ghost"
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            aria-label={collapsed ? 'show video' : 'hide video'}
+            icon={collapsed ? <FaChevronUp /> : <FaChevronDown />}
+            onClick={() => setCollapsed((v) => !v)}
+          />
+        </Tooltip>
+      </HStack>
+
+      {/* The iframe stays mounted regardless of `collapsed` so audio keeps
+          playing when the video is hidden. `visibility: hidden` (as opposed
+          to `display: none` or unmounting) keeps the element in layout,
+          which prevents Chrome from throttling it as background media. */}
+      <Box
+        mt={collapsed ? 0 : 2}
+        width={{ base: '220px', md: '280px' }}
+        style={{
+          aspectRatio: '16/9',
+          visibility: collapsed ? 'hidden' : 'visible',
+          height: collapsed ? '1px' : undefined,
+          overflow: 'hidden',
+          pointerEvents: collapsed ? 'none' : 'auto',
+        }}
+        borderRadius="md"
+        border={collapsed ? 'none' : '1px solid'}
+        borderColor={SPOOPY_COLORS.nightMist}
+      >
+        <iframe
+          ref={iframeRef}
+          width="100%"
+          height="100%"
+          src={embedSrc}
+          title="spoopy ambient loop"
+          allow="autoplay; encrypted-media; picture-in-picture"
+          referrerPolicy="strict-origin-when-cross-origin"
+          style={{ display: 'block', border: 'none' }}
+        />
       </Box>
-    </>
+    </Box>
   );
 }
