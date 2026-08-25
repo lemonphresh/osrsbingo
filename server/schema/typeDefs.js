@@ -1290,6 +1290,9 @@ const typeDefs = gql`
     setSpoopyEventPrizePool(eventId: ID!, prizePool: Int!): SpoopyEvent!
     createSpoopyTeam(eventId: ID!, input: CreateSpoopyTeamInput!): SpoopyTeam!
     updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
+    # Update the team's Discord channel / role bindings after creation.
+    # Either arg may be omitted; only the provided one is written.
+    updateSpoopyTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String): SpoopyTeam!
     addSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
     removeSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
     reviewSpoopySubmission(submissionId: ID!, approved: Boolean!, denialReason: String): SpoopySubmission!

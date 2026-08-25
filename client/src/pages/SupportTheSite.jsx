@@ -7,7 +7,7 @@ import GnomeChild from '../assets/gnomechild-small.webp';
 import { FaCoffee, FaHeart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled, isChampionForgeEnabled } from '../config/featureFlags';
+import { isGielinorRushEnabled, isChampionForgeEnabled, isBattleshipEnabled } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import { GET_ACTIVE_RAINBOW_EVENT } from '../graphql/rainbowBingoOperations';
 
@@ -76,8 +76,8 @@ export default function SupportPage() {
             better way to do bingo events. Then other nerds started using it. Then a <em>lot</em> of
             nerds started using it. Now there's like 3,000+ boards on here, I shipped Gielinor Rush
             (team treasure hunts), Blind Draft, and I just finished building{' '}
-            <strong>Champion Forge</strong> (full clan tournaments with drafts, outfitting, and
-            live bracket battles{isChampionForgeEnabled() ? ', go try it!' : ', coming soon'}).
+            <strong>Battleship</strong> (big two-team competition where you place your fleet and
+            complete OSRS tasks to sink the enemy{isBattleshipEnabled() ? ', go try it!' : ', coming soon'}).
           </p>
 
           <p>
@@ -94,7 +94,7 @@ export default function SupportPage() {
             </li>
             <li style={{ marginBottom: 8 }}>
               Database (PostgreSQL) — <strong>~$25/mo</strong>{' '}
-              {(isGielinorRushEnabled() || isChampionForgeEnabled()) && (
+              {(isGielinorRushEnabled() || isChampionForgeEnabled() || isBattleshipEnabled()) && (
                 <span style={{ color: '#F4D35E', fontSize: 13 }}>
                   (growing fast with all these new game modes)
                 </span>

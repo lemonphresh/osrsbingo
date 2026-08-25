@@ -244,6 +244,15 @@ export const UPDATE_SPOOPY_TEAM_MEMBERS = gql`
   ${SPOOPY_TEAM_FIELDS}
 `;
 
+export const UPDATE_SPOOPY_TEAM_DISCORD = gql`
+  mutation UpdateSpoopyTeamDiscord($teamId: ID!, $discordChannelId: String, $discordRoleId: String) {
+    updateSpoopyTeamDiscord(teamId: $teamId, discordChannelId: $discordChannelId, discordRoleId: $discordRoleId) {
+      ...SpoopyTeamFields
+    }
+  }
+  ${SPOOPY_TEAM_FIELDS}
+`;
+
 export const ADD_SPOOPY_ADMIN = gql`
   mutation AddSpoopyAdmin($eventId: ID!, $userId: ID!) {
     addSpoopyAdmin(eventId: $eventId, userId: $userId) { ...SpoopyEventFields }

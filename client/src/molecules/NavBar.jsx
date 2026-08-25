@@ -252,15 +252,15 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors, some server bills. If OSRS Bingo Hub
                   has helped you or your clan, consider helping me keep it running 💛
                 </Text>
-                {isBattleshipEnabled(user) ? (
-                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also... OSRS Battleship is live! :-) Check out <strong>Battleship</strong> for a
-                    fun big team event type.
-                  </Text>
-                ) : isChampionForgeEnabled(user) ? (
+                {isChampionForgeEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
                     Also, event runners, go check out <strong>Champion Forge</strong>! I've been
                     hard at work on this one :) ⚔️
+                  </Text>
+                ) : isBattleshipEnabled(user) ? (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    Also... OSRS Battleship is live! :-) Check out <strong>Battleship</strong> for a
+                    fun big team event type.
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
@@ -296,16 +296,16 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isBattleshipEnabled(user) ? (
-                <Link to="/battleship">
-                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
-                    Battleship →
-                  </Text>
-                </Link>
-              ) : isChampionForgeEnabled(user) ? (
+              {isChampionForgeEnabled(user) ? (
                 <Link to="/champion-forge">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Champion Forge →
+                  </Text>
+                </Link>
+              ) : isBattleshipEnabled(user) ? (
+                <Link to="/battleship">
+                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                    Battleship →
                   </Text>
                 </Link>
               ) : (
@@ -605,9 +605,9 @@ const NavBar = () => {
                       items: [
                         { label: 'Bingo Creator', to: '/boards/create' },
                         { label: 'Gielinor Rush', to: '/gielinor-rush' },
-                        { label: 'Champion Forge', to: '/champion-forge' },
-                        ...(isBattleshipEnabled(user)
-                          ? [{ label: 'Battleship', to: '/battleship', isNew: true }]
+                        { label: 'Battleship', to: '/battleship' },
+                        ...(isChampionForgeEnabled(user)
+                          ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
                           : []),
                         ...(isGroupDashboardEnabled(user)
                           ? [{ label: 'Group Dashboard', to: '/group' }]

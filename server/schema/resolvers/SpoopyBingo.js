@@ -295,6 +295,23 @@ const Mutation = {
     return team;
   },
 
+  // Edit the team's discord channel / role bindings after creation. Common
+  // reason: the seed sets placeholder ids ("test-channel-2") and the admin
+  // needs to point the team at the real channel before ACTIVE. Either
+  // argument may be omitted; only provided ones are patched.
+  updateSpoopyTeamDiscord: async (_, { teamId, discordChannelId, discordRoleId }, context) => {
+    const user = requireUser(context);
+    const team = await getTeamOrThrow(teamId);
+    const event = await getEventOrThrow(team.eventId);
+    requireAdmin(event, user);
+    const patch = {};
+    if (discordChannelId !== undefined) patch.discordChannelId = discordChannelId;
+    if (discordRoleId !== undefined) patch.discordRoleId = discordRoleId;
+    if (Object.keys(patch).length === 0) return team;
+    await team.update(patch);
+    return team;
+  },
+
   addSpoopyAdmin: async (_, { eventId, userId }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);

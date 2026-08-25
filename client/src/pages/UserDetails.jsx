@@ -35,7 +35,6 @@ import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 import {
-  isBattleshipEnabled,
   isBlindDraftEnabled,
   isChampionForgeEnabled,
   isGroupDashboardEnabled,
@@ -521,41 +520,41 @@ const UserDetails = () => {
               </Box>
               <Box
                 as={Link}
-                to="/champion-forge"
+                to="/battleship"
                 bg={theme.colors.teal[800]}
                 borderRadius="lg"
                 border="2px solid"
-                borderColor={theme.colors.red[500]}
+                borderColor="#47b3d1"
                 p={5}
-                _hover={{ borderColor: theme.colors.red[300], transform: 'translateY(-2px)' }}
+                _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
                 transition="all 0.15s"
               >
-                <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
-                  Champion Forge
+                <Text fontWeight="bold" color="#76e4f7" mb={1}>
+                  Battleship
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  It takes a village to build a champion. Group up, earn gear, and battle for glory
-                  in this competitive clan event. Good for short term events.
+                  Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
+                  sink the enemy.
                 </Text>
               </Box>
-              {isBattleshipEnabled(user) && (
+              {isChampionForgeEnabled(user) && (
                 <Box
                   as={Link}
-                  to="/battleship"
+                  to="/champion-forge"
                   bg={theme.colors.teal[800]}
                   borderRadius="lg"
                   border="2px solid"
-                  borderColor="#47b3d1"
+                  borderColor={theme.colors.red[500]}
                   p={5}
-                  _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
+                  _hover={{ borderColor: theme.colors.red[300], transform: 'translateY(-2px)' }}
                   transition="all 0.15s"
                 >
-                  <Text fontWeight="bold" color="#76e4f7" mb={1}>
-                    Battleship
+                  <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
+                    Champion Forge
                   </Text>
                   <Text fontSize="sm" color="gray.400">
-                    Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
-                    sink the enemy.
+                    It takes a village to build a champion. Group up, earn gear, and battle for glory
+                    in this competitive clan event. Good for short term events.
                   </Text>
                 </Box>
               )}

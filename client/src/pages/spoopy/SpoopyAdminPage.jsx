@@ -21,6 +21,7 @@ import {
   DELETE_SPOOPY_EVENT,
   CREATE_SPOOPY_TEAM,
   UPDATE_SPOOPY_TEAM_MEMBERS,
+  UPDATE_SPOOPY_TEAM_DISCORD,
   DELETE_SPOOPY_TEAM,
   ADD_SPOOPY_ADMIN,
   REMOVE_SPOOPY_ADMIN,
@@ -568,9 +569,16 @@ function AddTeamForm({ eventId, refetch }) {
 function TeamCard({ team, allTeams, refetch }) {
   const toast = useToast();
   const [pendingMemberId, setPendingMemberId] = useState('');
+  const [channelInput, setChannelInput] = useState(team.discordChannelId ?? '');
+  const [roleInput, setRoleInput] = useState(team.discordRoleId ?? '');
 
   const [updateMembers, { loading: updatingMembers }] = useMutation(UPDATE_SPOOPY_TEAM_MEMBERS, {
     onCompleted: () => { toast({ title: 'members updated', status: 'success' }); setPendingMemberId(''); refetch(); },
+    onError: (e) => toast({ title: 'update failed', description: e.message, status: 'error' }),
+  });
+
+  const [updateDiscord, { loading: updatingDiscord }] = useMutation(UPDATE_SPOOPY_TEAM_DISCORD, {
+    onCompleted: () => { toast({ title: 'discord bindings updated', status: 'success' }); refetch(); },
     onError: (e) => toast({ title: 'update failed', description: e.message, status: 'error' }),
   });
 
@@ -653,6 +661,52 @@ function TeamCard({ team, allTeams, refetch }) {
             ))}
           </VStack>
         )}
+
+        <Divider borderColor={SPOOPY_COLORS.nightMist} pt={2} />
+
+        <HStack spacing={2} align="end" wrap="wrap">
+          <Box flex="1 1 200px" minW="180px">
+            <FieldLabel hint="the team's private discord channel">channel id</FieldLabel>
+            <Input
+              {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+              value={channelInput}
+              onChange={(e) => setChannelInput(e.target.value)}
+              placeholder="123456789012345678"
+            />
+          </Box>
+          <Box flex="1 1 200px" minW="180px">
+            <FieldLabel hint="optional — pings on ref actions">role id</FieldLabel>
+            <Input
+              {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+              value={roleInput}
+              onChange={(e) => setRoleInput(e.target.value)}
+              placeholder="123456789012345678"
+            />
+          </Box>
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor={SPOOPY_COLORS.nightMist}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            isLoading={updatingDiscord}
+            isDisabled={
+              channelInput === (team.discordChannelId ?? '') &&
+              roleInput === (team.discordRoleId ?? '')
+            }
+            onClick={() =>
+              updateDiscord({
+                variables: {
+                  teamId: team.teamId,
+                  discordChannelId: channelInput.trim() || null,
+                  discordRoleId: roleInput.trim() || null,
+                },
+              })
+            }
+          >
+            save
+          </Button>
+        </HStack>
       </VStack>
     </Box>
   );
