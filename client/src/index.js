@@ -8,6 +8,7 @@ import '@fontsource/raleway/600.css';
 import '@fontsource/raleway/800.css';
 // Spoopy Halloween event fonts
 import '@fontsource/eater/400.css';
+import '@fontsource/creepster/400.css';
 import '@fontsource/special-elite/400.css';
 import '@fontsource/poppins/400.css';
 import '@fontsource/poppins/600.css';

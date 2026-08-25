@@ -21,6 +21,7 @@ import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevU
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp } from '../../organisms/spoopy/spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
+import leatherTextureAsset from '../../assets/spoopy/leather.webp';
 
 // Curated spooky-lofi loop that plays via the floating ambiance widget.
 const SPOOPY_AMBIANCE_YT_ID = 'Wwk7oJRUhqQ';
@@ -314,7 +315,29 @@ function PageShell({ event, myTeam, children }) {
   const showAdmin = isSiteAdmin;
 
   return (
-    <Box minHeight="calc(100vh - 60px)" bg={SPOOPY_COLORS.nightDeep} color={SPOOPY_COLORS.paper}>
+    <Box
+      minHeight="calc(100vh - 60px)"
+      bg={SPOOPY_COLORS.nightDeep}
+      color={SPOOPY_COLORS.paper}
+      position="relative"
+      // Leather grain sits over the base color at low opacity — no blend
+      // mode so the texture shows up regardless of what's behind, but stays
+      // subtle enough that the palette still reads. Larger backgroundSize
+      // pushes the tiling seams further apart.
+      _before={{
+        content: '""',
+        position: 'absolute',
+        inset: 0,
+        backgroundImage: `url(${leatherTextureAsset})`,
+        backgroundRepeat: 'repeat',
+        backgroundSize: '520px',
+        opacity: 0.2,
+        pointerEvents: 'none',
+        zIndex: 0,
+      }}
+    >
+      {/* Everything inside sits above the leather overlay. */}
+      <Box position="relative" zIndex={1}>
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
         <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
           <VStack align="start" spacing={0}>
@@ -370,6 +393,7 @@ function PageShell({ event, myTeam, children }) {
         </Box>
       </Box>
       {children}
+      </Box>
     </Box>
   );
 }

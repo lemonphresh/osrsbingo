@@ -1,7 +1,12 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@apollo/client';
 import { Box } from '@chakra-ui/react';
 import SpoopyTile from './SpoopyTile';
-import { SPOOPY_COLORS, CONNECTOR_COLOR } from './spoopyTheme';
+import { SPOOPY_COLORS, SPOOPY_FONTS, CONNECTOR_COLOR } from './spoopyTheme';
+import paperTextureAsset from '../../assets/spoopy/paper.jpg';
+import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
+
+const API_BASE = process.env.REACT_APP_SERVER_URL || '';
 
 // Renders the event board — a paper-Mario-ish sheet of paper laid over a
 // night background. Tiles are positioned as CSS-Grid cells and stickers.
@@ -13,12 +18,7 @@ import { SPOOPY_COLORS, CONNECTOR_COLOR } from './spoopyTheme';
 //   teamState       { tiles: { [tileId]: { status, choice, ... } } }  — optional
 //   onTileClick     fn(tileId) — called when an unlocked tile is clicked
 //   cellSize        px, defaults 64
-export default function SpoopyBoard({
-  board,
-  teamState = null,
-  onTileClick,
-  cellSize = 64,
-}) {
+export default function SpoopyBoard({ board, teamState = null, onTileClick, cellSize = 64 }) {
   const dims = board?.dimensions ?? { rows: 0, cols: 0 };
   const tiles = board?.tiles ?? [];
   const cells = board?.cells ?? null;
@@ -52,33 +52,158 @@ export default function SpoopyBoard({
       display="flex"
       justifyContent="center"
     >
-      {/* The "sheet of paper" the board is drawn on */}
+      {/* The "sheet of paper" the board is drawn on. The paper texture is
+          applied directly as a repeating `backgroundImage` (not via ::before)
+          so it tiles across the entire scrollable content — a pseudo-element
+          with `inset: 0` only covers the visible box and would cut off when
+          you scroll horizontally on wide boards. `backgroundBlendMode`
+          softens the texture over the paper color underneath. */}
       <Box
         position="relative"
         p={{ base: 4, md: 6 }}
         bg={SPOOPY_COLORS.paper}
         borderRadius="lg"
         boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 40px rgba(0,0,0,0.55)`}
-        // Very subtle paper grain
-        backgroundImage="radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)"
-        backgroundSize="4px 4px"
-        maxWidth="fit-content"
         overflowX="auto"
+        maxWidth="fit-content"
+        // Layered backgrounds, painted top → bottom:
+        //   1. Semi-transparent wash of the paper color so only ~15% of the
+        //      texture shows through. (Standalone `opacity` would fade
+        //      tiles too — the gradient trick keeps opacity local to the
+        //      background layer.)
+        //   2. Paper texture tiled at 520px, positioned at (0, 0).
+        //   3. Same paper texture at a different scale (350px) and an odd
+        //      offset. Two tilings at incoherent phases and scales break
+        //      up the visible grid seams without needing mirrored SVGs.
+        backgroundImage={
+          `linear-gradient(rgba(239,230,208,0.88), rgba(239,230,208,0.88)),` +
+          ` url(${paperTextureAsset}),` +
+          ` url(${paperTextureAsset})`
+        }
+        backgroundRepeat="no-repeat, repeat, repeat"
+        backgroundSize="auto, 520px 520px, 350px 350px"
+        backgroundPosition="0 0, 0 0, 217px 289px"
       >
         <Box
+          position="relative"
           display="grid"
           gridTemplateColumns={`repeat(${dims.cols}, ${cellSize}px)`}
           gridTemplateRows={`repeat(${dims.rows}, ${cellSize}px)`}
           gap="0px"
         >
+          {/* "eternal gems presents… a spoopy situation" — the title card
+              is a real grid item that spans the full board (all rows AND
+              all columns) via `1 / -1`. Flex-centered inside that span,
+              so the text lands at the geometric middle of the explicit
+              grid tracks — the same tracks that define the scrollable
+              board width — regardless of any implicit tracks. */}
+          <Box
+            gridColumn="1 / -1"
+            gridRow="1 / -1"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            pointerEvents="none"
+            zIndex={2}
+            userSelect="none"
+          >
+            <Box textAlign="center" transform="translateY(128px) rotate(-1.5deg)">
+              <Box
+                fontSize={{ base: '10px', md: 'xs' }}
+                letterSpacing="0.35em"
+                textTransform="uppercase"
+                color={SPOOPY_COLORS.paperInk}
+                opacity={0.55}
+                mb={2}
+                fontWeight="semibold"
+              >
+                eternal gems presents
+              </Box>
+              <Box
+                // Creepster — classic dripping-blood Halloween display font.
+                // Loaded via `@fontsource/creepster` in client/src/index.js.
+                fontFamily="'Creepster', 'Georgia', serif"
+                fontSize={{ base: '3xl', md: '6xl', lg: '7xl' }}
+                lineHeight={1}
+                color={SPOOPY_COLORS.emberDeep}
+                textShadow="2px 2px 0 rgba(139, 58, 45, 0.35), 4px 4px 12px rgba(0, 0, 0, 0.15)"
+                letterSpacing="0.02em"
+              >
+                a spoopy situation
+              </Box>
+
+              {/* Handwritten goals + roster panels. Both use the same
+                  responsive width so their left/right edges line up on the
+                  paper. Special Elite (the "hand" font) is used throughout
+                  for the scrawled-on-paper feel. */}
+              {(() => {
+                const panelWidth = { base: '260px', md: '360px', lg: '420px' };
+                const roster = teamState?.roster ?? [];
+                return (
+                  <>
+                    <Box
+                      mt={{ base: 4, md: 6 }}
+                      width={panelWidth}
+                      mx="auto"
+                      textAlign="left"
+                      fontFamily={SPOOPY_FONTS.hand}
+                      fontSize={{ base: 'sm', md: 'md', lg: 'lg' }}
+                      color={SPOOPY_COLORS.paperInk}
+                      opacity={0.85}
+                      lineHeight={1.6}
+                    >
+                      <Box mb={1} textDecoration="underline">
+                        goals:
+                      </Box>
+                      <Box>· unlock the main road</Box>
+                      <Box>· unlock the side roads</Box>
+                      <Box>· trick-or-treat at all the houses</Box>
+                      <Box>· ???</Box>
+                      <Box>· get all the candy!!!!</Box>
+                    </Box>
+
+                    {roster.length > 0 && (
+                      <Box
+                        mt={{ base: 8, md: 12 }}
+                        width={panelWidth}
+                        mx="auto"
+                        textAlign="left"
+                        fontFamily={SPOOPY_FONTS.hand}
+                        fontSize={{ base: 'sm', md: 'md', lg: 'lg' }}
+                        color={SPOOPY_COLORS.paperInk}
+                        opacity={0.85}
+                        lineHeight={1.6}
+                      >
+                        <Box mb={1} textDecoration="underline">
+                          the gang:
+                        </Box>
+                        <Box>
+                          {roster.map((id, i) => (
+                            <React.Fragment key={id}>
+                              <HandwrittenMemberName discordId={id} />
+                              {i < roster.length - 1 && (
+                                <Box as="span" mx={2} opacity={0.55} aria-hidden="true">
+                                  ·
+                                </Box>
+                              )}
+                            </React.Fragment>
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+                  </>
+                );
+              })()}
+            </Box>
+          </Box>
           {/* Connector cells (visual-only) */}
           {cells &&
             cells.flatMap((row, r) =>
               row.map((cell, c) =>
                 cell?.kind === 'connector' ? (
                   <ConnectorCell key={`conn-${r}-${c}`} row={r} col={c} />
-                ) : null,
-              ),
+                ) : null
+              )
             )}
 
           {/* Real tiles as paper stickers */}
@@ -122,13 +247,38 @@ function ConnectorCell({ row, col }) {
       justifyContent="center"
       pointerEvents="none"
     >
-      <Box
-        width="14px"
-        height="14px"
-        borderRadius="full"
-        bg={CONNECTOR_COLOR}
-        opacity={0.55}
-      />
+      <Box width="14px" height="14px" borderRadius="full" bg={CONNECTOR_COLOR} opacity={0.55} />
     </Box>
   );
+}
+
+// Resolves a Discord id to a display name for the handwritten roster in
+// the center of the board. Tries the site's user table first (via
+// GET_USER_BY_DISCORD_ID) and falls back to the /discuser Discord proxy —
+// same lookup order as SpoopyMemberTag on the admin page, but rendered as
+// plain inline text so it fits the scrawled-on-paper aesthetic. Falls
+// back to the raw id if nothing resolves.
+function HandwrittenMemberName({ discordId }) {
+  const [resolvedName, setResolvedName] = useState(null);
+  const { loading } = useQuery(GET_USER_BY_DISCORD_ID, {
+    variables: { discordUserId: discordId },
+    fetchPolicy: 'cache-first',
+    onCompleted: (data) => {
+      const linked = data?.getUserByDiscordId;
+      if (linked?.displayName || linked?.username || linked?.rsn) {
+        setResolvedName(linked.displayName ?? linked.username ?? linked.rsn);
+        return;
+      }
+      fetch(`${API_BASE}/discuser/${discordId}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d?.global_name || d?.username) {
+            setResolvedName(d.global_name ?? d.username);
+          }
+        })
+        .catch(() => {});
+    },
+  });
+
+  return <>{resolvedName ?? (loading ? '…' : discordId)}</>;
 }
