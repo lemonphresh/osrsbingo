@@ -4,6 +4,7 @@ import {
   Box, Text, VStack, HStack, Heading, Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
+import { useSpoopyTheme } from './useSpoopyTheme';
 import { taskLine } from './SpoopyTaskCard';
 import { MockDevButton } from './SpoopyStartModal';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
@@ -27,6 +28,9 @@ export default function SpoopyTaskModal({
   onMockSubmit,
   mockSubmitting = false,
 }) {
+  // Hooks have to be declared before any early-return branch — React
+  // requires the same hook-call order on every render.
+  const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
   if (!content) return null;
 
   const meta = TILE_META[tileType] ?? TILE_META.house;
@@ -39,21 +43,25 @@ export default function SpoopyTaskModal({
     complete:  { label: 'complete',  bg: SPOOPY_COLORS.green },
   }[status] ?? { label: status, bg: SPOOPY_COLORS.nightMist };
   const done = progress >= 100 || status === 'complete';
+  // TILE_META.fillColor is designed for light-mode paper (dark ink on cream).
+  // On the dark nightmist surface it disappears, so swap to a warm pumpkin
+  // tone that stays legible while keeping the halloween palette.
+  const headingColor = darkMode ? SPOOPY_COLORS.pumpkinLight : meta.fillColor;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
       <ModalOverlay bg="rgba(20, 12, 26, 0.75)" backdropFilter="blur(3px)" />
       <ModalContent
-        bg={SPOOPY_COLORS.paper}
-        color={SPOOPY_COLORS.paperInk}
+        bg={surfaceBg}
+        color={surfaceInk}
         border="3px solid"
-        borderColor={SPOOPY_COLORS.paperEdge}
-        boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 60px rgba(0,0,0,0.55)`}
+        borderColor={surfaceEdge}
+        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(0,0,0,0.55)`}
         backgroundImage="radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)"
         backgroundSize="4px 4px"
         transform="rotate(-0.4deg)"
       >
-        <ModalCloseButton color={SPOOPY_COLORS.paperInk} />
+        <ModalCloseButton color={surfaceInk} />
         <ModalBody py={8} px={{ base: 6, md: 10 }}>
           <VStack spacing={5} align="stretch">
             <HStack justify="space-between" align="center">
@@ -61,7 +69,7 @@ export default function SpoopyTaskModal({
                 size="md"
                 fontFamily={SPOOPY_FONTS.heading}
                 letterSpacing="wider"
-                color={meta.fillColor}
+                color={headingColor}
               >
                 {meta.label}
               </Heading>
@@ -82,7 +90,8 @@ export default function SpoopyTaskModal({
             )}
 
             <Box
-              bg={SPOOPY_COLORS.paperShadow}
+              bg={surfaceRecessed}
+              color={darkMode ? SPOOPY_COLORS.paper : SPOOPY_COLORS.paperInk}
               borderLeft="4px solid"
               borderColor={SPOOPY_COLORS.pumpkin}
               p={4}

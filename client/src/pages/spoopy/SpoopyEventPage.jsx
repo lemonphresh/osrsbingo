@@ -11,6 +11,7 @@ import {
   ENTER_SPOOPY_HAUNTED_HOUSE,
 } from '../../graphql/spoopyOperations';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
+import SpoopyActiveTasks from '../../organisms/spoopy/SpoopyActiveTasks';
 import SpoopyTileDialog from '../../organisms/spoopy/SpoopyTileDialog';
 import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
@@ -232,6 +233,11 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
   return (
     <>
       <SpoopyBoard board={event.board} teamState={teamBoard} onTileClick={handleTileClick} />
+
+      {/* Scannable "what's in play right now" panel — lives outside the
+          board's scroll area so it stays visible on any screen. Clicking a
+          card opens the same tile modal the board opens. */}
+      <SpoopyActiveTasks event={event} teamState={teamBoard} onTileClick={handleTileClick} />
 
       {openTile?.tile_type === 'house' && openContent?.dialog && (
         <SpoopyTileDialog

@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { useQuery } from '@apollo/client';
-import { Box } from '@chakra-ui/react';
+import { Box, IconButton, Tooltip } from '@chakra-ui/react';
+import { FaMoon, FaSun } from 'react-icons/fa';
 import SpoopyTile from './SpoopyTile';
 import { SPOOPY_COLORS, SPOOPY_FONTS, CONNECTOR_COLOR } from './spoopyTheme';
+import { useSpoopyTheme } from './useSpoopyTheme';
 import paperTextureAsset from '../../assets/spoopy/paper.jpg';
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 
@@ -18,10 +20,27 @@ const API_BASE = process.env.REACT_APP_SERVER_URL || '';
 //   teamState       { tiles: { [tileId]: { status, choice, ... } } }  — optional
 //   onTileClick     fn(tileId) — called when an unlocked tile is clicked
 //   cellSize        px, defaults 64
+
+// Convert a hex color like "#3a2a44" to an rgb() string. Used to build the
+// dark-mode gradient wash over the paper texture — the wash needs a plain
+// rgba() value; hex + alpha doesn't compose the same way in a linear-gradient.
+function hexToRgb(hex) {
+  const m = /^#?([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i.exec(hex);
+  if (!m) return '239,230,208'; // safe fallback (paper)
+  return `${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)}`;
+}
+
 export default function SpoopyBoard({ board, teamState = null, onTileClick, cellSize = 64 }) {
   const dims = board?.dimensions ?? { rows: 0, cols: 0 };
   const tiles = board?.tiles ?? [];
   const cells = board?.cells ?? null;
+
+  // Dark-mode state lives in a shared hook so modals opened from this page
+  // read the same toggle without prop-drilling. See useSpoopyTheme.js.
+  const { darkMode, setDarkMode, surfaceBg, surfaceInk, surfaceRecessed } = useSpoopyTheme();
+  const baseRgb = hexToRgb(surfaceBg);
+  // Title text: pumpkin-ember on paper / brighter ember on dark bg.
+  const titleColor = darkMode ? SPOOPY_COLORS.ember : SPOOPY_COLORS.emberDeep;
 
   const statusById = useMemo(() => {
     const m = {};
@@ -45,8 +64,10 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
 
   return (
     <Box
-      // The dusty-night "stage" around the paper
-      p={{ base: 4, md: 8 }}
+      // The dusty-night "stage" around the paper. Fixed padding — the board
+      // itself never resizes (its width is `cellSize * cols`), so responsive
+      // breakpoints don't help anything inside.
+      p={8}
       bg={SPOOPY_COLORS.nightDeep}
       minHeight="100%"
       display="flex"
@@ -60,23 +81,23 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
           softens the texture over the paper color underneath. */}
       <Box
         position="relative"
-        p={{ base: 4, md: 6 }}
-        bg={SPOOPY_COLORS.paper}
+        p={6}
+        bg={surfaceBg}
         borderRadius="lg"
-        boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 40px rgba(0,0,0,0.55)`}
+        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 40px rgba(0,0,0,0.55)`}
         overflowX="auto"
         maxWidth="fit-content"
         // Layered backgrounds, painted top → bottom:
-        //   1. Semi-transparent wash of the paper color so only ~15% of the
-        //      texture shows through. (Standalone `opacity` would fade
-        //      tiles too — the gradient trick keeps opacity local to the
-        //      background layer.)
+        //   1. Semi-transparent wash of the base color (paper or nightmist)
+        //      so only ~15% of the texture shows through. (Standalone
+        //      `opacity` would fade tiles too — the gradient trick keeps
+        //      opacity local to the background layer.)
         //   2. Paper texture tiled at 520px, positioned at (0, 0).
         //   3. Same paper texture at a different scale (350px) and an odd
         //      offset. Two tilings at incoherent phases and scales break
         //      up the visible grid seams without needing mirrored SVGs.
         backgroundImage={
-          `linear-gradient(rgba(239,230,208,0.88), rgba(239,230,208,0.88)),` +
+          `linear-gradient(rgba(${baseRgb},0.88), rgba(${baseRgb},0.88)),` +
           ` url(${paperTextureAsset}),` +
           ` url(${paperTextureAsset})`
         }
@@ -84,6 +105,23 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
         backgroundSize="auto, 520px 520px, 350px 350px"
         backgroundPosition="0 0, 0 0, 217px 289px"
       >
+        {/* Dark-mode toggle. Sits in the top-right corner of the paper. */}
+        <Tooltip label={darkMode ? 'switch to daylight' : 'switch to nightfall'} fontSize="xs">
+          <IconButton
+            aria-label={darkMode ? 'switch to daylight' : 'switch to nightfall'}
+            icon={darkMode ? <FaSun /> : <FaMoon />}
+            onClick={() => setDarkMode((v) => !v)}
+            position="absolute"
+            top={3}
+            right={3}
+            size="sm"
+            variant="ghost"
+            color={surfaceInk}
+            opacity={0.65}
+            _hover={{ opacity: 1, bg: 'transparent' }}
+            zIndex={3}
+          />
+        </Tooltip>
         <Box
           position="relative"
           display="grid"
@@ -109,10 +147,10 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
           >
             <Box textAlign="center" transform="translateY(128px) rotate(-1.5deg)">
               <Box
-                fontSize={{ base: '10px', md: 'xs' }}
+                fontSize="xs"
                 letterSpacing="0.35em"
                 textTransform="uppercase"
-                color={SPOOPY_COLORS.paperInk}
+                color={surfaceInk}
                 opacity={0.55}
                 mb={2}
                 fontWeight="semibold"
@@ -123,9 +161,9 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
                 // Creepster — classic dripping-blood Halloween display font.
                 // Loaded via `@fontsource/creepster` in client/src/index.js.
                 fontFamily="'Creepster', 'Georgia', serif"
-                fontSize={{ base: '3xl', md: '6xl', lg: '7xl' }}
+                fontSize="7xl"
                 lineHeight={1}
-                color={SPOOPY_COLORS.emberDeep}
+                color={titleColor}
                 textShadow="2px 2px 0 rgba(139, 58, 45, 0.35), 4px 4px 12px rgba(0, 0, 0, 0.15)"
                 letterSpacing="0.02em"
               >
@@ -137,18 +175,18 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
                   paper. Special Elite (the "hand" font) is used throughout
                   for the scrawled-on-paper feel. */}
               {(() => {
-                const panelWidth = { base: '260px', md: '360px', lg: '420px' };
+                const panelWidth = '420px';
                 const roster = teamState?.roster ?? [];
                 return (
                   <>
                     <Box
-                      mt={{ base: 4, md: 6 }}
+                      mt={6}
                       width={panelWidth}
                       mx="auto"
                       textAlign="left"
                       fontFamily={SPOOPY_FONTS.hand}
-                      fontSize={{ base: 'sm', md: 'md', lg: 'lg' }}
-                      color={SPOOPY_COLORS.paperInk}
+                      fontSize="lg"
+                      color={surfaceInk}
                       opacity={0.85}
                       lineHeight={1.6}
                     >
@@ -164,13 +202,13 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
 
                     {roster.length > 0 && (
                       <Box
-                        mt={{ base: 8, md: 12 }}
+                        mt={12}
                         width={panelWidth}
                         mx="auto"
                         textAlign="left"
                         fontFamily={SPOOPY_FONTS.hand}
-                        fontSize={{ base: 'sm', md: 'md', lg: 'lg' }}
-                        color={SPOOPY_COLORS.paperInk}
+                        fontSize="lg"
+                        color={surfaceInk}
                         opacity={0.85}
                         lineHeight={1.6}
                       >

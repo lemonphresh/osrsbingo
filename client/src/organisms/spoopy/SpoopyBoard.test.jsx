@@ -10,10 +10,18 @@ jest.mock('@chakra-ui/react', () => {
     Box: passthrough('div'),
     Icon: ({ as: AsIcon, ...props }) =>
       React.createElement('span', { 'data-icon': AsIcon?.displayName || 'icon', ...props }),
+    IconButton: ({ 'aria-label': ariaLabel, icon, onClick }) =>
+      React.createElement('button', { 'aria-label': ariaLabel, onClick }, icon),
+    Tooltip: ({ children }) => children,
   };
 });
 
-jest.mock('react-icons/fa', () => ({ FaHome: () => null, FaCamera: () => null }));
+jest.mock('react-icons/fa', () => ({
+  FaHome: () => null,
+  FaCamera: () => null,
+  FaMoon: () => null,
+  FaSun: () => null,
+}));
 
 jest.mock('../../assets/spoopy/house.webp',         () => 'house.webp',       { virtual: true });
 jest.mock('../../assets/spoopy/pumpkin.webp',       () => 'pumpkin.webp',     { virtual: true });

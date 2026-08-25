@@ -14,6 +14,7 @@ import {
   HStack,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import { useSpoopyTheme } from './useSpoopyTheme';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
 
 // Renders the ready-up dialog for the start tile: story intro + task
@@ -38,6 +39,9 @@ export default function SpoopyStartModal({
   onMockSubmit,
   mockSubmitting = false,
 }) {
+  // Hook has to fire before any early-return branch — React requires the
+  // same hook order every render.
+  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
   if (!story) return null;
   const paragraphs = composeStoryParagraphs(story, eventPassword);
   const command = story.command;
@@ -46,16 +50,16 @@ export default function SpoopyStartModal({
     <Modal isOpen={isOpen} onClose={onClose} size="xl" isCentered>
       <ModalOverlay bg="rgba(20, 12, 26, 0.8)" backdropFilter="blur(3px)" />
       <ModalContent
-        bg={SPOOPY_COLORS.paper}
-        color={SPOOPY_COLORS.paperInk}
+        bg={surfaceBg}
+        color={surfaceInk}
         border="3px solid"
-        borderColor={SPOOPY_COLORS.paperEdge}
-        boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 60px rgba(0,0,0,0.55)`}
+        borderColor={surfaceEdge}
+        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(0,0,0,0.55)`}
         backgroundImage="radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)"
         backgroundSize="4px 4px"
         transform="rotate(-0.5deg)"
       >
-        <ModalCloseButton color={SPOOPY_COLORS.paperInk} />
+        <ModalCloseButton color={surfaceInk} />
         <ModalBody py={8} px={{ base: 6, md: 10 }}>
           <VStack spacing={5} align="stretch">
             <HStack justify="space-between" align="center">
@@ -91,7 +95,8 @@ export default function SpoopyStartModal({
             </VStack>
 
             <Box
-              bg={SPOOPY_COLORS.paperShadow}
+              bg={surfaceRecessed}
+              color={surfaceInk}
               borderLeft="4px solid"
               borderColor={SPOOPY_COLORS.pumpkin}
               p={3}

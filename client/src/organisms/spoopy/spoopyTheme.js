@@ -91,8 +91,11 @@ export const TILE_META = {
 
 export const STATUS_META = {
   locked: {
-    filter:  'grayscale(0.8) brightness(0.55)',
-    opacity: 0.45,
+    // Softened: was `grayscale(0.8) brightness(0.55)` + opacity 0.45.
+    // Now brighter so locked tiles still read as sketched shapes on the
+    // paper rather than nearly-invisible ghosts.
+    filter:  'grayscale(0.7) brightness(0.85)',
+    opacity: 0.7,
     ring:    'transparent',
   },
   unlocked: {

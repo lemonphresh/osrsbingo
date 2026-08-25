@@ -14,6 +14,7 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import { useSpoopyTheme } from './useSpoopyTheme';
 import { formatCandy } from './spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
@@ -95,27 +96,31 @@ export default function SpoopyHauntedHouseModal({
 }) {
   const isConfirm = gauntletLevel >= 3;
   const currentStage = !isConfirm ? GAUNTLET_STAGES[gauntletLevel] ?? GAUNTLET_STAGES[0] : null;
+  const { darkMode, surfaceBg, surfaceInk, surfaceRecessed } = useSpoopyTheme();
+  // Ember tone stays warm in either mode, but the deep variant is too dark
+  // on the nightmist surface — bump to the brighter ember for readability.
+  const spookyHeadingColor = darkMode ? SPOOPY_COLORS.ember : SPOOPY_COLORS.emberDeep;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
       <ModalOverlay bg="rgba(20, 12, 26, 0.85)" backdropFilter="blur(4px)" />
       <ModalContent
-        bg={SPOOPY_COLORS.paper}
-        color={SPOOPY_COLORS.paperInk}
+        bg={surfaceBg}
+        color={surfaceInk}
         border="4px solid"
         borderColor={SPOOPY_COLORS.emberDeep}
-        boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 60px rgba(140,58,45,0.4)`}
+        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(140,58,45,0.4)`}
         backgroundImage="radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px)"
         backgroundSize="4px 4px"
         transform="rotate(0.4deg)"
       >
-        <ModalCloseButton color={SPOOPY_COLORS.paperInk} />
+        <ModalCloseButton color={surfaceInk} />
         <ModalBody py={8} px={{ base: 6, md: 10 }}>
           <VStack spacing={5} align="stretch">
             <Heading
               size="md"
               fontFamily={SPOOPY_FONTS.heading}
-              color={SPOOPY_COLORS.emberDeep}
+              color={spookyHeadingColor}
               letterSpacing="wider"
               textAlign="center"
             >
@@ -147,7 +152,8 @@ export default function SpoopyHauntedHouseModal({
                 </HStack>
 
                 <Box
-                  bg={SPOOPY_COLORS.paperShadow}
+                  bg={surfaceRecessed}
+                  color={surfaceInk}
                   p={4}
                   borderRadius="md"
                   borderLeft="4px solid"
@@ -227,7 +233,7 @@ export default function SpoopyHauntedHouseModal({
                 >
                   the bonus task
                 </Badge>
-                <Box bg={SPOOPY_COLORS.paperShadow} p={4} borderRadius="md">
+                <Box bg={surfaceRecessed} color={surfaceInk} p={4} borderRadius="md">
                   <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" lineHeight={1.4}>
                     {bonusTask
                       ? `${bonusTask.amount ?? 1}× ${bonusTask.target ?? 'complete the bonus'}`

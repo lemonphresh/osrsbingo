@@ -13,6 +13,7 @@ import {
   Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import { useSpoopyTheme } from './useSpoopyTheme';
 import { MockDevButton, MockDevChoiceButtons } from './SpoopyStartModal';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
 
@@ -48,21 +49,22 @@ export default function SpoopyTileDialog({
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
+  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
       <ModalOverlay bg="rgba(20, 12, 26, 0.75)" backdropFilter="blur(3px)" />
       <ModalContent
-        bg={SPOOPY_COLORS.paper}
-        color={SPOOPY_COLORS.paperInk}
+        bg={surfaceBg}
+        color={surfaceInk}
         border="3px solid"
-        borderColor={SPOOPY_COLORS.paperEdge}
-        boxShadow={`0 20px 0 ${SPOOPY_COLORS.paperShadow}, 0 30px 60px rgba(0,0,0,0.6)`}
+        borderColor={surfaceEdge}
+        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(0,0,0,0.6)`}
         backgroundImage="radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)"
         backgroundSize="4px 4px"
         transform="rotate(-0.5deg)"
       >
-        <ModalCloseButton color={SPOOPY_COLORS.paperInk} />
+        <ModalCloseButton color={surfaceInk} />
         <ModalBody py={8} px={{ base: 6, md: 10 }}>
           <VStack spacing={5} align="stretch">
             <Heading
@@ -98,8 +100,8 @@ export default function SpoopyTileDialog({
             ) : (
               <VStack spacing={3} align="stretch" pt={1}>
                 <Box
-                  bg={SPOOPY_COLORS.paperShadow}
-                  color={SPOOPY_COLORS.paperInk}
+                  bg={surfaceRecessed}
+                  color={surfaceInk}
                   p={3}
                   borderRadius="md"
                   opacity={0.9}
