@@ -13,6 +13,7 @@ const sm = require('../../utils/spoopy/spoopyStateMachine');
 const {
   postSpoopySubmissionResult,
   postSpoopyPreScreenshotResult,
+  postSpoopyTileComplete,
 } = require('../../utils/spoopy/spoopyDiscord');
 
 const getModels = () => require('../../db/models');
@@ -454,6 +455,21 @@ const Mutation = {
     );
     await persistTeamState(prev, next);
     await publishBoardUpdated(team);
+
+    // Notify the team channel now that the tile is actually complete —
+    // this is when neighbors unlock and rewards get banked. The approve
+    // notification purposely doesn't mention either.
+    const boardTile = event.board?.tiles?.find((t) => t.id === tileId);
+    const isCandybag = boardTile?.tile_type === 'candybag';
+    const taskLabel = boardTile ? `${boardTile.tile_type} (${tileId})` : tileId;
+    const rewardGp = next.tiles?.[tileId]?.rewardEarned ?? 0;
+    postSpoopyTileComplete({
+      channelId: team.discordChannelId,
+      taskLabel,
+      rewardGp,
+      isCandybag,
+    }).catch(() => {});
+
     return loadTeamState(team.teamId);
   },
 
