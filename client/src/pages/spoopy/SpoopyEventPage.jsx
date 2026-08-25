@@ -246,6 +246,7 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           dialog={openContent.dialog}
           choiceMade={chosenOption}
           tileId={openTile.id}
+          womEnabled={Boolean(event?.womCompetitionId)}
           onMockSubmit={showMockDev ? () => handleMockSubmit(openTile.id) : null}
           mockSubmitting={mocking}
           onMockChoose={showMockDev ? (letter) => handleMockChoose(openTile.id, letter) : null}
@@ -284,6 +285,7 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           content={openContent}
           tileState={openState}
           tileType={openTile.tile_type}
+          womEnabled={Boolean(event?.womCompetitionId)}
           onMockSubmit={showMockDev ? () => handleMockSubmit(openTile.id) : null}
           mockSubmitting={mocking}
         />

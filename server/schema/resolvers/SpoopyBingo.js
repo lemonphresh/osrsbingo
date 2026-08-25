@@ -15,6 +15,10 @@ const {
   postSpoopyPreScreenshotResult,
   postSpoopyTileComplete,
 } = require('../../utils/spoopy/spoopyDiscord');
+const {
+  syncSpoopyEventWom,
+  syncSpoopyTileForPreApproval,
+} = require('../../utils/spoopy/spoopyWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -226,6 +230,32 @@ const Mutation = {
     }
     await event.update({ prizePool });
     return event;
+  },
+
+  setSpoopyEventWomCompetitionId: async (_, { eventId, womCompetitionId }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    const trimmed = typeof womCompetitionId === 'string' ? womCompetitionId.trim() : null;
+    await event.update({ womCompetitionId: trimmed || null });
+    return event;
+  },
+
+  syncSpoopyEventWom: async (_, { eventId }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    if (!event.womCompetitionId) {
+      throw new UserInputError('No WOM competition id set on this event.');
+    }
+    try {
+      await syncSpoopyEventWom(eventId);
+    } catch (err) {
+      // Cooldown / rate-limit errors bubble up as user-facing messages so
+      // the admin's toast reads sensibly instead of "an error occurred".
+      throw new UserInputError(err.message);
+    }
+    return getEventOrThrow(eventId);
   },
 
   updateSpoopyEventStatus: async (_, { eventId, status }, context) => {
@@ -534,6 +564,20 @@ const Mutation = {
     };
     if (submission.type === 'PRE') {
       postSpoopyPreScreenshotResult(opts).catch(() => {});
+      // An approved PRE unlocks WOM tracking for this tile — kick off a
+      // targeted sync so the progress bar reflects any gains the team's
+      // already made between the PRE snapshot and now. Fire-and-forget so
+      // the review response isn't blocked on a WOM API round-trip.
+      if (approved && event.womCompetitionId) {
+        syncSpoopyTileForPreApproval({
+          teamId: submission.teamId,
+          tileId: submission.tileId,
+        }).catch((err) => {
+          require('../../utils/logger').warn(
+            `[spoopyWomSync] PRE-approval hook failed: ${err.message}`,
+          );
+        });
+      }
     } else {
       postSpoopySubmissionResult(opts).catch(() => {});
     }

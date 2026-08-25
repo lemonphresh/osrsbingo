@@ -93,6 +93,33 @@ async function checkSpoopyEventSchedule() {
     }
     await event.update({ status: 'COMPLETE' });
   }
+
+  // ── WOM sync (auto every ~15 min while ACTIVE) ────────────────────────
+  //
+  // Cooldown is enforced inside `syncSpoopyEventWom` — this loop just kicks
+  // off a sync for every ACTIVE event with a competition id; the sync
+  // itself no-ops when the last sync is still within SYNC_COOLDOWN_MS.
+  const active = await SpoopyEvent.findAll({
+    where: {
+      status: 'ACTIVE',
+      womCompetitionId: { [Op.ne]: null },
+    },
+  });
+  for (const event of active) {
+    try {
+      const { syncSpoopyEventWom, isOnCooldown } = require('./spoopyWomSync');
+      if (isOnCooldown(event)) continue;
+      const result = await syncSpoopyEventWom(event.eventId);
+      if (result?.updatedTiles > 0) {
+        logger.info(
+          `[spoopyScheduler] wom sync ${event.eventId}: ` +
+          `${result.updatedTiles} tile(s) updated across ${result.teamsAffected} team(s)`,
+        );
+      }
+    } catch (err) {
+      logger.error({ err, eventId: event.eventId }, '[spoopyScheduler] wom sync failed');
+    }
+  }
 }
 
 function startSpoopyEventScheduler() {

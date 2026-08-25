@@ -34,6 +34,14 @@ module.exports = (sequelize) => {
       // Split evenly across teams at SETUP→ACTIVE, then across each team's
       // houses. Haunted house pays 3× the per-house amount on top.
       prizePool:        { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      // WOM team competition id. When set, a background sync auto-fills
+      // progress on skilling_xp / boss_kc tiles from the PRE-screenshot
+      // approval time → now. Roster match is by team name (must equal the
+      // team name on the WOM side) — same as rainbow bingo.
+      womCompetitionId: { type: DataTypes.STRING, allowNull: true },
+      // Last successful WOM sync; used to enforce a per-event cooldown so
+      // we don't hammer the WOM API when refs / cron all fire together.
+      lastWomSyncAt:    { type: DataTypes.DATE,   allowNull: true },
     },
     { sequelize, modelName: 'SpoopyEvent' },
   );

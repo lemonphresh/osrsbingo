@@ -18,6 +18,8 @@ import {
   UPDATE_SPOOPY_EVENT_BOARD,
   SET_SPOOPY_EVENT_PASSWORD,
   SET_SPOOPY_EVENT_PRIZE_POOL,
+  SET_SPOOPY_EVENT_WOM_COMPETITION_ID,
+  SYNC_SPOOPY_EVENT_WOM,
   DELETE_SPOOPY_EVENT,
   CREATE_SPOOPY_TEAM,
   UPDATE_SPOOPY_TEAM_MEMBERS,
@@ -280,6 +282,7 @@ function EventSettingsPanel({ event, refetch }) {
   const [endInput, setEndInput] = useState(() => toLocalDatetimeInput(event.curfewEnd));
   const [passwordInput, setPasswordInput] = useState(event.eventPassword ?? '');
   const [prizePoolInput, setPrizePoolInput] = useState(String(event.prizePool ?? 0));
+  const [womInput, setWomInput] = useState(event.womCompetitionId ?? '');
 
   const [setPassword, { loading: savingPassword }] = useMutation(SET_SPOOPY_EVENT_PASSWORD, {
     onCompleted: () => { toast({ title: 'password saved', status: 'success' }); refetch(); },
@@ -289,6 +292,16 @@ function EventSettingsPanel({ event, refetch }) {
   const [setPrizePool, { loading: savingPrizePool }] = useMutation(SET_SPOOPY_EVENT_PRIZE_POOL, {
     onCompleted: () => { toast({ title: 'prize pool saved', status: 'success' }); refetch(); },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
+  });
+
+  const [setWomCompId, { loading: savingWom }] = useMutation(SET_SPOOPY_EVENT_WOM_COMPETITION_ID, {
+    onCompleted: () => { toast({ title: 'wom competition saved', status: 'success' }); refetch(); },
+    onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
+  });
+
+  const [syncWom, { loading: syncingWom }] = useMutation(SYNC_SPOOPY_EVENT_WOM, {
+    onCompleted: () => { toast({ title: 'wom sync fired', status: 'success' }); refetch(); },
+    onError: (e) => toast({ title: 'wom sync failed', description: e.message, status: 'error' }),
   });
 
   const [refreshEvent, { loading: refreshing }] = useMutation(REFRESH_SPOOPY_EVENT_FROM_MOCK, {
@@ -432,6 +445,67 @@ function EventSettingsPanel({ event, refetch }) {
         }}
         saving={savingPrizePool}
       />
+
+      <Divider borderColor={SPOOPY_COLORS.nightMist} />
+
+      <VStack align="stretch" spacing={2}>
+        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
+          wom competition
+        </Text>
+        <Text fontSize="xs" opacity={0.55}>
+          paste a wise old man team-competition id. team names on wom must match the team names
+          here exactly (spelling + case). when set, skilling / kc tile progress bars auto-fill
+          from gains between each tile's pre-screenshot approval and now. syncs on the pre
+          approval, on a manual "sync now" click, and every 15 minutes while the event is ACTIVE.
+        </Text>
+        <HStack spacing={2}>
+          <Input
+            {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+            value={womInput}
+            onChange={(e) => setWomInput(e.target.value)}
+            placeholder="e.g. 12345"
+            maxW="240px"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor={SPOOPY_COLORS.nightMist}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            isLoading={savingWom}
+            onClick={() =>
+              setWomCompId({
+                variables: {
+                  eventId: event.eventId,
+                  womCompetitionId: womInput.trim() || null,
+                },
+              })
+            }
+          >
+            save
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor={SPOOPY_COLORS.pumpkin}
+            color={SPOOPY_COLORS.pumpkinLight}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            isLoading={syncingWom}
+            isDisabled={!event.womCompetitionId}
+            onClick={() => syncWom({ variables: { eventId: event.eventId } })}
+          >
+            🔄 sync now
+          </Button>
+        </HStack>
+        {event.lastWomSyncAt && (
+          <Text fontSize="xs" opacity={0.55}>
+            last sync: {new Date(event.lastWomSyncAt).toLocaleString(undefined, {
+              dateStyle: 'short',
+              timeStyle: 'short',
+            })}
+          </Text>
+        )}
+      </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
 

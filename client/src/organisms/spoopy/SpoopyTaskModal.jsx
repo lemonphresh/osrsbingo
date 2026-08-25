@@ -1,7 +1,16 @@
 import React from 'react';
 import {
-  Modal, ModalOverlay, ModalContent, ModalBody, ModalCloseButton,
-  Box, Text, VStack, HStack, Heading, Badge,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalBody,
+  ModalCloseButton,
+  Box,
+  Text,
+  VStack,
+  HStack,
+  Heading,
+  Badge,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
@@ -27,6 +36,7 @@ export default function SpoopyTaskModal({
   tileType,
   onMockSubmit,
   mockSubmitting = false,
+  womEnabled = false,
 }) {
   // Hooks have to be declared before any early-return branch — React
   // requires the same hook-call order on every render.
@@ -37,10 +47,10 @@ export default function SpoopyTaskModal({
   const progress = Math.max(0, Math.min(100, tileState?.progress ?? 0));
   const status = tileState?.status ?? 'locked';
   const statusMeta = {
-    locked:    { label: 'locked',    bg: SPOOPY_COLORS.nightMist },
-    unlocked:  { label: 'active',    bg: SPOOPY_COLORS.pumpkin },
+    locked: { label: 'locked', bg: SPOOPY_COLORS.nightMist },
+    unlocked: { label: 'active', bg: SPOOPY_COLORS.pumpkin },
     submitted: { label: 'awaiting review', bg: SPOOPY_COLORS.purpleLight },
-    complete:  { label: 'complete',  bg: SPOOPY_COLORS.green },
+    complete: { label: 'complete', bg: SPOOPY_COLORS.green },
   }[status] ?? { label: status, bg: SPOOPY_COLORS.nightMist };
   const done = progress >= 100 || status === 'complete';
   // TILE_META.fillColor is designed for light-mode paper (dark ink on cream).
@@ -123,7 +133,11 @@ export default function SpoopyTaskModal({
                 >
                   progress
                 </Text>
-                <Text fontSize="sm" fontWeight="bold" color={done ? SPOOPY_COLORS.green : SPOOPY_COLORS.pumpkinDeep}>
+                <Text
+                  fontSize="sm"
+                  fontWeight="bold"
+                  color={done ? SPOOPY_COLORS.green : SPOOPY_COLORS.pumpkinDeep}
+                >
                   {progress}%
                 </Text>
               </HStack>
@@ -148,6 +162,19 @@ export default function SpoopyTaskModal({
               <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
                 📸 submit from discord
               </Text>
+              {(content.task?.kind === 'skilling_xp' || content.task?.kind === 'boss_kc') && (
+                <Text
+                  fontSize="xs"
+                  color={SPOOPY_COLORS.pumpkinLight}
+                  mb={2}
+                  fontFamily={SPOOPY_FONTS.hand}
+                >
+                  {womEnabled
+                    ? '⚠️ pre-screenshot first — this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
+                    : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}{' '}
+                  only one team member needs to do this.
+                </Text>
+              )}
               <VStack align="stretch" spacing={2}>
                 <Box>
                   <Text
@@ -179,9 +206,7 @@ export default function SpoopyTaskModal({
               </Text>
             </Box>
 
-            {onMockSubmit && (
-              <MockDevButton onClick={onMockSubmit} loading={mockSubmitting} />
-            )}
+            {onMockSubmit && <MockDevButton onClick={onMockSubmit} loading={mockSubmitting} />}
           </VStack>
         </ModalBody>
       </ModalContent>

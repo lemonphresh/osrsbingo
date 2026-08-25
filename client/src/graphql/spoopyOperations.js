@@ -17,6 +17,8 @@ export const SPOOPY_EVENT_FIELDS = gql`
     hauntedHouse
     startingTileIds
     prizePool
+    womCompetitionId
+    lastWomSyncAt
     createdAt
   }
 `;
@@ -207,6 +209,22 @@ export const SET_SPOOPY_EVENT_PASSWORD = gql`
 export const SET_SPOOPY_EVENT_PRIZE_POOL = gql`
   mutation SetSpoopyEventPrizePool($eventId: ID!, $prizePool: Int!) {
     setSpoopyEventPrizePool(eventId: $eventId, prizePool: $prizePool) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SET_SPOOPY_EVENT_WOM_COMPETITION_ID = gql`
+  mutation SetSpoopyEventWomCompetitionId($eventId: ID!, $womCompetitionId: String) {
+    setSpoopyEventWomCompetitionId(eventId: $eventId, womCompetitionId: $womCompetitionId) {
+      ...SpoopyEventFields
+    }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SYNC_SPOOPY_EVENT_WOM = gql`
+  mutation SyncSpoopyEventWom($eventId: ID!) {
+    syncSpoopyEventWom(eventId: $eventId) { ...SpoopyEventFields }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;

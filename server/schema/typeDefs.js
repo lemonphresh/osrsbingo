@@ -756,6 +756,11 @@ const typeDefs = gql`
     # status=SETUP via setSpoopyEventPrizePool. Split evenly across teams at
     # activation; haunted house pays 3× the per-house share on top.
     prizePool:        Int!
+    # WOM team competition id — enables auto-fill of tile progress for
+    # skilling_xp / boss_kc tasks. Editable at any time.
+    womCompetitionId: String
+    # Last successful WOM sync (server enforces a cooldown on top of this).
+    lastWomSyncAt:    DateTime
     teams:            [SpoopyTeam!]!
     admins:           [User!]!
     createdAt:        DateTime
@@ -1288,6 +1293,13 @@ const typeDefs = gql`
     # Admin-only, SETUP-only. Total gp budget for house rewards. Each team's
     # share is snapshotted at SETUP→ACTIVE and cannot be changed after.
     setSpoopyEventPrizePool(eventId: ID!, prizePool: Int!): SpoopyEvent!
+    # Admin-only. Sets/clears the WOM team competition id used for auto-fill
+    # of skilling_xp / boss_kc tile progress. Editable at any status.
+    setSpoopyEventWomCompetitionId(eventId: ID!, womCompetitionId: String): SpoopyEvent!
+    # Admin-only. Kicks off a WOM sync for the event. Respects a server-side
+    # cooldown to avoid rate-limit trouble with the WOM API. Returns the
+    # event so the client sees the fresh lastWomSyncAt timestamp.
+    syncSpoopyEventWom(eventId: ID!): SpoopyEvent!
     createSpoopyTeam(eventId: ID!, input: CreateSpoopyTeamInput!): SpoopyTeam!
     updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
     # Update the team's Discord channel / role bindings after creation.

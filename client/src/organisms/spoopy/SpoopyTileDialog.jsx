@@ -46,6 +46,7 @@ export default function SpoopyTileDialog({
   mockSubmitting = false,
   onMockChoose = null,
   mockChoosingLetter = null,
+  womEnabled = false,
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
@@ -99,13 +100,7 @@ export default function SpoopyTileDialog({
               </VStack>
             ) : (
               <VStack spacing={3} align="stretch" pt={1}>
-                <Box
-                  bg={surfaceRecessed}
-                  color={surfaceInk}
-                  p={3}
-                  borderRadius="md"
-                  opacity={0.9}
-                >
+                <Box bg={surfaceRecessed} color={surfaceInk} p={3} borderRadius="md" opacity={0.9}>
                   <HStack spacing={2} mb={1}>
                     <Badge
                       bg={SPOOPY_COLORS.night}
@@ -119,7 +114,13 @@ export default function SpoopyTileDialog({
                   <Text fontFamily={SPOOPY_FONTS.hand}>{chosenOption?.label}</Text>
                 </Box>
                 {resolvedTaskNode}
-                {tileId && <DiscordSubmitHint tileId={tileId} />}
+                {tileId && (
+                  <DiscordSubmitHint
+                    tileId={tileId}
+                    taskKind={chosenOption?.task?.kind}
+                    womEnabled={womEnabled}
+                  />
+                )}
                 {onMockSubmit && <MockDevButton onClick={onMockSubmit} loading={mockSubmitting} />}
               </VStack>
             )}
@@ -198,13 +199,25 @@ function DiscordChoiceHint({ tileId }) {
       </Text>
       <VStack align="stretch" spacing={2}>
         <Box>
-          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+          <Text
+            fontSize="10px"
+            opacity={0.7}
+            mb={1}
+            letterSpacing="wider"
+            textTransform="uppercase"
+          >
             option A
           </Text>
           <SpoopyCommandCopy command={`!spoopya ${tileId}`} size="sm" />
         </Box>
         <Box>
-          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+          <Text
+            fontSize="10px"
+            opacity={0.7}
+            mb={1}
+            letterSpacing="wider"
+            textTransform="uppercase"
+          >
             option B
           </Text>
           <SpoopyCommandCopy command={`!spoopyb ${tileId}`} size="sm" />
@@ -215,7 +228,8 @@ function DiscordChoiceHint({ tileId }) {
 }
 
 // Rendered post-choice — the team knows the task, needs to submit proof.
-function DiscordSubmitHint({ tileId }) {
+function DiscordSubmitHint({ tileId, taskKind, womEnabled }) {
+  const isMetric = taskKind === 'skilling_xp' || taskKind === 'boss_kc';
   return (
     <Box
       bg={SPOOPY_COLORS.night}
@@ -228,15 +242,40 @@ function DiscordSubmitHint({ tileId }) {
       <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
         📸 submit from discord
       </Text>
+      {isMetric && (
+        <Text
+          fontSize="xs"
+          color={SPOOPY_COLORS.pumpkinLight}
+          mb={2}
+          fontFamily={SPOOPY_FONTS.hand}
+        >
+          {womEnabled
+            ? '⚠️ pre-screenshot first — this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
+            : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}
+          only one team member needs to do this.
+        </Text>
+      )}
       <VStack align="stretch" spacing={2}>
         <Box>
-          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+          <Text
+            fontSize="10px"
+            opacity={0.7}
+            mb={1}
+            letterSpacing="wider"
+            textTransform="uppercase"
+          >
             pre-screenshot baseline
           </Text>
           <SpoopyCommandCopy command={`!spoopypre ${tileId}`} size="sm" />
         </Box>
         <Box>
-          <Text fontSize="10px" opacity={0.7} mb={1} letterSpacing="wider" textTransform="uppercase">
+          <Text
+            fontSize="10px"
+            opacity={0.7}
+            mb={1}
+            letterSpacing="wider"
+            textTransform="uppercase"
+          >
             completion proof
           </Text>
           <SpoopyCommandCopy command={`!spoopysubmit ${tileId}`} size="sm" />

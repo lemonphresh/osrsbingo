@@ -1,8 +1,71 @@
-import React from 'react';
-import { Box, Heading, HStack, SimpleGrid, Text, VStack, Badge } from '@chakra-ui/react';
+import React, { useEffect, useState } from 'react';
+import { Box, Heading, HStack, SimpleGrid, Text, VStack, Badge, Tooltip } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
 import { taskLine } from './SpoopyTaskCard';
 import { useSpoopyTheme } from './useSpoopyTheme';
+
+// A task is WOM-trackable when the sync module knows how to auto-fill it —
+// currently skilling_xp and boss_kc kinds. Kept in the client so we can
+// visibly mark those tiles without shipping the server-side kind list.
+function isWomTrackable(task) {
+  return task?.kind === 'skilling_xp' || task?.kind === 'boss_kc';
+}
+
+// Must match the server-side SYNC_COOLDOWN_MS in spoopyWomSync.js — the
+// server enforces the cooldown; this is purely for the "next in Xm" hint
+// so players understand why manual re-triggers might get refused.
+const WOM_SYNC_COOLDOWN_MS = 15 * 60 * 1000;
+
+// Small info line — "last synced 3m ago · next in 12m" — shown when a WOM
+// competition is wired up. Updates every 30s so the countdown ticks.
+function WomSyncStatus({ event }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  if (!event?.lastWomSyncAt) {
+    return (
+      <Tooltip label="the auto-sync will run within a few minutes of event start" fontSize="xs">
+        <Text>🔄 wom sync: waiting for first run</Text>
+      </Tooltip>
+    );
+  }
+
+  const lastMs = new Date(event.lastWomSyncAt).getTime();
+  const sinceMs = Math.max(0, now - lastMs);
+  const nextInMs = Math.max(0, WOM_SYNC_COOLDOWN_MS - sinceMs);
+
+  const ago = formatDuration(sinceMs);
+  const nextLabel = nextInMs > 0 ? `next in ${formatDuration(nextInMs)}` : 'ready to sync';
+
+  return (
+    <Tooltip
+      label={`last successful WOM sync: ${new Date(lastMs).toLocaleString(undefined, {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      })}`}
+      fontSize="xs"
+    >
+      <Text>
+        🔄 synced {ago} ago · {nextLabel}
+      </Text>
+    </Tooltip>
+  );
+}
+
+// Rounds a ms delta to the coarsest human-readable form. Matches the vibe
+// of "3m ago" / "1h 5m ago" without pulling in a date-fns dep for one use.
+function formatDuration(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const mins = Math.floor(totalSec / 60);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return remMins > 0 ? `${hours}h ${remMins}m` : `${hours}h`;
+}
 
 // Panel that lives *below* the board on /spoopy-event and lists every tile
 // currently in play (unlocked or awaiting review) with a progress bar. Gives
@@ -74,6 +137,11 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
           >
             active tasks
           </Heading>
+          {event?.womCompetitionId && (
+            <Box fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+              <WomSyncStatus event={event} />
+            </Box>
+          )}
           <Text opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
             nothing on your plate right now — go trick-or-treating 🎃
           </Text>
@@ -92,7 +160,7 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
       borderColor={SPOOPY_COLORS.nightMist}
     >
       <VStack maxW="1080px" mx="auto" align="stretch" spacing={4}>
-        <HStack justify="space-between" align="baseline">
+        <HStack justify="space-between" align="baseline" wrap="wrap" gap={2}>
           <Heading
             size="md"
             fontFamily={SPOOPY_FONTS.heading}
@@ -101,9 +169,10 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
           >
             active tasks
           </Heading>
-          <Text fontSize="xs" opacity={0.6} fontFamily={SPOOPY_FONTS.hand}>
-            {entries.length} in play
-          </Text>
+          <HStack spacing={3} fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+            {event?.womCompetitionId && <WomSyncStatus event={event} />}
+            <Text>{entries.length} in play</Text>
+          </HStack>
         </HStack>
 
         <SimpleGrid columns={{ base: 1, md: 2 }} spacing={3}>
@@ -112,6 +181,7 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
               key={entry.tileId}
               entry={entry}
               onClick={onTileClick}
+              womEnabled={Boolean(event?.womCompetitionId)}
               surfaceBg={surfaceBg}
               surfaceInk={surfaceInk}
               surfaceEdge={surfaceEdge}
@@ -124,7 +194,7 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
   );
 }
 
-function ActiveTaskCard({ entry, onClick, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed }) {
+function ActiveTaskCard({ entry, onClick, womEnabled, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed }) {
   const meta = TILE_META[entry.tileType] ?? TILE_META.house;
   const positionLabel = entry.position
     ? `r${entry.position.row}-c${entry.position.col}`
@@ -174,15 +244,29 @@ function ActiveTaskCard({ entry, onClick, surfaceBg, surfaceInk, surfaceEdge, su
               {meta.label}
             </Text>
           </HStack>
-          <Badge
-            bg={statusMeta.bg}
-            color={SPOOPY_COLORS.paper}
-            fontFamily={SPOOPY_FONTS.hand}
-            textTransform="lowercase"
-            fontSize="10px"
-          >
-            {statusMeta.label}
-          </Badge>
+          <HStack spacing={1}>
+            {womEnabled && isWomTrackable(entry.task) && (
+              <Badge
+                bg={SPOOPY_COLORS.green}
+                color={SPOOPY_COLORS.paper}
+                fontFamily={SPOOPY_FONTS.hand}
+                textTransform="lowercase"
+                fontSize="10px"
+                title="auto-tracked from wise old man data"
+              >
+                🔄 wom
+              </Badge>
+            )}
+            <Badge
+              bg={statusMeta.bg}
+              color={SPOOPY_COLORS.paper}
+              fontFamily={SPOOPY_FONTS.hand}
+              textTransform="lowercase"
+              fontSize="10px"
+            >
+              {statusMeta.label}
+            </Badge>
+          </HStack>
         </HStack>
 
         <Box
