@@ -16,7 +16,16 @@ jest.mock('@chakra-ui/react', () => {
       React.createElement('button', { 'aria-label': ariaLabel, onClick }, icon),
     Tooltip: ({ children }) => children,
     Slider: ({ children, onChange, value }) =>
-      React.createElement('input', { type: 'range', value, onChange: (e) => onChange?.(Number(e.target.value)) }, children),
+      React.createElement(
+        'div',
+        null,
+        React.createElement('input', {
+          type: 'range',
+          value,
+          onChange: (e) => onChange?.(Number(e.target.value)),
+        }),
+        children
+      ),
     SliderTrack: passthrough('div'),
     SliderFilledTrack: passthrough('div'),
     SliderThumb: passthrough('div'),
