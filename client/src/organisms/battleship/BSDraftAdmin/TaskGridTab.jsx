@@ -30,6 +30,7 @@ import {
 } from '../../../graphql/bsOperations';
 import BSContentSelectionModal from '../BSContentSelectionModal';
 import BSMultiplierModal from '../BSMultiplierModal';
+import WorkbookControls from './WorkbookControls';
 import { useToastContext } from '../../../providers/ToastProvider';
 import {
   COL_LABELS,
@@ -45,7 +46,14 @@ import {
 function stableStringify(val) {
   if (val === null || val === undefined) return 'null';
   if (typeof val !== 'object' || Array.isArray(val)) return JSON.stringify(val);
-  return '{' + Object.keys(val).sort().map((k) => `${JSON.stringify(k)}:${stableStringify(val[k])}`).join(',') + '}';
+  return (
+    '{' +
+    Object.keys(val)
+      .sort()
+      .map((k) => `${JSON.stringify(k)}:${stableStringify(val[k])}`)
+      .join(',') +
+    '}'
+  );
 }
 
 export function TaskGridTab({ event, refetch }) {
@@ -590,6 +598,17 @@ export function TaskGridTab({ event, refetch }) {
             </Text>{' '}
             to reshuffle which tasks fill the ocean cells; this doesn't affect ship assignments.
           </Text>
+          <Text fontFamily="mono" fontSize="xs" color="#d4f0da" letterSpacing="wide">
+            You can also bulk edit these tiles by clicking{' '}
+            <Text as="span" color="#4ade80" fontWeight="bold">
+              Export Excel
+            </Text>{' '}
+            and then subsequently clicking{' '}
+            <Text as="span" color="#4ade80" fontWeight="bold">
+              Import Excel
+            </Text>{' '}
+            to get your updated tiles imported and updated here.
+          </Text>
           <Text fontFamily="mono" fontSize="10px" color="#6b9e78" letterSpacing="wide">
             You need all 17 ship template slots filled and at least 100 ocean tasks before you can
             start the placement phase.
@@ -664,6 +683,7 @@ export function TaskGridTab({ event, refetch }) {
 
       {/* Stats + randomize */}
       <HStack justify="center" flexWrap="wrap" gap={2}>
+        <WorkbookControls eventId={event.eventId} refetch={refetch} />
         <Button
           size="xs"
           variant="outline"
@@ -679,7 +699,10 @@ export function TaskGridTab({ event, refetch }) {
           onClick={() => {
             setSel(null);
             updateBSContentSelections({
-              variables: { eventId: event.eventId, contentSelections: event.contentSelections ?? null },
+              variables: {
+                eventId: event.eventId,
+                contentSelections: event.contentSelections ?? null,
+              },
             });
           }}
         >
@@ -850,8 +873,16 @@ export function TaskGridTab({ event, refetch }) {
             >
               Ship Templates
             </Text>
-            <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" textAlign="center" mb={3}>
-              When teams place a ship, its tiles overwrite whatever ocean tiles were at those positions.
+            <Text
+              fontFamily="mono"
+              fontSize="10px"
+              color="#3d6b4a"
+              letterSpacing="wide"
+              textAlign="center"
+              mb={3}
+            >
+              When teams place a ship, its tiles overwrite whatever ocean tiles were at those
+              positions.
             </Text>
             <VStack align="center" spacing={4}>
               {SHIP_CONFIGS.map(({ shipType, label, cells }) => (
@@ -974,7 +1005,9 @@ export function TaskGridTab({ event, refetch }) {
         onClose={() => setMultiplierModalOpen(false)}
         currentMultiplier={event.metricMultiplier ?? 1.0}
         isLoading={updatingMultiplier}
-        onSave={(mult) => updateBSMultiplier({ variables: { eventId: event.eventId, multiplier: mult } })}
+        onSave={(mult) =>
+          updateBSMultiplier({ variables: { eventId: event.eventId, multiplier: mult } })
+        }
       />
 
       <BSContentSelectionModal
@@ -984,16 +1017,28 @@ export function TaskGridTab({ event, refetch }) {
         onSave={handleContentSave}
       />
 
-      <Modal isOpen={!!pendingSelections} onClose={() => setPendingSelections(null)} size="sm" isCentered>
+      <Modal
+        isOpen={!!pendingSelections}
+        onClose={() => setPendingSelections(null)}
+        size="sm"
+        isCentered
+      >
         <ModalOverlay bg="blackAlpha.800" />
         <ModalContent bg="#060f0a" border="1px solid" borderColor="#22c55e" mx={3}>
-          <ModalHeader fontFamily="mono" fontSize="xs" letterSpacing="widest" textTransform="uppercase" color="#4ade80">
+          <ModalHeader
+            fontFamily="mono"
+            fontSize="xs"
+            letterSpacing="widest"
+            textTransform="uppercase"
+            color="#4ade80"
+          >
             Regenerate Ocean Tiles?
           </ModalHeader>
           <ModalCloseButton color="#6b9e78" />
           <ModalBody pb={2}>
             <Text fontFamily="mono" fontSize="xs" color="#d4f0da" letterSpacing="wide">
-              This will replace all ocean tile assignments with a new random selection based on your updated content settings. Ship tile tasks are not affected.
+              This will replace all ocean tile assignments with a new random selection based on your
+              updated content settings. Ship tile tasks are not affected.
             </Text>
           </ModalBody>
           <ModalFooter gap={2}>

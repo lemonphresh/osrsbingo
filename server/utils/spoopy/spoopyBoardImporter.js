@@ -70,17 +70,25 @@ function classifyCell(raw) {
   return { kind: 'noise', raw };
 }
 
-// Detects the playfield width by looking for a "Counts" header in row 0. If a
-// legend labels column sits immediately to its left (contains tile-type or
-// connector labels), that column is stripped too. Explicit options.playfieldCols /
-// playfieldRows override the heuristic entirely.
+// Detects the playfield width by locating a "Counts" header anywhere in the
+// first few rows. If a legend labels column sits immediately to its left
+// (contains tile-type or connector labels), that column is stripped too.
+// Explicit options.playfieldCols / playfieldRows override the heuristic.
 function detectBounds(rawRows, options = {}) {
   const rowCount = rawRows.length;
   const colCount = rawRows.reduce((m, r) => Math.max(m, r.length), 0);
 
   let cols = options.playfieldCols;
   if (cols == null && rowCount > 0) {
-    const idx = rawRows[0].findIndex((c) => (c || '').trim().toLowerCase() === 'counts');
+    // Older boards put "Counts" in row 0; newer boards sometimes reserve
+    // row 0 for actual playfield tiles and float the legend header a row
+    // or two down. Scan the top of the sheet so both shapes work.
+    let idx = -1;
+    const scanRows = Math.min(rowCount, 5);
+    for (let r = 0; r < scanRows; r++) {
+      const found = rawRows[r].findIndex((c) => (c || '').trim().toLowerCase() === 'counts');
+      if (found !== -1) { idx = found; break; }
+    }
     if (idx === -1) {
       cols = colCount;
     } else {

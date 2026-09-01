@@ -8,11 +8,18 @@ jest.mock('@chakra-ui/react', () => {
     React.createElement(as || tag, { onClick, ...props }, children);
   return {
     Box: passthrough('div'),
+    HStack: passthrough('div'),
+    Text: passthrough('span'),
     Icon: ({ as: AsIcon, ...props }) =>
       React.createElement('span', { 'data-icon': AsIcon?.displayName || 'icon', ...props }),
     IconButton: ({ 'aria-label': ariaLabel, icon, onClick }) =>
       React.createElement('button', { 'aria-label': ariaLabel, onClick }, icon),
     Tooltip: ({ children }) => children,
+    Slider: ({ children, onChange, value }) =>
+      React.createElement('input', { type: 'range', value, onChange: (e) => onChange?.(Number(e.target.value)) }, children),
+    SliderTrack: passthrough('div'),
+    SliderFilledTrack: passthrough('div'),
+    SliderThumb: passthrough('div'),
   };
 });
 
@@ -21,6 +28,8 @@ jest.mock('react-icons/fa', () => ({
   FaCamera: () => null,
   FaMoon: () => null,
   FaSun: () => null,
+  FaSearchMinus: () => null,
+  FaSearchPlus: () => null,
 }));
 
 jest.mock('../../assets/spoopy/house.webp',         () => 'house.webp',       { virtual: true });

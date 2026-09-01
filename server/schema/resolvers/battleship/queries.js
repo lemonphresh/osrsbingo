@@ -1,8 +1,15 @@
 'use strict';
 
-const { getModels, requireAuth, isAdminOrRef } = require('./helpers');
+const {
+  getModels,
+  requireAuth,
+  requireAdmin,
+  isAdminOrRef,
+  getEventOrThrow,
+} = require('./helpers');
 const { getViewerCount } = require('../../../utils/battleship/bsViewers');
 const { getProposal } = require('../../../utils/battleship/bsProposals');
+const { createDraftWorkbook } = require('../../../utils/battleship/bsDraftWorkbook');
 
 module.exports = {
   getBSEvent: async (_, { eventId }, context) => {
@@ -88,5 +95,43 @@ module.exports = {
       where: { teamId },
       order: [['createdAt', 'ASC']],
     });
+  },
+
+  exportBSDraftWorkbook: async (_, { eventId }, context) => {
+    const user = requireAuth(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user.id);
+    const { BSBoard, BSTile, BSShipTemplate, BSTask } = getModels();
+    const templateBoard = await BSBoard.findOne({ where: { eventId, teamId: null } });
+    if (!templateBoard) throw new Error('This event does not have a draft template board.');
+    const oceanTiles = await BSTile.findAll({
+      where: { boardId: templateBoard.boardId, shipType: null },
+      include: [{ model: BSTask, as: 'task' }],
+      order: [
+        ['row', 'ASC'],
+        ['col', 'ASC'],
+      ],
+    });
+    const shipTemplates = await BSShipTemplate.findAll({
+      where: { eventId },
+      include: [{ model: BSTask, as: 'task' }],
+      order: [
+        ['shipType', 'ASC'],
+        ['cellIndex', 'ASC'],
+      ],
+    });
+    const buffer = await createDraftWorkbook({
+      eventName: event.eventName,
+      oceanTiles,
+      shipTemplates,
+    });
+    const slug = event.eventName
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+    return {
+      filename: `${slug || 'battleship'}-draft.xlsx`,
+      contentBase64: Buffer.from(buffer).toString('base64'),
+    };
   },
 };

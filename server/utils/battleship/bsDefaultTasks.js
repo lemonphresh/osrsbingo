@@ -167,7 +167,7 @@ function generateDefaultBSTasks() {
  * A missing key or `true` means enabled; `false` means disabled.
  * Null/undefined contentSelections means all content is enabled.
  */
-function buildOceanPool(tasks, contentSelections, shipBaseContentIds, shuffleFn) {
+function buildOceanPool(tasks, contentSelections, shipExclusions, shuffleFn) {
   const { registry } = require('../contentRegistry');
 
   // Registry keys are snake_case but contentIds are camelCase — build id-keyed sets.
@@ -199,7 +199,9 @@ function buildOceanPool(tasks, contentSelections, shipBaseContentIds, shuffleFn)
   }
 
   const pool = tasks
-    .filter((t) => !shipBaseContentIds.has(baseContentId(t.contentId ?? '')))
+    // Accept both registry content IDs and concrete task IDs. The latter keeps
+    // workbook-assigned/custom ship tasks out of a later ocean randomization.
+    .filter((t) => !shipExclusions.has(baseContentId(t.contentId ?? '')) && !shipExclusions.has(t.taskId))
     .filter((t) => isEnabled(t.contentId ?? ''))
     .filter((t) => isMetricEnabled(t.metricType))
     .map((t) => t.taskId);

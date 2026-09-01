@@ -1030,6 +1030,7 @@ const typeDefs = gql`
     getBSSubmissions(eventId: ID!, status: BSSubmissionStatus, tileId: ID): [BSSubmission!]!
     getActiveBSProposal(teamId: ID!): BSProposal
     getBSPlacementSuggestions(teamId: ID!): [BSPlacementSuggestion!]!
+    exportBSDraftWorkbook(eventId: ID!): BSDraftWorkbookFile!
   }
 
   # ============================================================
@@ -1290,6 +1291,9 @@ const typeDefs = gql`
     updateSpoopyEventStatus(eventId: ID!, status: SpoopyEventStatus!): SpoopyEvent!
     updateSpoopyEventBoard(eventId: ID!, board: JSON, contentById: JSON, hauntedHouse: JSON, startingTileIds: [String!]): SpoopyEvent!
     setSpoopyEventPassword(eventId: ID!, password: String): SpoopyEvent!
+    # Admin-only. Updates the event's curfew window. Either arg may be omitted;
+    # only the provided one is patched. Editable at any status.
+    updateSpoopyEventSchedule(eventId: ID!, curfewStart: DateTime, curfewEnd: DateTime): SpoopyEvent!
     # Admin-only, SETUP-only. Total gp budget for house rewards. Each team's
     # share is snapshotted at SETUP→ACTIVE and cannot be changed after.
     setSpoopyEventPrizePool(eventId: ID!, prizePool: Int!): SpoopyEvent!
@@ -1340,6 +1344,7 @@ const typeDefs = gql`
     addBSTask(eventId: ID!, input: BSTaskInput!): BSTask!
     updateBSTask(taskId: ID!, input: BSTaskInput!): BSTask!
     removeBSTask(taskId: ID!): Boolean!
+    importBSDraftWorkbook(eventId: ID!, contentBase64: String!, apply: Boolean = false): BSDraftWorkbookImportResult!
 
     # --- Battleship: Ship Templates ---
     setBSShipTemplate(eventId: ID!, shipType: BSShipType!, cellIndex: Int!, taskId: ID!): BSShipTemplate!
@@ -1845,6 +1850,18 @@ const typeDefs = gql`
     womMetric: String
     description: String
     isActive: Boolean!
+  }
+
+  type BSDraftWorkbookFile {
+    filename: String!
+    contentBase64: String!
+  }
+
+  type BSDraftWorkbookImportResult {
+    applied: Boolean!
+    oceanTileCount: Int!
+    shipTileCount: Int!
+    errors: [String!]!
   }
 
   type BSShipTemplate {

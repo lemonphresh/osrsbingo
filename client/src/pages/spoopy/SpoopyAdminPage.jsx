@@ -20,6 +20,7 @@ import {
   SET_SPOOPY_EVENT_PRIZE_POOL,
   SET_SPOOPY_EVENT_WOM_COMPETITION_ID,
   SYNC_SPOOPY_EVENT_WOM,
+  UPDATE_SPOOPY_EVENT_SCHEDULE,
   DELETE_SPOOPY_EVENT,
   CREATE_SPOOPY_TEAM,
   UPDATE_SPOOPY_TEAM_MEMBERS,
@@ -319,22 +320,25 @@ function EventSettingsPanel({ event, refetch }) {
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
+  const [updateSchedule, { loading: savingSchedule }] = useMutation(UPDATE_SPOOPY_EVENT_SCHEDULE, {
+    onCompleted: () => { toast({ title: 'schedule saved', status: 'success' }); refetch(); },
+    onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
+  });
+
   const [deleteEvent, { loading: deleting }] = useMutation(DELETE_SPOOPY_EVENT, {
     onCompleted: () => { toast({ title: 'event deleted', status: 'success' }); refetch(); },
     onError: (e) => toast({ title: 'delete failed', description: e.message, status: 'error' }),
   });
 
-  // Schedule saving reuses updateSpoopyEventBoard (no dedicated setSchedule mutation
-  // exists yet; curfew lives on the event and can be edited independently).
+  // Persist curfew edits via the dedicated updateSpoopyEventSchedule mutation.
+  // The datetime-local inputs are naive local strings — convert to ISO utc
+  // via fromLocalDatetimeInput before shipping.
   const saveSchedule = () => {
-    updateBoard({
+    updateSchedule({
       variables: {
         eventId: event.eventId,
-        // pass through unchanged values for the required inputs — we're only editing curfew here
-        board: event.board,
-        contentById: event.contentById,
-        hauntedHouse: event.hauntedHouse,
-        startingTileIds: event.startingTileIds,
+        curfewStart: fromLocalDatetimeInput(startInput),
+        curfewEnd: fromLocalDatetimeInput(endInput),
       },
     });
   };
@@ -385,14 +389,11 @@ function EventSettingsPanel({ event, refetch }) {
           borderColor={SPOOPY_COLORS.nightMist}
           color={SPOOPY_COLORS.paper}
           _hover={{ bg: SPOOPY_COLORS.nightMist }}
+          isLoading={savingSchedule}
           onClick={saveSchedule}
         >
           save curfew
         </Button>
-        <Text fontSize="xs" opacity={0.5}>
-          note: curfew editing is wired to updateSpoopyEventBoard for now — a dedicated
-          setSchedule mutation will land with the next admin phase.
-        </Text>
       </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />

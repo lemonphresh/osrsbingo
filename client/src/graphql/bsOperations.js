@@ -299,6 +299,15 @@ export const GET_BS_SHOT_LOG = gql`
   }
 `;
 
+export const EXPORT_BS_DRAFT_WORKBOOK = gql`
+  query ExportBSDraftWorkbook($eventId: ID!) {
+    exportBSDraftWorkbook(eventId: $eventId) {
+      filename
+      contentBase64
+    }
+  }
+`;
+
 export const UPDATE_BS_MULTIPLIER = gql`
   mutation UpdateBSMultiplier($eventId: ID!, $multiplier: Float!) {
     updateBSMultiplier(eventId: $eventId, multiplier: $multiplier) {
@@ -425,6 +434,17 @@ export const UPDATE_BS_TASK = gql`
 export const REMOVE_BS_TASK = gql`
   mutation RemoveBSTask($taskId: ID!) {
     removeBSTask(taskId: $taskId)
+  }
+`;
+
+export const IMPORT_BS_DRAFT_WORKBOOK = gql`
+  mutation ImportBSDraftWorkbook($eventId: ID!, $contentBase64: String!, $apply: Boolean!) {
+    importBSDraftWorkbook(eventId: $eventId, contentBase64: $contentBase64, apply: $apply) {
+      applied
+      oceanTileCount
+      shipTileCount
+      errors
+    }
   }
 `;
 

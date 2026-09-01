@@ -218,6 +218,21 @@ const Mutation = {
     return event;
   },
 
+  updateSpoopyEventSchedule: async (_, { eventId, curfewStart, curfewEnd }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    const patch = {};
+    if (curfewStart !== undefined) patch.curfewStart = curfewStart ? new Date(curfewStart) : null;
+    if (curfewEnd !== undefined) patch.curfewEnd = curfewEnd ? new Date(curfewEnd) : null;
+    if (patch.curfewStart && patch.curfewEnd && patch.curfewStart >= patch.curfewEnd) {
+      throw new UserInputError('curfew start must be before curfew end');
+    }
+    if (Object.keys(patch).length === 0) return event;
+    await event.update(patch);
+    return event;
+  },
+
   setSpoopyEventPrizePool: async (_, { eventId, prizePool }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);

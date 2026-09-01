@@ -158,6 +158,9 @@ module.exports = {
         cid.endsWith('_kc') ? cid.slice(0, -3) : cid
       )
     );
+    for (const template of templates) {
+      if (template.taskId) shipBaseContentIds.add(template.taskId);
+    }
     const oceanPool = buildOceanPool(allTasks, contentSelections, shipBaseContentIds, shuffle);
 
     if (!templateBoard) {

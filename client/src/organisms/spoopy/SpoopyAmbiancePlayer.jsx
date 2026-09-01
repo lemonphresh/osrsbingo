@@ -79,13 +79,16 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
     if (stored == null) return 0;
     return Number.isFinite(n) && n >= 0 && n <= 100 ? n : 0;
   });
-  // Playback state we drive ourselves. Autoplay-muted lands the iframe in
-  // `playing` immediately (browser autoplay policy allows silent playback),
-  // so we default to true and only flip to false if the user explicitly
-  // paused in a prior session.
-  const [playing, setPlaying] = useState(
-    () => localStorage.getItem(LS_KEY_PLAYING) !== 'false',
-  );
+  // Playback state we drive ourselves. On first visit we default to
+  // paused — the iframe still spins up (browser autoplay-muted keeps the
+  // player warm) but our UI reads as "Play" so the button reflects
+  // reality: no audible sound. Subsequent visits restore whatever the
+  // user last chose.
+  const [playing, setPlaying] = useState(() => {
+    const stored = localStorage.getItem(LS_KEY_PLAYING);
+    if (stored === null) return false;
+    return stored === 'true';
+  });
   const [ready, setReady] = useState(false);
   const iframeRef = useRef(null);
   // Latest reported currentTime from YT's infoDelivery messages. Written on

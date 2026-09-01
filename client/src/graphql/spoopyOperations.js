@@ -206,6 +206,15 @@ export const SET_SPOOPY_EVENT_PASSWORD = gql`
   ${SPOOPY_EVENT_FIELDS}
 `;
 
+export const UPDATE_SPOOPY_EVENT_SCHEDULE = gql`
+  mutation UpdateSpoopyEventSchedule($eventId: ID!, $curfewStart: DateTime, $curfewEnd: DateTime) {
+    updateSpoopyEventSchedule(eventId: $eventId, curfewStart: $curfewStart, curfewEnd: $curfewEnd) {
+      ...SpoopyEventFields
+    }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
 export const SET_SPOOPY_EVENT_PRIZE_POOL = gql`
   mutation SetSpoopyEventPrizePool($eventId: ID!, $prizePool: Int!) {
     setSpoopyEventPrizePool(eventId: $eventId, prizePool: $prizePool) { ...SpoopyEventFields }
