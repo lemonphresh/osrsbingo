@@ -193,6 +193,7 @@ const WhodunnitCreatePage = () => {
                         onChange={(id) => setSlot(idx, id || '')}
                         onRemove={() => clearSlot(idx)}
                         showRemove={Boolean(discordId) || teammateSlots.length > 1}
+                        colorMode="wd"
                         isDuplicateInForm={
                           discordId
                             ? teammateDiscordIds.filter((d) => d === discordId).length > 1
@@ -208,14 +209,22 @@ const WhodunnitCreatePage = () => {
                         onClick={addSlot}
                         alignSelf="flex-start"
                         borderColor={WD_COLORS.paperShadow}
-                        color={WD_COLORS.ink}
+                        color={WD_COLORS.inkFaded}
+                        bg="transparent"
+                        _hover={{ bg: 'rgba(0,0,0,0.06)', borderColor: WD_COLORS.inkFaded }}
                         fontFamily={WD_FONTS.typewriter}
                       >
                         Add teammate
                       </Button>
                     )}
                   </VStack>
-                  <FormHelperText color={WD_COLORS.inkPencil} fontFamily={WD_FONTS.typewriter} fontSize="xs">
+                  <FormHelperText
+                    color={WD_COLORS.inkPencil}
+                    fontFamily={WD_FONTS.typewriter}
+                    fontSize="xs"
+                    fontStyle="italic"
+                    mt={2}
+                  >
                     Search by RSN, Discord username, or Discord ID.
                   </FormHelperText>
                 </FormControl>

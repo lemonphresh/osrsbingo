@@ -119,6 +119,25 @@ const DiscordMemberInput = ({
       selectedText: '#d4f0da',
       selectedSubtext: '#6b9e78',
     },
+    // Whodunnit — paper/ink palette to match the detective desk pages
+    wd: {
+      bg: '#efe4c9',
+      inputBg: 'rgba(255,255,255,0.5)',
+      text: '#2a1810',
+      subtext: '#5a3f2c',
+      placeholder: '#77624a',
+      hover: 'rgba(0,0,0,0.06)',
+      border: '#b8a577',
+      focusBorder: '#9e2a2e',
+      fontFamily: "'Special Elite', 'Courier New', monospace",
+      fontSize: 'sm',
+      selectedBg: 'rgba(58, 107, 111, 0.15)',
+      selectedBgError: 'rgba(158, 42, 46, 0.15)',
+      selectedBorder: '#3a6b6f',
+      selectedBorderError: '#9e2a2e',
+      selectedText: '#2a1810',
+      selectedSubtext: '#5a3f2c',
+    },
   };
   const c = colors[colorMode] ?? colors.dark;
 
