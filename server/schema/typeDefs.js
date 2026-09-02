@@ -1031,6 +1031,11 @@ const typeDefs = gql`
     getActiveBSProposal(teamId: ID!): BSProposal
     getBSPlacementSuggestions(teamId: ID!): [BSPlacementSuggestion!]!
     exportBSDraftWorkbook(eventId: ID!): BSDraftWorkbookFile!
+
+    # --- A Gielinor Whodunnit ---
+    myWhodunnitCampaigns: [WhodunnitCampaign!]!
+    whodunnitCampaign(campaignId: ID!): WhodunnitCampaign
+    allWhodunnitCampaigns: [WhodunnitCampaign!]!
   }
 
   # ============================================================
@@ -1386,6 +1391,16 @@ const typeDefs = gql`
     proposeSkipToken(tileId: ID!, firingTeamId: ID): BSSkipProposal!
     voteOnSkipProposal(proposalId: ID!, approve: Boolean!): BSSkipProposal!
     clearSkipProposal(teamId: ID!): Boolean!
+
+    # --- A Gielinor Whodunnit ---
+    createWhodunnitCampaign(agencyName: String, teammateDiscordIds: [String!]): WhodunnitCampaign!
+    submitWhodunnitAnswer(campaignId: ID!, nodeId: String!, clueId: String!, answer: String!): WhodunnitClueAnswer!
+    advanceWhodunnitNode(campaignId: ID!, nextNodeId: String!): WhodunnitCampaign!
+    completeWhodunnitCampaign(campaignId: ID!): WhodunnitCampaign!
+    useWhodunnitHint(campaignId: ID!, nodeId: String!, clueId: String!): WhodunnitNodeProgress!
+    chooseWhodunnitBranch(campaignId: ID!, choiceKey: String!, path: String!): WhodunnitCampaign!
+    updateWhodunnitAgencyName(campaignId: ID!, agencyName: String!): WhodunnitCampaign!
+    updateWhodunnitPrimeSuspect(campaignId: ID!, suspect: String!): WhodunnitCampaign!
   }
 
   # ============================================================
@@ -2072,6 +2087,71 @@ const typeDefs = gql`
   }
 
   # ============================================================
+  # A GIELINOR WHODUNNIT
+  # ============================================================
+
+  type WhodunnitCampaign {
+    id: ID!
+    campaignId: ID!
+    agencyName: String!
+    status: String!
+    currentNodeId: String!
+    choiceAPath: String
+    choiceBPath: String
+    primeSuspect: String
+    createdBy: User
+    members: [WhodunnitTeamMember!]!
+    nodeProgress: [WhodunnitNodeProgress!]!
+    answers: [WhodunnitClueAnswer!]!
+    suspectHistory: [WhodunnitSuspectHistory!]!
+    createdAt: DateTime
+    updatedAt: DateTime
+    completedAt: DateTime
+    totalDurationSeconds: Int
+  }
+
+  type WhodunnitTeamMember {
+    id: ID!
+    memberId: ID!
+    campaignId: ID!
+    userId: ID!
+    isCreator: Boolean!
+    joinedAt: DateTime
+    user: User
+  }
+
+  type WhodunnitNodeProgress {
+    id: ID!
+    progressId: ID!
+    campaignId: ID!
+    nodeId: String!
+    startedAt: DateTime!
+    endedAt: DateTime
+    hintUsedClueIds: [String!]!
+    durationSeconds: Int
+  }
+
+  type WhodunnitClueAnswer {
+    id: ID!
+    answerId: ID!
+    campaignId: ID!
+    nodeId: String!
+    clueId: String!
+    answer: String!
+    submittedAt: DateTime
+    submittedBy: User
+  }
+
+  type WhodunnitSuspectHistory {
+    id: ID!
+    entryId: ID!
+    campaignId: ID!
+    suspect: String!
+    updatedAt: DateTime
+    updatedBy: User
+  }
+
+  # ============================================================
   # SUBSCRIPTIONS
   # ============================================================
 
@@ -2118,6 +2198,9 @@ const typeDefs = gql`
     bsSkipProposalUpdated(teamId: ID!): BSSkipProposal!
     bsPlacementSuggestionsUpdated(teamId: ID!): [BSPlacementSuggestion!]!
     bsGameOver(eventId: ID!): BSGameOver!
+
+    # --- A Gielinor Whodunnit ---
+    whodunnitCampaignUpdated(campaignId: ID!): WhodunnitCampaign!
   }
 `;
 

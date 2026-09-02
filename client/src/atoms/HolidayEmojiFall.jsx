@@ -19,15 +19,18 @@ const fallCss = css`
 
 // Pride flags matching OSRS rainbow cape variants
 const PRIDE_FLAGS = [
-  { name: 'Rainbow',     stripes: ['#E40303','#FF8C00','#FFED00','#008026','#004DFF','#750787'] },
-  { name: 'Trans',       stripes: ['#55CDFC','#F7A8B8','#FFFFFF','#F7A8B8','#55CDFC'] },
-  { name: 'Lesbian',     stripes: ['#D52D00','#FF9A56','#FFFFFF','#D362A4','#A50062'] },
-  { name: 'Bisexual',    stripes: ['#D60270','#D60270','#9B4F96','#0038A8','#0038A8'] },
-  { name: 'Asexual',     stripes: ['#000000','#A4A4A4','#FFFFFF','#810081'] },
-  { name: 'Pansexual',   stripes: ['#FF218C','#FFD800','#21B1FF'] },
-  { name: 'Non-binary',  stripes: ['#FCF434','#FFFFFF','#9C59D1','#2D2D2D'] },
-  { name: 'Genderqueer', stripes: ['#B57EDC','#FFFFFF','#4A8123'] },
-  { name: 'Gay men',     stripes: ['#078D70','#26CEA1','#98E8C1','#FFFFFF','#7BADE2','#5049CC','#3D1A78'] },
+  { name: 'Rainbow', stripes: ['#E40303', '#FF8C00', '#FFED00', '#008026', '#004DFF', '#750787'] },
+  { name: 'Trans', stripes: ['#55CDFC', '#F7A8B8', '#FFFFFF', '#F7A8B8', '#55CDFC'] },
+  { name: 'Lesbian', stripes: ['#D52D00', '#FF9A56', '#FFFFFF', '#D362A4', '#A50062'] },
+  { name: 'Bisexual', stripes: ['#D60270', '#D60270', '#9B4F96', '#0038A8', '#0038A8'] },
+  { name: 'Asexual', stripes: ['#000000', '#A4A4A4', '#FFFFFF', '#810081'] },
+  { name: 'Pansexual', stripes: ['#FF218C', '#FFD800', '#21B1FF'] },
+  { name: 'Non-binary', stripes: ['#FCF434', '#FFFFFF', '#9C59D1', '#2D2D2D'] },
+  { name: 'Genderqueer', stripes: ['#B57EDC', '#FFFFFF', '#4A8123'] },
+  {
+    name: 'Gay men',
+    stripes: ['#078D70', '#26CEA1', '#98E8C1', '#FFFFFF', '#7BADE2', '#5049CC', '#3D1A78'],
+  },
 ];
 
 function MiniFlag({ stripes }) {
@@ -45,11 +48,11 @@ function MiniFlag({ stripes }) {
 
 export const HOLIDAYS = {
   "Valentine's Day": { type: 'emoji', items: ['❤️', '💕', '💝', '🌹', '💌'] },
-  'Easter':          { type: 'emoji', items: ['🥚', '🐣', '🐰', '🌷', '🌸'] },
-  'Pride':           { type: 'flags', items: PRIDE_FLAGS },
-  'Halloween':       { type: 'emoji', items: ['🎃', '🦇', '👻', '💀', '🕷️'] },
-  'Guy Fawkes':      { type: 'emoji', items: ['🎆', '🎇', '🔥', '💥', '✨'] },
-  'Christmas':       { type: 'emoji', items: ['🎄', '🕎', '⛄', '❄️', '🎁'] },
+  Easter: { type: 'emoji', items: ['🥚', '🐣', '🐰', '🌷', '🌸'] },
+  Pride: { type: 'flags', items: PRIDE_FLAGS },
+  Halloween: { type: 'emoji', items: ['🎃', '🦇', '👻', '💀', '🕷️'] },
+  'Guy Fawkes': { type: 'emoji', items: ['🎆', '🎇', '🔥', '💥', '✨'] },
+  'Winter Holidays': { type: 'emoji', items: ['🎄', '🕎', '⛄', '❄️', '🎁', '☃️'] },
 };
 
 function getEasterDate(year) {
@@ -81,10 +84,10 @@ function getCurrentHoliday() {
   const diff = Math.round((now - easter) / (1000 * 60 * 60 * 24));
   if (diff >= -3 && diff <= 4) return HOLIDAYS['Easter'];
 
-  if (month === 6)               return HOLIDAYS['Pride'];
-  if (month === 10)              return HOLIDAYS['Halloween'];
+  if (month === 6) return HOLIDAYS['Pride'];
+  if (month === 10) return HOLIDAYS['Halloween'];
   if (month === 11 && day === 5) return HOLIDAYS['Guy Fawkes'];
-  if (month === 12)              return HOLIDAYS['Christmas'];
+  if (month === 12) return HOLIDAYS['Winter Holidays'];
   return null;
 }
 

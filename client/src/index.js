@@ -13,6 +13,9 @@ import '@fontsource/special-elite/400.css';
 import '@fontsource/poppins/400.css';
 import '@fontsource/poppins/600.css';
 import '@fontsource/poppins/700.css';
+// A Gielinor Whodunnit event fonts — Caveat for scribbled marginalia
+import '@fontsource/caveat/400.css';
+import '@fontsource/caveat/700.css';
 import { ChakraProvider } from '@chakra-ui/react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { setContext } from '@apollo/client/link/context';

@@ -29,6 +29,7 @@ import {
   isBattleshipEnabled,
   isChampionForgeEnabled,
   isGroupDashboardEnabled,
+  isWhodunnitEnabled,
 } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import HolidayEmojiFall, {
@@ -39,12 +40,14 @@ import HolidayEmojiFall, {
 
 const BANNER_STORAGE_KEY = 'navbarBannerDismissed';
 const JUNE_BANNER_KEY = 'navbarJuneBannerDismissed';
+const DECEMBER_BANNER_KEY = 'navbarDecemberBannerDismissed';
 const BANNER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const NavBar = () => {
   const { user, logout } = useAuth();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isJuneBannerOpen, setIsJuneBannerOpen] = useState(false);
+  const [isDecemberBannerOpen, setIsDecemberBannerOpen] = useState(false);
   const [isNavMenuOpen, setIsNavMenuOpen] = useState(false);
   const [holidayEmojisOn, setHolidayEmojisOn] = useState(
     () => !localStorage.getItem(HOLIDAY_PREF_KEY)
@@ -77,6 +80,7 @@ const NavBar = () => {
     };
     initBanner(BANNER_STORAGE_KEY, setIsBannerOpen);
     initBanner(JUNE_BANNER_KEY, setIsJuneBannerOpen);
+    initBanner(DECEMBER_BANNER_KEY, setIsDecemberBannerOpen);
   }, []);
 
   const handleCloseBanner = () => {
@@ -89,12 +93,91 @@ const NavBar = () => {
     localStorage.setItem(JUNE_BANNER_KEY, Date.now().toString());
   };
 
+  const handleCloseDecemberBanner = () => {
+    setIsDecemberBannerOpen(false);
+    localStorage.setItem(DECEMBER_BANNER_KEY, Date.now().toString());
+  };
+
   const isJune = new Date().getMonth() === 5;
-  const showJuneBanner = isJune && isJuneBannerOpen;
-  const showDefaultBanner = !showJuneBanner && isBannerOpen;
+  const now = new Date();
+
+  const isWhodunnitSeason = now.getMonth() === 11 && now.getDate() >= 15;
+  const canSeeSeasonal = isWhodunnitEnabled(user) && (isWhodunnitSeason || user?.admin);
+  const showDecemberBanner = canSeeSeasonal && isDecemberBannerOpen;
+  const showJuneBanner = !showDecemberBanner && isJune && isJuneBannerOpen;
+  const showDefaultBanner = !showDecemberBanner && !showJuneBanner && isBannerOpen;
 
   return (
     <>
+      {/* December / A Gielinor Whodunnit banner */}
+      <Collapse in={showDecemberBanner} animateOpacity>
+        <Box
+          background="linear-gradient(135deg, #1a0a08 0%, #2e1a0d 45%, #0d1f14 100%)"
+          borderBottom="3px solid"
+          borderColor="#c9a04c"
+          color="white"
+          paddingX={['16px', '32px']}
+          paddingY="14px"
+          position="relative"
+        >
+          <IconButton
+            aria-label="Close banner"
+            position="absolute"
+            right={3}
+            top={3}
+            icon={<MdClose />}
+            size="sm"
+            variant="ghost"
+            color="white"
+            opacity={0.5}
+            onClick={handleCloseDecemberBanner}
+            _hover={{ opacity: 1, backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+          />
+          <Flex
+            direction={['column', 'row']}
+            alignItems={['flex-start', 'center']}
+            gap={[3, 5]}
+            maxW="950px"
+            margin="0 auto"
+          >
+            <VStack align="start" spacing={1} flex={1}>
+              <Text fontSize={['sm', 'md']} fontWeight="bold">
+                <Text as="span" color="#e6c976">
+                  ☃️ A Gielinor Whodunnit ☃️
+                </Text>{' '}
+                is live!
+              </Text>
+              <Text fontSize={['xs', 'sm']} opacity={0.85}>
+                Watson has a case: Snowflake's holiday gift for My Arm has gone missing. Grab up to
+                3 friends and investigate. Solve clue-like puzzles all over Gielinor, playable at
+                your own pace through the holidays. Stay safe!
+              </Text>
+            </VStack>
+            <Flex gap={3} flexShrink={0} align="center" w={['100%', 'auto']}>
+              <Link to="/whodunnit">
+                <Flex
+                  as="span"
+                  align="center"
+                  gap={2}
+                  backgroundColor="#9e2a2e"
+                  border="1px solid #c44046"
+                  color="#f4ead0"
+                  paddingX={5}
+                  paddingY={2}
+                  borderRadius="md"
+                  fontWeight="semibold"
+                  fontSize="sm"
+                  _hover={{ backgroundColor: '#c44046' }}
+                  whiteSpace="nowrap"
+                >
+                  Open the case file →
+                </Flex>
+              </Link>
+            </Flex>
+          </Flex>
+        </Box>
+      </Collapse>
+
       {/* June / Pride Month banner */}
       <Collapse in={showJuneBanner} animateOpacity>
         <Box
@@ -584,6 +667,20 @@ const NavBar = () => {
                 {/* Drawer items */}
                 <Box overflowY="auto" flex={1} paddingBottom="16px">
                   {[
+                    ...(canSeeSeasonal
+                      ? [
+                          {
+                            section: 'Seasonal',
+                            items: [
+                              {
+                                label: 'A Gielinor Whodunnit',
+                                to: '/whodunnit',
+                                isNew: true,
+                              },
+                            ],
+                          },
+                        ]
+                      : []),
                     {
                       section: 'My Stuff',
                       items: [

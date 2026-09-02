@@ -64,6 +64,13 @@ const BattleshipRefsPage = lazy(() => import('./pages/battleship/BattleshipRefsP
 const BattleshipGuidePage = lazy(() => import('./pages/battleship/BattleshipGuidePage'));
 const BattleshipAdminPage = lazy(() => import('./pages/battleship/BattleshipAdminPage'));
 
+const WhodunnitLanding = lazy(() => import('./pages/whodunnit/WhodunnitLanding'));
+const WhodunnitCreatePage = lazy(() => import('./pages/whodunnit/WhodunnitCreatePage'));
+const WhodunnitCampaignPage = lazy(() => import('./pages/whodunnit/WhodunnitCampaignPage'));
+const WhodunnitSummaryPage = lazy(() => import('./pages/whodunnit/WhodunnitSummaryPage'));
+const WhodunnitAdminPage = lazy(() => import('./pages/whodunnit/WhodunnitAdminPage'));
+const WhodunnitPlayground = lazy(() => import('./pages/whodunnit/WhodunnitPlayground'));
+
 // loading fallback component
 const PageLoader = () => (
   <Center h="60vh">
@@ -381,6 +388,36 @@ const routes = [
       {
         path: '/battleship/:eventId/admin',
         element: withSuspense(BattleshipAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit',
+        element: withSuspense(WhodunnitLanding),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/new',
+        element: withSuspense(WhodunnitCreatePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/campaign/:campaignId',
+        element: withSuspense(WhodunnitCampaignPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/campaign/:campaignId/complete',
+        element: withSuspense(WhodunnitSummaryPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/admin',
+        element: withSuspense(WhodunnitAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/playground',
+        element: withSuspense(WhodunnitPlayground),
         errorElement: <ErrorPage />,
       },
       {

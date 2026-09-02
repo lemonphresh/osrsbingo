@@ -37,3 +37,11 @@ export const isBattleshipEnabled = (user) => {
     user?.admin === true
   );
 };
+
+export const isWhodunnitEnabled = (user) => {
+  return (
+    process.env.REACT_APP_WHODUNNIT_ENABLED === true ||
+    process.env.REACT_APP_WHODUNNIT_ENABLED === 'true' ||
+    user?.admin === true
+  );
+};
