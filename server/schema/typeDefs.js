@@ -1231,7 +1231,7 @@ const typeDefs = gql`
     joinBattleView(eventId: ID!): Boolean
     leaveBattleView(eventId: ID!): Boolean
     setCaptainReady(eventId: ID!, teamId: ID!): CFEvent!
-    startCFBattle(eventId: ID!, team1Id: ID!, team2Id: ID!): CFBattle!
+    startCFBattle(eventId: ID!, team1Id: ID!, team2Id: ID!, force: Boolean): CFBattle!
     submitBattleAction(
       battleId: ID!
       teamId: ID!
@@ -1562,6 +1562,7 @@ const typeDefs = gql`
     startedAt: DateTime
     endedAt: DateTime
     battleLog: [CFBattleEvent!]
+    serverNow: DateTime
   }
 
   type CFBattleEvent {

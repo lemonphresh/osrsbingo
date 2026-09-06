@@ -5,7 +5,13 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled, isChampionForgeEnabled } from '../config/featureFlags';
+import {
+  isGielinorRushEnabled,
+  isChampionForgeEnabled,
+  isBattleshipEnabled,
+  isBlindDraftEnabled,
+  isGroupDashboardEnabled,
+} from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import { useAuth } from '../providers/AuthProvider';
 
@@ -25,14 +31,15 @@ const AboutPage = () => {
 
         <VStack spacing={6} align="stretch" mt={6}>
           <Text>
-            OSRS Bingo Hub is a free community tool for Old School RuneScape players to create,
-            share, and track bingo boards, run treasure hunt events, host blind drafts, and now run
-            full clan tournaments with Champion Forge. No microtransactions, no ads, no nonsense. 🎯
+            OSRS Bingo Hub is a free community tool for Old School RuneScape players and clans. It
+            started as a better way to make bingo boards, and grew into a whole set of tools for
+            running events, tracking group goals, and setting up clan competitions. No
+            microtransactions, no ads, no nonsense. 🎯
           </Text>
 
           <Box>
             <Heading size="md" mb={3}>
-              What We Offer
+              What&apos;s on the site
             </Heading>
             <VStack align="stretch" spacing={2}>
               {[
@@ -40,11 +47,21 @@ const AboutPage = () => {
                 'Track progress and compete with friends and clanmates',
                 'Share public boards with the community',
                 isGielinorRushEnabled(user)
-                  ? 'Run Gielinor Rush events: team-based treasure hunts across Gielinor'
+                  ? 'Gielinor Rush: team-based treasure hunt events across Gielinor'
+                  : undefined,
+                isBattleshipEnabled(user)
+                  ? 'Battleship: a big two-team competition where fleets are placed and OSRS tasks sink the enemy'
+                  : 'Battleship: big two-team competition (coming soon)',
+                isGroupDashboardEnabled(user)
+                  ? 'Group Dashboard: track group goals and monthly bounties through Wise Old Man'
+                  : undefined,
+                'Team Balancer for evenly splitting your clan into teams',
+                isBlindDraftEnabled(user)
+                  ? 'Blind Draft for quick, fair draft picks'
                   : undefined,
                 isChampionForgeEnabled(user)
-                  ? 'Run Champion Forge tournaments: blind drafts, gathering phases, outfitting, and live bracket battles'
-                  : 'Champion Forge clan tournaments coming soon',
+                  ? 'Champion Forge tournaments (in testing): blind drafts, gathering phases, outfitting, and live bracket battles'
+                  : undefined,
                 'Discord integration for submissions and event management',
               ].map(
                 (item, i) =>
@@ -63,11 +80,11 @@ const AboutPage = () => {
               The Community 🫂
             </Heading>
             <Text>
-              Since launching, over <strong>3,000 boards</strong> have been created by players from
-              clans and communities across Gielinor. Whether you're an ironman tracking collection
-              log goals or a clan running a PvM competition, OSRS Bingo Hub has you covered. I've
-              seen some genuinely creative boards. You lot are not normal, and I mean that in the
-              best way.
+              Since launching, over <strong>4,500 boards</strong> have been created by players from
+              clans and communities across Gielinor, with <strong>125,000+ visitors</strong> since
+              January 2026. Whether you&apos;re an ironman tracking collection log goals or a clan
+              running a PvM competition, OSRS Bingo Hub has you covered. I&apos;ve seen some
+              genuinely creative boards. You lot are not normal, and I mean that in the best way.
             </Text>
           </Box>
 
@@ -76,9 +93,9 @@ const AboutPage = () => {
               Privacy First 🔒
             </Heading>
             <Text>
-              I intentionally don't collect email addresses to protect your OSRS credentials. Your
-              account security matters to me; we've all seen what happens when sites get breached.
-              Read more in our{' '}
+              I intentionally don&apos;t collect email addresses to protect your OSRS credentials.
+              Your account security matters to me, and we&apos;ve all seen what happens when sites
+              get breached. Read more in the{' '}
               <Link to="/privacy" style={{ textDecoration: 'underline' }}>
                 Privacy Policy
               </Link>
@@ -91,8 +108,9 @@ const AboutPage = () => {
               Support the Site ☕
             </Heading>
             <Text>
-              OSRS Bingo Hub is a passion project built and maintained by a singular goblin with too
-              much free time. If you find it useful, consider{' '}
+              OSRS Bingo Hub is a passion project built and maintained by one person. It runs on
+              real server bills and stubborn love for the game. If it&apos;s been useful to you or
+              your clan, consider{' '}
               <PleaseEffect>
                 <ChakraLink
                   href="https://ko-fi.com/A667UUO"
@@ -102,8 +120,12 @@ const AboutPage = () => {
                 >
                   buying me a coffee
                 </ChakraLink>
-              </PleaseEffect>{' '}
-              to help keep the servers running. Every little bit helps and is genuinely appreciated!
+              </PleaseEffect>
+              , or check out the full{' '}
+              <Link to="/support" style={{ textDecoration: 'underline' }}>
+                support page
+              </Link>{' '}
+              for other options. Any support keeps the lights on and is genuinely appreciated. 💛
             </Text>
           </Box>
 
@@ -122,7 +144,7 @@ const AboutPage = () => {
               >
                 Eternal Gems Discord server
               </ChakraLink>
-              . Bug reports, feature ideas, and fun bingo-related stories all welcome.
+              . Bug reports, feature ideas, and fun bingo stories all welcome.
             </Text>
           </Box>
         </VStack>

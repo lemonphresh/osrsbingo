@@ -1,13 +1,11 @@
 'use strict';
 
 const crypto = require('crypto');
-const { ApolloError, AuthenticationError, UserInputError } = require('apollo-server-express');
-const { pubsub } = require('../../../pubsub');
+const { AuthenticationError, UserInputError } = require('apollo-server-express');
 const logger = require('../../../../utils/logger');
-const { sendCFPhaseAnnouncement } = require('../../../../utils/championForge/cfNotifications');
-const { triggerGatheringTransition } = require('../../../../utils/championForge/cfScheduler');
 const { generateId } = require('../../../../utils/championForge/cfTaskSampler');
 const { isAdmin, getEventOrThrow, getModels } = require('../helpers');
+const { applyStatusTransition } = require('../lifecycle');
 
 module.exports = {
   createCFEvent: async (_, { input }, { user }) => {
@@ -88,37 +86,8 @@ module.exports = {
       );
     }
 
-    const updates = { status };
-    const now = new Date();
-
-    if (status === 'GATHERING') {
-      await triggerGatheringTransition(event);
-      logger.info(`[updateCFEventStatus] event=${eventId} transitioned to GATHERING`);
-      pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { cfEventUpdated: event });
-      return event;
-    } else if (status === 'OUTFITTING') {
-      const hours = event.eventConfig?.outfittingHours ?? 24;
-      updates.outfittingEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
-    } else if (status === 'BATTLE') {
-      const { CFTeam } = getModels();
-      await CFTeam.update(
-        { loadoutLocked: true },
-        { where: { eventId, loadoutLocked: false } }
-      );
-    }
-
-    await event.update(updates);
-
-    if (event.announcementsChannelId) {
-      sendCFPhaseAnnouncement({
-        channelId: event.announcementsChannelId,
-        eventId: event.eventId,
-        eventName: event.eventName,
-        phase: status,
-      });
-    }
-
-    pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { cfEventUpdated: event });
+    await applyStatusTransition(event, status);
+    logger.info(`[updateCFEventStatus] event=${eventId} transitioned to ${status}`);
     return event;
   },
 

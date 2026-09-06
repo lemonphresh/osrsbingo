@@ -9,6 +9,7 @@ const {
   advanceBracketAfterBattle,
   setBattleIdInBracket,
   setTeamReadyInBracket,
+  getMatchReadyState,
   allMatchesDone,
 } = require('../../../../utils/championForge/cfBracket');
 const {
@@ -50,10 +51,24 @@ module.exports = {
     return event;
   },
 
-  startCFBattle: async (_, { eventId, team1Id, team2Id }, { user }) => {
+  startCFBattle: async (_, { eventId, team1Id, team2Id, force }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
     const event = await getEventOrThrow(eventId);
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
+
+    // Both captains must have hit "Ready" in the bracket before the battle
+    // can start. Admins can override with force=true if a captain is AFK.
+    if (!force) {
+      const readyState = getMatchReadyState(event.bracket, team1Id, team2Id);
+      if (!readyState) {
+        throw new UserInputError('No upcoming match found for these teams');
+      }
+      if (!readyState.team1Ready || !readyState.team2Ready) {
+        throw new UserInputError(
+          'Both teams must be ready before the battle can start (pass force=true to override).'
+        );
+      }
+    }
 
     const {
       CFTeam,
@@ -159,7 +174,7 @@ module.exports = {
   submitBattleAction: async (_, { battleId, teamId, action, itemId }, { user }) => {
     if (!user) throw new AuthenticationError('Not authenticated');
 
-    const { sequelize, CFBattle, CFBattleEvent: CFBattleLog, CFItem } = getModels();
+    const { sequelize, CFBattle, CFEvent, CFBattleEvent: CFBattleLog, CFItem } = getModels();
 
     // Captured outside the transaction so they're accessible for pubsub/notifications after commit
     let battle;
@@ -169,6 +184,8 @@ module.exports = {
     let battleOver = false;
     let winnerId = null;
     let actorSnap;
+    let eventAutoCompleted = false;
+    let eventRecord = null;
 
     await sequelize.transaction(async (t) => {
       battle = await CFBattle.findByPk(battleId, { lock: t.LOCK.UPDATE, transaction: t });
@@ -420,34 +437,47 @@ module.exports = {
           { transaction: t }
         );
       }
-    }); // transaction commits here
 
-    // Post-commit: bracket advancement, notifications, pubsub
-    if (battleOver) {
-      const eventRecord = await getEventOrThrow(battle.eventId);
-      const b = eventRecord.bracket;
-      if (b) {
-        const advancedBracket = advanceBracketAfterBattle(
-          b,
-          battleId,
-          winnerId,
-          battle.team1Id,
-          battle.team2Id
-        );
-        await eventRecord.update({ bracket: advancedBracket });
-
-        if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
-          await eventRecord.update({ status: 'COMPLETED' });
-          pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${battle.eventId}`, {
-            cfEventUpdated: eventRecord,
-          });
-          logger.info(
-            `[CF] Event ${battle.eventId} auto-completed — all bracket matches done`
+      // Bracket advancement lives in the same transaction so a process crash
+      // between "battle complete" and "bracket advanced" can't leave the
+      // event stuck with a completed battle no bracket node points at.
+      if (battleOver) {
+        eventRecord = await CFEvent.findByPk(battle.eventId, {
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        const b = eventRecord?.bracket;
+        if (b) {
+          const advancedBracket = advanceBracketAfterBattle(
+            b,
+            battleId,
+            winnerId,
+            battle.team1Id,
+            battle.team2Id
           );
+          const eventUpdates = { bracket: advancedBracket };
+          if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
+            eventUpdates.status = 'COMPLETED';
+            eventAutoCompleted = true;
+          }
+          await eventRecord.update(eventUpdates, { transaction: t });
         }
       }
+    }); // transaction commits here
 
-      if (eventRecord.announcementsChannelId) {
+    // Post-commit: notifications, pubsub (no more DB writes to the primary
+    // battle/event state — those are already durable).
+    if (battleOver) {
+      if (eventAutoCompleted && eventRecord) {
+        pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${battle.eventId}`, {
+          cfEventUpdated: eventRecord,
+        });
+        logger.info(
+          `[CF] Event ${battle.eventId} auto-completed — all bracket matches done`
+        );
+      }
+
+      if (eventRecord?.announcementsChannelId) {
         const loserTeamId = battle.team1Id === winnerId ? battle.team2Id : battle.team1Id;
         const { CFTeam } = getModels();
         const [winnerTeam, loserTeam] = await Promise.all([

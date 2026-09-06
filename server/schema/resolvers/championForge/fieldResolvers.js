@@ -57,6 +57,11 @@ const CFBattle = {
       ],
     });
   },
+  // Server clock at the moment this response is built. Client compares to its
+  // own Date.now() to correct clock skew before running the turn timer —
+  // without this, a client whose clock is ahead of the server sees the timer
+  // hit 0 while the server thinks the turn is still active.
+  serverNow: () => new Date().toISOString(),
 };
 
 module.exports = { CFEvent, CFTeam, CFSubmission, CFBattle };

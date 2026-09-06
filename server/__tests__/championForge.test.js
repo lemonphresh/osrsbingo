@@ -995,3 +995,209 @@ describe('Champion Forge — battle system', () => {
     await CFEvent.destroy({ where: { eventId: battleEventId } });
   });
 });
+
+// ── Authorization negative-path tests ────────────────────────────────────────
+// These guard against regressions in the audit-hardened auth boundaries.
+// Every previous test uses adminUser; without these, "does the resolver
+// actually reject a non-admin?" is never verified.
+
+describe('Champion Forge — authorization boundaries', () => {
+  const outsiderUser = { id: 99, admin: false, discordUserId: 'discord-outsider' };
+  const memberUser = { id: 42, admin: false, discordUserId: 'discord-member' };
+
+  let authEventId;
+  let authTeamId;
+  let taskId;
+
+  beforeAll(async () => {
+    const event = await resolvers.createCFEvent(
+      null,
+      {
+        input: {
+          eventName: 'Auth Boundary Event',
+          difficulty: 'standard',
+          bracketType: 'SINGLE_ELIMINATION',
+          gatheringHours: 1,
+          outfittingHours: 1,
+          flexRolesAllowed: false,
+          teams: [
+            {
+              teamName: 'Auth Team',
+              members: [
+                { discordId: memberUser.discordUserId, username: 'Member', avatar: null, role: 'PVMER' },
+              ],
+            },
+          ],
+        },
+      },
+      ctx(adminUser)
+    );
+    authEventId = event.eventId;
+
+    const { CFTeam, CFTask, CFEvent } = db;
+    const team = await CFTeam.findOne({ where: { eventId: authEventId } });
+    authTeamId = team.teamId;
+
+    const dbEvent = await CFEvent.findByPk(authEventId);
+    await triggerGatheringTransition(dbEvent);
+
+    const task = await CFTask.findOne({ where: { eventId: authEventId, role: 'PVMER' } });
+    taskId = task.taskId;
+  });
+
+  afterAll(async () => {
+    if (!authEventId) return;
+    const { CFEvent, CFTeam, CFTask, CFSubmission, CFPreScreenshot } = db;
+    await CFPreScreenshot.destroy({ where: { eventId: authEventId } });
+    await CFSubmission.destroy({ where: { eventId: authEventId } });
+    await CFTask.destroy({ where: { eventId: authEventId } });
+    await CFTeam.destroy({ where: { eventId: authEventId } });
+    await CFEvent.destroy({ where: { eventId: authEventId } });
+  });
+
+  // ── Query guards ──────────────────────────────────────────────────────────
+  test('queries reject unauthenticated callers', async () => {
+    await expect(queryResolvers.getCFEvent(null, { eventId: authEventId }, ctx(null)))
+      .rejects.toThrow(/not authenticated/i);
+    await expect(queryResolvers.getAllCFEvents(null, {}, ctx(null)))
+      .rejects.toThrow(/not authenticated/i);
+    await expect(queryResolvers.getCFSubmissions(null, { eventId: authEventId }, ctx(null)))
+      .rejects.toThrow(/not authenticated/i);
+    await expect(queryResolvers.getCFWarChest(null, { teamId: authTeamId }, ctx(null)))
+      .rejects.toThrow(/not authenticated/i);
+    await expect(queryResolvers.getCFPreScreenshots(null, { eventId: authEventId }, ctx(null)))
+      .rejects.toThrow(/not authenticated/i);
+  });
+
+  test('getCFWarChest hides opponent chests during OUTFITTING', async () => {
+    const { CFEvent } = db;
+    const event = await CFEvent.findByPk(authEventId);
+    const prevStatus = event.status;
+    await event.update({ status: 'OUTFITTING' });
+    try {
+      await expect(
+        queryResolvers.getCFWarChest(null, { teamId: authTeamId }, ctx(outsiderUser))
+      ).rejects.toThrow(/hidden/i);
+
+      // team member and admin can still see it
+      const memberView = await queryResolvers.getCFWarChest(
+        null,
+        { teamId: authTeamId },
+        ctx(memberUser)
+      );
+      expect(Array.isArray(memberView)).toBe(true);
+      const adminView = await queryResolvers.getCFWarChest(
+        null,
+        { teamId: authTeamId },
+        ctx(adminUser)
+      );
+      expect(Array.isArray(adminView)).toBe(true);
+    } finally {
+      await event.update({ status: prevStatus });
+    }
+  });
+
+  // ── Mutation guards ───────────────────────────────────────────────────────
+  test('createCFSubmission requires auth', async () => {
+    await expect(
+      resolvers.createCFSubmission(
+        null,
+        {
+          input: {
+            eventId: authEventId,
+            teamId: authTeamId,
+            taskId,
+            difficulty: 'initiate',
+            role: 'PVMER',
+            submittedBy: 'anyone',
+            screenshot: 'https://example.com/x.png',
+          },
+        },
+        ctx(null)
+      )
+    ).rejects.toThrow(/not authenticated/i);
+  });
+
+  test('createCFSubmission (non-admin) uses the caller identity and rejects other teams', async () => {
+    // Outsider cannot submit for a team they are not on.
+    await expect(
+      resolvers.createCFSubmission(
+        null,
+        {
+          input: {
+            eventId: authEventId,
+            teamId: authTeamId,
+            taskId,
+            difficulty: 'initiate',
+            role: 'PVMER',
+            submittedBy: 'someone-else',
+            screenshot: 'https://example.com/x.png',
+          },
+        },
+        ctx(outsiderUser)
+      )
+    ).rejects.toThrow(/not a member/i);
+
+    // A real member of the team CAN submit, and the server ignores the
+    // client-supplied submittedBy — the identity is derived from context.user.
+    const submission = await resolvers.createCFSubmission(
+      null,
+      {
+        input: {
+          eventId: authEventId,
+          teamId: authTeamId,
+          taskId,
+          difficulty: 'initiate',
+          role: 'PVMER',
+          submittedBy: 'IGNORED-CLIENT-SUPPLIED',
+          screenshot: 'https://example.com/x.png',
+        },
+      },
+      ctx(memberUser)
+    );
+    expect(submission.submittedBy).toBe(memberUser.discordUserId);
+  });
+
+  test('markTaskComplete rejects non-admin', async () => {
+    await expect(
+      resolvers.markTaskComplete(
+        null,
+        { eventId: authEventId, teamId: authTeamId, taskId },
+        ctx(memberUser)
+      )
+    ).rejects.toThrow(/not an event admin/i);
+  });
+
+  test('generateCFBracket rejects non-admin', async () => {
+    await expect(
+      resolvers.generateCFBracket(null, { eventId: authEventId }, ctx(memberUser))
+    ).rejects.toThrow(/not an event admin/i);
+  });
+
+  test('lockCFLoadout rejects non-admin', async () => {
+    await expect(
+      resolvers.lockCFLoadout(null, { teamId: authTeamId }, ctx(memberUser))
+    ).rejects.toThrow(/not an event admin/i);
+  });
+
+  test('adminForceEventStatus rejects non-admin', async () => {
+    await expect(
+      resolvers.adminForceEventStatus(
+        null,
+        { eventId: authEventId, status: 'BATTLE' },
+        ctx(memberUser)
+      )
+    ).rejects.toThrow(/not an event admin/i);
+  });
+
+  test('addCFAdmin rejects non-creator admins', async () => {
+    const otherAdmin = { id: 999, admin: false, discordUserId: 'discord-other-admin' };
+    await expect(
+      resolvers.addCFAdmin(
+        null,
+        { eventId: authEventId, userId: '1234' },
+        ctx(otherAdmin)
+      )
+    ).rejects.toThrow(/only the event creator/i);
+  });
+});

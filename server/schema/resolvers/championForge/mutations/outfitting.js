@@ -51,10 +51,26 @@ module.exports = {
       throw new UserInputError('Can only generate bracket during OUTFITTING or BATTLE phase');
     }
 
-    const { CFTeam } = getModels();
+    // Once any battle exists for the event, regenerating the bracket would
+    // orphan those battle rows (their bracket-node battleId pointers would be
+    // lost, and allMatchesDone would never resolve). Force admins to wipe the
+    // event / start a fresh one instead of silently corrupting state.
+    const { CFBattle, CFTeam } = getModels();
+    const existingBattles = await CFBattle.count({ where: { eventId } });
+    if (existingBattles > 0) {
+      throw new UserInputError(
+        'Cannot regenerate the bracket after battles have started. Orphaned battles would break the tournament state.'
+      );
+    }
+
     const teams = await CFTeam.findAll({ where: { eventId } });
 
-    const shuffledIds = [...teams].sort(() => Math.random() - 0.5).map((t) => t.teamId);
+    // Fisher-Yates shuffle (unbiased). Math.random() - 0.5 sort is biased.
+    const shuffledIds = teams.map((t) => t.teamId);
+    for (let i = shuffledIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffledIds[i], shuffledIds[j]] = [shuffledIds[j], shuffledIds[i]];
+    }
 
     const resolvedBracketType =
       bracketType ?? event.eventConfig?.bracketType ?? 'SINGLE_ELIMINATION';

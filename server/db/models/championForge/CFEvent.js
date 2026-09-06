@@ -49,6 +49,7 @@ module.exports = (sequelize) => {
         allowNull: false,
         defaultValue: 'standard',
       },
+      captainMissingAlertSentAt: { type: DataTypes.DATE, allowNull: true },
     },
     { sequelize, modelName: 'CFEvent', tableName: 'ClanWarsEvents' }
   );

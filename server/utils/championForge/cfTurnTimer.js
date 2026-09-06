@@ -2,14 +2,7 @@
 
 const logger = require('../logger');
 const { generateId } = require('./cfTaskSampler');
-const { rollDamage } = require('./cfRandomisation');
-const {
-  getEffectiveStats,
-  hasFortress,
-  isBlinded,
-  tickEffects,
-  advanceTurn,
-} = require('../../schema/resolvers/championForge/helpers');
+const { computeAutoAttack } = require('./cfBattleEngine');
 const { advanceBracketAfterBattle, allMatchesDone } = require('./cfBracket');
 const { sendBattleCompleteAnnouncement } = require('./cfNotifications');
 
@@ -64,6 +57,8 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
   let winnerId = null;
   let bleedResult;
   let actorSnap;
+  let eventAutoCompleted = false;
+  let eventRecord = null;
 
   await sequelize.transaction(async (t) => {
     const locked = await CFBattle.findByPk(battle.battleId, {
@@ -83,49 +78,19 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
     const actorSide = state.currentTurn;
     const defSide = actorSide === 'team1' ? 'team2' : 'team1';
     const actorTeamId = actorSide === 'team1' ? locked.team1Id : locked.team2Id;
-    actorSnap = snap[actorSide === 'team1' ? 'champion1' : 'champion2'];
-    const defSnap = snap[actorSide === 'team1' ? 'champion2' : 'champion1'];
 
-    let newState = { ...state };
-
-    // Decay fortress on actor's turn
-    newState.activeEffects[actorSide] = (newState.activeEffects[actorSide] ?? [])
-      .map((e) => (e.type === 'fortress' ? { ...e, turns: e.turns - 1 } : e))
-      .filter((e) => e.turns > 0);
-
-    const actorEffStats = getEffectiveStats(actorSnap, newState.activeEffects[actorSide]);
-    const defEffStats = getEffectiveStats(defSnap, newState.activeEffects[defSide]);
-    const isDefending = newState.defendActive[defSide] ?? false;
-
-    let damageDealt = 0;
-    let isCrit = false;
-    let narrative;
-
-    if (isBlinded(newState.activeEffects[actorSide])) {
-      narrative = `⏰ Time ran out! ${actorSnap.teamName} was blinded and missed! (auto-attack)`;
-    } else {
-      const roll = rollDamage({
-        attackStat: actorEffStats.attack,
-        defenseStat: defEffStats.defense,
-        critChance: actorEffStats.crit,
-        isDefending,
-      });
-      const fortressMult = hasFortress(newState.activeEffects[defSide]) ? 0.4 : 1;
-      damageDealt =
-        fortressMult < 1 ? Math.max(1, Math.round(roll.damage * fortressMult)) : roll.damage;
-      isCrit = roll.isCrit;
-      newState.hp[defSide] = Math.max(0, newState.hp[defSide] - damageDealt);
-      newState.defendActive[defSide] = false;
-      narrative = `⏰ ${actorSnap.teamName} ran out of time — auto-attack for ${damageDealt} damage!${isCrit ? ' (crit!)' : ''}`;
-    }
-
-    bleedResult = tickEffects(newState, actorSide);
-    if (bleedResult.bleedDamage > 0) {
-      newState.hp[actorSide] = Math.max(0, newState.hp[actorSide] - bleedResult.bleedDamage);
-      newState.activeEffects[actorSide] = bleedResult.effects;
-    }
-
-    newState = advanceTurn(newState);
+    const outcome = computeAutoAttack({ state, snap, actorSide, defSide });
+    const newState = outcome.newState;
+    const {
+      damageDealt,
+      isCrit,
+      narrative,
+      bleedResult: outcomeBleed,
+      rollInputs,
+      turnNumberBeforeAdvance,
+    } = outcome;
+    actorSnap = outcome.actorSnap;
+    bleedResult = outcomeBleed;
     const hpAfter = { team1: newState.hp.team1, team2: newState.hp.team2 };
 
     let battleEndNarrative = null;
@@ -143,15 +108,10 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
       {
         eventLogId: generateId('cwbe'),
         battleId: locked.battleId,
-        turnNumber: state.turnNumber,
+        turnNumber: turnNumberBeforeAdvance,
         actorTeamId,
         action: 'AUTO_ATTACK',
-        rollInputs: {
-          attackStat: actorEffStats.attack,
-          defenseStat: defEffStats.defense,
-          critChance: actorEffStats.crit,
-          isDefending,
-        },
+        rollInputs,
         damageDealt: damageDealt || null,
         isCrit: isCrit || null,
         itemUsedId: null,
@@ -191,7 +151,7 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
         {
           eventLogId: generateId('cwbe'),
           battleId: locked.battleId,
-          turnNumber: state.turnNumber,
+          turnNumber: turnNumberBeforeAdvance,
           actorTeamId,
           action: 'BLEED_TICK',
           rollInputs: null,
@@ -208,31 +168,42 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
 
     // Reassign so the post-commit block sees the updated instance
     battle = locked;
+
+    // Bracket advancement lives in the same transaction so a crash between
+    // "battle complete" and "bracket advanced" can't orphan a match.
+    if (battleOver) {
+      eventRecord = await CFEvent.findByPk(event.eventId, {
+        lock: t.LOCK.UPDATE,
+        transaction: t,
+      });
+      const b = eventRecord?.bracket;
+      if (b) {
+        const advancedBracket = advanceBracketAfterBattle(
+          b,
+          battle.battleId,
+          winnerId,
+          battle.team1Id,
+          battle.team2Id
+        );
+        const eventUpdates = { bracket: advancedBracket };
+        if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
+          eventUpdates.status = 'COMPLETED';
+          eventAutoCompleted = true;
+        }
+        await eventRecord.update(eventUpdates, { transaction: t });
+      }
+    }
   });
 
   if (!logEntry) return; // lock was acquired but turn wasn't expired (another process beat us)
 
-  // Post-commit: bracket advancement, pubsub, notifications
+  // Post-commit: pubsub, notifications
   if (battleOver) {
-    const eventRecord = await CFEvent.findByPk(event.eventId);
-    const b = eventRecord?.bracket;
-    if (b) {
-      const advancedBracket = advanceBracketAfterBattle(
-        b,
-        battle.battleId,
-        winnerId,
-        battle.team1Id,
-        battle.team2Id
-      );
-      await eventRecord.update({ bracket: advancedBracket });
-
-      if (allMatchesDone(advancedBracket) && eventRecord.status === 'BATTLE') {
-        await eventRecord.update({ status: 'COMPLETED' });
-        pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${event.eventId}`, {
-          cfEventUpdated: eventRecord,
-        });
-        logger.info(`[TurnTimer] Event ${event.eventId} auto-completed — all bracket matches done`);
-      }
+    if (eventAutoCompleted && eventRecord) {
+      pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${event.eventId}`, {
+        cfEventUpdated: eventRecord,
+      });
+      logger.info(`[TurnTimer] Event ${event.eventId} auto-completed — all bracket matches done`);
     }
 
     if (eventRecord?.announcementsChannelId) {
@@ -264,12 +235,19 @@ async function fireAutoAttack({ battle, event, timerSeconds, sequelize, CFBattle
 
 function startCFTurnTimer() {
   if (timerHandle) return;
+  // Immediate catchup on boot: if the process was restarted while battles
+  // had expired turns, fire them right away instead of waiting for the
+  // first poll tick. The SELECT FOR UPDATE lock inside processExpiredTurns
+  // makes this safe if multiple instances boot near-simultaneously.
+  processExpiredTurns().catch((err) =>
+    logger.error('[TurnTimer] Startup catchup failed:', err.message)
+  );
   timerHandle = setInterval(() => {
     processExpiredTurns().catch((err) =>
       logger.error('[TurnTimer] Unexpected error in poll cycle:', err.message)
     );
   }, POLL_INTERVAL_MS);
-  logger.info('[TurnTimer] Turn timer started (polling every 5s)');
+  logger.info('[TurnTimer] Turn timer started (polling every 5s, catchup on boot)');
 }
 
 function stopCFTurnTimer() {

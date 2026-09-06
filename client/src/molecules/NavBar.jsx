@@ -282,14 +282,127 @@ const NavBar = () => {
       {/* Regular support banner */}
       <Collapse in={showDefaultBanner} animateOpacity>
         <Box
-          background="linear-gradient(135deg, #1a202c 0%, #2d3748 100%)"
-          borderBottom="3px solid"
-          borderColor={theme.colors.yellow[400]}
+          background="linear-gradient(120deg, #1b1533 0%, #2a1a4a 40%, #1f2a4c 75%, #0f2a3a 100%)"
+          borderBottom="3px solid transparent"
+          borderImage="linear-gradient(to right, #f4d35e 0%, #f6a45c 40%, #e07a5f 70%, #f4d35e 100%) 1"
           color="white"
           paddingX={['16px', '32px']}
           paddingY="16px"
           position="relative"
+          overflow="hidden"
+          boxShadow="0 4px 24px rgba(224, 122, 95, 0.15), inset 0 1px 0 rgba(255,255,255,0.06)"
+          _before={{
+            content: '""',
+            position: 'absolute',
+            inset: 0,
+            background:
+              'radial-gradient(circle at 20% 30%, rgba(244, 211, 94, 0.08) 0%, transparent 55%), radial-gradient(circle at 85% 70%, rgba(224, 122, 95, 0.10) 0%, transparent 55%)',
+            pointerEvents: 'none',
+          }}
         >
+          {/* Twinkles / floating bokeh — pure decorative, no interaction. */}
+          <Box
+            aria-hidden
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            zIndex={1}
+            css={css`
+              /* Two overlapping layers of soft glowing "bokeh" spots that drift
+                 slowly and pulse in brightness. Larger, softer, higher-contrast
+                 than typical pixel-dot twinkles so they're actually noticeable
+                 on top of a busy gradient. */
+              &::before,
+              &::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background-repeat: no-repeat;
+                mix-blend-mode: screen;
+                filter: blur(0.3px);
+                will-change: transform, opacity;
+              }
+              &::before {
+                background-image: radial-gradient(
+                    circle 10px at 8% 40%,
+                    rgba(244, 211, 94, 0.95),
+                    transparent 70%
+                  ),
+                  radial-gradient(circle 6px at 22% 72%, rgba(255, 236, 179, 0.9), transparent 70%),
+                  radial-gradient(circle 14px at 36% 30%, rgba(224, 122, 95, 0.7), transparent 70%),
+                  radial-gradient(circle 8px at 50% 78%, rgba(255, 255, 255, 0.85), transparent 70%),
+                  radial-gradient(circle 12px at 64% 44%, rgba(244, 211, 94, 0.8), transparent 70%),
+                  radial-gradient(circle 7px at 78% 68%, rgba(255, 236, 179, 0.85), transparent 70%),
+                  radial-gradient(circle 5px at 90% 32%, rgba(255, 255, 255, 0.9), transparent 70%),
+                  radial-gradient(circle 11px at 96% 82%, rgba(224, 122, 95, 0.65), transparent 70%);
+                animation: bokehDriftA 42s ease-in-out infinite,
+                  bokehTwinkleA 6s ease-in-out infinite;
+              }
+              &::after {
+                background-image: radial-gradient(
+                    circle 8px at 14% 66%,
+                    rgba(255, 255, 255, 0.75),
+                    transparent 70%
+                  ),
+                  radial-gradient(circle 13px at 28% 24%, rgba(244, 211, 94, 0.7), transparent 70%),
+                  radial-gradient(circle 6px at 42% 54%, rgba(224, 122, 95, 0.85), transparent 70%),
+                  radial-gradient(circle 10px at 56% 32%, rgba(255, 236, 179, 0.7), transparent 70%),
+                  radial-gradient(circle 5px at 70% 74%, rgba(255, 255, 255, 0.85), transparent 70%),
+                  radial-gradient(circle 15px at 84% 50%, rgba(244, 211, 94, 0.65), transparent 70%),
+                  radial-gradient(circle 7px at 92% 62%, rgba(255, 236, 179, 0.8), transparent 70%);
+                animation: bokehDriftB 56s ease-in-out infinite,
+                  bokehTwinkleB 8s ease-in-out infinite;
+                animation-delay: -14s, -3s;
+              }
+              @keyframes bokehDriftA {
+                0% {
+                  transform: translate(0, 0);
+                }
+                50% {
+                  transform: translate(-30px, 8px);
+                }
+                100% {
+                  transform: translate(0, 0);
+                }
+              }
+              @keyframes bokehDriftB {
+                0% {
+                  transform: translate(0, 0);
+                }
+                50% {
+                  transform: translate(24px, -6px);
+                }
+                100% {
+                  transform: translate(0, 0);
+                }
+              }
+              @keyframes bokehTwinkleA {
+                0%,
+                100% {
+                  opacity: 0.45;
+                }
+                50% {
+                  opacity: 1;
+                }
+              }
+              @keyframes bokehTwinkleB {
+                0%,
+                100% {
+                  opacity: 0.35;
+                }
+                50% {
+                  opacity: 0.85;
+                }
+              }
+              @media (prefers-reduced-motion: reduce) {
+                &::before,
+                &::after {
+                  animation: none;
+                  opacity: 0.65;
+                }
+              }
+            `}
+          />
           <IconButton
             aria-label="Close banner"
             position="absolute"
@@ -330,17 +443,17 @@ const NavBar = () => {
               <VStack align="start" spacing={1} flex={1}>
                 <Text fontSize={['sm', 'md']} display={['block', 'block', 'none']}>
                   <Text as="span" color={theme.colors.yellow[400]} fontWeight="semibold">
-                    Having fun?
+                    Enjoying the site?
                   </Text>{' '}
-                  Solo dev here! No ads, just server bills. If the site helps your clan, consider
-                  supporting! 💛
+                  Solo dev, no ads, just server bills. Any support keeps it running 💛
                 </Text>
                 <Text fontSize="md" display={['none', 'none', 'block']}>
                   <Text as="span" color={theme.colors.yellow[400]} fontWeight="semibold">
-                    HEY YOU! Having fun?
+                    Enjoying the site? 🍋
                   </Text>{' '}
-                  I'm Lemon! Solo dev, no ads, no investors, some server bills. If OSRS Bingo Hub
-                  has helped you or your clan, consider helping me keep it running 💛
+                  I'm Lemon, the solo dev keeping this place ad-free, investor-free, and tragically
+                  running on actual server bills. If your clan calls it home, any support helps a
+                  ton.
                 </Text>
                 {isBattleshipEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>

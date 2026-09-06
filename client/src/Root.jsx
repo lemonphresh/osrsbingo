@@ -3,6 +3,7 @@ import AuthProvider, { useAuth } from './providers/AuthProvider';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import NavBar from './molecules/NavBar';
 import Footer from './molecules/Footer';
+import ThankYouModal from './molecules/ThankYouModal';
 import {
   Alert,
   AlertIcon,
@@ -37,7 +38,12 @@ const AuthConsumer = () => {
     );
   }
 
-  return <Outlet />;
+  return (
+    <>
+      <Outlet />
+      <ThankYouModal />
+    </>
+  );
 };
 
 const EGMiniNav = () => (

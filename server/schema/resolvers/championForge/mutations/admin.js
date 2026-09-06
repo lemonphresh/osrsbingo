@@ -21,6 +21,7 @@ const {
   advanceTurn,
   isBlinded,
 } = require('../helpers');
+const { applyStatusTransition } = require('../lifecycle');
 
 module.exports = {
   adminForceEventStatus: async (_, { eventId, status }, { user }) => {
@@ -29,19 +30,13 @@ module.exports = {
     if (!isAdmin(event, user.id)) throw new AuthenticationError('Not an event admin');
     const validStatuses = ['DRAFT', 'GATHERING', 'OUTFITTING', 'BATTLE', 'COMPLETED'];
     if (!validStatuses.includes(status)) throw new UserInputError(`Unknown status: ${status}`);
-    const updates = { status };
-    const now = new Date();
-    if (status === 'GATHERING' && !event.gatheringStart) {
-      const hours = event.eventConfig?.gatheringHours ?? 48;
-      updates.gatheringStart = now;
-      updates.gatheringEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
-    } else if (status === 'OUTFITTING' && !event.outfittingEnd) {
-      const hours = event.eventConfig?.outfittingHours ?? 24;
-      updates.outfittingEnd = new Date(now.getTime() + hours * 60 * 60 * 1000);
-    }
-    await event.update(updates);
+
+    // Force path bypasses the transition graph but MUST still run the same
+    // side-effects as updateCFEventStatus — otherwise forcing GATHERING skips
+    // task seeding / password generation, forcing BATTLE skips loadout locking,
+    // and no phase announcement ever fires.
+    await applyStatusTransition(event, status);
     logger.info(`[adminForceEventStatus] event=${eventId} forced to ${status} by user=${user.id}`);
-    pubsub.publish(`CLAN_WARS_EVENT_UPDATED_${eventId}`, { cfEventUpdated: event });
     return event;
   },
 
