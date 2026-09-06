@@ -1340,6 +1340,7 @@ const typeDefs = gql`
     addBSTeam(eventId: ID!, input: CreateBSTeamInput!): BSTeam!
     updateBSTeamMembers(teamId: ID!, members: [String!]!): BSTeam!
     updateBSTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String, womTeamName: String): BSTeam!
+    sendBSTestDiscordMessages(eventId: ID!): JSON!
     joinBSTeam(teamId: ID!): BSTeam!
     addBSAdmin(eventId: ID!, userId: ID!): BSEvent!
     removeBSAdmin(eventId: ID!, userId: ID!): BSEvent!

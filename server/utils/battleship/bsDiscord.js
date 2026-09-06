@@ -77,6 +77,55 @@ async function post(channelId, content) {
 }
 
 /**
+ * Admin-only connectivity check. Unlike normal best-effort notifications, this
+ * reports Discord errors to the caller and removes the test message after 15s.
+ */
+async function postBSTestMessage({ channelId, teamName, eventName, eventId }) {
+  if (!channelId) return { success: false, error: 'No Discord channel configured.' };
+  if (!process.env.DISCORD_BOT_TOKEN) {
+    return { success: false, error: 'The Discord bot token is not configured.' };
+  }
+
+  const response = await discordFetch(`/channels/${channelId}/messages`, {
+    method: 'POST',
+    body: JSON.stringify({
+      content: [
+        `⚓ **Battleship Discord test — ${eventName}**`,
+        `Notifications for **${teamName}** are working in this channel.`,
+        `No roles were pinged. This test message will delete itself in 15 seconds.`,
+        dashLink(eventId, 'Open the event'),
+      ].join('\n'),
+      flags: SUPPRESS_EMBEDS,
+      allowed_mentions: { parse: [] },
+    }),
+  });
+
+  if (!response) return { success: false, error: 'Discord could not be reached.' };
+
+  let responseBody = null;
+  try {
+    responseBody = await response.json();
+  } catch (_) {
+    // Discord may return an empty or non-JSON error response.
+  }
+
+  if (!response.ok) {
+    return {
+      success: false,
+      error: responseBody?.message || `Discord returned HTTP ${response.status}.`,
+    };
+  }
+
+  if (responseBody?.id) {
+    setTimeout(() => {
+      discordFetch(`/channels/${channelId}/messages/${responseBody.id}`, { method: 'DELETE' });
+    }, 15_000);
+  }
+
+  return { success: true };
+}
+
+/**
  * When a ref approves or denies a pre-screenshot (baseline) submission.
  */
 async function postBSPreScreenshotResult({
@@ -342,4 +391,5 @@ module.exports = {
   postBSBattleStarted,
   postBSShipSunk,
   postBSGameOver,
+  postBSTestMessage,
 };

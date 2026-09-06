@@ -47,6 +47,7 @@ import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
   REMOVE_BS_REF,
+  SEND_BS_TEST_DISCORD_MESSAGES,
   START_BS_GAME,
   TRIGGER_BS_WOM_SYNC,
   UPDATE_BS_EVENT,
@@ -943,6 +944,32 @@ export default function BattleshipAdminPage() {
   const [confirmStartBattle, setConfirmStartBattle] = useState(false);
 
   const [showDiscordModal, setShowDiscordModal] = useState(false);
+  const [sendTestDiscordMessages, { loading: sendingTestDiscordMessages }] = useMutation(
+    SEND_BS_TEST_DISCORD_MESSAGES
+  );
+  const handleSendTestDiscordMessages = async () => {
+    try {
+      const { data } = await sendTestDiscordMessages({ variables: { eventId } });
+      const summary = data?.sendBSTestDiscordMessages;
+      const sent = summary?.sentCount ?? 0;
+      const failed = summary?.failedCount ?? 0;
+      const skipped = summary?.skippedCount ?? 0;
+      const problemTeams = (summary?.results ?? [])
+        .filter((result) => result.status !== 'SENT')
+        .map((result) => `${result.teamName}: ${result.error}`)
+        .join(' · ');
+
+      if (failed === 0 && skipped === 0) {
+        showToast(`Test message sent to all ${sent} team channels.`, 'success');
+      } else if (sent > 0) {
+        showToast(`Sent to ${sent} team channels. ${problemTeams}`, 'warning');
+      } else {
+        showToast(problemTeams || 'No test messages were sent.', 'error');
+      }
+    } catch (error) {
+      showToast(error.message ?? 'Failed to send Discord test messages.', 'error');
+    }
+  };
   const [savingWom, setSavingWom] = useState(false);
   const handleSaveWom = async () => {
     setSavingWom(true);
@@ -1603,6 +1630,30 @@ export default function BattleshipAdminPage() {
                 >
                   {event?.guildId ? 'Reconfigure Bot' : 'Set Up Bot'}
                 </Button>
+                <Box>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    borderColor="#5865f2"
+                    color="#aeb7ff"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                    leftIcon={<FaDiscord />}
+                    isLoading={sendingTestDiscordMessages}
+                    loadingText="Sending"
+                    isDisabled={!teams.some((team) => team.discordChannelId)}
+                    onClick={handleSendTestDiscordMessages}
+                    _hover={{ bg: 'rgba(88, 101, 242, 0.14)', borderColor: '#818cf8' }}
+                  >
+                    Send Test to Team Channels
+                  </Button>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM} mt={2}>
+                    Sends a no-ping test to each configured team channel. Messages delete
+                    themselves after 15 seconds.
+                  </Text>
+                </Box>
               </VStack>
             </AccordionPanel>
           </AccordionItem>

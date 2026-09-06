@@ -445,6 +445,12 @@ export const UPDATE_BS_TEAM_DISCORD = gql`
   }
 `;
 
+export const SEND_BS_TEST_DISCORD_MESSAGES = gql`
+  mutation SendBSTestDiscordMessages($eventId: ID!) {
+    sendBSTestDiscordMessages(eventId: $eventId)
+  }
+`;
+
 export const UPDATE_BS_TEAM_MEMBERS = gql`
   mutation UpdateBSTeamMembers($teamId: ID!, $members: [String!]!) {
     updateBSTeamMembers(teamId: $teamId, members: $members) {
