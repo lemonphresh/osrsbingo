@@ -30,12 +30,20 @@ module.exports = {
     // The board belongs to the defending team; the firing team is the other one
     const defendingTeamId = board.teamId;
 
+    const isAdmin =
+      user.admin ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
+
     let firingTeam;
     if (firingTeamId) {
       firingTeam = teams.find((t) => t.teamId === firingTeamId);
       if (!firingTeam) throw new UserInputError('Specified team not found');
+      if (!isAdmin && !(firingTeam.members ?? []).includes(user.discordUserId)) {
+        throw new UserInputError('You are not on this team');
+      }
     } else {
-      firingTeam = teams.find((t) => t.teamId !== defendingTeamId && t.members.includes(user.discordUserId));
+      firingTeam = teams.find((t) => t.teamId !== defendingTeamId && (t.members ?? []).includes(user.discordUserId));
     }
     if (!firingTeam) throw new UserInputError('You are not a member of the firing team');
     if (firingTeam.teamId === defendingTeamId) throw new UserInputError('You cannot skip a tile on your own board');
@@ -47,7 +55,12 @@ module.exports = {
 
     clearSkipProposal(firingTeam.teamId);
 
-    const threshold = firingTeam.members.length > 3 ? 3 : 1;
+    // Use event.voteThreshold if set (clamped to team size), otherwise the auto formula.
+    const teamSize = firingTeam.members.length || 1;
+    const threshold =
+      event.voteThreshold != null
+        ? Math.max(1, Math.min(event.voteThreshold, teamSize))
+        : teamSize > 3 ? 3 : 1;
 
     const proposal = createSkipProposal({
       proposalId: generateId('bsskip'),
@@ -84,7 +97,18 @@ module.exports = {
   },
 
   clearSkipProposal: async (_, { teamId }, context) => {
-    requireAuth(context);
+    const user = requireAuth(context);
+    const { BSTeam } = getModels();
+    const team = await BSTeam.findByPk(teamId);
+    if (!team) throw new UserInputError('Team not found');
+    const event = await getEventOrThrow(team.eventId);
+    const isAdmin =
+      user.admin ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
+    if (!isAdmin && !(team.members ?? []).includes(user.discordUserId)) {
+      throw new UserInputError('You are not on this team');
+    }
     clearSkipProposal(teamId);
     const empty = { proposalId: null, teamId, status: 'CLEARED' };
     await pubsub.publish(`BS_SKIP_PROPOSAL_${teamId}`, { bsSkipProposalUpdated: empty });

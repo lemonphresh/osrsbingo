@@ -1,0 +1,876 @@
+{
+  "id": "gielinor-whodunnit-v1",
+  "title": "A Gielinor Whodunnit",
+  "subtitle": "Watson's Winter Casebook",
+  "startNodeId": "intro",
+  "nodes": {
+    "intro": {
+      "index": 1,
+      "title": "A Weeping Colossus",
+      "type": "narrative",
+      "blocks": [
+        {
+          "speaker": "scene",
+          "text": "Watson's Hosidius office. Rain outside. The door bursts open and Snowflake stumbles in, tracking mud with her enormous troll feet, sobbing softly into a hankie roughly the size of a bedsheet. She's clutching an empty gift box in one giant three-fingered hand."
+        },
+        {
+          "speaker": "watson",
+          "text": "You. All of you. You have been chosen. Snowflake here has suffered a great injustice, and I — Watson, master investigator, currently between master clue commissions — have accepted the case pro bono. A snowglobe, intended as a holiday gift for a certain enthusiastic troll of the north named after a body part he tried to consume at birth, has gone missing. That is all we know. That is enough."
+        },
+        {
+          "speaker": "watson",
+          "text": "You each carry a small notebook. Every answer you collect will be logged there for your convenience. There is also a field marked **Prime Suspect** — I encourage you to update it as your instincts sharpen. It is not, strictly speaking, necessary — I have already solved this case in my head and know precisely whodunnit. But if your suspicions happen to align with my own eventual conclusions, I shall regard you with slightly deeper professional respect. Not much. But some."
+        }
+      ],
+      "input": {
+        "type": "team_name",
+        "label": "Detective agency name",
+        "placeholder": "The... Frost Force? The Cold Case Squad? You decide."
+      },
+      "onAdvance": {
+        "speaker": "scene",
+        "text": "Snowflake nods gravely, a single fat troll tear rolling down her cheek and landing on the case files with a heavy _plop_."
+      },
+      "nextNodeId": "node-2"
+    },
+
+    "node-2": {
+      "index": 2,
+      "title": "Three Overnight Illuminations",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Three hunches, all overnight. They cannot be more different from one another. Please pursue all three. I will remain here, thinking hard and staring stoically out my window. Report back — or don't, I'll be here."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You look at the three leads. You look at the map. The three leads are in three different corners of the world. You sigh."
+        }
+      ],
+      "clues": [
+        {
+          "id": "2a",
+          "label": "Clue 2a",
+          "prompt": "A stone zealot, hooded in cold white, gazes eternally south from a place beside drink and splinters. Pilgrims kneel at his feet and beg forgiveness for their poor tool selection. Approach him. He will tell you what you lack.",
+          "answer": "bronze pickaxe",
+          "accept": ["bronze pickaxe", "a bronze pickaxe", "bronze pick"],
+          "hint": "Right-click for more than the default option."
+        },
+        {
+          "id": "2b",
+          "label": "Clue 2b",
+          "prompt": "In a hot and dusty town, beside a clay oven, stands an equally dusty figure. Speak with him. During the exchange, YOUR character will describe the ways of some things as strange. Record what your character calls them.",
+          "answer": "ancient beings",
+          "accept": ["ancient beings", "the ancient beings"],
+          "hint": "Nardah."
+        },
+        {
+          "id": "2c",
+          "label": "Clue 2c",
+          "prompt": "Past marsh and cliff, in a hidden city of a bipedal race in Gielinor, a shopkeeper takes offense at being lumped in with a distant snow-dwelling cousin. He refuses to help further. Note the price of the first item in his shop and scram.",
+          "answer": "1",
+          "accept": ["1", "1gp", "1 coin", "one"],
+          "hint": "Gu'Tanoth.",
+          "subject": "gp — ogre trader's cheapest item"
+        }
+      ],
+      "nextNodeId": "node-3"
+    },
+
+    "node-3": {
+      "index": 3,
+      "title": "The Yellow Theory (Which Is Not About Yellow)",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Three more leads. I've noticed a pattern — well, two of them involve beautiful things of nature. The third has nothing to do with anything, but I feel it belongs. Trust the pattern. Trust me."
+        }
+      ],
+      "clues": [
+        {
+          "id": "3a",
+          "label": "Clue 3a",
+          "prompt": "A shopkeeper of finest wares in a port town takes personal offense when patrons window-shop. Decline his goods and he will yell a word at you... a word which, in another timeline, would be the stage name of a mediocre white hiphop artist.",
+          "answer": "riff-raff",
+          "accept": ["riff-raff", "riff raff", "riffraff"],
+          "hint": "Port Sarim."
+        },
+        {
+          "id": "3b",
+          "label": "Clue 3b",
+          "prompt": "Beside a field of cabbages, in a mountainside settlement of witches and springs, grows a field of bright golden flowers. Count them. They are 'oh, so purdy'.",
+          "answer": "13",
+          "accept": ["13", "thirteen"],
+          "hint": "Taverley.",
+          "subject": "sunflowers"
+        },
+        {
+          "id": "3c",
+          "label": "Clue 3c",
+          "prompt": "In the west wing of the guild that creates life, count the coniferous beauties that were not planted by any player. Snowflake claims they inspired the snowglobe's design. Cute.",
+          "answer": "4",
+          "accept": ["4", "four"],
+          "hint": "The Farmers Guild.",
+          "subject": "pine trees"
+        }
+      ],
+      "nextNodeId": "node-4"
+    },
+
+    "node-4": {
+      "index": 4,
+      "title": "An Adversary of Some Volume",
+      "type": "single_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "There is an officer on a tropical island who remembers us... poorly. He runs some shipping routes, allegedly. Approach him. He will yell. Record what he yells."
+        }
+      ],
+      "clues": [
+        {
+          "id": "4",
+          "label": "Clue 4",
+          "prompt": "Speak to the officer. He will greet you the same way every time, without fail, without patience, after you've uncovered his secrets. You take note of the demand he yells at you, verbatim, as you scuttle out of the office.",
+          "answer": "Get out of my office!",
+          "accept": ["Get out of my office!", "Get out of my office", "get out of my office"],
+          "hint": "Karamja shipyard. Five words, exact."
+        }
+      ],
+      "nextNodeId": "choice-a"
+    },
+
+    "choice-a": {
+      "index": null,
+      "title": "Two Theories, Equally Compelling",
+      "type": "choice",
+      "choiceKey": "A",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "I've been developing two mutually exclusive theories, my amateur little detective friends. Both feel correct. Please pursue one, and then the other. I make no claim as to which is more likely. Your choice."
+        }
+      ],
+      "options": [
+        {
+          "key": "A1",
+          "label": "The Purchase Theory",
+          "description": "Snowflake was, essentially, out shopping.",
+          "path": ["node-5", "node-6", "node-7", "node-8"],
+          "mergeFlavor": "The Purchase Theory first. Yes. I strongly suspected you'd begin there. A bold, mercantile instinct. Somewhat ill-founded in the results, I regret to report, but Watson never regrets a well-placed hypothesis. Onwards."
+        },
+        {
+          "key": "A2",
+          "label": "The Weeping Theory",
+          "description": "Snowflake was, essentially, having a breakdown.",
+          "path": ["node-6", "node-7", "node-8", "node-5"],
+          "mergeFlavor": "The Weeping Theory first. Yes. I strongly suspected you'd begin there. A bold, emotionally attuned instinct. Somewhat ill-founded in the results, I regret to report, but Watson never regrets a well-placed hypothesis. Onwards."
+        }
+      ],
+      "convergeNodeId": "node-9"
+    },
+
+    "node-5": {
+      "index": 5,
+      "title": "A Study in Vendors",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Three vendors, three purchases, three answers I demand. If any of them are useful I will eat my own hat."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "Witnessing that would be the best holiday gift I'd've ever received."
+        }
+      ],
+      "clues": [
+        {
+          "id": "5a",
+          "label": "Clue 5a",
+          "prompt": "A weary vendor in the market of a sizzling hot town sells cheap meat-on-a-stick. Ask him the price of the meat. This is both for the sake of your own hunger pangs, and for the case. Probably.",
+          "answer": "3",
+          "accept": ["3", "three", "3gp", "3 coins"],
+          "hint": "Pollnivneach.",
+          "subject": "gp — kebab"
+        },
+        {
+          "id": "5b",
+          "label": "Clue 5b",
+          "prompt": "In a coastal town celebrated for its lines and nets, one shop stocks one item unlike the others — small, round, and transparent. Purchase one and find the occupant. Examine when they're home.",
+          "answer": "tiny greenfish",
+          "accept": ["tiny greenfish", "a tiny greenfish"],
+          "hint": "Catherby."
+        },
+        {
+          "id": "5c",
+          "label": "Clue 5c",
+          "prompt": "In a house directly south of where one goes to wallop with reckless abandon, in a city of tall glass and crystals, a slim volume rests on a table. Examine it. Note what it is about.",
+          "answer": "throne",
+          "accept": ["throne", "a throne"],
+          "hint": "Prifddinas."
+        }
+      ]
+    },
+
+    "node-6": {
+      "index": 6,
+      "title": "Two Witnesses in Blissful Apathy",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Two more witnesses. Both, I regret to inform you, will regard you as a personal inconvenience. Persevere anyway. Snowflake is counting on us. Well. On you, specifically."
+        }
+      ],
+      "clues": [
+        {
+          "id": "6a",
+          "label": "Clue 6a",
+          "prompt": "On the sand of a warm southern isle, an unbothered elder sells bulwarks to those wise enough to buy them. Ask him the price of the one he keeps on his back. He will regard the entire investigation as an inconvenience to his beautiful day.",
+          "answer": "2500",
+          "accept": ["2500", "2500gp", "2500 coins", "2,500"],
+          "hint": "Great Conch, in the far south.",
+          "subject": "gp — Tortugan Shield"
+        },
+        {
+          "id": "6b",
+          "label": "Clue 6b",
+          "prompt": "In the home of a certain grizzled elderly woman in the moss-choked eastern marshes, count the chairs. You could really use a good sit-down after all this walking. Alas, press on.",
+          "answer": "3",
+          "accept": ["3", "three"],
+          "hint": "The old crone's cottage, Morytania.",
+          "subject": "chairs"
+        }
+      ]
+    },
+
+    "node-7": {
+      "index": 7,
+      "title": "A Cry for Help (With Garnish)",
+      "type": "single_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Multiple witnesses reported Snowflake stumbling into a certain pirate bar to weep, before the case even began. I refuse to describe the establishment further out of respect for its clientele. Find it. Do not imbibe. Or do. Just get it done."
+        }
+      ],
+      "clues": [
+        {
+          "id": "7",
+          "label": "Clue 7",
+          "prompt": "Behind the bar of a certain pirate haunt stands a barkeep who remembers everyone by their drink order. Ask him what he charges for the greenest cocktail on his menu — the one Snowflake claims to have wept into.",
+          "answer": "20",
+          "accept": ["20", "twenty", "20gp", "20 coins"],
+          "hint": "The Pandemonium pub.",
+          "subject": "gp — green cocktail"
+        }
+      ]
+    },
+
+    "node-8": {
+      "index": 8,
+      "title": "The Counting Directive",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "I have determined that the key to this case is counting. Two locations. Two counts. Do not think about it. Just count."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You have started thinking about it. You cannot stop."
+        }
+      ],
+      "clues": [
+        {
+          "id": "8a",
+          "label": "Clue 8a",
+          "prompt": "On the ground floor of a certain southern coastal gem shop in a town known for its wine, sunshine and murder, count the crates.",
+          "answer": "3",
+          "accept": ["3", "three"],
+          "hint": "Aldarin, in Varlamore.",
+          "subject": "crates"
+        },
+        {
+          "id": "8b",
+          "label": "Clue 8b",
+          "prompt": "In a village of beasts, in the shop where hides hang, count the skins pinned up to dry best they can given the damp swamp air.",
+          "answer": "10",
+          "accept": ["10", "ten"],
+          "hint": "Canifis.",
+          "subject": "hides drying"
+        }
+      ]
+    },
+
+    "node-9": {
+      "index": 9,
+      "title": "Watson's Anagram Phase",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "For reasons I cannot fully explain, one of these three leads has been delivered to you as an anagram and the other two have not. I dictated them all in one sitting and now I'm committed to the format. Please solve as delivered. Do not question the framing."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You have been anagramming letters at your kitchen table for forty minutes. You wonder how Watson came by his master investigator title. You suspect he may have anagrammed it himself."
+        }
+      ],
+      "clues": [
+        {
+          "id": "9a",
+          "label": "Clue 9a",
+          "prompt": "Solve this anagram: **MARTIAL OWL PROSE**. Find the person whose job title those letters spell. Ask them to list, in exact order, the items they process.",
+          "answer": "wood, oak, teak, and mahogany",
+          "accept": ["wood, oak, teak, and mahogany", "wood oak teak and mahogany", "wood, oak, teak and mahogany", "wood oak teak mahogany"],
+          "hint": "The unscrambled name: \"sawmill operator.\""
+        },
+        {
+          "id": "9b",
+          "label": "Clue 9b",
+          "prompt": "Beside an exposed altar on a hill of light, a pious figure with endless pockets will greet you with a beautiful word from his native tongue. Record it exactly.",
+          "answer": "Nilsal",
+          "accept": ["Nilsal", "nilsal"],
+          "hint": "Ralos' Rise, in Varlamore."
+        },
+        {
+          "id": "9c",
+          "label": "Clue 9c",
+          "prompt": "In the home of a wizard who grants very important corporeal wishes, a small green creature totally definitely confirms upon closer examination that the procedure is...?",
+          "answer": "safe",
+          "accept": ["safe", "it's safe", "the procedure is safe"],
+          "hint": "The Makeover Mage's house."
+        }
+      ],
+      "nextNodeId": "node-10"
+    },
+
+    "node-10": {
+      "index": 10,
+      "title": "An Interview Best Avoided",
+      "type": "single_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "There is a witness in a volcanic city whose name is deliberately confusing. Once you decode it, look around him for snowglobe shipment containers. The count is the answer."
+        }
+      ],
+      "clues": [
+        {
+          "id": "10",
+          "label": "Clue 10",
+          "prompt": "Solve this anagram (drop the hyphens once you've placed them): **ZAK HUT HEARTZ**. Find the hyphenated individual whose name those letters spell — you'll find him across from a great arena of combat. Do not speak with him. Simply count the closed containers within a few paces of where he stands.",
+          "answer": "17",
+          "accept": ["17", "seventeen"],
+          "hint": "The unscrambled name: \"TzHaar-Ket-Zuh.\"",
+          "subject": "crates near TzHaar-Ket-Zuh"
+        }
+      ],
+      "nextNodeId": "node-11"
+    },
+
+    "node-11": {
+      "index": 11,
+      "title": "The Careless Teleport",
+      "type": "single_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "A common source of navigational error involves two teleports in Kourend. Snowflake mixed them up while on her way here. So might you."
+        }
+      ],
+      "clues": [
+        {
+          "id": "11",
+          "label": "Clue 11",
+          "prompt": "Use a teleport that leaves you in a place of glamour and beauty. Upon arrival, count the flowers of a particular species growing at your feet.",
+          "answer": "4",
+          "accept": ["4", "four"],
+          "hint": "Book of the Dead → \"Jewellery of Jubilation\" (not \"Lunch by the Lancalliums\").",
+          "subject": "Lancallium plants"
+        }
+      ],
+      "nextNodeId": "node-12"
+    },
+
+    "node-12": {
+      "index": 12,
+      "title": "The Agricultural Delusions",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Two agricultural leads. I do not know why. That is why we investigate."
+        }
+      ],
+      "clues": [
+        {
+          "id": "12a",
+          "label": "Clue 12a",
+          "prompt": "A farmer in a western village of white-flowered fields will stall by asking you to count his apple trees while he 'thinks' about whether he's seen a snowglobe. In your peripheral vision, you notice him hurriedly ushering the wealthy mayor's wife out the back of his barn. Count the trees anyway.",
+          "answer": "35",
+          "accept": ["35", "thirty-five", "thirty five"],
+          "hint": "Hosidius.",
+          "subject": "apple trees"
+        },
+        {
+          "id": "12b",
+          "label": "Clue 12b",
+          "prompt": "Deep in a lawless northern depth, full of chasms only the most agile may cross, broken-down houses gape and crumble. Count the windows that remain intact. Do not tarry. Do not count the broken ones.",
+          "answer": "14",
+          "accept": ["14", "fourteen"],
+          "hint": "Revenant Caves.",
+          "subject": "intact windows"
+        }
+      ],
+      "nextNodeId": "node-13"
+    },
+
+    "node-13": {
+      "index": 13,
+      "title": "A Whisper from the Trap Guild",
+      "type": "single_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Something compelling came across my desk: hunters heard someone considering trolls as huntable creatures. Loosely related. Pursue anyway."
+        }
+      ],
+      "clues": [
+        {
+          "id": "13",
+          "label": "Clue 13",
+          "prompt": "Ask a merchant in the sunny south the cost of a fur from a certain grey four-legged predator.",
+          "answer": "65",
+          "accept": ["65", "sixty-five", "sixty five"],
+          "hint": "The Hunter's Guild.",
+          "subject": "gp — grey wolf fur"
+        }
+      ],
+      "nextNodeId": "choice-b"
+    },
+
+    "choice-b": {
+      "index": null,
+      "title": "Two Routes, Equally Objectionable",
+      "type": "choice",
+      "choiceKey": "B",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Two more sets of solid leads, my greenhorn little detective friends! I refuse to accompany you on either routes. There is simply too much work to do here! Too much tea left to consume! Choose your route, and hustle along. We don't have time to waste! Well, you don't."
+        }
+      ],
+      "options": [
+        {
+          "key": "B1",
+          "label": "Brave the wastes first",
+          "description": "Straight into the lawless zone.",
+          "path": ["node-14", "node-15", "node-16"],
+          "mergeFlavor": "The wastes first. I would have advised precisely this, had I been advising. Impressive fortitude — you're not dead, and that's more than I can say for the last group I sent. Sit for a moment. Have some tea. There is still much tea. Then, onwards."
+        },
+        {
+          "key": "B2",
+          "label": "Face the enthusiasts first",
+          "description": "Save the potentially fatal errand for later.",
+          "path": ["node-16", "node-15", "node-14"],
+          "mergeFlavor": "The enthusiasts first. I would have advised precisely this, had I been advising. Very tactical — save the potentially fatal errand for later. Sit for a moment. Have some tea. There is still much tea. Then, onwards."
+        }
+      ],
+      "convergeNodeId": "node-17"
+    },
+
+    "node-14": {
+      "index": 14,
+      "title": "Three Neighborhoods of Regrettable Character",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Three witnesses. Three neighborhoods of, shall we say, character. I would not, personally, spend an evening in any of them. But that is why I have you, my unblooded little detective friends. Do not linger."
+        }
+      ],
+      "clues": [
+        {
+          "id": "14a",
+          "label": "Clue 14a",
+          "prompt": "In a small port town, behind bars, sits a little green feller whose criminal résumé is deeply anticlimactic. Ask him what he did.",
+          "answer": "pick some stuff up and take it away",
+          "accept": ["pick some stuff up and take it away", "pick stuff up and take it away"],
+          "hint": "Port Sarim jail."
+        },
+        {
+          "id": "14b",
+          "label": "Clue 14b",
+          "prompt": "A drunk bartender in a small starter town swears he saw as many snowglobe-carrying patrons today as there are red seats at his bar. Count the red seats. He is unreliable — the truth is she went in and out this many times, but he cannot tell them apart.",
+          "answer": "7",
+          "accept": ["7", "seven"],
+          "hint": "The Lumbridge pub. Red only.",
+          "subject": "red stools"
+        },
+        {
+          "id": "14c",
+          "label": "Clue 14c",
+          "prompt": "On the western shore of a sun-soaked island somewhere south, a hole yawns in the cliffside. Do not enter. Merely observe the mouth of it, but take note of what's deeper inside. You notice Healsha is peeking out from within as well, half-swallowed by a hole of impressive size. Typical. Wave, then get back to work.",
+          "answer": "blockage",
+          "accept": ["blockage", "a blockage"],
+          "hint": "Same island as Elder Blunn (Great Conch)."
+        }
+      ]
+    },
+
+    "node-15": {
+      "index": 15,
+      "title": "Two Frauds of Modest Ambition",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Two more witnesses, both, in their own quiet ways, frauds. Do not confront them. Simply count what betrays them, and let the numbers speak for themselves."
+        }
+      ],
+      "clues": [
+        {
+          "id": "15a",
+          "label": "Clue 15a",
+          "prompt": "Solve this anagram: **SEVEN WARN STAGE HIT NO**. Find the man whose full name and title those letters spell. Despite his title, he cannot do such a thing. You notice his books are all about mazes and booby traps. You chuckle. Booby. Ha. Count the books.",
+          "answer": "6",
+          "accept": ["6", "six"],
+          "hint": "The unscrambled name: \"Swensen the Navigator.\"",
+          "subject": "books on Swensen's shelf"
+        },
+        {
+          "id": "15b",
+          "label": "Clue 15b",
+          "prompt": "In the crafting store of a small town where many make their first home, shiny things are displayed on stands. Count the stands. They are pretending to be worth more than they are.",
+          "answer": "4",
+          "accept": ["4", "four"],
+          "hint": "Rimmington. Only the necklace stands.",
+          "subject": "necklace stands"
+        }
+      ]
+    },
+
+    "node-16": {
+      "index": 16,
+      "title": "Three Zealots of Singular Passion",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Three witnesses, each unreasonably passionate about a singular thing. I cannot relate at all. Do not encourage them. Do not compliment their taste. Get the answers, and leave."
+        }
+      ],
+      "clues": [
+        {
+          "id": "16a",
+          "label": "Clue 16a",
+          "prompt": "Near a northern desert carpet, an animal with questionable posture will refuse to speak until you promise it a reward. Record what reward it demands.",
+          "answer": "banana",
+          "accept": ["banana", "a banana"],
+          "hint": "Northernmost Pollnivneach magic carpet."
+        },
+        {
+          "id": "16b",
+          "label": "Clue 16b",
+          "prompt": "A vendor in a mountainside springs town is overjoyed to speak with anyone at all. Ask him the price of a two-handed weapon made of... *checks notes* blue. Right.",
+          "answer": "2600",
+          "accept": ["2600", "2600gp", "2600 coins", "2,600"],
+          "hint": "Taverley sword shop.",
+          "subject": "gp — mithril 2h sword"
+        },
+        {
+          "id": "16c",
+          "label": "Clue 16c",
+          "prompt": "An extremely drunk local in a cold village slurs the same unintelligible word at you, twice, while trying to place the name to the face. Write it down exactly as he mumbles it. In the corner, you see Lexi muttering to herself about ghost orbs and axolotls. You wave, and get on your way. She flips you off and cackles.",
+          "answer": "Whatshyerfayshe",
+          "accept": ["Whatshyerfayshe", "whatshyerfayshe"],
+          "hint": "Rellekka."
+        }
+      ]
+    },
+
+    "node-17": {
+      "index": 17,
+      "title": "Watson's Wild Hunches",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "I have five final hunches. None are grounded in evidence I would defend. All five must be pursued. Trust me. Or don't. Do it regardless, you're being paid. Ha, Snowflake, did you hear that last bit? They think they're getting paid. Oh, crumbs, I didn't end the dictation."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You have been to seventeen places today. You have counted twelve different kinds of thing. Your feet hurt. You are so tired. You could've sworn Watson just said something about there not being payment at the end of this?"
+        }
+      ],
+      "clues": [
+        {
+          "id": "17a",
+          "label": "Clue 17a",
+          "prompt": "In a building of a mountainside springs town where you have once used crystal to reveal treasures, an absolute beauty will greet you with a compliment, provided you've earned it. She uses a specific word for your recent journey. Record the word.",
+          "answer": "exploits",
+          "accept": ["exploits", "your exploits"],
+          "hint": "Same building as the Taverley crystal chest."
+        },
+        {
+          "id": "17b",
+          "label": "Clue 17b",
+          "prompt": "Outside a well-known tower riddled with horrible monsters stand two large statues of equally horrid things. Examine one. Note what it depicts, in the plainest possible terms.",
+          "answer": "big monster",
+          "accept": ["big monster", "a big monster"],
+          "hint": "Outside the Slayer Tower."
+        },
+        {
+          "id": "17c",
+          "label": "Clue 17c",
+          "prompt": "On the top floor of a building with an oven, in a town of totems and magic, sits a crispy plant in a pot. It has been through things. You can relate. Examine it. Note what it has seen.",
+          "answer": "better days",
+          "accept": ["better days", "seen better days"],
+          "hint": "Auburnvale."
+        },
+        {
+          "id": "17d",
+          "label": "Clue 17d",
+          "prompt": "West of the great cavern entrance surrounded by capybara, tropical birds and great jungle trees stand two figures near their own lonely trees — or perhaps reunited at last if you've already helped them before — a pair who, upon examination, have shared intentions with one another. Note the location where love has led them both.",
+          "answer": "places less explored",
+          "accept": ["places less explored", "to places less explored"],
+          "hint": "West of Tonali Cavern (near Aldarin)."
+        },
+        {
+          "id": "17e",
+          "label": "Clue 17e",
+          "prompt": "South of a rocky, crimson outcrop, accessible only by boat, a fallen creature lies still. Examine it, note what we feel we ought to place upon its eyes.",
+          "answer": "law runes",
+          "accept": ["law runes", "law", "2 law runes"],
+          "hint": "South of Red Rock. Ship access only."
+        }
+      ],
+      "nextNodeId": "node-18"
+    },
+
+    "node-18": {
+      "index": 18,
+      "title": "The Final Aimless Errand",
+      "type": "multi_puzzle",
+      "blocks": [
+        {
+          "speaker": "watson",
+          "text": "Final round, my tenderfoot little detective friends. Five loose ends. All, I must confess, wildly inconsequential in hindsight. But alas, paperwork is paperwork. Please complete them all. This is what closes cases. Probably."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You have been on the road for what feels like the entire holiday season. You have not showered, though this is nothing out of the ordinary. You are running out of snacks, and this is a problem. You want, more than anything, to sit down in a warm house and drink something warm and enjoy some holiday tunes. But Watson has \"just five more.\""
+        }
+      ],
+      "clues": [
+        {
+          "id": "18a",
+          "label": "Clue 18a",
+          "prompt": "In a shop of shafts in a busy northeast city, sits a man astonished that anyone asks him prices, most simply grab and go. Ask him what his greenest item costs.",
+          "answer": "80",
+          "accept": ["80", "eighty", "80gp", "80 coins"],
+          "hint": "Lowe's shop in Varrock.",
+          "subject": "gp — adamant arrow"
+        },
+        {
+          "id": "18b",
+          "label": "Clue 18b",
+          "prompt": "In the market of a desert town of woven walls and long shadows, a merchant is suspiciously eager for gossip about the case. In reality, he is just deeply bored. Open his shop and note the price of the third item on offer.",
+          "answer": "140",
+          "accept": ["140", "140gp", "140 coins"],
+          "hint": "Pollnivneach market.",
+          "subject": "gp — empty jug pack"
+        },
+        {
+          "id": "18c",
+          "label": "Clue 18c",
+          "prompt": "Solve this anagram: **ROOTIZ**. Find the grumpy shopkeeper in a city of subterranean stone whose name those letters spell. His shop tagline claims to gear you up — for what, exactly?",
+          "answer": "the mines",
+          "accept": ["the mines", "for the mines", "mines"],
+          "hint": "The unscrambled name: \"Tizoro.\""
+        },
+        {
+          "id": "18d",
+          "label": "Clue 18d",
+          "prompt": "Solve this anagram: **RENO AND**. Find the king whose (first) name those letters spell. He will urgently summon you regarding the case. He does not have information about the case, but would like to know if you've seen his long lost cousin, Lexi, recently. 'She always was the smallest gnome of the bunch,' he chortled. He is wearing pants of a certain color, which you note in your detective notebook for some reason.",
+          "answer": "green",
+          "accept": ["green"],
+          "hint": "The unscrambled name: \"Narnode.\"",
+          "subject": "— Narnode's pants"
+        },
+        {
+          "id": "18e",
+          "label": "Clue 18e",
+          "prompt": "Solve this anagram: **MOIRLY**. Find the food expert whose (first) name those letters spell. In the corner of the building, Kiuyu is dipping what seems to be a bag of nuts in soy sauce. Avoid eye contact. Nervously count the knives on the workstation nearby. You might need them.",
+          "answer": "2",
+          "accept": ["2", "two"],
+          "hint": "The unscrambled name: \"Romily.\"",
+          "subject": "knives on Romily's workstation"
+        }
+      ],
+      "nextNodeId": "node-19"
+    },
+
+    "node-19": {
+      "index": 19,
+      "title": "The Long Walk Back",
+      "type": "narrative",
+      "blocks": [
+        {
+          "speaker": "scene",
+          "text": "The team returns to Watson's Hosidius office. The rain from the first day has become snow. Somewhere between the third and thirtieth clue you stopped caring what the weather was doing. You are simply cold, everywhere, all the time. This is not how you imagined you'd spend the holidays."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You have crossed the map more times than you care to count. You have interviewed a monkey. You have counted sunflowers. You have solved anagrams for reasons that remain unclear. Like seriously, why did he do that, he had the name right there, for Saradomin's sake. You have nothing to show for any of it. The snowglobe is nowhere to be found. It was not shipped. It was not eaten. It was not hidden in a barn or a cave or a jail. In fact, you're not sure any of these leads you've pursued had literally anything to do with one another. But you've dutifully written down every single thing Watson told you to. That's what the notebook was for."
+        },
+        {
+          "speaker": "watson_stage",
+          "stage": "hopeful",
+          "text": "So? Where is it? Which lead panned out? Which witness confessed? Which clue closed the case? Show me the notebook. Let me review the evidence."
+        },
+        {
+          "speaker": "character",
+          "text": "You hand him the notebook. The whole thing."
+        },
+        {
+          "speaker": "watson_stage",
+          "stage": "flipping open",
+          "text": "Bronze pickaxe. Ancient beings. One coin. Riff-raff. Thirteen sunflowers. Four pines. Get out of my office."
+        },
+        {
+          "speaker": "stage_direction",
+          "text": "(flipping)"
+        },
+        {
+          "speaker": "watson",
+          "text": "Three coins. Tiny greenfish. Throne. Twenty-five hundred. Three chairs. Twenty coin cocktail? In this economy? Three crates. Ten hides."
+        },
+        {
+          "speaker": "stage_direction",
+          "text": "(flipping faster)"
+        },
+        {
+          "speaker": "watson",
+          "text": "Wood, oak, teak, and mahogany. Nilsal. Safe. Seventeen crates. Four Lancalliums. Thirty-five apple trees. Fourteen windows."
+        },
+        {
+          "speaker": "stage_direction",
+          "text": "(flipping so fast the pages tear)"
+        },
+        {
+          "speaker": "watson",
+          "text": "Sixty-five. Pick some stuff up and take it away. Seven stools. Blockage. Six books. Four necklace displays. Banana. Twenty-six hundred. Whatshyerfayshe."
+        },
+        {
+          "speaker": "stage_direction",
+          "text": "(voice rising)"
+        },
+        {
+          "speaker": "watson",
+          "text": "Exploits. Big monster. Better days. Places less explored. Law runes. Eighty. One-forty. For the mines. Green pants. TWO KNIVES."
+        },
+        {
+          "speaker": "stage_direction",
+          "text": "(long, terrible silence)"
+        },
+        {
+          "speaker": "watson",
+          "text": "…what the hell am I supposed to do with this?"
+        },
+        {
+          "speaker": "character",
+          "text": "You dictated these clues."
+        },
+        {
+          "speaker": "watson_stage",
+          "stage": "staring at the notebook",
+          "text": "Hm. Quite right."
+        },
+        {
+          "speaker": "character",
+          "text": "Yes."
+        },
+        {
+          "speaker": "watson",
+          "text": "Indeed."
+        },
+        {
+          "speaker": "scene",
+          "text": "Snowflake, who has been standing quietly in the corner of Watson's office this entire time sniffling into her bedsheet-sized hankie, looks up. Her big troll lower lip trembles."
+        },
+        {
+          "speaker": "snowflake",
+          "text": "I… I hoped so much…"
+        }
+      ],
+      "advanceLabel": "Comfort Snowflake",
+      "nextNodeId": "node-20"
+    },
+
+    "node-20": {
+      "index": 20,
+      "title": "The Confession",
+      "type": "narrative_ending",
+      "blocks": [
+        {
+          "speaker": "scene",
+          "text": "Snowflake slumps. Her enormous troll legs give out and she flops onto the floorboards with a heavy _WHOMP_ that shakes the case files off Watson's desk."
+        },
+        {
+          "speaker": "scene",
+          "text": "The impact scatters something."
+        },
+        {
+          "speaker": "scene",
+          "text": "A small pile of dark, dense, chewy-looking objects that had been stacked next to where she was situated."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "Rock cakes. She's been stress snacking. There must be a dozen of them piled here. Or, were a dozen. They're rolling now, some coming to rest against the case files, others tumbling toward the fire."
+        },
+        {
+          "speaker": "scene",
+          "text": "Snowflake stares at the scatter. Her eyes lock on something in the middle of the pile."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "Under the top layer of rock cakes, half-covered, gleaming with the faintest flicker of enchanted snow inside…\n\n…a snowglobe."
+        },
+        {
+          "speaker": "snowflake_stage",
+          "stage": "slowly",
+          "text": "…oh.\n\n…oh no.\n\n…I was… I was so hungry. I put gift down. I forgot. I sat on pile. Oh no. Oh no no no."
+        },
+        {
+          "speaker": "scene",
+          "text": "Snowflake buries her big troll face in her three-fingered hands, shoulders heaving. The snowglobe sits in the middle of the scatter, entirely fine."
+        },
+        {
+          "speaker": "character",
+          "text": "You look at Watson. Watson looks at you. Nobody speaks. Somewhere to the north, presumably, My Arm is waiting."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "You pick up the snowglobe. You clean the crumbs off. Without awaiting the orders from Watson, you start the long walk north to deliver it. The sooner you can get this over with, the sooner you can have some hot cocoa by the warmth of the fireplace in Blue Moon Inn, your favorite tavern during the holidays."
+        },
+        {
+          "speaker": "watson_stage",
+          "stage": "via note as you leave",
+          "text": "Case closed. The invoice has been sent to my accountant, who is Watson. I expect my payment from you within the week. You are dismissed. Happy holidays. From the Casebook of Watson, over."
+        },
+        {
+          "speaker": "character_aside",
+          "text": "Deep sigh. Happy holidays, indeed."
+        }
+      ],
+      "advanceLabel": "View your Casebook Report",
+      "rendersSummary": true
+    }
+  }
+}

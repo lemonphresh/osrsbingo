@@ -13,6 +13,7 @@ import {
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { BoardPanel } from './BSSharedComponents';
 import { BS_SHOT_FIRED, BS_TILE_UPDATED, BS_GAME_OVER, GET_BS_SHOT_LOG } from '../../graphql/bsOperations';
+import { playBSSound } from '../../utils/battleship/bsAudio';
 
 const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 const coord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -93,7 +94,7 @@ function ShotFlash({ flash, onDone }) {
   );
 }
 
-export function BSSpectatorView({ event, refetch }) {
+export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
   const teams = event.teams ?? [];
   const teamA = teams[0] ?? null;
   const teamB = teams[1] ?? null;
@@ -160,6 +161,7 @@ export function BSSpectatorView({ event, refetch }) {
         teamColor: teamColor(firingTeam, teams.indexOf(firingTeam)),
         shotAt: shot.shotAt,
       };
+      playBSSound(shot.result === 'HIT' ? 'directhit' : 'splash');
       setFlash(entry);
       setLiveShots((prev) => [entry, ...prev.slice(0, 19)]);
       refetch();
@@ -344,6 +346,7 @@ export function BSSpectatorView({ event, refetch }) {
                   tiles={tilesA}
                   showShips={false}
                   canFire={false}
+                  colorblindMode={colorblindMode}
                 />
               </Box>
             </Box>
@@ -366,6 +369,7 @@ export function BSSpectatorView({ event, refetch }) {
                   tiles={tilesB}
                   showShips={false}
                   canFire={false}
+                  colorblindMode={colorblindMode}
                 />
               </Box>
             </Box>

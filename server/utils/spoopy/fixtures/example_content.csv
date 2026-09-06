@@ -1,0 +1,16 @@
+tile_id,tile_type,flavor_text,task_kind,task_target,task_amount,dialog_prompt,option_a_label,option_a_outcome,option_a_task_kind,option_a_task_target,option_a_task_amount,option_a_reward_gp,option_b_label,option_b_outcome,option_b_task_kind,option_b_task_target,option_b_task_amount,option_b_reward_gp
+main-1,house,,,,,"trick or treat! ohhh wow such spoopy costumes uwu did you visit lexi's house already?","not yet, but we'll get there. didn't want to interrupt her path to max",treat,skilling_xp,firemaking,100000,500000,"tp'd the hell out of that thing and left toaster strudels",trick,boss_kc,callisto,5,200000
+main-2,pumpkin,"a stray jack-o-lantern flickers on the sidewalk",skilling_xp,woodcutting,75000,,,,,,,,,,,,,
+main-3,grave,"a cracked headstone reads 'here lies a pker'",boss_kc,venenatis,3,,,,,,,,,,,,,
+main-4,ghost,,boss_kc,zulrah,10,,,,,,,,,,,,,
+main-5,house,,,,,"a witch answers the door, her cat coiled around her shoulders. 'hehe, what have we here?'","compliment her cat, obviously",treat,skilling_xp,cooking,100000,750000,"ask if she's single",trick,boss_kc,alchemical_hydra,5,250000
+main-6,pumpkin,,skilling_xp,mining,100000,,,,,,,,,,,,,
+main-7,black-cat,"a black cat crosses your path. you should probably turn back.",uniques,nex,1,,,,,,,,,,,,,
+main-8,house,,,,,"the last house on the street. lights off, but the door creaks open on its own...","step inside, we've come this far",trick,boss_kc,nightmare,3,400000,"yell 'trick or treat' from the doorway",treat,skilling_xp,slayer,150000,1000000
+s1-1,pumpkin,,skilling_xp,fishing,50000,,,,,,,,,,,,,
+s1-2,ghost,,boss_kc,cerberus,5,,,,,,,,,,,,,
+s1-3,house,,,,,"a bowl of candy sits unattended on the porch. a hand-scrawled sign reads 'take one'","one is a suggestion. take the whole bowl.",trick,boss_kc,scorpia,3,300000,"take exactly one piece, like a well-adjusted adult",treat,skilling_xp,herblore,75000,600000
+s3-1,pumpkin,,skilling_xp,agility,60000,,,,,,,,,,,,,
+s3-2,grave,"an open grave. something glints inside.",uniques,vetion,1,,,,,,,,,,,,,
+s5-1,black-cat,,uniques,corporeal_beast,1,,,,,,,,,,,,,
+s5-2,house,,,,,"a scarecrow blocks the path. it turns its head to look at you.","give it a high five",treat,skilling_xp,farming,100000,500000,"run. just run.",trick,boss_kc,phantom_muspah,5,200000

@@ -1221,4 +1221,517 @@ describe('Subscriptions', () => {
   });
 });
 
+describe('Battleship Mutations', () => {
+  test('CREATE_BS_EVENT', () => {
+    const result = validateOperation(`
+      mutation CreateBSEvent($input: CreateBSEventInput!) {
+        createBSEvent(input: $input) {
+          eventId
+          eventName
+          status
+          contentSelections
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('UPDATE_BS_CONTENT_SELECTIONS', () => {
+    const result = validateOperation(`
+      mutation UpdateBSContentSelections($eventId: ID!, $contentSelections: JSON!) {
+        updateBSContentSelections(eventId: $eventId, contentSelections: $contentSelections) {
+          eventId
+          contentSelections
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('START_BS_PLACEMENT_PHASE', () => {
+    const result = validateOperation(`
+      mutation StartBSPlacementPhase($eventId: ID!) {
+        startBSPlacementPhase(eventId: $eventId) {
+          eventId
+          status
+          placementStartsAt
+          placementEndsAt
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_BS_EVENT', () => {
+    const result = validateOperation(`
+      mutation DeleteBSEvent($eventId: ID!) {
+        deleteBSEvent(eventId: $eventId) {
+          success
+          message
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
+describe('Battleship Queries', () => {
+  test('GET_BS_EVENT with templateBoard and contentSelections', () => {
+    const result = validateOperation(`
+      query GetBSEvent($eventId: ID!) {
+        getBSEvent(eventId: $eventId) {
+          eventId
+          contentSelections
+          templateBoard {
+            boardId
+            teamId
+            tiles {
+              tileId
+              row
+              col
+              shipType
+              cellIndex
+              taskId
+            }
+          }
+          teams {
+            teamId
+            board {
+              boardId
+              teamId
+            }
+          }
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
+// ============================================================
+// SPOOPY (Halloween trick-or-treat)
+// ============================================================
+
+describe('Spoopy Queries', () => {
+  test('SPOOPY_EVENT', () => {
+    const result = validateOperation(`
+      query SpoopyEvent($eventId: ID!) {
+        spoopyEvent(eventId: $eventId) {
+          eventId
+          eventName
+          status
+          curfewStart
+          curfewEnd
+          adminIds
+          staffChannelId
+          board
+          contentById
+          hauntedHouse
+          startingTileIds
+          teams { teamId teamName members }
+          admins { id displayName username }
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_EVENTS', () => {
+    const result = validateOperation(`
+      query SpoopyEvents {
+        spoopyEvents {
+          eventId
+          eventName
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_TEAM', () => {
+    const result = validateOperation(`
+      query SpoopyTeam($teamId: ID!) {
+        spoopyTeam(teamId: $teamId) {
+          teamId
+          eventId
+          teamName
+          color
+          members
+          discordChannelId
+          teamToken
+          gpEarned
+          cashedOut
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_TEAM_BOARD', () => {
+    const result = validateOperation(`
+      query SpoopyTeamBoard($teamId: ID!) {
+        spoopyTeamBoard(teamId: $teamId) {
+          eventId
+          teamId
+          roster
+          gpEarned
+          cashedOut
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_TEAM_BOARD_BY_TOKEN', () => {
+    const result = validateOperation(`
+      query SpoopyTeamBoardByToken($token: String!) {
+        spoopyTeamBoardByToken(token: $token) {
+          teamId
+          gpEarned
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('GET_ACTIVE_SPOOPY_EVENT', () => {
+    const result = validateOperation(`
+      query GetActiveSpoopyEvent {
+        getActiveSpoopyEvent {
+          eventId
+          eventName
+          status
+          curfewStart
+          curfewEnd
+          board
+          contentById
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('MY_SPOOPY_SITUATION', () => {
+    const result = validateOperation(`
+      query MySpoopySituation($eventId: ID) {
+        mySpoopySituation(eventId: $eventId) {
+          event {
+            eventId
+            eventName
+            status
+            curfewEnd
+            board
+            contentById
+            hauntedHouse
+          }
+          myTeam {
+            teamId
+            teamName
+            members
+            gpEarned
+            cashedOut
+          }
+          teamBoard {
+            teamId
+            gpEarned
+            cashedOut
+            tiles
+          }
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_SUBMISSIONS', () => {
+    const result = validateOperation(`
+      query SpoopySubmissions($eventId: ID!, $status: String) {
+        spoopySubmissions(eventId: $eventId, status: $status) {
+          submissionId
+          teamId
+          tileId
+          status
+          screenshotUrl
+          discordUserId
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
+describe('Spoopy Mutations', () => {
+  test('CREATE_SPOOPY_EVENT', () => {
+    const result = validateOperation(`
+      mutation CreateSpoopyEvent($input: CreateSpoopyEventInput!) {
+        createSpoopyEvent(input: $input) {
+          eventId
+          eventName
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('UPDATE_SPOOPY_EVENT_STATUS', () => {
+    const result = validateOperation(`
+      mutation UpdateSpoopyEventStatus($eventId: ID!, $status: SpoopyEventStatus!) {
+        updateSpoopyEventStatus(eventId: $eventId, status: $status) {
+          eventId
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SET_SPOOPY_EVENT_PASSWORD', () => {
+    const result = validateOperation(`
+      mutation SetSpoopyEventPassword($eventId: ID!, $password: String) {
+        setSpoopyEventPassword(eventId: $eventId, password: $password) {
+          eventId
+          eventPassword
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('UPDATE_SPOOPY_EVENT_BOARD', () => {
+    const result = validateOperation(`
+      mutation UpdateSpoopyEventBoard(
+        $eventId: ID!
+        $board: JSON
+        $contentById: JSON
+        $hauntedHouse: JSON
+        $startingTileIds: [String!]
+      ) {
+        updateSpoopyEventBoard(
+          eventId: $eventId
+          board: $board
+          contentById: $contentById
+          hauntedHouse: $hauntedHouse
+          startingTileIds: $startingTileIds
+        ) {
+          eventId
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('CREATE_SPOOPY_TEAM', () => {
+    const result = validateOperation(`
+      mutation CreateSpoopyTeam($eventId: ID!, $input: CreateSpoopyTeamInput!) {
+        createSpoopyTeam(eventId: $eventId, input: $input) {
+          teamId
+          teamName
+          discordChannelId
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('UPDATE_SPOOPY_TEAM_MEMBERS', () => {
+    const result = validateOperation(`
+      mutation UpdateSpoopyTeamMembers($teamId: ID!, $members: [String!]!) {
+        updateSpoopyTeamMembers(teamId: $teamId, members: $members) {
+          teamId
+          members
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('COMPLETE_SPOOPY_TILE', () => {
+    const result = validateOperation(`
+      mutation CompleteSpoopyTile($teamId: ID!, $tileId: String!) {
+        completeSpoopyTile(teamId: $teamId, tileId: $tileId) {
+          teamId
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SET_SPOOPY_TILE_PROGRESS', () => {
+    const result = validateOperation(`
+      mutation SetSpoopyTileProgress($teamId: ID!, $tileId: String!, $progress: Int!) {
+        setSpoopyTileProgress(teamId: $teamId, tileId: $tileId, progress: $progress) {
+          teamId
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('REVIEW_SPOOPY_SUBMISSION', () => {
+    const result = validateOperation(`
+      mutation ReviewSpoopySubmission($submissionId: ID!, $approved: Boolean!, $denialReason: String) {
+        reviewSpoopySubmission(submissionId: $submissionId, approved: $approved, denialReason: $denialReason) {
+          submissionId
+          status
+          reviewedBy
+          reviewedAt
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('CREATE_SPOOPY_CHOICE (bot)', () => {
+    const result = validateOperation(`
+      mutation CreateSpoopyChoice($input: CreateSpoopyChoiceInput!) {
+        createSpoopyChoice(input: $input) {
+          teamId
+          gpEarned
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('CREATE_SPOOPY_SUBMISSION (with type)', () => {
+    const result = validateOperation(`
+      mutation CreateSpoopySubmission($input: CreateSpoopySubmissionInput!) {
+        createSpoopySubmission(input: $input) {
+          submissionId
+          teamId
+          tileId
+          type
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('ENTER_SPOOPY_HAUNTED_HOUSE (bot)', () => {
+    const result = validateOperation(`
+      mutation EnterSpoopyHauntedHouse($input: EnterSpoopyHauntedHouseInput!) {
+        enterSpoopyHauntedHouse(input: $input) {
+          warningDialog
+          msRemaining
+          candybagTileId
+          currentGp
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('ADD_SPOOPY_ADMIN', () => {
+    const result = validateOperation(`
+      mutation AddSpoopyAdmin($eventId: ID!, $userId: ID!) {
+        addSpoopyAdmin(eventId: $eventId, userId: $userId) {
+          eventId
+          adminIds
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('REFRESH_SPOOPY_EVENT_FROM_MOCK', () => {
+    const result = validateOperation(`
+      mutation RefreshSpoopyEventFromMock($eventId: ID!) {
+        refreshSpoopyEventFromMock(eventId: $eventId) {
+          eventId
+          board
+          contentById
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SEED_SPOOPY_MOCK_EVENT', () => {
+    const result = validateOperation(`
+      mutation SeedSpoopyMockEvent {
+        seedSpoopyMockEvent { eventId eventName status }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_SPOOPY_EVENT', () => {
+    const result = validateOperation(`
+      mutation DeleteSpoopyEvent($eventId: ID!) {
+        deleteSpoopyEvent(eventId: $eventId)
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('DELETE_SPOOPY_TEAM', () => {
+    const result = validateOperation(`
+      mutation DeleteSpoopyTeam($teamId: ID!) {
+        deleteSpoopyTeam(teamId: $teamId)
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('REMOVE_SPOOPY_ADMIN', () => {
+    const result = validateOperation(`
+      mutation RemoveSpoopyAdmin($eventId: ID!, $userId: ID!) {
+        removeSpoopyAdmin(eventId: $eventId, userId: $userId) {
+          eventId
+          adminIds
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
+describe('Spoopy Subscriptions', () => {
+  test('SPOOPY_SUBMISSION_ADDED', () => {
+    const result = validateOperation(`
+      subscription SpoopySubmissionAdded($eventId: ID!) {
+        spoopySubmissionAdded(eventId: $eventId) {
+          submissionId
+          tileId
+          teamId
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_SUBMISSION_REVIEWED', () => {
+    const result = validateOperation(`
+      subscription SpoopySubmissionReviewed($eventId: ID!) {
+        spoopySubmissionReviewed(eventId: $eventId) {
+          submissionId
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_TEAM_BOARD_UPDATED', () => {
+    const result = validateOperation(`
+      subscription SpoopyTeamBoardUpdated($teamId: ID!) {
+        spoopyTeamBoardUpdated(teamId: $teamId) {
+          teamId
+          gpEarned
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+});
+
 console.log('✅ GraphQL Schema Validation Tests Loaded');

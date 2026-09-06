@@ -403,8 +403,19 @@ export function ProposalModal({
               </Text>
             )}
 
-            {/* FIRE button — only appears when approved */}
-            {isApproved && (
+            {/* FIRE button — only the proposer gets to pull the trigger */}
+            {isApproved && !isProposer && (
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                color="#4ade80"
+                textAlign="center"
+                fontWeight="semibold"
+              >
+                Approved — waiting for {proposerName} to fire.
+              </Text>
+            )}
+            {isApproved && isProposer && (
               <Button
                 size="lg"
                 bg={colorblindMode ? '#c2700a' : '#991b1b'}

@@ -15,7 +15,7 @@ module.exports = (sequelize) => {
     {
       boardId:           { type: DataTypes.STRING, primaryKey: true },
       eventId:           { type: DataTypes.STRING, allowNull: false },
-      teamId:            { type: DataTypes.STRING, allowNull: false },
+      teamId:            { type: DataTypes.STRING, allowNull: true },
       isPlacementLocked: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     { sequelize, modelName: 'BSBoard', tableName: 'BattleshipBoards' }

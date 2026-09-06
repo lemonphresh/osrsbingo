@@ -10,9 +10,10 @@ import {
 import { TeamsTab } from './TeamsTab';
 import { TaskGridTab } from './TaskGridTab';
 import { BSRefsTab } from './RefsTab';
+import { BSAdminsTab } from './AdminsTab';
 import { LaunchTab } from './LaunchTab';
 
-const DRAFT_TABS = ['Teams', 'Task Grid', 'Refs', 'Launch'];
+const DRAFT_TABS = ['Teams', 'Task Grid', 'Admins', 'Refs', 'Launch'];
 
 export default function BSEventDraftAdmin({ event, refetch }) {
   return (
@@ -54,6 +55,9 @@ export default function BSEventDraftAdmin({ event, refetch }) {
           </TabPanel>
           <TabPanel p={5}>
             <TaskGridTab event={event} refetch={refetch} />
+          </TabPanel>
+          <TabPanel p={5}>
+            <BSAdminsTab event={event} refetch={refetch} />
           </TabPanel>
           <TabPanel p={5}>
             <BSRefsTab event={event} refetch={refetch} />

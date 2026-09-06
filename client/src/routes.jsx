@@ -52,6 +52,10 @@ const RainbowBingoBoardPage = lazy(() => import('./pages/rainbow/RainbowBingoBoa
 const RainbowTeamBoardPage = lazy(() => import('./pages/rainbow/RainbowTeamBoardPage'));
 const RainbowRefsPage = lazy(() => import('./pages/rainbow/RainbowRefsPage'));
 const RainbowAdminPage = lazy(() => import('./pages/rainbow/RainbowAdminPage'));
+const SpoopyEventPage = lazy(() => import('./pages/spoopy/SpoopyEventPage'));
+const SpoopyRefsPage = lazy(() => import('./pages/spoopy/SpoopyRefsPage'));
+const SpoopyAdminPage = lazy(() => import('./pages/spoopy/SpoopyAdminPage'));
+const SpoopyPlaygroundPage = lazy(() => import('./pages/spoopy/SpoopyPlaygroundPage'));
 const EternalGemsPage = lazy(() => import('./pages/EternalGemsPage'));
 const BattleshipDashboard = lazy(() => import('./pages/battleship/BattleshipDashboard'));
 const BattleshipEventPage = lazy(() => import('./pages/battleship/BattleshipEventPage'));
@@ -59,6 +63,13 @@ const BattleshipCreatePage = lazy(() => import('./pages/battleship/BattleshipCre
 const BattleshipRefsPage = lazy(() => import('./pages/battleship/BattleshipRefsPage'));
 const BattleshipGuidePage = lazy(() => import('./pages/battleship/BattleshipGuidePage'));
 const BattleshipAdminPage = lazy(() => import('./pages/battleship/BattleshipAdminPage'));
+
+const WhodunnitLanding = lazy(() => import('./pages/whodunnit/WhodunnitLanding'));
+const WhodunnitCreatePage = lazy(() => import('./pages/whodunnit/WhodunnitCreatePage'));
+const WhodunnitCampaignPage = lazy(() => import('./pages/whodunnit/WhodunnitCampaignPage'));
+const WhodunnitSummaryPage = lazy(() => import('./pages/whodunnit/WhodunnitSummaryPage'));
+const WhodunnitAdminPage = lazy(() => import('./pages/whodunnit/WhodunnitAdminPage'));
+const WhodunnitPlayground = lazy(() => import('./pages/whodunnit/WhodunnitPlayground'));
 
 // loading fallback component
 const PageLoader = () => (
@@ -325,6 +336,26 @@ const routes = [
         errorElement: <ErrorPage />,
       },
       {
+        path: '/spoopy-event',
+        element: withSuspense(SpoopyEventPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/refs',
+        element: withSuspense(SpoopyRefsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/admin',
+        element: withSuspense(SpoopyAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/spoopy-event/playground',
+        element: withSuspense(SpoopyPlaygroundPage),
+        errorElement: <ErrorPage />,
+      },
+      {
         path: '/eternal-gems',
         element: withSuspense(EternalGemsPage),
         errorElement: <ErrorPage />,
@@ -357,6 +388,36 @@ const routes = [
       {
         path: '/battleship/:eventId/admin',
         element: withSuspense(BattleshipAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit',
+        element: withSuspense(WhodunnitLanding),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/new',
+        element: withSuspense(WhodunnitCreatePage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/campaign/:campaignId',
+        element: withSuspense(WhodunnitCampaignPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/campaign/:campaignId/complete',
+        element: withSuspense(WhodunnitSummaryPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/admin',
+        element: withSuspense(WhodunnitAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/whodunnit/playground',
+        element: withSuspense(WhodunnitPlayground),
         errorElement: <ErrorPage />,
       },
       {

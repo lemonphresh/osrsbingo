@@ -17,11 +17,12 @@
 
 const { getShipCells, shuffle } = require('../../utils/battleship/bsConfig');
 
-const EVENT_ID   = 'bs_wintest_01';
-const TEAM_1_ID  = 'bst_wt_red01';   // Red — lemon's team
-const TEAM_2_ID  = 'bst_wt_blu01';   // Blue — enemy
-const BOARD_1_ID = 'bsb_wt_red01';   // Red's board (Blue fires at this)
-const BOARD_2_ID = 'bsb_wt_blu01';   // Blue's board (Red fires at this)
+const EVENT_ID          = 'bs_wintest_01';
+const TEAM_1_ID         = 'bst_wt_red01';   // Red — lemon's team
+const TEAM_2_ID         = 'bst_wt_blu01';   // Blue — enemy
+const BOARD_1_ID        = 'bsb_wt_red01';   // Red's board (Blue fires at this)
+const BOARD_2_ID        = 'bsb_wt_blu01';   // Blue's board (Red fires at this)
+const TEMPLATE_BOARD_ID = 'bsb_wt_tmpl01';  // Template board (teamId=null)
 
 // lemon's discord ID
 const LEMON_DISCORD_ID = '166709806109818880';
@@ -199,6 +200,33 @@ module.exports = {
     }
 
     const oceanPool = OCEAN_TASKS.map((l) => taskMap.get(l));
+
+    // ── Template board ────────────────────────────────────────────────────────
+
+    await BSBoard.create({ boardId: TEMPLATE_BOARD_ID, eventId: EVENT_ID, teamId: null });
+
+    const templateShipTiles = [];
+    for (const [shipType, labels] of Object.entries(SHIP_TEMPLATE_TASKS)) {
+      for (let i = 0; i < labels.length; i++) {
+        templateShipTiles.push({
+          tileId: genId('bstl'), boardId: TEMPLATE_BOARD_ID,
+          row: null, col: null, shipType, cellIndex: i,
+          taskId: templateMap.get(`${shipType}:${i}`) ?? null,
+        });
+      }
+    }
+    await BSTile.bulkCreate(templateShipTiles);
+
+    const allPositions = [];
+    for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) allPositions.push({ row: r, col: c });
+    const shuffledPositions = shuffle(allPositions);
+    await BSTile.bulkCreate(
+      oceanPool.slice(0, 83).map((taskId, i) => ({
+        tileId: genId('bstl'), boardId: TEMPLATE_BOARD_ID,
+        row: shuffledPositions[i].row, col: shuffledPositions[i].col,
+        shipType: null, cellIndex: null, taskId,
+      }))
+    );
 
     // ── Boards & placements ───────────────────────────────────────────────────
 

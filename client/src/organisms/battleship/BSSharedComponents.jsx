@@ -65,7 +65,7 @@ export function BoardPanel({
       >
         {title}
       </Text>
-      <Box overflowX="auto">
+      <Box overflowX="auto" display="flex" justifyContent="center">
         <BSGrid
           tiles={tiles}
           showShips={showShips}

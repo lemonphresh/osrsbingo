@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { playBSSound, warmUpBSAudio } from '../../utils/battleship/bsAudio';
 import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
@@ -14,6 +15,8 @@ import {
   Divider,
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
+import { FaCrown } from 'react-icons/fa';
+import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 import BSEventDraftAdmin from '../../organisms/battleship/BSDraftAdmin';
 import { BSPlacementView } from '../../organisms/battleship/BSPlacementView';
 import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedComponents';
@@ -30,6 +33,7 @@ import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModa
 import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
+  GET_ACTIVE_BS_PROPOSAL,
   FIRE_BS,
   PROPOSE_BS_SHOT,
   VOTE_ON_BS_PROPOSAL,
@@ -37,6 +41,7 @@ import {
   PROPOSE_SKIP_TOKEN,
   VOTE_ON_SKIP_PROPOSAL,
   BS_TILE_UPDATED,
+  BS_SHOT_FIRED,
   BS_PROPOSAL_UPDATED,
   BS_SKIP_PROPOSAL_UPDATED,
   BS_GAME_OVER,
@@ -53,6 +58,34 @@ import {
   coordLabel,
 } from '../../utils/battleship/bsClientHelpers';
 import { isBattleshipEnabled } from '../../config/featureFlags';
+import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
+
+// Resolves a single team member: RSN → Discord username → truncated ID.
+function TeamMemberRow({ discordId }) {
+  const { data, loading } = useQuery(GET_USER_BY_DISCORD_ID, {
+    variables: { discordUserId: discordId },
+    fetchPolicy: 'cache-first',
+    skip: !discordId,
+  });
+  const u = data?.getUserByDiscordId;
+  const label =
+    u?.rsn ||
+    u?.discordUsername ||
+    u?.displayName ||
+    (loading ? '…' : `${(discordId ?? '').slice(0, 8)}…`);
+  return (
+    <HStack justify="space-between" spacing={2}>
+      <Text fontFamily="mono" fontSize="xs" color="#d4f0da" noOfLines={1}>
+        {label}
+      </Text>
+      {u?.rsn && u?.discordUsername && (
+        <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" noOfLines={1}>
+          @{u.discordUsername}
+        </Text>
+      )}
+    </HStack>
+  );
+}
 
 export default function BattleshipEventPage() {
   const { eventId } = useParams();
@@ -60,6 +93,14 @@ export default function BattleshipEventPage() {
   const { user: currentUser } = useAuth();
 
   usePageTitle('Battleship');
+
+  // Register the audio warm-up so sound effects can fire even when the tab
+  // is unfocused. Browsers block programmatic .play() until the user has
+  // interacted with the page; this attaches a one-shot pointer/keyboard
+  // listener that primes every pooled sound on first interaction.
+  useEffect(() => {
+    warmUpBSAudio();
+  }, []);
 
   const [colorblindMode, setColorblindMode] = useState(
     () => localStorage.getItem('bsColorblindMode') === 'true'
@@ -77,12 +118,15 @@ export default function BattleshipEventPage() {
     () => !localStorage.getItem(getBSBattleIntroKey(eventId))
   );
 
-  // Dev convenience — track which team index we're viewing as
-  const [viewingTeamIndex, setViewingTeamIndex] = useState(0);
+  // POV override: null = auto (follow the user's own team), otherwise the flipped index.
+  // Kept as an override so we don't render team[0] as a flash on refresh before we
+  // know which team the user is actually on.
+  const [povOverride, setPovOverride] = useState(null);
   const [highlightedCell] = useState(null);
   const [activeProposal, setActiveProposal] = useState(null);
   const [proposalHistory, setProposalHistory] = useState([]);
   const [activeSkipProposal, setActiveSkipProposal] = useState(null);
+  const prevApprovalsRef = useRef(0);
 
   // ── Queries ─────────────────────────────────────────────────────────────
 
@@ -159,6 +203,63 @@ export default function BattleshipEventPage() {
   const teams = event?.teams ?? [];
   const shotLog = shotLogData?.getBSShotLog ?? [];
 
+  // The user's actual team (independent of viewingTeam, which can be flipped by
+  // the POV toggle). Proposal subscriptions/queries must use this so a spectator
+  // or a user viewing the opposing board doesn't get vote prompts scoped to
+  // the wrong team's channel.
+  const myTeam =
+    event && currentUser?.discordUserId
+      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
+      : null;
+
+  // Derived POV: if the user hasn't flipped, follow their own team. Non-team
+  // members (spectators/refs/admins) default to team 0. This is computed
+  // synchronously so refreshes don't flash the wrong team's board before an
+  // effect can snap the index.
+  const myTeamIndex = myTeam ? teams.findIndex((t) => t.teamId === myTeam.teamId) : -1;
+  const viewingTeamIndex = povOverride != null ? povOverride : myTeamIndex >= 0 ? myTeamIndex : 0;
+
+  // Hydrate the active proposal on page load — the subscription only delivers
+  // future events, so refreshing mid-proposal (or arriving after a teammate
+  // proposed) would otherwise leave activeProposal null and let this user
+  // silently overwrite the pending proposal.
+  const applyActiveProposal = useCallback((p) => {
+    // Sync client state with server truth. Called from both the initial hydrate
+    // and the tab-focus refetch — closes any stale modal if the server has
+    // nothing pending (proposal was fired/vetoed while the tab was hidden).
+    if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+      return;
+    }
+    prevApprovalsRef.current = (p.approvals ?? []).length;
+    setActiveProposal(p);
+  }, []);
+
+  const { refetch: refetchActiveProposal } = useQuery(GET_ACTIVE_BS_PROPOSAL, {
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
+    fetchPolicy: 'network-only',
+    onCompleted: (data) => applyActiveProposal(data?.getActiveBSProposal),
+  });
+
+  // When the user tabs back, re-sync the proposal state from the server.
+  // Also refetch the event so tile state is fresh — this catches the case
+  // where the skip proposal was resolved while the tab was hidden and the
+  // CLEARED broadcast was missed.
+  useEffect(() => {
+    if (!myTeam?.teamId || event?.status !== 'ACTIVE') return;
+    const handler = () => {
+      if (document.visibilityState !== 'visible') return;
+      refetchActiveProposal({ teamId: myTeam.teamId })
+        .then(({ data }) => applyActiveProposal(data?.getActiveBSProposal))
+        .catch(() => {});
+      refetchEvent().catch(() => {});
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, [myTeam?.teamId, event?.status, refetchActiveProposal, applyActiveProposal, refetchEvent]);
+
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
   const opponentTeam = teams.find((_, i) => i !== viewingTeamIndex) ?? null;
@@ -166,16 +267,25 @@ export default function BattleshipEventPage() {
   const myBoard = viewingTeam?.board ?? null;
   const opponentBoard = opponentTeam?.board ?? null;
 
-  // Live-update when a ref marks any tile complete on either board
+  // Live-update when a ref marks any tile complete on either board. Also
+  // close a stale skip-proposal modal if the tile it targeted just flipped
+  // to `skipped` — belt-and-suspenders for the pubsub CLEARED broadcast.
+  const handleTileUpdate = ({ data }) => {
+    const tile = data?.data?.bsTileUpdated;
+    if (tile?.skipped && tile?.tileId && tile.tileId === activeSkipProposal?.tileId) {
+      setActiveSkipProposal(null);
+    }
+    refetchEvent();
+  };
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: myBoard?.boardId },
     skip: !myBoard?.boardId || event?.status !== 'ACTIVE',
-    onData: () => refetchEvent(),
+    onData: handleTileUpdate,
   });
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: opponentBoard?.boardId },
     skip: !opponentBoard?.boardId || event?.status !== 'ACTIVE',
-    onData: () => refetchEvent(),
+    onData: handleTileUpdate,
   });
 
   useSubscription(BS_GAME_OVER, {
@@ -184,28 +294,81 @@ export default function BattleshipEventPage() {
     onData: () => refetchEvent(),
   });
 
+  useSubscription(BS_SHOT_FIRED, {
+    variables: { eventId },
+    skip: event?.status !== 'ACTIVE',
+    onData: ({ data }) => {
+      const shot = data?.data?.bsShotFired;
+      if (!shot) return;
+      const isFiringTeam = shot.firingTeamId === viewingTeam?.teamId;
+      if (shot.result === 'HIT') {
+        if (isFiringTeam) playBSSound('directhit');
+        else playBSSound('imhitimhit');
+      } else {
+        playBSSound('splash');
+      }
+      // Refresh boards + shot log so the defending team's board reflects the new
+      // shot without requiring a page reload. The firing team's client already
+      // refetches via the fireBS onCompleted hook, but subscription-driven refetch
+      // is what keeps everyone else in sync.
+      refetchEvent();
+      refetchShotLog();
+      // Close any stale proposal modal on the firing team's clients. The
+      // BS_PROPOSAL_UPDATED CLEARED broadcast usually handles this, but this
+      // extra check makes sure a dropped/reordered subscription frame doesn't
+      // leave teammates staring at a modal for a proposal that already fired.
+      if (shot.firingTeamId === myTeam?.teamId) {
+        prevApprovalsRef.current = 0;
+        setActiveProposal(null);
+      }
+    },
+  });
+
   useSubscription(BS_PROPOSAL_UPDATED, {
-    variables: { teamId: viewingTeam?.teamId },
-    skip: !viewingTeam?.teamId || event?.status !== 'ACTIVE',
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
+        prevApprovalsRef.current = 0;
         setActiveProposal(null);
         return;
       }
       if (p.status === 'REJECTED') {
+        prevApprovalsRef.current = 0;
         setProposalHistory((h) => [...h, p]);
         setActiveProposal(null);
         showToast('Shot proposal vetoed. Pick a new target.', 'warning');
         return;
       }
+      const newCount = (p.approvals ?? []).length;
+      if (newCount > prevApprovalsRef.current) playBSSound('radar');
+      prevApprovalsRef.current = newCount;
       setActiveProposal(p);
     },
   });
 
+  // Close the proposal modal client-side the moment the TTL runs out.
+  // Server sweep also clears state, but its cron only runs every ~60s, so
+  // the modal would otherwise linger on "Expired" for up to a minute.
+  useEffect(() => {
+    if (!activeProposal?.expiresAt || activeProposal.status !== 'PENDING') return;
+    const msRemaining = new Date(activeProposal.expiresAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+      return;
+    }
+    const timeoutId = setTimeout(() => {
+      prevApprovalsRef.current = 0;
+      setActiveProposal(null);
+    }, msRemaining);
+    return () => clearTimeout(timeoutId);
+  }, [activeProposal?.expiresAt, activeProposal?.status]);
+
   useSubscription(BS_SKIP_PROPOSAL_UPDATED, {
-    variables: { teamId: viewingTeam?.teamId },
-    skip: !viewingTeam?.teamId || event?.status !== 'ACTIVE',
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsSkipProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
@@ -221,19 +384,58 @@ export default function BattleshipEventPage() {
     },
   });
 
+  // Same client-side TTL cleanup for skip proposals.
+  useEffect(() => {
+    if (!activeSkipProposal?.expiresAt || activeSkipProposal.status !== 'PENDING') return;
+    const msRemaining = new Date(activeSkipProposal.expiresAt).getTime() - Date.now();
+    if (msRemaining <= 0) {
+      setActiveSkipProposal(null);
+      return;
+    }
+    const timeoutId = setTimeout(() => setActiveSkipProposal(null), msRemaining);
+    return () => clearTimeout(timeoutId);
+  }, [activeSkipProposal?.expiresAt, activeSkipProposal?.status]);
+
+  // If the target tile is already resolved (skipped or task-complete) in the
+  // freshly-fetched event, drop the modal — covers the case where the CLEARED
+  // subscription frame was missed.
+  useEffect(() => {
+    if (!activeSkipProposal?.tileId) return;
+    const boards = [myBoard, opponentBoard].filter(Boolean);
+    for (const b of boards) {
+      const target = (b.tiles ?? []).find((t) => t.tileId === activeSkipProposal.tileId);
+      if (target && (target.skipped || target.taskCompleted)) {
+        setActiveSkipProposal(null);
+        return;
+      }
+    }
+  }, [activeSkipProposal?.tileId, myBoard, opponentBoard]);
+
   const myTiles = myBoard?.tiles ?? [];
   const opponentTiles = opponentBoard?.tiles ?? [];
 
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    if (!viewingTeam?.lastShotAt || !event?.cooldownMinutes) return;
-    const remaining = cooldownRemaining(viewingTeam.lastShotAt, event.cooldownMinutes);
+    const lastShot = (myTeam ?? viewingTeam)?.lastShotAt ?? viewingTeam?.lastShotAt;
+    if (!lastShot || !event?.cooldownMinutes) return;
+    const remaining = cooldownRemaining(lastShot, event.cooldownMinutes);
     if (remaining <= 0) return;
     const id = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(id);
-  }, [viewingTeam?.lastShotAt, event?.cooldownMinutes]);
+    // Depend on the primitive timestamps rather than the parent objects to avoid
+    // re-running the effect on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myTeam?.lastShotAt, viewingTeam?.lastShotAt, event?.cooldownMinutes]);
 
   const cooldownMs = cooldownRemaining(viewingTeam?.lastShotAt, event?.cooldownMinutes, now);
+  // Alert-light + fire-gate should follow the USER's team, not whichever team
+  // the POV is currently on. If the user isn't on a team (spectator), fall back
+  // to the viewing team so the light still reads sensibly.
+  const myCooldownMs = cooldownRemaining(
+    (myTeam ?? viewingTeam)?.lastShotAt,
+    event?.cooldownMinutes,
+    now,
+  );
 
   // The viewing team's active task: the last tile THEY fired at (on the opponent's board)
   // that hasn't been marked complete yet. Blocks firing until done.
@@ -261,10 +463,6 @@ export default function BattleshipEventPage() {
   const isAdminOrRef =
     isAdmin || !!(event && currentUser && (event.refIds ?? []).includes(String(currentUser.id)));
 
-  const myTeam =
-    event && currentUser?.discordUserId
-      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
-      : null;
   const isSpectator = !!event && event.status === 'ACTIVE' && !myTeam;
 
   const resolvedTeamMembers = useDiscordUsernames(
@@ -285,14 +483,18 @@ export default function BattleshipEventPage() {
   );
 
   const handleSwitchPov = () => {
-    setViewingTeamIndex((prev) => (teams.length > 1 ? (prev + 1) % teams.length : prev));
+    if (teams.length <= 1) return;
+    setPovOverride(teams.length > 0 ? (viewingTeamIndex + 1) % teams.length : 0);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (!isBattleshipEnabled(currentUser)) return <Navigate to="/" replace />;
 
-  if (eventLoading) {
+  // Only show the full-page spinner on the initial load — once we have data,
+  // keep showing the current view during background refetches so the screen
+  // doesn't flash a spinner every time something updates.
+  if (eventLoading && !event) {
     return (
       <Center flex="1" minH="60vh" bg="#060f0a">
         <Spinner size="xl" color="green.500" thickness="3px" speed="0.8s" emptyColor="#1a4028" />
@@ -413,12 +615,14 @@ export default function BattleshipEventPage() {
               fontFamily="mono"
               fontSize="10px"
               letterSpacing="wider"
+              leftIcon={<FaCrown />}
               onClick={handleSwitchPov}
               _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
             >
               Switch POV
             </Button>
           )}
+          <BSVolumeControl />
           <Button
             size="xs"
             variant={colorblindMode ? 'solid' : 'outline'}
@@ -460,6 +664,7 @@ export default function BattleshipEventPage() {
                 fontFamily="mono"
                 fontSize="10px"
                 letterSpacing="wider"
+                leftIcon={<FaCrown />}
                 _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
               >
                 Admin
@@ -515,6 +720,7 @@ export default function BattleshipEventPage() {
         currentUser={currentUser}
         topBar={topBar}
         refetch={refetchEvent}
+        colorblindMode={colorblindMode}
       />
     );
   }
@@ -533,7 +739,7 @@ export default function BattleshipEventPage() {
   // ── Status: ACTIVE (spectator) ────────────────────────────────────────────
 
   if (isSpectator) {
-    return <BSSpectatorView event={event} refetch={refetchEvent} />;
+    return <BSSpectatorView event={event} refetch={refetchEvent} colorblindMode={colorblindMode} />;
   }
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────
@@ -588,6 +794,24 @@ export default function BattleshipEventPage() {
                     : '#1a4028'
                   : '#1a4028';
 
+                // Alert-light state: red while on a task, yellow while a vote is
+                // pending or the cooldown is active, green when the team is free
+                // to fire. Yellow uses distinct labels so the reason is clear.
+                const alertState = pendingTask
+                  ? 'RED'
+                  : hasPendingProposal
+                  ? 'VOTING'
+                  : myCooldownMs > 0
+                  ? 'COOLDOWN'
+                  : 'READY';
+                const YELLOW = { core: '#facc15', glow: 'rgba(250,204,21,0.7)' };
+                const alertPalette = {
+                  RED:      { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
+                  VOTING:   { ...YELLOW, label: 'VOTING' },
+                  COOLDOWN: { ...YELLOW, label: 'COOLDOWN' },
+                  READY:    { core: '#4ade80', glow: 'rgba(74,222,128,0.7)',  label: 'READY' },
+                }[alertState];
+
                 return (
                   <Box
                     bg="#060f0a"
@@ -597,43 +821,105 @@ export default function BattleshipEventPage() {
                     px={4}
                     py={3}
                   >
-                    <HStack
-                      spacing={0}
-                      align="center"
-                      flexWrap="wrap"
-                      rowGap={2}
-                      divider={
-                        <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
-                          /
-                        </Text>
-                      }
+                    <Text
+                      fontFamily="mono"
+                      fontSize="10px"
+                      color="#6b9e78"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      mb={2}
                     >
-                      {steps.map((label, i) => (
-                        <HStack key={i} spacing={2}>
-                          <Box
-                            w="16px"
-                            h="16px"
-                            borderRadius="full"
-                            bg="#1a4028"
-                            display="flex"
-                            alignItems="center"
-                            justifyContent="center"
-                            flexShrink={0}
-                          >
-                            <Text
-                              fontFamily="mono"
-                              fontSize="9px"
-                              color={dotColor}
-                              fontWeight="bold"
-                            >
-                              {i + 1}
-                            </Text>
-                          </Box>
-                          <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                            {label}
+                      Current Orders
+                    </Text>
+                    <HStack spacing={4} align="center" flexWrap="wrap">
+                      {/* Submarine alert light */}
+                      <HStack
+                        spacing={2}
+                        align="center"
+                        flexShrink={0}
+                        px={2}
+                        py={1}
+                        bg="#020604"
+                        border="1px solid"
+                        borderColor="#1a4028"
+                        borderRadius="sm"
+                        title={`Status: ${alertPalette.label}`}
+                      >
+                        <Box
+                          w="14px"
+                          h="14px"
+                          borderRadius="full"
+                          bg={alertPalette.core}
+                          position="relative"
+                          sx={{
+                            background: `radial-gradient(circle at 35% 30%, #ffffffaa 0%, ${alertPalette.core} 40%, ${alertPalette.core} 100%)`,
+                            boxShadow: `0 0 6px 1px ${alertPalette.glow}, 0 0 14px 2px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                            animation: 'bsAlertPulse 1.6s ease-in-out infinite',
+                            '@keyframes bsAlertPulse': {
+                              '0%, 100%': {
+                                boxShadow: `0 0 4px 1px ${alertPalette.glow}, 0 0 8px 1px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                                opacity: 0.85,
+                              },
+                              '50%': {
+                                boxShadow: `0 0 10px 2px ${alertPalette.glow}, 0 0 20px 4px ${alertPalette.glow}, inset 0 0 3px rgba(0,0,0,0.4)`,
+                                opacity: 1,
+                              },
+                            },
+                          }}
+                        />
+                        <Text
+                          fontFamily="mono"
+                          fontSize="9px"
+                          letterSpacing="widest"
+                          color={alertPalette.core}
+                          fontWeight="bold"
+                          textTransform="uppercase"
+                        >
+                          {alertPalette.label}
+                        </Text>
+                      </HStack>
+
+                      {/* Steps */}
+                      <HStack
+                        spacing={0}
+                        align="center"
+                        flexWrap="wrap"
+                        rowGap={2}
+                        flex={1}
+                        minW={0}
+                        divider={
+                          <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
+                            /
                           </Text>
-                        </HStack>
-                      ))}
+                        }
+                      >
+                        {steps.map((label, i) => (
+                          <HStack key={i} spacing={2}>
+                            <Box
+                              w="16px"
+                              h="16px"
+                              borderRadius="full"
+                              bg="#1a4028"
+                              display="flex"
+                              alignItems="center"
+                              justifyContent="center"
+                              flexShrink={0}
+                            >
+                              <Text
+                                fontFamily="mono"
+                                fontSize="9px"
+                                color={dotColor}
+                                fontWeight="bold"
+                              >
+                                {i + 1}
+                              </Text>
+                            </Box>
+                            <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+                              {label}
+                            </Text>
+                          </HStack>
+                        ))}
+                      </HStack>
                     </HStack>
                   </Box>
                 );
@@ -961,18 +1247,27 @@ export default function BattleshipEventPage() {
             </VStack>
           </Box>
 
-          {/* Right sidebar — team status */}
+          {/* Right sidebar — team status. Regular players only see their own
+              team (skip tokens etc. are intel the opposing team shouldn't have);
+              admins and refs see both teams for oversight. */}
           <Box>
             <VStack align="stretch" spacing={4}>
-              <SectionLabel>Fleet Status</SectionLabel>
-              {teams.map((team, i) => (
-                <TeamStatusCard
-                  key={team.teamId}
-                  team={team}
-                  cooldownMinutes={event.cooldownMinutes}
-                  isViewing={i === viewingTeamIndex}
-                />
-              ))}
+              <SectionLabel>
+                {isAdminOrRef ? 'Fleet Status' : 'Your Team'}
+              </SectionLabel>
+              {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map(
+                (team) => {
+                  const i = teams.findIndex((t) => t.teamId === team.teamId);
+                  return (
+                    <TeamStatusCard
+                      key={team.teamId}
+                      team={team}
+                      cooldownMinutes={event.cooldownMinutes}
+                      isViewing={i === viewingTeamIndex}
+                    />
+                  );
+                },
+              )}
 
               <Divider borderColor="#1a4028" />
 
@@ -1020,6 +1315,27 @@ export default function BattleshipEventPage() {
                     </Text>
                   </HStack>
                 </VStack>
+
+                {(viewingTeam?.members ?? []).length > 0 && (
+                  <>
+                    <Divider borderColor="#1a4028" my={3} />
+                    <Text
+                      fontFamily="mono"
+                      fontSize="10px"
+                      color="#6b9e78"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      mb={2}
+                    >
+                      {viewingTeam?.teamName ?? 'Team'} Members
+                    </Text>
+                    <VStack align="stretch" spacing={1}>
+                      {(viewingTeam?.members ?? []).map((discordId) => (
+                        <TeamMemberRow key={discordId} discordId={discordId} />
+                      ))}
+                    </VStack>
+                  </>
+                )}
               </Box>
             </VStack>
           </Box>

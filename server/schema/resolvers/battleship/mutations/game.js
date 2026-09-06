@@ -8,6 +8,7 @@ const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSShipSunk, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
 const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
+const { clearProposal, getProposal } = require('../../../../utils/battleship/bsProposals');
 
 const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -32,7 +33,8 @@ module.exports = {
     requireAdmin(event, user.id);
     if (event.status !== 'PLACEMENT') throw new UserInputError('Event must be in PLACEMENT status to start game');
 
-    const boards = await BSBoard.findAll({ where: { eventId } });
+    const { Op } = require('sequelize');
+    const boards = await BSBoard.findAll({ where: { eventId, teamId: { [Op.ne]: null } } });
     if (boards.length !== 2) throw new UserInputError('Exactly 2 teams with boards are required');
 
     return runBSGameStart(event);
@@ -46,20 +48,31 @@ module.exports = {
 
     // Determine firing team — explicit override (dev/admin) or membership lookup
     const teams = await BSTeam.findAll({ where: { eventId } });
+    const isAdminFiring = user.admin || (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
     let firingTeam;
     if (firingTeamId) {
       firingTeam = teams.find((t) => t.teamId === firingTeamId);
       if (!firingTeam) throw new UserInputError('Specified firing team not found');
+      // Only admins can fire on behalf of a team they aren't on.
+      if (!isAdminFiring && !(firingTeam.members ?? []).includes(user.discordUserId)) {
+        throw new UserInputError('You are not on this team');
+      }
     } else {
-      firingTeam = teams.find((t) => t.members.includes(user.discordUserId));
+      firingTeam = teams.find((t) => (t.members ?? []).includes(user.discordUserId));
     }
     if (!firingTeam) throw new UserInputError('You are not a member of any team in this event');
 
-    // Refs/admins must specify teamId explicitly — for regular players it's derived above.
-    // If user is admin firing on behalf, we still require them to be scoped to a team.
-    // (Admins can use addBSTeam to add themselves to a team for testing.)
-
-    const isAdminFiring = user.admin || (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
+    // Regular players can only fire via an approved proposal at these coordinates.
+    // Admins bypass — they're allowed direct overrides for moderation.
+    if (!isAdminFiring) {
+      const proposal = getProposal(firingTeam.teamId);
+      if (!proposal || proposal.status !== 'APPROVED') {
+        throw new UserInputError('No approved shot proposal for this team.');
+      }
+      if (proposal.row !== row || proposal.col !== col) {
+        throw new UserInputError('Firing coordinates do not match the approved proposal.');
+      }
+    }
 
     // Cooldown check (admins bypass)
     if (!isAdminFiring && firingTeam.lastShotAt) {
@@ -88,6 +101,8 @@ module.exports = {
     await tile.update({ isShot: true, shotAt: now });
     if (!isAdminFiring) await firingTeam.update({ lastShotAt: now });
 
+    const effectiveShotTaskId = tile.shipTaskId ?? tile.taskId;
+
     const shot = await BSShotLog.create({
       shotId:        generateId('bssl'),
       eventId,
@@ -96,16 +111,23 @@ module.exports = {
       tileId:        tile.tileId,
       row, col,
       result: isHit ? 'HIT' : 'MISS',
-      taskId: tile.taskId,
+      taskId: effectiveShotTaskId,
       shotAt: now,
     });
 
     await pubsub.publish(`BS_SHOT_FIRED_${eventId}`, { bsShotFired: shot });
     await pubsub.publish(`BS_BOARD_UPDATED_${eventId}`, { bsBoardUpdated: targetBoard });
 
+    // Dismiss any pending proposal for the firing team — the shot has been fired, so
+    // teammates who were still on the vote modal need it to close.
+    clearProposal(firingTeam.teamId);
+    await pubsub.publish(`BS_PROPOSAL_${firingTeam.teamId}`, {
+      bsProposalUpdated: { proposalId: null, firingTeamId: firingTeam.teamId, status: 'CLEARED' },
+    });
+
     // Discord notifications (best-effort, don't await)
     const { BSTask } = getModels();
-    const task = tile.taskId ? await BSTask.findByPk(tile.taskId) : null;
+    const task = effectiveShotTaskId ? await BSTask.findByPk(effectiveShotTaskId) : null;
     const taskLabel = task?.label ?? 'Unknown task';
     const metric = task?.metricLabel ?? null;
     const coord = bsCoord(row, col);
@@ -154,17 +176,36 @@ module.exports = {
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
 
     // Resolve task info for Discord messages
-    const task = tile.taskId ? await BSTask.findByPk(tile.taskId) : null;
+    const effectiveTaskId = tile.shipTaskId ?? tile.taskId;
+    const task = effectiveTaskId ? await BSTask.findByPk(effectiveTaskId) : null;
     const taskLabel = task?.label ?? 'task';
     const coord = bsCoord(tile.row, tile.col);
 
-    // The board that was shot belongs to the team that must complete the task (they fired last)
-    // That team's firing unlocked this tile — they get the "you can fire again" message
+    // Precompute ship-sunk / all-sunk status so we can decide what to post
+    // and in what order. Ship-related checks only apply to ship tiles while
+    // the event is ACTIVE.
     const allTeams = await BSTeam.findAll({ where: { eventId: event.eventId } });
     const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
+    const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
 
-    if (firingTeam?.discordChannelId) {
-      postBSTaskComplete({
+    let thisShipSunk = false;
+    let allSunk = false;
+    if (tile.shipType && event.status === 'ACTIVE') {
+      const { Op } = require('sequelize');
+      const shipTiles = await BSTile.findAll({
+        where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
+      });
+      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
+      thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+      allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+    }
+
+    // Post messages in a deterministic order (task-complete → ship-sunk →
+    // game-over) by awaiting each in turn. Skip the "you can fire again"
+    // task-complete post when the game is over — the win announcement makes
+    // the fire-again invite nonsensical.
+    if (!allSunk && firingTeam?.discordChannelId) {
+      await postBSTaskComplete({
         channelId: firingTeam.discordChannelId,
         teamName: firingTeam.teamName,
         taskLabel,
@@ -173,56 +214,43 @@ module.exports = {
       });
     }
 
-    // Ship sunk + win condition: only ship tiles can trigger either
-    if (tile.shipType && event.status === 'ACTIVE') {
-      const { Op } = require('sequelize');
-      const shipTiles = await BSTile.findAll({
-        where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
+    if (thisShipSunk) {
+      await postBSShipSunk({
+        firingChannelId:    firingTeam?.discordChannelId,
+        defendingChannelId: defendingTeam?.discordChannelId,
+        shipType:           tile.shipType,
+        firingTeamName:     firingTeam?.teamName,
+        defendingTeamName:  defendingTeam?.teamName,
+        eventId:            event.eventId,
       });
+    }
 
-      // Per-ship sunk check
-      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
-      const thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
-      if (thisShipSunk) {
-        const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
-        const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
-        postBSShipSunk({
-          firingChannelId: firingTeam?.discordChannelId,
-          defendingChannelId: defendingTeam?.discordChannelId,
-          shipType: tile.shipType,
-          firingTeamName: firingTeam?.teamName,
-          defendingTeamName: defendingTeam?.teamName,
+    if (allSunk) {
+      const winningTeam = firingTeam;
+      const losingTeam  = defendingTeam;
+      const completedAt = new Date();
+      await BSEvent.update(
+        { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
+        { where: { eventId: event.eventId } }
+      );
+      await pubsub.publish(`BS_GAME_OVER_${event.eventId}`, {
+        bsGameOver: {
           eventId: event.eventId,
-        });
-      }
-
-      const allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
-      if (allSunk) {
-        const winningTeam = allTeams.find((t) => t.teamId !== board.teamId);
-        const losingTeam  = allTeams.find((t) => t.teamId === board.teamId);
-        const completedAt = new Date();
-        await BSEvent.update(
-          { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
-          { where: { eventId: event.eventId } }
-        );
-        await pubsub.publish(`BS_GAME_OVER_${event.eventId}`, {
-          bsGameOver: {
+          winnerId: winningTeam.teamId,
+          losingTeamId: board.teamId,
+          completedAt,
+        },
+      });
+      // Notify both teams — sequential await so both posts land after the
+      // ship-sunk one (and thus in a logical read-order).
+      for (const team of allTeams) {
+        if (team.discordChannelId) {
+          await postBSGameOver({
+            channelId: team.discordChannelId,
+            winnerName: winningTeam.teamName,
+            loserName: losingTeam.teamName,
             eventId: event.eventId,
-            winnerId: winningTeam.teamId,
-            losingTeamId: board.teamId,
-            completedAt,
-          },
-        });
-        // Notify both teams
-        for (const team of allTeams) {
-          if (team.discordChannelId) {
-            postBSGameOver({
-              channelId: team.discordChannelId,
-              winnerName: winningTeam.teamName,
-              loserName: losingTeam.teamName,
-              eventId: event.eventId,
-            });
-          }
+          });
         }
       }
     }
@@ -246,17 +274,28 @@ module.exports = {
     const firingTeam = teams.find((t) => t.teamId !== board.teamId);
     if (!firingTeam) throw new UserInputError('Could not determine firing team');
 
-    const isAdmin = (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
-    if (!isAdmin) {
+    // Only a true site-admin (user.admin) bypasses tokens/proposals — event
+    // creators/admins who are ALSO on the team should follow the same rules as
+    // other team members, otherwise they can skip infinitely.
+    const isSiteAdmin = user.admin === true;
+    if (!isSiteAdmin) {
       if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
       if (!firingTeam.members.includes(user.discordUserId)) {
         throw new UserInputError('Only the firing team can use skip tokens');
       }
     }
+    const isAdmin = isSiteAdmin;
 
-    if (firingTeam.skipTokens <= 0 && !isAdmin) throw new UserInputError('No skip tokens remaining');
-
-    if (!isAdmin) await firingTeam.update({ skipTokens: firingTeam.skipTokens - 1 });
+    // Skipping consumes a token but resets the cooldown so the team can fire
+    // again immediately — no penalty on top of the token cost.
+    if (!isAdmin) {
+      await firingTeam.update({
+        skipTokens: firingTeam.skipTokens - 1,
+        lastShotAt: null,
+      });
+    } else {
+      await firingTeam.update({ lastShotAt: null });
+    }
     await tile.update({ skipped: true, taskCompletedAt: new Date() });
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
     clearSkipProposal(firingTeam.teamId);

@@ -12,6 +12,7 @@ module.exports = (sequelize) => {
     {
       taskId:      { type: DataTypes.STRING, primaryKey: true },
       eventId:     { type: DataTypes.STRING, allowNull: false },
+      contentId:   { type: DataTypes.STRING, allowNull: true },
       label:       { type: DataTypes.STRING, allowNull: false },
       bossOrSkill: { type: DataTypes.STRING, allowNull: true },
       metricType:  { type: DataTypes.STRING, allowNull: true },

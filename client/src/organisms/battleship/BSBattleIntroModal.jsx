@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { playBSSound } from '../../utils/battleship/bsAudio';
 import {
   Modal,
   ModalOverlay,
@@ -80,6 +81,7 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
 
   const handleConfirm = () => {
     localStorage.setItem(getBSBattleIntroKey(eventId), 'true');
+    playBSSound('gogogo');
     onClose();
   };
 
@@ -95,7 +97,17 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
       <ModalOverlay bg="blackAlpha.900" backdropFilter="blur(4px)" />
       <ModalContent bg={CARD} border="1px solid" borderColor={BORDER} maxH="85vh" overflow="hidden">
         {/* Hero with grid background */}
-        <Box position="relative" px={6} pt={6} pb={5} overflow="hidden">
+        <Box
+          position="relative"
+          px={6}
+          pt={6}
+          pb={5}
+          overflow="hidden"
+          bg={CARD}
+          borderBottom="1px solid"
+          borderColor={BORDER}
+          flexShrink={0}
+        >
           <Box
             position="absolute"
             inset={0}
@@ -103,7 +115,6 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
             pointerEvents="none"
             backgroundImage={`repeating-linear-gradient(0deg, ${CYAN} 0px, ${CYAN} 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, ${CYAN} 0px, ${CYAN} 1px, transparent 1px, transparent 40px)`}
           />
-          <Box position="absolute" bottom={0} left={0} right={0} h="1px" bg={BORDER} />
           <VStack align="flex-start" spacing={1} position="relative" zIndex={1}>
             <Text
               fontFamily="mono"

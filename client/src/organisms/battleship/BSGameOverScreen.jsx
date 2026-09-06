@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Box, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-ui/react';
+import { Box, IconButton, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { FaPlay, FaPause } from 'react-icons/fa';
 import BSGrid from './BSGrid';
 import { coordLabel } from '../../utils/battleship/bsClientHelpers';
+import {
+  playBSSong,
+  stopBSSong,
+  toggleBSSong,
+  getBSSongState,
+  subscribeBSSongState,
+} from '../../utils/battleship/bsAudio';
+import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 
 const G = '#4ade80';
 const DIM = '#3d6b4a';
@@ -110,13 +119,21 @@ function Cursor() {
 // ── Terminal line ────────────────────────────────────────────────────────────
 
 function TermLine({ line }) {
+  // Some browsers render the ▓ block glyph tall enough to visually clip into
+  // the line above it — add a bit of vertical breathing room on those lines.
+  const isBlockBar = typeof line.text === 'string' && line.text.includes('▓');
   const textProps = {
     fontSize: 'xs',
     color: line.color ?? G,
     letterSpacing: 'wide',
     lineHeight: '1.85',
-    whiteSpace: 'pre',
+    // Preserve the terminal's monospace alignment on desktop, but allow
+    // wrapping on narrow screens so the animation doesn't overflow off-page.
+    whiteSpace: { base: 'pre-wrap', md: 'pre' },
+    wordBreak: { base: 'break-word', md: 'normal' },
     display: 'block',
+    mt: isBlockBar ? 2 : undefined,
+    mb: isBlockBar ? 1 : undefined,
     sx: line.glow ? { textShadow: `0 0 8px ${line.color ?? G}` } : undefined,
   };
   const inner = (
@@ -174,7 +191,7 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
             p={4}
             bg="#060f0a"
           >
-            <VStack align="flex-start" spacing={3}>
+            <VStack align="stretch" spacing={3}>
               <VStack align="flex-start" spacing={0}>
                 <Text
                   fontSize="9px"
@@ -195,7 +212,9 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
                   {team?.teamName ?? '—'}
                 </Text>
               </VStack>
-              <BSGrid tiles={team?.board?.tiles ?? []} showShips colorblindMode={colorblindMode} />
+              <Box display="flex" justifyContent="center" w="100%">
+                <BSGrid tiles={team?.board?.tiles ?? []} showShips colorblindMode={colorblindMode} />
+              </Box>
             </VStack>
           </Box>
         ))}
@@ -208,10 +227,18 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
 
 export function BSGameOverScreen({ event, shotLog }) {
   const colorblindMode = localStorage.getItem('bsColorblindMode') === 'true';
-  const sessionKey = `bs_gameover_typed_${event.eventId}`;
-  const alreadySeen = Boolean(
-    typeof sessionStorage !== 'undefined' && sessionStorage.getItem(sessionKey)
-  );
+  // The typewriter animation runs on every visit/refresh. Once someone has
+  // seen it through at least once (per browser, per event), we surface a
+  // "Skip to end" button so they can bypass on re-watches.
+  const seenKey = `bs_gameover_seen_${event.eventId}`;
+  const [hasSeenBefore, setHasSeenBefore] = useState(() => {
+    try {
+      return localStorage.getItem(seenKey) === 'true';
+    } catch (_) {
+      return false;
+    }
+  });
+  const [manualSkip, setManualSkip] = useState(false);
 
   const winnerTeam = event.teams.find((t) => t.teamId === event.winnerId);
   const loserTeam = event.teams.find((t) => t.teamId !== event.winnerId);
@@ -379,24 +406,73 @@ export function BSGameOverScreen({ event, shotLog }) {
     ];
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const { displayLines, done } = useTypewriter(lines, alreadySeen);
+  // Typewriter runs on every mount; if the user hit "Skip to end" we flip
+  // its `skip` flag so it jumps straight to the done state.
+  const { displayLines, done } = useTypewriter(lines, manualSkip);
 
   // Scroll to top on first load only
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Mark seen in sessionStorage once animation finishes
+  // Play the victory song alongside the typewriter animation.
   useEffect(() => {
-    if (done && !alreadySeen) {
+    playBSSong();
+    return () => stopBSSong();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Track song state so the play/pause button reflects reality (including the
+  // 'stopped' state that fires when the song ends naturally).
+  const [songState, setSongState] = useState(() => getBSSongState());
+  useEffect(() => subscribeBSSongState(setSongState), []);
+
+  // Mark seen in localStorage once the animation completes so the Skip
+  // button becomes available on future visits/refreshes.
+  useEffect(() => {
+    if (done && !hasSeenBefore) {
       try {
-        sessionStorage.setItem(sessionKey, 'true');
+        localStorage.setItem(seenKey, 'true');
       } catch (_) {}
+      setHasSeenBefore(true);
     }
-  }, [done, alreadySeen, sessionKey]);
+  }, [done, hasSeenBefore, seenKey]);
 
   return (
     <Box minH="100vh" bg={BG} color={G} fontFamily="mono" position="relative">
+      {/* Volume + song play/pause. Always visible so revisitors can start the
+          song back up from the top. Skip-to-end shows only after the user has
+          watched the animation through at least once. */}
+      <HStack position="fixed" top={4} right={4} zIndex={10} spacing={2}>
+        {hasSeenBefore && !done && (
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor="#1a4028"
+            color="#6b9e78"
+            fontFamily="mono"
+            fontSize="10px"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            _hover={{ borderColor: G, color: G }}
+            onClick={() => setManualSkip(true)}
+          >
+            Skip to end
+          </Button>
+        )}
+        <IconButton
+          size="sm"
+          variant="outline"
+          borderColor="#1a4028"
+          color={songState === 'playing' ? G : '#6b9e78'}
+          _hover={{ borderColor: G, color: G }}
+          aria-label={songState === 'playing' ? 'Pause victory song' : 'Play victory song'}
+          title={songState === 'playing' ? 'Pause song' : 'Play song'}
+          icon={songState === 'playing' ? <FaPause /> : <FaPlay />}
+          onClick={toggleBSSong}
+        />
+        <BSVolumeControl size="sm" />
+      </HStack>
+
       {/* CRT scanline overlay */}
       <Box
         position="fixed"
@@ -458,6 +534,54 @@ export function BSGameOverScreen({ event, shotLog }) {
                 ♥ Support the Dev
               </Button>
             </HStack>
+          </Center>
+
+          {/* Special thanks — shoutout to the folks who helped test/build Battleship,
+              plus this event's refs. */}
+          <Center mt={10}>
+            <VStack spacing={5} textAlign="center">
+              {(event.refs ?? []).length > 0 && (
+                <VStack spacing={2}>
+                  <Text
+                    fontFamily="mono"
+                    fontSize="10px"
+                    color={AMBER}
+                    letterSpacing="widest"
+                    textTransform="uppercase"
+                  >
+                    ── Referees ──
+                  </Text>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM} letterSpacing="wide">
+                    {event.refs
+                      .map((r) => r.displayName || r.username)
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                  <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide">
+                    for verifying every submission this campaign and volunteering their free time to
+                    help us have fun
+                  </Text>
+                </VStack>
+              )}
+            </VStack>
+
+            <VStack spacing={2}>
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color={AMBER}
+                letterSpacing="widest"
+                textTransform="uppercase"
+              >
+                ── Special Thanks from the Dev ──
+              </Text>
+              <Text fontFamily="mono" fontSize="xs" color={DIM} letterSpacing="wide">
+                Pirate Kanye · Callalillly · Mossy Way · Healsha · Lyreth
+              </Text>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide">
+                for testing, feedback, and keeping the fleet afloat
+              </Text>
+            </VStack>
           </Center>
         </Box>
       )}

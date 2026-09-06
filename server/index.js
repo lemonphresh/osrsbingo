@@ -30,6 +30,7 @@ const { startWomSyncScheduler } = require('./utils/womSync');
 const { startGroupGoalScheduler } = require('./utils/groupDashboard/groupGoalScheduler');
 const { startTrackScapeScheduler } = require('./utils/trackScape/trackScapeScheduler');
 const { startRainbowEventScheduler } = require('./utils/rainbow/rainbowEventScheduler');
+const { startSpoopyEventScheduler } = require('./utils/spoopy/spoopyEventScheduler');
 const { startCFTurnTimer } = require('./utils/championForge/cfTurnTimer');
 const { startBSScheduler } = require('./utils/battleship/bsScheduler');
 const logger = require('./utils/logger');
@@ -377,7 +378,20 @@ const serverCleanup = useServer(
       if (token) {
         try {
           const decoded = jwt.verify(token, SECRET);
-          user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
+          let freshDiscordUserId = decoded.discordUserId ?? null;
+          let freshAdmin = decoded.admin === true;
+          try {
+            const dbUser = await models.User.findByPk(decoded.userId, {
+              attributes: ['discordUserId', 'admin'],
+            });
+            if (dbUser) {
+              freshDiscordUserId = dbUser.discordUserId ?? null;
+              freshAdmin = dbUser.admin === true;
+            }
+          } catch (err) {
+            logger.warn({ err: err.message }, 'failed to refresh user fields from DB (ws)');
+          }
+          user = { id: decoded.userId, admin: freshAdmin, discordUserId: freshDiscordUserId };
           logger.info({ userId: user.id }, 'WebSocket authenticated');
         } catch (err) {
           logger.warn('Invalid WebSocket token');
@@ -397,7 +411,7 @@ const serverCleanup = useServer(
 const server = new ApolloServer({
   typeDefs,
   resolvers,
-  context: ({ req, res }) => {
+  context: async ({ req, res }) => {
     const token = req.headers.authorization?.replace('Bearer ', '') || '';
     let user = null;
     const discordUserId = req.headers['x-discord-user-id'];
@@ -408,7 +422,24 @@ const server = new ApolloServer({
     if (token) {
       try {
         const decoded = jwt.verify(token, SECRET);
-        user = { id: decoded.userId, admin: decoded.admin, discordUserId: decoded.discordUserId ?? null };
+        // JWT holds a snapshot of user fields at login. Refresh from DB so
+        // discordUserId (updated by OAuth link) and admin (revoked by settings)
+        // are always current — otherwise privilege changes don't take effect
+        // until a new token is issued.
+        let freshDiscordUserId = decoded.discordUserId ?? null;
+        let freshAdmin = decoded.admin === true;
+        try {
+          const dbUser = await models.User.findByPk(decoded.userId, {
+            attributes: ['discordUserId', 'admin'],
+          });
+          if (dbUser) {
+            freshDiscordUserId = dbUser.discordUserId ?? null;
+            freshAdmin = dbUser.admin === true;
+          }
+        } catch (err) {
+          logger.warn({ err: err.message }, 'failed to refresh user fields from DB');
+        }
+        user = { id: decoded.userId, admin: freshAdmin, discordUserId: freshDiscordUserId };
       } catch (err) {
         logger.warn('Invalid or expired token');
       }
@@ -558,6 +589,7 @@ server.start().then(async () => {
   startGroupGoalScheduler();
   startTrackScapeScheduler();
   startRainbowEventScheduler();
+  startSpoopyEventScheduler();
   startCFTurnTimer();
   startBSScheduler();
 

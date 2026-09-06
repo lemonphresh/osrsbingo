@@ -16,6 +16,12 @@ import {
   FormLabel,
   HStack,
   Heading,
+  Image,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalOverlay,
   Slider,
   SliderFilledTrack,
   SliderThumb,
@@ -25,7 +31,9 @@ import {
   Text,
   Textarea,
   VStack,
+  useDisclosure,
 } from '@chakra-ui/react';
+import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -58,14 +66,86 @@ function coordLabel(row, col) {
   return `${String.fromCharCode(65 + col)}${row + 1}`;
 }
 
+// ── Inline screenshot thumbnail with a click-to-expand modal (matches Rainbow's) ─
+
+function ScreenshotThumb({ url }) {
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  return (
+    <>
+      <Image
+        src={url}
+        alt="screenshot"
+        boxSize="72px"
+        objectFit="cover"
+        borderRadius="md"
+        cursor="pointer"
+        flexShrink={0}
+        border="1px solid"
+        borderColor="#1a4028"
+        _hover={{ opacity: 0.8, borderColor: GREEN }}
+        onClick={onOpen}
+      />
+      <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
+        <ModalOverlay bg="blackAlpha.800" />
+        <ModalContent bg="#091a10" border="1px solid" borderColor="#1a4028">
+          <ModalCloseButton color="white" />
+          <ModalBody p={4}>
+            <Image src={url} alt="screenshot" w="100%" borderRadius="md" objectFit="contain" />
+            <Text
+              as="a"
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              fontSize="xs"
+              color="#22d3ee"
+              _hover={{ textDecoration: 'underline' }}
+              display="block"
+              mt={2}
+              textAlign="right"
+            >
+              Open full size ↗
+            </Text>
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    </>
+  );
+}
+
 // ── Progress slider ────────────────────────────────────────────────────────
 
-function TileProgressSlider({ tileId, initialProgress, onSave }) {
-  const [val, setVal] = useState(initialProgress ?? 0);
+function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
+  // For "uniques" tasks the slider walks 1..N (N = metricTarget) instead of
+  // 0-100%. Progress is still stored server-side as a 0-100 percentage, so
+  // we translate between the two here.
+  const isUniques = task?.metricType === 'unique' || task?.metricType === 'uniques';
+  const target = Number.isFinite(task?.metricTarget) && task.metricTarget > 0
+    ? task.metricTarget
+    : null;
+  const useCountMode = isUniques && target != null;
+
+  const pctToCount = (pct) => {
+    if (!useCountMode) return pct;
+    return Math.max(0, Math.min(target, Math.round((pct / 100) * target)));
+  };
+  const countToPct = (count) => {
+    if (!useCountMode) return count;
+    if (target <= 0) return 0;
+    return Math.max(0, Math.min(100, Math.round((count / target) * 100)));
+  };
+
+  const [val, setVal] = useState(pctToCount(initialProgress ?? 0));
 
   useEffect(() => {
-    setVal(initialProgress ?? 0);
-  }, [initialProgress]);
+    setVal(pctToCount(initialProgress ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialProgress, useCountMode, target]);
+
+  const displayMax = useCountMode ? target : 100;
+  const displayComplete = val >= displayMax;
+  const label = useCountMode
+    ? `${val} / ${target} unique${target === 1 ? '' : 's'}`
+    : `${val}%`;
 
   return (
     <Box>
@@ -79,23 +159,23 @@ function TileProgressSlider({ tileId, initialProgress, onSave }) {
         >
           Progress
         </Text>
-        <Text fontSize="xs" color={val >= 100 ? '#4ade80' : '#22d3ee'} fontWeight="bold">
-          {val}%
+        <Text fontSize="xs" color={displayComplete ? '#4ade80' : '#22d3ee'} fontWeight="bold">
+          {label}
         </Text>
       </HStack>
       <Slider
         min={0}
-        max={100}
+        max={displayMax}
         step={1}
         value={val}
         onChange={setVal}
-        onChangeEnd={(v) => onSave(tileId, v)}
+        onChangeEnd={(v) => onSave(tileId, useCountMode ? countToPct(v) : v)}
         focusThumbOnChange={false}
       >
         <SliderTrack bg="#1a4028" h="6px" borderRadius="full">
-          <SliderFilledTrack bg={val >= 100 ? '#4ade80' : '#22d3ee'} />
+          <SliderFilledTrack bg={displayComplete ? '#4ade80' : '#22d3ee'} />
         </SliderTrack>
-        <SliderThumb boxSize={4} bg={val >= 100 ? '#4ade80' : '#22d3ee'} />
+        <SliderThumb boxSize={4} bg={displayComplete ? '#4ade80' : '#22d3ee'} />
       </Slider>
     </Box>
   );
@@ -169,23 +249,11 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
           )}
         </VStack>
 
-        <HStack spacing={2} flexShrink={0}>
-          {sub.screenshotUrl && (
-            <Button
-              as="a"
-              href={sub.screenshotUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              size="xs"
-              variant="outline"
-              borderColor="#1a4028"
-              color={DIM}
-              _hover={{ borderColor: GREEN, color: GREEN }}
-            >
-              Screenshot
-            </Button>
-          )}
-        </HStack>
+        {sub.screenshotUrl && (
+          <Box flexShrink={0}>
+            <ScreenshotThumb url={sub.screenshotUrl} />
+          </Box>
+        )}
       </HStack>
 
       {isDenied && (
@@ -388,6 +456,7 @@ function TileGroup({
             <TileProgressSlider
               tileId={tileId}
               initialProgress={progress}
+              task={tile?.task ?? null}
               onSave={(tid, v) => {
                 setLocalProgress(v);
                 onSetProgress(tid, v);
@@ -493,7 +562,29 @@ export default function BattleshipRefsPage() {
 
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNew, setPendingNew] = useState(0);
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(
+    () => localStorage.getItem('bsRefsSoundEnabled') === 'true',
+  );
+  useEffect(() => {
+    try { localStorage.setItem('bsRefsSoundEnabled', String(soundEnabled)); } catch (_) {}
+  }, [soundEnabled]);
+  // If sound was persisted ON from a prior visit, prime the audio context on
+  // the first user gesture so incoming-submission chimes aren't blocked by
+  // the browser's autoplay policy after a refresh.
+  useEffect(() => {
+    if (!soundEnabled) return;
+    const kick = () => {
+      warmUpAudio();
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('keydown', kick);
+    };
+    window.addEventListener('pointerdown', kick, { once: true });
+    window.addEventListener('keydown', kick, { once: true });
+    return () => {
+      window.removeEventListener('pointerdown', kick);
+      window.removeEventListener('keydown', kick);
+    };
+  }, [soundEnabled]);
   const [colorblindMode, setColorblindMode] = useState(
     () => localStorage.getItem('bsColorblindMode') === 'true'
   );
@@ -733,7 +824,8 @@ export default function BattleshipRefsPage() {
     }
   };
 
-  if (isCheckingAuth || eventLoading) {
+  // Only spin on initial load — background refetches keep the current view.
+  if (isCheckingAuth || (eventLoading && !event)) {
     return (
       <Center h="60vh" bg="#060f0a">
         <Spinner size="xl" color={GREEN} />
@@ -785,6 +877,22 @@ export default function BattleshipRefsPage() {
                 {event.eventName}
               </Text>
             )}
+            {event?.eventPassword && (
+              <HStack spacing={2} align="center">
+                <Text fontSize="xs" color={DIM} letterSpacing="wider" textTransform="uppercase">
+                  Password
+                </Text>
+                <Text
+                  fontSize="sm"
+                  color="#facc15"
+                  fontFamily="mono"
+                  fontWeight="bold"
+                  letterSpacing="wider"
+                >
+                  {event.eventPassword}
+                </Text>
+              </HStack>
+            )}
           </VStack>
 
           <HStack spacing={3} flexWrap="wrap">
@@ -831,6 +939,25 @@ export default function BattleshipRefsPage() {
             </Button>
           </HStack>
         </HStack>
+
+        {/* Fleet status — refs see both teams' skip tokens + cooldown state so
+            they can gauge pressure while reviewing submissions. */}
+        {event?.status === 'ACTIVE' && (event.teams ?? []).length > 0 && (
+          <Box>
+            <Heading size="xs" color={DIM} fontFamily="mono" letterSpacing="widest" mb={3} textTransform="uppercase">
+              Fleet Status
+            </Heading>
+            <VStack align="stretch" spacing={3}>
+              {(event.teams ?? []).map((team) => (
+                <TeamStatusCard
+                  key={team.teamId}
+                  team={team}
+                  cooldownMinutes={event.cooldownMinutes}
+                />
+              ))}
+            </VStack>
+          </Box>
+        )}
 
         {/* Info card */}
         <Box

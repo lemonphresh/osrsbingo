@@ -45,7 +45,7 @@ const PHASES = [
     label: 'Placement',
     color: '#38bdf8',
     border: '#0369a1',
-    desc: "Each team secretly arranges their fleet on a 10x10 grid. Once all ships are placed and locked, the game begins. Neither team can see the other's board.",
+    desc: "Each team member workshops a ship layout privately, then submits it as a suggestion for the team to vote on. Whichever suggestion has the most votes when placement ends becomes the team's fleet. Neither team can see the other's board.",
   },
   {
     num: '03',
@@ -53,7 +53,7 @@ const PHASES = [
     label: 'Battle',
     color: '#4ade80',
     border: '#15803d',
-    desc: 'Teams vote on where to fire. When a proposal reaches the vote threshold it fires. A hit means that team must complete an OSRS task assigned to that ship cell before they can fire again. Refs verify proof screenshots.',
+    desc: 'Any teammate can propose a shot coordinate, and the team votes on live proposals. When a proposal reaches the vote threshold it fires. A hit means the team must complete an OSRS task assigned to that ship cell before they can fire again. Refs verify proof screenshots.',
   },
   {
     num: '04',
@@ -94,7 +94,8 @@ const ROLES = [
     color: '#4ade80',
     points: [
       'Placed on a team by the event creator',
-      'Vote on where to fire each shot',
+      'Workshop ship layouts and vote on which one the team plays',
+      'Propose shot coordinates and vote on live shot proposals',
       'Submit pre-screenshots and completion proof via Discord',
       'Use skip tokens to bypass ocean (miss) tasks',
     ],
@@ -221,7 +222,8 @@ function BSInfoContent({ embedded = false }) {
         <VStack align="stretch" spacing={2}>
           {[
             'Each team has five ships hidden on a 10x10 grid. Ships range from 2 to 5 cells.',
-            'To fire, your team votes on a coordinate. Once the vote threshold is met, the shot fires automatically.',
+            'During placement, teammates submit ship-layout suggestions and vote. The winning suggestion becomes the team fleet; ties break at random.',
+            'To fire, a teammate proposes a coordinate and the team votes on it. Once the vote threshold is met, the shot fires automatically.',
             'A hit reveals a task. Your team cannot fire again until a ref marks that task complete.',
             'A miss also reveals a task, but ocean tasks can be skipped using skip tokens.',
             'All proof must be submitted via Discord. A ref reviews the screenshot before marking it done.',

@@ -84,9 +84,17 @@ async function syncEvent(event, { BSTeam, BSBoard, BSTile, BSTask, pubsub }) {
       },
     });
 
+    // Ship-overlay tiles carry both `taskId` (ocean task) and `shipTaskId` (ship
+    // task); the shot resolved the ship task, so that's the one we track.
+    const taskIdsForTiles = tiles.map((t) => t.shipTaskId ?? t.taskId).filter(Boolean);
+    if (taskIdsForTiles.length === 0) continue;
+    const tasksById = new Map(
+      (await BSTask.findAll({ where: { taskId: taskIdsForTiles } })).map((t) => [t.taskId, t]),
+    );
     for (const tile of tiles) {
-      if (!tile.taskId) continue;
-      const task = await BSTask.findByPk(tile.taskId);
+      const activeTaskId = tile.shipTaskId ?? tile.taskId;
+      if (!activeTaskId) continue;
+      const task = tasksById.get(activeTaskId);
       if (!task?.womMetric || !task?.metricTarget) continue;
       tilesToSync.push({ tile, task, team });
       metricSet.add(task.womMetric);

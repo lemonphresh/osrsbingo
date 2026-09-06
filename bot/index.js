@@ -23,9 +23,30 @@ const championforgeHelp = championforge.help;
 const championforgePresubmit = championforge.cfpresubmit;
 const rainbowbingo = require('./commands/rainbowbingo');
 const rbpre = rainbowbingo.rbpre;
+const battleship = require('./commands/battleship');
+const battleshipHelp = battleship.help;
+const battleshipPre = battleship.bspre;
+const spoopy = require('./commands/spoopy');
+const spoopyPre = spoopy.spoopypre;
+const spoopyA = spoopy.spoopya;
+const spoopyB = spoopy.spoopyb;
+const spoopyHelp = spoopy.help;
+// Step-inside gauntlet + bail-out. Have to be registered here or the bot's
+// command router silently drops them.
+const spoopyStepInside = spoopy.stepinside;
+const spoopyImSerious = spoopy.imserious;
+const spoopyNoGoingBack = spoopy.nogoingback;
+const spoopyNevermind = spoopy.nevermind;
 const ping = require('./commands/ping');
 
-const commands = [gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp, championforgePresubmit, rainbowbingo, rbpre, ping];
+const commands = [
+  gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp,
+  championforgePresubmit, rainbowbingo, rbpre, battleship, battleshipHelp,
+  battleshipPre,
+  spoopy, spoopyPre, spoopyA, spoopyB, spoopyHelp,
+  spoopyStepInside, spoopyImSerious, spoopyNoGoingBack, spoopyNevermind,
+  ping,
+];
 
 let GREvent, GRTeam, CFEvent, CFTeam;
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
-import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
   AccordionButton,
@@ -17,12 +17,27 @@ import {
   Input,
   Spinner,
   Text,
+  Textarea,
   VStack,
 } from '@chakra-ui/react';
 import { AddIcon } from '@chakra-ui/icons';
-import { FaClipboardList, FaDiscord, FaHistory, FaLink, FaShieldAlt, FaUsers } from 'react-icons/fa';
+import {
+  FaClipboardList,
+  FaDiscord,
+  FaHistory,
+  FaLink,
+  FaShieldAlt,
+  FaUsers,
+} from 'react-icons/fa';
 import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
+import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
+import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
+import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
+import {
+  GET_BS_PLACEMENT_SUGGESTIONS,
+  BS_PLACEMENT_SUGGESTIONS_UPDATED,
+} from '../../graphql/bsOperations';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -32,6 +47,7 @@ import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
   REMOVE_BS_REF,
+  START_BS_GAME,
   TRIGGER_BS_WOM_SYNC,
   UPDATE_BS_EVENT,
   UPDATE_BS_TEAM_DISCORD,
@@ -56,6 +72,179 @@ function fmtDateTime(iso) {
   const day = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
   const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return `${day} ${time}`;
+}
+
+// Live-queries the placement suggestions for a single team. Server-side auth
+// returns [] for a ref who isn't on the team, so refs only see their own team;
+// admins see everything.
+function TeamPlacementSuggestions({ team }) {
+  const { data, refetch } = useQuery(GET_BS_PLACEMENT_SUGGESTIONS, {
+    variables: { teamId: team.teamId },
+    fetchPolicy: 'cache-and-network',
+  });
+  useSubscription(BS_PLACEMENT_SUGGESTIONS_UPDATED, {
+    variables: { teamId: team.teamId },
+    onData: () => refetch(),
+  });
+  const suggestions = data?.getBSPlacementSuggestions ?? [];
+  const dotColor = team.color === 'RED' ? '#f87171' : '#60a5fa';
+  return (
+    <Box>
+      <HStack spacing={2} mb={3}>
+        <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
+        <Text
+          fontFamily="mono"
+          fontSize="xs"
+          fontWeight="bold"
+          color="#d4f0da"
+          letterSpacing="wide"
+        >
+          {team.teamName}
+        </Text>
+        <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider">
+          {suggestions.length} suggestion{suggestions.length !== 1 ? 's' : ''}
+        </Badge>
+      </HStack>
+      {suggestions.length === 0 ? (
+        <Text fontFamily="mono" fontSize="10px" color={DIM}>
+          No suggestions shared yet.
+        </Text>
+      ) : (
+        <VStack align="stretch" spacing={2}>
+          {suggestions.map((s) => (
+            <HStack
+              key={s.suggestionId}
+              align="flex-start"
+              spacing={3}
+              flexWrap="wrap"
+              bg="#060f0a"
+              border="1px solid"
+              borderColor="#1a4028"
+              borderRadius="md"
+              p={2}
+            >
+              <BSPlacementMiniBoard ships={s.ships ?? []} />
+              <VStack align="flex-start" spacing={1} minW="120px">
+                <Text fontFamily="mono" fontSize="10px" color="#d4f0da" noOfLines={1}>
+                  {s.proposerDiscordId?.slice(0, 12) ?? 'unknown'}
+                </Text>
+                <Badge colorScheme="cyan" fontSize="9px" letterSpacing="wider">
+                  {s.voteCount ?? 0} vote{(s.voteCount ?? 0) !== 1 ? 's' : ''}
+                </Badge>
+              </VStack>
+            </HStack>
+          ))}
+        </VStack>
+      )}
+    </Box>
+  );
+}
+
+function VoteThresholdEditor({ event, onSave }) {
+  const teams = event?.teams ?? [];
+  const maxTeamSize = teams.reduce((m, t) => Math.max(m, (t.members ?? []).length), 0);
+  const currentValue = event?.voteThreshold;
+  const [input, setInput] = useState(currentValue ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setInput(currentValue ?? '');
+  }, [currentValue]);
+
+  const effective = (() => {
+    // Mirror server logic: explicit value clamped to team size, else auto formula.
+    const teamSize = maxTeamSize || 1;
+    if (currentValue != null) return Math.max(1, Math.min(currentValue, teamSize));
+    return teamSize > 3 ? 3 : 1;
+  })();
+
+  const handleSave = async () => {
+    const trimmed = String(input).trim();
+    const parsed = trimmed === '' ? null : Number(trimmed);
+    if (parsed !== null && (!Number.isInteger(parsed) || parsed < 1)) return;
+    setSaving(true);
+    try {
+      await onSave(parsed);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <VStack align="stretch" spacing={3}>
+      <Text
+        fontFamily="mono"
+        fontSize="xs"
+        color="#6b9e78"
+        letterSpacing="wide"
+        textTransform="uppercase"
+      >
+        Vote Threshold
+      </Text>
+      <Text fontFamily="mono" fontSize="xs" color="#6b9e78" lineHeight="1.6">
+        Number of approvals required before a shot or skip proposal fires. Leave blank to use the
+        default (1 vote for teams of 1–3 members, 3 votes for larger teams). The value is clamped to
+        the size of the firing team.
+      </Text>
+      <HStack spacing={2} align="center">
+        <Input
+          type="number"
+          min={1}
+          size="sm"
+          maxW="120px"
+          placeholder="Auto"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          bg="#060f0a"
+          borderColor="#1a4028"
+          color="#d4f0da"
+          fontFamily="mono"
+        />
+        <Button
+          size="sm"
+          colorScheme="green"
+          fontFamily="mono"
+          fontSize="10px"
+          letterSpacing="wider"
+          textTransform="uppercase"
+          isLoading={saving}
+          onClick={handleSave}
+        >
+          Save
+        </Button>
+        {currentValue != null && (
+          <Button
+            size="sm"
+            variant="ghost"
+            color="#6b9e78"
+            fontFamily="mono"
+            fontSize="10px"
+            letterSpacing="wider"
+            textTransform="uppercase"
+            _hover={{ color: '#d4f0da', bg: 'transparent' }}
+            onClick={async () => {
+              setInput('');
+              setSaving(true);
+              try {
+                await onSave(null);
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
+            Reset to Auto
+          </Button>
+        )}
+      </HStack>
+      <Text fontFamily="mono" fontSize="10px" color="#3d6b4a">
+        Currently effective:{' '}
+        <Text as="span" color="#d4f0da">
+          {effective}
+        </Text>{' '}
+        {currentValue != null ? `(admin set to ${currentValue})` : '(auto)'}
+      </Text>
+    </VStack>
+  );
 }
 
 function StatBox({ label, value }) {
@@ -86,6 +275,8 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
   const [memberIds, setMemberIds] = useState(team.members ?? []);
   const [saving, setSaving] = useState(false);
   const [addingTokens, setAddingTokens] = useState(false);
+  const [customTokenCount, setCustomTokenCount] = useState('');
+  const [tokenReason, setTokenReason] = useState('');
   const [channelId, setChannelId] = useState(team.discordChannelId ?? '');
   const [roleId, setRoleId] = useState(team.discordRoleId ?? '');
   const [savingDiscord, setSavingDiscord] = useState(false);
@@ -130,14 +321,18 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
     }
   };
 
-  const handleAddTokens = async (count) => {
+  const handleAddTokens = async (count, reason) => {
     setAddingTokens(true);
     try {
-      await doAddSkipTokens({ variables: { teamId: team.teamId, count } });
-      showToast(`Added ${count} skip token${count !== 1 ? 's' : ''}`, 'success');
+      await doAddSkipTokens({
+        variables: { teamId: team.teamId, count, reason: reason?.trim() || null },
+      });
+      const verb = count >= 0 ? 'Added' : 'Removed';
+      const noun = Math.abs(count) === 1 ? 'skip token' : 'skip tokens';
+      showToast(`${verb} ${Math.abs(count)} ${noun}`, 'success');
       await refetchEvent();
     } catch (e) {
-      showToast(e.message ?? 'Failed to add skip tokens', 'error');
+      showToast(e.message ?? 'Failed to update skip tokens', 'error');
     } finally {
       setAddingTokens(false);
     }
@@ -245,38 +440,174 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
           </Button>
         </Box>
 
-        {/* Skip Tokens */}
-        <Box>
-          <HStack spacing={3} align="center" mb={2}>
-            <Text
-              fontSize="xs"
-              color={DIM}
-              textTransform="uppercase"
-              letterSpacing="wider"
-              fontWeight="semibold"
-            >
-              Skip Tokens
-            </Text>
-            <Text fontWeight="bold" color={GREEN} fontFamily="mono">
-              {team.skipTokens ?? 0}
-            </Text>
-          </HStack>
-          <HStack spacing={2}>
-            {[1, 3, 5].map((n) => (
-              <Button
-                key={n}
-                size="xs"
-                colorScheme="green"
-                variant="outline"
-                isLoading={addingTokens}
-                isDisabled={addingTokens}
-                onClick={() => handleAddTokens(n)}
-              >
-                +{n}
-              </Button>
-            ))}
-          </HStack>
-        </Box>
+        {/* Skip Tokens — stage a delta + reason, then submit once. */}
+        {(() => {
+          const currentBalance = team.skipTokens ?? 0;
+          const parsedPending = Number(customTokenCount);
+          const pendingValid =
+            customTokenCount !== '' &&
+            customTokenCount !== '-' &&
+            Number.isInteger(parsedPending) &&
+            parsedPending !== 0;
+          const bumpPending = (delta) => {
+            const base = pendingValid ? parsedPending : 0;
+            const next = base + delta;
+            setCustomTokenCount(String(next));
+          };
+          const resetPending = () => {
+            setCustomTokenCount('');
+            setTokenReason('');
+          };
+          const submitPending = async () => {
+            if (!pendingValid) return;
+            await handleAddTokens(parsedPending, tokenReason);
+            resetPending();
+          };
+          const newBalance = pendingValid
+            ? Math.max(0, currentBalance + parsedPending)
+            : currentBalance;
+          const isAward = pendingValid && parsedPending > 0;
+          const submitDisabled =
+            addingTokens || !pendingValid || (parsedPending < 0 && currentBalance <= 0);
+          return (
+            <Box>
+              <HStack spacing={3} align="center" mb={2}>
+                <Text
+                  fontSize="xs"
+                  color={DIM}
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  fontWeight="semibold"
+                >
+                  Skip Tokens
+                </Text>
+                <Text fontWeight="bold" color={GREEN} fontFamily="mono">
+                  {currentBalance}
+                </Text>
+                {pendingValid && (
+                  <Text fontSize="10px" color={DIM} fontFamily="mono">
+                    →{' '}
+                    <Text as="span" color={isAward ? '#4ade80' : '#f87171'} fontWeight="bold">
+                      {newBalance}
+                    </Text>
+                    <Text as="span" color={DIM}>
+                      {' '}
+                      ({parsedPending > 0 ? '+' : ''}
+                      {parsedPending})
+                    </Text>
+                  </Text>
+                )}
+              </HStack>
+              <VStack align="stretch" spacing={3} maxW="360px">
+                {/* Preset bumpers */}
+                <HStack spacing={2} flexWrap="wrap">
+                  {[1, 3, 5].map((n) => (
+                    <Button
+                      key={n}
+                      size="xs"
+                      variant="outline"
+                      colorScheme="green"
+                      borderColor="#1a4028"
+                      color={GREEN}
+                      _hover={{ borderColor: GREEN }}
+                      onClick={() => bumpPending(n)}
+                    >
+                      +{n}
+                    </Button>
+                  ))}
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    colorScheme="red"
+                    borderColor="#4c1a1a"
+                    color="#f87171"
+                    _hover={{ bg: '#1a0a0a', borderColor: '#f87171' }}
+                    onClick={() => bumpPending(-1)}
+                  >
+                    −1
+                  </Button>
+                </HStack>
+
+                {/* Staged amount input */}
+                <HStack spacing={2} align="center">
+                  <Text fontSize="10px" color={DIM} letterSpacing="wider" minW="70px">
+                    Amount
+                  </Text>
+                  <Input
+                    value={customTokenCount}
+                    onChange={(e) => setCustomTokenCount(e.target.value)}
+                    placeholder="±N"
+                    size="xs"
+                    maxW="90px"
+                    bg={BG}
+                    borderColor={BORDER}
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    _placeholder={{ color: '#3d6b4a' }}
+                    _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                    _hover={{ borderColor: DIM }}
+                  />
+                  {pendingValid && (
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      color={DIM}
+                      fontFamily="mono"
+                      fontSize="10px"
+                      _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                      onClick={resetPending}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </HStack>
+
+                {/* Reason */}
+                <Box>
+                  <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
+                    Reason (optional — posted to the team's Discord channel)
+                  </Text>
+                  <Textarea
+                    value={tokenReason}
+                    onChange={(e) => setTokenReason(e.target.value)}
+                    placeholder="i.e. Compensating for a bugged tile, awarded for completing challenge, etc"
+                    size="sm"
+                    rows={2}
+                    bg={BG}
+                    borderColor={BORDER}
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    fontSize="xs"
+                    _placeholder={{ color: '#3d6b4a' }}
+                    _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                    _hover={{ borderColor: DIM }}
+                  />
+                </Box>
+
+                {/* Single submit button */}
+                <Button
+                  size="sm"
+                  colorScheme={isAward ? 'green' : 'red'}
+                  isLoading={addingTokens}
+                  isDisabled={submitDisabled}
+                  onClick={submitPending}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  letterSpacing="wider"
+                  textTransform="uppercase"
+                >
+                  {pendingValid
+                    ? isAward
+                      ? `Award ${parsedPending} Token${parsedPending === 1 ? '' : 's'}`
+                      : `Revoke ${Math.abs(parsedPending)} Token${
+                          Math.abs(parsedPending) === 1 ? '' : 's'
+                        }`
+                    : 'Stage an amount'}
+                </Button>
+              </VStack>
+            </Box>
+          );
+        })()}
 
         {/* Discord Channel */}
         <Box>
@@ -602,6 +933,14 @@ export default function BattleshipAdminPage() {
   const [updateTeamWomName] = useMutation(UPDATE_BS_TEAM_DISCORD, {
     onError: (err) => showToast(err.message ?? 'Failed to save team WOM name.', 'error'),
   });
+  const [startBSGame, { loading: startingBattle }] = useMutation(START_BS_GAME, {
+    onCompleted: () => {
+      showToast('Battle phase started.', 'success');
+      refetchEvent();
+    },
+    onError: (err) => showToast(err.message ?? 'Failed to start battle phase.', 'error'),
+  });
+  const [confirmStartBattle, setConfirmStartBattle] = useState(false);
 
   const [showDiscordModal, setShowDiscordModal] = useState(false);
   const [savingWom, setSavingWom] = useState(false);
@@ -644,7 +983,8 @@ export default function BattleshipAdminPage() {
     return event.creatorId === uid || (event.adminIds ?? []).includes(uid);
   }, [event, user]);
 
-  if (isCheckingAuth || eventLoading) {
+  // Only spin on initial load — background refetches keep the current view.
+  if (isCheckingAuth || (eventLoading && !event)) {
     return (
       <Center h="60vh" bg={BG}>
         <Spinner size="xl" color={GREEN} />
@@ -923,6 +1263,280 @@ export default function BattleshipAdminPage() {
             </AccordionPanel>
           </AccordionItem>
 
+          {/* Section 1.25: Fleet Status (ACTIVE only) — both teams' live intel */}
+          {event?.status === 'ACTIVE' && (event.teams ?? []).length > 0 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    FLEET STATUS
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  {(event.teams ?? []).map((team) => (
+                    <TeamStatusCard
+                      key={team.teamId}
+                      team={team}
+                      cooldownMinutes={event.cooldownMinutes}
+                    />
+                  ))}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.5: Launch Event (DRAFT only) */}
+          {event?.status === 'DRAFT' && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    LAUNCH EVENT
+                  </Text>
+                  {event.scheduledPlacementStart && (
+                    <Badge colorScheme="purple" fontFamily="mono" fontSize="xs">
+                      SCHEDULED
+                    </Badge>
+                  )}
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <BSLaunchControl event={event} refetch={refetchEvent} />
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.6: Advance to Battle Phase (PLACEMENT only) */}
+          {event?.status === 'PLACEMENT' && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    ADVANCE TO BATTLE PHASE
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                    Battle phase starts automatically when the placement timer expires. Use this to
+                    skip ahead manually. Any teams with missing ships will have their fleet randomly
+                    positioned.
+                  </Text>
+                  {!confirmStartBattle ? (
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      fontFamily="mono"
+                      fontSize="xs"
+                      letterSpacing="widest"
+                      textTransform="uppercase"
+                      bg="#22c55e"
+                      color="#060f0a"
+                      _hover={{ bg: '#4ade80' }}
+                      alignSelf="flex-start"
+                      onClick={() => setConfirmStartBattle(true)}
+                    >
+                      Start Battle Phase
+                    </Button>
+                  ) : (
+                    <Box
+                      bg="#060f0a"
+                      border="1px solid"
+                      borderColor={BORDER}
+                      borderRadius="md"
+                      p={3}
+                    >
+                      <Text fontFamily="mono" fontSize="xs" color="#fbbf24" mb={3}>
+                        This will end placement immediately and lock in current ship positions. Any
+                        team without ships placed will be randomized. This cannot be undone.
+                      </Text>
+                      <HStack spacing={2}>
+                        <Button
+                          size="sm"
+                          colorScheme="green"
+                          fontFamily="mono"
+                          fontSize="10px"
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                          isLoading={startingBattle}
+                          loadingText="Launching..."
+                          bg="#22c55e"
+                          color="#060f0a"
+                          _hover={{ bg: '#4ade80' }}
+                          onClick={() => startBSGame({ variables: { eventId } })}
+                        >
+                          Confirm
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          color={DIM}
+                          fontFamily="mono"
+                          fontSize="10px"
+                          _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                          onClick={() => setConfirmStartBattle(false)}
+                        >
+                          Cancel
+                        </Button>
+                      </HStack>
+                    </Box>
+                  )}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.65: Placement Suggestions (PLACEMENT only) */}
+          {event?.status === 'PLACEMENT' && (event.teams ?? []).length > 0 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    PLACEMENT SUGGESTIONS
+                  </Text>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={5}>
+                  <Text fontFamily="mono" fontSize="xs" color={DIM} lineHeight="tall">
+                    Teams are workshopping placements privately, sharing suggestions to their team,
+                    and voting. Highest-voted layout per team wins at phase end. Ties break at
+                    random.
+                  </Text>
+                  {(event.teams ?? []).map((team) => (
+                    <TeamPlacementSuggestions key={team.teamId} team={team} />
+                  ))}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.7: Game Settings (always available) */}
+          <AccordionItem
+            border="1px solid"
+            borderColor={BORDER}
+            borderRadius="lg"
+            mb={3}
+            overflow="hidden"
+          >
+            <AccordionButton
+              px={4}
+              py={3}
+              bg={CARD_BG}
+              _hover={{ bg: '#0e2418' }}
+              _expanded={{ bg: CARD_BG }}
+            >
+              <HStack flex={1} spacing={2}>
+                <FaShieldAlt color={DIM} />
+                <Text
+                  fontWeight="semibold"
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  letterSpacing="wide"
+                  fontSize="sm"
+                >
+                  GAME SETTINGS
+                </Text>
+              </HStack>
+              <AccordionIcon color={DIM} />
+            </AccordionButton>
+            <AccordionPanel px={4} py={4} bg={BG}>
+              <VoteThresholdEditor
+                event={event}
+                onSave={async (value) => {
+                  await updateBSEvent({
+                    variables: { eventId, input: { voteThreshold: value } },
+                  });
+                  showToast('Vote threshold updated.', 'success');
+                  refetchEvent();
+                }}
+              />
+            </AccordionPanel>
+          </AccordionItem>
+
           {/* Section 2: Discord Bot Setup */}
           <AccordionItem
             border="1px solid"
@@ -940,7 +1554,13 @@ export default function BattleshipAdminPage() {
             >
               <HStack flex={1} spacing={2}>
                 <FaDiscord color={DIM} />
-                <Text fontWeight="semibold" color="#d4f0da" fontFamily="mono" letterSpacing="wide" fontSize="sm">
+                <Text
+                  fontWeight="semibold"
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  letterSpacing="wide"
+                  fontSize="sm"
+                >
                   DISCORD BOT SETUP
                 </Text>
                 <Badge colorScheme={event?.guildId ? 'green' : 'yellow'} fontSize="xs">
@@ -953,12 +1573,17 @@ export default function BattleshipAdminPage() {
               <VStack align="stretch" spacing={3}>
                 {event?.guildId ? (
                   <HStack spacing={2}>
-                    <Text fontFamily="mono" fontSize="xs" color={DIM}>Guild ID:</Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">{event.guildId}</Text>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                      Guild ID:
+                    </Text>
+                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+                      {event.guildId}
+                    </Text>
                   </HStack>
                 ) : (
                   <Text fontFamily="mono" fontSize="xs" color={DIM}>
-                    The Discord bot has not been connected yet. Set it up to enable task submission notifications.
+                    The Discord bot has not been connected yet. Set it up to enable task submission
+                    notifications.
                   </Text>
                 )}
                 <Button
@@ -1335,7 +1960,10 @@ export default function BattleshipAdminPage() {
         <BSDiscordSetupModal
           isOpen
           eventId={eventId}
-          onConfirmed={() => { setShowDiscordModal(false); refetchEvent(); }}
+          onConfirmed={() => {
+            setShowDiscordModal(false);
+            refetchEvent();
+          }}
           onClose={() => setShowDiscordModal(false)}
         />
       )}

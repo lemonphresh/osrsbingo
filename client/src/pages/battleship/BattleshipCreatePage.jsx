@@ -24,6 +24,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
+import BSContentSelectionModal from '../../organisms/battleship/BSContentSelectionModal';
 
 // ── Styled label ──────────────────────────────────────────────────────────
 
@@ -60,6 +61,8 @@ export default function BattleshipCreatePage() {
   const [metricMultiplier, setMetricMultiplier] = useState(1.0);
   const [nameError, setNameError] = useState('');
   const [createdEventId, setCreatedEventId] = useState(null);
+  const [contentSelections, setContentSelections] = useState(null);
+  const [contentModalOpen, setContentModalOpen] = useState(false);
 
   const [createBSEvent, { loading }] = useMutation(CREATE_BS_EVENT, {
     onCompleted: (data) => {
@@ -93,6 +96,7 @@ export default function BattleshipCreatePage() {
           initialSkipTokens: Number(initialSkipTokens),
           eventPassword: eventPassword.trim() || null,
           metricMultiplier,
+          contentSelections: contentSelections ?? null,
         },
       },
     });
@@ -373,6 +377,28 @@ export default function BattleshipCreatePage() {
                 </Text>
               </FormControl>
 
+              {/* Content selection */}
+              <Box>
+                <Button
+                  w="full"
+                  onClick={() => setContentModalOpen(true)}
+                  bg="#071523"
+                  border="1px solid"
+                  borderColor={contentSelections ? '#0ea5e9' : '#1e4976'}
+                  color={contentSelections ? '#0ea5e9' : '#64748b'}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  fontWeight="bold"
+                  letterSpacing="wide"
+                  _hover={{ borderColor: '#0ea5e9', color: '#0ea5e9' }}
+                >
+                  {contentSelections ? '✓ Content customized' : 'Customize Ocean Content (optional)'}
+                </Button>
+                <Text fontFamily="mono" fontSize="10px" color="#475569" mt={1} letterSpacing="wide">
+                  Choose which bosses, skills, and activities appear on ocean tiles. Defaults to all content.
+                </Text>
+              </Box>
+
               {/* Submit */}
               <Box pt={2}>
                 <Button
@@ -407,6 +433,13 @@ export default function BattleshipCreatePage() {
           onClose={() => navigate(`/battleship/${createdEventId}`)}
         />
       )}
+
+      <BSContentSelectionModal
+        isOpen={contentModalOpen}
+        onClose={() => setContentModalOpen(false)}
+        currentSelections={contentSelections}
+        onSave={(sel) => { setContentSelections(sel); setContentModalOpen(false); }}
+      />
     </Box>
   );
 }

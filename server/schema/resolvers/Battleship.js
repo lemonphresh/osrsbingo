@@ -13,6 +13,11 @@ const Mutation = {
   ...require('./battleship/mutations/submissions'),
   ...require('./battleship/mutations/proposals'),
   ...require('./battleship/mutations/skip'),
+  ...require('./battleship/mutations/placementSuggestions'),
+};
+
+const BSPlacementSuggestion = {
+  voteCount: (s) => (s.votes ?? []).length,
 };
 
 const { getModels } = require('./battleship/helpers');
@@ -33,4 +38,4 @@ const BSSubmission = {
   },
 };
 
-module.exports = { Query, Mutation, BSEvent, BSTeam, BSBoard, BSShipTemplate, BSTile, BSSubmission };
+module.exports = { Query, Mutation, BSEvent, BSTeam, BSBoard, BSShipTemplate, BSTile, BSSubmission, BSPlacementSuggestion };

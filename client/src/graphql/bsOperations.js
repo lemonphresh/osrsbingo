@@ -87,14 +87,28 @@ const BS_EVENT_FIELDS = gql`
     placementPhaseHours
     cooldownMinutes
     initialSkipTokens
+    voteThreshold
     metricMultiplier
     placementStartsAt
     placementEndsAt
+    scheduledPlacementStart
     creatorId
     adminIds
+    admins {
+      id
+      displayName
+      username
+      rsn
+    }
     refIds
+    refs {
+      id
+      displayName
+      username
+    }
     guildId
     eventPassword
+    contentSelections
     teams {
       ...BSTeamFields
     }
@@ -136,10 +150,16 @@ export const GET_BS_EVENT_FULL = gql`
       placementPhaseHours
       cooldownMinutes
       initialSkipTokens
+      voteThreshold
       metricMultiplier
+      placementStartsAt
+      placementEndsAt
+      scheduledPlacementStart
       adminIds
       refIds
       creatorId
+      guildId
+      announcementsChannelId
       teams {
         teamId
         teamName
@@ -218,6 +238,30 @@ export const GET_BS_EVENT_FULL = gql`
         displayName
         username
       }
+      eventPassword
+      contentSelections
+      templateBoard {
+        boardId
+        tiles {
+          tileId
+          row
+          col
+          taskId
+          shipType
+          cellIndex
+          task {
+            taskId
+            label
+            bossOrSkill
+            metricType
+            metricTarget
+            metricUnit
+            metricLabel
+            validDrops
+            womMetric
+          }
+        }
+      }
       womCompetitionId
       winnerId
       completedAt
@@ -266,6 +310,24 @@ export const GET_BS_SHOT_LOG = gql`
   }
 `;
 
+export const EXPORT_BS_DRAFT_WORKBOOK = gql`
+  query ExportBSDraftWorkbook($eventId: ID!) {
+    exportBSDraftWorkbook(eventId: $eventId) {
+      filename
+      contentBase64
+    }
+  }
+`;
+
+export const UPDATE_BS_MULTIPLIER = gql`
+  mutation UpdateBSMultiplier($eventId: ID!, $multiplier: Float!) {
+    updateBSMultiplier(eventId: $eventId, multiplier: $multiplier) {
+      eventId
+      metricMultiplier
+    }
+  }
+`;
+
 // ── Mutations ──────────────────────────────────────────────────────────────
 
 export const CREATE_BS_EVENT = gql`
@@ -282,6 +344,15 @@ export const DELETE_BS_EVENT = gql`
     deleteBSEvent(eventId: $eventId) {
       success
       message
+    }
+  }
+`;
+
+export const UPDATE_BS_CONTENT_SELECTIONS = gql`
+  mutation UpdateBSContentSelections($eventId: ID!, $contentSelections: JSON!) {
+    updateBSContentSelections(eventId: $eventId, contentSelections: $contentSelections) {
+      eventId
+      contentSelections
     }
   }
 `;
@@ -309,6 +380,36 @@ export const REMOVE_BS_REF = gql`
         id
         displayName
         username
+      }
+    }
+  }
+`;
+
+export const ADD_BS_ADMIN = gql`
+  mutation AddBSAdmin($eventId: ID!, $userId: ID!) {
+    addBSAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_BS_ADMIN = gql`
+  mutation RemoveBSAdmin($eventId: ID!, $userId: ID!) {
+    removeBSAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
       }
     }
   }
@@ -374,6 +475,17 @@ export const UPDATE_BS_TASK = gql`
 export const REMOVE_BS_TASK = gql`
   mutation RemoveBSTask($taskId: ID!) {
     removeBSTask(taskId: $taskId)
+  }
+`;
+
+export const IMPORT_BS_DRAFT_WORKBOOK = gql`
+  mutation ImportBSDraftWorkbook($eventId: ID!, $contentBase64: String!, $apply: Boolean!) {
+    importBSDraftWorkbook(eventId: $eventId, contentBase64: $contentBase64, apply: $apply) {
+      applied
+      oceanTileCount
+      shipTileCount
+      errors
+    }
   }
 `;
 
@@ -473,8 +585,8 @@ export const SKIP_BS_TILE = gql`
 `;
 
 export const ADD_BS_SKIP_TOKENS = gql`
-  mutation AddBSSkipTokens($teamId: ID!, $count: Int!) {
-    addBSSkipTokens(teamId: $teamId, count: $count) {
+  mutation AddBSSkipTokens($teamId: ID!, $count: Int!, $reason: String) {
+    addBSSkipTokens(teamId: $teamId, count: $count, reason: $reason) {
       teamId
       skipTokens
     }
@@ -587,6 +699,14 @@ const BS_SUBMISSION_FIELDS = gql`
       col
       progress
       taskCompleted
+      task {
+        taskId
+        label
+        metricType
+        metricTarget
+        metricUnit
+        metricLabel
+      }
     }
     team {
       teamId
@@ -782,6 +902,69 @@ export const BS_SKIP_PROPOSAL_UPDATED = gql`
     }
   }
   ${BS_SKIP_PROPOSAL_FIELDS}
+`;
+
+// ── Placement suggestions ──────────────────────────────────────────────────
+
+const BS_PLACEMENT_SUGGESTION_FIELDS = gql`
+  fragment BSPlacementSuggestionFields on BSPlacementSuggestion {
+    suggestionId
+    eventId
+    teamId
+    proposerDiscordId
+    proposerUsername
+    ships {
+      shipType
+      orientation
+      startRow
+      startCol
+    }
+    votes
+    voteCount
+    createdAt
+  }
+`;
+
+export const GET_BS_PLACEMENT_SUGGESTIONS = gql`
+  query GetBSPlacementSuggestions($teamId: ID!) {
+    getBSPlacementSuggestions(teamId: $teamId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const SHARE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation ShareBSPlacementSuggestion($teamId: ID!, $ships: [BSShipPlacementInput!]!) {
+    shareBSPlacementSuggestion(teamId: $teamId, ships: $ships) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const VOTE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation VoteBSPlacementSuggestion($suggestionId: ID!) {
+    voteBSPlacementSuggestion(suggestionId: $suggestionId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
+`;
+
+export const DELETE_BS_PLACEMENT_SUGGESTION = gql`
+  mutation DeleteBSPlacementSuggestion($suggestionId: ID!) {
+    deleteBSPlacementSuggestion(suggestionId: $suggestionId)
+  }
+`;
+
+export const BS_PLACEMENT_SUGGESTIONS_UPDATED = gql`
+  subscription BSPlacementSuggestionsUpdated($teamId: ID!) {
+    bsPlacementSuggestionsUpdated(teamId: $teamId) {
+      ...BSPlacementSuggestionFields
+    }
+  }
+  ${BS_PLACEMENT_SUGGESTION_FIELDS}
 `;
 
 export const UPDATE_BS_EVENT = gql`

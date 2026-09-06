@@ -13,14 +13,15 @@ module.exports = (sequelize) => {
     {
       tileId:   { type: DataTypes.STRING, primaryKey: true },
       boardId:  { type: DataTypes.STRING, allowNull: false },
-      row:      { type: DataTypes.INTEGER, allowNull: false },
-      col:      { type: DataTypes.INTEGER, allowNull: false },
+      row:      { type: DataTypes.INTEGER, allowNull: true },
+      col:      { type: DataTypes.INTEGER, allowNull: true },
       shipType: {
         type: DataTypes.ENUM('CARRIER', 'BATTLESHIP', 'CRUISER', 'SUBMARINE', 'DESTROYER'),
         allowNull: true,
       },
       cellIndex:       { type: DataTypes.INTEGER, allowNull: true },
       taskId:          { type: DataTypes.STRING,  allowNull: true },
+      shipTaskId:      { type: DataTypes.STRING,  allowNull: true },
       isShot:          { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       taskCompleted:   { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       skipped:         { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },

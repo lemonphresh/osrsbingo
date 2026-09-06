@@ -846,7 +846,7 @@ const BOSSES = {
     id: 'phantomMuspah',
     displayName: 'Phantom Muspah',
     category: 'medium',
-    tags: ['slayer'],
+    tags: ['quest'],
     enabled: true,
     quantities: {
       short: { min: 50, max: 75 },
@@ -970,7 +970,7 @@ const BOSSES = {
     id: 'madAngel',
     displayName: 'Mad Angel',
     category: 'medium',
-    tags: ['slayer'],
+    tags: [],
     enabled: true,
     quantities: {
       short: { min: 50, max: 75 },
@@ -1575,7 +1575,7 @@ const BOSSES = {
     id: 'crystallineHunllef',
     displayName: 'Crystalline Hunllef',
     category: 'long',
-    tags: ['slayer', 'minigame'],
+    tags: ['minigame'],
     enabled: true,
     quantities: {
       short: { min: 20, max: 30 },
@@ -1611,7 +1611,7 @@ const BOSSES = {
     id: 'corruptedHunllef',
     displayName: 'Corrupted Hunllef',
     category: 'long',
-    tags: ['slayer', 'minigame'],
+    tags: ['minigame'],
     enabled: true,
     quantities: {
       short: { min: 20, max: 30 },
@@ -1651,7 +1651,7 @@ const BOSSES = {
     id: 'vardorvis',
     displayName: 'Vardorvis',
     category: 'long',
-    tags: ['slayer', 'dt2'],
+    tags: ['dt2'],
     enabled: true,
     quantities: {
       short: { min: 75, max: 100 },
@@ -1695,7 +1695,7 @@ const BOSSES = {
     id: 'whisperer',
     displayName: 'The Whisperer',
     category: 'long',
-    tags: ['slayer', 'dt2'],
+    tags: ['dt2'],
     enabled: true,
     quantities: {
       short: { min: 50, max: 75 },
@@ -1739,7 +1739,7 @@ const BOSSES = {
     id: 'dukeSucellus',
     displayName: 'Duke Sucellus',
     category: 'long',
-    tags: ['slayer', 'dt2'],
+    tags: ['dt2'],
     enabled: true,
     quantities: {
       short: { min: 75, max: 100 },
@@ -1783,7 +1783,7 @@ const BOSSES = {
     id: 'leviathan',
     displayName: 'The Leviathan',
     category: 'long',
-    tags: ['slayer', 'dt2'],
+    tags: ['dt2'],
     enabled: true,
     quantities: {
       short: { min: 50, max: 75 },

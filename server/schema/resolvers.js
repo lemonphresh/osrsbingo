@@ -11,8 +11,10 @@ const CFResolvers = require('./resolvers/ChampionForge');
 const CFSubscriptions = require('./resolvers/ChampionForgeSubscriptions');
 const GroupDashboardResolvers = require('./resolvers/GroupDashboard');
 const RainbowBingoResolvers = require('./resolvers/RainbowBingo');
+const SpoopyResolvers = require('./resolvers/SpoopyBingo');
 const BSResolvers = require('./resolvers/Battleship');
 const BSSubscriptions = require('./resolvers/BattleshipSubscriptions');
+const WhodunnitResolvers = require('./resolvers/Whodunnit');
 const fieldResolvers = require('./resolvers/FieldResolvers');
 const SiteStats = require('./resolvers/SiteStats');
 const { getActiveCFEventsForUser } = require('./resolvers/championForge/cfAssociatedEvents');
@@ -152,7 +154,9 @@ const resolvers = {
     ...CFResolvers.Query,
     ...GroupDashboardResolvers.Query,
     ...RainbowBingoResolvers.Query,
+    ...SpoopyResolvers.Query,
     ...BSResolvers.Query,
+    ...WhodunnitResolvers.Query,
   },
   Mutation: {
     ...BingoBoardResolvers.Mutation,
@@ -166,14 +170,18 @@ const resolvers = {
     ...CFResolvers.Mutation,
     ...GroupDashboardResolvers.Mutation,
     ...RainbowBingoResolvers.Mutation,
+    ...SpoopyResolvers.Mutation,
     ...BSResolvers.Mutation,
+    ...WhodunnitResolvers.Mutation,
   },
   Subscription: {
     ...GielinorRushSubscriptions.Subscription,
     ...DraftRoomSubscriptions.DraftSubscription,
     ...CFSubscriptions.CFSubscription,
     ...RainbowBingoResolvers.Subscription,
+    ...SpoopyResolvers.Subscription,
     ...BSSubscriptions.Subscription,
+    ...WhodunnitResolvers.Subscription,
   },
 
   // type resolvers (field-level resolvers for nested data)
@@ -212,6 +220,12 @@ const resolvers = {
   GroupGoalEvent: {
     ...GroupDashboardResolvers.GroupGoalEvent,
   },
+  SpoopyEvent: {
+    ...SpoopyResolvers.SpoopyEvent,
+  },
+  SpoopySubmission: {
+    ...SpoopyResolvers.SpoopySubmission,
+  },
   RainbowEvent: {
     ...RainbowBingoResolvers.RainbowEvent,
   },
@@ -238,6 +252,24 @@ const resolvers = {
   },
   BSSubmission: {
     ...BSResolvers.BSSubmission,
+  },
+  BSPlacementSuggestion: {
+    ...BSResolvers.BSPlacementSuggestion,
+  },
+  WhodunnitCampaign: {
+    ...WhodunnitResolvers.WhodunnitCampaign,
+  },
+  WhodunnitTeamMember: {
+    ...WhodunnitResolvers.WhodunnitTeamMember,
+  },
+  WhodunnitNodeProgress: {
+    ...WhodunnitResolvers.WhodunnitNodeProgress,
+  },
+  WhodunnitClueAnswer: {
+    ...WhodunnitResolvers.WhodunnitClueAnswer,
+  },
+  WhodunnitSuspectHistory: {
+    ...WhodunnitResolvers.WhodunnitSuspectHistory,
   },
 };
 
