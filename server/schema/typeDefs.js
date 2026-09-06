@@ -396,6 +396,11 @@ const typeDefs = gql`
     members: [String!]
   }
 
+  input KeySelectionInput {
+    color: String!
+    quantity: Int!
+  }
+
   # ============================================================
   # GIELINOR RUSH: NODES
   # ============================================================
@@ -1159,7 +1164,12 @@ const typeDefs = gql`
     toggleNodeInProgress(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Gielinor Rush: Inns ---
-    purchaseInnReward(eventId: ID!, teamId: ID!, rewardId: ID!): GRTeam!
+    purchaseInnReward(
+      eventId: ID!
+      teamId: ID!
+      rewardId: ID!
+      keySelection: [KeySelectionInput!]
+    ): GRTeam!
     adminRefundInnPurchase(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
 
     # --- Blind Draft Room ---

@@ -1873,16 +1873,11 @@ const GielinorRushResolvers = {
       return team;
     },
 
-    purchaseInnReward: async (_, { eventId, teamId, rewardId }, context) => {
+    purchaseInnReward: async (_, { eventId, teamId, rewardId, keySelection }, context) => {
       logger.info(`[purchaseInnReward] eventId=${eventId} teamId=${teamId} rewardId=${rewardId}`);
 
-      const [event, team] = await Promise.all([
-        GREvent.findByPk(eventId),
-        GRTeam.findOne({ where: { eventId, teamId } }),
-      ]);
-
+      const event = await GREvent.findByPk(eventId);
       if (!event) throw new Error('Event not found');
-      if (!team) throw new Error('Team not found');
 
       if (event.startDate && new Date() < new Date(event.startDate))
         throw new Error("Event hasn't started yet.");
@@ -1905,107 +1900,184 @@ const GielinorRushResolvers = {
 
       if (!reward || !innNode) throw new Error('Reward not found');
 
-      // reload to get the freshest state before the critical section
-      await team.reload();
-      const alreadyPurchased = team.innTransactions?.some((t) => t.nodeId === innNode.nodeId);
-      if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
+      // Serialize concurrent purchases for the same team by acquiring a row-level
+      // lock inside a transaction. Without this, two overlapping requests can
+      // both pass the "already purchased" and "sufficient keys" checks and each
+      // credit the payout while double-spending keys.
+      const sequelize = GRTeam.sequelize;
+      const { team, keysSpent } = await sequelize.transaction(async (t) => {
+        const lockedTeam = await GRTeam.findOne({
+          where: { eventId, teamId },
+          lock: t.LOCK.UPDATE,
+          transaction: t,
+        });
+        if (!lockedTeam) throw new Error('Team not found');
 
-      if (!team.availableNodes?.includes(innNode.nodeId))
-        throw new Error('This inn is not available to your team');
+        const alreadyPurchased = lockedTeam.innTransactions?.some(
+          (tx) => tx.nodeId === innNode.nodeId
+        );
+        if (alreadyPurchased) throw new Error('Team has already purchased from this Inn');
 
-      for (const cost of reward.key_cost) {
-        if (cost.color === 'any') {
-          const totalKeys = team.keysHeld.reduce((sum, k) => sum + k.quantity, 0);
-          if (totalKeys < cost.quantity) throw new Error('Insufficient keys');
-        } else {
-          const teamKey = team.keysHeld.find((k) => k.color === cost.color);
-          if (!teamKey || teamKey.quantity < cost.quantity) {
-            throw new Error(`Insufficient ${cost.color} keys`);
+        if (!lockedTeam.availableNodes?.includes(innNode.nodeId))
+          throw new Error('This inn is not available to your team');
+
+        // Aggregate cost by kind: exact-color demand is deducted first, then a single
+        // "any" budget consumes from what remains. Avoids two bugs the old per-cost-entry
+        // loop had:
+        //   (a) exact-color demand overlapping with "any" (e.g. 2 red + 1 any vs 2 red keys)
+        //       was incorrectly marked affordable.
+        //   (b) multiple "any" cost entries on one reward would re-consume the caller's
+        //       selection quantities on each pass.
+        const exactColorDemand = {};
+        let anyCostTotal = 0;
+        for (const cost of reward.key_cost) {
+          if (cost.color === 'any') {
+            anyCostTotal += cost.quantity;
+          } else {
+            exactColorDemand[cost.color] = (exactColorDemand[cost.color] || 0) + cost.quantity;
           }
         }
-      }
 
-      const keysSpent = [];
-      for (const cost of reward.key_cost) {
-        if (cost.color === 'any') {
-          let remaining = cost.quantity;
-          for (const key of team.keysHeld) {
-            if (remaining <= 0) break;
-            const toDeduct = Math.min(key.quantity, remaining);
-            key.quantity -= toDeduct;
-            remaining -= toDeduct;
-            keysSpent.push({ color: key.color, quantity: toDeduct });
-          }
-        } else {
-          const teamKey = team.keysHeld.find((k) => k.color === cost.color);
-          if (teamKey) {
-            teamKey.quantity -= cost.quantity;
-            keysSpent.push({ color: cost.color, quantity: cost.quantity });
+        // Validate exact-color demand
+        for (const [color, needed] of Object.entries(exactColorDemand)) {
+          const teamKey = lockedTeam.keysHeld.find((k) => k.color === color);
+          if (!teamKey || teamKey.quantity < needed) {
+            throw new Error(`Insufficient ${color} keys`);
           }
         }
-      }
 
-      team.keysHeld = team.keysHeld.filter((k) => k.quantity > 0);
-      team.changed('keysHeld', true);
+        // Validate remaining keys (after exact-color demand is set aside) cover the "any" total
+        if (anyCostTotal > 0) {
+          const availableForAny = lockedTeam.keysHeld.reduce(
+            (sum, k) => sum + Math.max(0, k.quantity - (exactColorDemand[k.color] || 0)),
+            0
+          );
+          if (availableForAny < anyCostTotal) throw new Error('Insufficient keys');
+        }
 
-      const currentPotBigInt = BigInt(team.currentPot || 0);
-      const payoutBigInt = BigInt(reward.payout || 0);
-      team.currentPot = (currentPotBigInt + payoutBigInt).toString();
-
-      const activeBuffs = [...(team.activeBuffs || [])];
-      const grantedBuffIds = [];
-      if (reward.buffs?.length > 0) {
-        reward.buffs.forEach((buffReward) => {
-          try {
-            const newBuff = createBuff(buffReward.buffType);
-            activeBuffs.push(newBuff);
-            grantedBuffIds.push(newBuff.buffId);
-          } catch (err) {
-            logger.warn(
-              `[purchaseInnReward] failed to create buff ${buffReward.buffType}:`,
-              err.message
+        // If the caller supplied an explicit selection for "any" costs, validate it
+        // sums to the required "any" quantity and doesn't step on exact-color demand.
+        const hasSelection = Array.isArray(keySelection) && keySelection.length > 0;
+        let selectionByColor = null;
+        if (hasSelection) {
+          const selectionTotal = keySelection.reduce((sum, k) => sum + k.quantity, 0);
+          if (selectionTotal !== anyCostTotal) {
+            throw new Error(
+              `Key selection totals ${selectionTotal} but reward requires ${anyCostTotal} "any" keys`
             );
           }
-        });
-        team.activeBuffs = activeBuffs;
-        team.changed('activeBuffs', true);
-      }
-
-      team.innTransactions = [
-        ...(team.innTransactions || []),
-        {
-          nodeId: innNode.nodeId,
-          rewardId: reward.reward_id,
-          keysSpent,
-          payout: reward.payout,
-          buffsGranted: reward.buffs || [],
-          buffIds: grantedBuffIds,
-          purchasedAt: new Date().toISOString(),
-        },
-      ];
-      team.changed('innTransactions', true);
-
-      // Complete the inn on purchase (not on visit)
-      const completedNodes = [...(team.completedNodes || []), innNode.nodeId];
-      const availableNodes = (team.availableNodes || []).filter((n) => n !== innNode.nodeId);
-      const nodeUnlockTimes = { ...(team.nodeUnlockTimes || {}) };
-      const now = new Date().toISOString();
-      if (innNode.unlocks?.length > 0) {
-        innNode.unlocks.forEach((unlockedNodeId) => {
-          if (!availableNodes.includes(unlockedNodeId) && !completedNodes.includes(unlockedNodeId)) {
-            availableNodes.push(unlockedNodeId);
-            nodeUnlockTimes[unlockedNodeId] = now;
+          // Collapse per-color entries in case the client sent the same color twice.
+          selectionByColor = {};
+          for (const sel of keySelection) {
+            selectionByColor[sel.color] = (selectionByColor[sel.color] || 0) + sel.quantity;
           }
-        });
-      }
-      team.completedNodes = completedNodes;
-      team.changed('completedNodes', true);
-      team.availableNodes = availableNodes;
-      team.changed('availableNodes', true);
-      team.nodeUnlockTimes = nodeUnlockTimes;
-      team.changed('nodeUnlockTimes', true);
+          for (const [color, needed] of Object.entries(selectionByColor)) {
+            const teamKey = lockedTeam.keysHeld.find((k) => k.color === color);
+            const available = (teamKey?.quantity || 0) - (exactColorDemand[color] || 0);
+            if (needed > available) {
+              throw new Error(`Insufficient ${color} keys for selection`);
+            }
+          }
+        }
 
-      await team.save();
+        // Deduct: exact-color costs first, then the single "any" budget.
+        const spent = [];
+        for (const [color, needed] of Object.entries(exactColorDemand)) {
+          const teamKey = lockedTeam.keysHeld.find((k) => k.color === color);
+          teamKey.quantity -= needed;
+          spent.push({ color, quantity: needed });
+        }
+        if (anyCostTotal > 0) {
+          let remaining = anyCostTotal;
+          if (hasSelection) {
+            for (const [color, qty] of Object.entries(selectionByColor)) {
+              if (remaining <= 0) break;
+              const teamKey = lockedTeam.keysHeld.find((k) => k.color === color);
+              if (!teamKey) continue;
+              const toDeduct = Math.min(qty, remaining);
+              teamKey.quantity -= toDeduct;
+              remaining -= toDeduct;
+              spent.push({ color, quantity: toDeduct });
+            }
+          } else {
+            for (const key of lockedTeam.keysHeld) {
+              if (remaining <= 0) break;
+              const toDeduct = Math.min(key.quantity, remaining);
+              key.quantity -= toDeduct;
+              remaining -= toDeduct;
+              spent.push({ color: key.color, quantity: toDeduct });
+            }
+          }
+        }
+
+        lockedTeam.keysHeld = lockedTeam.keysHeld.filter((k) => k.quantity > 0);
+        lockedTeam.changed('keysHeld', true);
+
+        const currentPotBigInt = BigInt(lockedTeam.currentPot || 0);
+        const payoutBigInt = BigInt(reward.payout || 0);
+        lockedTeam.currentPot = (currentPotBigInt + payoutBigInt).toString();
+
+        const activeBuffs = [...(lockedTeam.activeBuffs || [])];
+        const grantedBuffIds = [];
+        if (reward.buffs?.length > 0) {
+          reward.buffs.forEach((buffReward) => {
+            try {
+              const newBuff = createBuff(buffReward.buffType);
+              activeBuffs.push(newBuff);
+              grantedBuffIds.push(newBuff.buffId);
+            } catch (err) {
+              logger.warn(
+                `[purchaseInnReward] failed to create buff ${buffReward.buffType}:`,
+                err.message
+              );
+            }
+          });
+          lockedTeam.activeBuffs = activeBuffs;
+          lockedTeam.changed('activeBuffs', true);
+        }
+
+        lockedTeam.innTransactions = [
+          ...(lockedTeam.innTransactions || []),
+          {
+            nodeId: innNode.nodeId,
+            rewardId: reward.reward_id,
+            keysSpent: spent,
+            payout: reward.payout,
+            buffsGranted: reward.buffs || [],
+            buffIds: grantedBuffIds,
+            purchasedAt: new Date().toISOString(),
+          },
+        ];
+        lockedTeam.changed('innTransactions', true);
+
+        // Complete the inn on purchase (not on visit)
+        const completedNodes = [...(lockedTeam.completedNodes || []), innNode.nodeId];
+        const availableNodes = (lockedTeam.availableNodes || []).filter(
+          (n) => n !== innNode.nodeId
+        );
+        const nodeUnlockTimes = { ...(lockedTeam.nodeUnlockTimes || {}) };
+        const now = new Date().toISOString();
+        if (innNode.unlocks?.length > 0) {
+          innNode.unlocks.forEach((unlockedNodeId) => {
+            if (
+              !availableNodes.includes(unlockedNodeId) &&
+              !completedNodes.includes(unlockedNodeId)
+            ) {
+              availableNodes.push(unlockedNodeId);
+              nodeUnlockTimes[unlockedNodeId] = now;
+            }
+          });
+        }
+        lockedTeam.completedNodes = completedNodes;
+        lockedTeam.changed('completedNodes', true);
+        lockedTeam.availableNodes = availableNodes;
+        lockedTeam.changed('availableNodes', true);
+        lockedTeam.nodeUnlockTimes = nodeUnlockTimes;
+        lockedTeam.changed('nodeUnlockTimes', true);
+
+        await lockedTeam.save({ transaction: t });
+        return { team: lockedTeam, keysSpent: spent };
+      });
 
       await logGRActivity(eventId, teamId, 'inn_purchased', {
         innId: innNode.nodeId,

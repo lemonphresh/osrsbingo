@@ -29,7 +29,7 @@ const STORIES = [
     id: 'inn-modal',
     label: 'InnModal',
     category: 'Gielinor Rush',
-    scenarioCount: 8,
+    scenarioCount: 10,
     component: InnModalStories,
   },
   {

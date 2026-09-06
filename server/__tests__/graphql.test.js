@@ -1035,8 +1035,18 @@ describe('GielinorRush Mutations', () => {
 
   test('PURCHASE_INN_REWARD', () => {
     const result = validateOperation(`
-      mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
-        purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
+      mutation PurchaseInnReward(
+        $eventId: ID!
+        $teamId: ID!
+        $rewardId: ID!
+        $keySelection: [KeySelectionInput!]
+      ) {
+        purchaseInnReward(
+          eventId: $eventId
+          teamId: $teamId
+          rewardId: $rewardId
+          keySelection: $keySelection
+        ) {
           teamId
           currentPot
           keysHeld

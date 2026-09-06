@@ -894,8 +894,18 @@ export const ADMIN_REMOVE_BUFF_FROM_NODE = gql`
 // ============================================================
 
 export const PURCHASE_INN_REWARD = gql`
-  mutation PurchaseInnReward($eventId: ID!, $teamId: ID!, $rewardId: ID!) {
-    purchaseInnReward(eventId: $eventId, teamId: $teamId, rewardId: $rewardId) {
+  mutation PurchaseInnReward(
+    $eventId: ID!
+    $teamId: ID!
+    $rewardId: ID!
+    $keySelection: [KeySelectionInput!]
+  ) {
+    purchaseInnReward(
+      eventId: $eventId
+      teamId: $teamId
+      rewardId: $rewardId
+      keySelection: $keySelection
+    ) {
       teamId
       currentPot
       keysHeld
