@@ -318,6 +318,7 @@ const Landing = () => {
           gap="24px"
           marginBottom="48px"
           justifyContent="center"
+          order={isBattleshipEnabled(user) ? -1 : 0}
         >
           <Box
             flex="1"

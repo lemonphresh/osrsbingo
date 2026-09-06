@@ -20,12 +20,13 @@ import {
   isGielinorRushEnabled,
   isChampionForgeEnabled,
   isBlindDraftEnabled,
+  isGroupDashboardEnabled,
 } from '../config/featureFlags';
 import { useAuth } from '../providers/AuthProvider';
 
 const FAQ_SECTIONS = (user) =>
   [
-    {
+    isGroupDashboardEnabled(user) && {
       title: '📊 Group Goals Dashboard',
       colorKey: 'orange',
       items: [

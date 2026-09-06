@@ -23,307 +23,319 @@ import {
   isChampionForgeEnabled,
   isBattleshipEnabled,
 } from '../config/featureFlags';
+import { useAuth } from '../providers/AuthProvider';
 
 // Changelog data - newest first, parsed from git history
-const CHANGELOG_ENTRIES = [
-  {
-    version: '2.3.0',
-    date: isChampionForgeEnabled() ? 'September 2026' : 'Coming Soon',
-    title: 'Champion Forge ⚔️',
-    type: isChampionForgeEnabled() ? 'major' : 'upcoming',
-    icon: FaFistRaised,
-    details:
-      'A full clan tournament engine built right into the hub. Run structured competitions across four phases, from item gathering to champion outfitting to a live turn-based battle bracket. This one has been my favorite so far to build.',
-    highlights: [
-      'Four-phase event structure: Draft → Gathering → Outfitting → Battle',
-      'Gathering phase: task-based item collection with Discord bot submission workflow and admin review (approve/deny)',
-      'War chest system: approved drops become equippable items for your champion',
-      'Outfitting phase: full paperdoll gear slots with training dummy battle previewer',
-      'Consumable slot system: equip potions and throwables from your war chest',
-      'Turn-based battle engine with attacks, defends, specials, and consumable items',
-      'Single-elimination and double-elimination bracket support',
-      'Live battle screen with real-time WebSocket updates and turn timer',
-      'Battle replay: step through completed fights turn by turn',
-      'Battle Gallery: browse and rewatch completed tournament battles from any event',
-      'Per-action CSS visual effects: slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs/debuffs, and more',
-      'Web Audio API sound effects for every action',
-      'Volume slider for battle sequences, persisted per user',
-      'Admin/ref panel with pre-screenshot support and announcements channel config',
-      'Event password integration for submission verification',
-    ],
-  },
-  {
-    version: '2.2.0',
-    date: isBattleshipEnabled() ? 'September 2026' : 'Coming Soon',
-    title: 'Battleship',
-    type: isBattleshipEnabled() ? 'major' : 'upcoming',
-    icon: FaShieldAlt,
-    details:
-      'Big two-team OSRS competition built around the classic game of Battleship. Place your fleet, fire at the enemy board, and complete OSRS tasks to score hits. First team to sink all ships wins.',
-    highlights: [
-      'Full 10×10 grid board with ship placement phase. Each team secretly deploys their fleet',
-      'Turn-based firing with coordinate selection and team vote/proposal system',
-      'Hit reveals an OSRS task, complete it (with screenshot proof) to score the hit and fire again',
-      'Miss also reveals a task, complete it to end your turn',
-      'WOM (Wise Old Man) integration: track metric progress automatically for revealed tasks',
-      'Skip token system: teams can spend tokens to skip unwanted tasks',
-      'Placement phase cooldown and time limit configuration',
-      'Per-team Discord channel integration: shot results, task reveals, and submission feedback posted automatically',
-      'Refs page for approving/denying pre-screenshots and completion submissions',
-      'Admin console with team management, shot log, WOM setup, and manual sync',
-      'Real-time updates via WebSocket subscriptions',
-    ],
-  },
-  {
-    version: '2.1.2',
-    date: 'July–August 2026',
-    title: 'Cleanup & Under the Hood',
-    type: 'improvement',
-    icon: FaRocket,
-    highlights: [
-      'Centralized content registry for all OSRS boss, skill, clue, and activity data. Group goal tracking is now more accurate and consistent across the site',
-      'Group dashboard boss and skill options now pull from the registry with correct WOM keys',
-      "Huge organization effort across all files, routes, and Discord bot commands. Now that's good dev QOL, baby!",
-      'Seeder safety overhaul: removed unfiltered bulkDelete calls that could have nuked real data if run on prod lol oop',
-      'Various nav and UI polish throughout',
-    ],
-  },
-  {
-    version: '2.1.1',
-    date: 'March 2026',
-    title: 'Profile & Navigation Polish',
-    type: 'improvement',
-    icon: FaPalette,
-    highlights: [
-      'Bingo boards moved to their own dedicated page (/bingo) for a cleaner profile',
-      'User profile now shows a tools hub with quick links to Bingo, Gielinor Rush, and Blind Draft',
-      'Added a Discover section on the profile for browsing public boards and active events',
-      'Pending invitations now only appear when there are actually invitations to show',
-      'Landing page updated to feature all three tools',
-    ],
-  },
-  {
-    version: '2.1.0',
-    date: 'March 2026',
-    title: 'Blind Draft 🃏',
-    type: isBlindDraftEnabled() ? 'feature' : 'upcoming',
-    icon: FaUserFriends,
-    details:
-      'A brand new tool for clan team selection. Paste in a list of RSNs, and the draft room anonymizes everyone, captains pick players by WOM stats alone, with no names visible until the draft ends. Fair, dramatic, and so fun.',
-    highlights: [
-      'Snake, linear, and auction draft formats',
-      'Real-time pick timer with server-enforced auto-pick on expiry',
-      'Player cards showing combat level, total level, EHP, EHB, slayer, and all boss KCs',
-      'Optional S/A/B/C/D tier badges calculated from a weighted EHP/EHB formula',
-      'Spectator mode! Anyone with the link can watch live',
-      'Organizer reveal! Names stay hidden until you click Reveal',
-      'Results page with full stat cards after reveal',
-      'Shareable captain join links with optional PIN protection',
-    ],
-  },
-  {
-    version: '2.0.0',
-    date: 'October 2025 - March 2026',
-    title: 'Gielinor Rush 🎉',
-    type: isGielinorRushEnabled() ? 'feature' : 'upcoming',
-    icon: FaGamepad,
-    details: `A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's ${
-      isGielinorRushEnabled() ? 'finally' : 'nearly'
-    } here.`,
-    highlights: [
-      'Brand new Treasure Hunt / Gielinor Rush game mode',
-      'Procedurally generated maps with branching paths',
-      'Team-based competitions with real-time progress tracking',
-      'Buff system with strategic power-ups',
-      'Inn nodes for rest and resource management',
-      'Victory celebrations with confetti 🎊',
-      'Admin walkthrough panels for event management',
-      'Live activity feed with WebSocket updates',
-      'Discord bot integration for team coordination',
-      'Submission review system with approve/deny workflow',
-      'Content selection! Customize which bosses, skills, etc. appear',
-      'Interactive tutorial for new players',
-    ],
-  },
-  {
-    version: '1.8.0',
-    date: 'January–February 2026',
-    title: 'Performance, Polish & GR Progress',
-    type: 'improvement',
-    icon: FaRocket,
-    highlights: [
-      'DataLoader + database indexing dropped server load from 2.0+ to 0.04 avg and response times from 30s to under 3s',
-      'Live activity feed with real-time WebSocket updates',
-      'Discord OAuth verification for Gielinor Rush team members',
-      'Admin checklist fixes, map node improvements, content selection fixes',
-      'Icon API caching and BonusSettings resolver fix',
-      'Feature flag system for toggling Gielinor Rush per environment',
-      'Fixed navigation race conditions on board create, duplicate, and shuffle',
-      'All Boards search, filters, and empty states improved',
-      'UI cleanup across profile and board detail pages',
-    ],
-  },
-  {
-    version: '1.7.0',
-    date: 'January 2026',
-    title: 'Polish & Performance',
-    type: 'improvement',
-    icon: FaRocket,
-    highlights: [
-      'Added Support page',
-      'Major performance improvements to queries and mutations',
-      'Added comprehensive test coverage',
-      'PWA support...add the site to your home screen!',
-      'Revamped landing page design',
-      'Added Privacy Policy, Terms of Service, and About pages',
-      'Event password to help with screenshot verification on Gielinor Rush competitions',
-    ],
-  },
-  {
-    version: '1.6.0',
-    date: 'July 2025',
-    title: 'Wiki Integration Update',
-    type: 'improvement',
-    icon: FaSearch,
-    highlights: [
-      'Updated item endpoint to use OSRS Wiki API',
-      'More reliable item icons (though not always perfect inventory sprites now)',
-      'Pinned Node.js version for stability',
-    ],
-  },
-  {
-    version: '1.5.0',
-    date: 'February 2025',
-    title: 'Scoring Fixes',
-    type: 'fix',
-    icon: FaBug,
-    highlights: [
-      'Fixed scoring calculations for bingo boards',
-      'Corrected verbiage throughout the app',
-    ],
-  },
-  {
-    version: '1.4.0',
-    date: 'January 2025',
-    title: 'Privacy & Access Controls',
-    type: 'feature',
-    icon: FaShieldAlt,
-    highlights: [
-      'Users can now view their own private boards (oops, that was a bug)',
-      'Fixed navigation for non-editors on private boards',
-      'Admin-only public boards list',
-      'Better redirect handling for unauthorized access',
-    ],
-  },
-  {
-    version: '1.3.0',
-    date: 'January 2025',
-    title: 'Drag & Drop + UX Polish',
-    type: 'feature',
-    icon: FaGripHorizontal,
-    highlights: [
-      'Drag and drop tile reordering!',
-      'Login prompt when trying to duplicate while unauthenticated',
-      'Fixed button colors on alert modals',
-    ],
-  },
-  {
-    version: '1.2.0',
-    date: 'December 2024',
-    title: 'Themes & Customization',
-    type: 'feature',
-    icon: FaPalette,
-    highlights: [
-      'Color schemes/themes for bingo boards',
-      'Extended auth token from 1 day to 7 days (less re-logging!)',
-      'Fixed All Boards view when no boards exist',
-      'Shuffle button now only available in edit mode',
-    ],
-  },
-  {
-    version: '1.1.0',
-    date: 'December 2024',
-    title: 'Admin Powers & Board Sizes',
-    type: 'feature',
-    icon: FaShieldAlt,
-    highlights: [
-      'Swap between 5x5 and 7x7 board sizes',
-      'Admins can now edit any board',
-      'Admin power to delete users (for moderation)',
-      'Mobile layout fixes',
-    ],
-  },
-  {
-    version: '1.0.0',
-    date: 'December 2024',
-    title: 'Featured Boards & Discovery',
-    type: 'feature',
-    icon: FaStar,
-    highlights: [
-      'Featured boards list on homepage',
-      'Display names for users',
-      'Filters and search on All Boards page',
-      'Admin toggle for board visibility',
-      'SEO improvements with proper metadata',
-    ],
-  },
-  {
-    version: '0.9.0',
-    date: 'December 2024',
-    title: 'Editor Invitations',
-    type: 'feature',
-    icon: FaUserFriends,
-    highlights: [
-      'Invite others to edit your boards',
-      'Remove individual editors from list',
-      'Updated FAQ with new features',
-    ],
-  },
-  {
-    version: '0.8.0',
-    date: 'December 2024',
-    title: 'Points & Bonuses System',
-    type: 'feature',
-    icon: FaStar,
-    highlights: [
-      'Complete point system for competitive scoring',
-      'Bonus system with clearer explanations',
-      'Base tile value input when creating boards',
-    ],
-  },
-  {
-    version: '0.5.0',
-    date: 'November - December 2024',
-    title: 'Core Bingo Features',
-    type: 'feature',
-    icon: FaFlag,
-    highlights: [
-      'Duplicate bingo boards',
-      'Edit mode for board details',
-      'Public/private board toggle',
-      'Timestamps for tile completions',
-      'Delete boards',
-      'Add and remove editors',
-    ],
-  },
-  {
-    version: '0.1.0',
-    date: 'November 2024',
-    title: 'Initial Launch 🚀',
-    type: 'major',
-    icon: FaRocket,
-    details:
-      'Where it all began! Basic bingo board functionality, user authentication, and a dream. Built this for my clan and figured others might want it too.',
-    highlights: [
-      'User authentication (login/signup)',
-      'Create bingo boards (5x5 and 7x7)',
-      '25/49 tiles auto-created per board',
-      'Public user profiles',
-      'FAQ page',
-      'Basic landing page',
-    ],
-  },
-];
+const getChangelogEntries = (user) => {
+  const entries = [
+    {
+      version: '2.3.0',
+      date: isChampionForgeEnabled(user) ? 'September 2026' : 'Coming Soon',
+      title: 'Champion Forge ⚔️',
+      type: isChampionForgeEnabled(user) ? 'major' : 'upcoming',
+      icon: FaFistRaised,
+      details:
+        'A full clan tournament engine built right into the hub. Run structured competitions across four phases, from item gathering to champion outfitting to a live turn-based battle bracket. This one has been my favorite so far to build.',
+      highlights: [
+        'Four-phase event structure: Draft → Gathering → Outfitting → Battle',
+        'Gathering phase: task-based item collection with Discord bot submission workflow and admin review (approve/deny)',
+        'War chest system: approved drops become equippable items for your champion',
+        'Outfitting phase: full paperdoll gear slots with training dummy battle previewer',
+        'Consumable slot system: equip potions and throwables from your war chest',
+        'Turn-based battle engine with attacks, defends, specials, and consumable items',
+        'Single-elimination and double-elimination bracket support',
+        'Live battle screen with real-time WebSocket updates and turn timer',
+        'Battle replay: step through completed fights turn by turn',
+        'Battle Gallery: browse and rewatch completed tournament battles from any event',
+        'Per-action CSS visual effects: slashes, crits, shield ripples, lightning arcs, bleed drips, drain orbs, heals, explosions, buffs/debuffs, and more',
+        'Web Audio API sound effects for every action',
+        'Volume slider for battle sequences, persisted per user',
+        'Admin/ref panel with pre-screenshot support and announcements channel config',
+        'Event password integration for submission verification',
+      ],
+    },
+    {
+      version: '2.2.0',
+      date: isBattleshipEnabled(user) ? 'September 2026' : 'Coming Soon',
+      title: 'Battleship',
+      type: isBattleshipEnabled(user) ? 'major' : 'upcoming',
+      icon: FaShieldAlt,
+      details:
+        'Big two-team OSRS competition built around the classic game of Battleship. Place your fleet, fire at the enemy board, and complete OSRS tasks to score hits. First team to sink all ships wins.',
+      highlights: [
+        'Full 10×10 grid board with ship placement phase. Each team secretly deploys their fleet',
+        'Turn-based firing with coordinate selection and team vote/proposal system',
+        'Hit reveals an OSRS task, complete it (with screenshot proof) to score the hit and fire again',
+        'Miss also reveals a task, complete it to end your turn',
+        'WOM (Wise Old Man) integration: track metric progress automatically for revealed tasks',
+        'Skip token system: teams can spend tokens to skip unwanted tasks',
+        'Placement phase cooldown and time limit configuration',
+        'Per-team Discord channel integration: shot results, task reveals, and submission feedback posted automatically',
+        'Refs page for approving/denying pre-screenshots and completion submissions',
+        'Admin console with team management, shot log, WOM setup, and manual sync',
+        'Real-time updates via WebSocket subscriptions',
+      ],
+    },
+    {
+      version: '2.1.2',
+      date: 'July–August 2026',
+      title: 'Cleanup & Under the Hood',
+      type: 'improvement',
+      icon: FaRocket,
+      highlights: [
+        'Centralized content registry for all OSRS boss, skill, clue, and activity data. Group goal tracking is now more accurate and consistent across the site',
+        'Group dashboard boss and skill options now pull from the registry with correct WOM keys',
+        "Huge organization effort across all files, routes, and Discord bot commands. Now that's good dev QOL, baby!",
+        'Seeder safety overhaul: removed unfiltered bulkDelete calls that could have nuked real data if run on prod lol oop',
+        'Various nav and UI polish throughout',
+      ],
+    },
+    {
+      version: '2.1.1',
+      date: 'March 2026',
+      title: 'Profile & Navigation Polish',
+      type: 'improvement',
+      icon: FaPalette,
+      highlights: [
+        'Bingo boards moved to their own dedicated page (/bingo) for a cleaner profile',
+        'User profile now shows a tools hub with quick links to Bingo, Gielinor Rush, and Blind Draft',
+        'Added a Discover section on the profile for browsing public boards and active events',
+        'Pending invitations now only appear when there are actually invitations to show',
+        'Landing page updated to feature all three tools',
+      ],
+    },
+    {
+      version: '2.1.0',
+      date: 'March 2026',
+      title: 'Blind Draft 🃏',
+      type: isBlindDraftEnabled(user) ? 'feature' : 'upcoming',
+      icon: FaUserFriends,
+      details:
+        'A brand new tool for clan team selection. Paste in a list of RSNs, and the draft room anonymizes everyone, captains pick players by WOM stats alone, with no names visible until the draft ends. Fair, dramatic, and so fun.',
+      highlights: [
+        'Snake, linear, and auction draft formats',
+        'Real-time pick timer with server-enforced auto-pick on expiry',
+        'Player cards showing combat level, total level, EHP, EHB, slayer, and all boss KCs',
+        'Optional S/A/B/C/D tier badges calculated from a weighted EHP/EHB formula',
+        'Spectator mode! Anyone with the link can watch live',
+        'Organizer reveal! Names stay hidden until you click Reveal',
+        'Results page with full stat cards after reveal',
+        'Shareable captain join links with optional PIN protection',
+      ],
+    },
+    {
+      version: '2.0.0',
+      date: 'October 2025 - March 2026',
+      title: 'Gielinor Rush 🎉',
+      type: isGielinorRushEnabled(user) ? 'feature' : 'upcoming',
+      icon: FaGamepad,
+      details: `A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's ${
+        isGielinorRushEnabled(user) ? 'finally' : 'nearly'
+      } here.`,
+      highlights: [
+        'Brand new Treasure Hunt / Gielinor Rush game mode',
+        'Procedurally generated maps with branching paths',
+        'Team-based competitions with real-time progress tracking',
+        'Buff system with strategic power-ups',
+        'Inn nodes for rest and resource management',
+        'Victory celebrations with confetti 🎊',
+        'Admin walkthrough panels for event management',
+        'Live activity feed with WebSocket updates',
+        'Discord bot integration for team coordination',
+        'Submission review system with approve/deny workflow',
+        'Content selection! Customize which bosses, skills, etc. appear',
+        'Interactive tutorial for new players',
+      ],
+    },
+    {
+      version: '1.8.0',
+      date: 'January–February 2026',
+      title: 'Performance, Polish & GR Progress',
+      type: 'improvement',
+      icon: FaRocket,
+      highlights: [
+        'DataLoader + database indexing dropped server load from 2.0+ to 0.04 avg and response times from 30s to under 3s',
+        'Live activity feed with real-time WebSocket updates',
+        'Discord OAuth verification for Gielinor Rush team members',
+        'Admin checklist fixes, map node improvements, content selection fixes',
+        'Icon API caching and BonusSettings resolver fix',
+        'Feature flag system for toggling Gielinor Rush per environment',
+        'Fixed navigation race conditions on board create, duplicate, and shuffle',
+        'All Boards search, filters, and empty states improved',
+        'UI cleanup across profile and board detail pages',
+      ],
+    },
+    {
+      version: '1.7.0',
+      date: 'January 2026',
+      title: 'Polish & Performance',
+      type: 'improvement',
+      icon: FaRocket,
+      highlights: [
+        'Added Support page',
+        'Major performance improvements to queries and mutations',
+        'Added comprehensive test coverage',
+        'PWA support...add the site to your home screen!',
+        'Revamped landing page design',
+        'Added Privacy Policy, Terms of Service, and About pages',
+        'Event password to help with screenshot verification on Gielinor Rush competitions',
+      ],
+    },
+    {
+      version: '1.6.0',
+      date: 'July 2025',
+      title: 'Wiki Integration Update',
+      type: 'improvement',
+      icon: FaSearch,
+      highlights: [
+        'Updated item endpoint to use OSRS Wiki API',
+        'More reliable item icons (though not always perfect inventory sprites now)',
+        'Pinned Node.js version for stability',
+      ],
+    },
+    {
+      version: '1.5.0',
+      date: 'February 2025',
+      title: 'Scoring Fixes',
+      type: 'fix',
+      icon: FaBug,
+      highlights: [
+        'Fixed scoring calculations for bingo boards',
+        'Corrected verbiage throughout the app',
+      ],
+    },
+    {
+      version: '1.4.0',
+      date: 'January 2025',
+      title: 'Privacy & Access Controls',
+      type: 'feature',
+      icon: FaShieldAlt,
+      highlights: [
+        'Users can now view their own private boards (oops, that was a bug)',
+        'Fixed navigation for non-editors on private boards',
+        'Admin-only public boards list',
+        'Better redirect handling for unauthorized access',
+      ],
+    },
+    {
+      version: '1.3.0',
+      date: 'January 2025',
+      title: 'Drag & Drop + UX Polish',
+      type: 'feature',
+      icon: FaGripHorizontal,
+      highlights: [
+        'Drag and drop tile reordering!',
+        'Login prompt when trying to duplicate while unauthenticated',
+        'Fixed button colors on alert modals',
+      ],
+    },
+    {
+      version: '1.2.0',
+      date: 'December 2024',
+      title: 'Themes & Customization',
+      type: 'feature',
+      icon: FaPalette,
+      highlights: [
+        'Color schemes/themes for bingo boards',
+        'Extended auth token from 1 day to 7 days (less re-logging!)',
+        'Fixed All Boards view when no boards exist',
+        'Shuffle button now only available in edit mode',
+      ],
+    },
+    {
+      version: '1.1.0',
+      date: 'December 2024',
+      title: 'Admin Powers & Board Sizes',
+      type: 'feature',
+      icon: FaShieldAlt,
+      highlights: [
+        'Swap between 5x5 and 7x7 board sizes',
+        'Admins can now edit any board',
+        'Admin power to delete users (for moderation)',
+        'Mobile layout fixes',
+      ],
+    },
+    {
+      version: '1.0.0',
+      date: 'December 2024',
+      title: 'Featured Boards & Discovery',
+      type: 'feature',
+      icon: FaStar,
+      highlights: [
+        'Featured boards list on homepage',
+        'Display names for users',
+        'Filters and search on All Boards page',
+        'Admin toggle for board visibility',
+        'SEO improvements with proper metadata',
+      ],
+    },
+    {
+      version: '0.9.0',
+      date: 'December 2024',
+      title: 'Editor Invitations',
+      type: 'feature',
+      icon: FaUserFriends,
+      highlights: [
+        'Invite others to edit your boards',
+        'Remove individual editors from list',
+        'Updated FAQ with new features',
+      ],
+    },
+    {
+      version: '0.8.0',
+      date: 'December 2024',
+      title: 'Points & Bonuses System',
+      type: 'feature',
+      icon: FaStar,
+      highlights: [
+        'Complete point system for competitive scoring',
+        'Bonus system with clearer explanations',
+        'Base tile value input when creating boards',
+      ],
+    },
+    {
+      version: '0.5.0',
+      date: 'November - December 2024',
+      title: 'Core Bingo Features',
+      type: 'feature',
+      icon: FaFlag,
+      highlights: [
+        'Duplicate bingo boards',
+        'Edit mode for board details',
+        'Public/private board toggle',
+        'Timestamps for tile completions',
+        'Delete boards',
+        'Add and remove editors',
+      ],
+    },
+    {
+      version: '0.1.0',
+      date: 'November 2024',
+      title: 'Initial Launch 🚀',
+      type: 'major',
+      icon: FaRocket,
+      details:
+        'Where it all began! Basic bingo board functionality, user authentication, and a dream. Built this for my clan and figured others might want it too.',
+      highlights: [
+        'User authentication (login/signup)',
+        'Create bingo boards (5x5 and 7x7)',
+        '25/49 tiles auto-created per board',
+        'Public user profiles',
+        'FAQ page',
+        'Basic landing page',
+      ],
+    },
+  ];
+
+  // Battleship is the current launch priority. Keep it above the later
+  // Champion Forge release whenever Battleship is available.
+  if (isBattleshipEnabled(user)) {
+    const [championForge, battleship, ...rest] = entries;
+    return [battleship, championForge, ...rest];
+  }
+
+  return entries;
+};
 
 const getTypeColor = (type) => {
   switch (type) {
@@ -436,6 +448,8 @@ const ChangelogEntry = ({ entry, isLatest }) => {
 
 export default function ChangelogPage() {
   usePageTitle('Changelog');
+  const { user } = useAuth();
+  const changelogEntries = getChangelogEntries(user);
 
   return (
     <Box
@@ -459,7 +473,9 @@ export default function ChangelogPage() {
         </VStack>
 
         {/* Latest release callout */}
-        {(isBattleshipEnabled() || isChampionForgeEnabled() || isGielinorRushEnabled()) && (
+        {(isBattleshipEnabled(user) ||
+          isChampionForgeEnabled(user) ||
+          isGielinorRushEnabled(user)) && (
           <Box
             bg="rgba(244, 211, 94, 0.1)"
             border="1px solid rgba(244, 211, 94, 0.3)"
@@ -473,7 +489,36 @@ export default function ChangelogPage() {
                 LATEST MAJOR RELEASE
               </Text>
             </HStack>
-            {isChampionForgeEnabled() ? (
+            {isBattleshipEnabled(user) ? (
+              <>
+                <Text color="white" fontWeight="semibold" fontSize="lg">
+                  Battleship is here! ⚓
+                </Text>
+                <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
+                  Two big teams, one ocean, and a whole lot of OSRS tasks standing between you and
+                  victory. Place your fleet, fire shots at the enemy board, and complete challenges
+                  to score hits. First team to sink all ships wins. Refs oversee the whole campaign
+                  from a dedicated dashboard with a live shot log and submission queue.
+                </Text>
+                <ChakraLink
+                  href="/battleship"
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={2}
+                  bg="#F4D35E"
+                  color="#1a1a1a"
+                  px={4}
+                  py={2}
+                  borderRadius="md"
+                  fontWeight={600}
+                  fontSize="sm"
+                  mt={4}
+                  _hover={{ bg: '#e5c654', textDecoration: 'none' }}
+                >
+                  <FaGamepad /> Set Sail
+                </ChakraLink>
+              </>
+            ) : isChampionForgeEnabled(user) ? (
               <>
                 <Text color="white" fontWeight="semibold" fontSize="lg">
                   Champion Forge is here! ⚔️
@@ -502,35 +547,6 @@ export default function ChangelogPage() {
                   _hover={{ bg: '#e5c654', textDecoration: 'none' }}
                 >
                   <FaGamepad /> Start Forging
-                </ChakraLink>
-              </>
-            ) : isBattleshipEnabled() ? (
-              <>
-                <Text color="white" fontWeight="semibold" fontSize="lg">
-                  Battleship is here! ⚓
-                </Text>
-                <Text color="rgba(255,255,255,0.7)" fontSize="sm" mt={2} lineHeight="1.6">
-                  Two big teams, one ocean, and a whole lot of OSRS tasks standing between you and
-                  victory. Place your fleet, fire shots at the enemy board, and complete challenges
-                  to score hits. First team to sink all ships wins. Refs oversee the whole campaign
-                  from a dedicated dashboard with a live shot log and submission queue.
-                </Text>
-                <ChakraLink
-                  href="/battleship"
-                  display="inline-flex"
-                  alignItems="center"
-                  gap={2}
-                  bg="#F4D35E"
-                  color="#1a1a1a"
-                  px={4}
-                  py={2}
-                  borderRadius="md"
-                  fontWeight={600}
-                  fontSize="sm"
-                  mt={4}
-                  _hover={{ bg: '#e5c654', textDecoration: 'none' }}
-                >
-                  <FaGamepad /> Set Sail
                 </ChakraLink>
               </>
             ) : (
@@ -603,7 +619,7 @@ export default function ChangelogPage() {
 
         {/* Timeline */}
         <VStack align="stretch" spacing={0}>
-          {CHANGELOG_ENTRIES.map((entry, idx) => (
+          {changelogEntries.map((entry, idx) => (
             <ChangelogEntry key={entry.version} entry={entry} isLatest={idx === 0} />
           ))}
         </VStack>

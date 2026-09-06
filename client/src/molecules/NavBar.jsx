@@ -27,9 +27,13 @@ import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOp
 import { FaHeart } from 'react-icons/fa';
 import {
   isBattleshipEnabled,
+  isBlindDraftEnabled,
   isChampionForgeEnabled,
+  isGielinorRushEnabled,
   isGroupDashboardEnabled,
   isWhodunnitEnabled,
+  isWhodunnitSeason,
+  useFeatureFlagRevision,
 } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import HolidayEmojiFall, {
@@ -45,6 +49,7 @@ const BANNER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const NavBar = () => {
   const { user, logout } = useAuth();
+  useFeatureFlagRevision();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isJuneBannerOpen, setIsJuneBannerOpen] = useState(false);
   const [isDecemberBannerOpen, setIsDecemberBannerOpen] = useState(false);
@@ -99,10 +104,7 @@ const NavBar = () => {
   };
 
   const isJune = new Date().getMonth() === 5;
-  const now = new Date();
-
-  const isWhodunnitSeason = now.getMonth() === 11 && now.getDate() >= 15;
-  const canSeeSeasonal = isWhodunnitEnabled(user) && (isWhodunnitSeason || user?.admin);
+  const canSeeSeasonal = isWhodunnitEnabled(user) && isWhodunnitSeason();
   const showDecemberBanner = canSeeSeasonal && isDecemberBannerOpen;
   const showJuneBanner = !showDecemberBanner && isJune && isJuneBannerOpen;
   const showDefaultBanner = !showDecemberBanner && !showJuneBanner && isBannerOpen;
@@ -340,15 +342,15 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors, some server bills. If OSRS Bingo Hub
                   has helped you or your clan, consider helping me keep it running 💛
                 </Text>
-                {isChampionForgeEnabled(user) ? (
-                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also, event runners, go check out <strong>Champion Forge</strong>! I've been
-                    hard at work on this one :) ⚔️
-                  </Text>
-                ) : isBattleshipEnabled(user) ? (
+                {isBattleshipEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
                     Also... OSRS Battleship is live! :-) Check out <strong>Battleship</strong> for a
                     fun big team event type.
+                  </Text>
+                ) : isChampionForgeEnabled(user) ? (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    Also, event runners, go check out <strong>Champion Forge</strong>! I've been
+                    hard at work on this one :) ⚔️
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
@@ -384,16 +386,16 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isChampionForgeEnabled(user) ? (
-                <Link to="/champion-forge">
-                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
-                    Champion Forge →
-                  </Text>
-                </Link>
-              ) : isBattleshipEnabled(user) ? (
+              {isBattleshipEnabled(user) ? (
                 <Link to="/battleship">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Battleship →
+                  </Text>
+                </Link>
+              ) : isChampionForgeEnabled(user) ? (
+                <Link to="/champion-forge">
+                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                    Champion Forge →
                   </Text>
                 </Link>
               ) : (
@@ -706,8 +708,12 @@ const NavBar = () => {
                       section: 'Create Events',
                       items: [
                         { label: 'Bingo Creator', to: '/boards/create' },
-                        { label: 'Gielinor Rush', to: '/gielinor-rush' },
-                        { label: 'Battleship', to: '/battleship' },
+                        ...(isGielinorRushEnabled(user)
+                          ? [{ label: 'Gielinor Rush', to: '/gielinor-rush' }]
+                          : []),
+                        ...(isBattleshipEnabled(user)
+                          ? [{ label: 'Battleship', to: '/battleship' }]
+                          : []),
                         ...(isChampionForgeEnabled(user)
                           ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
                           : []),
@@ -720,19 +726,31 @@ const NavBar = () => {
                       section: 'Tools',
                       items: [
                         { label: 'Team Balancer', to: '/team-balancer' },
-                        { label: 'Blind Draft', to: '/blind-draft' },
+                        ...(isBlindDraftEnabled(user)
+                          ? [{ label: 'Blind Draft', to: '/blind-draft' }]
+                          : []),
                       ],
                     },
                     {
                       section: 'Discover',
                       items: [
                         { label: 'Browse All Boards', to: '/boards' },
-                        { label: 'Active GR Events', to: '/gielinor-rush/active' },
+                        ...(isGielinorRushEnabled(user)
+                          ? [{ label: 'Active GR Events', to: '/gielinor-rush/active' }]
+                          : []),
                         ...(isChampionForgeEnabled(user)
                           ? [{ label: 'CF Battle Gallery', to: '/champion-forge/gallery' }]
                           : []),
                       ],
                     },
+                    ...(user?.admin
+                      ? [
+                          {
+                            section: 'Site Admin',
+                            items: [{ label: 'Feature Flags', to: '/admin/flags' }],
+                          },
+                        ]
+                      : []),
                   ].map(({ section, items }) => (
                     <Box key={section} paddingTop="16px">
                       <Text

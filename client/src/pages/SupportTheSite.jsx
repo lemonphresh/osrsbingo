@@ -7,9 +7,14 @@ import GnomeChild from '../assets/gnomechild-small.webp';
 import { FaCoffee, FaHeart } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 import usePageTitle from '../hooks/usePageTitle';
-import { isGielinorRushEnabled, isChampionForgeEnabled, isBattleshipEnabled } from '../config/featureFlags';
+import {
+  isGielinorRushEnabled,
+  isChampionForgeEnabled,
+  isBattleshipEnabled,
+} from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import { GET_ACTIVE_RAINBOW_EVENT } from '../graphql/rainbowBingoOperations';
+import { useAuth } from '../providers/AuthProvider';
 
 const SelfieCircle = ({ size = 120 }) => (
   <div
@@ -37,6 +42,7 @@ const SelfieCircle = ({ size = 120 }) => (
 
 export default function SupportPage() {
   usePageTitle('Support the Site');
+  const { user } = useAuth();
 
   const { data: eventData } = useQuery(GET_ACTIVE_RAINBOW_EVENT, {
     fetchPolicy: 'cache-and-network',
@@ -77,7 +83,7 @@ export default function SupportPage() {
             nerds started using it. Now there's like 3,000+ boards on here, I shipped Gielinor Rush
             (team treasure hunts), Blind Draft, and I just finished building{' '}
             <strong>Battleship</strong> (big two-team competition where you place your fleet and
-            complete OSRS tasks to sink the enemy{isBattleshipEnabled() ? ', go try it!' : ', coming soon'}).
+            complete OSRS tasks to sink the enemy{isBattleshipEnabled(user) ? ', go try it!' : ', coming soon'}).
           </p>
 
           <p>
@@ -94,7 +100,9 @@ export default function SupportPage() {
             </li>
             <li style={{ marginBottom: 8 }}>
               Database (PostgreSQL) — <strong>~$25/mo</strong>{' '}
-              {(isGielinorRushEnabled() || isChampionForgeEnabled() || isBattleshipEnabled()) && (
+              {(isGielinorRushEnabled(user) ||
+                isChampionForgeEnabled(user) ||
+                isBattleshipEnabled(user)) && (
                 <span style={{ color: '#F4D35E', fontSize: 13 }}>
                   (growing fast with all these new game modes)
                 </span>
