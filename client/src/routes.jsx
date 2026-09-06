@@ -2,6 +2,10 @@ import React, { Suspense, lazy } from 'react';
 import { Center, Spinner } from '@chakra-ui/react';
 import ErrorPage from './pages/ErrorPage';
 import Root from './Root';
+import AuthProvider from './providers/AuthProvider';
+import FeatureFlagRoute from './atoms/FeatureFlagRoute';
+import SiteAdminRoute from './atoms/SiteAdminRoute';
+import { FEATURE_FLAG_KEYS } from './config/featureFlags';
 
 // lazy load all pages
 const Landing = lazy(() => import('./pages/Landing'));
@@ -12,6 +16,7 @@ const UserDetails = lazy(() => import('./pages/UserDetails'));
 const BoardViewAll = lazy(() => import('./pages/bingo/BoardViewAll'));
 const BoardViewAllAdmin = lazy(() => import('./pages/bingo/BoardViewAllAdmin'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsersPage'));
+const AdminFeatureFlagsPage = lazy(() => import('./pages/AdminFeatureFlagsPage'));
 const BoardDetails = lazy(() => import('./pages/bingo/BoardDetails'));
 const BoardCreation = lazy(() => import('./pages/bingo/BoardCreation'));
 const EGHub = lazy(() => import('./pages/EGHub'));
@@ -85,13 +90,23 @@ const withSuspense = (Component) => (
   </Suspense>
 );
 
+const withFeatureFlag = (flagKey, Component) => (
+  <FeatureFlagRoute flagKey={flagKey}>{withSuspense(Component)}</FeatureFlagRoute>
+);
+
+const siteAdminOnly = (Component) => <SiteAdminRoute>{withSuspense(Component)}</SiteAdminRoute>;
+
 const routes = [
   {
     path: '/group/:slug/widget',
     element: (
-      <Suspense fallback={<PageLoader />}>
-        <GroupDashboardWidgetPage />
-      </Suspense>
+      <AuthProvider>
+        <FeatureFlagRoute flagKey={FEATURE_FLAG_KEYS.GROUP_DASHBOARD}>
+          <Suspense fallback={<PageLoader />}>
+            <GroupDashboardWidgetPage />
+          </Suspense>
+        </FeatureFlagRoute>
+      </AuthProvider>
     ),
     errorElement: <ErrorPage />,
   },
@@ -141,6 +156,11 @@ const routes = [
         errorElement: <ErrorPage />,
       },
       {
+        path: '/admin/flags',
+        element: siteAdminOnly(AdminFeatureFlagsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
         path: '/boards/:boardId',
         element: withSuspense(BoardDetails),
         errorElement: <ErrorPage />,
@@ -162,7 +182,7 @@ const routes = [
       },
       {
         path: '/gielinor-rush/active',
-        element: withSuspense(GielinorRushActiveEventsPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GIELINOR_RUSH, GielinorRushActiveEventsPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -172,12 +192,12 @@ const routes = [
       },
       {
         path: '/gielinor-rush/:eventId',
-        element: withSuspense(GREventView),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GIELINOR_RUSH, GREventView),
         errorElement: <ErrorPage />,
       },
       {
         path: '/gielinor-rush/:eventId/team/:teamId',
-        element: withSuspense(GRTeamPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GIELINOR_RUSH, GRTeamPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -187,7 +207,7 @@ const routes = [
       },
       {
         path: '/blind-draft',
-        element: withSuspense(DraftDashboard),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BLIND_DRAFT, DraftDashboard),
         errorElement: <ErrorPage />,
       },
       {
@@ -197,17 +217,17 @@ const routes = [
       },
       {
         path: '/blind-draft/create',
-        element: withSuspense(DraftRoomPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BLIND_DRAFT, DraftRoomPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/blind-draft/:roomId',
-        element: withSuspense(DraftRoomPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BLIND_DRAFT, DraftRoomPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/blind-draft/:roomId/results',
-        element: withSuspense(DraftResultsPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BLIND_DRAFT, DraftResultsPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -217,22 +237,22 @@ const routes = [
       },
       {
         path: '/champion-forge/:eventId',
-        element: withSuspense(ChampionForgeEventPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.CHAMPION_FORGE, ChampionForgeEventPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/champion-forge/:eventId/barracks/:teamId',
-        element: withSuspense(ChampionForgeBarracksPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.CHAMPION_FORGE, ChampionForgeBarracksPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/champion-forge/:eventId/battle',
-        element: withSuspense(ChampionForgeBattlePage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.CHAMPION_FORGE, ChampionForgeBattlePage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/champion-forge/:eventId/refs-only',
-        element: withSuspense(ChampionForgeRefsPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.CHAMPION_FORGE, ChampionForgeRefsPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -242,7 +262,7 @@ const routes = [
       },
       {
         path: '/champion-forge/gallery',
-        element: withSuspense(ChampionForgeBattleGallery),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.CHAMPION_FORGE, ChampionForgeBattleGallery),
         errorElement: <ErrorPage />,
       },
       {
@@ -272,32 +292,32 @@ const routes = [
       },
       {
         path: '/group',
-        element: withSuspense(GroupDashboardListPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardListPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/group/new',
-        element: withSuspense(GroupDashboardCreatePage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardCreatePage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/group/:slug',
-        element: withSuspense(GroupDashboardPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/group/:slug/manage',
-        element: withSuspense(GroupDashboardManagePage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardManagePage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/group/:slug/competitions',
-        element: withSuspense(GroupDashboardCompetitionsPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardCompetitionsPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/group/activity',
-        element: withSuspense(GroupDashboardActivityPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.GROUP_DASHBOARD, GroupDashboardActivityPage),
         errorElement: <ErrorPage />,
       },
       {
@@ -367,7 +387,7 @@ const routes = [
       },
       {
         path: '/battleship/create',
-        element: withSuspense(BattleshipCreatePage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BATTLESHIP, BattleshipCreatePage),
         errorElement: <ErrorPage />,
       },
       {
@@ -377,47 +397,47 @@ const routes = [
       },
       {
         path: '/battleship/:eventId',
-        element: withSuspense(BattleshipEventPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BATTLESHIP, BattleshipEventPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/battleship/:eventId/refs',
-        element: withSuspense(BattleshipRefsPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BATTLESHIP, BattleshipRefsPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/battleship/:eventId/admin',
-        element: withSuspense(BattleshipAdminPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.BATTLESHIP, BattleshipAdminPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit',
-        element: withSuspense(WhodunnitLanding),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitLanding),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit/new',
-        element: withSuspense(WhodunnitCreatePage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitCreatePage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit/campaign/:campaignId',
-        element: withSuspense(WhodunnitCampaignPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitCampaignPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit/campaign/:campaignId/complete',
-        element: withSuspense(WhodunnitSummaryPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitSummaryPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit/admin',
-        element: withSuspense(WhodunnitAdminPage),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitAdminPage),
         errorElement: <ErrorPage />,
       },
       {
         path: '/whodunnit/playground',
-        element: withSuspense(WhodunnitPlayground),
+        element: withFeatureFlag(FEATURE_FLAG_KEYS.WHODUNNIT, WhodunnitPlayground),
         errorElement: <ErrorPage />,
       },
       {

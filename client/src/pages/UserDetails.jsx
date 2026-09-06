@@ -36,8 +36,10 @@ import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 import AnnouncementBanner from '../molecules/AnnouncementBanner';
 import {
+  isBattleshipEnabled,
   isBlindDraftEnabled,
   isChampionForgeEnabled,
+  isGielinorRushEnabled,
   isGroupDashboardEnabled,
   isWhodunnitEnabled,
 } from '../config/featureFlags';
@@ -521,44 +523,48 @@ const UserDetails = () => {
                   friends for some friendly competition.
                 </Text>
               </Box>
-              <Box
-                as={Link}
-                to="/gielinor-rush"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.yellow[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.yellow[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
-                  Gielinor Rush
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Host live treasure hunt competitions with your friends and clanmates, complete
-                  with an auto-generated map and submission support.
-                </Text>
-              </Box>
-              <Box
-                as={Link}
-                to="/battleship"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor="#47b3d1"
-                p={5}
-                _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color="#76e4f7" mb={1}>
-                  Battleship
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to sink
-                  the enemy.
-                </Text>
-              </Box>
+              {isGielinorRushEnabled(user) && (
+                <Box
+                  as={Link}
+                  to="/gielinor-rush"
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="2px solid"
+                  borderColor={theme.colors.yellow[500]}
+                  p={5}
+                  _hover={{ borderColor: theme.colors.yellow[300], transform: 'translateY(-2px)' }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
+                    Gielinor Rush
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Host live treasure hunt competitions with your friends and clanmates, complete
+                    with an auto-generated map and submission support.
+                  </Text>
+                </Box>
+              )}
+              {isBattleshipEnabled(user) && (
+                <Box
+                  as={Link}
+                  to="/battleship"
+                  bg={theme.colors.teal[800]}
+                  borderRadius="lg"
+                  border="2px solid"
+                  borderColor="#47b3d1"
+                  p={5}
+                  _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
+                  transition="all 0.15s"
+                >
+                  <Text fontWeight="bold" color="#76e4f7" mb={1}>
+                    Battleship
+                  </Text>
+                  <Text fontSize="sm" color="gray.400">
+                    Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
+                    sink the enemy.
+                  </Text>
+                </Box>
+              )}
               {isChampionForgeEnabled(user) && (
                 <Box
                   as={Link}

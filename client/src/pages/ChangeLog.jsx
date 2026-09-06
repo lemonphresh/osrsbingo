@@ -23,14 +23,15 @@ import {
   isChampionForgeEnabled,
   isBattleshipEnabled,
 } from '../config/featureFlags';
+import { useAuth } from '../providers/AuthProvider';
 
 // Changelog data - newest first, parsed from git history
-const CHANGELOG_ENTRIES = [
+const getChangelogEntries = (user) => [
   {
     version: '2.3.0',
-    date: isChampionForgeEnabled() ? 'September 2026' : 'Coming Soon',
+    date: isChampionForgeEnabled(user) ? 'September 2026' : 'Coming Soon',
     title: 'Champion Forge ⚔️',
-    type: isChampionForgeEnabled() ? 'major' : 'upcoming',
+    type: isChampionForgeEnabled(user) ? 'major' : 'upcoming',
     icon: FaFistRaised,
     details:
       'A full clan tournament engine built right into the hub. Run structured competitions across four phases, from item gathering to champion outfitting to a live turn-based battle bracket. This one has been my favorite so far to build.',
@@ -54,9 +55,9 @@ const CHANGELOG_ENTRIES = [
   },
   {
     version: '2.2.0',
-    date: isBattleshipEnabled() ? 'September 2026' : 'Coming Soon',
+    date: isBattleshipEnabled(user) ? 'September 2026' : 'Coming Soon',
     title: 'Battleship',
-    type: isBattleshipEnabled() ? 'major' : 'upcoming',
+    type: isBattleshipEnabled(user) ? 'major' : 'upcoming',
     icon: FaShieldAlt,
     details:
       'Big two-team OSRS competition built around the classic game of Battleship. Place your fleet, fire at the enemy board, and complete OSRS tasks to score hits. First team to sink all ships wins.',
@@ -106,7 +107,7 @@ const CHANGELOG_ENTRIES = [
     version: '2.1.0',
     date: 'March 2026',
     title: 'Blind Draft 🃏',
-    type: isBlindDraftEnabled() ? 'feature' : 'upcoming',
+    type: isBlindDraftEnabled(user) ? 'feature' : 'upcoming',
     icon: FaUserFriends,
     details:
       'A brand new tool for clan team selection. Paste in a list of RSNs, and the draft room anonymizes everyone, captains pick players by WOM stats alone, with no names visible until the draft ends. Fair, dramatic, and so fun.',
@@ -125,10 +126,10 @@ const CHANGELOG_ENTRIES = [
     version: '2.0.0',
     date: 'October 2025 - March 2026',
     title: 'Gielinor Rush 🎉',
-    type: isGielinorRushEnabled() ? 'feature' : 'upcoming',
+    type: isGielinorRushEnabled(user) ? 'feature' : 'upcoming',
     icon: FaGamepad,
     details: `A big one! Months of work building an entirely new competitive game mode. Generate unique maps, form teams, and race your clanmates through OSRS objectives. This was a massive undertaking and I'm so hyped it's ${
-      isGielinorRushEnabled() ? 'finally' : 'nearly'
+      isGielinorRushEnabled(user) ? 'finally' : 'nearly'
     } here.`,
     highlights: [
       'Brand new Treasure Hunt / Gielinor Rush game mode',
@@ -436,6 +437,8 @@ const ChangelogEntry = ({ entry, isLatest }) => {
 
 export default function ChangelogPage() {
   usePageTitle('Changelog');
+  const { user } = useAuth();
+  const changelogEntries = getChangelogEntries(user);
 
   return (
     <Box
@@ -459,7 +462,9 @@ export default function ChangelogPage() {
         </VStack>
 
         {/* Latest release callout */}
-        {(isBattleshipEnabled() || isChampionForgeEnabled() || isGielinorRushEnabled()) && (
+        {(isBattleshipEnabled(user) ||
+          isChampionForgeEnabled(user) ||
+          isGielinorRushEnabled(user)) && (
           <Box
             bg="rgba(244, 211, 94, 0.1)"
             border="1px solid rgba(244, 211, 94, 0.3)"
@@ -473,7 +478,7 @@ export default function ChangelogPage() {
                 LATEST MAJOR RELEASE
               </Text>
             </HStack>
-            {isChampionForgeEnabled() ? (
+            {isChampionForgeEnabled(user) ? (
               <>
                 <Text color="white" fontWeight="semibold" fontSize="lg">
                   Champion Forge is here! ⚔️
@@ -504,7 +509,7 @@ export default function ChangelogPage() {
                   <FaGamepad /> Start Forging
                 </ChakraLink>
               </>
-            ) : isBattleshipEnabled() ? (
+            ) : isBattleshipEnabled(user) ? (
               <>
                 <Text color="white" fontWeight="semibold" fontSize="lg">
                   Battleship is here! ⚓
@@ -603,7 +608,7 @@ export default function ChangelogPage() {
 
         {/* Timeline */}
         <VStack align="stretch" spacing={0}>
-          {CHANGELOG_ENTRIES.map((entry, idx) => (
+          {changelogEntries.map((entry, idx) => (
             <ChangelogEntry key={entry.version} entry={entry} isLatest={idx === 0} />
           ))}
         </VStack>

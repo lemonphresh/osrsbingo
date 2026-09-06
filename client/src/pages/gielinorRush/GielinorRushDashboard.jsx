@@ -88,7 +88,7 @@ const GielinorRushDashboard = () => {
 
   const { data, loading, refetch } = useQuery(GET_ALL_GR_EVENTS, {
     variables: { userId: user?.id },
-    skip: !user,
+    skip: !user || !isGielinorRushEnabled(user),
   });
 
   const [deleteEvent, { loading: deleting }] = useMutation(DELETE_GR_EVENT, {

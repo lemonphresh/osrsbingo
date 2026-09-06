@@ -27,9 +27,12 @@ import { GET_UNREAD_GROUP_NOTIFICATION_COUNT } from '../graphql/groupDashboardOp
 import { FaHeart } from 'react-icons/fa';
 import {
   isBattleshipEnabled,
+  isBlindDraftEnabled,
   isChampionForgeEnabled,
+  isGielinorRushEnabled,
   isGroupDashboardEnabled,
   isWhodunnitEnabled,
+  useFeatureFlagRevision,
 } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
 import HolidayEmojiFall, {
@@ -45,6 +48,7 @@ const BANNER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const NavBar = () => {
   const { user, logout } = useAuth();
+  useFeatureFlagRevision();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isJuneBannerOpen, setIsJuneBannerOpen] = useState(false);
   const [isDecemberBannerOpen, setIsDecemberBannerOpen] = useState(false);
@@ -706,8 +710,12 @@ const NavBar = () => {
                       section: 'Create Events',
                       items: [
                         { label: 'Bingo Creator', to: '/boards/create' },
-                        { label: 'Gielinor Rush', to: '/gielinor-rush' },
-                        { label: 'Battleship', to: '/battleship' },
+                        ...(isGielinorRushEnabled(user)
+                          ? [{ label: 'Gielinor Rush', to: '/gielinor-rush' }]
+                          : []),
+                        ...(isBattleshipEnabled(user)
+                          ? [{ label: 'Battleship', to: '/battleship' }]
+                          : []),
                         ...(isChampionForgeEnabled(user)
                           ? [{ label: 'Champion Forge', to: '/champion-forge', isNew: true }]
                           : []),
@@ -720,19 +728,31 @@ const NavBar = () => {
                       section: 'Tools',
                       items: [
                         { label: 'Team Balancer', to: '/team-balancer' },
-                        { label: 'Blind Draft', to: '/blind-draft' },
+                        ...(isBlindDraftEnabled(user)
+                          ? [{ label: 'Blind Draft', to: '/blind-draft' }]
+                          : []),
                       ],
                     },
                     {
                       section: 'Discover',
                       items: [
                         { label: 'Browse All Boards', to: '/boards' },
-                        { label: 'Active GR Events', to: '/gielinor-rush/active' },
+                        ...(isGielinorRushEnabled(user)
+                          ? [{ label: 'Active GR Events', to: '/gielinor-rush/active' }]
+                          : []),
                         ...(isChampionForgeEnabled(user)
                           ? [{ label: 'CF Battle Gallery', to: '/champion-forge/gallery' }]
                           : []),
                       ],
                     },
+                    ...(user?.admin
+                      ? [
+                          {
+                            section: 'Site Admin',
+                            items: [{ label: 'Feature Flags', to: '/admin/flags' }],
+                          },
+                        ]
+                      : []),
                   ].map(({ section, items }) => (
                     <Box key={section} paddingTop="16px">
                       <Text
