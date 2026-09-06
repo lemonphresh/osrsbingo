@@ -419,6 +419,42 @@ function setTeamReadyInBracket(bracket, teamId) {
 }
 
 /**
+ * Look up the upcoming (unstarted) match for a given pair of teams and
+ * return { team1Ready, team2Ready } for that match. Returns null if the
+ * match isn't found or has already been assigned a battleId.
+ */
+function getMatchReadyState(bracket, team1Id, team2Id) {
+  if (!bracket) return null;
+  const scan = (rounds) => {
+    for (const round of rounds ?? []) {
+      for (const m of round.matches ?? []) {
+        if (m.battleId) continue;
+        const pair =
+          (m.team1Id === team1Id && m.team2Id === team2Id) ||
+          (m.team1Id === team2Id && m.team2Id === team1Id);
+        if (pair) return m;
+      }
+    }
+    return null;
+  };
+  let match = scan(bracket.rounds);
+  if (!match) match = scan(bracket.losersBracket);
+  if (!match && bracket.grandFinal && !bracket.grandFinal.battleId) {
+    const gf = bracket.grandFinal;
+    const pair =
+      (gf.team1Id === team1Id && gf.team2Id === team2Id) ||
+      (gf.team1Id === team2Id && gf.team2Id === team1Id);
+    if (pair) match = gf;
+  }
+  if (!match) return null;
+  const swapped = match.team1Id === team2Id;
+  return {
+    team1Ready: swapped ? !!match.team2Ready : !!match.team1Ready,
+    team2Ready: swapped ? !!match.team1Ready : !!match.team2Ready,
+  };
+}
+
+/**
  * Check whether all matches in the bracket are done (isBye or have winnerId).
  */
 function allMatchesDone(bracket) {
@@ -442,5 +478,6 @@ module.exports = {
   findNextUnstartedMatch,
   setBattleIdInBracket,
   setTeamReadyInBracket,
+  getMatchReadyState,
   allMatchesDone,
 };

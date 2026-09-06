@@ -61,9 +61,6 @@ try {
   console.error('❌ Failed to load models for scheduler:', err.message, err.stack);
 }
 
-// Track events already alerted about missing captains (resets on bot restart)
-const alertedMissingCaptains = new Set();
-
 async function checkGatheringEnded() {
   if (!CFEvent || !CFTeam) return;
   const now = new Date();
@@ -83,11 +80,15 @@ async function checkGatheringEnded() {
       const missingCaptains = teams.filter((t) => !t.captainDiscordId);
 
       if (missingCaptains.length === 0) {
-        alertedMissingCaptains.delete(event.eventId);
+        if (event.captainMissingAlertSentAt) {
+          await event.update({ captainMissingAlertSentAt: null });
+        }
         await triggerOutfittingTransition(event);
         console.log(`[cfScheduler] ✅ OUTFITTING auto-started for eventId=${event.eventId}`);
-      } else if (!alertedMissingCaptains.has(event.eventId)) {
-        alertedMissingCaptains.add(event.eventId);
+      } else if (!event.captainMissingAlertSentAt) {
+        // Persist the alert timestamp so a bot restart doesn't re-spam the
+        // channel with duplicate captain-missing alerts.
+        await event.update({ captainMissingAlertSentAt: now });
         await sendCaptainMissingAlert({
           channelId: event.announcementsChannelId,
           eventName: event.eventName,

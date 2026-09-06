@@ -60,6 +60,19 @@ async function sendCFSubmissionResult({
   }
 }
 
+async function sendCFRewardRolled({ discordId, channelId, taskLabel, item }) {
+  if (!channelId || !item) return;
+  try {
+    const content = `<@${discordId}> 🎁 Your reward for **${taskLabel}** has been rolled: **${item.name}** *(${item.rarity})*!`;
+    await discordFetch(`/channels/${channelId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  } catch (_) {
+    // best-effort
+  }
+}
+
 async function sendCFPhaseAnnouncement({ channelId, eventId, eventName, phase }) {
   if (!channelId) return;
 
@@ -119,6 +132,7 @@ async function sendBattleCompleteAnnouncement({ channelId, eventId, eventName, w
 module.exports = {
   registerBotClient,
   sendCFSubmissionResult,
+  sendCFRewardRolled,
   sendCFPhaseAnnouncement,
   sendCaptainMissingAlert,
   sendBattleCompleteAnnouncement,

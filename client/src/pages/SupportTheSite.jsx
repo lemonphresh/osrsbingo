@@ -78,56 +78,56 @@ export default function SupportPage() {
         {/* Just... talking */}
         <Flex flexDirection="column" gap={3} style={{ fontSize: 15 }}>
           <p style={{ marginTop: 0 }}>
-            So here's the deal gamers: I made this site for my clan a while back because I wanted a
-            better way to do bingo events. Then other nerds started using it. Then a <em>lot</em> of
-            nerds started using it. Now there's like 3,000+ boards on here, I shipped Gielinor Rush
-            (team treasure hunts), Blind Draft, and I just finished building{' '}
-            <strong>Battleship</strong> (big two-team competition where you place your fleet and
-            complete OSRS tasks to sink the enemy{isBattleshipEnabled(user) ? ', go try it!' : ', coming soon'}).
+            I built this site a few years ago for my clan because I wanted a better way to run bingo
+            events. Word got around, and now there are 4,500+ boards on here with over 125,000
+            visitors since January 2026!
           </p>
 
           <p>
-            I'm not a company, and there's no team. It's literally just me in my wretched little
-            goblin cave writing code and afking on OSRS. The site doesn't run ads because I hate ads
-            and have a feeling you do too.
+            Along the way it's grown into a bunch of tools and event types for clans. Gielinor Rush
+            runs team treasure hunts. <strong>Battleship</strong> is a big two-team competition
+            where you place your fleet and complete OSRS tasks to sink the enemy
+            {isBattleshipEnabled(user) ? ' (go try it!)' : ' (coming soon)'}. Group Dashboard uses
+            WOM to track group goals like monthly bounties (that's actually how my clan uses it).
+            Team Balancer and Blind Draft round things out with quick setup tools for events
+            {isChampionForgeEnabled(user) ? ', and Champion Forge is next in the pipeline' : ''}.
           </p>
 
-          <p>But servers cost money! Here's roughly what I'm paying:</p>
+          <p>
+            It's still just me. No company, no team, no ads, no investors. I'd rather ask the people
+            who actually use the site than paper it over with banner ads.
+          </p>
+
+          <p>Here's roughly what it costs to keep the lights on:</p>
 
           <ul style={{ margin: '16px 0', paddingLeft: 20 }}>
             <li style={{ marginBottom: 8 }}>
-              Heroku hosting — <strong>~$50/mo</strong>
+              Heroku hosting, about <strong>$50/mo</strong>
             </li>
             <li style={{ marginBottom: 8 }}>
-              Database (PostgreSQL) — <strong>~$25/mo</strong>{' '}
+              Database (PostgreSQL), about <strong>$25/mo</strong>{' '}
               {(isGielinorRushEnabled(user) ||
                 isChampionForgeEnabled(user) ||
                 isBattleshipEnabled(user)) && (
                 <span style={{ color: '#F4D35E', fontSize: 13 }}>
-                  (growing fast with all these new game modes)
+                  (climbing steadily as more event types come online)
                 </span>
               )}
             </li>
             <li>
-              Domain + random stuff — <strong>~$15/mo</strong>
+              Domain and assorted bits, about <strong>$15/mo</strong>
             </li>
           </ul>
 
           <p>
-            That's about <strong style={{ color: '#F4D35E' }}>$90/month</strong> out of my pocket to
-            keep this thing running, and as much as I love doing it, that adds up fast. I don't know
-            if you've seen the price of groceries lately, but whew. Boy howdy.
+            That's roughly <strong style={{ color: '#F4D35E' }}>$90/month</strong> out of pocket to
+            keep things running. Doable, but it adds up quickly as the site grows.
           </p>
 
           <p>
-            If OSRS Bingo Hub has been useful to you or your clan, if it's made your events more fun
-            or saved you the hassle of making spreadsheets, I'd really appreciate any support you
-            can throw my way. Even a few bucks helps.
-          </p>
-
-          <p>
-            And if you're broke (I get it, we're all buying bonds except maybe you stinky irons),
-            just sharing the site with your friends is huge. 💛
+            If OSRS Bingo Hub has helped your clan run smoother events, or saved you from making
+            another spreadsheet, any support you can spare goes a long way. Even a few bucks means a
+            lot. 💛
           </p>
         </Flex>
         {/* June / Pride Month callout */}
@@ -141,12 +141,26 @@ export default function SupportPage() {
               padding: '16px 20px',
             }}
           >
-            <p style={{ margin: '0 0 6px 0', fontSize: 13, color: '#4dd9ac', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <p
+              style={{
+                margin: '0 0 6px 0',
+                fontSize: 13,
+                color: '#4dd9ac',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
               🏳️‍🌈 Pride Month — June 2026
             </p>
             <p style={{ margin: 0, fontSize: 14, color: '#cbd5e0', lineHeight: 1.7 }}>
               Any and all support to this site this month goes directly to{' '}
-              <a href="https://www.thetrevorproject.org" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+              <a
+                href="https://www.thetrevorproject.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4dd9ac', textDecoration: 'underline' }}
+              >
                 The Trevor Project
               </a>
               , the world's largest suicide prevention organization for LGBTQ+ youth.{' '}
@@ -156,7 +170,10 @@ export default function SupportPage() {
                     Eternal Gems' Rainbow Bingo
                   </Link>{' '}
                   starts{' '}
-                  {new Date(activeEvent.startDate).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}
+                  {new Date(activeEvent.startDate).toLocaleDateString(undefined, {
+                    month: 'long',
+                    day: 'numeric',
+                  })}
                   .
                 </>
               ) : (
@@ -168,7 +185,12 @@ export default function SupportPage() {
                 </>
               )}{' '}
               You can also{' '}
-              <a href="https://www.thetrevorproject.org/donate/" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+              <a
+                href="https://www.thetrevorproject.org/donate/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4dd9ac', textDecoration: 'underline' }}
+              >
                 donate to them directly
               </a>
               .
@@ -186,7 +208,16 @@ export default function SupportPage() {
               padding: '16px 20px',
             }}
           >
-            <p style={{ margin: '0 0 6px 0', fontSize: 13, color: '#4dd9ac', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <p
+              style={{
+                margin: '0 0 6px 0',
+                fontSize: 13,
+                color: '#4dd9ac',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+              }}
+            >
               🏳️‍🌈 Rainbow Bingo is live!
             </p>
             <p style={{ margin: 0, fontSize: 14, color: '#cbd5e0', lineHeight: 1.7 }}>
@@ -195,11 +226,21 @@ export default function SupportPage() {
                 Eternal Gems' Rainbow Bingo event
               </Link>
               , all support to this site goes directly to{' '}
-              <a href="https://www.thetrevorproject.org" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+              <a
+                href="https://www.thetrevorproject.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4dd9ac', textDecoration: 'underline' }}
+              >
                 The Trevor Project
               </a>
               , the world's largest suicide prevention organization for LGBTQ+ youth. You can also{' '}
-              <a href="https://www.thetrevorproject.org/donate/" target="_blank" rel="noopener noreferrer" style={{ color: '#4dd9ac', textDecoration: 'underline' }}>
+              <a
+                href="https://www.thetrevorproject.org/donate/"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#4dd9ac', textDecoration: 'underline' }}
+              >
                 donate to them directly
               </a>
               .

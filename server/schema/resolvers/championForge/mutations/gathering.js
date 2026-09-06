@@ -155,6 +155,16 @@ module.exports = {
       });
       await sub.update({ rewardItemId: createdItem.itemId });
       if (sub.role === 'SKILLER') skillerRewarded = true;
+
+      // Follow-up DM with the actual item rolled. Approval DM already fired
+      // during reviewCFSubmission; this fills in the reward once known.
+      const { sendCFRewardRolled } = require('../../../../utils/championForge/cfNotifications');
+      sendCFRewardRolled({
+        discordId: sub.submittedBy,
+        channelId: sub.channelId,
+        taskLabel: sub.taskLabel,
+        item: { name: item.name, rarity: dropResult.rarity },
+      });
     }
 
     const current = team.completedTaskIds ?? [];
@@ -189,12 +199,34 @@ module.exports = {
     return team;
   },
 
-  createCFSubmission: async (_, { input }) => {
-    const { CFSubmission, CFTask } = getModels();
+  createCFSubmission: async (_, { input }, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+
+    const { CFSubmission, CFTask, CFTeam } = getModels();
 
     const event = await getEventOrThrow(input.eventId);
     if (event.status !== 'GATHERING') {
       throw new UserInputError('Event is not in GATHERING phase');
+    }
+
+    const discordId = user.discordUserId ?? null;
+    const isEventAdmin = isAdminOrRef(event, user.id, discordId);
+
+    // Non-admins may only submit as themselves and only for a team they belong to.
+    let submittedBy = input.submittedBy;
+    let submittedUsername = input.submittedUsername ?? null;
+    if (!isEventAdmin) {
+      if (!discordId)
+        throw new AuthenticationError('Link your Discord account to submit tasks');
+      submittedBy = discordId;
+      submittedUsername = user.username ?? submittedUsername;
+      const team = await CFTeam.findByPk(input.teamId);
+      if (!team || team.eventId !== input.eventId)
+        throw new UserInputError('Team not found');
+      const isMember = (team.members ?? []).some((m) =>
+        typeof m === 'string' ? m === discordId : m.discordId === discordId
+      );
+      if (!isMember) throw new AuthenticationError('You are not a member of this team');
     }
 
     const task = await CFTask.findByPk(input.taskId);
@@ -206,8 +238,8 @@ module.exports = {
       submissionId: generateId('cws'),
       eventId: input.eventId,
       teamId: input.teamId,
-      submittedBy: input.submittedBy,
-      submittedUsername: input.submittedUsername ?? null,
+      submittedBy,
+      submittedUsername,
       channelId: input.channelId ?? null,
       taskId: input.taskId,
       taskLabel,
@@ -286,31 +318,18 @@ module.exports = {
       throw new UserInputError('Reward slot only applies to PVMER submissions');
     const event = await getEventOrThrow(submission.eventId);
     if (!isAdminOrRef(event, user.id)) throw new AuthenticationError('Not an event admin');
-    await submission.update({ rewardSlot });
+
+    // If an item was already rolled for this submission, the slot change is
+    // a "correction only" — we do NOT re-roll stats/rarity here, because that
+    // would allow unbounded rerolls of high-rarity gear. Refs who need a fresh
+    // roll must undo the approval and re-review.
     if (submission.rewardItemId) {
       const existingItem = await CFItem.findByPk(submission.rewardItemId);
       if (existingItem) {
-        const warChest = await getWarChest(existingItem.teamId);
-        const warChestData = warChest
-          .filter((i) => i.itemId !== existingItem.itemId)
-          .map((i) => ({ name: i.name, slot: i.slot, rarity: i.rarity }));
-        const dropResult = rollPvmerDrop({
-          slot: rewardSlot,
-          difficulty: submission.difficulty,
-          warChest: warChestData,
-        });
-        if (dropResult.success) {
-          await existingItem.update({
-            name: dropResult.item.name,
-            slot: dropResult.slot ?? rewardSlot,
-            rarity: dropResult.rarity,
-            itemSnapshot: dropResult.item,
-          });
-        } else {
-          await existingItem.update({ slot: rewardSlot });
-        }
+        await existingItem.update({ slot: rewardSlot });
       }
     }
+    await submission.update({ rewardSlot });
     return submission;
   },
 
@@ -343,21 +362,45 @@ module.exports = {
     return submission;
   },
 
-  createCFPreScreenshot: async (_, args) => {
-    const { CFPreScreenshot } = getModels();
+  createCFPreScreenshot: async (_, args, { user }) => {
+    if (!user) throw new AuthenticationError('Not authenticated');
+
+    const { CFPreScreenshot, CFTeam } = getModels();
     const event = await getEventOrThrow(args.eventId);
     if (event.status !== 'GATHERING') {
       throw new UserInputError('Event is not in GATHERING phase');
     }
 
+    const discordId = user.discordUserId ?? null;
+    const isEventAdmin = isAdminOrRef(event, user.id, discordId);
+
+    let submittedBy = args.submittedBy;
+    let submittedUsername = args.submittedUsername ?? null;
+    let teamId = args.teamId ?? null;
+    if (!isEventAdmin) {
+      if (!discordId)
+        throw new AuthenticationError('Link your Discord account to submit prescreenshots');
+      submittedBy = discordId;
+      submittedUsername = user.username ?? submittedUsername;
+      if (teamId) {
+        const team = await CFTeam.findByPk(teamId);
+        if (!team || team.eventId !== args.eventId)
+          throw new UserInputError('Team not found');
+        const isMember = (team.members ?? []).some((m) =>
+          typeof m === 'string' ? m === discordId : m.discordId === discordId
+        );
+        if (!isMember) throw new AuthenticationError('You are not a member of this team');
+      }
+    }
+
     const preScreenshot = await CFPreScreenshot.create({
       preScreenshotId: generateId('cwps'),
       eventId: args.eventId,
-      teamId: args.teamId ?? null,
+      teamId,
       taskId: args.taskId,
       taskLabel: args.taskLabel ?? null,
-      submittedBy: args.submittedBy,
-      submittedUsername: args.submittedUsername ?? null,
+      submittedBy,
+      submittedUsername,
       screenshotUrl: args.screenshotUrl ?? null,
       channelId: args.channelId ?? null,
       messageId: args.messageId ?? null,

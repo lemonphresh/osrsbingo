@@ -83,6 +83,7 @@ const CLAN_WARS_BATTLE_STATE_FIELDS = gql`
     winnerId
     startedAt
     endedAt
+    serverNow
   }
 `;
 

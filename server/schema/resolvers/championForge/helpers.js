@@ -68,6 +68,14 @@ function getEffectiveStats(snap, effects) {
         base.defense = (base.defense ?? 0) + e.value;
         base.speed = (base.speed ?? 0) + e.value;
         base.crit = (base.crit ?? 0) + e.value;
+      } else if (e.stat === 'hp' || e.stat === 'maxHp') {
+        // No consumable currently grants +maxHp. If one is ever added, the
+        // heal cap in battle.js uses actorSnap.stats.maxHp (unbuffed) so the
+        // extra HP capacity would be silently unavailable. Reject explicitly
+        // so the bug surfaces immediately instead of confusing players.
+        throw new Error(
+          `[CF] buff_hp / buff_maxHp is not supported — battle.js caps heals at the unbuffed maxHp. Update the heal ceiling to use effective stats before adding such a consumable.`
+        );
       } else if (e.stat in base) {
         base[e.stat] = (base[e.stat] ?? 0) + e.value;
       }

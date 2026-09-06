@@ -33,6 +33,8 @@ import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
+import PleaseEffect from '../atoms/PleaseEffect';
+import { FaHeart } from 'react-icons/fa';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
 import AnnouncementBanner from '../molecules/AnnouncementBanner';
 import {
@@ -725,6 +727,54 @@ const UserDetails = () => {
         </Section>
 
         <MiniStats />
+
+        {/* Support the site callout */}
+        <Flex
+          flexDirection={['column', 'row']}
+          align="center"
+          justify="space-between"
+          gap={4}
+          bg="linear-gradient(145deg, rgba(244, 211, 94, 0.10) 0%, rgba(224, 122, 95, 0.12) 100%)"
+          borderWidth="1px"
+          borderColor="rgba(244, 211, 94, 0.3)"
+          borderRadius="xl"
+          px={[5, 6]}
+          py={4}
+          mt={2}
+        >
+          <VStack
+            align={['center', 'flex-start']}
+            spacing={1}
+            flex={1}
+            textAlign={['center', 'left']}
+          >
+            <Text fontSize={['sm', 'md']} color="white" fontWeight="semibold">
+              Like what you see?
+            </Text>
+            <Text fontSize={['xs', 'sm']} color="whiteAlpha.800">
+              This site is ad-free, built and run by one person. Any support helps keep it that way.
+            </Text>
+          </VStack>
+          <PleaseEffect>
+            <Link to="/support">
+              <HStack
+                as="span"
+                spacing={2}
+                bg={theme.colors.yellow[400]}
+                color="gray.900"
+                px={5}
+                py={2}
+                borderRadius="md"
+                fontWeight="semibold"
+                fontSize="sm"
+                _hover={{ bg: theme.colors.yellow[300] }}
+                whiteSpace="nowrap"
+              >
+                <FaHeart color={theme.colors.red[500]} /> Support the Site
+              </HStack>
+            </Link>
+          </PleaseEffect>
+        </Flex>
       </Section>
 
       {!isCurrentUser && user?.admin && (

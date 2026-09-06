@@ -67,10 +67,24 @@ export default function BattleScreen({
   const [timer, setTimer] = useState(turnTimerSeconds);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [lobbyCountdown, setLobbyCountdown] = useState(null);
+  // Offset (ms) between server clock and client clock, sampled from battle
+  // responses. `serverNow` is stamped when the resolver runs. Positive offset
+  // means the client is ahead of the server; we subtract it from Date.now()
+  // before comparing to server-issued timestamps so the timer doesn't drift.
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (!initialBattle?.serverNow) return;
+    clockOffsetRef.current = Date.now() - new Date(initialBattle.serverNow).getTime();
+  }, [initialBattle?.serverNow]);
+  const serverNow = () => Date.now() - clockOffsetRef.current;
+
   const [preGameCountdown, setPreGameCountdown] = useState(() => {
     const ts = initialBattle?.battleState?.turnStartedAt;
     if (!ts) return null;
-    const ms = new Date(ts).getTime() - Date.now();
+    const initialOffset = initialBattle?.serverNow
+      ? Date.now() - new Date(initialBattle.serverNow).getTime()
+      : 0;
+    const ms = new Date(ts).getTime() - (Date.now() - initialOffset);
     return ms > 0 ? Math.ceil(ms / 1000) : null;
   });
   const timerRef = useRef(null);
@@ -129,6 +143,10 @@ export default function BattleScreen({
     onData: ({ data }) => {
       const update = data.data?.cfBattleUpdated;
       if (!update) return;
+      if (update.battle?.serverNow) {
+        clockOffsetRef.current =
+          Date.now() - new Date(update.battle.serverNow).getTime();
+      }
       setBattle(update.battle);
       if (update.latestEvent?.narrative) {
         setLog((l) => [...l, update.latestEvent]);
@@ -166,7 +184,7 @@ export default function BattleScreen({
 
     const getRemaining = () => {
       if (!state.turnStartedAt) return turnTimerSeconds;
-      const elapsed = (Date.now() - new Date(state.turnStartedAt).getTime()) / 1000;
+      const elapsed = (serverNow() - new Date(state.turnStartedAt).getTime()) / 1000;
       return Math.max(0, Math.ceil(turnTimerSeconds - elapsed));
     };
 

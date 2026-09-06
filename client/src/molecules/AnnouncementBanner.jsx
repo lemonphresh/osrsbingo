@@ -13,7 +13,7 @@ import { MdClose } from 'react-icons/md';
 // Generic dismissible announcement banner. Reusable anywhere you want to
 // call attention to a seasonal event, new feature, etc. Dismisses via
 // localStorage keyed by `storageKey`, and re-appears after `durationMs`
-// (default 24h) so long-running events don't stay hidden forever.
+// (default 30 days) so long-running events don't stay hidden forever.
 //
 // Props:
 //   visible       — outer gate. If false, banner never renders.
@@ -30,7 +30,7 @@ import { MdClose } from 'react-icons/md';
 //   ctaBg / ctaHoverBg / ctaColor / ctaBorder — CTA button colors.
 //   maxW          — max width of the inner content. Default 950px.
 
-const DEFAULT_DURATION_MS = 24 * 60 * 60 * 1000;
+const DEFAULT_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 const AnnouncementBanner = ({
   visible = true,
