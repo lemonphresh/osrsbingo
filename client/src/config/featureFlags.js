@@ -83,8 +83,8 @@ export const FEATURE_FLAGS = Object.freeze([
     envValue: process.env.REACT_APP_WHODUNNIT_ENABLED,
     effects: [
       'Enables all authenticated Whodunnit landing, creation, campaign, completion, admin, and playground routes.',
-      'For non-admins, navigation and profile promotion only appear December 15–31, but direct authenticated access works year-round while enabled.',
-      'A site admin who forces it on sees the seasonal navigation year-round; forcing it off hides promotion and blocks every Whodunnit route.',
+      'Navigation, the top banner, and profile promotion only appear December 15–31 for everyone, based on the visitor’s local browser date.',
+      'Direct authenticated access works year-round while enabled. Forcing it on outside December enables the routes without showing seasonal promotion.',
     ],
   },
 ]);
@@ -195,3 +195,6 @@ export const isGroupDashboardEnabled = (user) =>
 export const isBattleshipEnabled = (user) => isFeatureEnabled(FEATURE_FLAG_KEYS.BATTLESHIP, user);
 
 export const isWhodunnitEnabled = (user) => isFeatureEnabled(FEATURE_FLAG_KEYS.WHODUNNIT, user);
+
+export const isWhodunnitSeason = (date = new Date()) =>
+  date.getMonth() === 11 && date.getDate() >= 15;

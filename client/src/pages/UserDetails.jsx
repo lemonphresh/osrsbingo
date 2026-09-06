@@ -42,6 +42,7 @@ import {
   isGielinorRushEnabled,
   isGroupDashboardEnabled,
   isWhodunnitEnabled,
+  isWhodunnitSeason,
 } from '../config/featureFlags';
 import { Switch, Select } from '@chakra-ui/react';
 import {
@@ -132,9 +133,7 @@ const UserDetails = () => {
     setShownUser(user);
   }, [user]);
 
-  const now = new Date();
-  const isWhodunnitSeason = now.getMonth() === 11 && now.getDate() >= 15;
-  const showWhodunnitBanner = isWhodunnitEnabled(user) && (isWhodunnitSeason || user?.admin);
+  const showWhodunnitBanner = isWhodunnitEnabled(user) && isWhodunnitSeason();
 
   return (
     <Flex

@@ -32,6 +32,7 @@ import {
   isGielinorRushEnabled,
   isGroupDashboardEnabled,
   isWhodunnitEnabled,
+  isWhodunnitSeason,
   useFeatureFlagRevision,
 } from '../config/featureFlags';
 import PleaseEffect from '../atoms/PleaseEffect';
@@ -103,10 +104,7 @@ const NavBar = () => {
   };
 
   const isJune = new Date().getMonth() === 5;
-  const now = new Date();
-
-  const isWhodunnitSeason = now.getMonth() === 11 && now.getDate() >= 15;
-  const canSeeSeasonal = isWhodunnitEnabled(user) && (isWhodunnitSeason || user?.admin);
+  const canSeeSeasonal = isWhodunnitEnabled(user) && isWhodunnitSeason();
   const showDecemberBanner = canSeeSeasonal && isDecemberBannerOpen;
   const showJuneBanner = !showDecemberBanner && isJune && isJuneBannerOpen;
   const showDefaultBanner = !showDecemberBanner && !showJuneBanner && isBannerOpen;
@@ -344,15 +342,15 @@ const NavBar = () => {
                   I'm Lemon! Solo dev, no ads, no investors, some server bills. If OSRS Bingo Hub
                   has helped you or your clan, consider helping me keep it running 💛
                 </Text>
-                {isChampionForgeEnabled(user) ? (
-                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
-                    Also, event runners, go check out <strong>Champion Forge</strong>! I've been
-                    hard at work on this one :) ⚔️
-                  </Text>
-                ) : isBattleshipEnabled(user) ? (
+                {isBattleshipEnabled(user) ? (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
                     Also... OSRS Battleship is live! :-) Check out <strong>Battleship</strong> for a
                     fun big team event type.
+                  </Text>
+                ) : isChampionForgeEnabled(user) ? (
+                  <Text fontSize={['xs', 'sm']} opacity={0.6}>
+                    Also, event runners, go check out <strong>Champion Forge</strong>! I've been
+                    hard at work on this one :) ⚔️
                   </Text>
                 ) : (
                   <Text fontSize={['xs', 'sm']} opacity={0.6}>
@@ -388,16 +386,16 @@ const NavBar = () => {
                   </Flex>
                 </Link>
               </PleaseEffect>
-              {isChampionForgeEnabled(user) ? (
-                <Link to="/champion-forge">
-                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
-                    Champion Forge →
-                  </Text>
-                </Link>
-              ) : isBattleshipEnabled(user) ? (
+              {isBattleshipEnabled(user) ? (
                 <Link to="/battleship">
                   <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
                     Battleship →
+                  </Text>
+                </Link>
+              ) : isChampionForgeEnabled(user) ? (
+                <Link to="/champion-forge">
+                  <Text color={theme.colors.yellow[400]} fontSize="sm" textAlign="center">
+                    Champion Forge →
                   </Text>
                 </Link>
               ) : (

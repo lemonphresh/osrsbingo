@@ -66,4 +66,13 @@ describe('feature flag resolution', () => {
     expect(flags.isGielinorRushEnabled(firstAdmin)).toBe(true);
     expect(flags.isGielinorRushEnabled(secondAdmin)).toBe(false);
   });
+
+  it('limits Whodunnit season to December 15 through December 31', () => {
+    const flags = loadFeatureFlags('false');
+
+    expect(flags.isWhodunnitSeason(new Date(2026, 11, 14))).toBe(false);
+    expect(flags.isWhodunnitSeason(new Date(2026, 11, 15))).toBe(true);
+    expect(flags.isWhodunnitSeason(new Date(2026, 11, 31))).toBe(true);
+    expect(flags.isWhodunnitSeason(new Date(2027, 0, 1))).toBe(false);
+  });
 });
