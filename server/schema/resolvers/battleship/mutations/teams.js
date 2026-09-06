@@ -67,6 +67,52 @@ module.exports = {
     return team;
   },
 
+  sendBSTestDiscordMessages: async (_, { eventId }, context) => {
+    const user = requireAuth(context);
+    const { BSTeam } = getModels();
+    const event = await getEventOrThrow(eventId);
+    if (!user.admin) requireAdmin(event, user.id);
+
+    const teams = await BSTeam.findAll({ where: { eventId }, order: [['createdAt', 'ASC']] });
+    if (teams.length === 0) throw new UserInputError('Add teams before testing Discord messages.');
+
+    const { postBSTestMessage } = require('../../../../utils/battleship/bsDiscord');
+    const results = await Promise.all(
+      teams.map(async (team) => {
+        if (!team.discordChannelId) {
+          return {
+            teamId: team.teamId,
+            teamName: team.teamName,
+            channelId: null,
+            status: 'SKIPPED',
+            error: 'No Discord channel configured.',
+          };
+        }
+
+        const result = await postBSTestMessage({
+          channelId: team.discordChannelId,
+          teamName: team.teamName,
+          eventName: event.eventName,
+          eventId,
+        });
+        return {
+          teamId: team.teamId,
+          teamName: team.teamName,
+          channelId: team.discordChannelId,
+          status: result.success ? 'SENT' : 'FAILED',
+          error: result.error ?? null,
+        };
+      })
+    );
+
+    return {
+      sentCount: results.filter((result) => result.status === 'SENT').length,
+      failedCount: results.filter((result) => result.status === 'FAILED').length,
+      skippedCount: results.filter((result) => result.status === 'SKIPPED').length,
+      results,
+    };
+  },
+
   addBSSkipTokens: async (_, { teamId, count, reason }, context) => {
     const user = requireAuth(context);
     const team = await getTeamOrThrow(teamId);
