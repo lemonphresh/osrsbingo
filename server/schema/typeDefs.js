@@ -1342,6 +1342,7 @@ const typeDefs = gql`
     updateBSTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String, womTeamName: String): BSTeam!
     joinBSTeam(teamId: ID!): BSTeam!
     addBSAdmin(eventId: ID!, userId: ID!): BSEvent!
+    removeBSAdmin(eventId: ID!, userId: ID!): BSEvent!
     addBSRef(eventId: ID!, userId: ID!): BSEvent!
     removeBSRef(eventId: ID!, userId: ID!): BSEvent!
 
@@ -1816,6 +1817,7 @@ const typeDefs = gql`
     scheduledPlacementStart: DateTime
     creatorId: String
     adminIds: [String!]!
+    admins: [User!]!
     refIds: [String!]!
     refs: [User!]!
     guildId: String

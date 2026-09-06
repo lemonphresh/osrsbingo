@@ -167,8 +167,17 @@ const WhodunnitCreatePage = () => {
             </Box>
 
             {error && (
-              <Alert status="error" borderRadius="md">
-                <AlertIcon />
+              <Alert
+                status="error"
+                borderRadius="md"
+                bg="rgba(158, 42, 46, 0.15)"
+                color={WD_COLORS.ink}
+                borderLeft="3px solid"
+                borderLeftColor={WD_COLORS.wax}
+                fontFamily={WD_FONTS.typewriter}
+                fontSize="sm"
+              >
+                <AlertIcon color={WD_COLORS.wax} />
                 {error}
               </Alert>
             )}

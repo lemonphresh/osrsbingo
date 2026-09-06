@@ -116,15 +116,18 @@ const NavBar = () => {
           borderBottom="3px solid"
           borderColor="#c9a04c"
           color="white"
-          paddingX={['16px', '32px']}
+          paddingX={['14px', '32px']}
           paddingY="14px"
+          // Extra right padding on mobile so the close X doesn't sit over
+          // the title text.
+          paddingRight={['40px', '32px']}
           position="relative"
         >
           <IconButton
             aria-label="Close banner"
             position="absolute"
-            right={3}
-            top={3}
+            right={2}
+            top={2}
             icon={<MdClose />}
             size="sm"
             variant="ghost"
@@ -135,12 +138,12 @@ const NavBar = () => {
           />
           <Flex
             direction={['column', 'row']}
-            alignItems={['flex-start', 'center']}
+            alignItems={['stretch', 'center']}
             gap={[3, 5]}
             maxW="950px"
             margin="0 auto"
           >
-            <VStack align="start" spacing={1} flex={1}>
+            <VStack align="start" spacing={1} flex={1} minW={0}>
               <Text fontSize={['sm', 'md']} fontWeight="bold">
                 <Text as="span" color="#e6c976">
                   ☃️ A Gielinor Whodunnit ☃️
@@ -153,11 +156,12 @@ const NavBar = () => {
                 your own pace through the holidays. Stay safe!
               </Text>
             </VStack>
-            <Flex gap={3} flexShrink={0} align="center" w={['100%', 'auto']}>
-              <Link to="/whodunnit">
+            <Box flexShrink={0} w={['100%', 'auto']}>
+              <Link to="/whodunnit" style={{ display: 'block', width: '100%' }}>
                 <Flex
                   as="span"
                   align="center"
+                  justify="center"
                   gap={2}
                   backgroundColor="#9e2a2e"
                   border="1px solid #c44046"
@@ -169,11 +173,12 @@ const NavBar = () => {
                   fontSize="sm"
                   _hover={{ backgroundColor: '#c44046' }}
                   whiteSpace="nowrap"
+                  w="100%"
                 >
                   Open the case file →
                 </Flex>
               </Link>
-            </Flex>
+            </Box>
           </Flex>
         </Box>
       </Collapse>

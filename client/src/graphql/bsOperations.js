@@ -94,7 +94,18 @@ const BS_EVENT_FIELDS = gql`
     scheduledPlacementStart
     creatorId
     adminIds
+    admins {
+      id
+      displayName
+      username
+      rsn
+    }
     refIds
+    refs {
+      id
+      displayName
+      username
+    }
     guildId
     eventPassword
     contentSelections
@@ -369,6 +380,36 @@ export const REMOVE_BS_REF = gql`
         id
         displayName
         username
+      }
+    }
+  }
+`;
+
+export const ADD_BS_ADMIN = gql`
+  mutation AddBSAdmin($eventId: ID!, $userId: ID!) {
+    addBSAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
+      }
+    }
+  }
+`;
+
+export const REMOVE_BS_ADMIN = gql`
+  mutation RemoveBSAdmin($eventId: ID!, $userId: ID!) {
+    removeBSAdmin(eventId: $eventId, userId: $userId) {
+      eventId
+      adminIds
+      admins {
+        id
+        displayName
+        username
+        rsn
       }
     }
   }

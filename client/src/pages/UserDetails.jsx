@@ -34,10 +34,12 @@ import { useToastContext } from '../providers/ToastProvider';
 import usePageTitle from '../hooks/usePageTitle';
 import MiniStats from '../molecules/MiniStats';
 import DiscordLinkSection from '../molecules/DiscordLinkSection';
+import AnnouncementBanner from '../molecules/AnnouncementBanner';
 import {
   isBlindDraftEnabled,
   isChampionForgeEnabled,
   isGroupDashboardEnabled,
+  isWhodunnitEnabled,
 } from '../config/featureFlags';
 import { Switch, Select } from '@chakra-ui/react';
 import {
@@ -128,6 +130,10 @@ const UserDetails = () => {
     setShownUser(user);
   }, [user]);
 
+  const now = new Date();
+  const isWhodunnitSeason = now.getMonth() === 11 && now.getDate() >= 15;
+  const showWhodunnitBanner = isWhodunnitEnabled(user) && (isWhodunnitSeason || user?.admin);
+
   return (
     <Flex
       alignItems="center"
@@ -138,6 +144,22 @@ const UserDetails = () => {
       paddingY={['48px', '88px']}
       width="100%"
     >
+      <Box maxWidth="860px" width="100%">
+        <AnnouncementBanner
+          visible={showWhodunnitBanner}
+          storageKey="profileWhodunnitBannerDismissed"
+          background="linear-gradient(135deg, #1a0a08 0%, #2e1a0d 45%, #0d1f14 100%)"
+          borderColor="#c9a04c"
+          eyebrow="☃️ Seasonal Event"
+          title="A Gielinor Whodunnit is live!"
+          body="Watson has a case: Snowflake's holiday gift for My Arm has gone missing. Grab up to 3 friends and investigate. Solve puzzles to reveal clues all over Gielinor, playable at your own pace through the holidays."
+          ctaTo="/whodunnit"
+          ctaLabel="Open the case file →"
+          ctaBg="#9e2a2e"
+          ctaHoverBg="#c44046"
+          ctaBorder="#c44046"
+        />
+      </Box>
       <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
         <Flex flexDirection="column" pt="16px" gridGap="24px">
           <GemTitle textAlign="center">
@@ -533,8 +555,8 @@ const UserDetails = () => {
                   Battleship
                 </Text>
                 <Text fontSize="sm" color="gray.400">
-                  Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
-                  sink the enemy.
+                  Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to sink
+                  the enemy.
                 </Text>
               </Box>
               {isChampionForgeEnabled(user) && (
@@ -553,8 +575,8 @@ const UserDetails = () => {
                     Champion Forge
                   </Text>
                   <Text fontSize="sm" color="gray.400">
-                    It takes a village to build a champion. Group up, earn gear, and battle for glory
-                    in this competitive clan event. Good for short term events.
+                    It takes a village to build a champion. Group up, earn gear, and battle for
+                    glory in this competitive clan event. Good for short term events.
                   </Text>
                 </Box>
               )}

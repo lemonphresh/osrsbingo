@@ -293,6 +293,20 @@ module.exports = {
     return event;
   },
 
+  removeBSAdmin: async (_, { eventId, userId }, context) => {
+    const user = requireAuth(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user.id);
+    // The event creator can never be removed as an admin — that would
+    // orphan the event.
+    if (String(userId) === String(event.creatorId)) {
+      throw new UserInputError('The event creator cannot be removed as an admin');
+    }
+    const adminIds = (event.adminIds ?? []).filter((id) => id !== String(userId));
+    await event.update({ adminIds });
+    return event;
+  },
+
   addBSRef: async (_, { eventId, userId }, context) => {
     const user = requireAuth(context);
     const event = await getEventOrThrow(eventId);

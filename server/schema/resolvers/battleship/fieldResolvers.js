@@ -52,6 +52,11 @@ const BSEvent = {
     const { User } = getModels();
     return User.findAll({ where: { id: event.refIds } });
   },
+  admins: (event) => {
+    if (!event.adminIds?.length) return [];
+    const { User } = getModels();
+    return User.findAll({ where: { id: event.adminIds } });
+  },
   templateBoard: (event) => {
     const { BSBoard } = getModels();
     return BSBoard.findOne({ where: { eventId: event.eventId, teamId: null } });
