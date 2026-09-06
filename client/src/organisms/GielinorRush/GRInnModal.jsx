@@ -13,6 +13,7 @@ import {
   Badge,
   Button,
   Divider,
+  IconButton,
   useColorMode,
   useToast,
   Alert,
@@ -21,7 +22,9 @@ import {
   AlertDescription,
   Heading,
   Tooltip,
+  Collapse,
 } from '@chakra-ui/react';
+import { AddIcon, MinusIcon } from '@chakra-ui/icons';
 import { StarIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { PURCHASE_INN_REWARD } from '../../graphql/mutations';
@@ -58,9 +61,14 @@ export default function InnModal({
   const toast = useToast();
   const [selectedReward, setSelectedReward] = useState(null);
   const [justPurchased, setJustPurchased] = useState(false);
+  // Per-reward user-chosen key selection for "any" costs: { [rewardId]: { [color]: quantity } }
+  const [keyPicks, setKeyPicks] = useState({});
 
   useEffect(() => {
-    if (isOpen) setJustPurchased(false);
+    if (isOpen) {
+      setJustPurchased(false);
+      setKeyPicks({});
+    }
   }, [isOpen]);
 
   const [purchaseReward, { loading: purchasing }] = useMutation(PURCHASE_INN_REWARD, {
@@ -131,16 +139,58 @@ export default function InnModal({
   const hasAlreadyPurchased = team.innTransactions?.some((t) => t.nodeId === node.nodeId);
   const availableRewards = node.availableRewards || [];
 
-  const canAfford = (keyCost) =>
-    keyCost.every((cost) => {
-      if (cost.color === 'any') {
-        return team.keysHeld.reduce((sum, k) => sum + k.quantity, 0) >= cost.quantity;
-      }
-      const teamKey = team.keysHeld.find((k) => k.color === cost.color);
-      return teamKey && teamKey.quantity >= cost.quantity;
-    });
+  // Exact-color demand is set aside first, then whatever's left must cover the
+  // aggregated "any" total. Prevents rewards like "2 red + 1 any" from looking
+  // affordable when the team only has exactly 2 red keys.
+  const canAfford = (keyCost) => {
+    const exactDemand = {};
+    let anyTotal = 0;
+    for (const cost of keyCost) {
+      if (cost.color === 'any') anyTotal += cost.quantity;
+      else exactDemand[cost.color] = (exactDemand[cost.color] || 0) + cost.quantity;
+    }
+    for (const [color, needed] of Object.entries(exactDemand)) {
+      const teamKey = (team.keysHeld || []).find((k) => k.color === color);
+      if (!teamKey || teamKey.quantity < needed) return false;
+    }
+    if (anyTotal > 0) {
+      const availableForAny = (team.keysHeld || []).reduce(
+        (sum, k) => sum + Math.max(0, k.quantity - (exactDemand[k.color] || 0)),
+        0
+      );
+      if (availableForAny < anyTotal) return false;
+    }
+    return true;
+  };
 
-  const handlePurchase = async (rewardId) => {
+  // How many "any" keys a reward requires (0 if the reward has no "any" cost)
+  const getAnyKeysRequired = (reward) =>
+    (reward.key_cost || [])
+      .filter((c) => c.color === 'any')
+      .reduce((sum, c) => sum + c.quantity, 0);
+
+  // Keys the team still has after exact-color costs are earmarked for this reward
+  const getAvailableForAny = (reward) => {
+    const exactDemand = {};
+    (reward.key_cost || []).forEach((c) => {
+      if (c.color !== 'any') exactDemand[c.color] = (exactDemand[c.color] || 0) + c.quantity;
+    });
+    return (team.keysHeld || [])
+      .map((k) => ({ color: k.color, quantity: Math.max(0, k.quantity - (exactDemand[k.color] || 0)) }))
+      .filter((k) => k.quantity > 0);
+  };
+
+  const getPickTotal = (rewardId) =>
+    Object.values(keyPicks[rewardId] || {}).reduce((sum, q) => sum + q, 0);
+
+  const setPick = (rewardId, color, quantity) => {
+    setKeyPicks((prev) => ({
+      ...prev,
+      [rewardId]: { ...(prev[rewardId] || {}), [color]: quantity },
+    }));
+  };
+
+  const handlePurchase = async (rewardId, keySelection) => {
     if (!isTeamMember) {
       toast({
         title: 'Not Authorized',
@@ -152,7 +202,14 @@ export default function InnModal({
       return;
     }
     try {
-      await purchaseReward({ variables: { eventId, teamId: team.teamId, rewardId } });
+      await purchaseReward({
+        variables: {
+          eventId,
+          teamId: team.teamId,
+          rewardId,
+          keySelection: keySelection && keySelection.length > 0 ? keySelection : undefined,
+        },
+      });
     } catch (error) {
       console.error('Purchase exception:', error);
     }
@@ -245,8 +302,30 @@ export default function InnModal({
                 <VStack spacing={3} align="stretch">
                   {availableRewards.map((reward) => {
                     const affordable = canAfford(reward.key_cost);
-                    const isDisabled = !isTeamMember || !affordable || hasAlreadyPurchased;
                     const hasBuff = reward.buffs && reward.buffs.length > 0;
+                    const anyRequired = getAnyKeysRequired(reward);
+                    const availableForAny = anyRequired > 0 ? getAvailableForAny(reward) : [];
+                    const needsPicker = anyRequired > 0 && availableForAny.length > 1;
+                    const pickTotal = getPickTotal(reward.reward_id);
+                    const pickComplete = !needsPicker || pickTotal === anyRequired;
+                    // The card is "usable" if the gamer can meaningfully interact with it (pickers, etc.).
+                    // Only truly-blocked states (not a member, can't afford, already bought) dim the card.
+                    const cardBlocked = !isTeamMember || !affordable || hasAlreadyPurchased;
+                    const isDisabled = cardBlocked || !pickComplete;
+                    const buildSelection = () => {
+                      if (anyRequired === 0) return [];
+                      if (needsPicker) {
+                        return Object.entries(keyPicks[reward.reward_id] || {})
+                          .filter(([, q]) => q > 0)
+                          .map(([color, quantity]) => ({ color, quantity }));
+                      }
+                      // Only one eligible color — send explicit selection so the server
+                      // doesn't have to guess.
+                      if (availableForAny.length === 1) {
+                        return [{ color: availableForAny[0].color, quantity: anyRequired }];
+                      }
+                      return [];
+                    };
 
                     return (
                       <Box
@@ -262,7 +341,7 @@ export default function InnModal({
                         }
                         borderRadius="md"
                         bg={colorMode === 'dark' ? 'gray.700' : 'gray.50'}
-                        opacity={isDisabled ? 0.6 : 1}
+                        opacity={cardBlocked ? 0.6 : 1}
                         position="relative"
                       >
                         {/* "Bonus Buff" badge in top-right corner */}
@@ -350,6 +429,94 @@ export default function InnModal({
                               </Box>
                             )}
 
+                            {/* Any-key picker: shown when reward needs "any" keys and team has
+                                more than one eligible color. */}
+                            <Collapse
+                              in={needsPicker && isTeamMember && !hasAlreadyPurchased && affordable}
+                              animateOpacity
+                              style={{ width: '100%' }}
+                            >
+                              <Box
+                                mt={1}
+                                p={2}
+                                bg={colorMode === 'dark' ? 'blackAlpha.300' : 'blackAlpha.50'}
+                                borderRadius="md"
+                                borderWidth={1}
+                                borderColor={
+                                  pickComplete
+                                    ? currentColors.green.base
+                                    : colorMode === 'dark'
+                                    ? 'gray.600'
+                                    : 'gray.300'
+                                }
+                              >
+                                <HStack justify="space-between" mb={2}>
+                                  <Text
+                                    fontSize="xs"
+                                    fontWeight="semibold"
+                                    color={currentColors.textColor}
+                                  >
+                                    Pick keys to spend
+                                  </Text>
+                                  <Text
+                                    fontSize="xs"
+                                    color={
+                                      pickComplete ? currentColors.green.base : 'orange.400'
+                                    }
+                                  >
+                                    {pickTotal} / {anyRequired}
+                                  </Text>
+                                </HStack>
+                                <VStack spacing={1} align="stretch">
+                                  {availableForAny.map((k) => {
+                                    const current = keyPicks[reward.reward_id]?.[k.color] || 0;
+                                    const remainingForOthers = anyRequired - pickTotal + current;
+                                    const max = Math.min(k.quantity, remainingForOthers);
+                                    return (
+                                      <HStack key={k.color} justify="space-between">
+                                        <Badge colorScheme={k.color}>{k.color}</Badge>
+                                        <HStack spacing={1}>
+                                          <IconButton
+                                            aria-label={`Remove ${k.color} key`}
+                                            icon={<MinusIcon />}
+                                            size="xs"
+                                            colorScheme="purple"
+                                            variant="solid"
+                                            isDisabled={current <= 0}
+                                            onClick={() =>
+                                              setPick(reward.reward_id, k.color, current - 1)
+                                            }
+                                          />
+                                          <Text
+                                            fontSize="sm"
+                                            minW="2ch"
+                                            textAlign="center"
+                                            color={currentColors.textColor}
+                                          >
+                                            {current}
+                                          </Text>
+                                          <IconButton
+                                            aria-label={`Add ${k.color} key`}
+                                            icon={<AddIcon />}
+                                            size="xs"
+                                            colorScheme="purple"
+                                            variant="solid"
+                                            isDisabled={current >= max}
+                                            onClick={() =>
+                                              setPick(reward.reward_id, k.color, current + 1)
+                                            }
+                                          />
+                                          <Text fontSize="xs" color="gray.500">
+                                            /{k.quantity}
+                                          </Text>
+                                        </HStack>
+                                      </HStack>
+                                    );
+                                  })}
+                                </VStack>
+                              </Box>
+                            </Collapse>
+
                             {/* Status hints */}
                             {!isTeamMember && (
                               <Text fontSize="xs" color="orange.500">
@@ -361,6 +528,16 @@ export default function InnModal({
                                 Insufficient keys
                               </Text>
                             )}
+                            {isTeamMember &&
+                              affordable &&
+                              !hasAlreadyPurchased &&
+                              needsPicker &&
+                              !pickComplete && (
+                                <Text fontSize="xs" color="orange.500">
+                                  Pick {anyRequired - pickTotal} more key
+                                  {anyRequired - pickTotal === 1 ? '' : 's'} to trade
+                                </Text>
+                              )}
                             {hasAlreadyPurchased && (
                               <Text fontSize="xs" color="green.500">
                                 Already purchased from this Inn
@@ -375,7 +552,7 @@ export default function InnModal({
                             isLoading={purchasing && selectedReward === reward.reward_id}
                             onClick={() => {
                               setSelectedReward(reward.reward_id);
-                              handlePurchase(reward.reward_id);
+                              handlePurchase(reward.reward_id, buildSelection());
                             }}
                             mt={hasBuff ? 6 : 0} // offset to avoid "Bonus Buff" badge overlap
                           >

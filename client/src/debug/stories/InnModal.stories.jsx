@@ -104,6 +104,24 @@ export default function InnModalStories() {
         team={MOCK_TEAMS.with_keys}
         user={MOCK_USERS.no_discord}
       />
+
+      <InnScenario
+        title='"Any" keys — picker shown (multi-color team)'
+        description="Team has 3 colors and an 'any' cost is present — inline stepper appears so gamers pick which colors to spend. Trade button stays disabled until picks sum to required."
+        tags={['happy path', 'member', 'any-picker']}
+        node={MOCK_NODES.inn_no_buff}
+        team={MOCK_TEAMS.with_keys}
+        user={MOCK_USERS.member}
+      />
+
+      <InnScenario
+        title='"Any" keys — picker skipped (single color)'
+        description="Team only has red keys — with a single eligible color there's nothing to choose, so the picker is skipped and the selection is filled in implicitly."
+        tags={['happy path', 'member', 'any-picker']}
+        node={MOCK_NODES.inn_no_buff}
+        team={MOCK_TEAMS.partial_keys}
+        user={MOCK_USERS.member}
+      />
     </StoryPage>
   );
 }

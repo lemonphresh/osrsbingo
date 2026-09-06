@@ -191,6 +191,13 @@ const routes = [
         errorElement: <ErrorPage />,
       },
       {
+        // Alias — reuses the /debug/components sandbox as the GR component playground.
+        // Production-guarded inside DebugIndex.
+        path: '/gielinor-rush/playground',
+        element: withSuspense(DebugComponentsPage),
+        errorElement: <ErrorPage />,
+      },
+      {
         path: '/gielinor-rush/:eventId',
         element: withFeatureFlag(FEATURE_FLAG_KEYS.GIELINOR_RUSH, GREventView),
         errorElement: <ErrorPage />,
