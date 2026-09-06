@@ -558,10 +558,11 @@ describe('Champion Forge — battle system', () => {
       ctx(adminUser)
     );
 
-    // 8. Start the battle
+    // 8. Start the battle (force=true so we don't need to walk both
+    // captains through setCaptainReady for every battle-system test)
     const battle = await resolvers.startCFBattle(
       null,
-      { eventId: battleEventId, team1Id: redTeamId, team2Id: blueTeamId },
+      { eventId: battleEventId, team1Id: redTeamId, team2Id: blueTeamId, force: true },
       ctx(adminUser)
     );
     battleId = battle.battleId;
@@ -909,7 +910,7 @@ describe('Champion Forge — battle system', () => {
   });
 
   test('getCFBattleLog returns log entries including BATTLE_START', async () => {
-    const log = await queryResolvers.getCFBattleLog(null, { battleId });
+    const log = await queryResolvers.getCFBattleLog(null, { battleId }, ctx(adminUser));
     expect(Array.isArray(log)).toBe(true);
     expect(log.length).toBeGreaterThan(0);
 
