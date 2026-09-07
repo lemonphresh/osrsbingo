@@ -13,11 +13,16 @@ function generateId(prefix) {
 
 // Reads a team + its tile rows and produces the plain-object state the state
 // machine consumes. Roster comes from SpoopyTeam.members (discord user ids).
-async function loadTeamState(teamId) {
+//
+// Pass `{ transaction, lock }` to participate in an outer transaction (e.g.
+// `completeSpoopyTile` uses `t.LOCK.UPDATE` on the team row so concurrent
+// completions serialize instead of double-awarding rewards).
+async function loadTeamState(teamId, options = {}) {
+  const { transaction, lock } = options;
   const { SpoopyTeam, SpoopyTeamTile } = getModels();
-  const team = await SpoopyTeam.findByPk(teamId);
+  const team = await SpoopyTeam.findByPk(teamId, { transaction, lock });
   if (!team) return null;
-  const tileRows = await SpoopyTeamTile.findAll({ where: { teamId } });
+  const tileRows = await SpoopyTeamTile.findAll({ where: { teamId }, transaction });
 
   const tiles = {};
   for (const row of tileRows) {
@@ -44,7 +49,10 @@ async function loadTeamState(teamId) {
 }
 
 // Writes only the fields that changed between prevState and nextState.
-async function persistTeamState(prevState, nextState) {
+// Pass `{ transaction }` so team + tile updates commit atomically with any
+// outer read-check-write (e.g. `completeSpoopyTile`).
+async function persistTeamState(prevState, nextState, options = {}) {
+  const { transaction } = options;
   const { SpoopyTeam, SpoopyTeamTile } = getModels();
 
   const teamPatch = {};
@@ -53,7 +61,7 @@ async function persistTeamState(prevState, nextState) {
     teamPatch.cashedOut = nextState.cashedOut;
   }
   if (Object.keys(teamPatch).length) {
-    await SpoopyTeam.update(teamPatch, { where: { teamId: nextState.teamId } });
+    await SpoopyTeam.update(teamPatch, { where: { teamId: nextState.teamId }, transaction });
   }
 
   for (const tileId of Object.keys(nextState.tiles)) {
@@ -70,7 +78,7 @@ async function persistTeamState(prevState, nextState) {
         rewardEarned: next.rewardEarned,
         progress: next.progress ?? 0,
       },
-      { where: { teamId: nextState.teamId, tileId } },
+      { where: { teamId: nextState.teamId, tileId }, transaction },
     );
   }
 }

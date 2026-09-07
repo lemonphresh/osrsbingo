@@ -14,7 +14,7 @@ function formatDuration(seconds) {
 
 // The final Casebook Report — designed to be captured as an image and
 // shared. Uses a parchment-y palette.
-const CasebookReport = forwardRef(({ campaign }, ref) => {
+const CasebookReport = forwardRef(({ story, campaign }, ref) => {
   const members = campaign.members || [];
   const nodeProgress = (campaign.nodeProgress || []).filter(
     (p) => p.nodeId !== 'intro' && !p.nodeId.startsWith('choice-'),
@@ -94,7 +94,7 @@ const CasebookReport = forwardRef(({ campaign }, ref) => {
           </Text>
           <VStack align="stretch" spacing={1}>
             {nodeProgress.map((p) => {
-              const node = getNode(p.nodeId);
+              const node = getNode(story, p.nodeId);
               const hintCount = p.hintUsedClueIds?.length || 0;
               return (
                 <HStack key={p.id} fontSize="sm" justify="space-between">

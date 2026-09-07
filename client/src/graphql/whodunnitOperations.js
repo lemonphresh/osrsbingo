@@ -27,6 +27,10 @@ export const WHODUNNIT_PROGRESS_FIELDS = gql`
     endedAt
     durationSeconds
     hintUsedClueIds
+    revealedHints {
+      clueId
+      hint
+    }
   }
 `;
 
@@ -37,6 +41,7 @@ export const WHODUNNIT_ANSWER_FIELDS = gql`
     nodeId
     clueId
     answer
+    correct
     submittedAt
     submittedBy {
       id
@@ -132,6 +137,18 @@ export const GET_WHODUNNIT_CAMPAIGN = gql`
     }
   }
   ${WHODUNNIT_CAMPAIGN_FIELDS}
+`;
+
+export const GET_WHODUNNIT_STORY = gql`
+  query WhodunnitStory {
+    whodunnitStory {
+      id
+      title
+      subtitle
+      startNodeId
+      nodes
+    }
+  }
 `;
 
 export const GET_ALL_WHODUNNIT_CAMPAIGNS = gql`
@@ -247,6 +264,10 @@ export const USE_WHODUNNIT_HINT = gql`
       progressId
       nodeId
       hintUsedClueIds
+      revealedHints {
+        clueId
+        hint
+      }
     }
   }
 `;

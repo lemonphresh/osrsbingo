@@ -3,6 +3,12 @@
 const { AuthenticationError, UserInputError, ForbiddenError } = require('apollo-server-express');
 const { Op } = require('sequelize');
 const { pubsub } = require('../pubsub');
+const {
+  getClue,
+  getNode,
+  isAnswerCorrect,
+  sanitizeStoryForClient,
+} = require('../../utils/whodunnit/story');
 
 const getModels = () => require('../../db/models');
 
@@ -99,6 +105,13 @@ const Query = {
     return WhodunnitCampaign.findAll({ order: [['createdAt', 'DESC']] });
   },
 
+  // Story tree with every answer/accept/hint stripped. This is what the
+  // client renders from — see server/utils/whodunnit/story.js. Callers must
+  // be authenticated (this is not public content).
+  async whodunnitStory(_, __, context) {
+    requireUser(context);
+    return sanitizeStoryForClient();
+  },
 };
 
 // ── Mutations ─────────────────────────────────────────────────────
@@ -164,6 +177,10 @@ const Mutation = {
     await requireTeamMember(campaignId, user.id);
     if (campaign.status === 'COMPLETE') throw new UserInputError('Campaign is complete');
 
+    const clue = getClue(clueId);
+    if (!clue) throw new UserInputError(`Unknown clue: ${clueId}`);
+    const correct = isAnswerCorrect(clue, answer);
+
     const { WhodunnitClueAnswer } = getModels();
     const existing = await WhodunnitClueAnswer.findOne({
       where: { campaignId, clueId },
@@ -173,6 +190,7 @@ const Mutation = {
     if (existing) {
       await existing.update({
         answer: String(answer),
+        correct,
         submittedByUserId: String(user.id),
         submittedAt: new Date(),
         nodeId,
@@ -185,6 +203,7 @@ const Mutation = {
         nodeId,
         clueId,
         answer: String(answer),
+        correct,
         submittedByUserId: String(user.id),
       });
     }
@@ -380,6 +399,21 @@ const WhodunnitNodeProgress = {
   durationSeconds: (n) => {
     if (!n.endedAt) return null;
     return Math.floor((n.endedAt.getTime() - n.startedAt.getTime()) / 1000);
+  },
+  // Hint text is looked up server-side from the (private) story so the
+  // client only ever sees the text of hints the team has explicitly used.
+  // Anything in hintUsedClueIds that doesn't map to a known clue is dropped.
+  revealedHints: (n) => {
+    const ids = n.hintUsedClueIds || [];
+    const node = getNode(n.nodeId);
+    if (!node?.clues) return [];
+    return ids
+      .map((clueId) => {
+        const clue = node.clues.find((c) => c.id === clueId);
+        if (!clue || !clue.hint) return null;
+        return { clueId, hint: clue.hint };
+      })
+      .filter(Boolean);
   },
 };
 

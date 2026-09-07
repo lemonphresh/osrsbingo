@@ -13,8 +13,6 @@ const TILE_TYPES = {
 const TILE_STATUSES = {
   LOCKED: 'locked',
   UNLOCKED: 'unlocked',
-  DIALOG_PENDING: 'dialog-pending',
-  TASK_ACTIVE: 'task-active',
   SUBMITTED: 'submitted',
   COMPLETE: 'complete',
 };

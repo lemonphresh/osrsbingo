@@ -17,7 +17,10 @@ import {
   Heading,
   Link,
 } from '@chakra-ui/react';
-import { GET_ALL_WHODUNNIT_CAMPAIGNS } from '../../graphql/whodunnitOperations';
+import {
+  GET_ALL_WHODUNNIT_CAMPAIGNS,
+  GET_WHODUNNIT_STORY,
+} from '../../graphql/whodunnitOperations';
 import { getNode } from '../../utils/whodunnit/storyEngine';
 import WhodunnitDesk from '../../organisms/whodunnit/WhodunnitDesk';
 import { WD_COLORS, WD_FONTS } from '../../organisms/whodunnit/whodunnitTheme';
@@ -36,11 +39,13 @@ const WhodunnitAdminPage = () => {
   const { user } = useAuth();
   usePageTitle('Whodunnit Admin');
   const { data, loading } = useQuery(GET_ALL_WHODUNNIT_CAMPAIGNS, { skip: !user?.admin });
+  const { data: storyData } = useQuery(GET_WHODUNNIT_STORY, { skip: !user?.admin });
 
   if (!user) return <Navigate to="/login" />;
   if (!user.admin) return <Navigate to="/" />;
 
   const campaigns = data?.allWhodunnitCampaigns || [];
+  const story = storyData?.whodunnitStory;
 
   return (
     <WhodunnitDesk>
@@ -88,7 +93,7 @@ const WhodunnitAdminPage = () => {
               </Thead>
               <Tbody>
                 {campaigns.map((c) => {
-                  const node = getNode(c.currentNodeId);
+                  const node = getNode(story, c.currentNodeId);
                   const rsns = (c.members || [])
                     .map((m) => m.user?.rsn || m.user?.username || '?')
                     .join(', ');

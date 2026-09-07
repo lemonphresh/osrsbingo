@@ -10,14 +10,14 @@ import {
   useDisclosure,
   Collapse,
 } from '@chakra-ui/react';
-import { getNode, getClue, STORY } from '../../utils/whodunnit/storyEngine';
+import { getNode, getClue } from '../../utils/whodunnit/storyEngine';
 import { WD_COLORS, WD_FONTS } from './whodunnitTheme';
 
 // Detective's Notebook sidebar. Rendered as a leather-bound pocket book
 // with aged paper inside. Any team member can log a Prime Suspect; the
 // value + history persist on the campaign and propagate live to every
 // team member via subscription.
-const DetectiveNotebook = ({ campaign, onUpdatePrimeSuspect }) => {
+const DetectiveNotebook = ({ story, campaign, onUpdatePrimeSuspect }) => {
   const [suspectDraft, setSuspectDraft] = useState(campaign.primeSuspect || '');
   const { isOpen: isCollapsed, onToggle } = useDisclosure({ defaultIsOpen: true });
 
@@ -234,16 +234,17 @@ const DetectiveNotebook = ({ campaign, onUpdatePrimeSuspect }) => {
                 ) : (
                   <VStack align="stretch" spacing={1} maxH="400px" overflowY="auto">
                     {sortedAnswers.map((a) => {
-                      const node = getNode(a.nodeId);
+                      const node = getNode(story, a.nodeId);
                       const nodeIndex = node?.index ?? '—';
-                      // Show the canonical answer + subject if the clue has
-                      // one, so numeric answers read as "7 red stools" or
-                      // "2500 gp — Tortugan Shield" instead of "7" / "2500".
-                      const clue = getClue(a.clueId);
-                      const display =
-                        clue?.subject
-                          ? `${clue.answer} ${clue.subject}`
-                          : clue?.answer || a.answer;
+                      // Show the submitted answer with the clue's subject
+                      // noun (when defined) so numeric answers read as
+                      // "7 red stools" or "2500 gp — Tortugan Shield"
+                      // instead of "7" / "2500". The canonical answer is
+                      // server-only now, so we render what the team typed.
+                      const clue = getClue(story, a.clueId);
+                      const display = clue?.subject
+                        ? `${a.answer} ${clue.subject}`
+                        : a.answer;
                       return (
                         <HStack key={a.id} justify="space-between" fontSize="xs">
                           <HStack spacing={2} minW="0" flex="1">
@@ -292,4 +293,3 @@ const DetectiveNotebook = ({ campaign, onUpdatePrimeSuspect }) => {
 };
 
 export default DetectiveNotebook;
-export { STORY };

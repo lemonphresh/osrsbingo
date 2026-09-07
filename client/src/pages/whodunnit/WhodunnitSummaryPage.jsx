@@ -12,7 +12,7 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import html2canvas from 'html2canvas';
-import { GET_WHODUNNIT_CAMPAIGN } from '../../graphql/whodunnitOperations';
+import { GET_WHODUNNIT_CAMPAIGN, GET_WHODUNNIT_STORY } from '../../graphql/whodunnitOperations';
 import CasebookReport from '../../organisms/whodunnit/CasebookReport';
 import WhodunnitDesk from '../../organisms/whodunnit/WhodunnitDesk';
 import CampaignHeader from '../../organisms/whodunnit/CampaignHeader';
@@ -35,11 +35,14 @@ const WhodunnitSummaryPage = () => {
     variables: { campaignId },
     skip: !user,
   });
+  const { data: storyData, loading: storyLoading } = useQuery(GET_WHODUNNIT_STORY, {
+    skip: !user,
+  });
 
   if (!user) return <Navigate to="/login" />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
-  if (loading) {
+  if (loading || storyLoading) {
     return (
       <Center py={20}>
         <Spinner color="purple.300" size="xl" />
@@ -47,6 +50,7 @@ const WhodunnitSummaryPage = () => {
     );
   }
   const campaign = data?.whodunnitCampaign;
+  const story = storyData?.whodunnitStory;
   if (!campaign) return <Text color="red.300">Campaign not found.</Text>;
 
   const downloadImage = async () => {
@@ -146,7 +150,7 @@ const WhodunnitSummaryPage = () => {
             </HStack>
           </HStack>
 
-          <CasebookReport ref={reportRef} campaign={campaign} />
+          <CasebookReport ref={reportRef} story={story} campaign={campaign} />
 
           <HStack justify="center" pt={4}>
             <RouterLink to="/whodunnit">

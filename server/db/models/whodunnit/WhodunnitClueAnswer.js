@@ -15,6 +15,7 @@ module.exports = (sequelize) => {
       nodeId:            { type: DataTypes.STRING, allowNull: false },
       clueId:            { type: DataTypes.STRING, allowNull: false },
       answer:            { type: DataTypes.TEXT, allowNull: false },
+      correct:           { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       submittedByUserId: { type: DataTypes.STRING, allowNull: false },
       submittedAt:       { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
     },
