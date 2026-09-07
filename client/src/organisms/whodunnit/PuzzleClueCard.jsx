@@ -9,7 +9,6 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningIcon } from '@chakra-ui/icons';
-import { isAnswerCorrect } from '../../utils/whodunnit/storyEngine';
 import HintDialog from './HintDialog';
 import { formatInline } from './StoryBlocks';
 import {
@@ -26,7 +25,9 @@ import {
 const PuzzleClueCard = ({
   clue,
   submittedAnswer,       // string or null
+  isCorrect,             // boolean — server-verified
   hintUsed,              // boolean
+  hintText,              // string or null — server-provided when hint is used
   onSubmit,              // (answerString) => Promise
   onUseHint,             // () => Promise
   disabled,              // boolean — campaign is complete
@@ -40,7 +41,8 @@ const PuzzleClueCard = ({
   // exists from a teammate).
   const [attempted, setAttempted] = useState(Boolean(submittedAnswer));
 
-  const correct = submittedAnswer ? isAnswerCorrect(clue, submittedAnswer) : null;
+  // null while nothing has been submitted, true/false after server verdict.
+  const correct = submittedAnswer ? Boolean(isCorrect) : null;
   const rot = paperRotation(clue.id, 1.2);
 
   const submit = async () => {
@@ -141,7 +143,7 @@ const PuzzleClueCard = ({
               Hint
             </Text>
             <Text color={WD_COLORS.ink} fontFamily={WD_FONTS.typewriter}>
-              {clue.hint}
+              {hintText || '(hint loading…)'}
             </Text>
           </Box>
         )}

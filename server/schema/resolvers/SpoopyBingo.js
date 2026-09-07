@@ -60,6 +60,98 @@ function requireTeamMemberOrStaff(event, team, user) {
   throw new ForbiddenError('You must be a team member to do that');
 }
 
+// ── Input bounds ──────────────────────────────────────────────────────────
+// Guard against unbounded strings landing in TEXT/JSONB columns. Anything the
+// client can send verbatim is capped to a sane length here — the resolver
+// throws rather than silently truncating so bad input surfaces early.
+
+const MAX_URL_LEN = 2048; // long enough for Discord CDN URLs w/ query params
+const MAX_DISCORD_ID_LEN = 40; // Snowflakes are 17-20 chars; leave room for prefixes
+const MAX_DENIAL_REASON_LEN = 500;
+
+function boundedString(raw, max, fieldLabel) {
+  if (raw == null) return null;
+  const s = String(raw);
+  if (s.length > max) {
+    throw new UserInputError(`${fieldLabel} exceeds ${max} characters`);
+  }
+  return s;
+}
+
+// Board shape validation. A malformed board can crash the state machine
+// (unknown tile ids on neighbors, missing house dialog options, orphaned
+// starting tiles) and there's no schema on the JSONB column, so admins can
+// silently upload something broken. Fail loudly here instead.
+function validateBoardShape({ board, contentById, startingTileIds }) {
+  if (board !== undefined) {
+    if (!board || typeof board !== 'object') {
+      throw new UserInputError('board must be an object');
+    }
+    if (!Array.isArray(board.tiles)) {
+      throw new UserInputError('board.tiles must be an array');
+    }
+    const tileIds = new Set();
+    for (const tile of board.tiles) {
+      if (!tile?.id || typeof tile.id !== 'string') {
+        throw new UserInputError('every board tile needs a string id');
+      }
+      if (tileIds.has(tile.id)) {
+        throw new UserInputError(`duplicate tile id: ${tile.id}`);
+      }
+      tileIds.add(tile.id);
+      if (!tile.tile_type || typeof tile.tile_type !== 'string') {
+        throw new UserInputError(`tile ${tile.id} needs a tile_type`);
+      }
+    }
+    // Neighbor references must all resolve to real tile ids.
+    for (const tile of board.tiles) {
+      if (tile.neighbors === undefined) continue;
+      if (!Array.isArray(tile.neighbors)) {
+        throw new UserInputError(`tile ${tile.id} neighbors must be an array`);
+      }
+      for (const n of tile.neighbors) {
+        if (!tileIds.has(n)) {
+          throw new UserInputError(`tile ${tile.id} references unknown neighbor: ${n}`);
+        }
+      }
+    }
+    if (board.candybagTileId != null && !tileIds.has(board.candybagTileId)) {
+      throw new UserInputError(`candybagTileId points to unknown tile: ${board.candybagTileId}`);
+    }
+
+    // Content authored for tiles that don't exist on the board is almost
+    // always a stale key from a previous board edit — reject rather than
+    // silently ignore.
+    if (contentById !== undefined && contentById && typeof contentById === 'object') {
+      for (const tileId of Object.keys(contentById)) {
+        if (!tileIds.has(tileId)) {
+          throw new UserInputError(`contentById has entry for unknown tile: ${tileId}`);
+        }
+      }
+      // House tiles need dialog.options.{a,b}.label; anything else can't be
+      // played through the trick-or-treat flow.
+      for (const tile of board.tiles) {
+        if (tile.tile_type !== 'house') continue;
+        const c = contentById[tile.id];
+        if (!c?.dialog?.options?.a?.label || !c?.dialog?.options?.b?.label) {
+          throw new UserInputError(`house tile ${tile.id} needs dialog.options.{a,b}.label`);
+        }
+      }
+    }
+
+    if (startingTileIds !== undefined) {
+      if (!Array.isArray(startingTileIds)) {
+        throw new UserInputError('startingTileIds must be an array');
+      }
+      for (const id of startingTileIds) {
+        if (!tileIds.has(id)) {
+          throw new UserInputError(`startingTileIds contains unknown tile: ${id}`);
+        }
+      }
+    }
+  }
+}
+
 // ── Lookups ───────────────────────────────────────────────────────────────
 
 async function getEventOrThrow(eventId) {
@@ -88,12 +180,68 @@ async function publishBoardUpdated(team) {
   });
 }
 
+// Fired after roster / admin / team-lifecycle mutations so any admin dashboard
+// subscribed to event-level updates re-renders without a page refresh. Uses
+// the same pubsub topic pattern as other event-scoped subscriptions.
+async function publishEventUpdated(eventId) {
+  const event = await getModels().SpoopyEvent.findByPk(eventId);
+  if (!event) return;
+  await pubsub.publish(`SPOOPY_EVENT_UPDATED_${eventId}`, {
+    spoopyEventUpdated: event,
+  });
+}
+
+// ── Content redaction ─────────────────────────────────────────────────────
+//
+// House-tile option `outcome`, `task`, and `reward_gp` are secrets — the
+// gameplay loop is picking blind between "a" and "b" without knowing which is
+// trick vs treat. If we hand raw contentById to non-staff, a team can inspect
+// the network response and pick the safer option every time.
+//
+// The redactor keeps each option's `label` (that's what the UI displays for
+// the click) and strips outcome/task/reward until the team has locked in that
+// option. The un-chosen option stays permanently hidden — no reason to
+// spoil "what would have happened" after the fact.
+//
+// Non-house tiles (pumpkin/ghost/grave/black-cat/candybag/start) are passed
+// through as-is: their task is required to attempt the tile, and non-house
+// tiles don't have a hidden outcome.
+
+function redactHouseContent(content, tileState) {
+  const chosen = tileState?.choice ?? null;
+  const options = content?.dialog?.options ?? {};
+  const redactedOptions = {};
+  for (const [key, opt] of Object.entries(options)) {
+    redactedOptions[key] = key === chosen ? opt : { label: opt.label };
+  }
+  return {
+    ...content,
+    dialog: {
+      ...content.dialog,
+      options: redactedOptions,
+    },
+  };
+}
+
+function redactContentById(contentById, board, tileStates) {
+  const tileTypeById = new Map((board?.tiles ?? []).map((t) => [t.id, t.tile_type]));
+  const out = {};
+  for (const [tileId, content] of Object.entries(contentById || {})) {
+    out[tileId] =
+      tileTypeById.get(tileId) === 'house'
+        ? redactHouseContent(content, tileStates[tileId])
+        : content;
+  }
+  return out;
+}
+
 // ── Queries ───────────────────────────────────────────────────────────────
 
 const Query = {
-  // Event metadata (name, curfew, board layout, content) is auth-gated but not
-  // team-scoped — any logged-in user can see it. Content authoring rights are
-  // separately gated on mutations.
+  // Event metadata (name, curfew, board layout) is auth-gated but not
+  // team-scoped — any logged-in user can see it. `contentById` is redacted
+  // per-caller by the SpoopyEvent.contentById field resolver below so
+  // unchosen house options don't leak outcomes/tasks/rewards.
   spoopyEvent: async (_, { eventId }, context) => {
     requireUser(context);
     return getEventOrThrow(eventId);
@@ -280,18 +428,39 @@ const Mutation = {
 
     // SETUP → ACTIVE freezes each team's share of the prize pool. Divides
     // evenly (integer division); any remainder is dropped rather than
-    // handed to an arbitrary team. Once frozen, subsequent teams (unlikely
-    // while ACTIVE, but a safe invariant) don't get a share.
+    // handed to an arbitrary team. Wrapping in a transaction with a
+    // FOR UPDATE lock on the event row prevents a concurrent
+    // createSpoopyTeam / deleteSpoopyTeam from leaving allocations
+    // inconsistent (one team over-allocated, another with zero).
     if (event.status === 'SETUP' && status === 'ACTIVE') {
-      const { SpoopyTeam } = getModels();
-      const teams = await SpoopyTeam.findAll({ where: { eventId } });
-      const pool = event.prizePool ?? 0;
-      const perTeam = teams.length > 0 ? Math.floor(pool / teams.length) : 0;
-      for (const team of teams) {
-        if (team.poolAllocation !== perTeam) {
-          await team.update({ poolAllocation: perTeam });
+      const { SpoopyEvent, SpoopyTeam } = getModels();
+      const sequelize = SpoopyEvent.sequelize;
+      await sequelize.transaction(async (t) => {
+        const lockedEvent = await SpoopyEvent.findByPk(eventId, {
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
+        if (!lockedEvent) throw new UserInputError(`SpoopyEvent ${eventId} not found`);
+        if (lockedEvent.status !== 'SETUP') {
+          // Someone else beat us to it — bail without touching allocations.
+          return;
         }
-      }
+        const teams = await SpoopyTeam.findAll({
+          where: { eventId },
+          transaction: t,
+          lock: t.LOCK.UPDATE,
+        });
+        const pool = lockedEvent.prizePool ?? 0;
+        const perTeam = teams.length > 0 ? Math.floor(pool / teams.length) : 0;
+        for (const team of teams) {
+          if (team.poolAllocation !== perTeam) {
+            await team.update({ poolAllocation: perTeam }, { transaction: t });
+          }
+        }
+        await lockedEvent.update({ status }, { transaction: t });
+      });
+      // Return the reloaded event so callers see the new status.
+      return getEventOrThrow(eventId);
     }
 
     await event.update({ status });
@@ -302,6 +471,14 @@ const Mutation = {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
+    // Validate against whatever we're keeping (existing values for fields the
+    // admin didn't touch) so partial updates can't break the invariant.
+    validateBoardShape({
+      board: board !== undefined ? board : event.board,
+      contentById: contentById !== undefined ? contentById : event.contentById,
+      startingTileIds:
+        startingTileIds !== undefined ? startingTileIds : event.startingTileIds,
+    });
     const patch = {};
     if (board !== undefined) patch.board = board;
     if (contentById !== undefined) patch.contentById = contentById;
@@ -329,6 +506,7 @@ const Mutation = {
     });
 
     await createInitialTeamTiles(eventId, team.teamId, event.board, event.startingTileIds);
+    await publishEventUpdated(eventId);
     return team;
   },
 
@@ -338,6 +516,7 @@ const Mutation = {
     const event = await getEventOrThrow(team.eventId);
     requireAdmin(event, user);
     await team.update({ members });
+    await publishEventUpdated(team.eventId);
     return team;
   },
 
@@ -355,6 +534,7 @@ const Mutation = {
     if (discordRoleId !== undefined) patch.discordRoleId = discordRoleId;
     if (Object.keys(patch).length === 0) return team;
     await team.update(patch);
+    await publishEventUpdated(team.eventId);
     return team;
   },
 
@@ -364,6 +544,7 @@ const Mutation = {
     requireAdmin(event, user);
     if (!event.adminIds.includes(String(userId))) {
       await event.update({ adminIds: [...event.adminIds, String(userId)] });
+      await publishEventUpdated(eventId);
     }
     return event;
   },
@@ -373,6 +554,7 @@ const Mutation = {
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
     await event.update({ adminIds: event.adminIds.filter((id) => id !== String(userId)) });
+    await publishEventUpdated(eventId);
     return event;
   },
 
@@ -482,23 +664,40 @@ const Mutation = {
     const event = await getEventOrThrow(team.eventId);
     requireAdmin(event, user);
 
+    // Two refs clicking "mark complete" concurrently used to both pass the
+    // "has approved submission?" check and both call persistTeamState,
+    // double-awarding GP and mis-unlocking neighbors. The lock serializes
+    // completions per team; the state machine's requireStatus check then
+    // rejects the second call because the tile is already COMPLETE.
     const { SpoopySubmission } = getModels();
-    const anyApproved = await SpoopySubmission.count({
-      where: { teamId, tileId, status: 'APPROVED', type: 'FINAL' },
-    });
-    if (!anyApproved) {
-      throw new UserInputError('tile has no approved submission yet — approve one first');
-    }
+    const sequelize = SpoopySubmission.sequelize;
+    const { next, rewardTile } = await sequelize.transaction(async (t) => {
+      // Lock the team row so a concurrent complete on the same team waits.
+      const lockedState = await loadTeamState(team.teamId, {
+        transaction: t,
+        lock: t.LOCK.UPDATE,
+      });
+      if (!lockedState) throw new UserInputError('Team not found');
 
-    const prev = await loadTeamState(team.teamId);
-    const next = sm.completeTile(
-      prev,
-      toEventDefinition(event),
-      tileId,
-      new Date(),
-      team.poolAllocation ?? 0,
-    );
-    await persistTeamState(prev, next);
+      const anyApproved = await SpoopySubmission.count({
+        where: { teamId, tileId, status: 'APPROVED', type: 'FINAL' },
+        transaction: t,
+      });
+      if (!anyApproved) {
+        throw new UserInputError('tile has no approved submission yet — approve one first');
+      }
+
+      const computed = sm.completeTile(
+        lockedState,
+        toEventDefinition(event),
+        tileId,
+        new Date(),
+        team.poolAllocation ?? 0,
+      );
+      await persistTeamState(lockedState, computed, { transaction: t });
+      return { next: computed, rewardTile: computed.tiles?.[tileId] };
+    });
+
     await publishBoardUpdated(team);
 
     // Notify the team channel now that the tile is actually complete —
@@ -507,7 +706,7 @@ const Mutation = {
     const boardTile = event.board?.tiles?.find((t) => t.id === tileId);
     const isCandybag = boardTile?.tile_type === 'candybag';
     const taskLabel = boardTile ? `${boardTile.tile_type} (${tileId})` : tileId;
-    const rewardGp = next.tiles?.[tileId]?.rewardEarned ?? 0;
+    const rewardGp = rewardTile?.rewardEarned ?? 0;
     postSpoopyTileComplete({
       channelId: team.discordChannelId,
       taskLabel,
@@ -515,6 +714,7 @@ const Mutation = {
       isCandybag,
     }).catch(() => {});
 
+    void next; // keep for future observability if we want to log the transition
     return loadTeamState(team.teamId);
   },
 
@@ -551,7 +751,9 @@ const Mutation = {
       status: approved ? 'APPROVED' : 'DENIED',
       reviewedBy: String(user.id),
       reviewedAt: new Date(),
-      denialReason: approved ? null : denialReason ?? null,
+      denialReason: approved
+        ? null
+        : boundedString(denialReason, MAX_DENIAL_REASON_LEN, 'denialReason'),
     });
 
     // Approve and deny are both submission-level actions — neither touches
@@ -650,8 +852,8 @@ const Mutation = {
       eventId: event.eventId,
       tileId: input.tileId,
       type,
-      screenshotUrl: input.screenshotUrl ?? null,
-      discordMessageId: input.discordMessageId ?? null,
+      screenshotUrl: boundedString(input.screenshotUrl, MAX_URL_LEN, 'screenshotUrl'),
+      discordMessageId: boundedString(input.discordMessageId, MAX_DISCORD_ID_LEN, 'discordMessageId'),
       channelId: team.discordChannelId,
       status: 'PENDING',
       submittedAt: input.submittedAt ?? new Date(),
@@ -677,6 +879,16 @@ const Mutation = {
     const event = await getEventOrThrow(team.eventId);
     requireTeamMemberOrStaff(event, team, user);
     requireEventActive(event);
+
+    // Mirror the bot's gauntlet gate: the candybag can only be entered after
+    // the team has walked through the three-step Discord ritual
+    // (!stepinside → !imserious → !nogoingback). Admins can bypass so they
+    // can preview the modal without running the ritual themselves.
+    if (!isAdmin(event, user) && (team.hauntedGauntletLevel ?? 0) < 3) {
+      throw new UserInputError(
+        "the door is stuck — finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first",
+      );
+    }
 
     const state = await loadTeamState(team.teamId);
     const { warningTier, msRemaining } = sm.enterHauntedHouse(state, toEventDefinition(event));
@@ -714,6 +926,25 @@ const SpoopyEvent = {
     const { User } = getModels();
     return User.findAll({ where: { id: event.adminIds } });
   },
+  // Redact house-tile options per caller. Site / event admins get the raw
+  // content (they authored it and refs need to see everything to grade).
+  // Everyone else gets a per-team-scoped view — pre-choice options only
+  // expose `label`, and un-chosen options stay hidden even post-choice.
+  contentById: async (event, _args, context) => {
+    const user = context?.user;
+    if (!user) return {}; // queries also gate this via requireUser, belt-and-braces
+    if (isAdmin(event, user)) return event.contentById || {};
+
+    const discordUserId = user.discordUserId ? String(user.discordUserId) : null;
+    let team = null;
+    if (discordUserId) {
+      const { SpoopyTeam } = getModels();
+      const teams = await SpoopyTeam.findAll({ where: { eventId: event.eventId } });
+      team = teams.find((t) => (t.members ?? []).includes(discordUserId)) ?? null;
+    }
+    const tileStates = team ? (await loadTeamState(team.teamId))?.tiles ?? {} : {};
+    return redactContentById(event.contentById || {}, event.board, tileStates);
+  },
 };
 
 // Surfaces the SpoopyTeamTile row for a submission's (teamId, tileId) so the
@@ -740,6 +971,7 @@ const Subscription = {
   spoopySubmissionAdded:    makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_ADDED_${eventId}`),
   spoopySubmissionReviewed: makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_REVIEWED_${eventId}`),
   spoopyTeamBoardUpdated:   makeSubscription(({ teamId })  => `SPOOPY_TEAM_BOARD_UPDATED_${teamId}`),
+  spoopyEventUpdated:       makeSubscription(({ eventId }) => `SPOOPY_EVENT_UPDATED_${eventId}`),
 };
 
 module.exports = { Query, Mutation, Subscription, SpoopyEvent, SpoopySubmission };

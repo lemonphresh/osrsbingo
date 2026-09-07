@@ -13,6 +13,7 @@ import {
 } from '@chakra-ui/react';
 import {
   GET_WHODUNNIT_CAMPAIGN,
+  GET_WHODUNNIT_STORY,
   SUBMIT_WHODUNNIT_ANSWER,
   ADVANCE_WHODUNNIT_NODE,
   COMPLETE_WHODUNNIT_CAMPAIGN,
@@ -47,6 +48,10 @@ const WhodunnitCampaignPage = () => {
     variables: { campaignId },
     skip: !user,
   });
+  const { data: storyData, loading: storyLoading } = useQuery(GET_WHODUNNIT_STORY, {
+    skip: !user,
+  });
+  const story = storyData?.whodunnitStory;
 
   // Live updates to any team member
   useSubscription(WHODUNNIT_CAMPAIGN_UPDATED, {
@@ -79,12 +84,15 @@ const WhodunnitCampaignPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [campaign?.currentNodeId]);
 
-  const currentNode = useMemo(() => (campaign ? getNode(campaign.currentNodeId) : null), [campaign]);
+  const currentNode = useMemo(
+    () => (campaign && story ? getNode(story, campaign.currentNodeId) : null),
+    [campaign, story]
+  );
 
   if (!user) return <Navigate to="/login" />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
-  if (loading) {
+  if (loading || storyLoading) {
     return (
       <Center py={20}>
         <Spinner color="purple.300" size="xl" />
@@ -127,12 +135,12 @@ const WhodunnitCampaignPage = () => {
   };
 
   const onAdvance = async () => {
-    if (isTerminalNode(campaign.currentNodeId)) {
+    if (isTerminalNode(story, campaign.currentNodeId)) {
       await completeCampaignMutation({ variables: { campaignId } });
       await refetch();
       return;
     }
-    const next = computeNextNodeId(campaign.currentNodeId, {
+    const next = computeNextNodeId(story, campaign.currentNodeId, {
       choiceAPath: campaign.choiceAPath,
       choiceBPath: campaign.choiceBPath,
     });
@@ -144,7 +152,7 @@ const WhodunnitCampaignPage = () => {
   const onChoose = async (choiceKey, path) => {
     await chooseBranchMutation({ variables: { campaignId, choiceKey, path } });
     // Then advance to the first node in the picked path
-    const nextAfterChoice = computeNextNodeId(campaign.currentNodeId, {
+    const nextAfterChoice = computeNextNodeId(story, campaign.currentNodeId, {
       choiceAPath: choiceKey === 'A' ? path : campaign.choiceAPath,
       choiceBPath: choiceKey === 'B' ? path : campaign.choiceBPath,
     });
@@ -188,6 +196,7 @@ const WhodunnitCampaignPage = () => {
           <GridItem>
             {currentNode ? (
               <NodeView
+                story={story}
                 campaign={campaign}
                 nodeId={campaign.currentNodeId}
                 onSubmitAnswer={onSubmitAnswer}
@@ -202,7 +211,11 @@ const WhodunnitCampaignPage = () => {
           </GridItem>
 
           <GridItem>
-            <DetectiveNotebook campaign={campaign} onUpdatePrimeSuspect={onUpdatePrimeSuspect} />
+            <DetectiveNotebook
+              story={story}
+              campaign={campaign}
+              onUpdatePrimeSuspect={onUpdatePrimeSuspect}
+            />
           </GridItem>
         </Grid>
       </Box>

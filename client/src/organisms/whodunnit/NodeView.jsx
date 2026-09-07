@@ -22,6 +22,7 @@ import { WD_COLORS, WD_FONTS } from './whodunnitTheme';
 // node.type and drives all the "next" mechanics (submit, hint, choice,
 // advance, agency name input).
 const NodeView = ({
+  story,
   campaign,
   nodeId,
   onSubmitAnswer,
@@ -30,7 +31,7 @@ const NodeView = ({
   onChoose,
   onSetAgencyName,
 }) => {
-  const node = getNode(nodeId);
+  const node = getNode(story, nodeId);
   if (!node) {
     return <Text color="red.300">Unknown node: {nodeId}</Text>;
   }
@@ -39,8 +40,11 @@ const NodeView = ({
   const answersForNode = (campaign.answers || []).filter((a) => a.nodeId === nodeId);
   const progressForNode = (campaign.nodeProgress || []).find((p) => p.nodeId === nodeId);
   const hintUsedIds = new Set(progressForNode?.hintUsedClueIds || []);
+  const revealedHintById = new Map(
+    (progressForNode?.revealedHints || []).map((h) => [h.clueId, h.hint])
+  );
 
-  const merge = mergeFlavorForNode(nodeId, {
+  const merge = mergeFlavorForNode(story, nodeId, {
     choiceAPath: campaign.choiceAPath,
     choiceBPath: campaign.choiceBPath,
   });
@@ -82,7 +86,9 @@ const NodeView = ({
                   key={clue.id}
                   clue={clue}
                   submittedAnswer={existing?.answer || null}
+                  isCorrect={existing?.correct || false}
                   hintUsed={hintUsedIds.has(clue.id)}
+                  hintText={revealedHintById.get(clue.id) || null}
                   onSubmit={(ans) => onSubmitAnswer(node.id || nodeId, clue.id, ans)}
                   onUseHint={() => onUseHint(nodeId, clue.id)}
                   disabled={isComplete}

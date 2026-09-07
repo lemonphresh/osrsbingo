@@ -41,6 +41,38 @@ const getPubsub = () => require('../../schema/pubsub').pubsub;
 // Task kinds we can auto-track. Everything else stays manual.
 const TRACKABLE_KINDS = new Set(['skilling_xp', 'boss_kc']);
 
+// Case- and whitespace-tolerant team-name lookup into the WOM rosters map.
+// WOM and spoopy team names have drifted apart with trailing spaces / caps
+// differences before; strict-equal lookups silently no-op'd whole teams. The
+// tolerant match still needs a unique hit — if two WOM teams normalize to the
+// same key we bail rather than guess.
+function normalizeTeamName(name) {
+  return String(name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function findRosterFor(rosters, teamName) {
+  if (!rosters) return null;
+  // Fast path: exact match.
+  if (rosters[teamName]) return rosters[teamName];
+  const target = normalizeTeamName(teamName);
+  if (!target) return null;
+  let hit = null;
+  let ambiguous = false;
+  for (const key of Object.keys(rosters)) {
+    if (normalizeTeamName(key) === target) {
+      if (hit) ambiguous = true;
+      hit = rosters[key];
+    }
+  }
+  if (ambiguous) {
+    logger.warn(
+      `[spoopyWomSync] multiple WOM teams normalize to "${teamName}" — refusing to guess`,
+    );
+    return null;
+  }
+  return hit;
+}
+
 // Resolve the active task for a tile given the team state. House tiles
 // require a locked-in choice; other tile types just carry a plain `.task`.
 function resolveTileTask(tile, content, teamTile) {
@@ -165,7 +197,7 @@ async function syncSpoopyEventWom(eventId, { force = false } = {}) {
   const teamsAffected = new Set();
 
   for (const team of teams) {
-    const roster = rosters[team.teamName] ?? [];
+    const roster = findRosterFor(rosters, team.teamName) ?? [];
     if (!roster.length) {
       logger.warn(`[spoopyWomSync] team "${team.teamName}" not in competition rosters — skipping`);
       continue;
@@ -231,7 +263,7 @@ async function syncSpoopyTileForPreApproval({ teamId, tileId }) {
   if (!task || !TRACKABLE_KINDS.has(task.kind)) return { updated: false };
 
   const { rosters, usernameMap } = await fetchCompetitionTeamRosters(event.womCompetitionId);
-  const roster = rosters[team.teamName] ?? [];
+  const roster = findRosterFor(rosters, team.teamName) ?? [];
   if (!roster.length) return { updated: false };
 
   const updated = await _syncOneTile({

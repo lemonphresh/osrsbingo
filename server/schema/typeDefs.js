@@ -1041,6 +1041,8 @@ const typeDefs = gql`
     myWhodunnitCampaigns: [WhodunnitCampaign!]!
     whodunnitCampaign(campaignId: ID!): WhodunnitCampaign
     allWhodunnitCampaigns: [WhodunnitCampaign!]!
+    # Sanitized story tree (no answers/accepts/hints). Requires auth.
+    whodunnitStory: WhodunnitStory!
   }
 
   # ============================================================
@@ -2142,7 +2144,13 @@ const typeDefs = gql`
     startedAt: DateTime!
     endedAt: DateTime
     hintUsedClueIds: [String!]!
+    revealedHints: [WhodunnitRevealedHint!]!
     durationSeconds: Int
+  }
+
+  type WhodunnitRevealedHint {
+    clueId: String!
+    hint: String!
   }
 
   type WhodunnitClueAnswer {
@@ -2152,8 +2160,22 @@ const typeDefs = gql`
     nodeId: String!
     clueId: String!
     answer: String!
+    correct: Boolean!
     submittedAt: DateTime
     submittedBy: User
+  }
+
+  # Sanitized story tree served to the client. Every clue's answer,
+  # accept, and hint fields are stripped server-side — the raw JSON
+  # never touches the browser.
+  type WhodunnitStory {
+    id: String!
+    title: String!
+    subtitle: String
+    startNodeId: String!
+    # Node map is served as JSON so we don't have to duplicate the entire
+    # story schema in GraphQL. Consumers should treat this as read-only.
+    nodes: JSON!
   }
 
   type WhodunnitSuspectHistory {
@@ -2200,6 +2222,9 @@ const typeDefs = gql`
     spoopySubmissionAdded(eventId: ID!): SpoopySubmission!
     spoopySubmissionReviewed(eventId: ID!): SpoopySubmission!
     spoopyTeamBoardUpdated(teamId: ID!): SpoopyTeamBoardState!
+    # Fires when team roster, admins, or team lifecycle changes on an event
+    # so admin dashboards re-render without a page refresh.
+    spoopyEventUpdated(eventId: ID!): SpoopyEvent!
 
     # --- Battleship ---
     bsBoardUpdated(eventId: ID!): BSBoard!
