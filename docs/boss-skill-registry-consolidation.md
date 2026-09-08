@@ -129,7 +129,7 @@ all optional fields live inline — `null` when not applicable. this keeps every
   //   - champion forge acceptableItems (currently defined per-objective in cwObjectiveCollections)
   //   - rainbow bingo validDrops (currently defined per-tile in rainbowTiles.js)
   //   - any future item_collection objective for this boss
-  drops: ['Aggy', 'Hallowfell'],
+  drops: ['Aggy', 'Hallowfell', 'Jar of Light'],
 
   // how many drops count as a valid task at each difficulty.
   // null = boss doesn't support item_collection objectives

@@ -977,7 +977,7 @@ const BOSSES = {
       medium: { min: 75, max: 100 },
       long: { min: 100, max: 150 },
     },
-    drops: ['Aggy', 'Hallowfell'],
+    drops: ['Aggy', 'Hallowfell', 'Jar of Light'],
     dropQuantities: {
       medium: {
         min: 1,
