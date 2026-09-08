@@ -219,7 +219,11 @@ function assignBuffRewards(nodes, { eventConfig, derivedValues }) {
 }
 
 function getRandomBuffType(tier) {
-  const types = ['kill_reduction', 'xp_reduction', 'item_reduction'];
+  // item_reduction is minor-only — a 50%/75% cut to a collection objective is
+  // too generous, so higher tiers pick from kills/xp only.
+  const types = tier === 'minor'
+    ? ['kill_reduction', 'xp_reduction', 'item_reduction']
+    : ['kill_reduction', 'xp_reduction'];
   return `${types[Math.floor(Math.random() * types.length)]}_${tier}`;
 }
 

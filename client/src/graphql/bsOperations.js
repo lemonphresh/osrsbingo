@@ -495,6 +495,16 @@ export const IMPORT_BS_DRAFT_WORKBOOK = gql`
   }
 `;
 
+export const SYNC_BS_EVENT_WITH_REGISTRY = gql`
+  mutation SyncBSEventWithRegistry($eventId: ID!) {
+    syncBSEventWithRegistry(eventId: $eventId) {
+      tasksAdded
+      shipTemplatesAdded
+      addedContentIds
+    }
+  }
+`;
+
 export const SET_BS_SHIP_TEMPLATE = gql`
   mutation SetBSShipTemplate(
     $eventId: ID!

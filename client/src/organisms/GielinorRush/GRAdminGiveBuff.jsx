@@ -16,6 +16,9 @@ import { DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import { useMutation } from '@apollo/client';
 import { ADMIN_GIVE_BUFF, ADMIN_REMOVE_BUFF } from '../../graphql/mutations';
 
+// Must mirror BUFF_CONFIGS in server/utils/gielinorRush/buffHelpers.js.
+// item_reduction_moderate/major intentionally do not exist — a 50%+ cut to a
+// collection objective is too generous.
 const BUFF_TYPES = {
   kill_reduction_minor: { label: "Slayer's Edge (25%)", icon: '⚔️' },
   kill_reduction_moderate: { label: "Slayer's Focus (50%)", icon: '⚔️' },

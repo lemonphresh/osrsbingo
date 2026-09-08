@@ -51,6 +51,9 @@ const BUFF_CONFIGS = {
     objectiveTypes: ['xp_gain'],
     icon: '📚',
   },
+  // Only a minor (25%) item_reduction exists by design — moderate/major would
+  // cut collection objectives too deeply. See getRandomBuffType() for the
+  // generator-side guard that keeps item_reduction out of higher tiers.
   item_reduction_minor: {
     name: 'Efficient Gathering',
     description: 'Reduces item collection by 25% on one collection objective',

@@ -197,6 +197,89 @@ module.exports = {
     return event;
   },
 
+  // Adds any registry content that's missing from the event's task pool /
+  // ship templates, without touching existing rows. Intended for events
+  // created before newer registry entries (e.g. Tombs of Amascut) were added.
+  syncBSEventWithRegistry: async (_, { eventId }, context) => {
+    const user = requireAuth(context);
+    const { BSTask, BSShipTemplate } = getModels();
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user.id);
+
+    if (event.status !== 'DRAFT') {
+      throw new UserInputError('Registry sync can only be run while the event is in DRAFT.');
+    }
+
+    const multiplier = event.metricMultiplier ?? 1.0;
+
+    const existingTasks = await BSTask.findAll({ where: { eventId } });
+    const existingContentIds = new Set(existingTasks.map((t) => t.contentId).filter(Boolean));
+
+    const defaultEntries = generateDefaultBSTasks();
+    const missingEntries = defaultEntries.filter((e) => !existingContentIds.has(e.contentId));
+
+    const newTaskRecords = missingEntries.map((e) => {
+      const rawTarget = e.metricTarget ?? null;
+      const unit = e.metricUnit;
+      const scaledTarget = rawTarget != null ? roundTarget(rawTarget * multiplier, unit) : null;
+      let scaledLabel = e.metricLabel ?? null;
+      if (scaledTarget != null) {
+        if (unit === 'kc')           scaledLabel = `${scaledTarget} kc`;
+        else if (unit === 'xp')      scaledLabel = formatXp(scaledTarget);
+        else if (unit === 'uniques') scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
+      }
+      return {
+        taskId:      generateId('bstk'),
+        eventId,
+        contentId:   e.contentId,
+        label:       e.label,
+        bossOrSkill: e.bossOrSkill ?? null,
+        metricType:  e.metricType ?? null,
+        metricTarget: scaledTarget,
+        metricUnit:  e.metricUnit ?? null,
+        metricLabel: scaledLabel,
+        validDrops:  e.validDrops ?? [],
+        womMetric:   e.womMetric ?? null,
+      };
+    });
+    if (newTaskRecords.length > 0) await BSTask.bulkCreate(newTaskRecords);
+
+    // Fill any ship-template cells that are hard-coded to a content id but
+    // don't have a template row yet (e.g. CARRIER cell 2 for ToA).
+    const allTasks = await BSTask.findAll({ where: { eventId } });
+    const contentIdToTaskId = new Map(
+      allTasks.filter((t) => t.contentId).map((t) => [t.contentId, t.taskId])
+    );
+
+    const existingTemplates = await BSShipTemplate.findAll({ where: { eventId } });
+    const templateKeys = new Set(
+      existingTemplates.map((t) => `${t.shipType}:${t.cellIndex}`)
+    );
+
+    const newTemplateRecords = [];
+    for (const [shipType, contentIds] of Object.entries(SHIP_TEMPLATE_CONTENT_IDS)) {
+      contentIds.forEach((contentId, cellIndex) => {
+        if (templateKeys.has(`${shipType}:${cellIndex}`)) return;
+        const taskId = contentIdToTaskId.get(contentId);
+        if (!taskId) return;
+        newTemplateRecords.push({
+          templateId: generateId('bsst'),
+          eventId,
+          shipType,
+          cellIndex,
+          taskId,
+        });
+      });
+    }
+    if (newTemplateRecords.length > 0) await BSShipTemplate.bulkCreate(newTemplateRecords);
+
+    return {
+      tasksAdded: newTaskRecords.length,
+      shipTemplatesAdded: newTemplateRecords.length,
+      addedContentIds: missingEntries.map((e) => e.contentId),
+    };
+  },
+
   updateBSMultiplier: async (_, { eventId, multiplier }, context) => {
     const user = requireAuth(context);
     const { BSTask } = getModels();

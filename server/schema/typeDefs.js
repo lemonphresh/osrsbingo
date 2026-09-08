@@ -1371,6 +1371,7 @@ const typeDefs = gql`
     # --- Battleship: Placement Phase ---
     updateBSContentSelections(eventId: ID!, contentSelections: JSON!): BSEvent!
     updateBSMultiplier(eventId: ID!, multiplier: Float!): BSEvent!
+    syncBSEventWithRegistry(eventId: ID!): BSSyncResult!
     startBSPlacementPhase(eventId: ID!): BSEvent!
     placeBSShip(boardId: ID!, input: BSShipPlacementInput!): BSShipPlacement!
 
@@ -1893,6 +1894,12 @@ const typeDefs = gql`
     oceanTileCount: Int!
     shipTileCount: Int!
     errors: [String!]!
+  }
+
+  type BSSyncResult {
+    tasksAdded: Int!
+    shipTemplatesAdded: Int!
+    addedContentIds: [String!]!
   }
 
   type BSShipTemplate {
