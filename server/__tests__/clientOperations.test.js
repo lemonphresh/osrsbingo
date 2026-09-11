@@ -34,7 +34,7 @@ const schema = makeExecutableSchema({
 // We can't require() those directly from Node, so we transform them on the fly:
 //   - Strip the apollo import and inject graphql-tag's gql instead
 //   - Rewrite `export const X = ` to `const X = exports.X = ` so the variable
-//     stays in scope for interpolations (e.g. ${SOME_FRAGMENT}) AND is exported
+//     stays in scope for interpolations (i.e. ${SOME_FRAGMENT}) AND is exported
 //   - Rewrite `export { X }` shorthand re-exports
 // Then run in a vm sandbox.
 
@@ -54,7 +54,7 @@ function loadClientFile(filename) {
       names
         .split(',')
         .map((n) => `exports.${n.trim()} = ${n.trim()};`)
-        .join('\n'),
+        .join('\n')
     );
 
   const sandbox = { exports: {}, gql: gqlTag };
@@ -127,9 +127,7 @@ describe('Client GQL operations — valid against server schema', () => {
 
     // Standalone fragment exports are building blocks meant to be interpolated
     // into operations — they're not valid standalone documents, skip them.
-    const hasOperation = entry.doc.definitions.some(
-      (d) => d.kind === 'OperationDefinition',
-    );
+    const hasOperation = entry.doc.definitions.some((d) => d.kind === 'OperationDefinition');
     if (!hasOperation) return;
 
     const errors = validate(schema, entry.doc);
@@ -150,7 +148,10 @@ describe('Bot GQL queries — valid against server schema', () => {
       const errors = validate(schema, doc);
       if (errors.length > 0) {
         // Include the first line of the query in the error for easy identification
-        const firstLine = queryStr.split('\n').find((l) => l.trim()).trim();
+        const firstLine = queryStr
+          .split('\n')
+          .find((l) => l.trim())
+          .trim();
         throw new Error(`"${firstLine}"\n${errors.map((e) => `  • ${e.message}`).join('\n')}`);
       }
     });

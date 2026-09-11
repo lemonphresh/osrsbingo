@@ -29,7 +29,7 @@ function isSyncInProgress() {
 // ---------------------------------------------------------------------------
 
 async function syncTeamWomProgress(teamId) {
-  if (syncInProgress) throw new Error('Another sync is already in progress — try again in a moment.');
+  if (syncInProgress) throw new Error('Another sync is already in progress. Try again in a moment.');
   syncInProgress = true;
   syncLockAcquiredAt = Date.now();
   getPubsub().publish('RAINBOW_SYNC_STATUS', { rainbowSyncStatusChanged: true });
@@ -53,7 +53,7 @@ async function _syncTeamWomProgress(teamId) {
     const remaining = SYNC_COOLDOWN_MS - (Date.now() - new Date(team.lastWomSync).getTime());
     if (remaining > 0) {
       const mins = Math.ceil(remaining / 60000);
-      throw new Error(`WOM sync on cooldown — try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
+      throw new Error(`WOM sync on cooldown. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
     }
   }
 
@@ -95,7 +95,7 @@ async function _syncTeamWomProgress(teamId) {
 // ---------------------------------------------------------------------------
 
 async function startTeamWomSync(teamId) {
-  if (isSyncInProgress()) throw new Error('Another sync is already in progress — try again in a moment.');
+  if (isSyncInProgress()) throw new Error('Another sync is already in progress. Try again in a moment.');
 
   const { RainbowTeam, RainbowTeamTile, RainbowEvent } = getModels();
   const team = await RainbowTeam.findByPk(teamId);
@@ -105,7 +105,7 @@ async function startTeamWomSync(teamId) {
     const remaining = SYNC_COOLDOWN_MS - (Date.now() - new Date(team.lastWomSync).getTime());
     if (remaining > 0) {
       const mins = Math.ceil(remaining / 60000);
-      throw new Error(`WOM sync on cooldown — try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
+      throw new Error(`WOM sync on cooldown. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
     }
   }
 

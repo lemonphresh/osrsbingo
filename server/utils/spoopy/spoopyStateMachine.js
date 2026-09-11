@@ -34,7 +34,7 @@ function requireStatus(state, tileId, expected) {
 }
 
 function assertLive(state) {
-  if (state.cashedOut) throw new StateMachineError('team has already cashed out — no further transitions allowed');
+  if (state.cashedOut) throw new StateMachineError('team has already cashed out. no further transitions allowed');
 }
 
 function withTile(state, tileId, patch) {

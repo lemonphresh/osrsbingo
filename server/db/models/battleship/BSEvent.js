@@ -49,6 +49,7 @@ module.exports = (sequelize) => {
       contentSelections:      { type: DataTypes.JSONB,   allowNull: true },
       winnerId:               { type: DataTypes.STRING, allowNull: true },
       completedAt:            { type: DataTypes.DATE,   allowNull: true },
+      endedByAdmin:           { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     { sequelize, modelName: 'BSEvent', tableName: 'BattleshipEvents' }
   );

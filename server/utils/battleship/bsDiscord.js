@@ -90,7 +90,7 @@ async function postBSTestMessage({ channelId, teamName, eventName, eventId }) {
     method: 'POST',
     body: JSON.stringify({
       content: [
-        `⚓ **Battleship Discord test — ${eventName}**`,
+        `⚓ **Battleship Discord test: ${eventName}**`,
         `Notifications for **${teamName}** are working in this channel.`,
         `No roles were pinged. This test message will delete itself in 15 seconds.`,
         dashLink(eventId, 'Open the event'),
@@ -312,7 +312,7 @@ async function postBSPlacementVoteReminder({ channelId, roleId, teamName, eventI
     channelId,
     [
       ping,
-      `⏰ **${teamName}** — 1 hour left in the placement phase!`,
+      `⏰ **${teamName}**, 1 hour left in the placement phase!`,
       `Get your last votes in on your team's placement suggestions. Highest-voted layout wins; ties break at random.`,
       dashLink(eventId, 'View your dashboard'),
     ]
@@ -335,7 +335,7 @@ async function postBSSkipTokensAwarded({ channelId, roleId, teamName, count, new
     channelId,
     [
       ping,
-      `🎟️ **${teamName}** — ${displayCount} ${noun} ${verb} by admin. New balance: **${newTotal}**.`,
+      `🎟️ **${teamName}**: ${displayCount} ${noun} ${verb} by admin. New balance: **${newTotal}**.`,
       reasonLine,
       dashLink(eventId),
     ]
@@ -378,6 +378,28 @@ async function postBSGameOver({ channelId, winnerName, loserName, eventId }) {
   );
 }
 
+/**
+ * End-of-event message when an admin manually called the game — winner
+ * determined by ship-hit count, not by sinking all ships.
+ */
+async function postBSAdminGameOver({
+  channelId,
+  winnerName,
+  loserName,
+  winnerHits,
+  loserHits,
+  eventId,
+}) {
+  await post(
+    channelId,
+    `🚨 **The campaign has been called by the admin.**\n` +
+      `🏆 **${winnerName}** takes the day with **${winnerHits}** ship hit${winnerHits === 1 ? '' : 's'} ` +
+      `to **${loserName}**'s **${loserHits}**.\n` +
+      `Not every ship went down, but the fleet with the sharpest shots wins.\n` +
+      `${dashLink(eventId, 'View the full battle report')}.`
+  );
+}
+
 module.exports = {
   postBSPreScreenshotResult,
   postBSSubmissionResult,
@@ -391,5 +413,6 @@ module.exports = {
   postBSBattleStarted,
   postBSShipSunk,
   postBSGameOver,
+  postBSAdminGameOver,
   postBSTestMessage,
 };

@@ -2,9 +2,25 @@ import React, { useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
-  Box, Center, Spinner, Text, VStack, HStack, Heading, Badge, Button, Input,
-  Divider, Accordion, AccordionItem, AccordionButton, AccordionPanel, AccordionIcon,
-  IconButton, Avatar, useToast,
+  Box,
+  Center,
+  Spinner,
+  Text,
+  VStack,
+  HStack,
+  Heading,
+  Badge,
+  Button,
+  Input,
+  Divider,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  IconButton,
+  Avatar,
+  useToast,
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../providers/AuthProvider';
@@ -54,8 +70,14 @@ function Panel({ children, ...props }) {
 function FieldLabel({ children, hint }) {
   return (
     <Box mb={1}>
-      <Text fontSize="sm" color={SPOOPY_COLORS.paper} opacity={0.85}>{children}</Text>
-      {hint && <Text fontSize="xs" opacity={0.5} mt={0.5}>{hint}</Text>}
+      <Text fontSize="sm" color={SPOOPY_COLORS.paper} opacity={0.85}>
+        {children}
+      </Text>
+      {hint && (
+        <Text fontSize="xs" opacity={0.5} mt={0.5}>
+          {hint}
+        </Text>
+      )}
     </Box>
   );
 }
@@ -80,13 +102,14 @@ function PrizePoolPanel({ event, input, setInput, onSave, saving }) {
   const houseCount = (event.board?.tiles ?? []).filter((t) => t.tile_type === 'house').length;
   const teamCount = (event.teams ?? []).length;
   const poolNum = Number.parseInt(input, 10);
-  const preview = Number.isFinite(poolNum) && teamCount > 0 && houseCount > 0
-    ? {
-        perTeam: Math.floor(poolNum / teamCount),
-        perHouse: Math.floor(Math.floor(poolNum / teamCount) / houseCount),
-        hauntedHouse: 3 * Math.floor(Math.floor(poolNum / teamCount) / houseCount),
-      }
-    : null;
+  const preview =
+    Number.isFinite(poolNum) && teamCount > 0 && houseCount > 0
+      ? {
+          perTeam: Math.floor(poolNum / teamCount),
+          perHouse: Math.floor(Math.floor(poolNum / teamCount) / houseCount),
+          hauntedHouse: 3 * Math.floor(Math.floor(poolNum / teamCount) / houseCount),
+        }
+      : null;
 
   return (
     <VStack align="stretch" spacing={2}>
@@ -94,12 +117,10 @@ function PrizePoolPanel({ event, input, setInput, onSave, saving }) {
         prize pool
       </Text>
       <Text fontSize="xs" opacity={0.55}>
-        total gp budgeted for trick-or-treat rewards. split evenly across teams at activation,
-        then across each team's houses. haunted house pays 3× a single house on top.
-        {' '}editable while status = SETUP.
-        {isLocked && (
-          <> locked ({event.status.toLowerCase()}).</>
-        )}
+        total gp budgeted for trick-or-treat rewards. split evenly across teams at activation, then
+        across each team's houses. haunted house pays 3× a single house on top. editable while
+        status = SETUP.
+        {isLocked && <> locked ({event.status.toLowerCase()}).</>}
       </Text>
       <HStack spacing={2}>
         <Input
@@ -141,16 +162,21 @@ function PrizePoolPanel({ event, input, setInput, onSave, saving }) {
           fontSize="xs"
         >
           <Text opacity={0.7} mb={1}>
-            with {teamCount} team{teamCount === 1 ? '' : 's'} and {houseCount} house tile{houseCount === 1 ? '' : 's'}:
+            with {teamCount} team{teamCount === 1 ? '' : 's'} and {houseCount} house tile
+            {houseCount === 1 ? '' : 's'}:
           </Text>
           <VStack align="stretch" spacing={0.5}>
             <HStack justify="space-between">
               <Text opacity={0.7}>per team share</Text>
-              <Text fontFamily="mono">{formatCandy(preview.perTeam)} · {formatGp(preview.perTeam)}</Text>
+              <Text fontFamily="mono">
+                {formatCandy(preview.perTeam)} · {formatGp(preview.perTeam)}
+              </Text>
             </HStack>
             <HStack justify="space-between">
               <Text opacity={0.7}>per trick-or-treat house</Text>
-              <Text fontFamily="mono">{formatCandy(preview.perHouse)} · {formatGp(preview.perHouse)}</Text>
+              <Text fontFamily="mono">
+                {formatCandy(preview.perHouse)} · {formatGp(preview.perHouse)}
+              </Text>
             </HStack>
             <HStack justify="space-between">
               <Text opacity={0.7}>haunted house (3×)</Text>
@@ -180,7 +206,9 @@ function toLocalDatetimeInput(utcString) {
   if (!utcString) return '';
   const d = new Date(utcString);
   const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
 }
 function fromLocalDatetimeInput(local) {
   return local ? new Date(local).toISOString() : null;
@@ -190,16 +218,32 @@ function fromLocalDatetimeInput(local) {
 
 function CreateEventForm({ refetch }) {
   const toast = useToast();
-  const [form, setForm] = useState({ eventName: '', curfewStart: '', curfewEnd: '', eventPassword: '', staffChannelId: '' });
+  const [form, setForm] = useState({
+    eventName: '',
+    curfewStart: '',
+    curfewEnd: '',
+    eventPassword: '',
+    staffChannelId: '',
+  });
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const [createEvent, { loading }] = useMutation(CREATE_SPOOPY_EVENT, {
-    onCompleted: () => { toast({ title: 'event created', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'event created', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'create failed', description: e.message, status: 'error' }),
   });
 
   const [seedMock, { loading: seeding }] = useMutation(SEED_SPOOPY_MOCK_EVENT, {
-    onCompleted: (res) => { toast({ title: 'mock event created', description: res.seedSpoopyMockEvent.eventId, status: 'success' }); refetch(); },
+    onCompleted: (res) => {
+      toast({
+        title: 'mock event created',
+        description: res.seedSpoopyMockEvent.eventId,
+        status: 'success',
+      });
+      refetch();
+    },
     onError: (e) => toast({ title: 'seed failed', description: e.message, status: 'error' }),
   });
 
@@ -226,25 +270,54 @@ function CreateEventForm({ refetch }) {
       <VStack align="stretch" spacing={3}>
         <Box>
           <FieldLabel hint="also becomes the event's display name">event name</FieldLabel>
-          <Input {...themedInput()} value={form.eventName} onChange={set('eventName')} placeholder="spooptober" />
+          <Input
+            {...themedInput()}
+            value={form.eventName}
+            onChange={set('eventName')}
+            placeholder="spooptober"
+          />
         </Box>
         <HStack spacing={3} align="stretch">
           <Box flex={1}>
             <FieldLabel>curfew start</FieldLabel>
-            <Input type="datetime-local" {...themedInput()} value={form.curfewStart} onChange={set('curfewStart')} />
+            <Input
+              type="datetime-local"
+              {...themedInput()}
+              value={form.curfewStart}
+              onChange={set('curfewStart')}
+            />
           </Box>
           <Box flex={1}>
             <FieldLabel>curfew end</FieldLabel>
-            <Input type="datetime-local" {...themedInput()} value={form.curfewEnd} onChange={set('curfewEnd')} />
+            <Input
+              type="datetime-local"
+              {...themedInput()}
+              value={form.curfewEnd}
+              onChange={set('curfewEnd')}
+            />
           </Box>
         </HStack>
         <Box>
-          <FieldLabel hint="teams include this visibly in submitted screenshots as proof">event password</FieldLabel>
-          <Input {...themedInput({ fontFamily: 'mono' })} value={form.eventPassword} onChange={set('eventPassword')} placeholder="spooptober2026" />
+          <FieldLabel hint="teams include this visibly in submitted screenshots as proof">
+            event password
+          </FieldLabel>
+          <Input
+            {...themedInput({ fontFamily: 'mono' })}
+            value={form.eventPassword}
+            onChange={set('eventPassword')}
+            placeholder="spooptober2026"
+          />
         </Box>
         <Box>
-          <FieldLabel hint="optional — staff-only notification channel">staff discord channel id</FieldLabel>
-          <Input {...themedInput({ fontFamily: 'mono' })} value={form.staffChannelId} onChange={set('staffChannelId')} placeholder="123456789012345678" />
+          <FieldLabel hint="optional — staff-only notification channel">
+            staff discord channel id
+          </FieldLabel>
+          <Input
+            {...themedInput({ fontFamily: 'mono' })}
+            value={form.staffChannelId}
+            onChange={set('staffChannelId')}
+            placeholder="123456789012345678"
+          />
         </Box>
         <HStack pt={2} spacing={3}>
           <Button
@@ -286,47 +359,75 @@ function EventSettingsPanel({ event, refetch }) {
   const [womInput, setWomInput] = useState(event.womCompetitionId ?? '');
 
   const [setPassword, { loading: savingPassword }] = useMutation(SET_SPOOPY_EVENT_PASSWORD, {
-    onCompleted: () => { toast({ title: 'password saved', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'password saved', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
   const [setPrizePool, { loading: savingPrizePool }] = useMutation(SET_SPOOPY_EVENT_PRIZE_POOL, {
-    onCompleted: () => { toast({ title: 'prize pool saved', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'prize pool saved', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
   const [setWomCompId, { loading: savingWom }] = useMutation(SET_SPOOPY_EVENT_WOM_COMPETITION_ID, {
-    onCompleted: () => { toast({ title: 'wom competition saved', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'wom competition saved', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
   const [syncWom, { loading: syncingWom }] = useMutation(SYNC_SPOOPY_EVENT_WOM, {
-    onCompleted: () => { toast({ title: 'wom sync fired', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'wom sync fired', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'wom sync failed', description: e.message, status: 'error' }),
   });
 
   const [refreshEvent, { loading: refreshing }] = useMutation(REFRESH_SPOOPY_EVENT_FROM_MOCK, {
-    onCompleted: () => { toast({ title: 'event content refreshed from mock', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'event content refreshed from mock', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'refresh failed', description: e.message, status: 'error' }),
   });
 
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_SPOOPY_EVENT_STATUS, {
-    onCompleted: () => { toast({ title: 'status updated', status: 'success' }); refetch(); },
-    onError: (e) => toast({ title: 'status update failed', description: e.message, status: 'error' }),
+    onCompleted: () => {
+      toast({ title: 'status updated', status: 'success' });
+      refetch();
+    },
+    onError: (e) =>
+      toast({ title: 'status update failed', description: e.message, status: 'error' }),
   });
 
   const [updateBoard] = useMutation(UPDATE_SPOOPY_EVENT_BOARD, {
-    onCompleted: () => { toast({ title: 'schedule saved', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'schedule saved', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
   const [updateSchedule, { loading: savingSchedule }] = useMutation(UPDATE_SPOOPY_EVENT_SCHEDULE, {
-    onCompleted: () => { toast({ title: 'schedule saved', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'schedule saved', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
 
   const [deleteEvent, { loading: deleting }] = useMutation(DELETE_SPOOPY_EVENT, {
-    onCompleted: () => { toast({ title: 'event deleted', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'event deleted', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'delete failed', description: e.message, status: 'error' }),
   });
 
@@ -347,7 +448,9 @@ function EventSettingsPanel({ event, refetch }) {
     <VStack align="stretch" spacing={4}>
       <HStack justify="space-between" wrap="wrap" gap={3}>
         <VStack align="start" spacing={0}>
-          <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">status</Text>
+          <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
+            status
+          </Text>
           <HStack spacing={2}>
             {['SETUP', 'ACTIVE', 'COMPLETE'].map((s) => (
               <Button
@@ -371,15 +474,27 @@ function EventSettingsPanel({ event, refetch }) {
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
 
       <VStack align="stretch" spacing={2}>
-        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">curfew</Text>
+        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
+          curfew
+        </Text>
         <HStack spacing={3}>
           <Box flex={1}>
             <FieldLabel>start</FieldLabel>
-            <Input type="datetime-local" {...themedInput({ size: 'sm' })} value={startInput} onChange={(e) => setStartInput(e.target.value)} />
+            <Input
+              type="datetime-local"
+              {...themedInput({ size: 'sm' })}
+              value={startInput}
+              onChange={(e) => setStartInput(e.target.value)}
+            />
           </Box>
           <Box flex={1}>
             <FieldLabel>end</FieldLabel>
-            <Input type="datetime-local" {...themedInput({ size: 'sm' })} value={endInput} onChange={(e) => setEndInput(e.target.value)} />
+            <Input
+              type="datetime-local"
+              {...themedInput({ size: 'sm' })}
+              value={endInput}
+              onChange={(e) => setEndInput(e.target.value)}
+            />
           </Box>
         </HStack>
         <Button
@@ -399,7 +514,9 @@ function EventSettingsPanel({ event, refetch }) {
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
 
       <VStack align="stretch" spacing={2}>
-        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">event password</Text>
+        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
+          event password
+        </Text>
         <Text fontSize="xs" opacity={0.5}>
           teams include this visibly in submitted screenshots as proof. shown to teams under the
           event title on /spoopy-event and again on the refs queue.
@@ -454,17 +571,17 @@ function EventSettingsPanel({ event, refetch }) {
           wom competition
         </Text>
         <Text fontSize="xs" opacity={0.55}>
-          paste a wise old man team-competition id. team names on wom must match the team names
-          here exactly (spelling + case). when set, skilling / kc tile progress bars auto-fill
-          from gains between each tile's pre-screenshot approval and now. syncs on the pre
-          approval, on a manual "sync now" click, and every 15 minutes while the event is ACTIVE.
+          paste a wise old man team-competition id. team names on wom must match the team names here
+          exactly (spelling + case). when set, skilling / kc tile progress bars auto-fill from gains
+          between each tile's pre-screenshot approval and now. syncs on the pre approval, on a
+          manual "sync now" click, and every 15 minutes while the event is ACTIVE.
         </Text>
         <HStack spacing={2}>
           <Input
             {...themedInput({ size: 'sm', fontFamily: 'mono' })}
             value={womInput}
             onChange={(e) => setWomInput(e.target.value)}
-            placeholder="e.g. 12345"
+            placeholder="i.e. 12345"
             maxW="240px"
           />
           <Button
@@ -500,7 +617,8 @@ function EventSettingsPanel({ event, refetch }) {
         </HStack>
         {event.lastWomSyncAt && (
           <Text fontSize="xs" opacity={0.55}>
-            last sync: {new Date(event.lastWomSyncAt).toLocaleString(undefined, {
+            last sync:{' '}
+            {new Date(event.lastWomSyncAt).toLocaleString(undefined, {
               dateStyle: 'short',
               timeStyle: 'short',
             })}
@@ -515,9 +633,10 @@ function EventSettingsPanel({ event, refetch }) {
           content refresh
         </Text>
         <Text fontSize="xs" opacity={0.55}>
-          re-runs the mock generator and overwrites the event's board, tile content, and haunted-house
-          config in place. team state (unlocked tiles, gp, submissions) is preserved — this only
-          rewrites the static content the mock produces (dialog copy, discord commands, tile types).
+          re-runs the mock generator and overwrites the event's board, tile content, and
+          haunted-house config in place. team state (unlocked tiles, gp, submissions) is preserved —
+          this only rewrites the static content the mock produces (dialog copy, discord commands,
+          tile types).
         </Text>
         <Button
           size="sm"
@@ -536,7 +655,13 @@ function EventSettingsPanel({ event, refetch }) {
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
 
       <VStack align="stretch" spacing={2}>
-        <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider" color={SPOOPY_COLORS.ember}>
+        <Text
+          fontSize="xs"
+          opacity={0.6}
+          textTransform="uppercase"
+          letterSpacing="wider"
+          color={SPOOPY_COLORS.ember}
+        >
           danger zone
         </Text>
         {!confirmDelete ? (
@@ -553,7 +678,9 @@ function EventSettingsPanel({ event, refetch }) {
         ) : (
           <HStack spacing={2}>
             <Text fontSize="sm">nuke this event + all teams/submissions?</Text>
-            <Button size="sm" onClick={() => setConfirmDelete(false)}>cancel</Button>
+            <Button size="sm" onClick={() => setConfirmDelete(false)}>
+              cancel
+            </Button>
             <Button
               size="sm"
               bg={SPOOPY_COLORS.emberDeep}
@@ -602,26 +729,38 @@ function AddTeamForm({ eventId, refetch }) {
   };
 
   return (
-    <Box
-      border="1px dashed"
-      borderColor={SPOOPY_COLORS.nightMist}
-      borderRadius="md"
-      p={4}
-    >
-      <Text fontSize="sm" fontWeight="semibold" mb={3}>add team</Text>
+    <Box border="1px dashed" borderColor={SPOOPY_COLORS.nightMist} borderRadius="md" p={4}>
+      <Text fontSize="sm" fontWeight="semibold" mb={3}>
+        add team
+      </Text>
       <VStack align="stretch" spacing={2}>
         <HStack spacing={2} align="start">
           <Box flex={1}>
             <FieldLabel>team name</FieldLabel>
-            <Input {...themedInput({ size: 'sm' })} value={form.teamName} onChange={set('teamName')} placeholder="team spoopy" />
+            <Input
+              {...themedInput({ size: 'sm' })}
+              value={form.teamName}
+              onChange={set('teamName')}
+              placeholder="team spoopy"
+            />
           </Box>
           <Box flex={1}>
             <FieldLabel>discord channel id</FieldLabel>
-            <Input {...themedInput({ size: 'sm', fontFamily: 'mono' })} value={form.discordChannelId} onChange={set('discordChannelId')} placeholder="123456789012345678" />
+            <Input
+              {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+              value={form.discordChannelId}
+              onChange={set('discordChannelId')}
+              placeholder="123456789012345678"
+            />
           </Box>
           <Box flex={1}>
             <FieldLabel hint="optional">discord role id</FieldLabel>
-            <Input {...themedInput({ size: 'sm', fontFamily: 'mono' })} value={form.discordRoleId} onChange={set('discordRoleId')} placeholder="123456789012345678" />
+            <Input
+              {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+              value={form.discordRoleId}
+              onChange={set('discordRoleId')}
+              placeholder="123456789012345678"
+            />
           </Box>
         </HStack>
         <Button
@@ -648,24 +787,35 @@ function TeamCard({ team, allTeams, refetch }) {
   const [roleInput, setRoleInput] = useState(team.discordRoleId ?? '');
 
   const [updateMembers, { loading: updatingMembers }] = useMutation(UPDATE_SPOOPY_TEAM_MEMBERS, {
-    onCompleted: () => { toast({ title: 'members updated', status: 'success' }); setPendingMemberId(''); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'members updated', status: 'success' });
+      setPendingMemberId('');
+      refetch();
+    },
     onError: (e) => toast({ title: 'update failed', description: e.message, status: 'error' }),
   });
 
   const [updateDiscord, { loading: updatingDiscord }] = useMutation(UPDATE_SPOOPY_TEAM_DISCORD, {
-    onCompleted: () => { toast({ title: 'discord bindings updated', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'discord bindings updated', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'update failed', description: e.message, status: 'error' }),
   });
 
   const [deleteTeam, { loading: deleting }] = useMutation(DELETE_SPOOPY_TEAM, {
-    onCompleted: () => { toast({ title: 'team deleted', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'team deleted', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'delete failed', description: e.message, status: 'error' }),
   });
 
   const members = team.members ?? [];
   const otherTeamMemberMap = new Map(
-    allTeams.filter((t) => t.teamId !== team.teamId)
-      .flatMap((t) => (t.members ?? []).map((id) => [id, t.teamName])),
+    allTeams
+      .filter((t) => t.teamId !== team.teamId)
+      .flatMap((t) => (t.members ?? []).map((id) => [id, t.teamName]))
   );
 
   const handleAdd = (discordId) => {
@@ -680,14 +830,28 @@ function TeamCard({ team, allTeams, refetch }) {
   };
 
   return (
-    <Box bg={SPOOPY_COLORS.nightDeep} border="1px solid" borderColor={SPOOPY_COLORS.nightMist} borderRadius="md" p={4}>
+    <Box
+      bg={SPOOPY_COLORS.nightDeep}
+      border="1px solid"
+      borderColor={SPOOPY_COLORS.nightMist}
+      borderRadius="md"
+      p={4}
+    >
       <HStack justify="space-between" align="start" mb={3}>
         <VStack align="start" spacing={0}>
-          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg">{team.teamName}</Text>
+          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg">
+            {team.teamName}
+          </Text>
           <HStack spacing={2} fontSize="xs" opacity={0.65}>
             <Text>#{team.discordChannelId}</Text>
-            {team.color && <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper}>{team.color}</Badge>}
-            <Text>· {members.length} member{members.length === 1 ? '' : 's'}</Text>
+            {team.color && (
+              <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper}>
+                {team.color}
+              </Badge>
+            )}
+            <Text>
+              · {members.length} member{members.length === 1 ? '' : 's'}
+            </Text>
           </HStack>
         </VStack>
         <IconButton
@@ -715,7 +879,10 @@ function TeamCard({ team, allTeams, refetch }) {
           <FieldLabel hint="search by discord id, name, or rsn">add member</FieldLabel>
           <DiscordMemberInput
             value={pendingMemberId}
-            onChange={(id) => { setPendingMemberId(id); if (id) handleAdd(id); }}
+            onChange={(id) => {
+              setPendingMemberId(id);
+              if (id) handleAdd(id);
+            }}
             onRemove={() => setPendingMemberId('')}
             showRemove={false}
             colorMode="dark"
@@ -814,11 +981,18 @@ function AdminManager({ event, refetch }) {
   });
 
   const [addAdmin] = useMutation(ADD_SPOOPY_ADMIN, {
-    onCompleted: () => { toast({ title: 'admin added', status: 'success' }); setSearch(''); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'admin added', status: 'success' });
+      setSearch('');
+      refetch();
+    },
     onError: (e) => toast({ title: 'add failed', description: e.message, status: 'error' }),
   });
   const [removeAdmin] = useMutation(REMOVE_SPOOPY_ADMIN, {
-    onCompleted: () => { toast({ title: 'admin removed', status: 'success' }); refetch(); },
+    onCompleted: () => {
+      toast({ title: 'admin removed', status: 'success' });
+      refetch();
+    },
     onError: (e) => toast({ title: 'remove failed', description: e.message, status: 'error' }),
   });
 
@@ -837,7 +1011,13 @@ function AdminManager({ event, refetch }) {
         onChange={(e) => setSearch(e.target.value)}
       />
       {results.map((u) => (
-        <HStack key={u.id} justify="space-between" p={2} bg={SPOOPY_COLORS.nightDeep} borderRadius="md">
+        <HStack
+          key={u.id}
+          justify="space-between"
+          p={2}
+          bg={SPOOPY_COLORS.nightDeep}
+          borderRadius="md"
+        >
           <Text fontSize="sm">{u.displayName ?? u.username}</Text>
           <IconButton
             icon={<AddIcon />}
@@ -852,10 +1032,18 @@ function AdminManager({ event, refetch }) {
       ))}
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
       {(event.admins ?? []).length === 0 ? (
-        <Text fontSize="xs" opacity={0.5}>no admins yet.</Text>
+        <Text fontSize="xs" opacity={0.5}>
+          no admins yet.
+        </Text>
       ) : (
         (event.admins ?? []).map((admin) => (
-          <HStack key={admin.id} justify="space-between" p={2} bg={SPOOPY_COLORS.nightDeep} borderRadius="md">
+          <HStack
+            key={admin.id}
+            justify="space-between"
+            p={2}
+            bg={SPOOPY_COLORS.nightDeep}
+            borderRadius="md"
+          >
             <HStack spacing={2}>
               <Avatar size="xs" name={admin.displayName ?? admin.username} />
               <Text fontSize="sm">{admin.displayName ?? admin.username}</Text>
@@ -866,7 +1054,9 @@ function AdminManager({ event, refetch }) {
               aria-label="remove"
               variant="ghost"
               color={SPOOPY_COLORS.paper}
-              onClick={() => removeAdmin({ variables: { eventId: event.eventId, userId: admin.id } })}
+              onClick={() =>
+                removeAdmin({ variables: { eventId: event.eventId, userId: admin.id } })
+              }
             />
           </HStack>
         ))
@@ -885,7 +1075,13 @@ export default function SpoopyAdminPage() {
   });
 
   if (isCheckingAuth || loading) {
-    return <Shell><Center py={20}><Spinner size="xl" color={SPOOPY_COLORS.pumpkin} /></Center></Shell>;
+    return (
+      <Shell>
+        <Center py={20}>
+          <Spinner size="xl" color={SPOOPY_COLORS.pumpkin} />
+        </Center>
+      </Shell>
+    );
   }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -919,13 +1115,36 @@ export default function SpoopyAdminPage() {
             {event ? `managing: ${event.eventName}` : 'no event yet'}
           </Text>
           <HStack spacing={2}>
-            <Button as={RouterLink} to="/spoopy-event" size="sm" variant="ghost" color={SPOOPY_COLORS.paper} _hover={{ bg: SPOOPY_COLORS.nightMist }}>
+            <Button
+              as={RouterLink}
+              to="/spoopy-event"
+              size="sm"
+              variant="ghost"
+              color={SPOOPY_COLORS.paper}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            >
               main page
             </Button>
-            <Button as={RouterLink} to="/spoopy-event/refs" size="sm" variant="outline" borderColor={SPOOPY_COLORS.nightMist} color={SPOOPY_COLORS.paper} _hover={{ bg: SPOOPY_COLORS.nightMist }}>
+            <Button
+              as={RouterLink}
+              to="/spoopy-event/refs"
+              size="sm"
+              variant="outline"
+              borderColor={SPOOPY_COLORS.nightMist}
+              color={SPOOPY_COLORS.paper}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            >
               refs view
             </Button>
-            <Button as={RouterLink} to="/spoopy-event/playground" size="sm" variant="outline" borderColor={SPOOPY_COLORS.nightMist} color={SPOOPY_COLORS.paper} _hover={{ bg: SPOOPY_COLORS.nightMist }}>
+            <Button
+              as={RouterLink}
+              to="/spoopy-event/playground"
+              size="sm"
+              variant="outline"
+              borderColor={SPOOPY_COLORS.nightMist}
+              color={SPOOPY_COLORS.paper}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            >
               playground
             </Button>
           </HStack>
@@ -935,10 +1154,17 @@ export default function SpoopyAdminPage() {
 
         {event && (
           <Accordion allowMultiple defaultIndex={[0]}>
-            <AccordionItem border="1px solid" borderColor={SPOOPY_COLORS.nightMist} borderRadius="md" mb={3}>
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              mb={3}
+            >
               <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
                 <Box flex={1} textAlign="left">
-                  <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>event settings</Text>
+                  <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                    event settings
+                  </Text>
                 </Box>
                 <AccordionIcon color={SPOOPY_COLORS.paper} />
               </AccordionButton>
@@ -958,9 +1184,17 @@ export default function SpoopyAdminPage() {
               <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
                 <Box flex={1} textAlign="left">
                   <HStack spacing={2}>
-                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>teams</Text>
+                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                      teams
+                    </Text>
                     {teamCount > 0 && (
-                      <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} borderRadius="full">{teamCount}</Badge>
+                      <Badge
+                        bg={SPOOPY_COLORS.purple}
+                        color={SPOOPY_COLORS.paper}
+                        borderRadius="full"
+                      >
+                        {teamCount}
+                      </Badge>
                     )}
                   </HStack>
                 </Box>
@@ -978,13 +1212,26 @@ export default function SpoopyAdminPage() {
               </AccordionPanel>
             </AccordionItem>
 
-            <AccordionItem border="1px solid" borderColor={SPOOPY_COLORS.nightMist} borderRadius="md" mb={3}>
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              mb={3}
+            >
               <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
                 <Box flex={1} textAlign="left">
                   <HStack spacing={2}>
-                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>admins & refs</Text>
+                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                      admins & refs
+                    </Text>
                     {adminCount > 0 && (
-                      <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} borderRadius="full">{adminCount}</Badge>
+                      <Badge
+                        bg={SPOOPY_COLORS.purple}
+                        color={SPOOPY_COLORS.paper}
+                        borderRadius="full"
+                      >
+                        {adminCount}
+                      </Badge>
                     )}
                   </HStack>
                 </Box>
@@ -1012,7 +1259,9 @@ function Shell({ event, children }) {
           {event && (
             <HStack spacing={2} fontSize="sm" opacity={0.75}>
               <Text>{event.eventName}</Text>
-              <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper}>{event.status}</Badge>
+              <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper}>
+                {event.status}
+              </Badge>
             </HStack>
           )}
         </HStack>

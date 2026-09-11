@@ -8,44 +8,45 @@ const {
   formatXp,
   buildOceanPool,
 } = require('../../../../utils/battleship/bsDefaultTasks');
+const { computeAdminGameOverWinner } = require('../../../../utils/battleship/bsGameOverWinner');
+const { postBSAdminGameOver } = require('../../../../utils/battleship/bsDiscord');
+const { pubsub } = require('../../../pubsub');
 const { UserInputError } = require('apollo-server-express');
 
 const roundTarget = (val, unit) => {
   if (val == null) return val;
-  if (unit === 'xp')      return Math.ceil(val / 10000) * 10000;
-  if (unit === 'kc')      return Math.ceil(val / 10) * 10;
+  if (unit === 'xp') return Math.ceil(val / 10000) * 10000;
+  if (unit === 'kc') return Math.ceil(val / 10) * 10;
   if (unit === 'uniques') return Math.ceil(val);
   return val;
 };
 
 function shuffledGridPositions() {
   const positions = [];
-  for (let r = 0; r < 10; r++)
-    for (let c = 0; c < 10; c++)
-      positions.push({ row: r, col: c });
+  for (let r = 0; r < 10; r++) for (let c = 0; c < 10; c++) positions.push({ row: r, col: c });
   return shuffle(positions);
 }
 
 /** Creates template board tiles: ship tiles (row/col null) + ocean tiles (row/col assigned). */
 async function createTemplateTiles(boardId, templateRecords, oceanPool, BSTile) {
   const shipTiles = templateRecords.map((t) => ({
-    tileId:    generateId('bstl'),
+    tileId: generateId('bstl'),
     boardId,
-    row:       null,
-    col:       null,
-    shipType:  t.shipType,
+    row: null,
+    col: null,
+    shipType: t.shipType,
     cellIndex: t.cellIndex,
-    taskId:    t.taskId,
+    taskId: t.taskId,
   }));
 
   const positions = shuffledGridPositions();
   // 100 cells - 17 ship cells = 83 ocean cells per board
   const oceanTiles = oceanPool.slice(0, 100).map((taskId, i) => ({
-    tileId:    generateId('bstl'),
+    tileId: generateId('bstl'),
     boardId,
-    row:       positions[i].row,
-    col:       positions[i].col,
-    shipType:  null,
+    row: positions[i].row,
+    col: positions[i].col,
+    shipType: null,
     cellIndex: null,
     taskId,
   }));
@@ -84,22 +85,23 @@ module.exports = {
       const scaledTarget = rawTarget != null ? roundTarget(rawTarget * multiplier, unit) : null;
       let scaledLabel = e.metricLabel ?? null;
       if (scaledTarget != null) {
-        if (unit === 'kc')           scaledLabel = `${scaledTarget} kc`;
-        else if (unit === 'xp')      scaledLabel = formatXp(scaledTarget);
-        else if (unit === 'uniques') scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
+        if (unit === 'kc') scaledLabel = `${scaledTarget} kc`;
+        else if (unit === 'xp') scaledLabel = formatXp(scaledTarget);
+        else if (unit === 'uniques')
+          scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
       }
       return {
-        taskId:      generateId('bstk'),
+        taskId: generateId('bstk'),
         eventId,
-        contentId:   e.contentId,
-        label:       e.label,
+        contentId: e.contentId,
+        label: e.label,
         bossOrSkill: e.bossOrSkill ?? null,
-        metricType:  e.metricType ?? null,
+        metricType: e.metricType ?? null,
         metricTarget: scaledTarget,
-        metricUnit:  e.metricUnit ?? null,
+        metricUnit: e.metricUnit ?? null,
         metricLabel: scaledLabel,
-        validDrops:  e.validDrops ?? [],
-        womMetric:   e.womMetric ?? null,
+        validDrops: e.validDrops ?? [],
+        womMetric: e.womMetric ?? null,
       };
     });
     await BSTask.bulkCreate(taskRecords);
@@ -115,7 +117,13 @@ module.exports = {
       contentIds.forEach((contentId, cellIndex) => {
         const taskId = contentIdToTaskId.get(contentId);
         if (taskId) {
-          templateRecords.push({ templateId: generateId('bsst'), eventId, shipType, cellIndex, taskId });
+          templateRecords.push({
+            templateId: generateId('bsst'),
+            eventId,
+            shipType,
+            cellIndex,
+            taskId,
+          });
         }
       });
     }
@@ -129,9 +137,9 @@ module.exports = {
     });
 
     const shipBaseContentIds = new Set(
-      Object.values(SHIP_TEMPLATE_CONTENT_IDS).flat().map((cid) =>
-        cid.endsWith('_kc') ? cid.slice(0, -3) : cid
-      )
+      Object.values(SHIP_TEMPLATE_CONTENT_IDS)
+        .flat()
+        .map((cid) => (cid.endsWith('_kc') ? cid.slice(0, -3) : cid))
     );
     const oceanPool = buildOceanPool(taskRecords, contentSelections, shipBaseContentIds, shuffle);
     await createTemplateTiles(templateBoard.boardId, templateRecords, oceanPool, BSTile);
@@ -146,7 +154,9 @@ module.exports = {
     requireAdmin(event, user.id);
 
     if (event.status !== 'DRAFT') {
-      throw new UserInputError('Content selections can only be changed while the event is in DRAFT.');
+      throw new UserInputError(
+        'Content selections can only be changed while the event is in DRAFT.'
+      );
     }
 
     let templateBoard = await BSBoard.findOne({ where: { eventId, teamId: null } });
@@ -154,9 +164,9 @@ module.exports = {
     const allTasks = await BSTask.findAll({ where: { eventId } });
     const templates = await BSShipTemplate.findAll({ where: { eventId } });
     const shipBaseContentIds = new Set(
-      Object.values(SHIP_TEMPLATE_CONTENT_IDS).flat().map((cid) =>
-        cid.endsWith('_kc') ? cid.slice(0, -3) : cid
-      )
+      Object.values(SHIP_TEMPLATE_CONTENT_IDS)
+        .flat()
+        .map((cid) => (cid.endsWith('_kc') ? cid.slice(0, -3) : cid))
     );
     for (const template of templates) {
       if (template.taskId) shipBaseContentIds.add(template.taskId);
@@ -171,9 +181,9 @@ module.exports = {
         teamId: null,
       });
       const templateRecords = templates.map((t) => ({
-        shipType:  t.shipType,
+        shipType: t.shipType,
         cellIndex: t.cellIndex,
-        taskId:    t.taskId,
+        taskId: t.taskId,
       }));
       await createTemplateTiles(templateBoard.boardId, templateRecords, oceanPool, BSTile);
     } else {
@@ -182,11 +192,11 @@ module.exports = {
 
       const positions = shuffledGridPositions();
       const oceanTiles = oceanPool.slice(0, 100).map((taskId, i) => ({
-        tileId:    generateId('bstl'),
-        boardId:   templateBoard.boardId,
-        row:       positions[i].row,
-        col:       positions[i].col,
-        shipType:  null,
+        tileId: generateId('bstl'),
+        boardId: templateBoard.boardId,
+        row: positions[i].row,
+        col: positions[i].col,
+        shipType: null,
         cellIndex: null,
         taskId,
       }));
@@ -199,7 +209,7 @@ module.exports = {
 
   // Adds any registry content that's missing from the event's task pool /
   // ship templates, without touching existing rows. Intended for events
-  // created before newer registry entries (e.g. Tombs of Amascut) were added.
+  // created before newer registry entries (i.e. Tombs of Amascut) were added.
   syncBSEventWithRegistry: async (_, { eventId }, context) => {
     const user = requireAuth(context);
     const { BSTask, BSShipTemplate } = getModels();
@@ -224,37 +234,36 @@ module.exports = {
       const scaledTarget = rawTarget != null ? roundTarget(rawTarget * multiplier, unit) : null;
       let scaledLabel = e.metricLabel ?? null;
       if (scaledTarget != null) {
-        if (unit === 'kc')           scaledLabel = `${scaledTarget} kc`;
-        else if (unit === 'xp')      scaledLabel = formatXp(scaledTarget);
-        else if (unit === 'uniques') scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
+        if (unit === 'kc') scaledLabel = `${scaledTarget} kc`;
+        else if (unit === 'xp') scaledLabel = formatXp(scaledTarget);
+        else if (unit === 'uniques')
+          scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
       }
       return {
-        taskId:      generateId('bstk'),
+        taskId: generateId('bstk'),
         eventId,
-        contentId:   e.contentId,
-        label:       e.label,
+        contentId: e.contentId,
+        label: e.label,
         bossOrSkill: e.bossOrSkill ?? null,
-        metricType:  e.metricType ?? null,
+        metricType: e.metricType ?? null,
         metricTarget: scaledTarget,
-        metricUnit:  e.metricUnit ?? null,
+        metricUnit: e.metricUnit ?? null,
         metricLabel: scaledLabel,
-        validDrops:  e.validDrops ?? [],
-        womMetric:   e.womMetric ?? null,
+        validDrops: e.validDrops ?? [],
+        womMetric: e.womMetric ?? null,
       };
     });
     if (newTaskRecords.length > 0) await BSTask.bulkCreate(newTaskRecords);
 
     // Fill any ship-template cells that are hard-coded to a content id but
-    // don't have a template row yet (e.g. CARRIER cell 2 for ToA).
+    // don't have a template row yet (i.e. CARRIER cell 2 for ToA).
     const allTasks = await BSTask.findAll({ where: { eventId } });
     const contentIdToTaskId = new Map(
       allTasks.filter((t) => t.contentId).map((t) => [t.contentId, t.taskId])
     );
 
     const existingTemplates = await BSShipTemplate.findAll({ where: { eventId } });
-    const templateKeys = new Set(
-      existingTemplates.map((t) => `${t.shipType}:${t.cellIndex}`)
-    );
+    const templateKeys = new Set(existingTemplates.map((t) => `${t.shipType}:${t.cellIndex}`));
 
     const newTemplateRecords = [];
     for (const [shipType, contentIds] of Object.entries(SHIP_TEMPLATE_CONTENT_IDS)) {
@@ -304,9 +313,10 @@ module.exports = {
         const scaledTarget = roundTarget(base.metricTarget * multiplier, unit);
         let scaledLabel = base.metricLabel ?? null;
         if (scaledTarget != null) {
-          if (unit === 'kc')           scaledLabel = `${scaledTarget} kc`;
-          else if (unit === 'xp')      scaledLabel = formatXp(scaledTarget);
-          else if (unit === 'uniques') scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
+          if (unit === 'kc') scaledLabel = `${scaledTarget} kc`;
+          else if (unit === 'xp') scaledLabel = formatXp(scaledTarget);
+          else if (unit === 'uniques')
+            scaledLabel = `${scaledTarget} unique${scaledTarget !== 1 ? 's' : ''}`;
         }
         return task.update({ metricTarget: scaledTarget, metricLabel: scaledLabel });
       })
@@ -325,7 +335,7 @@ module.exports = {
 
     if (input.scheduledPlacementStart !== undefined && input.scheduledPlacementStart !== null) {
       if (event.status !== 'DRAFT') {
-        throw new UserInputError('Cannot schedule launch — event is not in DRAFT.');
+        throw new UserInputError('Cannot schedule launch. Event is not in DRAFT.');
       }
       const scheduled = new Date(input.scheduledPlacementStart);
       if (Number.isNaN(scheduled.getTime())) {
@@ -341,7 +351,7 @@ module.exports = {
       const missingChannel = teams.find((t) => !t.discordChannelId);
       if (missingChannel) {
         throw new UserInputError(
-          `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it before scheduling a launch.`,
+          `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it before scheduling a launch.`
         );
       }
     }
@@ -358,7 +368,9 @@ module.exports = {
       ...(input.cooldownMinutes != null && { cooldownMinutes: input.cooldownMinutes }),
       ...(input.voteThreshold !== undefined && { voteThreshold: input.voteThreshold ?? null }),
       ...(input.guildId != null && { guildId: input.guildId }),
-      ...(input.announcementsChannelId != null && { announcementsChannelId: input.announcementsChannelId }),
+      ...(input.announcementsChannelId != null && {
+        announcementsChannelId: input.announcementsChannelId,
+      }),
       ...(input.womCompetitionId != null && { womCompetitionId: input.womCompetitionId || null }),
       ...(input.scheduledPlacementStart !== undefined && {
         scheduledPlacementStart: input.scheduledPlacementStart ?? null,
@@ -471,6 +483,72 @@ module.exports = {
     return { success: true, message: 'Event deleted.' };
   },
 
+  // Manually ends an ACTIVE game and declares a winner by ship-hit count.
+  // Emergency-use only — the normal terminal path is game.js when all of one
+  // team's ship tiles are hit + completed. This bypasses that and picks the
+  // winner via computeAdminGameOverWinner. Distinguished on the client by the
+  // `endedByAdmin` flag so copy can be adjusted (no "sunk all ships" claim).
+  adminForceBSGameOver: async (_, { eventId }, context) => {
+    const user = requireAuth(context);
+    const { BSEvent, BSTeam, BSShotLog, sequelize } = getModels();
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user.id);
+
+    if (event.status !== 'ACTIVE') {
+      throw new UserInputError('Only an ACTIVE event can be force-ended.');
+    }
+
+    const teams = await BSTeam.findAll({ where: { eventId } });
+    if (teams.length < 2) {
+      throw new UserInputError('Need at least 2 teams to force a game over.');
+    }
+    const shots = await BSShotLog.findAll({
+      where: { eventId },
+      attributes: ['firingTeamId', 'result', 'shotAt'],
+    });
+
+    const { winnerId, loserId, stats } = computeAdminGameOverWinner(
+      teams.map((t) => ({ teamId: t.teamId })),
+      shots.map((s) => ({ firingTeamId: s.firingTeamId, result: s.result, shotAt: s.shotAt }))
+    );
+
+    const completedAt = new Date();
+    await sequelize.transaction(async (transaction) => {
+      const locked = await BSEvent.findByPk(eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!locked || locked.status !== 'ACTIVE') {
+        throw new UserInputError('Event is no longer ACTIVE.');
+      }
+      await locked.update(
+        { status: 'COMPLETED', winnerId, completedAt, endedByAdmin: true },
+        { transaction }
+      );
+    });
+
+    await pubsub.publish(`BS_GAME_OVER_${eventId}`, {
+      bsGameOver: { eventId, winnerId, losingTeamId: loserId, completedAt },
+    });
+
+    const winnerTeam = teams.find((t) => t.teamId === winnerId);
+    const loserTeam = teams.find((t) => t.teamId === loserId);
+    // Sequential await so both posts land in read-order like the normal flow.
+    for (const team of teams) {
+      if (!team.discordChannelId) continue;
+      await postBSAdminGameOver({
+        channelId: team.discordChannelId,
+        winnerName: winnerTeam?.teamName ?? 'Unknown',
+        loserName: loserTeam?.teamName ?? 'Unknown',
+        winnerHits: stats[winnerId]?.hits ?? 0,
+        loserHits: stats[loserId]?.hits ?? 0,
+        eventId,
+      }).catch(() => {});
+    }
+
+    return BSEvent.findByPk(eventId);
+  },
+
   startBSPlacementPhase: async (_, { eventId }, context) => {
     const user = requireAuth(context);
     const { BSTeam } = getModels();
@@ -478,14 +556,15 @@ module.exports = {
     requireAdmin(event, user.id);
     const isSiteAdmin = process.env.DEV_MODE === 'true' && user.admin === true;
 
-    if (!isSiteAdmin && event.status !== 'DRAFT') throw new Error('Event must be in DRAFT status to start placement');
+    if (!isSiteAdmin && event.status !== 'DRAFT')
+      throw new Error('Event must be in DRAFT status to start placement');
 
     if (!isSiteAdmin) {
       const teams = await BSTeam.findAll({ where: { eventId } });
       const missingChannel = teams.find((t) => !t.discordChannelId);
       if (missingChannel) {
         throw new UserInputError(
-          `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it in the Admin page before starting.`,
+          `Team "${missingChannel.teamName}" is missing a Discord channel ID. Set it in the Admin page before starting.`
         );
       }
     }

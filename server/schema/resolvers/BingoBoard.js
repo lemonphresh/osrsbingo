@@ -148,7 +148,7 @@ module.exports = {
 
         if (growing) {
           // Preserve existing tiles centered in the new grid.
-          // e.g. 5x5 → 7x7: old tiles occupy rows/cols 1–5, new border tiles fill the ring.
+          // i.e. 5x5 → 7x7: old tiles occupy rows/cols 1–5, new border tiles fill the ring.
           const offset = (newSize - oldSize) / 2;
           const oldLayout = board.layout;
           const newTiles = [];
@@ -186,7 +186,7 @@ module.exports = {
           }
         } else {
           // Shrinking: keep the center newSize×newSize tiles, destroy the border ring.
-          // e.g. 7x7 → 5x5: offset=1, keep rows/cols 1–5, destroy the 24 border tiles.
+          // i.e. 7x7 → 5x5: offset=1, keep rows/cols 1–5, destroy the 24 border tiles.
           const offset = (oldSize - newSize) / 2;
           const oldLayout = board.layout;
 

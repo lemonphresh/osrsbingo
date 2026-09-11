@@ -48,14 +48,14 @@ export function markCompleteBlockedReason({ isComplete, hasApproved, hasPending,
 
 export default function TileReviewControls({
   progress = 0,
-  onSetProgress,          // (pct: number) => void | Promise<void>
+  onSetProgress, // (pct: number) => void | Promise<void>
   hasApproved = false,
   hasPending = false,
   isComplete = false,
-  onComplete,             // () => void | Promise<void>
+  onComplete, // () => void | Promise<void>
   loading = false,
-  countTarget = null,     // if set, slider is count mode (1..N)
-  unit = '',              // label shown after the count value
+  countTarget = null, // if set, slider is count mode (1..N)
+  unit = '', // label shown after the count value
   activeColor = '#22d3ee',
   doneColor = '#4ade80',
   trackColor = '#1a4028',
@@ -84,9 +84,7 @@ export default function TileReviewControls({
   }, [progress, countTarget]);
 
   const done = val >= displayMax;
-  const label = useCountMode
-    ? `${val} / ${countTarget}${unit ? ` ${unit}` : ''}`
-    : `${val}%`;
+  const label = useCountMode ? `${val} / ${countTarget}${unit ? ` ${unit}` : ''}` : `${val}%`;
 
   const canComplete = canMarkTileComplete({ isComplete, hasApproved, hasPending, progress });
   const blockedReason = markCompleteBlockedReason({
@@ -163,7 +161,7 @@ export default function TileReviewControls({
 // Each event mode defines its task shape differently. These helpers convert
 // the mode-specific shape into the shared `{ countTarget, unit }` props used
 // by <TileReviewControls />. Callers can pass the result of `normalizeXxxTask`
-// as a spread — e.g. `<TileReviewControls {...normalizeSpoopyTask(task)} />`.
+// as a spread — i.e. `<TileReviewControls {...normalizeSpoopyTask(task)} />`.
 
 // Rainbow bingo — tiles carry `{ metricTarget, metricUnit }`.
 export function normalizeRainbowTask(tileDef) {

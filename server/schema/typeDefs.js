@@ -1372,6 +1372,7 @@ const typeDefs = gql`
     updateBSContentSelections(eventId: ID!, contentSelections: JSON!): BSEvent!
     updateBSMultiplier(eventId: ID!, multiplier: Float!): BSEvent!
     syncBSEventWithRegistry(eventId: ID!): BSSyncResult!
+    adminForceBSGameOver(eventId: ID!): BSEvent!
     startBSPlacementPhase(eventId: ID!): BSEvent!
     placeBSShip(boardId: ID!, input: BSShipPlacementInput!): BSShipPlacement!
 
@@ -1842,6 +1843,7 @@ const typeDefs = gql`
     contentSelections: JSON
     winnerId: ID
     completedAt: DateTime
+    endedByAdmin: Boolean
     teams: [BSTeam!]!
     tasks: [BSTask!]!
     shipTemplates: [BSShipTemplate!]!

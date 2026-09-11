@@ -15,6 +15,13 @@ import {
   HStack,
   Heading,
   Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
   Spinner,
   Text,
   Textarea,
@@ -24,6 +31,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import {
   FaClipboardList,
   FaDiscord,
+  FaFlagCheckered,
   FaHistory,
   FaLink,
   FaShieldAlt,
@@ -44,6 +52,7 @@ import { useToastContext } from '../../providers/ToastProvider';
 import {
   ADD_BS_REF,
   ADD_BS_SKIP_TOKENS,
+  ADMIN_FORCE_BS_GAME_OVER,
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
   REMOVE_BS_REF,
@@ -931,6 +940,73 @@ export default function BattleshipAdminPage() {
   const [updateBSEvent] = useMutation(UPDATE_BS_EVENT, {
     onError: (err) => showToast(err.message ?? 'Failed to save.', 'error'),
   });
+  const [adminForceGameOver, { loading: forcingGameOver }] = useMutation(
+    ADMIN_FORCE_BS_GAME_OVER,
+    { onError: (err) => showToast(err.message ?? 'Failed to force game over.', 'error') },
+  );
+
+  // Force-game-over confirmation state. Two-step: step 1 shows the calculated
+  // winner + hit counts, step 2 requires typing the event name.
+  const [forceOpen, setForceOpen] = useState(false);
+  const [forceStep, setForceStep] = useState(1);
+  const [forceConfirmText, setForceConfirmText] = useState('');
+
+  // Client-side preview of who would win — same ranking as computeAdminGameOverWinner
+  // (hits, then fewer misses, then earlier last-shot, then alphabetical teamId).
+  const forcePreview = useMemo(() => {
+    if (!event || teams.length < 2) return null;
+    const stats = Object.fromEntries(
+      teams.map((t) => [t.teamId, { hits: 0, misses: 0, lastShotAt: null }]),
+    );
+    for (const s of shotLog) {
+      const bucket = stats[s.firingTeamId];
+      if (!bucket) continue;
+      if (s.result === 'HIT') bucket.hits += 1;
+      else if (s.result === 'MISS') bucket.misses += 1;
+      const ts = s.shotAt ? new Date(s.shotAt).getTime() : null;
+      if (ts != null && (bucket.lastShotAt == null || ts > bucket.lastShotAt)) {
+        bucket.lastShotAt = ts;
+      }
+    }
+    const ranked = [...teams].sort((a, b) => {
+      const sa = stats[a.teamId];
+      const sb = stats[b.teamId];
+      if (sb.hits !== sa.hits) return sb.hits - sa.hits;
+      if (sa.misses !== sb.misses) return sa.misses - sb.misses;
+      const la = sa.lastShotAt ?? Number.POSITIVE_INFINITY;
+      const lb = sb.lastShotAt ?? Number.POSITIVE_INFINITY;
+      if (la !== lb) return la - lb;
+      return String(a.teamId).localeCompare(String(b.teamId));
+    });
+    return {
+      winner: ranked[0],
+      loser: ranked[1],
+      winnerStats: stats[ranked[0].teamId],
+      loserStats: stats[ranked[1].teamId],
+    };
+  }, [event, teams, shotLog]);
+
+  const openForceModal = () => {
+    setForceStep(1);
+    setForceConfirmText('');
+    setForceOpen(true);
+  };
+  const closeForceModal = () => {
+    if (forcingGameOver) return;
+    setForceOpen(false);
+    setForceStep(1);
+    setForceConfirmText('');
+  };
+  const handleForceGameOver = async () => {
+    try {
+      await adminForceGameOver({ variables: { eventId } });
+      showToast('Campaign called. Winners have been declared.', 'success');
+      closeForceModal();
+      refetchEvent();
+    } catch (_) {
+      // Toast already fired by onError.
+    }
+  };
   const [updateTeamWomName] = useMutation(UPDATE_BS_TEAM_DISCORD, {
     onError: (err) => showToast(err.message ?? 'Failed to save team WOM name.', 'error'),
   });
@@ -1329,6 +1405,94 @@ export default function BattleshipAdminPage() {
                       cooldownMinutes={event.cooldownMinutes}
                     />
                   ))}
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.3: Force Game Over (ACTIVE only) — admin-called end,
+              winner determined by ship-hit count. Guarded by a two-step modal. */}
+          {event?.status === 'ACTIVE' && teams.length >= 2 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor="#7f1d1d"
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#1a0a0a' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaFlagCheckered color="#fca5a5" />
+                  <Text
+                    fontWeight="semibold"
+                    color="#fca5a5"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    FORCE GAME OVER
+                  </Text>
+                  <Badge colorScheme="red" fontFamily="mono" fontSize="xs">
+                    DANGER ZONE
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontSize="xs" color={DIM} lineHeight="1.7">
+                    Manually ends the campaign and declares the winner by ship-hit count. Use for
+                    early ends (stuck event) or at a pre-communicated end time. This cannot be
+                    undone — the event flips to COMPLETED, the game-over screen animates for both
+                    teams, and Discord announcements go out.
+                  </Text>
+                  {forcePreview && (
+                    <Box
+                      bg={CARD_BG}
+                      border="1px solid"
+                      borderColor={BORDER}
+                      borderRadius="md"
+                      p={3}
+                    >
+                      <Text fontSize="10px" color={DIM} fontFamily="mono" mb={2} letterSpacing="wide">
+                        CURRENT STANDINGS
+                      </Text>
+                      <VStack align="stretch" spacing={1}>
+                        <HStack justify="space-between">
+                          <Text fontSize="xs" color={GREEN} fontFamily="mono">
+                            🏆 {forcePreview.winner.teamName}
+                          </Text>
+                          <Text fontSize="xs" color={DIM} fontFamily="mono">
+                            {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontSize="xs" color="#fbbf24" fontFamily="mono">
+                            {forcePreview.loser.teamName}
+                          </Text>
+                          <Text fontSize="xs" color={DIM} fontFamily="mono">
+                            {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  )}
+                  <Button
+                    leftIcon={<FaFlagCheckered />}
+                    colorScheme="red"
+                    variant="outline"
+                    size="sm"
+                    onClick={openForceModal}
+                    isDisabled={!forcePreview}
+                  >
+                    Force Game Over…
+                  </Button>
                 </VStack>
               </AccordionPanel>
             </AccordionItem>
@@ -2018,6 +2182,109 @@ export default function BattleshipAdminPage() {
           onClose={() => setShowDiscordModal(false)}
         />
       )}
+
+      {/* Force Game Over — two-step confirm. Step 1: winner preview + basic
+          confirm. Step 2: type the event name to unlock the final button. */}
+      <Modal isOpen={forceOpen} onClose={closeForceModal} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent bg={CARD_BG} border="1px solid" borderColor="#7f1d1d" color="#d4f0da">
+          <ModalHeader fontFamily="mono" fontSize="sm" color="#fca5a5">
+            <HStack spacing={2}>
+              <FaFlagCheckered />
+              <Text>
+                {forceStep === 1 ? 'Force Game Over — Confirm' : 'Force Game Over — Type to Confirm'}
+              </Text>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton isDisabled={forcingGameOver} />
+          <ModalBody>
+            {forceStep === 1 && forcePreview && (
+              <VStack align="stretch" spacing={4}>
+                <Text fontSize="sm" color="#e2e8f0" lineHeight="1.7">
+                  This will end <strong>{event?.eventName}</strong> right now. Both teams will see
+                  the game-over screen and Discord will announce a hit-count victory.
+                </Text>
+                <Box bg={BG} border="1px solid" borderColor={BORDER} borderRadius="md" p={3}>
+                  <Text fontSize="10px" color={DIM} fontFamily="mono" mb={2} letterSpacing="wide">
+                    WINNER (BY SHIP-HIT COUNT)
+                  </Text>
+                  <VStack align="stretch" spacing={2}>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color={GREEN} fontFamily="mono" fontWeight="bold">
+                        🏆 {forcePreview.winner.teamName}
+                      </Text>
+                      <Text fontSize="xs" color={DIM} fontFamily="mono">
+                        {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                      </Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color="#fbbf24" fontFamily="mono">
+                        {forcePreview.loser.teamName}
+                      </Text>
+                      <Text fontSize="xs" color={DIM} fontFamily="mono">
+                        {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                      </Text>
+                    </HStack>
+                  </VStack>
+                </Box>
+                <Text fontSize="xs" color="#fbbf24" lineHeight="1.7">
+                  ⚠️ This cannot be undone. Standings are recomputed by the server at the moment
+                  you confirm, so a shot resolved between now and then may shift the winner.
+                </Text>
+              </VStack>
+            )}
+            {forceStep === 2 && (
+              <VStack align="stretch" spacing={4}>
+                <Text fontSize="sm" color="#e2e8f0" lineHeight="1.7">
+                  Type <strong>{event?.eventName}</strong> below to unlock the final button.
+                </Text>
+                <Input
+                  value={forceConfirmText}
+                  onChange={(e) => setForceConfirmText(e.target.value)}
+                  placeholder={event?.eventName}
+                  bg={BG}
+                  borderColor={BORDER}
+                  color="#e2e8f0"
+                  autoFocus
+                />
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <Button
+              size="sm"
+              variant="ghost"
+              color={DIM}
+              onClick={closeForceModal}
+              isDisabled={forcingGameOver}
+            >
+              Cancel
+            </Button>
+            {forceStep === 1 && (
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="outline"
+                onClick={() => setForceStep(2)}
+                isDisabled={!forcePreview}
+              >
+                Continue →
+              </Button>
+            )}
+            {forceStep === 2 && (
+              <Button
+                size="sm"
+                colorScheme="red"
+                onClick={handleForceGameOver}
+                isLoading={forcingGameOver}
+                isDisabled={forceConfirmText !== event?.eventName}
+              >
+                Force Game Over
+              </Button>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

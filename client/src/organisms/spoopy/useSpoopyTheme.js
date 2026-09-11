@@ -10,11 +10,17 @@ const LS_KEY = 'spoopyBoardDarkMode';
 const EVENT = 'spoopy:darkmode';
 
 function readStored() {
-  try { return localStorage.getItem(LS_KEY) === 'true'; } catch (_) { return false; }
+  try {
+    return localStorage.getItem(LS_KEY) === 'true';
+  } catch (_) {
+    return false;
+  }
 }
 
 function writeStored(v) {
-  try { localStorage.setItem(LS_KEY, String(v)); } catch (_) {}
+  try {
+    localStorage.setItem(LS_KEY, String(v));
+  } catch (_) {}
   window.dispatchEvent(new CustomEvent(EVENT, { detail: v }));
 }
 
@@ -48,7 +54,7 @@ export function useSpoopyTheme() {
     // Edge / border color that reads well against the surface
     surfaceEdge: darkMode ? SPOOPY_COLORS.night : SPOOPY_COLORS.paperEdge,
     // Softer variant of the surface used for "recessed" panels within
-    // modals (e.g. the task callout inside the trick-or-treat dialog).
+    // modals (i.e. the task callout inside the trick-or-treat dialog).
     surfaceRecessed: darkMode ? SPOOPY_COLORS.nightDeep : SPOOPY_COLORS.paperShadow,
   };
 }

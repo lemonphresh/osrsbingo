@@ -8,7 +8,7 @@ function assertCooldownReady(event, firingTeam, now = new Date()) {
   const elapsedMs = now.getTime() - new Date(firingTeam.lastShotAt).getTime();
   if (elapsedMs < cooldownMs) {
     const remaining = Math.ceil((cooldownMs - elapsedMs) / 1000 / 60);
-    throw new UserInputError(`Cooldown active — ${remaining} minute(s) remaining`);
+    throw new UserInputError(`Cooldown active. ${remaining} minute(s) remaining.`);
   }
 }
 

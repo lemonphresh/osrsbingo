@@ -505,6 +505,18 @@ export const SYNC_BS_EVENT_WITH_REGISTRY = gql`
   }
 `;
 
+export const ADMIN_FORCE_BS_GAME_OVER = gql`
+  mutation AdminForceBSGameOver($eventId: ID!) {
+    adminForceBSGameOver(eventId: $eventId) {
+      eventId
+      status
+      winnerId
+      completedAt
+      endedByAdmin
+    }
+  }
+`;
+
 export const SET_BS_SHIP_TEMPLATE = gql`
   mutation SetBSShipTemplate(
     $eventId: ID!

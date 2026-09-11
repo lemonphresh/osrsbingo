@@ -684,7 +684,7 @@ const Mutation = {
         transaction: t,
       });
       if (!anyApproved) {
-        throw new UserInputError('tile has no approved submission yet — approve one first');
+        throw new UserInputError('tile has no approved submission yet. approve one first');
       }
 
       const computed = sm.completeTile(
@@ -886,7 +886,7 @@ const Mutation = {
     // can preview the modal without running the ritual themselves.
     if (!isAdmin(event, user) && (team.hauntedGauntletLevel ?? 0) < 3) {
       throw new UserInputError(
-        "the door is stuck — finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first",
+        "the door is stuck. finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first",
       );
     }
 

@@ -106,7 +106,7 @@ async function sendCaptainMissingAlert({ channelId, eventName, missingTeams }) {
     await discordFetch(`/channels/${channelId}/messages`, {
       method: 'POST',
       body: JSON.stringify({
-        content: `⚠️ **${eventName}** — The gathering phase has ended, but the following teams have no captain assigned:\n${teamList}\n\nPlease assign captains on the event page. Once all captains are set, the event will automatically advance to Outfitting.`,
+        content: `⚠️ **${eventName}**: the gathering phase has ended, but the following teams have no captain assigned:\n${teamList}\n\nPlease assign captains on the event page. Once all captains are set, the event will automatically advance to Outfitting.`,
       }),
     });
   } catch (_) {
@@ -121,7 +121,7 @@ async function sendBattleCompleteAnnouncement({ channelId, eventId, eventName, w
     await discordFetch(`/channels/${channelId}/messages`, {
       method: 'POST',
       body: JSON.stringify({
-        content: `⚔️ **${eventName}** — Battle complete!\n**${winnerTeamName}** defeated **${loserTeamName}**!\n\n📊 View the bracket: ${battleUrl}`,
+        content: `⚔️ **${eventName}**: battle complete!\n**${winnerTeamName}** defeated **${loserTeamName}**!\n\n📊 View the bracket: ${battleUrl}`,
       }),
     });
   } catch (_) {

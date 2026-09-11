@@ -209,9 +209,20 @@ function ParticipantGuide() {
 
       <SectionHeader>Winning</SectionHeader>
       <Callout color={GREEN} icon={FaInfoCircle}>
-        You win when all five enemy ships are fully sunk (every ship cell shot AND ref-approved).
-        The game-over screen animates through the whole engagement log with sound, so make sure your
-        volume is on for the finale.
+        <strong>Standard win:</strong> sink all five enemy ships (every ship cell shot AND
+        ref-approved). The game-over screen then animates the whole engagement log with sound, so
+        make sure your volume is on for the finale.
+      </Callout>
+      <Callout color={AMBER} icon={FaExclamationTriangle}>
+        <strong>Admin-called ending:</strong> the event admin can also end the campaign manually —
+        either early (rare, for a stuck event) or at a pre-communicated end time (i.e.,
+        &quot;we&apos;re calling it Sunday at midnight&quot;). When that happens, the winner is the
+        team with the most
+        <strong> ship-tile hits</strong>. Fewer misses breaks a tie. Admins should call this out in
+        advance whenever possible so both teams know the finish line has moved from &quot;sink them
+        all&quot; to &quot;hit more than they do.&quot; The game-over screen will say
+        <em> Campaign Called</em> and the Discord post will announce the hit counts instead of a
+        clean sweep.
       </Callout>
     </Box>
   );
@@ -305,8 +316,10 @@ function RefGuide() {
       <SectionHeader>What Refs Can't Do</SectionHeader>
       <Callout color={RED} icon={FaLock}>
         Refs can&apos;t create/delete events, add or remove teams, change vote thresholds, award
-        skip tokens, launch the placement or battle phase, or vote on placement suggestions. All of
-        those belong to the event admin/creator only.
+        skip tokens, launch the placement or battle phase, vote on placement suggestions, or
+        manually end the campaign (a separate admin-only tool that declares the winner by ship-hit
+        count when a game needs to be called early or at a pre-communicated end time). All of those
+        belong to the event admin/creator only.
       </Callout>
     </Box>
   );

@@ -196,7 +196,7 @@ module.exports = {
     const event = await getEventOrThrow(eventId);
 
     const bracket = event.bracket;
-    if (!bracket?.rounds?.length) throw new UserInputError('No bracket found — generate it first');
+    if (!bracket?.rounds?.length) throw new UserInputError('No bracket found. Generate it first.');
 
     const nextMatch = findNextUnstartedMatch(bracket);
     if (!nextMatch) throw new UserInputError('No unstarted matches found');

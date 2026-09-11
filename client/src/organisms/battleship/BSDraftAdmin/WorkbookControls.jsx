@@ -73,8 +73,8 @@ export default function WorkbookControls({ eventId, refetch }) {
       } else {
         showToast(
           `Synced: ${tasksAdded} task${tasksAdded === 1 ? '' : 's'}, ` +
-          `${shipTemplatesAdded} ship cell${shipTemplatesAdded === 1 ? '' : 's'}.`,
-          'success',
+            `${shipTemplatesAdded} ship cell${shipTemplatesAdded === 1 ? '' : 's'}.`,
+          'success'
         );
         refetch?.();
       }
@@ -197,7 +197,7 @@ export default function WorkbookControls({ eventId, refetch }) {
           isLoading={syncing}
           onClick={handleSync}
           _hover={{ bg: '#091a10', borderColor: '#4ade80', color: '#4ade80' }}
-          title="Add any content that's missing from the task pool (e.g. after a registry update). Existing tasks and tiles are untouched."
+          title="Add any content that's missing from the task pool (i.e. after a registry update). Existing tasks and tiles are untouched."
         >
           Sync Content
         </Button>
