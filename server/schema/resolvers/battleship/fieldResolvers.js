@@ -55,10 +55,39 @@ const BSEvent = {
     const { User } = getModels();
     return User.findAll({ where: { id: event.refIds } });
   },
-  admins: (event) => {
-    if (!event.adminIds?.length) return [];
+  admins: async (event) => {
+    // The event creator has admin powers even if they're not in adminIds
+    // (the server's requireAdmin helper accepts creatorId OR adminIds).
+    // Fold them into the surfaced list so UIs render a complete picture of
+    // "everyone who can admin this event" instead of just "extra admins".
+    const ids = new Set(
+      (event.adminIds ?? [])
+        .map(String)
+        .concat(event.creatorId ? [String(event.creatorId)] : [])
+    );
+    if (ids.size === 0) return [];
     const { User } = getModels();
-    return User.findAll({ where: { id: event.adminIds } });
+    const users = await User.findAll({ where: { id: [...ids] } });
+    // Diagnostic for the "counter says 1 but list renders empty" bug where
+    // adminIds contained a user id that findAll couldn't match. Fires only
+    // when there's a real drift so it doesn't spam.
+    if (users.length !== ids.size) {
+      const returnedIds = new Set(users.map((u) => String(u.id)));
+      const missing = [...ids].filter((id) => !returnedIds.has(id));
+      const logger = require('../../../utils/logger');
+      logger.warn(
+        {
+          eventId: event.eventId,
+          adminIds: event.adminIds,
+          creatorId: event.creatorId,
+          requestedIds: [...ids],
+          returnedIds: [...returnedIds],
+          missingIds: missing,
+        },
+        '[BSEvent.admins] User.findAll did not return records for every id (data drift)'
+      );
+    }
+    return users;
   },
   templateBoard: (event) => {
     const { BSBoard } = getModels();
