@@ -52,11 +52,13 @@ import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
+  ADD_BS_ADMIN,
   ADD_BS_REF,
   ADD_BS_SKIP_TOKENS,
   ADMIN_FORCE_BS_GAME_OVER,
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
+  REMOVE_BS_ADMIN,
   REMOVE_BS_REF,
   SEND_BS_TEST_DISCORD_MESSAGES,
   START_BS_GAME,
@@ -713,6 +715,211 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
         )}
       </VStack>
     </Box>
+  );
+}
+
+// Mirror of RefsSection with three deltas: uses ADD/REMOVE_BS_ADMIN,
+// reads event.admins/adminIds, and disables the Remove button for the event
+// creator (server rejects that mutation, so the button would 500 otherwise).
+function AdminsSection({ event, eventId, refetchEvent, showToast }) {
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [addingId, setAddingId] = useState(null);
+  const [removingId, setRemovingId] = useState(null);
+  const debounceRef = useRef(null);
+
+  const [doSearch] = useLazyQuery(SEARCH_USERS, { fetchPolicy: 'network-only' });
+  const [doAddAdmin] = useMutation(ADD_BS_ADMIN);
+  const [doRemoveAdmin] = useMutation(REMOVE_BS_ADMIN);
+
+  const currentAdminIds = useMemo(() => new Set(event?.adminIds ?? []), [event]);
+  const admins = event?.admins ?? [];
+  const creatorId = event?.creatorId ? String(event.creatorId) : null;
+
+  const handleSearchChange = useCallback(
+    (e) => {
+      const val = e.target.value;
+      setSearchInput(val);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (!val.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      debounceRef.current = setTimeout(async () => {
+        try {
+          const { data } = await doSearch({ variables: { search: val.trim() } });
+          setSearchResults(data?.searchUsers ?? []);
+        } catch {
+          setSearchResults([]);
+        }
+      }, 300);
+    },
+    [doSearch]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const handleAddAdmin = async (userId) => {
+    setAddingId(userId);
+    try {
+      await doAddAdmin({ variables: { eventId, userId } });
+      showToast('Admin added', 'success');
+      await refetchEvent();
+    } catch (e) {
+      showToast(e.message ?? 'Failed to add admin', 'error');
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const handleRemoveAdmin = async (userId, displayName) => {
+    const label = displayName || 'this admin';
+    if (!window.confirm(`Remove ${label} from the admin list?`)) return;
+    setRemovingId(userId);
+    try {
+      await doRemoveAdmin({ variables: { eventId, userId } });
+      showToast('Admin removed', 'info');
+      await refetchEvent();
+    } catch (e) {
+      showToast(e.message ?? 'Failed to remove admin', 'error');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  const filteredResults = searchResults.filter((u) => !currentAdminIds.has(String(u.id)));
+
+  return (
+    <VStack align="stretch" spacing={4}>
+      {admins.length === 0 && (
+        <Text fontSize="sm" color={DIM} fontFamily="mono">
+          No extra admins assigned yet. The event creator is always an admin.
+        </Text>
+      )}
+
+      {admins.length > 0 && (
+        <VStack align="stretch" spacing={2} maxW="400px">
+          {admins.map((admin) => {
+            const isCreator = creatorId && String(admin.id) === creatorId;
+            return (
+              <HStack
+                key={admin.id}
+                justify="space-between"
+                bg={BG}
+                border="1px solid"
+                borderColor={BORDER}
+                borderRadius="md"
+                px={3}
+                py={2}
+                overflow="hidden"
+              >
+                <VStack align="flex-start" spacing={0}>
+                  <HStack spacing={2}>
+                    <Text fontSize="sm" color="#d4f0da" fontWeight="semibold">
+                      {admin.displayName}
+                    </Text>
+                    {isCreator && (
+                      <Badge colorScheme="green" fontSize="9px" letterSpacing="wider">
+                        CREATOR
+                      </Badge>
+                    )}
+                  </HStack>
+                  <Text fontSize="xs" color={DIM} fontFamily="mono">
+                    @{admin.username}
+                  </Text>
+                </VStack>
+                <Button
+                  size="xs"
+                  colorScheme="red"
+                  variant="outline"
+                  isLoading={removingId === String(admin.id)}
+                  isDisabled={!!removingId || isCreator}
+                  title={isCreator ? 'The event creator cannot be removed as an admin.' : undefined}
+                  onClick={() => handleRemoveAdmin(String(admin.id), admin.displayName)}
+                >
+                  Remove Admin
+                </Button>
+              </HStack>
+            );
+          })}
+        </VStack>
+      )}
+
+      <Divider borderColor={BORDER} />
+
+      <Box>
+        <Text
+          fontSize="xs"
+          color={DIM}
+          textTransform="uppercase"
+          letterSpacing="wider"
+          fontWeight="semibold"
+          mb={2}
+        >
+          Add Admin
+        </Text>
+        <Input
+          value={searchInput}
+          onChange={handleSearchChange}
+          placeholder="Search by name or username..."
+          bg={BG}
+          borderColor={BORDER}
+          color="#d4f0da"
+          fontFamily="mono"
+          fontSize="sm"
+          maxW="320px"
+          _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+          _hover={{ borderColor: DIM }}
+          _placeholder={{ color: DIM }}
+        />
+
+        {filteredResults.length > 0 && (
+          <VStack align="stretch" spacing={1} mt={2} maxW="320px">
+            {filteredResults.map((u) => (
+              <HStack
+                key={u.id}
+                justify="space-between"
+                bg={BG}
+                border="1px solid"
+                borderColor={BORDER}
+                borderRadius="md"
+                px={3}
+                py={2}
+                overflow="hidden"
+              >
+                <VStack align="flex-start" spacing={0}>
+                  <Text fontSize="sm" color="#d4f0da">
+                    {u.displayName}
+                  </Text>
+                  <Text fontSize="xs" color={DIM} fontFamily="mono">
+                    @{u.username}
+                  </Text>
+                </VStack>
+                <Button
+                  size="xs"
+                  colorScheme="green"
+                  isLoading={addingId === String(u.id)}
+                  isDisabled={!!addingId}
+                  onClick={() => handleAddAdmin(String(u.id))}
+                >
+                  Add as Admin
+                </Button>
+              </HStack>
+            ))}
+          </VStack>
+        )}
+
+        {searchInput.trim() && filteredResults.length === 0 && searchResults.length > 0 && (
+          <Text fontSize="xs" color={DIM} mt={2} fontFamily="mono">
+            All matching users are already admins.
+          </Text>
+        )}
+      </Box>
+    </VStack>
   );
 }
 
@@ -2069,6 +2276,51 @@ export default function BattleshipAdminPage() {
                   />
                 ))}
               </VStack>
+            </AccordionPanel>
+          </AccordionItem>
+
+          {/* Section 3.5: Admins */}
+          <AccordionItem
+            border="1px solid"
+            borderColor={BORDER}
+            borderRadius="lg"
+            mb={3}
+            overflow="hidden"
+          >
+            <AccordionButton
+              px={4}
+              py={3}
+              bg={CARD_BG}
+              _hover={{ bg: '#0e2418' }}
+              _expanded={{ bg: CARD_BG }}
+            >
+              <HStack flex={1} spacing={2}>
+                <FaShieldAlt color={DIM} />
+                <Text
+                  fontWeight="semibold"
+                  color="#d4f0da"
+                  fontFamily="mono"
+                  letterSpacing="wide"
+                  fontSize="sm"
+                >
+                  ADMINS MANAGEMENT
+                </Text>
+                {event && (
+                  <Badge colorScheme="green" fontSize="xs">
+                    {(event.admins ?? []).length}
+                  </Badge>
+                )}
+              </HStack>
+              <AccordionIcon color={DIM} />
+            </AccordionButton>
+
+            <AccordionPanel px={4} py={4} bg={BG}>
+              <AdminsSection
+                event={event}
+                eventId={eventId}
+                refetchEvent={refetchEvent}
+                showToast={showToast}
+              />
             </AccordionPanel>
           </AccordionItem>
 

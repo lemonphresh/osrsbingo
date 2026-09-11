@@ -40,10 +40,18 @@ export function BSAdminsTab({ event, refetch }) {
     onError: (e) => showToast(e.message ?? 'Failed to remove admin', 'error'),
   });
 
+  // adminIds is only the manually-added admins (the event creator is stored
+  // in creatorId, not adminIds). We render / gate on the full admins list
+  // instead so the creator shows up too, but keep adminIds for search
+  // filtering so we don't offer to re-add someone already listed.
   const currentAdminIds = event.adminIds ?? [];
+  const admins = event.admins ?? [];
   const creatorId = String(event.creatorId ?? '');
+  const admissibleIds = new Set(
+    [...currentAdminIds.map(String), creatorId].filter(Boolean)
+  );
   const results = (searchData?.searchUsers ?? []).filter(
-    (u) => !currentAdminIds.includes(String(u.id))
+    (u) => !admissibleIds.has(String(u.id))
   );
 
   return (
@@ -130,15 +138,15 @@ export function BSAdminsTab({ event, refetch }) {
           textTransform="uppercase"
           mb={2}
         >
-          Current Admins ({currentAdminIds.length})
+          Current Admins ({admins.length})
         </Text>
-        {currentAdminIds.length === 0 ? (
+        {admins.length === 0 ? (
           <Text fontFamily="mono" fontSize="xs" color="#3d6b4a">
             No admins added yet.
           </Text>
         ) : (
           <VStack align="stretch" spacing={1} maxW="320px">
-            {(event.admins ?? []).map((admin) => {
+            {admins.map((admin) => {
               const isCreator = String(admin.id) === creatorId;
               return (
                 <HStack
