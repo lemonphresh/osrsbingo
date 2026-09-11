@@ -82,7 +82,7 @@ async function handleSubmission(message, args, type) {
       new EmbedBuilder()
         .setColor(COLOR_HEX[tileDef.color] ?? 0x95a5a6)
         .setTitle(`✅ ${typeLabel} received for ${tileCode}`)
-        .setDescription(`**${tileDef.bossOrSkill}** — ${tileDef.metricLabel}`)
+        .setDescription(`**${tileDef.bossOrSkill}**: ${tileDef.metricLabel}`)
         .addFields(
           { name: 'Team', value: teamName, inline: true },
           { name: 'Status', value: 'Pending review', inline: true },

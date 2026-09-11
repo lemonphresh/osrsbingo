@@ -86,7 +86,11 @@ function ScreenshotThumb({ url }) {
       />
       <Modal isOpen={isOpen} onClose={onClose} size="4xl" isCentered>
         <ModalOverlay bg="blackAlpha.800" />
-        <ModalContent bg={SPOOPY_COLORS.night} border="1px solid" borderColor={SPOOPY_COLORS.nightMist}>
+        <ModalContent
+          bg={SPOOPY_COLORS.night}
+          border="1px solid"
+          borderColor={SPOOPY_COLORS.nightMist}
+        >
           <ModalCloseButton color={SPOOPY_COLORS.paper} />
           <ModalBody p={4}>
             <Image src={url} alt="screenshot" w="100%" borderRadius="md" objectFit="contain" />
@@ -309,11 +313,12 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
     progress,
   });
 
-  const dotColor = tileType === 'start'
-    ? SPOOPY_COLORS.green
-    : tileType === 'candybag'
-    ? SPOOPY_COLORS.ember
-    : SPOOPY_COLORS.pumpkin;
+  const dotColor =
+    tileType === 'start'
+      ? SPOOPY_COLORS.green
+      : tileType === 'candybag'
+      ? SPOOPY_COLORS.ember
+      : SPOOPY_COLORS.pumpkin;
 
   return (
     <AccordionItem
@@ -397,7 +402,6 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
             {...normalizeSpoopyTask(task)}
           />
 
-
           {pending.length > 0 && (
             <Section label="pending" count={pending.length} color={SPOOPY_COLORS.pumpkin}>
               {pending.map((sub) => (
@@ -458,7 +462,9 @@ function Section({ label, count, color, children }) {
       >
         {label} ({count})
       </Text>
-      <VStack align="stretch" spacing={2}>{children}</VStack>
+      <VStack align="stretch" spacing={2}>
+        {children}
+      </VStack>
     </Box>
   );
 }
@@ -480,7 +486,10 @@ export default function SpoopyRefsPage() {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
   });
-  const event = adminData?.spoopyEvents?.find((e) => e.eventId === eventId) ?? adminData?.spoopyEvents?.[0] ?? null;
+  const event =
+    adminData?.spoopyEvents?.find((e) => e.eventId === eventId) ??
+    adminData?.spoopyEvents?.[0] ??
+    null;
 
   const { data: subsData, refetch: refetchSubs } = useQuery(GET_SPOOPY_SUBMISSIONS, {
     variables: { eventId },
@@ -549,9 +558,7 @@ export default function SpoopyRefsPage() {
   const { activeGroups, reviewedGroups, completedGroups } = useMemo(() => {
     const allSubs = subsData?.spoopySubmissions ?? [];
     const teamMap = Object.fromEntries((event?.teams ?? []).map((t) => [t.teamId, t]));
-    const boardTiles = Object.fromEntries(
-      (event?.board?.tiles ?? []).map((t) => [t.id, t]),
-    );
+    const boardTiles = Object.fromEntries((event?.board?.tiles ?? []).map((t) => [t.id, t]));
     const contentById = event?.contentById ?? {};
     const map = new Map();
 
@@ -624,9 +631,9 @@ export default function SpoopyRefsPage() {
     () =>
       activeGroups.reduce(
         (n, g) => n + g.submissions.filter((s) => s.status === 'PENDING').length,
-        0,
+        0
       ),
-    [activeGroups],
+    [activeGroups]
   );
 
   // Stable group order — snapshot on first load so tiles don't jump around
@@ -693,7 +700,9 @@ export default function SpoopyRefsPage() {
 
   const handleApprove = async (submissionId) => {
     setLoadingId(submissionId + '-approve');
-    const tileId = subsData?.spoopySubmissions?.find((s) => s.submissionId === submissionId)?.tileId;
+    const tileId = subsData?.spoopySubmissions?.find(
+      (s) => s.submissionId === submissionId
+    )?.tileId;
     if (tileId) addStickyTile(tileId);
     try {
       await doReview({ variables: { submissionId, approved: true } });
@@ -732,7 +741,9 @@ export default function SpoopyRefsPage() {
 
   const handleDeny = async (submissionId, denialReason) => {
     setLoadingId(submissionId + '-deny');
-    const tileId = subsData?.spoopySubmissions?.find((s) => s.submissionId === submissionId)?.tileId;
+    const tileId = subsData?.spoopySubmissions?.find(
+      (s) => s.submissionId === submissionId
+    )?.tileId;
     if (tileId) addStickyTile(tileId);
     try {
       await doReview({
@@ -760,7 +771,9 @@ export default function SpoopyRefsPage() {
     return (
       <Shell>
         <Center py={20}>
-          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="xl">no active spoopy event to review</Text>
+          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="xl">
+            no active spoopy event to review
+          </Text>
         </Center>
       </Shell>
     );
@@ -783,7 +796,9 @@ export default function SpoopyRefsPage() {
       <VStack align="stretch" spacing={5} maxW="960px" mx="auto" py={6} px={{ base: 3, md: 6 }}>
         <HStack justify="space-between" wrap="wrap" gap={3}>
           <VStack align="start" spacing={0}>
-            <Text fontSize="sm" opacity={0.75}>reviewing submissions for <strong>{event.eventName}</strong></Text>
+            <Text fontSize="sm" opacity={0.75}>
+              reviewing submissions for <strong>{event.eventName}</strong>
+            </Text>
           </VStack>
           <HStack spacing={3}>
             <HStack spacing={2} fontSize="xs" opacity={0.75}>
@@ -837,22 +852,30 @@ export default function SpoopyRefsPage() {
               in parallel while pending submissions wait for review here.
             </Text>
             <Text>
-              <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">approve</Text>{' '}
-              a submission once you've verified the screenshot. teams can stack multiple
-              submissions on a tile — approving one doesn't finish the tile.
+              <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">
+                approve
+              </Text>{' '}
+              a submission once you've verified the screenshot. teams can stack multiple submissions
+              on a tile — approving one doesn't finish the tile.
             </Text>
             <Text>
-              <Text as="span" color={SPOOPY_COLORS.ember} fontWeight="semibold">deny</Text>{' '}
-              rejects the screenshot with an optional reason (e.g. "missing event password",
-              "wrong screenshot"). the team can just resubmit.
+              <Text as="span" color={SPOOPY_COLORS.ember} fontWeight="semibold">
+                deny
+              </Text>{' '}
+              rejects the screenshot with an optional reason (i.e. "missing event password", "wrong
+              screenshot"). the team can just resubmit.
             </Text>
             <Text>
               use the{' '}
-              <Text as="span" color={SPOOPY_COLORS.paper} fontWeight="semibold">progress slider</Text>{' '}
+              <Text as="span" color={SPOOPY_COLORS.paper} fontWeight="semibold">
+                progress slider
+              </Text>{' '}
               to reflect multi-step progress. click{' '}
-              <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">mark complete</Text>{' '}
-              once all approvals are in — that's what unlocks neighbors, banks gp, and cashes
-              out the scary castle.
+              <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">
+                mark complete
+              </Text>{' '}
+              once all approvals are in — that's what unlocks neighbors, banks gp, and cashes out
+              the scary castle.
             </Text>
             <Text opacity={0.7}>
               pre-screenshots are informational only — they don't advance the tile.
@@ -909,7 +932,7 @@ export default function SpoopyRefsPage() {
               index={openIndices}
               onChange={(newIndices) =>
                 setOpenKeys(
-                  new Set(newIndices.map((i) => sortedActiveGroups[i]?.tileId).filter(Boolean)),
+                  new Set(newIndices.map((i) => sortedActiveGroups[i]?.tileId).filter(Boolean))
                 )
               }
             >
@@ -929,7 +952,11 @@ export default function SpoopyRefsPage() {
 
           {reviewedGroups.length > 0 && (
             <Accordion allowToggle mt={2}>
-              <AccordionItem border="1px solid" borderColor={SPOOPY_COLORS.nightMist} borderRadius="md">
+              <AccordionItem
+                border="1px solid"
+                borderColor={SPOOPY_COLORS.nightMist}
+                borderRadius="md"
+              >
                 <AccordionButton
                   px={4}
                   py={3}
@@ -938,7 +965,12 @@ export default function SpoopyRefsPage() {
                   borderRadius="md"
                 >
                   <HStack flex={1} spacing={2}>
-                    <Text fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.purpleLight} fontFamily={SPOOPY_FONTS.hand}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={SPOOPY_COLORS.purpleLight}
+                      fontFamily={SPOOPY_FONTS.hand}
+                    >
                       recently reviewed
                     </Text>
                     <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} fontSize="xs">
@@ -953,7 +985,7 @@ export default function SpoopyRefsPage() {
                     index={reviewedOpenIndices}
                     onChange={(newIndices) =>
                       setReviewedOpenKeys(
-                        new Set(newIndices.map((i) => reviewedGroups[i]?.tileId).filter(Boolean)),
+                        new Set(newIndices.map((i) => reviewedGroups[i]?.tileId).filter(Boolean))
                       )
                     }
                   >
@@ -963,8 +995,8 @@ export default function SpoopyRefsPage() {
                         group={group}
                         onApprove={handleApprove}
                         onDeny={handleDeny}
-                  onSetProgress={handleSetProgress}
-                  onComplete={handleCompleteTile}
+                        onSetProgress={handleSetProgress}
+                        onComplete={handleCompleteTile}
                         loadingId={loadingId}
                       />
                     ))}
@@ -976,7 +1008,11 @@ export default function SpoopyRefsPage() {
 
           {completedGroups.length > 0 && (
             <Accordion allowToggle mt={2}>
-              <AccordionItem border="1px solid" borderColor={SPOOPY_COLORS.greenDeep} borderRadius="md">
+              <AccordionItem
+                border="1px solid"
+                borderColor={SPOOPY_COLORS.greenDeep}
+                borderRadius="md"
+              >
                 <AccordionButton
                   px={4}
                   py={3}
@@ -985,7 +1021,12 @@ export default function SpoopyRefsPage() {
                   borderRadius="md"
                 >
                   <HStack flex={1} spacing={2}>
-                    <Text fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.green} fontFamily={SPOOPY_FONTS.hand}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={SPOOPY_COLORS.green}
+                      fontFamily={SPOOPY_FONTS.hand}
+                    >
                       completed tiles
                     </Text>
                     <Badge bg={SPOOPY_COLORS.green} color={SPOOPY_COLORS.paper} fontSize="xs">
@@ -1000,7 +1041,7 @@ export default function SpoopyRefsPage() {
                     index={completedOpenIndices}
                     onChange={(newIndices) =>
                       setCompletedOpenKeys(
-                        new Set(newIndices.map((i) => completedGroups[i]?.tileId).filter(Boolean)),
+                        new Set(newIndices.map((i) => completedGroups[i]?.tileId).filter(Boolean))
                       )
                     }
                   >
@@ -1010,8 +1051,8 @@ export default function SpoopyRefsPage() {
                         group={group}
                         onApprove={handleApprove}
                         onDeny={handleDeny}
-                  onSetProgress={handleSetProgress}
-                  onComplete={handleCompleteTile}
+                        onSetProgress={handleSetProgress}
+                        onComplete={handleCompleteTile}
                         loadingId={loadingId}
                       />
                     ))}

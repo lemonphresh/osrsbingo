@@ -15,6 +15,14 @@ import {
   HStack,
   Heading,
   Input,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
+  SimpleGrid,
   Spinner,
   Text,
   Textarea,
@@ -24,6 +32,7 @@ import { AddIcon } from '@chakra-ui/icons';
 import {
   FaClipboardList,
   FaDiscord,
+  FaFlagCheckered,
   FaHistory,
   FaLink,
   FaShieldAlt,
@@ -33,6 +42,7 @@ import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal';
 import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
 import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
+import { BoardPanel } from '../../organisms/battleship/BSSharedComponents';
 import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
 import {
   GET_BS_PLACEMENT_SUGGESTIONS,
@@ -44,6 +54,7 @@ import { useToastContext } from '../../providers/ToastProvider';
 import {
   ADD_BS_REF,
   ADD_BS_SKIP_TOKENS,
+  ADMIN_FORCE_BS_GAME_OVER,
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
   REMOVE_BS_REF,
@@ -566,7 +577,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 {/* Reason */}
                 <Box>
                   <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
-                    Reason (optional — posted to the team's Discord channel)
+                    Reason (optional, posted to the team's Discord channel)
                   </Text>
                   <Textarea
                     value={tokenReason}
@@ -647,7 +658,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
               <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
                 Role ID{' '}
                 <Text as="span" color="#3d6b4a">
-                  (optional — bot will ping this role)
+                  (optional, bot will ping this role)
                 </Text>
               </Text>
               <Input
@@ -759,7 +770,11 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
     }
   };
 
-  const handleRemoveRef = async (userId) => {
+  const handleRemoveRef = async (userId, displayName) => {
+    // Small guard so a stray click during a live event doesn't yank a ref
+    // mid-review. Refs can be re-added, but the friction is cheap insurance.
+    const label = displayName || 'this ref';
+    if (!window.confirm(`Remove ${label} from the ref list?`)) return;
     setRemovingId(userId);
     try {
       await doRemoveRef({ variables: { eventId, userId } });
@@ -810,9 +825,9 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
                 variant="outline"
                 isLoading={removingId === String(ref.id)}
                 isDisabled={!!removingId}
-                onClick={() => handleRemoveRef(String(ref.id))}
+                onClick={() => handleRemoveRef(String(ref.id), ref.displayName)}
               >
-                Remove
+                Remove Ref
               </Button>
             </HStack>
           ))}
@@ -915,8 +930,10 @@ export default function BattleshipAdminPage() {
   });
 
   const event = eventData?.getBSEvent;
-  const teams = event?.teams ?? [];
-  const shotLog = shotLogData?.getBSShotLog ?? [];
+  // useMemo so `?? []` doesn't produce a fresh array reference every render
+  // (would re-run any useMemo that depends on `teams` / `shotLog`).
+  const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
+  const shotLog = useMemo(() => shotLogData?.getBSShotLog ?? [], [shotLogData?.getBSShotLog]);
 
   const [womCompInput, setWomCompInput] = useState('');
   const [womTeamNames, setWomTeamNames] = useState({});
@@ -931,6 +948,73 @@ export default function BattleshipAdminPage() {
   const [updateBSEvent] = useMutation(UPDATE_BS_EVENT, {
     onError: (err) => showToast(err.message ?? 'Failed to save.', 'error'),
   });
+  const [adminForceGameOver, { loading: forcingGameOver }] = useMutation(
+    ADMIN_FORCE_BS_GAME_OVER,
+    { onError: (err) => showToast(err.message ?? 'Failed to force game over.', 'error') },
+  );
+
+  // Force-game-over confirmation state. Two-step: step 1 shows the calculated
+  // winner + hit counts, step 2 requires typing the event name.
+  const [forceOpen, setForceOpen] = useState(false);
+  const [forceStep, setForceStep] = useState(1);
+  const [forceConfirmText, setForceConfirmText] = useState('');
+
+  // Client-side preview of who would win — same ranking as computeAdminGameOverWinner
+  // (hits, then fewer misses, then earlier last-shot, then alphabetical teamId).
+  const forcePreview = useMemo(() => {
+    if (!event || teams.length < 2) return null;
+    const stats = Object.fromEntries(
+      teams.map((t) => [t.teamId, { hits: 0, misses: 0, lastShotAt: null }]),
+    );
+    for (const s of shotLog) {
+      const bucket = stats[s.firingTeamId];
+      if (!bucket) continue;
+      if (s.result === 'HIT') bucket.hits += 1;
+      else if (s.result === 'MISS') bucket.misses += 1;
+      const ts = s.shotAt ? new Date(s.shotAt).getTime() : null;
+      if (ts != null && (bucket.lastShotAt == null || ts > bucket.lastShotAt)) {
+        bucket.lastShotAt = ts;
+      }
+    }
+    const ranked = [...teams].sort((a, b) => {
+      const sa = stats[a.teamId];
+      const sb = stats[b.teamId];
+      if (sb.hits !== sa.hits) return sb.hits - sa.hits;
+      if (sa.misses !== sb.misses) return sa.misses - sb.misses;
+      const la = sa.lastShotAt ?? Number.POSITIVE_INFINITY;
+      const lb = sb.lastShotAt ?? Number.POSITIVE_INFINITY;
+      if (la !== lb) return la - lb;
+      return String(a.teamId).localeCompare(String(b.teamId));
+    });
+    return {
+      winner: ranked[0],
+      loser: ranked[1],
+      winnerStats: stats[ranked[0].teamId],
+      loserStats: stats[ranked[1].teamId],
+    };
+  }, [event, teams, shotLog]);
+
+  const openForceModal = () => {
+    setForceStep(1);
+    setForceConfirmText('');
+    setForceOpen(true);
+  };
+  const closeForceModal = () => {
+    if (forcingGameOver) return;
+    setForceOpen(false);
+    setForceStep(1);
+    setForceConfirmText('');
+  };
+  const handleForceGameOver = async () => {
+    try {
+      await adminForceGameOver({ variables: { eventId } });
+      showToast('Campaign called. Winners have been declared.', 'success');
+      closeForceModal();
+      refetchEvent();
+    } catch (_) {
+      // Toast already fired by onError.
+    }
+  };
   const [updateTeamWomName] = useMutation(UPDATE_BS_TEAM_DISCORD, {
     onError: (err) => showToast(err.message ?? 'Failed to save team WOM name.', 'error'),
   });
@@ -999,7 +1083,7 @@ export default function BattleshipAdminPage() {
     teams.every((t) => womTeamNames[t.teamId]?.trim().length > 0);
 
   const [triggerWomSync, { loading: syncingWom }] = useMutation(TRIGGER_BS_WOM_SYNC, {
-    onCompleted: () => showToast('WOM sync triggered — progress will update shortly.', 'success'),
+    onCompleted: () => showToast('WOM sync triggered. Progress will update shortly.', 'success'),
     onError: (err) => showToast(err.message ?? 'Failed to trigger sync.', 'error'),
   });
 
@@ -1086,7 +1170,19 @@ export default function BattleshipAdminPage() {
           </HStack>
         </HStack>
 
-        <Accordion allowMultiple defaultIndex={[0, 1, 2, 3, 4]}>
+        {/* No defaultIndex on purpose: several AccordionItems below are
+            conditional on data that loads asynchronously (teams, shotLog,
+            event.guildId). Chakra's Accordion tracks open state by positional
+            index, so any defaultIndex ends up pointing at whatever items
+            happened to be mounted at the moment the accordion first
+            initialized. When later items mount, indices shift and the
+            "open" set silently references different items than intended,
+            which produced two known bugs: the Shot Log accordion opening
+            by default when it shouldn't, and needing two clicks to close a
+            panel because Chakra's internal state was out of sync with the
+            visible layout. Everything defaults collapsed. One extra click to
+            open something is a small price for predictable behavior. */}
+        <Accordion allowMultiple>
           {/* Section 1: Event Overview */}
           <AccordionItem
             border="1px solid"
@@ -1213,20 +1309,39 @@ export default function BattleshipAdminPage() {
                       >
                         Event Password
                       </Text>
-                      <Box
-                        bg={CARD_BG}
-                        border="1px solid"
-                        borderColor={BORDER}
-                        borderRadius="md"
-                        px={3}
-                        py={2}
-                        fontFamily="mono"
-                        fontSize="sm"
-                        color={GREEN}
-                        letterSpacing="wider"
-                      >
-                        {event.eventPassword}
-                      </Box>
+                      <HStack spacing={2}>
+                        <Box
+                          bg={CARD_BG}
+                          border="1px solid"
+                          borderColor={BORDER}
+                          borderRadius="md"
+                          px={3}
+                          py={2}
+                          fontFamily="mono"
+                          fontSize="sm"
+                          color={GREEN}
+                          letterSpacing="wider"
+                        >
+                          {event.eventPassword}
+                        </Box>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          borderColor={BORDER}
+                          color={DIM}
+                          fontFamily="mono"
+                          fontSize="10px"
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                          onClick={() => {
+                            navigator.clipboard.writeText(event.eventPassword).catch(() => {});
+                            showToast('Password copied.', 'success');
+                          }}
+                          _hover={{ bg: CARD_BG, borderColor: GREEN, color: GREEN }}
+                        >
+                          Copy
+                        </Button>
+                      </HStack>
                     </VStack>
                   )}
 
@@ -1330,6 +1445,80 @@ export default function BattleshipAdminPage() {
                     />
                   ))}
                 </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 1.27: Team Boards (ACTIVE only, default collapsed) — full
+              board overlay for both teams. Admins bypass the ship-redaction
+              filter server-side (canSeeShips returns true for event admins),
+              so this renders live ship placements too. Kept collapsed so the
+              admin scroll doesn't get dominated by two 10x10 grids. */}
+          {event?.status === 'ACTIVE' && teams.length >= 2 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaShieldAlt color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    TEAM BOARDS
+                  </Text>
+                  <Badge
+                    colorScheme="gray"
+                    fontFamily="mono"
+                    fontSize="9px"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    ships visible
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <Text fontSize="xs" color={DIM} mb={3} lineHeight="1.7">
+                  Admin-only view of both fleets. Ship placements are hidden from
+                  opponents by the server; you see everything.
+                </Text>
+                <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
+                  {teams.map((team) => (
+                    <Box key={team.teamId}>
+                      <Text
+                        fontFamily="mono"
+                        fontSize="10px"
+                        color="#6b9e78"
+                        letterSpacing="widest"
+                        textTransform="uppercase"
+                        mb={2}
+                      >
+                        {team.teamName}
+                      </Text>
+                      <BoardPanel
+                        title=""
+                        tiles={team.board?.tiles ?? []}
+                        showShips
+                        canFire={false}
+                      />
+                    </Box>
+                  ))}
+                </SimpleGrid>
               </AccordionPanel>
             </AccordionItem>
           )}
@@ -1564,99 +1753,102 @@ export default function BattleshipAdminPage() {
             </AccordionPanel>
           </AccordionItem>
 
-          {/* Section 2: Discord Bot Setup */}
-          <AccordionItem
-            border="1px solid"
-            borderColor={BORDER}
-            borderRadius="lg"
-            mb={3}
-            overflow="hidden"
-          >
-            <AccordionButton
-              px={4}
-              py={3}
-              bg={CARD_BG}
-              _hover={{ bg: '#0e2418' }}
-              _expanded={{ bg: CARD_BG }}
+          {/* Section 2: Discord Bot Setup — rendered here (near the top)
+              only while unconfigured, so first-time admins land on the CTA
+              immediately. Once connected, the section moves to the bottom
+              of the accordion (right above Force Game Over) so admins don't
+              have to scroll past a resolved setup step on every visit. */}
+          {!event?.guildId && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
             >
-              <HStack flex={1} spacing={2}>
-                <FaDiscord color={DIM} />
-                <Text
-                  fontWeight="semibold"
-                  color="#d4f0da"
-                  fontFamily="mono"
-                  letterSpacing="wide"
-                  fontSize="sm"
-                >
-                  DISCORD BOT SETUP
-                </Text>
-                <Badge colorScheme={event?.guildId ? 'green' : 'yellow'} fontSize="xs">
-                  {event?.guildId ? 'Connected' : 'Not configured'}
-                </Badge>
-              </HStack>
-              <AccordionIcon color={DIM} />
-            </AccordionButton>
-            <AccordionPanel px={4} py={4} bg={BG}>
-              <VStack align="stretch" spacing={3}>
-                {event?.guildId ? (
-                  <HStack spacing={2}>
-                    <Text fontFamily="mono" fontSize="xs" color={DIM}>
-                      Guild ID:
-                    </Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
-                      {event.guildId}
-                    </Text>
-                  </HStack>
-                ) : (
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaDiscord color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    DISCORD BOT SETUP
+                  </Text>
+                  <Badge colorScheme="yellow" fontSize="xs">
+                    Not configured
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
                   <Text fontFamily="mono" fontSize="xs" color={DIM}>
                     The Discord bot has not been connected yet. Set it up to enable task submission
                     notifications.
                   </Text>
-                )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  colorScheme="green"
-                  borderColor={BORDER}
-                  color={GREEN}
-                  fontFamily="mono"
-                  fontSize="xs"
-                  letterSpacing="wider"
-                  textTransform="uppercase"
-                  alignSelf="flex-start"
-                  leftIcon={<FaDiscord />}
-                  onClick={() => setShowDiscordModal(true)}
-                  _hover={{ bg: '#0e2418', borderColor: GREEN }}
-                >
-                  {event?.guildId ? 'Reconfigure Bot' : 'Set Up Bot'}
-                </Button>
-                <Box>
                   <Button
                     size="sm"
                     variant="outline"
-                    borderColor="#5865f2"
-                    color="#aeb7ff"
+                    colorScheme="green"
+                    borderColor={BORDER}
+                    color={GREEN}
                     fontFamily="mono"
                     fontSize="xs"
                     letterSpacing="wider"
                     textTransform="uppercase"
+                    alignSelf="flex-start"
                     leftIcon={<FaDiscord />}
-                    isLoading={sendingTestDiscordMessages}
-                    loadingText="Sending"
-                    isDisabled={!teams.some((team) => team.discordChannelId)}
-                    onClick={handleSendTestDiscordMessages}
-                    _hover={{ bg: 'rgba(88, 101, 242, 0.14)', borderColor: '#818cf8' }}
+                    onClick={() => setShowDiscordModal(true)}
+                    _hover={{ bg: '#0e2418', borderColor: GREEN }}
                   >
-                    Send Test to Team Channels
+                    Set Up Bot
                   </Button>
-                  <Text fontFamily="mono" fontSize="xs" color={DIM} mt={2}>
-                    Sends a no-ping test to each configured team channel. Messages delete
-                    themselves after 15 seconds.
-                  </Text>
-                </Box>
-              </VStack>
-            </AccordionPanel>
-          </AccordionItem>
+                  <Box>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      borderColor="#5865f2"
+                      color="#aeb7ff"
+                      fontFamily="mono"
+                      fontSize="xs"
+                      letterSpacing="wider"
+                      textTransform="uppercase"
+                      leftIcon={<FaDiscord />}
+                      isLoading={sendingTestDiscordMessages}
+                      loadingText="Sending"
+                      isDisabled={!teams.some((team) => team.discordChannelId)}
+                      onClick={handleSendTestDiscordMessages}
+                      _hover={{ bg: 'rgba(88, 101, 242, 0.14)', borderColor: '#818cf8' }}
+                    >
+                      Send Test to Team Channels
+                    </Button>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM} mt={2}>
+                      Sends a no-ping test to each configured team channel. Messages delete
+                      themselves after 15 seconds.
+                      {!teams.some((team) => team.discordChannelId) && (
+                        <>
+                          {' '}
+                          <Text as="span" color="#fbbf24">
+                            At least one team needs a Discord channel set before this can run.
+                          </Text>
+                        </>
+                      )}
+                    </Text>
+                  </Box>
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
 
           {/* Section 3: WOM Integration */}
           <AccordionItem
@@ -1809,11 +2001,23 @@ export default function BattleshipAdminPage() {
                     </Button>
                   )}
                 </HStack>
+                {!womAllFilled && (
+                  <Text fontSize="xs" color={DIM} mt={1}>
+                    Save is disabled until the WOM competition ID and every team's WOM name are
+                    filled in.
+                  </Text>
+                )}
+                {event?.womCompetitionId && event?.status !== 'ACTIVE' && (
+                  <Text fontSize="xs" color={DIM} mt={1}>
+                    The manual sync button appears once the event is ACTIVE. Progress syncs
+                    automatically every 7 minutes during the battle phase.
+                  </Text>
+                )}
               </VStack>
             </AccordionPanel>
           </AccordionItem>
 
-          {/* Section 3: Teams */}
+          {/* Section 3: Teams & Skip Tokens */}
           <AccordionItem
             border="1px solid"
             borderColor={BORDER}
@@ -1837,7 +2041,7 @@ export default function BattleshipAdminPage() {
                   letterSpacing="wide"
                   fontSize="sm"
                 >
-                  TEAMS
+                  TEAMS & SKIP TOKENS
                 </Text>
                 {event && (
                   <Badge colorScheme="green" fontSize="xs">
@@ -1999,6 +2203,197 @@ export default function BattleshipAdminPage() {
               </AccordionPanel>
             </AccordionItem>
           )}
+
+          {/* Section 8: Discord Bot (configured) — bottom position. Once
+              the bot is connected, this section only surfaces reconfigure +
+              test-message controls, so it sinks to the bottom of the admin
+              surface. See the top-position twin for the first-time setup
+              variant. */}
+          {event?.guildId && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaDiscord color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    DISCORD BOT
+                  </Text>
+                  <Badge colorScheme="green" fontSize="xs">
+                    Connected
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  <HStack spacing={2}>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM}>
+                      Guild ID:
+                    </Text>
+                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+                      {event.guildId}
+                    </Text>
+                  </HStack>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    colorScheme="green"
+                    borderColor={BORDER}
+                    color={GREEN}
+                    fontFamily="mono"
+                    fontSize="xs"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                    alignSelf="flex-start"
+                    leftIcon={<FaDiscord />}
+                    onClick={() => setShowDiscordModal(true)}
+                    _hover={{ bg: '#0e2418', borderColor: GREEN }}
+                  >
+                    Reconfigure Bot
+                  </Button>
+                  <Box>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      borderColor="#5865f2"
+                      color="#aeb7ff"
+                      fontFamily="mono"
+                      fontSize="xs"
+                      letterSpacing="wider"
+                      textTransform="uppercase"
+                      leftIcon={<FaDiscord />}
+                      isLoading={sendingTestDiscordMessages}
+                      loadingText="Sending"
+                      isDisabled={!teams.some((team) => team.discordChannelId)}
+                      onClick={handleSendTestDiscordMessages}
+                      _hover={{ bg: 'rgba(88, 101, 242, 0.14)', borderColor: '#818cf8' }}
+                    >
+                      Send Test to Team Channels
+                    </Button>
+                    <Text fontFamily="mono" fontSize="xs" color={DIM} mt={2}>
+                      Sends a no-ping test to each configured team channel. Messages delete
+                      themselves after 15 seconds.
+                      {!teams.some((team) => team.discordChannelId) && (
+                        <>
+                          {' '}
+                          <Text as="span" color="#fbbf24">
+                            At least one team needs a Discord channel set before this can run.
+                          </Text>
+                        </>
+                      )}
+                    </Text>
+                  </Box>
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 9: Force Game Over (ACTIVE only, DANGER ZONE) — kept
+              at the very bottom of the admin surface so it's harder to
+              trip on accidentally. Winner determined by ship-hit count.
+              Guarded by a two-step confirm modal (see openForceModal). */}
+          {event?.status === 'ACTIVE' && teams.length >= 2 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor="#7f1d1d"
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#1a0a0a' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaFlagCheckered color="#fca5a5" />
+                  <Text
+                    fontWeight="semibold"
+                    color="#fca5a5"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    FORCE GAME OVER
+                  </Text>
+                  <Badge colorScheme="red" fontFamily="mono" fontSize="xs">
+                    DANGER ZONE
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontSize="xs" color={DIM} lineHeight="1.7">
+                    Manually ends the campaign and declares the winner by ship-hit count. Use for
+                    early ends (stuck event) or at a pre-communicated end time. This cannot be
+                    undone. The event flips to COMPLETED, the game-over screen animates for both
+                    teams, and Discord announcements go out.
+                  </Text>
+                  {forcePreview && (
+                    <Box
+                      bg={CARD_BG}
+                      border="1px solid"
+                      borderColor={BORDER}
+                      borderRadius="md"
+                      p={3}
+                    >
+                      <Text fontSize="10px" color={DIM} fontFamily="mono" mb={2} letterSpacing="wide">
+                        CURRENT STANDINGS
+                      </Text>
+                      <VStack align="stretch" spacing={1}>
+                        <HStack justify="space-between">
+                          <Text fontSize="xs" color={GREEN} fontFamily="mono">
+                            🏆 {forcePreview.winner.teamName}
+                          </Text>
+                          <Text fontSize="xs" color={DIM} fontFamily="mono">
+                            {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                          </Text>
+                        </HStack>
+                        <HStack justify="space-between">
+                          <Text fontSize="xs" color="#fbbf24" fontFamily="mono">
+                            {forcePreview.loser.teamName}
+                          </Text>
+                          <Text fontSize="xs" color={DIM} fontFamily="mono">
+                            {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                          </Text>
+                        </HStack>
+                      </VStack>
+                    </Box>
+                  )}
+                  <Button
+                    leftIcon={<FaFlagCheckered />}
+                    colorScheme="red"
+                    variant="outline"
+                    size="sm"
+                    onClick={openForceModal}
+                    isDisabled={!forcePreview}
+                  >
+                    Force Game Over…
+                  </Button>
+                </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
         </Accordion>
 
         <Divider borderColor={BORDER} />
@@ -2018,6 +2413,124 @@ export default function BattleshipAdminPage() {
           onClose={() => setShowDiscordModal(false)}
         />
       )}
+
+      {/* Force Game Over — two-step confirm. Step 1: winner preview + basic
+          confirm. Step 2: type the event name to unlock the final button. */}
+      <Modal isOpen={forceOpen} onClose={closeForceModal} isCentered size="md">
+        <ModalOverlay />
+        <ModalContent bg={CARD_BG} border="1px solid" borderColor="#7f1d1d" color="#d4f0da">
+          <ModalHeader fontFamily="mono" fontSize="sm" color="#fca5a5">
+            <HStack spacing={2}>
+              <FaFlagCheckered />
+              <Text>
+                {forceStep === 1 ? 'Force Game Over: Confirm' : 'Force Game Over: Type to Confirm'}
+              </Text>
+            </HStack>
+          </ModalHeader>
+          <ModalCloseButton isDisabled={forcingGameOver} />
+          <ModalBody>
+            {forceStep === 1 && forcePreview && (
+              <VStack align="stretch" spacing={4}>
+                <Text fontSize="sm" color="#e2e8f0" lineHeight="1.7">
+                  This will end <strong>{event?.eventName}</strong> right now. Both teams will see
+                  the game-over screen and Discord will announce a hit-count victory.
+                </Text>
+                <Box bg={BG} border="1px solid" borderColor={BORDER} borderRadius="md" p={3}>
+                  <Text fontSize="10px" color={DIM} fontFamily="mono" mb={2} letterSpacing="wide">
+                    WINNER (BY SHIP-HIT COUNT)
+                  </Text>
+                  <VStack align="stretch" spacing={2}>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color={GREEN} fontFamily="mono" fontWeight="bold">
+                        🏆 {forcePreview.winner.teamName}
+                      </Text>
+                      <Text fontSize="xs" color={DIM} fontFamily="mono">
+                        {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                      </Text>
+                    </HStack>
+                    <HStack justify="space-between">
+                      <Text fontSize="sm" color="#fbbf24" fontFamily="mono">
+                        {forcePreview.loser.teamName}
+                      </Text>
+                      <Text fontSize="xs" color={DIM} fontFamily="mono">
+                        {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                      </Text>
+                    </HStack>
+                  </VStack>
+                </Box>
+                <Text fontSize="xs" color="#fbbf24" lineHeight="1.7">
+                  ⚠️ This cannot be undone. Standings are recomputed by the server at the moment
+                  you confirm, so a shot resolved between now and then may shift the winner.
+                </Text>
+              </VStack>
+            )}
+            {forceStep === 2 && (
+              <VStack align="stretch" spacing={4}>
+                <Text fontSize="sm" color="#e2e8f0" lineHeight="1.7">
+                  Type <strong>{event?.eventName}</strong> below to unlock the final button.
+                </Text>
+                <Input
+                  value={forceConfirmText}
+                  onChange={(e) => setForceConfirmText(e.target.value)}
+                  placeholder={event?.eventName}
+                  bg={BG}
+                  borderColor={BORDER}
+                  color="#e2e8f0"
+                  autoFocus
+                />
+              </VStack>
+            )}
+          </ModalBody>
+          <ModalFooter gap={2}>
+            <Button
+              size="sm"
+              variant="ghost"
+              color={DIM}
+              onClick={closeForceModal}
+              isDisabled={forcingGameOver}
+            >
+              Cancel
+            </Button>
+            {forceStep === 1 && (
+              <Button
+                size="sm"
+                colorScheme="red"
+                variant="outline"
+                onClick={() => setForceStep(2)}
+                isDisabled={!forcePreview}
+              >
+                Continue →
+              </Button>
+            )}
+            {forceStep === 2 && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderColor="#1a4028"
+                  color="#6b9e78"
+                  onClick={() => {
+                    setForceConfirmText('');
+                    setForceStep(1);
+                  }}
+                  isDisabled={forcingGameOver}
+                >
+                  ← Back
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  onClick={handleForceGameOver}
+                  isLoading={forcingGameOver}
+                  isDisabled={forceConfirmText !== event?.eventName}
+                >
+                  Force Game Over
+                </Button>
+              </>
+            )}
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 }

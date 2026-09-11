@@ -21,6 +21,7 @@ import {
   isChampionForgeEnabled,
   isBlindDraftEnabled,
   isGroupDashboardEnabled,
+  isBattleshipEnabled,
 } from '../config/featureFlags';
 import { useAuth } from '../providers/AuthProvider';
 
@@ -188,6 +189,89 @@ const FAQ_SECTIONS = (user) =>
         {
           q: 'Can I rewatch a battle after it ends?',
           a: 'Yes. Every action in every battle is logged. You can step through a full replay from the bracket view after the battle is over.',
+        },
+      ],
+    },
+    isBattleshipEnabled(user) && {
+      title: '🚢 Battleship',
+      colorKey: 'turquoise',
+      items: [
+        {
+          q: 'What is Battleship?',
+          a: 'Battleship is a two-team competitive mode played on 10×10 grids. Each team places five ships (Carrier, Battleship, Cruiser, Submarine, Destroyer) on their own board, then takes turns firing at the enemy board. Every shot reveals an OSRS task the firing team must complete before they can fire again. Tasks include boss KC, XP goals, unique drops, and minigame scores.',
+        },
+        {
+          q: 'Who can create a Battleship event?',
+          a: 'Any logged-in user can create an event. The creator is the event admin and can add other admins and refs. Refs handle the review queue. Admins have all ref powers plus event settings and lifecycle controls.',
+        },
+        {
+          q: 'How do the phases work?',
+          a: (
+            <>
+              <strong>Placement</strong>: teammates workshop ship layouts privately, then share one
+              as a suggestion for the team to vote on. Whichever layout has the most votes at the
+              placement deadline becomes the team&apos;s fleet. Ties break at random. If nobody
+              shares a layout, the fleet is auto-placed.
+              <br />
+              <br />
+              <strong>Battle</strong>: teams alternate proposing and firing shots at the enemy
+              board. Each shot lands on a tile with an OSRS task that must be verified by a ref
+              before the team can fire again.
+            </>
+          ),
+        },
+        {
+          q: 'How do teams take a shot?',
+          a: (
+            <>
+              Any teammate proposes a target by clicking an unrevealed cell on the enemy board.
+              Teammates get a Discord ping and vote yes/no in a modal. Once the proposal hits the
+              vote threshold (usually 1 for small teams, up to 3 for larger ones), the proposer
+              sees a <strong>FIRE</strong> button and pulls the trigger. One veto rejects the
+              proposal outright. Unresolved proposals expire after 2 minutes.
+            </>
+          ),
+        },
+        {
+          q: 'What happens when a shot connects with a ship?',
+          a: (
+            <>
+              The tile is marked as a hit and the OSRS task on it must be completed and
+              ref-approved. When every tile of a ship has been hit AND approved, the ship is sunk.
+              Sink all five enemy ships to win. The game-over screen then animates the entire
+              engagement log with sound.
+            </>
+          ),
+        },
+        {
+          q: 'What are skip tokens?',
+          a: 'Skip tokens let a team skip a miss tile they don\'t want to grind out. Each event starts with a configurable amount (default 2), and admins can award more. Skips require a team vote too, same as shots. Hit tiles can never be skipped.',
+        },
+        {
+          q: 'How does the game end?',
+          a: (
+            <>
+              <strong>Standard</strong>: the first team to sink all five enemy ships wins.
+              <br />
+              <br />
+              <strong>Admin-called</strong>: the event admin can also end the campaign manually,
+              either early (for a stuck event) or at a pre-communicated end time. In that case
+              the winner is the team with the most ship-tile hits. Fewer misses breaks a tie. The
+              game-over screen shows &quot;Campaign Called&quot; and the Discord post announces a
+              hit-count victory instead of a clean sweep.
+            </>
+          ),
+        },
+        {
+          q: 'Do I need a Discord bot for Battleship?',
+          a: (
+            <>
+              Yes. The Discord bot handles task submissions and channel pings. Players post{' '}
+              <code>!bspre</code> before starting a metric task (KC/XP) so refs have a baseline,
+              then <code>!bssubmit</code> with a screenshot when it&apos;s done. Non-metric tasks
+              (unique drops, minigames) skip the baseline and go straight to <code>!bssubmit</code>.
+            </>
+          ),
         },
       ],
     },

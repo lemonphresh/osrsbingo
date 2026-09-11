@@ -185,7 +185,7 @@ async function syncSpoopyEventWom(eventId, { force = false } = {}) {
   }
   if (!force && isOnCooldown(event)) {
     const mins = Math.ceil(msUntilNextSyncAllowed(event) / 60000);
-    throw new Error(`WOM sync on cooldown — try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
+    throw new Error(`WOM sync on cooldown. Try again in ${mins} minute${mins === 1 ? '' : 's'}.`);
   }
 
   const { rosters, usernameMap } = await fetchCompetitionTeamRosters(event.womCompetitionId);

@@ -16,7 +16,11 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react';
-import { EXPORT_BS_DRAFT_WORKBOOK, IMPORT_BS_DRAFT_WORKBOOK } from '../../../graphql/bsOperations';
+import {
+  EXPORT_BS_DRAFT_WORKBOOK,
+  IMPORT_BS_DRAFT_WORKBOOK,
+  SYNC_BS_EVENT_WITH_REGISTRY,
+} from '../../../graphql/bsOperations';
 import { useToastContext } from '../../../providers/ToastProvider';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -56,6 +60,28 @@ export default function WorkbookControls({ eventId, refetch }) {
     fetchPolicy: 'network-only',
   });
   const [importWorkbook, { loading: importing }] = useMutation(IMPORT_BS_DRAFT_WORKBOOK);
+  const [syncRegistry, { loading: syncing }] = useMutation(SYNC_BS_EVENT_WITH_REGISTRY);
+
+  const handleSync = async () => {
+    try {
+      const { data } = await syncRegistry({ variables: { eventId } });
+      const result = data?.syncBSEventWithRegistry;
+      if (!result) throw new Error('Sync did not return a result.');
+      const { tasksAdded, shipTemplatesAdded } = result;
+      if (tasksAdded === 0 && shipTemplatesAdded === 0) {
+        showToast('No missing content — already in sync.', 'success');
+      } else {
+        showToast(
+          `Synced: ${tasksAdded} task${tasksAdded === 1 ? '' : 's'}, ` +
+            `${shipTemplatesAdded} ship cell${shipTemplatesAdded === 1 ? '' : 's'}.`,
+          'success'
+        );
+        refetch?.();
+      }
+    } catch (err) {
+      showToast(err.message ?? 'Failed to sync registry.', 'error');
+    }
+  };
 
   const closeImport = () => {
     setFileName('');
@@ -158,6 +184,22 @@ export default function WorkbookControls({ eventId, refetch }) {
           _hover={{ bg: '#091a10', borderColor: '#4ade80', color: '#4ade80' }}
         >
           Import Excel
+        </Button>
+        <Button
+          size="xs"
+          variant="outline"
+          borderColor="#1a4028"
+          color="#6b9e78"
+          fontFamily="mono"
+          fontSize="10px"
+          letterSpacing="wider"
+          textTransform="uppercase"
+          isLoading={syncing}
+          onClick={handleSync}
+          _hover={{ bg: '#091a10', borderColor: '#4ade80', color: '#4ade80' }}
+          title="Add any content that's missing from the task pool (i.e. after a registry update). Existing tasks and tiles are untouched."
+        >
+          Sync Content
         </Button>
       </HStack>
       <Input

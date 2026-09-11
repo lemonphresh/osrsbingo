@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  Box,
-  Flex,
-  Text,
-  VStack,
-  Collapse,
-  IconButton,
-} from '@chakra-ui/react';
+import { Box, Flex, Text, VStack, Collapse, IconButton } from '@chakra-ui/react';
 import { MdClose } from 'react-icons/md';
 
 // Generic dismissible announcement banner. Reusable anywhere you want to
@@ -21,7 +14,7 @@ import { MdClose } from 'react-icons/md';
 //   durationMs    — how long a dismissal lasts (ms). Default 24h.
 //   background    — CSS background (gradient or solid).
 //   borderColor   — bottom border accent.
-//   eyebrow       — small caps label above the title (e.g. "🎁 Seasonal").
+//   eyebrow       — small caps label above the title (i.e. "🎁 Seasonal").
 //   title         — main title (string or ReactNode).
 //   titleColor    — override title accent color.
 //   body          — description paragraph.

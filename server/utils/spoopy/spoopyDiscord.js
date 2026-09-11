@@ -51,7 +51,7 @@ async function postSpoopyPreScreenshotResult({
   if (approved) {
     await post(
       channelId,
-      `<@${discordUserId}> 📸 Your pre-screenshot for **${taskLabel}** was accepted as a baseline — go ahead and complete the task!`
+      `<@${discordUserId}> 📸 Your pre-screenshot for **${taskLabel}** was accepted as a baseline. Go ahead and complete the task!`
     );
   } else {
     const reason = denialReason || 'No reason given.';
@@ -101,14 +101,14 @@ async function postSpoopyTileComplete({ channelId, taskLabel, rewardGp, isCandyb
         : '';
     await post(
       channelId,
-      `🏚️ **${taskLabel}** complete — your team escaped the spooky house and cashed out!${bonusLine} Happy Halloween, ghouls and ghasts <3`
+      `🏚️ **${taskLabel}** complete! Your team escaped the spooky house and cashed out!${bonusLine} Happy Halloween, ghouls and ghasts <3`
     );
     return;
   }
   const rewardLine = rewardGp > 0 ? ` **🍬 +${formatCandy(rewardGp)}** banked.` : '';
   await post(
     channelId,
-    `🎃 **${taskLabel}** complete!${rewardLine} Neighbors unlocked — back to trick-or-treating.`
+    `🎃 **${taskLabel}** complete!${rewardLine} Neighbors unlocked. Back to trick-or-treating.`
   );
 }
 
@@ -122,16 +122,16 @@ async function postSpoopyEventStarted({ channelId, eventName }) {
   await post(
     channelId,
     [
-      `🎃 the night has begun — ${label} is live!`,
+      `🎃 the night has begun. ${label} is live!`,
       '',
       'proceed (if you dare…!) to the spoopy event dashboard:',
       'https://osrsbingo.com/spoopy-event',
       '',
-      "🔑 be sure to log in and have your discord linked to access the board — you'll only see " +
+      "🔑 be sure to log in and have your discord linked to access the board. you'll only see " +
         "your team's view.",
       '',
       "check the trick-or-treat houses, and don't forget the scary house at the end of the street. " +
-        'curfew is coming — good luck out there. 🕯️',
+        'curfew is coming. good luck out there. 🕯️',
     ].join('\n')
   );
 }

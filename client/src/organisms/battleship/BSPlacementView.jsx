@@ -41,6 +41,56 @@ import {
 // ── Workshop state (localStorage) ──────────────────────────────────────────
 // Each user has one workshop layout per event. Persisted so a refresh doesn't
 // lose in-progress work. Nothing here talks to the server until they Share.
+// Compact "placement ends in Xh Ym" reminder shown in the middle panel next
+// to the ship list. Complements the big flip-clock at the top of the page
+// which drops out of view once the player starts placing ships. Color gets
+// louder as the deadline approaches so a distracted player notices.
+function PlacementDeadlineHint({ event }) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(id);
+  }, []);
+
+  const endTime = event.placementEndsAt
+    ? new Date(event.placementEndsAt).getTime()
+    : event.placementStartsAt && event.placementPhaseHours
+    ? new Date(event.placementStartsAt).getTime() + event.placementPhaseHours * 3600 * 1000
+    : null;
+  if (!endTime) return null;
+
+  const ms = endTime - now;
+  if (ms <= 0) {
+    return (
+      <Box bg="#1a0a0a" border="1px solid" borderColor="#7f1d1d" borderRadius="md" px={3} py={2}>
+        <Text fontFamily="mono" fontSize="10px" color="#fca5a5" letterSpacing="wide">
+          ⏰ Placement window closed
+        </Text>
+      </Box>
+    );
+  }
+
+  const totalMins = Math.max(1, Math.round(ms / 60000));
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  const label = h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+  const urgent = ms <= 60 * 60 * 1000; // < 1h
+  const soon = !urgent && ms <= 3 * 60 * 60 * 1000; // < 3h
+  const color = urgent ? '#fca5a5' : soon ? '#fbbf24' : '#4ade80';
+  const bg = urgent ? '#1a0a0a' : soon ? '#1a1400' : '#060f0a';
+  const border = urgent ? '#7f1d1d' : soon ? '#78350f' : '#1a4028';
+
+  return (
+    <Box bg={bg} border="1px solid" borderColor={border} borderRadius="md" px={3} py={2}>
+      <Text fontFamily="mono" fontSize="10px" color={color} letterSpacing="wide">
+        ⏰ Placement ends in {label}. Get your layout shared and voted on before the clock hits
+        zero.
+      </Text>
+    </Box>
+  );
+}
+
 function workshopKey(eventId, discordUserId) {
   return `bsWorkshop:${eventId}:${discordUserId || 'anon'}`;
 }
@@ -60,8 +110,11 @@ function loadWorkshop(eventId, discordUserId) {
 function saveWorkshop(eventId, discordUserId, ships) {
   try {
     localStorage.setItem(workshopKey(eventId, discordUserId), JSON.stringify(ships));
+    return true;
   } catch (_) {
-    // ignore quota errors
+    // Browser storage quota exceeded (or storage disabled). The caller
+    // surfaces this so a player's fleet doesn't silently vanish.
+    return false;
   }
 }
 
@@ -245,12 +298,22 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   useEffect(() => {
     setWorkshop(loadWorkshop(eventId, myDiscordId));
   }, [eventId, myDiscordId]);
+  const savedFailedRef = useRef(false);
   const updateWorkshop = useCallback(
     (nextShips) => {
       setWorkshop(nextShips);
-      saveWorkshop(eventId, myDiscordId, nextShips);
+      const ok = saveWorkshop(eventId, myDiscordId, nextShips);
+      // Only toast the first time in a session so a persistent storage problem
+      // doesn't spam a warning on every board interaction.
+      if (!ok && !savedFailedRef.current) {
+        savedFailedRef.current = true;
+        showToast(
+          'Your layout could not be saved locally. Browser storage may be full or disabled.',
+          'warning'
+        );
+      }
     },
-    [eventId, myDiscordId]
+    [eventId, myDiscordId, showToast]
   );
 
   const [selectedShip, setSelectedShip] = useState('CARRIER');
@@ -473,12 +536,12 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
         // suggestion (with us added as a voter) instead of creating a duplicate.
         const wasMatched = returned && myDiscordId && returned.proposerDiscordId !== myDiscordId;
         if (wasMatched) {
-          showToast("Your layout matches a teammate's exactly — voted for theirs instead.", 'info');
+          showToast("Your layout matches a teammate's exactly. Voted for theirs instead.", 'info');
         } else {
           showToast(
             isSoloTeam
-              ? 'Layout locked in — no teammates to vote.'
-              : 'Suggestion shared — teammates can now vote.',
+              ? 'Layout locked in. No teammates to vote.'
+              : 'Suggestion shared. Teammates can now vote.',
             'success'
           );
         }
@@ -670,9 +733,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
             letterSpacing="wide"
             lineHeight="tall"
           >
-            Workshop your fleet on the board below — it's saved locally and only you can see it.
-            When you're happy, hit <strong>Share Suggestion</strong> so your teammates can vote on
-            it. The highest-voted suggestion at phase end becomes your team's fleet.
+            Workshop your fleet on the board below. It's saved locally and only you can see it. When
+            you're happy, hit <strong>Share Suggestion</strong> so your teammates can vote on it.
+            The highest-voted suggestion at phase end becomes your team's fleet.
             {isSoloTeam
               ? " You're the only member of this team, so your shared suggestion wins by default."
               : ' Ties break at random.'}
@@ -773,6 +836,10 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
           {/* Middle panel: ship list + orientation + share */}
           <Box flex="1" minW="220px" maxW="280px">
             <VStack align="stretch" spacing={5}>
+              {/* Deadline reminder — the flip-clock countdown lives at the top
+                  of the page, but by the time the player is placing ships and
+                  scrolling the ship list they've usually scrolled past it. */}
+              <PlacementDeadlineHint event={event} />
               <Box>
                 <Text
                   fontFamily="mono"
@@ -1000,7 +1067,17 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                                 : `by ${nameForProposer(s.proposerDiscordId)}`}
                             </Text>
                             <HStack spacing={1} flexWrap="wrap" justify="flex-end">
-                              {iVoted && (
+                              {isMine && isSoloTeam && (
+                                <Badge
+                                  colorScheme="green"
+                                  fontSize="9px"
+                                  letterSpacing="widest"
+                                  textTransform="uppercase"
+                                >
+                                  ✓ Auto-locked
+                                </Badge>
+                              )}
+                              {iVoted && !isSoloTeam && (
                                 <Badge
                                   colorScheme="green"
                                   fontSize="9px"

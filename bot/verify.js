@@ -66,7 +66,7 @@ async function sendLaunchMessage(guildId, eventId, eventName, teams, startDate) 
           ``,
           `> **Submissions are not open yet.** You won't be able to submit anything until the event officially starts.`,
           ``,
-          `## ⏰  Event starts <t:${startTs}:F> — <t:${startTs}:R>`,
+          `## ⏰  Event starts <t:${startTs}:F> (<t:${startTs}:R>)`,
           ``,
           `## **[🔗 Explore the Event Overview →](${eventUrl})**`,
         ].join('\n'),
@@ -103,7 +103,7 @@ async function sendLaunchMessage(guildId, eventId, eventName, teams, startDate) 
     footer: {
       text: hasStarted
         ? '🏅 Good luck, and happy scaping!'
-        : '⏳ Sit tight — the race begins soon!',
+        : '⏳ Sit tight. The race begins soon!',
     },
     timestamp: new Date().toISOString(),
   };
@@ -127,7 +127,7 @@ async function sendCompleteMessage(guildId, eventId, eventName, teams) {
 
   const standingsLines = sorted.length
     ? sorted.map(
-        (t, i) => `${medals[i] ?? `${i + 1}.`} **${t.teamName}** — ${formatGp(t.currentPot)} gp`,
+        (t, i) => `${medals[i] ?? `${i + 1}.`} **${t.teamName}**: ${formatGp(t.currentPot)} gp`,
       )
     : ['No teams recorded'];
 

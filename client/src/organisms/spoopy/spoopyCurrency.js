@@ -24,7 +24,7 @@ export function formatCandy(gp) {
 }
 
 // GP with thousands separators + "gp" suffix. Used when we need to fall
-// back to the real number (e.g. the "gp equivalent" line on the recap).
+// back to the real number (i.e. the "gp equivalent" line on the recap).
 export function formatGp(gp) {
   if (!Number.isFinite(gp) || gp === 0) return '0 gp';
   return `${Math.round(gp).toLocaleString()} gp`;

@@ -188,12 +188,12 @@ function ParticipantGuide() {
         submission command, make sure it includes the event password if the admin set one. The bot
         picks up whichever tile your team is currently on.
       </Callout>
-      <Step num="1" title="!bspre — pre-screenshot" color={CYAN}>
+      <Step num="1" title="!bspre: pre-screenshot" color={CYAN}>
         For tasks with a numeric target (X kc, N xp), post <strong>!bspre</strong> with a screenshot
         showing your current baseline (KC counter, XP total, whatever the task tracks). Refs approve
         this before you start grinding.
       </Step>
-      <Step num="2" title="!bssubmit — completion / progress" color={CYAN}>
+      <Step num="2" title="!bssubmit: completion / progress" color={CYAN}>
         Post <strong>!bssubmit</strong> with a screenshot to show progress or completion. Refs can
         adjust a progress slider along the way. For tasks with a unique-drops target the slider
         walks &quot;N / Total uniques,&quot; and for others it&apos;s 0 to 100%.
@@ -209,9 +209,20 @@ function ParticipantGuide() {
 
       <SectionHeader>Winning</SectionHeader>
       <Callout color={GREEN} icon={FaInfoCircle}>
-        You win when all five enemy ships are fully sunk (every ship cell shot AND ref-approved).
-        The game-over screen animates through the whole engagement log with sound, so make sure your
-        volume is on for the finale.
+        <strong>Standard win:</strong> sink all five enemy ships (every ship cell shot AND
+        ref-approved). The game-over screen then animates the whole engagement log with sound, so
+        make sure your volume is on for the finale.
+      </Callout>
+      <Callout color={AMBER} icon={FaExclamationTriangle}>
+        <strong>Admin-called ending:</strong> the event admin can also end the campaign manually,
+        either early (rare, for a stuck event) or at a pre-communicated end time (i.e.,
+        &quot;we&apos;re calling it Sunday at midnight&quot;). When that happens, the winner is the
+        team with the most
+        <strong> ship-tile hits</strong>. Fewer misses breaks a tie. Admins should call this out in
+        advance whenever possible so both teams know the finish line has moved from &quot;sink them
+        all&quot; to &quot;hit more than they do.&quot; The game-over screen will say
+        <em> Campaign Called</em> and the Discord post will announce the hit counts instead of a
+        clean sweep.
       </Callout>
     </Box>
   );
@@ -298,15 +309,17 @@ function RefGuide() {
       <Callout color={AMBER} icon={FaInfoCircle}>
         Approving/denying a submission auto-posts a message to the team&apos;s Discord channel with
         a mention. Marking a tile complete posts a &quot;fire again&quot; message unless it was the
-        game-winning move — in which case only the ship-sunk + game-over messages fire. You
+        game-winning move, in which case only the ship-sunk + game-over messages fire. You
         don&apos;t have to type anything by hand.
       </Callout>
 
       <SectionHeader>What Refs Can't Do</SectionHeader>
       <Callout color={RED} icon={FaLock}>
         Refs can&apos;t create/delete events, add or remove teams, change vote thresholds, award
-        skip tokens, launch the placement or battle phase, or vote on placement suggestions. All of
-        those belong to the event admin/creator only.
+        skip tokens, launch the placement or battle phase, vote on placement suggestions, or
+        manually end the campaign (a separate admin-only tool that declares the winner by ship-hit
+        count when a game needs to be called early or at a pre-communicated end time). All of those
+        belong to the event admin/creator only.
       </Callout>
     </Box>
   );

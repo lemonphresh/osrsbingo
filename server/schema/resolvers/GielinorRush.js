@@ -1,13 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const { Op, Sequelize } = require('sequelize');
-const {
-  GREvent,
-  GRTeam,
-  GRNode,
-  GRSubmission,
-  GRActivity,
-  User,
-} = require('../../db/models');
+const { GREvent, GRTeam, GRNode, GRSubmission, GRActivity, User } = require('../../db/models');
 const { generateMap } = require('../../utils/gielinorRush/grMapGenerator');
 const { getDefaultContentSelections } = require('../../utils/gielinorRush/objectiveBuilder');
 const { createBuff, canApplyBuff } = require('../../utils/gielinorRush/buffHelpers');
@@ -338,7 +331,12 @@ const GielinorRushResolvers = {
       subs.forEach((s) => {
         const key = `${s.nodeId}:${s.teamId}`;
         if (!summaryMap.has(key)) {
-          summaryMap.set(key, { nodeId: s.nodeId, teamId: s.teamId, pendingCount: 0, approvedCount: 0 });
+          summaryMap.set(key, {
+            nodeId: s.nodeId,
+            teamId: s.teamId,
+            pendingCount: 0,
+            approvedCount: 0,
+          });
         }
         const e = summaryMap.get(key);
         if (s.status === 'PENDING_REVIEW') e.pendingCount++;
@@ -570,9 +568,7 @@ const GielinorRushResolvers = {
         const generated = generateMap(event.eventConfig, event.derivedValues, contentSelections);
         const { mapStructure, nodes } = generated;
 
-        logger.info(
-          `[generateGRMap] generating ${nodes.length} nodes for eventId=${eventId}`
-        );
+        logger.info(`[generateGRMap] generating ${nodes.length} nodes for eventId=${eventId}`);
 
         const validatedNodes = nodes.map((node, index) => ({
           nodeId: node.nodeId || `node_${String(index).padStart(3, '0')}`,
@@ -629,9 +625,7 @@ const GielinorRushResolvers = {
     },
 
     updateGREvent: async (_, { eventId, input }) => {
-      logger.info(
-        `[updateGREvent] eventId=${eventId} fields=${Object.keys(input).join(',')}`
-      );
+      logger.info(`[updateGREvent] eventId=${eventId} fields=${Object.keys(input).join(',')}`);
       const event = await GREvent.findByPk(eventId);
       if (!event) throw new Error('Event not found');
 
@@ -703,9 +697,7 @@ const GielinorRushResolvers = {
 
     updateGRTeam: async (_, { eventId, teamId, input }) => {
       logger.info(
-        `[updateGRTeam] eventId=${eventId} teamId=${teamId} fields=${Object.keys(input).join(
-          ','
-        )}`
+        `[updateGRTeam] eventId=${eventId} teamId=${teamId} fields=${Object.keys(input).join(',')}`
       );
       const team = await GRTeam.findOne({ where: { teamId, eventId } });
       if (!team) throw new Error('Team not found');
@@ -1924,7 +1916,7 @@ const GielinorRushResolvers = {
         // Aggregate cost by kind: exact-color demand is deducted first, then a single
         // "any" budget consumes from what remains. Avoids two bugs the old per-cost-entry
         // loop had:
-        //   (a) exact-color demand overlapping with "any" (e.g. 2 red + 1 any vs 2 red keys)
+        //   (a) exact-color demand overlapping with "any" (i.e. 2 red + 1 any vs 2 red keys)
         //       was incorrectly marked affordable.
         //   (b) multiple "any" cost entries on one reward would re-consume the caller's
         //       selection quantities on each pass.

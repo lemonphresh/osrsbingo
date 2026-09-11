@@ -17,7 +17,7 @@ import { WD_COLORS, WD_FONTS } from './whodunnitTheme';
 //   icon        - react-icon for the wax seal ribbon
 //   sealLabel   - short label in the seal
 //   storageKey  - if set, only shows once per session per key
-//                 (e.g. 'landing', 'campaign-xyz')
+//                 (i.e. 'landing', 'campaign-xyz')
 
 const ENVELOPE_COLOR = '#c9a86b';
 const ENVELOPE_ACCENT = '#a88a52';

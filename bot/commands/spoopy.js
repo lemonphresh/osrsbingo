@@ -57,7 +57,7 @@ async function pickTargetTile({ eligible, event, argRaw }) {
     }
     const ids = eligible.map((t) => `\`${t.tileId}\``).join(', ');
     return {
-      error: `❌ More than one tile is open — please specify which one:\n${ids}\n` +
+      error: `❌ More than one tile is open. Please specify which one:\n${ids}\n` +
         'Usage: `!spoopysubmit <tile-id>`',
     };
   }
@@ -92,7 +92,7 @@ async function createSubmissionRecord({ event, team, tile, type, screenshot, mes
   const boardTile = event.board?.tiles?.find((t) => t.id === tile.tileId);
   if (type === 'FINAL' && boardTile?.tile_type === 'house' && !tile.choice) {
     const err = new Error('house tile needs a trick/treat choice before submitting');
-    err.userFacing = `❌ Pick trick or treat on **${tile.tileId}** first — that step's still on the site UI.`;
+    err.userFacing = `❌ Pick trick or treat on **${tile.tileId}** first. That step's still on the site UI.`;
     throw err;
   }
 

@@ -6,6 +6,10 @@ module.exports = (sequelize) => {
     static associate(models) {
       BSTeam.belongsTo(models.BSEvent, { foreignKey: 'eventId', as: 'event' });
       BSTeam.hasOne(models.BSBoard,    { foreignKey: 'teamId',  as: 'board' });
+      BSTeam.hasOne(models.BSShotProposal, {
+        foreignKey: 'firingTeamId',
+        as: 'shotProposal',
+      });
     }
   }
 

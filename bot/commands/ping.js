@@ -6,6 +6,6 @@ module.exports = {
   async execute(message) {
     if (message.author.id !== OWNER_ID) return;
     const latency = Date.now() - message.createdTimestamp;
-    message.reply(`🟢 alive — bot latency ${latency}ms, API latency ${Math.round(message.client.ws.ping)}ms`);
+    message.reply(`🟢 alive. bot latency ${latency}ms, API latency ${Math.round(message.client.ws.ping)}ms`);
   },
 };

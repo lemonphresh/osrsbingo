@@ -495,6 +495,28 @@ export const IMPORT_BS_DRAFT_WORKBOOK = gql`
   }
 `;
 
+export const SYNC_BS_EVENT_WITH_REGISTRY = gql`
+  mutation SyncBSEventWithRegistry($eventId: ID!) {
+    syncBSEventWithRegistry(eventId: $eventId) {
+      tasksAdded
+      shipTemplatesAdded
+      addedContentIds
+    }
+  }
+`;
+
+export const ADMIN_FORCE_BS_GAME_OVER = gql`
+  mutation AdminForceBSGameOver($eventId: ID!) {
+    adminForceBSGameOver(eventId: $eventId) {
+      eventId
+      status
+      winnerId
+      completedAt
+      endedByAdmin
+    }
+  }
+`;
+
 export const SET_BS_SHIP_TEMPLATE = gql`
   mutation SetBSShipTemplate(
     $eventId: ID!

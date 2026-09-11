@@ -34,6 +34,7 @@ import {
   ModalHeader,
   ModalBody,
   ModalCloseButton,
+  Select,
   useDisclosure,
   useClipboard,
   Avatar,
@@ -66,7 +67,9 @@ import {
   FaUndo,
   FaRedoAlt,
   FaKey,
+  FaGift,
 } from 'react-icons/fa';
+import AdminBuffManager from './GRAdminGiveBuff';
 
 // Copy button as its own component so useClipboard can be called per-item
 const CopyIdButton = ({ id }) => {
@@ -135,6 +138,12 @@ const AdminQuickActionsPanel = ({
     onOpen: onGpSplitOpen,
     onClose: onGpSplitClose,
   } = useDisclosure();
+  const {
+    isOpen: isGrantBuffOpen,
+    onOpen: onGrantBuffOpen,
+    onClose: onGrantBuffClose,
+  } = useDisclosure();
+  const [grantBuffTeamId, setGrantBuffTeamId] = useState('');
 
   const [checkChannels, { data: channelCheckData, loading: channelCheckLoading }] = useLazyQuery(
     CHECK_DISCORD_CHANNELS,
@@ -1184,6 +1193,18 @@ const AdminQuickActionsPanel = ({
                         _hover={{ bg: 'gray.600' }}
                       >
                         Refund Inn Purchase
+                      </MenuItem>
+                      <MenuItem
+                        icon={<FaGift />}
+                        color="white"
+                        bg="gray.700"
+                        onClick={() => {
+                          setGrantBuffTeamId(teams[0]?.teamId ?? '');
+                          onGrantBuffOpen();
+                        }}
+                        _hover={{ bg: 'gray.600' }}
+                      >
+                        Grant Team Buff
                       </MenuItem>
                     </>
                   )}
@@ -2414,6 +2435,71 @@ const AdminQuickActionsPanel = ({
                 </VStack>
               );
             })()}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Grant Team Buff Modal */}
+      <Modal
+        isOpen={isGrantBuffOpen}
+        onClose={onGrantBuffClose}
+        scrollBehavior="inside"
+        size="md"
+      >
+        <ModalOverlay />
+        <ModalContent bg="gray.800" color="white">
+          <ModalHeader pb={2}>
+            <HStack spacing={2}>
+              <Icon as={FaGift} color="purple.300" />
+              <Text>Grant Team Buff</Text>
+            </HStack>
+            <Text fontSize="xs" fontWeight="normal" color="gray.400" mt={1}>
+              Grants the buff at no cost. Useful for making a team whole after a bug or missed reward.
+            </Text>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            <VStack spacing={4} align="stretch">
+              <Box>
+                <Text fontSize="sm" fontWeight="semibold" color="white" mb={2}>
+                  Team
+                </Text>
+                <Select
+                  value={grantBuffTeamId}
+                  onChange={(e) => setGrantBuffTeamId(e.target.value)}
+                  bg="whiteAlpha.200"
+                  color="white"
+                  borderColor="purple.400"
+                >
+                  {teams.map((t) => (
+                    <option
+                      key={t.teamId}
+                      value={t.teamId}
+                      style={{ background: '#2D3748', color: 'white' }}
+                    >
+                      {t.teamName}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+              {(() => {
+                const selectedTeam = teams.find((t) => t.teamId === grantBuffTeamId);
+                if (!selectedTeam) {
+                  return (
+                    <Text fontSize="sm" color="gray.400" textAlign="center">
+                      No team selected.
+                    </Text>
+                  );
+                }
+                return (
+                  <AdminBuffManager
+                    eventId={event.eventId}
+                    team={selectedTeam}
+                    onUpdate={onRefreshEvent}
+                  />
+                );
+              })()}
+            </VStack>
           </ModalBody>
         </ModalContent>
       </Modal>

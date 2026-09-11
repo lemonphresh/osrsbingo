@@ -312,6 +312,7 @@ export function BSGameOverScreen({ event, shotLog }) {
     const wStats = teamShotCounts[winnerTeam?.teamId] ?? { hits: 0, misses: 0 };
     const lStats = teamShotCounts[loserTeam?.teamId] ?? { hits: 0, misses: 0 };
     const sortedLog = [...shotLog].sort((a, b) => new Date(a.shotAt) - new Date(b.shotAt));
+    const wasCalled = !!event.endedByAdmin;
 
     return [
       BLANK(),
@@ -332,10 +333,33 @@ export function BSGameOverScreen({ event, shotLog }) {
       BLANK(),
       S('> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓', winColor, { glow: true }),
       BLANK(),
-      { ...S(`>     MISSION ACCOMPLISHED`, winColor, { charDelay: 45, glow: true }) },
+      {
+        ...S(
+          wasCalled ? `>     CAMPAIGN CALLED` : `>     MISSION ACCOMPLISHED`,
+          winColor,
+          { charDelay: 45, glow: true },
+        ),
+      },
       BLANK(),
-      C(`>     VICTOR   :  ${winnerName}`, winColor, { charDelay: 28 }),
-      C(`>     DEFEATED :  ${loserName}`, loseColor, { charDelay: 28 }),
+      C(`>     VICTOR    :  ${winnerName}`, winColor, { charDelay: 28 }),
+      C(
+        wasCalled
+          ? `>     RUNNER-UP :  ${loserName}`
+          : `>     DEFEATED  :  ${loserName}`,
+        loseColor,
+        { charDelay: 28 },
+      ),
+      ...(wasCalled
+        ? [
+            BLANK(),
+            C(
+              `>     WON ON SHIP-HITS :  ${wStats.hits} to ${lStats.hits}`,
+              winColor,
+              { charDelay: 28 },
+            ),
+            C('>     (Campaign called by the admin.)', DIM, { charDelay: 22 }),
+          ]
+        : []),
       BLANK(),
       S('> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓', winColor, { glow: true }),
       BLANK(700),
@@ -359,7 +383,11 @@ export function BSGameOverScreen({ event, shotLog }) {
         loseColor
       ),
       BLANK(),
-      C(`> SHIPS SUNK          :  ${shipsSunk} / 5`),
+      C(
+        wasCalled
+          ? `> SHIPS SUNK          :  ${shipsSunk} / 5   (campaign called before conclusion)`
+          : `> SHIPS SUNK          :  ${shipsSunk} / 5`,
+      ),
       BLANK(500),
 
       SEP_H(),

@@ -9,8 +9,8 @@ import { WAX_SEAL_SX, WD_FONTS } from './whodunnitTheme';
 // a little seasonal flair — it's on brand.
 //
 // Props:
-//   label      - short text in the seal (e.g. "CONF", "042")
-//   icon       - react-icons component (e.g. GiChristmasTree)
+//   label      - short text in the seal (i.e. "CONF", "042")
+//   icon       - react-icons component (i.e. GiChristmasTree)
 //   size       - width/height of the seal, px (default 76)
 //   rotate     - seal rotation, deg (default -8)
 //   ribbonColor - hex for the ribbon body (default deep pine green)
@@ -97,7 +97,11 @@ const WaxSeal = ({
             as={IconComponent}
             boxSize={`${iconSize}px`}
             color={iconColor}
-            style={{ position: 'relative', zIndex: 1, filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }}
+            style={{
+              position: 'relative',
+              zIndex: 1,
+              filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+            }}
           />
         </Box>
       )}

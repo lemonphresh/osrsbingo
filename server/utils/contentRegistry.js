@@ -977,7 +977,7 @@ const BOSSES = {
       medium: { min: 75, max: 100 },
       long: { min: 100, max: 150 },
     },
-    drops: ['Aggy', 'Hallowfell'],
+    drops: ['Aggy', 'Hallowfell', 'Jar of Light'],
     dropQuantities: {
       medium: {
         min: 1,
@@ -1019,7 +1019,7 @@ const BOSSES = {
       medium: { min: 100, max: 150 },
       long: { min: 150, max: 200 },
     },
-    drops: ['Pet Chaos Fanatic', 'Odium Shard', 'Malediction Shard'],
+    drops: ['Odium Shard', 'Malediction Shard', 'Pet Chaos Elemental'],
     dropQuantities: {
       short: { min: 1, max: 2 },
       medium: { min: 2, max: 3 },
@@ -1054,7 +1054,7 @@ const BOSSES = {
       medium: { min: 100, max: 150 },
       long: { min: 150, max: 200 },
     },
-    drops: ['Pet Chaos Elemental', 'Odium Shard', 'Malediction Shard'],
+    drops: ['Odium Shard', 'Malediction Shard', 'Fedora'],
     dropQuantities: {
       short: { min: 1, max: 2 },
       medium: { min: 2, max: 3 },
@@ -1998,7 +1998,7 @@ const BOSSES = {
       medium: { min: 75, max: 100 },
       long: { min: 100, max: 150 },
     },
-    drops: ['Crimson Kisten', 'Elder Venator Fang'],
+    drops: ['Crimson Kisten', 'Elder Venator Fang', 'Maggot Marquess'],
     dropQuantities: {
       medium: {
         min: 1,
@@ -3282,6 +3282,18 @@ function getAcceptableDrops(id) {
   return boss?.drops ?? null;
 }
 
+// Registry-driven drop lookup used by battleship task authoring. Keying by
+// displayName matches how tasks store `bossOrSkill`, so it works even when the
+// task row's own `contentId` / `validDrops` have drifted.
+function getDropsByDisplayName(name) {
+  if (!name) return [];
+  const target = String(name).trim().toLowerCase();
+  for (const entry of [...Object.values(BOSSES), ...Object.values(RAIDS)]) {
+    if (entry.displayName.toLowerCase() === target) return entry.drops ?? [];
+  }
+  return [];
+}
+
 // Returns sorted [{value: womKey, label: displayName}] for bosses + raids.
 // Excludes entries with womKey: null (i.e. dagannoth_kings composite entry).
 // Intended for group dashboard dropdown.
@@ -3531,6 +3543,7 @@ module.exports = {
   getDropBosses,
   getBossesWithMetric,
   getAcceptableDrops,
+  getDropsByDisplayName,
   getBossMetricOptions,
   getSkillMetricOptions,
   getClueMetricOptions,

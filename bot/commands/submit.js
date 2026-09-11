@@ -115,7 +115,7 @@ module.exports = {
             days > 0 ? `${days}d ${hours}h` : hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
           return message.reply(
             `⏳ **${event.eventName}** hasn't started yet!\n` +
-              `Begins <t:${Math.floor(startDate.getTime() / 1000)}:F> — **${countdown}** from now.`,
+              `Begins <t:${Math.floor(startDate.getTime() / 1000)}:F> (**${countdown}** from now).`,
           );
         }
       }
@@ -126,7 +126,7 @@ module.exports = {
 
       if (!teamData.availableNodes.includes(nodeId)) {
         return message.reply(
-          '❌ This node is not available to your team — it may be locked, already completed, or not yet unlocked.',
+          '❌ This node is not available to your team. It may be locked, already completed, or not yet unlocked.',
         );
       }
 

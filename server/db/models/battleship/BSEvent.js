@@ -9,6 +9,7 @@ module.exports = (sequelize) => {
       BSEvent.hasMany(models.BSShipTemplate, { foreignKey: 'eventId', as: 'shipTemplates' });
       BSEvent.hasMany(models.BSBoard,        { foreignKey: 'eventId', as: 'boards' });
       BSEvent.hasMany(models.BSShotLog,      { foreignKey: 'eventId', as: 'shots' });
+      BSEvent.hasMany(models.BSShotProposal, { foreignKey: 'eventId', as: 'shotProposals' });
     }
   }
 
@@ -48,6 +49,7 @@ module.exports = (sequelize) => {
       contentSelections:      { type: DataTypes.JSONB,   allowNull: true },
       winnerId:               { type: DataTypes.STRING, allowNull: true },
       completedAt:            { type: DataTypes.DATE,   allowNull: true },
+      endedByAdmin:           { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
     },
     { sequelize, modelName: 'BSEvent', tableName: 'BattleshipEvents' }
   );

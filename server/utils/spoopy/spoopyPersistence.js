@@ -14,7 +14,7 @@ function generateId(prefix) {
 // Reads a team + its tile rows and produces the plain-object state the state
 // machine consumes. Roster comes from SpoopyTeam.members (discord user ids).
 //
-// Pass `{ transaction, lock }` to participate in an outer transaction (e.g.
+// Pass `{ transaction, lock }` to participate in an outer transaction (i.e.
 // `completeSpoopyTile` uses `t.LOCK.UPDATE` on the team row so concurrent
 // completions serialize instead of double-awarding rewards).
 async function loadTeamState(teamId, options = {}) {
@@ -50,7 +50,7 @@ async function loadTeamState(teamId, options = {}) {
 
 // Writes only the fields that changed between prevState and nextState.
 // Pass `{ transaction }` so team + tile updates commit atomically with any
-// outer read-check-write (e.g. `completeSpoopyTile`).
+// outer read-check-write (i.e. `completeSpoopyTile`).
 async function persistTeamState(prevState, nextState, options = {}) {
   const { transaction } = options;
   const { SpoopyTeam, SpoopyTeamTile } = getModels();
@@ -78,7 +78,7 @@ async function persistTeamState(prevState, nextState, options = {}) {
         rewardEarned: next.rewardEarned,
         progress: next.progress ?? 0,
       },
-      { where: { teamId: nextState.teamId, tileId }, transaction },
+      { where: { teamId: nextState.teamId, tileId }, transaction }
     );
   }
 }
@@ -104,7 +104,7 @@ function toEventDefinition(eventRow) {
     name: eventRow.eventName,
     curfew: {
       start: eventRow.curfewStart,
-      end:   eventRow.curfewEnd,
+      end: eventRow.curfewEnd,
     },
     board: eventRow.board,
     contentById: eventRow.contentById,

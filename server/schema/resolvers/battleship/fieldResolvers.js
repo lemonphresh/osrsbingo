@@ -33,7 +33,7 @@ const BSEvent = {
   teams: (event) => {
     const { BSTeam } = getModels();
     // Ordered so the UI doesn't reshuffle team cards when a team's row is
-    // touched (e.g., adding/removing members).
+    // touched (i.e., adding/removing members).
     return BSTeam.findAll({
       where: { eventId: event.eventId },
       order: [['createdAt', 'ASC']],
@@ -41,7 +41,10 @@ const BSEvent = {
   },
   tasks: (event) => {
     const { BSTask } = getModels();
-    return BSTask.findAll({ where: { eventId: event.eventId, isActive: true }, order: [['createdAt', 'ASC']] });
+    return BSTask.findAll({
+      where: { eventId: event.eventId, isActive: true },
+      order: [['createdAt', 'ASC']],
+    });
   },
   shipTemplates: (event) => {
     const { BSShipTemplate } = getModels();

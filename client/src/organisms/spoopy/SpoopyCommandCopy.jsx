@@ -7,7 +7,7 @@ import { SPOOPY_COLORS } from './spoopyTheme';
 // battleship / rainbow's click-to-copy, so muscle memory carries over.
 //
 // Props:
-//   command   the exact string to copy (e.g. "!spoopysubmit t-r19-c8")
+//   command   the exact string to copy (i.e. "!spoopysubmit t-r19-c8")
 //   size      "sm" | "md" — controls font size and padding (default "md")
 export default function SpoopyCommandCopy({ command, size = 'md' }) {
   const { onCopy, hasCopied } = useClipboard(command ?? '');

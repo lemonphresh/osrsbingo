@@ -24,7 +24,8 @@ import {
 } from '@chakra-ui/react';
 import {
   SET_BS_SHIP_TEMPLATE,
-  UPDATE_BS_TASK,
+  UPDATE_BS_TILE_TASK,
+  ADD_BS_TASK,
   UPDATE_BS_CONTENT_SELECTIONS,
   UPDATE_BS_MULTIPLIER,
 } from '../../../graphql/bsOperations';
@@ -32,6 +33,7 @@ import BSContentSelectionModal from '../BSContentSelectionModal';
 import BSMultiplierModal from '../BSMultiplierModal';
 import WorkbookControls from './WorkbookControls';
 import { useToastContext } from '../../../providers/ToastProvider';
+import useContentRegistry from '../../../hooks/useContentRegistry';
 import {
   COL_LABELS,
   SHIP_CONFIGS,
@@ -75,12 +77,14 @@ export function TaskGridTab({ event, refetch }) {
     return m;
   }, [shipTemplates]);
 
-  // Ocean cell → task map driven by server-assigned row/col on template board tiles.
+  // Ocean cell → { tile, task } map driven by server-assigned row/col on
+  // template board tiles. The `tileId` is needed so we can repoint a tile at a
+  // different task on custom edits (see handleSave).
   const oceanCellTaskMap = useMemo(() => {
     const m = {};
     for (const tile of templateBoardTiles) {
-      if (!tile.shipType && tile.row !== null && tile.col !== null && tile.task) {
-        m[`${tile.row}-${tile.col}`] = tile.task;
+      if (!tile.shipType && tile.row !== null && tile.col !== null) {
+        m[`${tile.row}-${tile.col}`] = { tileId: tile.tileId, task: tile.task ?? null };
       }
     }
     return m;
@@ -94,6 +98,22 @@ export function TaskGridTab({ event, refetch }) {
     }
     return m;
   }, [tasks]);
+
+  // Drops are sourced from the content registry, not from sibling task rows.
+  // Task-row `validDrops` gets wiped whenever a task is saved as `kc`, so
+  // reading it back can produce a stale empty array. Keyed by displayName
+  // because that's what `bossOrSkill` matches.
+  const { soloBosses, raids } = useContentRegistry();
+  const dropsByName = useMemo(() => {
+    const m = new Map();
+    for (const entry of Object.values(soloBosses ?? {})) {
+      if (entry.drops?.length) m.set(entry.name, entry.drops);
+    }
+    for (const entry of Object.values(raids ?? {})) {
+      if (entry.drops?.length) m.set(entry.name, entry.drops);
+    }
+    return m;
+  }, [soloBosses, raids]);
 
   const groupedOptions = useMemo(() => groupedBossSkillOptions(tasks), [tasks]);
 
@@ -146,14 +166,17 @@ export function TaskGridTab({ event, refetch }) {
     onError: (err) => showToast(err.message ?? 'Failed to assign.', 'error'),
   });
 
-  const [updateBSTask, { loading: updatingTask }] = useMutation(UPDATE_BS_TASK, {
+  const [addBSTask, { loading: addingTask }] = useMutation(ADD_BS_TASK, {
+    onError: (err) => showToast(err.message ?? 'Failed to create task.', 'error'),
+  });
+  const [updateBSTileTask, { loading: updatingTile }] = useMutation(UPDATE_BS_TILE_TASK, {
     onCompleted: () => {
-      showToast('Task updated.', 'success');
-      setSel(null);
+      showToast('Ocean cell updated.', 'success');
       refetch();
     },
-    onError: (err) => showToast(err.message ?? 'Failed to update task.', 'error'),
+    onError: (err) => showToast(err.message ?? 'Failed to assign tile.', 'error'),
   });
+  const savingCell = addingTask || updatingTile || settingTemplate;
 
   const fillFormFromTask = (task) => {
     setEditBossOrSkill(task?.bossOrSkill ?? task?.label ?? '');
@@ -172,8 +195,9 @@ export function TaskGridTab({ event, refetch }) {
       setSel(null);
       return;
     }
-    const task = oceanCellTaskMap[`${row}-${col}`];
-    setSel({ type: 'ocean', row, col, task });
+    const entry = oceanCellTaskMap[`${row}-${col}`];
+    const task = entry?.task ?? null;
+    setSel({ type: 'ocean', row, col, task, tileId: entry?.tileId ?? null });
     setEditTaskId(task?.taskId ?? null);
     setTaskSearch('');
     fillFormFromTask(task);
@@ -207,25 +231,58 @@ export function TaskGridTab({ event, refetch }) {
     // ocean: keep editTaskId as the ocean tile's own task — we're just pre-filling the form
   };
 
-  const handleSave = () => {
-    if (!editTaskId) return;
+  // Custom-edit save: never mutate the referenced task in place, or every
+  // other cell pointing at that task changes with it (bug: renaming one
+  // "Maggot King" repointed every "Maggot King" cell). Instead, look up an
+  // existing task in the pool matching the desired content and repoint this
+  // cell at it — creating a new task only if no match exists.
+  const handleSave = async () => {
+    if (!sel) return;
     const target = Number(editMetricTarget);
+    if (!editBossOrSkill || !Number.isFinite(target) || target <= 0) return;
     const ref = contentLookup.get(editBossOrSkill);
-    updateBSTask({
-      variables: {
-        taskId: editTaskId,
-        input: {
-          label: editBossOrSkill,
-          bossOrSkill: editBossOrSkill,
-          metricType: editMetricType,
-          metricTarget: target,
-          metricUnit: metricUnitFor(editMetricType),
-          metricLabel: formatMetricLabel(editMetricType, target),
-          validDrops: editMetricType === 'unique' ? ref?.validDrops ?? [] : [],
-          womMetric: ref?.womMetric ?? null,
+
+    const desired = {
+      label: editBossOrSkill,
+      bossOrSkill: editBossOrSkill,
+      metricType: editMetricType,
+      metricTarget: target,
+      metricUnit: metricUnitFor(editMetricType),
+      metricLabel: formatMetricLabel(editMetricType, target),
+      validDrops: editMetricType === 'unique' ? dropsByName.get(editBossOrSkill) ?? [] : [],
+      womMetric: ref?.womMetric ?? null,
+    };
+
+    const match = tasks.find(
+      (t) =>
+        (t.bossOrSkill ?? t.label) === desired.bossOrSkill &&
+        t.metricType === desired.metricType &&
+        t.metricTarget === desired.metricTarget
+    );
+
+    let taskId = match?.taskId;
+    if (!taskId) {
+      const created = await addBSTask({
+        variables: { eventId: event.eventId, input: desired },
+      });
+      taskId = created?.data?.addBSTask?.taskId;
+      if (!taskId) return;
+    }
+
+    if (sel.type === 'ship') {
+      await setBSShipTemplate({
+        variables: {
+          eventId: event.eventId,
+          shipType: sel.shipType,
+          cellIndex: sel.cellIndex,
+          taskId,
         },
-      },
-    });
+      });
+    } else if (sel.type === 'ocean' && sel.tileId) {
+      await updateBSTileTask({ variables: { tileId: sel.tileId, taskId } });
+    }
+
+    setSel(null);
   };
 
   const filteredTasks = tasks.filter((t) => {
@@ -489,7 +546,7 @@ export function TaskGridTab({ event, refetch }) {
           {/* Valid drops */}
           {editMetricType === 'unique' &&
             editBossOrSkill &&
-            contentLookup.get(editBossOrSkill)?.validDrops?.length > 0 && (
+            (dropsByName.get(editBossOrSkill)?.length ?? 0) > 0 && (
               <Box>
                 <Text
                   fontFamily="mono"
@@ -517,7 +574,7 @@ export function TaskGridTab({ event, refetch }) {
                     scrollbarColor: '#1a4028 #060f0a',
                   }}
                 >
-                  {contentLookup.get(editBossOrSkill).validDrops.map((drop) => (
+                  {dropsByName.get(editBossOrSkill).map((drop) => (
                     <Text
                       key={drop}
                       fontFamily="mono"
@@ -555,8 +612,8 @@ export function TaskGridTab({ event, refetch }) {
               fontSize="10px"
               letterSpacing="wider"
               textTransform="uppercase"
-              isLoading={updatingTask}
-              isDisabled={!editBossOrSkill || !Number(editMetricTarget) || !editTaskId}
+              isLoading={savingCell}
+              isDisabled={!editBossOrSkill || !Number(editMetricTarget) || !sel}
               onClick={handleSave}
               _hover={{ bg: '#091a10', borderColor: '#4ade80' }}
             >
@@ -799,7 +856,7 @@ export function TaskGridTab({ event, refetch }) {
                 </Box>
                 {Array.from({ length: 10 }, (_, col) => {
                   const key = `${row}-${col}`;
-                  const task = oceanCellTaskMap[key];
+                  const task = oceanCellTaskMap[key]?.task ?? null;
                   const isSelected = isOceanSel && sel.row === row && sel.col === col;
                   return (
                     <Box

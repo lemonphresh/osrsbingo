@@ -458,8 +458,8 @@ const Mutation = {
 
     const event = await RainbowEvent.findOne({ where: { eventId: team.eventId } });
     if (!event) throw new UserInputError('No event found for this team');
-    if (event.status === 'SETUP') throw new UserInputError('The event has not started yet — submissions will open once the event begins!');
-    if (event.status === 'COMPLETE') throw new UserInputError('The event has ended — submissions are closed. Thanks for playing!');
+    if (event.status === 'SETUP') throw new UserInputError('The event has not started yet. Submissions will open once the event begins!');
+    if (event.status === 'COMPLETE') throw new UserInputError('The event has ended. Submissions are closed. Thanks for playing!');
     if (event.status !== 'ACTIVE') throw new UserInputError('No active event for this team');
 
     const teamTile = await RainbowTeamTile.findOne({
@@ -560,7 +560,7 @@ const Mutation = {
 
   syncTeamWomProgress: async (_, { teamId }) => {
     if (isSyncInProgress()) {
-      throw new UserInputError('Another team is currently syncing — try again in a moment.');
+      throw new UserInputError('Another team is currently syncing. Try again in a moment.');
     }
     return syncTeamWomProgress(teamId);
   },

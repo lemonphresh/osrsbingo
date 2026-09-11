@@ -37,7 +37,7 @@
 // # Multi-submission
 //
 // A tile can carry many submissions. Some approved, some denied, some
-// pending. This is expected for multi-step tasks (e.g. "get 5 uniques" —
+// pending. This is expected for multi-step tasks (i.e. "get 5 uniques" —
 // each drop can be its own screenshot). Don't gate submitProof on tile
 // status other than "UNLOCKED or SUBMITTED".
 //
@@ -167,14 +167,20 @@ export function SubmissionsProvider({
     setStickyTileIds((prev) => new Set([...prev, tileId]));
     if (stickyTimersRef.current[tileId]) clearTimeout(stickyTimersRef.current[tileId]);
     stickyTimersRef.current[tileId] = setTimeout(() => {
-      setStickyTileIds((prev) => { const next = new Set(prev); next.delete(tileId); return next; });
+      setStickyTileIds((prev) => {
+        const next = new Set(prev);
+        next.delete(tileId);
+        return next;
+      });
       delete stickyTimersRef.current[tileId];
     }, 8000);
   }, []);
 
   useEffect(() => {
     const timers = stickyTimersRef.current;
-    return () => { Object.values(timers).forEach(clearTimeout); };
+    return () => {
+      Object.values(timers).forEach(clearTimeout);
+    };
   }, []);
 
   const queryVars = { eventId, ...(teamId ? { teamId } : {}) };

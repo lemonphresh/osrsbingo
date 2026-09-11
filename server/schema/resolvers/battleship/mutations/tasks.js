@@ -6,7 +6,16 @@ const {
   parseDraftWorkbook,
   taskAttributes,
 } = require('../../../../utils/battleship/bsDraftWorkbook');
+const { getDropsByDisplayName } = require('../../../../utils/contentRegistry');
 const { UserInputError } = require('apollo-server-express');
+
+// Drops are always sourced from the content registry, never trusted from
+// client input. This keeps them from getting wiped when a task is briefly
+// toggled to `kc` and back — the registry is the single source of truth.
+function resolveValidDrops({ metricType, bossOrSkill }, task) {
+  if (metricType !== 'unique') return [];
+  return getDropsByDisplayName(bossOrSkill ?? task.bossOrSkill ?? task.label);
+}
 
 function baseContentId(contentId) {
   return String(contentId ?? '').replace(/_kc$/, '');
@@ -31,8 +40,18 @@ module.exports = {
     return BSTask.create({
       taskId: generateId('bstk'),
       eventId,
-      label: input.label,
-      description: input.description ?? null,
+      label:        input.label,
+      bossOrSkill:  input.bossOrSkill  ?? null,
+      metricType:   input.metricType   ?? null,
+      metricTarget: input.metricTarget ?? null,
+      metricUnit:   input.metricUnit   ?? null,
+      metricLabel:  input.metricLabel  ?? null,
+      validDrops:   resolveValidDrops(
+        { metricType: input.metricType, bossOrSkill: input.bossOrSkill },
+        {}
+      ),
+      womMetric:    input.womMetric    ?? null,
+      description:  input.description  ?? null,
     });
   },
 
@@ -43,6 +62,8 @@ module.exports = {
     if (!task) throw new UserInputError(`BSTask ${taskId} not found`);
     const event = await getEventOrThrow(task.eventId);
     requireAdmin(event, user.id);
+    const nextMetricType = input.metricType ?? task.metricType;
+    const nextBossOrSkill = input.bossOrSkill ?? task.bossOrSkill;
     await task.update({
       ...(input.label       != null && { label:       input.label }),
       ...(input.bossOrSkill != null && { bossOrSkill: input.bossOrSkill }),
@@ -50,7 +71,10 @@ module.exports = {
       ...(input.metricTarget!= null && { metricTarget:input.metricTarget }),
       ...(input.metricUnit  != null && { metricUnit:  input.metricUnit }),
       ...(input.metricLabel != null && { metricLabel: input.metricLabel }),
-      ...(input.validDrops  != null && { validDrops:  input.validDrops }),
+      validDrops: resolveValidDrops(
+        { metricType: nextMetricType, bossOrSkill: nextBossOrSkill },
+        task
+      ),
       ...(input.womMetric   != null && { womMetric:   input.womMetric }),
       ...(input.description != null && { description: input.description }),
     });

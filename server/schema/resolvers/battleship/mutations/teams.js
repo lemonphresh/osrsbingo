@@ -1,57 +1,108 @@
 'use strict';
 
-const { getModels, requireAuth, requireAdmin, getEventOrThrow, getTeamOrThrow, isTeamMember } = require('../helpers');
+const {
+  getModels,
+  requireAuth,
+  requireAdmin,
+  getEventOrThrow,
+  getTeamOrThrow,
+} = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { UserInputError } = require('apollo-server-express');
 
 module.exports = {
   addBSTeam: async (_, { eventId, input }, context) => {
     const user = requireAuth(context);
-    const { BSTeam } = getModels();
-    const event = await getEventOrThrow(eventId);
-    requireAdmin(event, user.id);
+    const { sequelize, BSEvent, BSTeam } = getModels();
+    return sequelize.transaction(async (transaction) => {
+      const event = await BSEvent.findByPk(eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!event) throw new UserInputError(`BSEvent ${eventId} not found`);
+      requireAdmin(event, user.id);
+      if (event.status !== 'DRAFT') {
+        throw new UserInputError('Teams can only be added while the event is in DRAFT.');
+      }
 
-    const existing = await BSTeam.findAll({ where: { eventId } });
-    if (existing.length >= 2) throw new UserInputError('Battleship only supports 2 teams per event');
+      const existing = await BSTeam.findAll({
+        where: { eventId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (existing.length >= 2) {
+        throw new UserInputError('Battleship only supports 2 teams per event');
+      }
+      if (input.color && existing.some((team) => team.color === input.color)) {
+        throw new UserInputError(`Color ${input.color} is already taken by another team`);
+      }
 
-    if (input.color) {
-      const colorTaken = existing.some((t) => t.color === input.color);
-      if (colorTaken) throw new UserInputError(`Color ${input.color} is already taken by another team`);
-    }
+      const members = [...new Set((input.members ?? []).filter(Boolean))];
+      const assigned = new Set(existing.flatMap((team) => team.members ?? []));
+      const duplicate = members.find((discordId) => assigned.has(discordId));
+      if (duplicate) {
+        throw new UserInputError('A player cannot belong to both Battleship teams.');
+      }
 
-    const team = await BSTeam.create({
-      teamId: generateId('bst'),
-      eventId,
-      teamName: input.teamName,
-      color: input.color ?? null,
-      members: input.members ?? [],
-      skipTokens: event.initialSkipTokens ?? 2,
+      return BSTeam.create(
+        {
+          teamId: generateId('bst'),
+          eventId,
+          teamName: input.teamName,
+          color: input.color ?? null,
+          members,
+          skipTokens: event.initialSkipTokens ?? 2,
+        },
+        { transaction }
+      );
     });
-    return team;
   },
 
   updateBSTeamMembers: async (_, { teamId, members }, context) => {
     const user = requireAuth(context);
-    const { BSEvent } = getModels();
-    const team = await getTeamOrThrow(teamId);
-    const event = await BSEvent.findByPk(team.eventId);
-    requireAdmin(event, user.id);
-    const deduped = [...new Set(members.filter(Boolean))];
-    await team.update({ members: deduped });
-    return team;
+    const { sequelize, BSEvent, BSTeam } = getModels();
+    const seedTeam = await getTeamOrThrow(teamId);
+    return sequelize.transaction(async (transaction) => {
+      const event = await BSEvent.findByPk(seedTeam.eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      requireAdmin(event, user.id);
+      if (event.status !== 'DRAFT') {
+        throw new UserInputError('Team rosters are locked when the placement phase begins.');
+      }
+      const teams = await BSTeam.findAll({
+        where: { eventId: event.eventId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const team = teams.find((row) => row.teamId === teamId);
+      if (!team) throw new UserInputError(`BSTeam ${teamId} not found`);
+      const deduped = [...new Set(members.filter(Boolean))];
+      const otherMembers = new Set(
+        teams.filter((row) => row.teamId !== teamId).flatMap((row) => row.members ?? [])
+      );
+      if (deduped.some((discordId) => otherMembers.has(discordId))) {
+        throw new UserInputError('A player cannot belong to both Battleship teams.');
+      }
+      await team.update({ members: deduped }, { transaction });
+      return team;
+    });
   },
 
   joinBSTeam: async (_, { teamId }, context) => {
-    const user = requireAuth(context);
-    if (!user.discordUserId) throw new UserInputError('Discord account required to join a team');
-    const team = await getTeamOrThrow(teamId);
-    if (isTeamMember(team, user.discordUserId)) return team;
-    const members = [...team.members, user.discordUserId];
-    await team.update({ members });
-    return team;
+    requireAuth(context);
+    await getTeamOrThrow(teamId);
+    throw new UserInputError(
+      'Battleship team membership is admin-managed and cannot be changed by joining directly.'
+    );
   },
 
-  updateBSTeamDiscord: async (_, { teamId, discordChannelId, discordRoleId, womTeamName }, context) => {
+  updateBSTeamDiscord: async (
+    _,
+    { teamId, discordChannelId, discordRoleId, womTeamName },
+    context
+  ) => {
     const user = requireAuth(context);
     const { BSEvent } = getModels();
     const team = await getTeamOrThrow(teamId);
@@ -130,12 +181,12 @@ module.exports = {
       const { postBSSkipTokensAwarded } = require('../../../../utils/battleship/bsDiscord');
       postBSSkipTokensAwarded({
         channelId: team.discordChannelId,
-        roleId:    team.discordRoleId ?? null,
-        teamName:  team.teamName,
+        roleId: team.discordRoleId ?? null,
+        teamName: team.teamName,
         count,
         newTotal,
-        reason:    reason?.trim() || null,
-        eventId:   team.eventId,
+        reason: reason?.trim() || null,
+        eventId: team.eventId,
       }).catch(() => {});
     }
 

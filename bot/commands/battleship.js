@@ -123,7 +123,7 @@ module.exports = {
     const tile = await findPendingTile(opposingTeam, team.teamId, event.eventId);
     if (!tile) {
       return message.reply(
-        '❌ No pending task found — fire a shot first, or your last task is already resolved.',
+        '❌ No pending task found. Fire a shot first, or your last task is already resolved.',
       );
     }
 
@@ -138,7 +138,7 @@ module.exports = {
       });
       const c = coord(tile.row, tile.col);
       return message.reply(
-        `✅ **${tileLabel ?? 'Task'}** (${c}) submitted for **${team.teamName}** — pending ref review.`,
+        `✅ **${tileLabel ?? 'Task'}** (${c}) submitted for **${team.teamName}**. Pending ref review.`,
       );
     } catch (err) {
       console.error('[bssubmit] error creating submission:', err);
@@ -172,7 +172,7 @@ module.exports.bspre = {
     const tile = await findPendingTile(opposingTeam, team.teamId, event.eventId);
     if (!tile) {
       return message.reply(
-        '❌ No pending task found — fire a shot first before submitting a pre-screenshot.',
+        '❌ No pending task found. Fire a shot first before submitting a pre-screenshot.',
       );
     }
 
@@ -187,7 +187,7 @@ module.exports.bspre = {
       });
       const c = coord(tile.row, tile.col);
       return message.reply(
-        `📸 Pre-screenshot logged for **${tileLabel ?? 'task'}** (${c}) — pending ref review.`,
+        `📸 Pre-screenshot logged for **${tileLabel ?? 'task'}** (${c}). Pending ref review.`,
       );
     } catch (err) {
       console.error('[bspre] error creating pre-screenshot submission:', err);
@@ -211,13 +211,13 @@ module.exports.help = {
         {
           name: '📸 Pre-screenshot (baseline)',
           value:
-            '`!bspre` — Log your starting metric (KC / XP / drops) before beginning a task. Required for tasks with a numeric target.',
+            '`!bspre`: log your starting metric (KC / XP / drops) before beginning a task. Required for tasks with a numeric target.',
           inline: false,
         },
         {
           name: '📬 Submit Task Completion',
           value:
-            '`!bssubmit` — Submit proof that your team\'s pending task is done. Attach a screenshot. Alias: `!bss`.',
+            '`!bssubmit`: submit proof that your team\'s pending task is done. Attach a screenshot. Alias: `!bss`.',
           inline: false,
         },
         {

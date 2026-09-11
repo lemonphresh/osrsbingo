@@ -292,7 +292,9 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
             {/* Dates */}
             <SimpleGrid columns={2} spacing={4} w="full">
               <FormControl isRequired>
-                <FormLabel color="gray.100" mb={1}>Start Date & Time</FormLabel>
+                <FormLabel color="gray.100" mb={1}>
+                  Start Date & Time
+                </FormLabel>
                 <Input
                   type="datetime-local"
                   min={today}
@@ -302,7 +304,9 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                 />
               </FormControl>
               <FormControl isRequired>
-                <FormLabel color="gray.100" mb={1}>End Date & Time</FormLabel>
+                <FormLabel color="gray.100" mb={1}>
+                  End Date & Time
+                </FormLabel>
                 <Input
                   type="datetime-local"
                   min={formData.startDate || today}
@@ -367,7 +371,7 @@ export default function CreateEventModal({ isOpen, onClose, onSuccess }) {
                     Small Team Mode
                   </FormLabel>
                   <Text fontSize="xs" color="gray.500">
-                    4–5 players. Halves all objective quantities (e.g. Easy becomes 0.4x)
+                    4–5 players. Halves all objective quantities (i.e. Easy becomes 0.4x)
                   </Text>
                 </Box>
                 <Switch

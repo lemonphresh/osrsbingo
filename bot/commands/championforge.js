@@ -100,7 +100,7 @@ module.exports = {
         submittedAt: new Date(),
       });
 
-      return message.reply(`✅ **${task.label}** submitted for **${team.teamName}** — pending review.`);
+      return message.reply(`✅ **${task.label}** submitted for **${team.teamName}**. Pending review.`);
     } catch (err) {
       console.error('[cfsubmit] Error creating submission:', err);
       return message.reply('❌ Failed to record your submission. Please try again.');
