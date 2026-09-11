@@ -13,10 +13,12 @@ import {
   Center,
   SimpleGrid,
   Divider,
+  useDisclosure,
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { FaCrown } from 'react-icons/fa';
 import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
+import BSParticipantSetupModal from '../../molecules/battleship/BSParticipantSetupModal';
 import BSEventDraftAdmin from '../../organisms/battleship/BSDraftAdmin';
 import { BSPlacementView } from '../../organisms/battleship/BSPlacementView';
 import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedComponents';
@@ -46,6 +48,7 @@ import {
   BS_PROPOSAL_UPDATED,
   BS_SKIP_PROPOSAL_UPDATED,
   BS_GAME_OVER,
+  GET_BS_SUBMISSIONS,
 } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useAuth } from '../../providers/AuthProvider';
@@ -319,7 +322,12 @@ export default function BattleshipEventPage() {
 
   useSubscription(BS_SHOT_FIRED, {
     variables: { eventId },
-    skip: event?.status !== 'ACTIVE',
+    // Skip on the spectator view — BSSpectatorView has its own BS_SHOT_FIRED
+    // subscription with sounds appropriate for a non-participant (no
+    // "I'm hit!" call). Without this skip, spectators got every splash and
+    // hit sound played twice. Inline the check because `isSpectator` isn't
+    // declared until later in the file.
+    skip: event?.status !== 'ACTIVE' || !myTeam,
     onData: ({ data }) => {
       const shot = data?.data?.bsShotFired;
       if (!shot) return;
@@ -384,21 +392,24 @@ export default function BattleshipEventPage() {
   // Close the proposal modal client-side the moment the TTL runs out.
   // Server sweep also clears state, but its cron only runs every ~60s, so
   // the modal would otherwise linger on "Expired" for up to a minute.
+  // A toast fires on client-side clear so nobody wonders why the modal
+  // vanished. Fires for the proposer and any teammate who had it open.
   useEffect(() => {
     if (!activeProposal?.expiresAt || !['PENDING', 'APPROVED'].includes(activeProposal.status))
       return;
     const msRemaining = new Date(activeProposal.expiresAt).getTime() - Date.now();
-    if (msRemaining <= 0) {
+    const clearExpired = () => {
       prevApprovalsRef.current = 0;
       setActiveProposal(null);
+      showToast('Shot proposal expired. Anyone can propose a new one.', 'warning');
+    };
+    if (msRemaining <= 0) {
+      clearExpired();
       return;
     }
-    const timeoutId = setTimeout(() => {
-      prevApprovalsRef.current = 0;
-      setActiveProposal(null);
-    }, msRemaining);
+    const timeoutId = setTimeout(clearExpired, msRemaining);
     return () => clearTimeout(timeoutId);
-  }, [activeProposal?.expiresAt, activeProposal?.status, setActiveProposal]);
+  }, [activeProposal?.expiresAt, activeProposal?.status, setActiveProposal, showToast]);
 
   useSubscription(BS_SKIP_PROPOSAL_UPDATED, {
     variables: { teamId: myTeam?.teamId },
@@ -476,6 +487,22 @@ export default function BattleshipEventPage() {
       .filter((t) => t.isShot && !t.taskCompleted && !t.skipped)
       .sort((a, b) => new Date(b.shotAt ?? 0) - new Date(a.shotAt ?? 0))[0] ?? null;
 
+  // Pending submissions on the active tile. Drives the "Ref review in progress"
+  // badge below. Refetched whenever the tile updates so the badge disappears
+  // as soon as a ref approves/denies.
+  const {
+    data: pendingSubsData,
+    refetch: refetchPendingSubs,
+  } = useQuery(GET_BS_SUBMISSIONS, {
+    variables: { eventId, status: 'PENDING', tileId: pendingTask?.tileId ?? '' },
+    skip: !eventId || !pendingTask?.tileId,
+    fetchPolicy: 'cache-and-network',
+  });
+  const hasPendingSubmission = (pendingSubsData?.submissions?.length ?? 0) > 0;
+  useEffect(() => {
+    if (pendingTask?.tileId) refetchPendingSubs();
+  }, [pendingTask?.tileId, pendingTask?.progress, pendingTask?.taskCompleted, refetchPendingSubs]);
+
   // Radar pulse on the opponent's board at the active task tile
   const opponentPendingTile = pendingTask ?? null;
 
@@ -500,6 +527,44 @@ export default function BattleshipEventPage() {
     isAdmin || !!(event && currentUser && (event.refIds ?? []).includes(String(currentUser.id)));
 
   const isSpectator = !!event && event.status === 'ACTIVE' && !myTeam;
+
+  // Nudge non-logged-in visitors (or logged-in but Discord-unlinked visitors)
+  // toward setup so they don't miss out. Skips admins/refs, already-linked
+  // users, and events in DRAFT/COMPLETED (either nothing to do yet or too
+  // late to act). Dismissal is persisted per-event in localStorage so people
+  // aren't nagged repeatedly.
+  const {
+    isOpen: isParticipantSetupOpen,
+    onOpen: onParticipantSetupOpen,
+    onClose: onParticipantSetupClose,
+  } = useDisclosure();
+  useEffect(() => {
+    if (!event) return;
+    if (['DRAFT', 'COMPLETED', 'ARCHIVED'].includes(event.status)) return;
+    if (isAdminOrRef) return;
+    if (currentUser?.discordUserId) return;
+    try {
+      if (localStorage.getItem(`bsParticipantSetup_${eventId}_seen`)) return;
+    } catch (_) {
+      // If localStorage is unavailable we still fall through and show the
+      // modal; the user just won't be able to persist their dismissal.
+    }
+    const timer = setTimeout(onParticipantSetupOpen, 1200);
+    return () => clearTimeout(timer);
+  }, [event, isAdminOrRef, currentUser, eventId, onParticipantSetupOpen]);
+
+  // Rendered inside every status branch that a participant/spectator can
+  // land on (PLACEMENT view, main ACTIVE view, and the spectator view).
+  // Wrapped in a single element so branches can drop it in without extra
+  // structural churn. Uses Chakra's portal so placement doesn't matter.
+  const participantSetupModal = (
+    <BSParticipantSetupModal
+      isOpen={isParticipantSetupOpen}
+      onClose={onParticipantSetupClose}
+      user={currentUser}
+      eventId={eventId}
+    />
+  );
 
   const resolvedTeamMembers = useDiscordUsernames(
     viewingTeam?.members ?? [],
@@ -693,6 +758,76 @@ export default function BattleshipEventPage() {
   // ── Status: DRAFT ─────────────────────────────────────────────────────────
 
   if (event.status === 'DRAFT') {
+    // Admins/refs see the full setup console. Everyone else (roster members
+    // who wandered in early, spectators) gets a lightweight waiting screen so
+    // they aren't confused by an admin surface they can't interact with.
+    if (!isAdminOrRef) {
+      const scheduled = event.scheduledPlacementStart
+        ? new Date(event.scheduledPlacementStart)
+        : null;
+      return (
+        <Box flex="1" minH="100vh" bg="#060f0a">
+          {topBar}
+          <Box maxW="720px" mx="auto" px={[4, 6, 8]} py={[10, 14]}>
+            <VStack align="stretch" spacing={6}>
+              <VStack align="flex-start" spacing={1}>
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color="#6b9e78"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                >
+                  Waiting for launch
+                </Text>
+                <Text
+                  fontFamily="mono"
+                  fontSize="lg"
+                  fontWeight="bold"
+                  color="#d4f0da"
+                  letterSpacing="wide"
+                >
+                  {event.eventName}
+                </Text>
+              </VStack>
+              <Box
+                bg="#091a10"
+                border="1px solid"
+                borderColor="#1a4028"
+                borderRadius="md"
+                p={5}
+              >
+                <VStack align="stretch" spacing={3}>
+                  <Text fontSize="sm" color="#d4f0da" lineHeight="1.7">
+                    The admin is finalizing setup. When the placement phase
+                    opens you'll see the ship-placement workshop here and
+                    Discord will announce the start in your team channel.
+                  </Text>
+                  {myTeam && (
+                    <Text fontSize="sm" color="#6b9e78">
+                      You're on team{' '}
+                      <strong style={{ color: '#d4f0da' }}>{myTeam.teamName}</strong>.
+                    </Text>
+                  )}
+                  {scheduled && !Number.isNaN(scheduled.getTime()) && (
+                    <Text fontSize="sm" color="#4ade80">
+                      Scheduled to launch at{' '}
+                      <strong>{scheduled.toLocaleString()}</strong>.
+                    </Text>
+                  )}
+                  <Text fontSize="xs" color="#6b9e78" lineHeight="1.7">
+                    Make sure your Discord account is linked on your OSRS Bingo
+                    Hub profile so you can propose, vote, and submit tasks once
+                    the battle starts.
+                  </Text>
+                </VStack>
+              </Box>
+            </VStack>
+          </Box>
+        </Box>
+      );
+    }
+
     return (
       <Box flex="1" minH="100vh" bg="#060f0a">
         {topBar}
@@ -729,13 +864,16 @@ export default function BattleshipEventPage() {
 
   if (event.status === 'PLACEMENT') {
     return (
-      <BSPlacementView
-        event={event}
-        currentUser={currentUser}
-        topBar={topBar}
-        refetch={refetchEvent}
-        colorblindMode={colorblindMode}
-      />
+      <>
+        <BSPlacementView
+          event={event}
+          currentUser={currentUser}
+          topBar={topBar}
+          refetch={refetchEvent}
+          colorblindMode={colorblindMode}
+        />
+        {participantSetupModal}
+      </>
     );
   }
 
@@ -753,7 +891,12 @@ export default function BattleshipEventPage() {
   // ── Status: ACTIVE (spectator) ────────────────────────────────────────────
 
   if (isSpectator) {
-    return <BSSpectatorView event={event} refetch={refetchEvent} colorblindMode={colorblindMode} />;
+    return (
+      <>
+        <BSSpectatorView event={event} refetch={refetchEvent} colorblindMode={colorblindMode} />
+        {participantSetupModal}
+      </>
+    );
   }
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────
@@ -972,7 +1115,7 @@ export default function BattleshipEventPage() {
                   const hasMetric = task?.metricType === 'kc' || task?.metricType === 'xp';
                   const copyCmd = (cmd) => {
                     navigator.clipboard.writeText(cmd).catch(() => {});
-                    showToast('Command copied — attach your screenshot in Discord.', 'success');
+                    showToast('Command copied. Attach your screenshot in Discord.', 'success');
                   };
                   const th = isShipTask
                     ? colorblindMode
@@ -1032,14 +1175,26 @@ export default function BattleshipEventPage() {
                             Task Revealed / {coordLabel(pendingTask.row, pendingTask.col)}
                           </Text>
                         </HStack>
-                        <Badge
-                          colorScheme={isShipTask ? (colorblindMode ? 'orange' : 'red') : 'gray'}
-                          fontSize="9px"
-                          textTransform="uppercase"
-                          letterSpacing="wider"
-                        >
-                          {isShipTask ? 'Ship Hit' : 'Ocean Miss'}
-                        </Badge>
+                        <HStack spacing={1}>
+                          {(hasPendingSubmission || (progress >= 100 && !pendingTask.taskCompleted)) && (
+                            <Badge
+                              colorScheme="yellow"
+                              fontSize="9px"
+                              textTransform="uppercase"
+                              letterSpacing="wider"
+                            >
+                              Ref review in progress
+                            </Badge>
+                          )}
+                          <Badge
+                            colorScheme={isShipTask ? (colorblindMode ? 'orange' : 'red') : 'gray'}
+                            fontSize="9px"
+                            textTransform="uppercase"
+                            letterSpacing="wider"
+                          >
+                            {isShipTask ? 'Ship Hit' : 'Ocean Miss'}
+                          </Badge>
+                        </HStack>
                       </HStack>
                       <Text
                         fontFamily="mono"
@@ -1174,8 +1329,8 @@ export default function BattleshipEventPage() {
                       </Box>
                       <Text fontFamily="mono" fontSize="10px" color={th.muted} letterSpacing="wide">
                         {isShipTask
-                          ? 'Opponents must complete this — refs will mark it done.'
-                          : 'Your team must complete this — refs will mark it done.'}
+                          ? 'Opponents must complete this. Refs will mark it done.'
+                          : 'Your team must complete this. Refs will mark it done.'}
                       </Text>
                       {!isShipTask && (viewingTeam?.skipTokens ?? 0) > 0 && (
                         <Box borderTop="1px solid" borderColor={th.dark} pt={3} mt={2}>
@@ -1399,6 +1554,8 @@ export default function BattleshipEventPage() {
           onClose={() => setActiveSkipProposal(null)}
         />
       )}
+
+      {participantSetupModal}
 
       {process.env.NODE_ENV !== 'production' && event?.status === 'ACTIVE' && (
         <DevAdminPanel

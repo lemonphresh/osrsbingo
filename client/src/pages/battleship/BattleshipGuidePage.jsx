@@ -188,12 +188,12 @@ function ParticipantGuide() {
         submission command, make sure it includes the event password if the admin set one. The bot
         picks up whichever tile your team is currently on.
       </Callout>
-      <Step num="1" title="!bspre — pre-screenshot" color={CYAN}>
+      <Step num="1" title="!bspre: pre-screenshot" color={CYAN}>
         For tasks with a numeric target (X kc, N xp), post <strong>!bspre</strong> with a screenshot
         showing your current baseline (KC counter, XP total, whatever the task tracks). Refs approve
         this before you start grinding.
       </Step>
-      <Step num="2" title="!bssubmit — completion / progress" color={CYAN}>
+      <Step num="2" title="!bssubmit: completion / progress" color={CYAN}>
         Post <strong>!bssubmit</strong> with a screenshot to show progress or completion. Refs can
         adjust a progress slider along the way. For tasks with a unique-drops target the slider
         walks &quot;N / Total uniques,&quot; and for others it&apos;s 0 to 100%.
@@ -214,7 +214,7 @@ function ParticipantGuide() {
         make sure your volume is on for the finale.
       </Callout>
       <Callout color={AMBER} icon={FaExclamationTriangle}>
-        <strong>Admin-called ending:</strong> the event admin can also end the campaign manually —
+        <strong>Admin-called ending:</strong> the event admin can also end the campaign manually,
         either early (rare, for a stuck event) or at a pre-communicated end time (i.e.,
         &quot;we&apos;re calling it Sunday at midnight&quot;). When that happens, the winner is the
         team with the most
@@ -309,7 +309,7 @@ function RefGuide() {
       <Callout color={AMBER} icon={FaInfoCircle}>
         Approving/denying a submission auto-posts a message to the team&apos;s Discord channel with
         a mention. Marking a tile complete posts a &quot;fire again&quot; message unless it was the
-        game-winning move — in which case only the ship-sunk + game-over messages fire. You
+        game-winning move, in which case only the ship-sunk + game-over messages fire. You
         don&apos;t have to type anything by hand.
       </Callout>
 

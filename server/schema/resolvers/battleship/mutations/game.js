@@ -74,7 +74,7 @@ module.exports = {
       if (event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
 
       const teams = await BSTeam.findAll({ where: { eventId }, transaction });
-      const isAdminFiring =
+      const hasAdminRole =
         user.admin ||
         (event.adminIds ?? []).includes(String(user.id)) ||
         event.creatorId === String(user.id);
@@ -82,7 +82,7 @@ module.exports = {
       if (firingTeamId) {
         selectedTeam = teams.find((team) => team.teamId === firingTeamId);
         if (!selectedTeam) throw new UserInputError('Specified firing team not found');
-        if (!isAdminFiring && !(selectedTeam.members ?? []).includes(user.discordUserId)) {
+        if (!hasAdminRole && !(selectedTeam.members ?? []).includes(user.discordUserId)) {
           throw new UserInputError('You are not on this team');
         }
       } else {
@@ -95,6 +95,13 @@ module.exports = {
         transaction,
         lock: transaction.LOCK.UPDATE,
       });
+      // Admin bypass only applies to admins who are NOT members of the firing
+      // team. An event creator or admin who is *also* on the team follows the
+      // same proposal/cooldown/token rules as any other player — otherwise
+      // proposals never get destroyed on fire, cooldowns are skipped, and
+      // solo admin teams can fire in an infinite loop.
+      const isAdminFiring =
+        hasAdminRole && !(firingTeam.members ?? []).includes(user.discordUserId);
 
       const targetBoard = await BSBoard.findOne({
         where: { teamId: targetTeamId, eventId },
@@ -356,10 +363,12 @@ module.exports = {
     const firingTeam = teams.find((t) => t.teamId !== board.teamId);
     if (!firingTeam) throw new UserInputError('Could not determine firing team');
 
-    // Only a true site-admin (user.admin) bypasses tokens/proposals — event
-    // creators/admins who are ALSO on the team should follow the same rules as
-    // other team members, otherwise they can skip infinitely.
-    const isSiteAdmin = user.admin === true;
+    // Admin bypass only applies to site admins who are NOT members of the
+    // firing team (e.g. a support admin unsticking a game). Site admins who
+    // are *also* on the team follow team rules, otherwise a solo admin team
+    // could skip infinitely without burning any tokens.
+    const isSiteAdmin =
+      user.admin === true && !firingTeam.members.includes(user.discordUserId);
     if (!isSiteAdmin) {
       if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
       if (!firingTeam.members.includes(user.discordUserId)) {

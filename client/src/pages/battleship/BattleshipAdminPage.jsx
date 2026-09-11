@@ -575,7 +575,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 {/* Reason */}
                 <Box>
                   <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
-                    Reason (optional — posted to the team's Discord channel)
+                    Reason (optional, posted to the team's Discord channel)
                   </Text>
                   <Textarea
                     value={tokenReason}
@@ -656,7 +656,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
               <Text fontSize="10px" color={DIM} letterSpacing="wider" mb={1}>
                 Role ID{' '}
                 <Text as="span" color="#3d6b4a">
-                  (optional — bot will ping this role)
+                  (optional, bot will ping this role)
                 </Text>
               </Text>
               <Input
@@ -768,7 +768,11 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
     }
   };
 
-  const handleRemoveRef = async (userId) => {
+  const handleRemoveRef = async (userId, displayName) => {
+    // Small guard so a stray click during a live event doesn't yank a ref
+    // mid-review. Refs can be re-added, but the friction is cheap insurance.
+    const label = displayName || 'this ref';
+    if (!window.confirm(`Remove ${label} from the ref list?`)) return;
     setRemovingId(userId);
     try {
       await doRemoveRef({ variables: { eventId, userId } });
@@ -819,9 +823,9 @@ function RefsSection({ event, eventId, refetchEvent, showToast }) {
                 variant="outline"
                 isLoading={removingId === String(ref.id)}
                 isDisabled={!!removingId}
-                onClick={() => handleRemoveRef(String(ref.id))}
+                onClick={() => handleRemoveRef(String(ref.id), ref.displayName)}
               >
-                Remove
+                Remove Ref
               </Button>
             </HStack>
           ))}
@@ -924,8 +928,10 @@ export default function BattleshipAdminPage() {
   });
 
   const event = eventData?.getBSEvent;
-  const teams = event?.teams ?? [];
-  const shotLog = shotLogData?.getBSShotLog ?? [];
+  // useMemo so `?? []` doesn't produce a fresh array reference every render
+  // (would re-run any useMemo that depends on `teams` / `shotLog`).
+  const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
+  const shotLog = useMemo(() => shotLogData?.getBSShotLog ?? [], [shotLogData?.getBSShotLog]);
 
   const [womCompInput, setWomCompInput] = useState('');
   const [womTeamNames, setWomTeamNames] = useState({});
@@ -1075,7 +1081,7 @@ export default function BattleshipAdminPage() {
     teams.every((t) => womTeamNames[t.teamId]?.trim().length > 0);
 
   const [triggerWomSync, { loading: syncingWom }] = useMutation(TRIGGER_BS_WOM_SYNC, {
-    onCompleted: () => showToast('WOM sync triggered — progress will update shortly.', 'success'),
+    onCompleted: () => showToast('WOM sync triggered. Progress will update shortly.', 'success'),
     onError: (err) => showToast(err.message ?? 'Failed to trigger sync.', 'error'),
   });
 
@@ -1289,20 +1295,39 @@ export default function BattleshipAdminPage() {
                       >
                         Event Password
                       </Text>
-                      <Box
-                        bg={CARD_BG}
-                        border="1px solid"
-                        borderColor={BORDER}
-                        borderRadius="md"
-                        px={3}
-                        py={2}
-                        fontFamily="mono"
-                        fontSize="sm"
-                        color={GREEN}
-                        letterSpacing="wider"
-                      >
-                        {event.eventPassword}
-                      </Box>
+                      <HStack spacing={2}>
+                        <Box
+                          bg={CARD_BG}
+                          border="1px solid"
+                          borderColor={BORDER}
+                          borderRadius="md"
+                          px={3}
+                          py={2}
+                          fontFamily="mono"
+                          fontSize="sm"
+                          color={GREEN}
+                          letterSpacing="wider"
+                        >
+                          {event.eventPassword}
+                        </Box>
+                        <Button
+                          size="xs"
+                          variant="outline"
+                          borderColor={BORDER}
+                          color={DIM}
+                          fontFamily="mono"
+                          fontSize="10px"
+                          letterSpacing="wider"
+                          textTransform="uppercase"
+                          onClick={() => {
+                            navigator.clipboard.writeText(event.eventPassword).catch(() => {});
+                            showToast('Password copied.', 'success');
+                          }}
+                          _hover={{ bg: CARD_BG, borderColor: GREEN, color: GREEN }}
+                        >
+                          Copy
+                        </Button>
+                      </HStack>
                     </VStack>
                   )}
 
@@ -1449,7 +1474,7 @@ export default function BattleshipAdminPage() {
                   <Text fontSize="xs" color={DIM} lineHeight="1.7">
                     Manually ends the campaign and declares the winner by ship-hit count. Use for
                     early ends (stuck event) or at a pre-communicated end time. This cannot be
-                    undone — the event flips to COMPLETED, the game-over screen animates for both
+                    undone. The event flips to COMPLETED, the game-over screen animates for both
                     teams, and Discord announcements go out.
                   </Text>
                   {forcePreview && (
@@ -1816,6 +1841,14 @@ export default function BattleshipAdminPage() {
                   <Text fontFamily="mono" fontSize="xs" color={DIM} mt={2}>
                     Sends a no-ping test to each configured team channel. Messages delete
                     themselves after 15 seconds.
+                    {!teams.some((team) => team.discordChannelId) && (
+                      <>
+                        {' '}
+                        <Text as="span" color="#fbbf24">
+                          At least one team needs a Discord channel set before this can run.
+                        </Text>
+                      </>
+                    )}
                   </Text>
                 </Box>
               </VStack>
@@ -1973,6 +2006,18 @@ export default function BattleshipAdminPage() {
                     </Button>
                   )}
                 </HStack>
+                {!womAllFilled && (
+                  <Text fontSize="xs" color={DIM} mt={1}>
+                    Save is disabled until the WOM competition ID and every team's WOM name are
+                    filled in.
+                  </Text>
+                )}
+                {event?.womCompetitionId && event?.status !== 'ACTIVE' && (
+                  <Text fontSize="xs" color={DIM} mt={1}>
+                    The manual sync button appears once the event is ACTIVE. Progress syncs
+                    automatically every 7 minutes during the battle phase.
+                  </Text>
+                )}
               </VStack>
             </AccordionPanel>
           </AccordionItem>
@@ -2192,7 +2237,7 @@ export default function BattleshipAdminPage() {
             <HStack spacing={2}>
               <FaFlagCheckered />
               <Text>
-                {forceStep === 1 ? 'Force Game Over — Confirm' : 'Force Game Over — Type to Confirm'}
+                {forceStep === 1 ? 'Force Game Over: Confirm' : 'Force Game Over: Type to Confirm'}
               </Text>
             </HStack>
           </ModalHeader>
@@ -2272,15 +2317,30 @@ export default function BattleshipAdminPage() {
               </Button>
             )}
             {forceStep === 2 && (
-              <Button
-                size="sm"
-                colorScheme="red"
-                onClick={handleForceGameOver}
-                isLoading={forcingGameOver}
-                isDisabled={forceConfirmText !== event?.eventName}
-              >
-                Force Game Over
-              </Button>
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  borderColor="#1a4028"
+                  color="#6b9e78"
+                  onClick={() => {
+                    setForceConfirmText('');
+                    setForceStep(1);
+                  }}
+                  isDisabled={forcingGameOver}
+                >
+                  ← Back
+                </Button>
+                <Button
+                  size="sm"
+                  colorScheme="red"
+                  onClick={handleForceGameOver}
+                  isLoading={forcingGameOver}
+                  isDisabled={forceConfirmText !== event?.eventName}
+                >
+                  Force Game Over
+                </Button>
+              </>
             )}
           </ModalFooter>
         </ModalContent>
