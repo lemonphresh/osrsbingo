@@ -1,18 +1,22 @@
 'use strict';
 
-/**
- * In-memory shot proposal store — one active proposal per team at a time.
- * Proposals are ephemeral: server restart clears them (acceptable for game state).
- */
+const { Op } = require('sequelize');
 
-const PROPOSAL_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const PROPOSAL_TTL_MS = 2 * 60 * 1000;
+const getModel = () => require('../../db/models').BSShotProposal;
 
-const proposals = new Map(); // teamId → proposal object
-
-function makeProposal({ proposalId, eventId, firingTeamId, targetTeamId, row, col, proposedBy, threshold }) {
+function makeProposalData({
+  proposalId,
+  eventId,
+  firingTeamId,
+  targetTeamId,
+  row,
+  col,
+  proposedBy,
+  threshold,
+  now = new Date(),
+}) {
   const approvals = [proposedBy];
-  const status = approvals.length >= threshold ? 'APPROVED' : 'PENDING';
-  const now = new Date();
   return {
     proposalId,
     eventId,
@@ -23,64 +27,98 @@ function makeProposal({ proposalId, eventId, firingTeamId, targetTeamId, row, co
     proposedBy,
     approvals,
     rejections: [],
-    status,
+    status: approvals.length >= threshold ? 'APPROVED' : 'PENDING',
     threshold,
-    proposedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + PROPOSAL_TTL_MS).toISOString(),
+    proposedAt: now,
+    expiresAt: new Date(now.getTime() + PROPOSAL_TTL_MS),
   };
 }
 
-function createProposal(data) {
-  const p = makeProposal(data);
-  proposals.set(data.firingTeamId, p);
-  return p;
+function isProposalExpired(proposal, now = new Date()) {
+  return !!proposal?.expiresAt && new Date(proposal.expiresAt).getTime() <= now.getTime();
 }
 
-function getProposal(teamId) {
-  return proposals.get(teamId) ?? null;
-}
-
-function getProposalById(proposalId) {
-  for (const p of proposals.values()) {
-    if (p.proposalId === proposalId) return p;
-  }
-  return null;
-}
-
-function vote(proposalId, discordUserId, approve) {
-  const p = getProposalById(proposalId);
-  if (!p || p.status !== 'PENDING') return p ?? null;
+function applyProposalVote(proposal, discordUserId, approve) {
+  if (!proposal || proposal.status !== 'PENDING') return proposal ?? null;
+  const approvals = [...(proposal.approvals ?? [])];
+  const rejections = [...(proposal.rejections ?? [])];
 
   if (!approve) {
-    if (!p.rejections.includes(discordUserId)) p.rejections.push(discordUserId);
-    p.status = 'REJECTED';
-    return p;
+    if (!rejections.includes(discordUserId)) rejections.push(discordUserId);
+    return { approvals, rejections, status: 'REJECTED' };
   }
 
-  if (!p.approvals.includes(discordUserId)) {
-    p.approvals.push(discordUserId);
-  }
-  if (p.approvals.length >= p.threshold) {
-    p.status = 'APPROVED';
-  }
-  return p;
+  if (!approvals.includes(discordUserId)) approvals.push(discordUserId);
+  return {
+    approvals,
+    rejections,
+    status: approvals.length >= proposal.threshold ? 'APPROVED' : 'PENDING',
+  };
 }
 
-function clearProposal(teamId) {
-  proposals.delete(teamId);
+function getProposalActorId(user) {
+  return user.discordUserId ?? `user:${user.id}`;
 }
 
-// Returns the teamIds of any PENDING proposals that have expired and been removed.
-function sweepExpiredProposals() {
-  const now = Date.now();
-  const expired = [];
-  for (const [teamId, p] of proposals.entries()) {
-    if (p.status === 'PENDING' && new Date(p.expiresAt).getTime() <= now) {
-      proposals.delete(teamId);
-      expired.push(teamId);
-    }
-  }
-  return expired;
+function clearedProposal(firingTeamId, proposalId = null) {
+  return {
+    proposalId,
+    eventId: null,
+    firingTeamId,
+    targetTeamId: null,
+    row: null,
+    col: null,
+    proposedBy: null,
+    approvals: [],
+    rejections: [],
+    status: 'CLEARED',
+    threshold: null,
+    proposedAt: null,
+    expiresAt: null,
+  };
 }
 
-module.exports = { createProposal, getProposal, getProposalById, vote, clearProposal, sweepExpiredProposals };
+async function getProposal(teamId, options = {}) {
+  return getModel().findOne({ where: { firingTeamId: teamId }, ...options });
+}
+
+async function getProposalById(proposalId, options = {}) {
+  return getModel().findByPk(proposalId, options);
+}
+
+async function createProposal(data, options = {}) {
+  return getModel().create(makeProposalData(data), options);
+}
+
+async function clearProposal(teamId, options = {}) {
+  return getModel().destroy({ where: { firingTeamId: teamId }, ...options });
+}
+
+async function sweepExpiredProposals(now = new Date()) {
+  const BSShotProposal = getModel();
+  const where = { expiresAt: { [Op.lte]: now } };
+  const expired = await BSShotProposal.findAll({
+    where,
+    attributes: ['proposalId', 'firingTeamId'],
+  });
+  if (!expired.length) return [];
+  await BSShotProposal.destroy({ where });
+  return expired.map((proposal) => ({
+    firingTeamId: proposal.firingTeamId,
+    proposalId: proposal.proposalId,
+  }));
+}
+
+module.exports = {
+  PROPOSAL_TTL_MS,
+  makeProposalData,
+  isProposalExpired,
+  applyProposalVote,
+  getProposalActorId,
+  clearedProposal,
+  createProposal,
+  getProposal,
+  getProposalById,
+  clearProposal,
+  sweepExpiredProposals,
+};

@@ -69,6 +69,23 @@ function clearSkipProposal(teamId) {
   proposals.delete(teamId);
 }
 
+function clearedSkipProposal(teamId) {
+  return {
+    proposalId: null,
+    eventId: null,
+    teamId,
+    tileId: null,
+    tileLabel: null,
+    proposedBy: null,
+    approvals: [],
+    rejections: [],
+    status: 'CLEARED',
+    threshold: null,
+    proposedAt: null,
+    expiresAt: null,
+  };
+}
+
 function sweepExpiredSkipProposals() {
   const now = Date.now();
   const expired = [];
@@ -87,5 +104,6 @@ module.exports = {
   getSkipProposalById,
   voteOnSkip,
   clearSkipProposal,
+  clearedSkipProposal,
   sweepExpiredSkipProposals,
 };

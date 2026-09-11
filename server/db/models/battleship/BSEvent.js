@@ -9,6 +9,7 @@ module.exports = (sequelize) => {
       BSEvent.hasMany(models.BSShipTemplate, { foreignKey: 'eventId', as: 'shipTemplates' });
       BSEvent.hasMany(models.BSBoard,        { foreignKey: 'eventId', as: 'boards' });
       BSEvent.hasMany(models.BSShotLog,      { foreignKey: 'eventId', as: 'shots' });
+      BSEvent.hasMany(models.BSShotProposal, { foreignKey: 'eventId', as: 'shotProposals' });
     }
   }
 

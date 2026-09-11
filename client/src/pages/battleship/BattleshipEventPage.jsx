@@ -40,6 +40,7 @@ import {
   SKIP_BS_TILE,
   PROPOSE_SKIP_TOKEN,
   VOTE_ON_SKIP_PROPOSAL,
+  BS_BOARD_UPDATED,
   BS_TILE_UPDATED,
   BS_SHOT_FIRED,
   BS_PROPOSAL_UPDATED,
@@ -118,12 +119,13 @@ export default function BattleshipEventPage() {
     () => !localStorage.getItem(getBSBattleIntroKey(eventId))
   );
 
-  // POV override: null = auto (follow the user's own team), otherwise the flipped index.
-  // Kept as an override so we don't render team[0] as a flash on refresh before we
-  // know which team the user is actually on.
-  const [povOverride, setPovOverride] = useState(null);
   const [highlightedCell] = useState(null);
-  const [activeProposal, setActiveProposal] = useState(null);
+  const [activeProposal, setActiveProposalState] = useState(null);
+  const activeProposalRef = useRef(null);
+  const setActiveProposal = useCallback((proposal) => {
+    activeProposalRef.current = proposal;
+    setActiveProposalState(proposal);
+  }, []);
   const [proposalHistory, setProposalHistory] = useState([]);
   const [activeSkipProposal, setActiveSkipProposal] = useState(null);
   const prevApprovalsRef = useRef(0);
@@ -143,6 +145,14 @@ export default function BattleshipEventPage() {
   const { data: shotLogData, refetch: refetchShotLog } = useQuery(GET_BS_SHOT_LOG, {
     variables: { eventId },
     fetchPolicy: 'cache-and-network',
+  });
+
+  // Final placement is published only after its database transaction commits.
+  // Refetching here moves every open placement screen into the battle phase.
+  useSubscription(BS_BOARD_UPDATED, {
+    variables: { eventId },
+    skip: !eventId,
+    onData: () => refetchEvent(),
   });
 
   // ── Mutations ────────────────────────────────────────────────────────────
@@ -203,38 +213,49 @@ export default function BattleshipEventPage() {
   const teams = event?.teams ?? [];
   const shotLog = shotLogData?.getBSShotLog ?? [];
 
-  // The user's actual team (independent of viewingTeam, which can be flipped by
-  // the POV toggle). Proposal subscriptions/queries must use this so a spectator
-  // or a user viewing the opposing board doesn't get vote prompts scoped to
-  // the wrong team's channel.
+  // The user's actual team. Active players always render from this team's POV;
+  // non-team members use the dedicated spectator view.
   const myTeam =
     event && currentUser?.discordUserId
       ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
       : null;
 
-  // Derived POV: if the user hasn't flipped, follow their own team. Non-team
-  // members (spectators/refs/admins) default to team 0. This is computed
-  // synchronously so refreshes don't flash the wrong team's board before an
-  // effect can snap the index.
   const myTeamIndex = myTeam ? teams.findIndex((t) => t.teamId === myTeam.teamId) : -1;
-  const viewingTeamIndex = povOverride != null ? povOverride : myTeamIndex >= 0 ? myTeamIndex : 0;
+  const viewingTeamIndex = myTeamIndex >= 0 ? myTeamIndex : 0;
 
   // Hydrate the active proposal on page load — the subscription only delivers
   // future events, so refreshing mid-proposal (or arriving after a teammate
   // proposed) would otherwise leave activeProposal null and let this user
   // silently overwrite the pending proposal.
-  const applyActiveProposal = useCallback((p) => {
-    // Sync client state with server truth. Called from both the initial hydrate
-    // and the tab-focus refetch — closes any stale modal if the server has
-    // nothing pending (proposal was fired/vetoed while the tab was hidden).
-    if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') {
-      prevApprovalsRef.current = 0;
-      setActiveProposal(null);
-      return;
-    }
-    prevApprovalsRef.current = (p.approvals ?? []).length;
-    setActiveProposal(p);
-  }, []);
+  const applyActiveProposal = useCallback(
+    (p, { authoritativeClear = false } = {}) => {
+      // Sync client state with server truth. Called from both the initial hydrate
+      // and the tab-focus refetch — closes any stale modal if the server has
+      // nothing pending (proposal was fired/vetoed while the tab was hidden).
+      if (!p || !p.proposalId || p.status === 'CLEARED' || p.status === 'REJECTED') {
+        if (!authoritativeClear && activeProposalRef.current?.proposalId) return;
+        prevApprovalsRef.current = 0;
+        setActiveProposal(null);
+        return;
+      }
+      const current = activeProposalRef.current;
+      if (
+        current?.proposalId === p.proposalId &&
+        ((current.approvals ?? []).length > (p.approvals ?? []).length ||
+          (current.status === 'APPROVED' && p.status === 'PENDING'))
+      )
+        return;
+      if (
+        current?.proposalId &&
+        current.proposalId !== p.proposalId &&
+        new Date(current.proposedAt ?? 0).getTime() > new Date(p.proposedAt ?? 0).getTime()
+      )
+        return;
+      prevApprovalsRef.current = (p.approvals ?? []).length;
+      setActiveProposal(p);
+    },
+    [setActiveProposal]
+  );
 
   const { refetch: refetchActiveProposal } = useQuery(GET_ACTIVE_BS_PROPOSAL, {
     variables: { teamId: myTeam?.teamId },
@@ -252,7 +273,9 @@ export default function BattleshipEventPage() {
     const handler = () => {
       if (document.visibilityState !== 'visible') return;
       refetchActiveProposal({ teamId: myTeam.teamId })
-        .then(({ data }) => applyActiveProposal(data?.getActiveBSProposal))
+        .then(({ data }) =>
+          applyActiveProposal(data?.getActiveBSProposal, { authoritativeClear: true })
+        )
         .catch(() => {});
       refetchEvent().catch(() => {});
     };
@@ -329,6 +352,16 @@ export default function BattleshipEventPage() {
     skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
     onData: ({ data }) => {
       const p = data?.data?.bsProposalUpdated;
+      const current = activeProposalRef.current;
+      if (
+        p?.proposalId &&
+        current?.proposalId &&
+        p.proposalId !== current.proposalId &&
+        (p.status === 'CLEARED' ||
+          p.status === 'REJECTED' ||
+          new Date(p.proposedAt ?? 0).getTime() < new Date(current.proposedAt ?? 0).getTime())
+      )
+        return;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
         prevApprovalsRef.current = 0;
         setActiveProposal(null);
@@ -352,7 +385,8 @@ export default function BattleshipEventPage() {
   // Server sweep also clears state, but its cron only runs every ~60s, so
   // the modal would otherwise linger on "Expired" for up to a minute.
   useEffect(() => {
-    if (!activeProposal?.expiresAt || activeProposal.status !== 'PENDING') return;
+    if (!activeProposal?.expiresAt || !['PENDING', 'APPROVED'].includes(activeProposal.status))
+      return;
     const msRemaining = new Date(activeProposal.expiresAt).getTime() - Date.now();
     if (msRemaining <= 0) {
       prevApprovalsRef.current = 0;
@@ -364,7 +398,7 @@ export default function BattleshipEventPage() {
       setActiveProposal(null);
     }, msRemaining);
     return () => clearTimeout(timeoutId);
-  }, [activeProposal?.expiresAt, activeProposal?.status]);
+  }, [activeProposal?.expiresAt, activeProposal?.status, setActiveProposal]);
 
   useSubscription(BS_SKIP_PROPOSAL_UPDATED, {
     variables: { teamId: myTeam?.teamId },
@@ -428,13 +462,11 @@ export default function BattleshipEventPage() {
   }, [myTeam?.lastShotAt, viewingTeam?.lastShotAt, event?.cooldownMinutes]);
 
   const cooldownMs = cooldownRemaining(viewingTeam?.lastShotAt, event?.cooldownMinutes, now);
-  // Alert-light + fire-gate should follow the USER's team, not whichever team
-  // the POV is currently on. If the user isn't on a team (spectator), fall back
-  // to the viewing team so the light still reads sensibly.
+  // Alert-light + fire-gate follow the user's team.
   const myCooldownMs = cooldownRemaining(
     (myTeam ?? viewingTeam)?.lastShotAt,
     event?.cooldownMinutes,
-    now,
+    now
   );
 
   // The viewing team's active task: the last tile THEY fired at (on the opponent's board)
@@ -452,7 +484,11 @@ export default function BattleshipEventPage() {
     (activeProposal?.status === 'PENDING' || activeProposal?.status === 'APPROVED')
   );
   const canFire =
-    event?.status === 'ACTIVE' && cooldownMs <= 0 && !firing && !pendingTask && !hasPendingProposal;
+    event?.status === 'ACTIVE' &&
+    myCooldownMs <= 0 &&
+    !firing &&
+    !pendingTask &&
+    !hasPendingProposal;
 
   const isAdmin = !!(
     event &&
@@ -481,11 +517,6 @@ export default function BattleshipEventPage() {
     },
     [canFire, opponentTeam, eventId, proposeShot]
   );
-
-  const handleSwitchPov = () => {
-    if (teams.length <= 1) return;
-    setPovOverride(teams.length > 0 ? (viewingTeamIndex + 1) % teams.length : 0);
-  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -604,23 +635,6 @@ export default function BattleshipEventPage() {
             <Text fontFamily="mono" fontSize="xs" color="green.400" letterSpacing="wide">
               Ready to fire
             </Text>
-          )}
-          {teams.length > 1 && event.status === 'ACTIVE' && isAdmin && (
-            <Button
-              size="xs"
-              variant="outline"
-              colorScheme="green"
-              borderColor="#1a4028"
-              color="#6b9e78"
-              fontFamily="mono"
-              fontSize="10px"
-              letterSpacing="wider"
-              leftIcon={<FaCrown />}
-              onClick={handleSwitchPov}
-              _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
-            >
-              Switch POV
-            </Button>
           )}
           <BSVolumeControl />
           <Button
@@ -806,10 +820,10 @@ export default function BattleshipEventPage() {
                   : 'READY';
                 const YELLOW = { core: '#facc15', glow: 'rgba(250,204,21,0.7)' };
                 const alertPalette = {
-                  RED:      { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
-                  VOTING:   { ...YELLOW, label: 'VOTING' },
+                  RED: { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
+                  VOTING: { ...YELLOW, label: 'VOTING' },
                   COOLDOWN: { ...YELLOW, label: 'COOLDOWN' },
-                  READY:    { core: '#4ade80', glow: 'rgba(74,222,128,0.7)',  label: 'READY' },
+                  READY: { core: '#4ade80', glow: 'rgba(74,222,128,0.7)', label: 'READY' },
                 }[alertState];
 
                 return (
@@ -1252,9 +1266,7 @@ export default function BattleshipEventPage() {
               admins and refs see both teams for oversight. */}
           <Box>
             <VStack align="stretch" spacing={4}>
-              <SectionLabel>
-                {isAdminOrRef ? 'Fleet Status' : 'Your Team'}
-              </SectionLabel>
+              <SectionLabel>{isAdminOrRef ? 'Fleet Status' : 'Your Team'}</SectionLabel>
               {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map(
                 (team) => {
                   const i = teams.findIndex((t) => t.teamId === team.teamId);
@@ -1266,7 +1278,7 @@ export default function BattleshipEventPage() {
                       isViewing={i === viewingTeamIndex}
                     />
                   );
-                },
+                }
               )}
 
               <Divider borderColor="#1a4028" />
@@ -1356,18 +1368,17 @@ export default function BattleshipEventPage() {
             voteOnProposal({ variables: { proposalId, approve } });
           }}
           onFire={() => {
-            if (!activeProposal || !opponentTeam) return;
+            if (!activeProposal?.targetTeamId) return;
             fireBS({
               variables: {
                 eventId,
-                targetTeamId: opponentTeam.teamId,
+                targetTeamId: activeProposal.targetTeamId,
                 row: activeProposal.row,
                 col: activeProposal.col,
                 firingTeamId: activeProposal.firingTeamId,
               },
             });
           }}
-          onClose={() => setActiveProposal(null)}
         />
       )}
 

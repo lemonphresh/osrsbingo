@@ -9,6 +9,7 @@ const {
   getSkipProposalById,
   voteOnSkip,
   clearSkipProposal,
+  clearedSkipProposal,
 } = require('../../../../utils/battleship/bsSkipProposals');
 
 module.exports = {
@@ -43,10 +44,13 @@ module.exports = {
         throw new UserInputError('You are not on this team');
       }
     } else {
-      firingTeam = teams.find((t) => t.teamId !== defendingTeamId && (t.members ?? []).includes(user.discordUserId));
+      firingTeam = teams.find(
+        (t) => t.teamId !== defendingTeamId && (t.members ?? []).includes(user.discordUserId)
+      );
     }
     if (!firingTeam) throw new UserInputError('You are not a member of the firing team');
-    if (firingTeam.teamId === defendingTeamId) throw new UserInputError('You cannot skip a tile on your own board');
+    if (firingTeam.teamId === defendingTeamId)
+      throw new UserInputError('You cannot skip a tile on your own board');
 
     if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
 
@@ -60,7 +64,9 @@ module.exports = {
     const threshold =
       event.voteThreshold != null
         ? Math.max(1, Math.min(event.voteThreshold, teamSize))
-        : teamSize > 3 ? 3 : 1;
+        : teamSize > 3
+        ? 3
+        : 1;
 
     const proposal = createSkipProposal({
       proposalId: generateId('bsskip'),
@@ -72,7 +78,9 @@ module.exports = {
       threshold,
     });
 
-    await pubsub.publish(`BS_SKIP_PROPOSAL_${firingTeam.teamId}`, { bsSkipProposalUpdated: proposal });
+    await pubsub.publish(`BS_SKIP_PROPOSAL_${firingTeam.teamId}`, {
+      bsSkipProposalUpdated: proposal,
+    });
     return proposal;
   },
 
@@ -86,7 +94,8 @@ module.exports = {
 
     const event = await getEventOrThrow(existing.eventId);
     const team = await BSTeam.findByPk(existing.teamId);
-    const isAdmin = (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
+    const isAdmin =
+      (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
     if (!team?.members.includes(user.discordUserId) && !isAdmin) {
       throw new UserInputError('You are not on this team');
     }
@@ -110,7 +119,7 @@ module.exports = {
       throw new UserInputError('You are not on this team');
     }
     clearSkipProposal(teamId);
-    const empty = { proposalId: null, teamId, status: 'CLEARED' };
+    const empty = clearedSkipProposal(teamId);
     await pubsub.publish(`BS_SKIP_PROPOSAL_${teamId}`, { bsSkipProposalUpdated: empty });
     return true;
   },

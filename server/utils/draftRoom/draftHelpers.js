@@ -1,6 +1,8 @@
 const { randomUUID } = require('crypto');
 const logger = require('../logger');
 
+const MAX_TOTAL_LEVEL = 2376;
+
 // ---------------------------------------------------------------------------
 // ID generation
 // ---------------------------------------------------------------------------
@@ -94,7 +96,7 @@ function calculateTierBadges(players, formula) {
     const score =
       (w.ehp ?? 0) * ehpWeight +
       (w.ehb ?? 0) * ehbWeight +
-      ((w.totalLevel ?? 0) / 2277) * 100 * totalLevelWeight +
+      ((w.totalLevel ?? 0) / MAX_TOTAL_LEVEL) * 100 * totalLevelWeight +
       (w.ehby ?? 0) * ehbyWeight +
       (w.ehpy ?? 0) * ehpyWeight +
       (w.cox ?? 0) * coxWeight +

@@ -4,8 +4,8 @@ const cron = require('node-cron');
 const logger = require('../logger');
 const { runBSGameStart } = require('./bsGameStart');
 const { runBSPlacementStart } = require('./bsPlacementStart');
-const { sweepExpiredProposals } = require('./bsProposals');
-const { sweepExpiredSkipProposals } = require('./bsSkipProposals');
+const { sweepExpiredProposals, clearedProposal, getProposal } = require('./bsProposals');
+const { sweepExpiredSkipProposals, clearedSkipProposal } = require('./bsSkipProposals');
 const { syncBSWomProgress } = require('./bsWomSync');
 const { pubsub } = require('../../schema/pubsub');
 
@@ -22,12 +22,18 @@ async function checkBSScheduledPlacementStarts() {
   });
 
   for (const event of events) {
-    logger.info({ eventId: event.eventId }, '[bsScheduler] scheduled launch reached — starting placement phase');
+    logger.info(
+      { eventId: event.eventId },
+      '[bsScheduler] scheduled launch reached — starting placement phase'
+    );
     try {
       await runBSPlacementStart(event);
       logger.info({ eventId: event.eventId }, '[bsScheduler] placement phase started (scheduled)');
     } catch (err) {
-      logger.error({ err, eventId: event.eventId }, '[bsScheduler] failed to auto-start placement phase');
+      logger.error(
+        { err, eventId: event.eventId },
+        '[bsScheduler] failed to auto-start placement phase'
+      );
     }
   }
 }
@@ -81,7 +87,9 @@ async function checkBSPlacementPhase() {
   });
 
   for (const event of expired) {
-    const boards = await BSBoard.findAll({ where: { eventId: event.eventId, teamId: { [Op.ne]: null } } });
+    const boards = await BSBoard.findAll({
+      where: { eventId: event.eventId, teamId: { [Op.ne]: null } },
+    });
     if (boards.length !== 2) {
       logger.warn(
         { eventId: event.eventId, boardCount: boards.length },
@@ -90,7 +98,10 @@ async function checkBSPlacementPhase() {
       continue;
     }
 
-    logger.info({ eventId: event.eventId }, '[bsScheduler] placement phase expired — auto-starting game');
+    logger.info(
+      { eventId: event.eventId },
+      '[bsScheduler] placement phase expired — auto-starting game'
+    );
     try {
       await runBSGameStart(event);
       logger.info({ eventId: event.eventId }, '[bsScheduler] game started successfully');
@@ -100,12 +111,15 @@ async function checkBSPlacementPhase() {
   }
 }
 
-function sweepProposals() {
-  const expiredTeamIds = sweepExpiredProposals();
-  for (const teamId of expiredTeamIds) {
-    logger.info({ teamId }, '[bsScheduler] proposal expired — auto-clearing');
+async function sweepProposals() {
+  const expiredProposals = await sweepExpiredProposals();
+  for (const { firingTeamId: teamId, proposalId } of expiredProposals) {
+    // A new proposal may have been created after the expired row was deleted.
+    // Do not let a delayed CLEARED frame dismiss that newer proposal.
+    if (await getProposal(teamId)) continue;
+    logger.info({ teamId, proposalId }, '[bsScheduler] proposal expired — auto-clearing');
     pubsub.publish(`BS_PROPOSAL_${teamId}`, {
-      bsProposalUpdated: { proposalId: null, firingTeamId: teamId, status: 'CLEARED' },
+      bsProposalUpdated: clearedProposal(teamId, proposalId),
     });
   }
 
@@ -113,7 +127,7 @@ function sweepProposals() {
   for (const teamId of expiredSkipTeamIds) {
     logger.info({ teamId }, '[bsScheduler] skip proposal expired — auto-clearing');
     pubsub.publish(`BS_SKIP_PROPOSAL_${teamId}`, {
-      bsSkipProposalUpdated: { proposalId: null, teamId, status: 'CLEARED' },
+      bsSkipProposalUpdated: clearedSkipProposal(teamId),
     });
   }
 }
@@ -132,7 +146,7 @@ function startBSScheduler() {
     }
     try {
       await checkBSPlacementPhase();
-      sweepProposals();
+      await sweepProposals();
     } catch (err) {
       logger.error({ err }, '[bsScheduler] error during schedule check');
     }
@@ -147,7 +161,9 @@ function startBSScheduler() {
     }
   });
 
-  logger.info('[bsScheduler] started — placement expiry/proposals every minute, WOM sync every 7 minutes');
+  logger.info(
+    '[bsScheduler] started — placement expiry/proposals every minute, WOM sync every 7 minutes'
+  );
 }
 
-module.exports = { startBSScheduler };
+module.exports = { startBSScheduler, sweepProposals };

@@ -8,8 +8,9 @@ const {
   getEventOrThrow,
 } = require('./helpers');
 const { getViewerCount } = require('../../../utils/battleship/bsViewers');
-const { getProposal } = require('../../../utils/battleship/bsProposals');
+const { getProposal, isProposalExpired } = require('../../../utils/battleship/bsProposals');
 const { createDraftWorkbook } = require('../../../utils/battleship/bsDraftWorkbook');
+const { ForbiddenError } = require('apollo-server-express');
 
 module.exports = {
   getBSEvent: async (_, { eventId }, context) => {
@@ -69,8 +70,27 @@ module.exports = {
   },
 
   getActiveBSProposal: async (_, { teamId }, context) => {
-    requireAuth(context);
-    return getProposal(teamId) ?? null;
+    const user = requireAuth(context);
+    const { BSTeam, BSEvent } = getModels();
+    const team = await BSTeam.findByPk(teamId);
+    if (!team) return null;
+    const event = await BSEvent.findByPk(team.eventId);
+    if (!event) return null;
+    const uid = String(user.id);
+    const canView =
+      user.admin === true ||
+      event.creatorId === uid ||
+      (event.adminIds ?? []).includes(uid) ||
+      (event.refIds ?? []).includes(uid) ||
+      (!!user.discordUserId && (team.members ?? []).includes(user.discordUserId));
+    if (!canView) throw new ForbiddenError('Team access required');
+
+    const proposal = await getProposal(teamId);
+    if (proposal && isProposalExpired(proposal)) {
+      await proposal.destroy();
+      return null;
+    }
+    return proposal ?? null;
   },
 
   getBSPlacementSuggestions: async (_, { teamId }, context) => {
@@ -84,9 +104,7 @@ module.exports = {
     const uid = String(user.id);
     const isSiteAdmin = user.admin === true;
     const isEventAdmin =
-      isSiteAdmin ||
-      (event.adminIds ?? []).includes(uid) ||
-      event.creatorId === uid;
+      isSiteAdmin || (event.adminIds ?? []).includes(uid) || event.creatorId === uid;
     // Team members always see their own team's suggestions. Refs can only see
     // if they're on the team. Admins see everything.
     const onTeam = !!user.discordUserId && (team.members ?? []).includes(user.discordUserId);

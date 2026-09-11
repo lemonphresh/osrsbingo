@@ -1,16 +1,44 @@
 'use strict';
 
-const { getModels, requireAuth, requireAdmin, requireAdminOrRef, getEventOrThrow, getTileOrThrow } = require('../helpers');
+const {
+  getModels,
+  requireAuth,
+  requireAdmin,
+  requireAdminOrRef,
+  getEventOrThrow,
+  getTileOrThrow,
+} = require('../helpers');
 const { UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const { runBSGameStart } = require('../../../../utils/battleship/bsGameStart');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
-const { postBSShotResult, postBSHitOnShip, postBSTaskComplete, postBSShipSunk, postBSGameOver } = require('../../../../utils/battleship/bsDiscord');
-const { captureMetricBaseline, syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
-const { clearSkipProposal } = require('../../../../utils/battleship/bsSkipProposals');
-const { clearProposal, getProposal } = require('../../../../utils/battleship/bsProposals');
+const {
+  postBSShotResult,
+  postBSHitOnShip,
+  postBSTaskComplete,
+  postBSShipSunk,
+  postBSGameOver,
+} = require('../../../../utils/battleship/bsDiscord');
+const {
+  captureMetricBaseline,
+  syncBSWomProgress,
+} = require('../../../../utils/battleship/bsWomSync');
+const {
+  clearSkipProposal,
+  clearedSkipProposal,
+} = require('../../../../utils/battleship/bsSkipProposals');
+const {
+  getProposal,
+  isProposalExpired,
+  clearedProposal,
+  getProposalActorId,
+} = require('../../../../utils/battleship/bsProposals');
+const {
+  assertCooldownReady,
+  assertNoUnresolvedShot,
+} = require('../../../../utils/battleship/bsShotEligibility');
 
-const COL_LABELS = ['A','B','C','D','E','F','G','H','I','J'];
+const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
 
 module.exports = {
@@ -18,7 +46,8 @@ module.exports = {
     const user = requireAuth(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
-    if (!event.womCompetitionId) throw new UserInputError('No WOM competition ID set for this event');
+    if (!event.womCompetitionId)
+      throw new UserInputError('No WOM competition ID set for this event');
     syncBSWomProgress(event).catch((err) => {
       const logger = require('../../../../utils/logger');
       logger.error({ err, eventId }, '[triggerBSWomSync] manual sync failed');
@@ -28,101 +57,152 @@ module.exports = {
 
   startBSGame: async (_, { eventId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard } = getModels();
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user.id);
-    if (event.status !== 'PLACEMENT') throw new UserInputError('Event must be in PLACEMENT status to start game');
-
-    const { Op } = require('sequelize');
-    const boards = await BSBoard.findAll({ where: { eventId, teamId: { [Op.ne]: null } } });
-    if (boards.length !== 2) throw new UserInputError('Exactly 2 teams with boards are required');
-
     return runBSGameStart(event);
   },
 
   fireBS: async (_, { eventId, targetTeamId, row, col, firingTeamId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard, BSTeam, BSTile, BSShotLog } = getModels();
-    const event = await getEventOrThrow(eventId);
-    if (event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
+    const { sequelize, BSEvent, BSBoard, BSTeam, BSTile, BSShotLog } = getModels();
+    const result = await sequelize.transaction(async (transaction) => {
+      const event = await BSEvent.findByPk(eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!event) throw new UserInputError(`BSEvent ${eventId} not found`);
+      if (event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
 
-    // Determine firing team — explicit override (dev/admin) or membership lookup
-    const teams = await BSTeam.findAll({ where: { eventId } });
-    const isAdminFiring = user.admin || (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
-    let firingTeam;
-    if (firingTeamId) {
-      firingTeam = teams.find((t) => t.teamId === firingTeamId);
-      if (!firingTeam) throw new UserInputError('Specified firing team not found');
-      // Only admins can fire on behalf of a team they aren't on.
-      if (!isAdminFiring && !(firingTeam.members ?? []).includes(user.discordUserId)) {
-        throw new UserInputError('You are not on this team');
+      const teams = await BSTeam.findAll({ where: { eventId }, transaction });
+      const isAdminFiring =
+        user.admin ||
+        (event.adminIds ?? []).includes(String(user.id)) ||
+        event.creatorId === String(user.id);
+      let selectedTeam;
+      if (firingTeamId) {
+        selectedTeam = teams.find((team) => team.teamId === firingTeamId);
+        if (!selectedTeam) throw new UserInputError('Specified firing team not found');
+        if (!isAdminFiring && !(selectedTeam.members ?? []).includes(user.discordUserId)) {
+          throw new UserInputError('You are not on this team');
+        }
+      } else {
+        selectedTeam = teams.find((team) => (team.members ?? []).includes(user.discordUserId));
       }
-    } else {
-      firingTeam = teams.find((t) => (t.members ?? []).includes(user.discordUserId));
-    }
-    if (!firingTeam) throw new UserInputError('You are not a member of any team in this event');
-
-    // Regular players can only fire via an approved proposal at these coordinates.
-    // Admins bypass — they're allowed direct overrides for moderation.
-    if (!isAdminFiring) {
-      const proposal = getProposal(firingTeam.teamId);
-      if (!proposal || proposal.status !== 'APPROVED') {
-        throw new UserInputError('No approved shot proposal for this team.');
+      if (!selectedTeam) {
+        throw new UserInputError('You are not a member of any team in this event');
       }
-      if (proposal.row !== row || proposal.col !== col) {
-        throw new UserInputError('Firing coordinates do not match the approved proposal.');
+      const firingTeam = await BSTeam.findByPk(selectedTeam.teamId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      const targetBoard = await BSBoard.findOne({
+        where: { teamId: targetTeamId, eventId },
+        transaction,
+      });
+      if (!targetBoard) throw new UserInputError('Target team board not found');
+      if (targetBoard.teamId === firingTeam.teamId) {
+        throw new UserInputError('Cannot fire at your own board');
       }
-    }
 
-    // Cooldown check (admins bypass)
-    if (!isAdminFiring && firingTeam.lastShotAt) {
-      const msSinceLast = Date.now() - new Date(firingTeam.lastShotAt).getTime();
-      const cooldownMs = event.cooldownMinutes * 60 * 1000;
-      if (msSinceLast < cooldownMs) {
-        const remaining = Math.ceil((cooldownMs - msSinceLast) / 1000 / 60);
-        throw new UserInputError(`Cooldown active — ${remaining} minute(s) remaining`);
+      let proposal = null;
+      if (!isAdminFiring) {
+        proposal = await getProposal(firingTeam.teamId, {
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        if (!proposal || proposal.status !== 'APPROVED') {
+          throw new UserInputError('No approved shot proposal for this team.');
+        }
+        if (isProposalExpired(proposal)) {
+          const expiredProposalId = proposal.proposalId;
+          await proposal.destroy({ transaction });
+          return { expiredTeamId: firingTeam.teamId, expiredProposalId };
+        }
+        if (proposal.proposedBy !== getProposalActorId(user)) {
+          throw new UserInputError('Only the proposal creator can fire this shot.');
+        }
+        if (
+          proposal.eventId !== eventId ||
+          proposal.targetTeamId !== targetTeamId ||
+          proposal.row !== row ||
+          proposal.col !== col
+        ) {
+          throw new UserInputError('Firing target does not match the approved proposal.');
+        }
+        assertCooldownReady(event, firingTeam);
+        await assertNoUnresolvedShot(BSTile, targetBoard.boardId, { transaction });
       }
-    }
 
-    // Find target board
-    const targetBoard = await BSBoard.findOne({ where: { teamId: targetTeamId, eventId } });
-    if (!targetBoard) throw new UserInputError('Target team board not found');
-    if (targetBoard.teamId === firingTeam.teamId) throw new UserInputError('Cannot fire at your own board');
+      const tile = await BSTile.findOne({
+        where: { boardId: targetBoard.boardId, row, col },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!tile) throw new UserInputError('Tile not found');
+      if (tile.isShot) throw new UserInputError('That tile has already been shot');
 
-    // Find the tile
-    const tile = await BSTile.findOne({ where: { boardId: targetBoard.boardId, row, col } });
-    if (!tile) throw new UserInputError('Tile not found');
-    if (tile.isShot) throw new UserInputError('That tile has already been shot');
+      const now = new Date();
+      const isHit = tile.shipType !== null;
+      const effectiveShotTaskId = tile.shipTaskId ?? tile.taskId;
+      await tile.update({ isShot: true, shotAt: now }, { transaction });
+      if (!isAdminFiring) await firingTeam.update({ lastShotAt: now }, { transaction });
+      const shot = await BSShotLog.create(
+        {
+          shotId: generateId('bssl'),
+          eventId,
+          firingTeamId: firingTeam.teamId,
+          targetBoardId: targetBoard.boardId,
+          tileId: tile.tileId,
+          row,
+          col,
+          result: isHit ? 'HIT' : 'MISS',
+          taskId: effectiveShotTaskId,
+          shotAt: now,
+        },
+        { transaction }
+      );
+      if (proposal) await proposal.destroy({ transaction });
 
-    // Determine result
-    const isHit = tile.shipType !== null;
-    const now = new Date();
-
-    await tile.update({ isShot: true, shotAt: now });
-    if (!isAdminFiring) await firingTeam.update({ lastShotAt: now });
-
-    const effectiveShotTaskId = tile.shipTaskId ?? tile.taskId;
-
-    const shot = await BSShotLog.create({
-      shotId:        generateId('bssl'),
-      eventId,
-      firingTeamId:  firingTeam.teamId,
-      targetBoardId: targetBoard.boardId,
-      tileId:        tile.tileId,
-      row, col,
-      result: isHit ? 'HIT' : 'MISS',
-      taskId: effectiveShotTaskId,
-      shotAt: now,
+      return {
+        event,
+        teams,
+        firingTeam,
+        targetBoard,
+        tile,
+        shot,
+        isHit,
+        effectiveShotTaskId,
+        clearedProposalId: proposal?.proposalId ?? null,
+      };
     });
+
+    if (result.expiredTeamId) {
+      await pubsub.publish(`BS_PROPOSAL_${result.expiredTeamId}`, {
+        bsProposalUpdated: clearedProposal(result.expiredTeamId, result.expiredProposalId),
+      });
+      throw new UserInputError('Proposal has expired');
+    }
+
+    const {
+      event,
+      teams,
+      firingTeam,
+      targetBoard,
+      tile,
+      shot,
+      isHit,
+      effectiveShotTaskId,
+      clearedProposalId,
+    } = result;
 
     await pubsub.publish(`BS_SHOT_FIRED_${eventId}`, { bsShotFired: shot });
     await pubsub.publish(`BS_BOARD_UPDATED_${eventId}`, { bsBoardUpdated: targetBoard });
 
     // Dismiss any pending proposal for the firing team — the shot has been fired, so
     // teammates who were still on the vote modal need it to close.
-    clearProposal(firingTeam.teamId);
     await pubsub.publish(`BS_PROPOSAL_${firingTeam.teamId}`, {
-      bsProposalUpdated: { proposalId: null, firingTeamId: firingTeam.teamId, status: 'CLEARED' },
+      bsProposalUpdated: clearedProposal(firingTeam.teamId, clearedProposalId),
     });
 
     // Discord notifications (best-effort, don't await)
@@ -196,7 +276,9 @@ module.exports = {
         where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
       });
       const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
-      thisShipSunk = thisShipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
+      thisShipSunk = thisShipTiles.every(
+        (t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId)
+      );
       allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
     }
 
@@ -216,18 +298,18 @@ module.exports = {
 
     if (thisShipSunk) {
       await postBSShipSunk({
-        firingChannelId:    firingTeam?.discordChannelId,
+        firingChannelId: firingTeam?.discordChannelId,
         defendingChannelId: defendingTeam?.discordChannelId,
-        shipType:           tile.shipType,
-        firingTeamName:     firingTeam?.teamName,
-        defendingTeamName:  defendingTeam?.teamName,
-        eventId:            event.eventId,
+        shipType: tile.shipType,
+        firingTeamName: firingTeam?.teamName,
+        defendingTeamName: defendingTeam?.teamName,
+        eventId: event.eventId,
       });
     }
 
     if (allSunk) {
       const winningTeam = firingTeam;
-      const losingTeam  = defendingTeam;
+      const losingTeam = defendingTeam;
       const completedAt = new Date();
       await BSEvent.update(
         { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
@@ -300,7 +382,7 @@ module.exports = {
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
     clearSkipProposal(firingTeam.teamId);
     await pubsub.publish(`BS_SKIP_PROPOSAL_${firingTeam.teamId}`, {
-      bsSkipProposalUpdated: { proposalId: null, teamId: firingTeam.teamId, status: 'CLEARED' },
+      bsSkipProposalUpdated: clearedSkipProposal(firingTeam.teamId),
     });
     return tile;
   },

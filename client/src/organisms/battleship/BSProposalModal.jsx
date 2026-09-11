@@ -12,7 +12,6 @@ import {
   ModalContent,
   ModalBody,
   ModalHeader,
-  ModalCloseButton,
   IconButton,
   Tooltip,
 } from '@chakra-ui/react';
@@ -127,18 +126,21 @@ export function ProposalMiniBoard({ opponentTiles, proposedRow, proposedCol, col
 
 const PROPOSAL_TTL_S = 120;
 
-function useProposalCountdown(proposedAt, isPending) {
+function useProposalCountdown(expiresAt, isActive) {
   const [secondsLeft, setSecondsLeft] = useState(() => {
-    if (!proposedAt || !isPending) return PROPOSAL_TTL_S;
-    const elapsed = Math.floor((Date.now() - new Date(proposedAt).getTime()) / 1000);
-    return Math.max(0, PROPOSAL_TTL_S - elapsed);
+    if (!expiresAt || !isActive) return PROPOSAL_TTL_S;
+    return Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000));
   });
 
   useEffect(() => {
-    if (!isPending) return;
-    const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
+    if (!expiresAt || !isActive) return undefined;
+    const update = () => {
+      setSecondsLeft(Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 1000)));
+    };
+    update();
+    const id = setInterval(update, 1000);
     return () => clearInterval(id);
-  }, [isPending]);
+  }, [expiresAt, isActive]);
 
   return secondsLeft;
 }
@@ -150,7 +152,6 @@ export function ProposalModal({
   teamMembers,
   onVote,
   onFire,
-  onClose,
   votingLoading,
   firingLoading,
   proposalHistory,
@@ -161,7 +162,7 @@ export function ProposalModal({
   const isApproved = status === 'APPROVED';
   const isRejected = status === 'REJECTED';
 
-  const secondsLeft = useProposalCountdown(proposal?.proposedAt ?? null, isPending);
+  const secondsLeft = useProposalCountdown(proposal?.expiresAt ?? null, isPending || isApproved);
 
   if (!proposal || status === 'CLEARED' || !proposal.proposalId) return null;
 
@@ -189,7 +190,14 @@ export function ProposalModal({
   const rejectedText = colorblindMode ? '#fcd34d' : '#f87171';
 
   return (
-    <Modal isOpen onClose={onClose} isCentered size="lg">
+    <Modal
+      isOpen
+      onClose={() => {}}
+      closeOnEsc={false}
+      closeOnOverlayClick={false}
+      isCentered
+      size="lg"
+    >
       <ModalOverlay bg="blackAlpha.800" backdropFilter="blur(4px)" />
       <ModalContent
         bg="#060f0a"
@@ -216,7 +224,6 @@ export function ProposalModal({
             </Text>
           </HStack>
         </ModalHeader>
-        <ModalCloseButton color="#6b9e78" />
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
             {/* Who proposed */}
@@ -249,8 +256,8 @@ export function ProposalModal({
               />
             </Center>
 
-            {/* Countdown — only while pending */}
-            {isPending && (
+            {/* The approval and the right to fire share one server-authoritative TTL. */}
+            {(isPending || isApproved) && (
               <Box>
                 <HStack justify="space-between" mb={1}>
                   <Text
@@ -428,6 +435,7 @@ export function ProposalModal({
                 _hover={{ bg: colorblindMode ? '#d97706' : '#b91c1c' }}
                 _active={{ bg: colorblindMode ? '#92400e' : '#7f1d1d' }}
                 isLoading={firingLoading}
+                isDisabled={secondsLeft === 0}
                 loadingText="Firing..."
                 onClick={onFire}
                 sx={{

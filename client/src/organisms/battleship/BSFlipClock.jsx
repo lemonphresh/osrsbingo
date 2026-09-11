@@ -196,12 +196,11 @@ export function BSPlacementCountdown({ event }) {
     return () => clearInterval(id);
   }, []);
 
-  const endTime =
-    event.placementStartsAt && event.placementPhaseHours
-      ? new Date(event.placementStartsAt).getTime() + event.placementPhaseHours * 3600 * 1000
-      : event.placementEndsAt
-      ? new Date(event.placementEndsAt).getTime()
-      : null;
+  const endTime = event.placementEndsAt
+    ? new Date(event.placementEndsAt).getTime()
+    : event.placementStartsAt && event.placementPhaseHours
+    ? new Date(event.placementStartsAt).getTime() + event.placementPhaseHours * 3600 * 1000
+    : null;
 
   if (!endTime) return null;
 

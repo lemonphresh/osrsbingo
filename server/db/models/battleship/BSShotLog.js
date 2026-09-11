@@ -14,7 +14,7 @@ module.exports = (sequelize) => {
       eventId:       { type: DataTypes.STRING, allowNull: false },
       firingTeamId:  { type: DataTypes.STRING, allowNull: false },
       targetBoardId: { type: DataTypes.STRING, allowNull: false },
-      tileId:        { type: DataTypes.STRING, allowNull: false },
+      tileId:        { type: DataTypes.STRING, allowNull: false, unique: true },
       row:           { type: DataTypes.INTEGER, allowNull: false },
       col:           { type: DataTypes.INTEGER, allowNull: false },
       result: {
