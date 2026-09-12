@@ -67,7 +67,7 @@ import {
   UPDATE_BS_TEAM_DISCORD,
   UPDATE_BS_TEAM_MEMBERS,
 } from '../../graphql/bsOperations';
-import { SEARCH_USERS } from '../../graphql/queries';
+import { SEARCH_USERS, SEARCH_USERS_BY_IDS } from '../../graphql/queries';
 
 const GREEN = '#4ade80';
 const DIM = '#6b9e78';
@@ -733,8 +733,21 @@ function AdminsSection({ event, eventId, refetchEvent, showToast }) {
   const [doRemoveAdmin] = useMutation(REMOVE_BS_ADMIN);
 
   const currentAdminIds = useMemo(() => new Set(event?.adminIds ?? []), [event]);
-  const admins = event?.admins ?? [];
   const creatorId = event?.creatorId ? String(event.creatorId) : null;
+  // Resolve admin roster via SEARCH_USERS_BY_IDS instead of event.admins.
+  // The BSEvent.admins field resolver has been unreliable in practice
+  // (returned empty for populated adminIds), so we drive the list off a
+  // dedicated query that always hits User.findAll directly.
+  const admissibleIds = useMemo(
+    () => [...new Set([...(event?.adminIds ?? []).map(String), creatorId].filter(Boolean))],
+    [event?.adminIds, creatorId]
+  );
+  const { data: adminsData } = useQuery(SEARCH_USERS_BY_IDS, {
+    variables: { ids: admissibleIds },
+    skip: admissibleIds.length === 0,
+    fetchPolicy: 'cache-and-network',
+  });
+  const admins = adminsData?.searchUsersByIds ?? [];
 
   const handleSearchChange = useCallback(
     (e) => {
@@ -1155,10 +1168,9 @@ export default function BattleshipAdminPage() {
   const [updateBSEvent] = useMutation(UPDATE_BS_EVENT, {
     onError: (err) => showToast(err.message ?? 'Failed to save.', 'error'),
   });
-  const [adminForceGameOver, { loading: forcingGameOver }] = useMutation(
-    ADMIN_FORCE_BS_GAME_OVER,
-    { onError: (err) => showToast(err.message ?? 'Failed to force game over.', 'error') },
-  );
+  const [adminForceGameOver, { loading: forcingGameOver }] = useMutation(ADMIN_FORCE_BS_GAME_OVER, {
+    onError: (err) => showToast(err.message ?? 'Failed to force game over.', 'error'),
+  });
 
   // Force-game-over confirmation state. Two-step: step 1 shows the calculated
   // winner + hit counts, step 2 requires typing the event name.
@@ -1171,7 +1183,7 @@ export default function BattleshipAdminPage() {
   const forcePreview = useMemo(() => {
     if (!event || teams.length < 2) return null;
     const stats = Object.fromEntries(
-      teams.map((t) => [t.teamId, { hits: 0, misses: 0, lastShotAt: null }]),
+      teams.map((t) => [t.teamId, { hits: 0, misses: 0, lastShotAt: null }])
     );
     for (const s of shotLog) {
       const bucket = stats[s.firingTeamId];
@@ -1701,8 +1713,8 @@ export default function BattleshipAdminPage() {
               </AccordionButton>
               <AccordionPanel px={4} py={4} bg={BG}>
                 <Text fontSize="xs" color={DIM} mb={3} lineHeight="1.7">
-                  Admin-only view of both fleets. Ship placements are hidden from
-                  opponents by the server; you see everything.
+                  Admin-only view of both fleets. Ship placements are hidden from opponents by the
+                  server; you see everything.
                 </Text>
                 <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4}>
                   {teams.map((team) => (
@@ -2250,11 +2262,6 @@ export default function BattleshipAdminPage() {
                 >
                   TEAMS & SKIP TOKENS
                 </Text>
-                {event && (
-                  <Badge colorScheme="green" fontSize="xs">
-                    {(event.teams ?? []).length}
-                  </Badge>
-                )}
               </HStack>
               <AccordionIcon color={DIM} />
             </AccordionButton>
@@ -2305,11 +2312,6 @@ export default function BattleshipAdminPage() {
                 >
                   ADMINS MANAGEMENT
                 </Text>
-                {event && (
-                  <Badge colorScheme="green" fontSize="xs">
-                    {(event.admins ?? []).length}
-                  </Badge>
-                )}
               </HStack>
               <AccordionIcon color={DIM} />
             </AccordionButton>
@@ -2350,11 +2352,6 @@ export default function BattleshipAdminPage() {
                 >
                   REFS MANAGEMENT
                 </Text>
-                {event && (
-                  <Badge colorScheme="green" fontSize="xs">
-                    {(event.refs ?? []).length}
-                  </Badge>
-                )}
               </HStack>
               <AccordionIcon color={DIM} />
             </AccordionButton>
@@ -2609,7 +2606,13 @@ export default function BattleshipAdminPage() {
                       borderRadius="md"
                       p={3}
                     >
-                      <Text fontSize="10px" color={DIM} fontFamily="mono" mb={2} letterSpacing="wide">
+                      <Text
+                        fontSize="10px"
+                        color={DIM}
+                        fontFamily="mono"
+                        mb={2}
+                        letterSpacing="wide"
+                      >
                         CURRENT STANDINGS
                       </Text>
                       <VStack align="stretch" spacing={1}>
@@ -2618,7 +2621,8 @@ export default function BattleshipAdminPage() {
                             🏆 {forcePreview.winner.teamName}
                           </Text>
                           <Text fontSize="xs" color={DIM} fontFamily="mono">
-                            {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                            {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses}{' '}
+                            misses
                           </Text>
                         </HStack>
                         <HStack justify="space-between">
@@ -2626,7 +2630,8 @@ export default function BattleshipAdminPage() {
                             {forcePreview.loser.teamName}
                           </Text>
                           <Text fontSize="xs" color={DIM} fontFamily="mono">
-                            {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                            {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses}{' '}
+                            misses
                           </Text>
                         </HStack>
                       </VStack>
@@ -2697,7 +2702,8 @@ export default function BattleshipAdminPage() {
                         🏆 {forcePreview.winner.teamName}
                       </Text>
                       <Text fontSize="xs" color={DIM} fontFamily="mono">
-                        {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses} misses
+                        {forcePreview.winnerStats.hits} hits / {forcePreview.winnerStats.misses}{' '}
+                        misses
                       </Text>
                     </HStack>
                     <HStack justify="space-between">
@@ -2705,14 +2711,15 @@ export default function BattleshipAdminPage() {
                         {forcePreview.loser.teamName}
                       </Text>
                       <Text fontSize="xs" color={DIM} fontFamily="mono">
-                        {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses} misses
+                        {forcePreview.loserStats.hits} hits / {forcePreview.loserStats.misses}{' '}
+                        misses
                       </Text>
                     </HStack>
                   </VStack>
                 </Box>
                 <Text fontSize="xs" color="#fbbf24" lineHeight="1.7">
-                  ⚠️ This cannot be undone. Standings are recomputed by the server at the moment
-                  you confirm, so a shot resolved between now and then may shift the winner.
+                  ⚠️ This cannot be undone. Standings are recomputed by the server at the moment you
+                  confirm, so a shot resolved between now and then may shift the winner.
                 </Text>
               </VStack>
             )}
