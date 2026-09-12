@@ -52,35 +52,52 @@ const BSEvent = {
   },
   refs: (event) => {
     if (!event.refIds?.length) return [];
+    // Coerce to numbers for the same reason as `admins` below: User.id is
+    // an auto-increment INTEGER column, refIds is ARRAY(STRING). Passing
+    // strings mostly works via Postgres coercion, but explicit ints
+    // eliminate a whole class of "record silently missing from findAll".
+    const numericIds = [...new Set(event.refIds.map(String))]
+      .map((id) => Number.parseInt(id, 10))
+      .filter((n) => Number.isInteger(n) && n > 0);
+    if (numericIds.length === 0) return [];
     const { User } = getModels();
-    return User.findAll({ where: { id: event.refIds } });
+    return User.findAll({ where: { id: numericIds } });
   },
   admins: async (event) => {
     // The event creator has admin powers even if they're not in adminIds
     // (the server's requireAdmin helper accepts creatorId OR adminIds).
     // Fold them into the surfaced list so UIs render a complete picture of
     // "everyone who can admin this event" instead of just "extra admins".
-    const ids = new Set(
-      (event.adminIds ?? [])
-        .map(String)
-        .concat(event.creatorId ? [String(event.creatorId)] : [])
-    );
-    if (ids.size === 0) return [];
+    //
+    // Coerce every id to a number before the findAll: User.id is an
+    // auto-increment INTEGER column but adminIds is stored as ARRAY(STRING)
+    // and creatorId is a STRING, so a raw findAll on the string values
+    // occasionally missed rows depending on Postgres coercion path. Filter
+    // out anything that isn't a valid positive integer (defensive against
+    // legacy junk) rather than passing NaN into the query.
+    const rawIds = [
+      ...(event.adminIds ?? []).map(String),
+      ...(event.creatorId ? [String(event.creatorId)] : []),
+    ];
+    const numericIds = [...new Set(rawIds)]
+      .map((id) => Number.parseInt(id, 10))
+      .filter((n) => Number.isInteger(n) && n > 0);
+    if (numericIds.length === 0) return [];
     const { User } = getModels();
-    const users = await User.findAll({ where: { id: [...ids] } });
+    const users = await User.findAll({ where: { id: numericIds } });
     // Diagnostic for the "counter says 1 but list renders empty" bug where
     // adminIds contained a user id that findAll couldn't match. Fires only
     // when there's a real drift so it doesn't spam.
-    if (users.length !== ids.size) {
-      const returnedIds = new Set(users.map((u) => String(u.id)));
-      const missing = [...ids].filter((id) => !returnedIds.has(id));
+    if (users.length !== numericIds.length) {
+      const returnedIds = new Set(users.map((u) => Number(u.id)));
+      const missing = numericIds.filter((n) => !returnedIds.has(n));
       const logger = require('../../../utils/logger');
       logger.warn(
         {
           eventId: event.eventId,
           adminIds: event.adminIds,
           creatorId: event.creatorId,
-          requestedIds: [...ids],
+          requestedIds: numericIds,
           returnedIds: [...returnedIds],
           missingIds: missing,
         },

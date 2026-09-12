@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client';
 import {
   Box,
@@ -9,7 +9,7 @@ import {
   IconButton,
 } from '@chakra-ui/react';
 import { ADD_BS_ADMIN, REMOVE_BS_ADMIN } from '../../../graphql/bsOperations';
-import { SEARCH_USERS } from '../../../graphql/queries';
+import { SEARCH_USERS, SEARCH_USERS_BY_IDS } from '../../../graphql/queries';
 import { useToastContext } from '../../../providers/ToastProvider';
 
 // Event-admin management. Admins can do everything refs can plus modify
@@ -41,17 +41,25 @@ export function BSAdminsTab({ event, refetch }) {
   });
 
   // adminIds is only the manually-added admins (the event creator is stored
-  // in creatorId, not adminIds). We render / gate on the full admins list
-  // instead so the creator shows up too, but keep adminIds for search
-  // filtering so we don't offer to re-add someone already listed.
+  // in creatorId, not adminIds). Resolve the full admin roster (adminIds +
+  // creatorId) client-side via SEARCH_USERS_BY_IDS instead of relying on
+  // event.admins from the BSEvent field resolver. The field resolver was
+  // occasionally returning empty despite adminIds being populated, and
+  // driving this off a dedicated query eliminates the mystery entirely.
   const currentAdminIds = event.adminIds ?? [];
-  const admins = event.admins ?? [];
   const creatorId = String(event.creatorId ?? '');
-  const admissibleIds = new Set(
-    [...currentAdminIds.map(String), creatorId].filter(Boolean)
+  const admissibleIds = useMemo(
+    () => [...new Set([...currentAdminIds.map(String), creatorId].filter(Boolean))],
+    [currentAdminIds, creatorId]
   );
+  const { data: adminsData } = useQuery(SEARCH_USERS_BY_IDS, {
+    variables: { ids: admissibleIds },
+    skip: admissibleIds.length === 0,
+    fetchPolicy: 'cache-and-network',
+  });
+  const admins = adminsData?.searchUsersByIds ?? [];
   const results = (searchData?.searchUsers ?? []).filter(
-    (u) => !admissibleIds.has(String(u.id))
+    (u) => !admissibleIds.includes(String(u.id))
   );
 
   return (
