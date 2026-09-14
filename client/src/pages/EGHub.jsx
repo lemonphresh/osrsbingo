@@ -18,6 +18,7 @@ import usePageTitle from '../hooks/usePageTitle';
 import EGCalendar from './EGCalendar';
 import SurveyViewer from '../organisms/SurveyViewer';
 import ClanStats from '../organisms/ClanStats';
+import ContentRegistryViewer from '../organisms/ContentRegistryViewer';
 
 export default function EGHub() {
   const toast = useToast();
@@ -122,6 +123,12 @@ export default function EGHub() {
             >
               Clan Stats
             </Tab>
+            <Tab
+              _selected={{ color: 'dark.purple.light', borderColor: 'dark.purple.light' }}
+              fontWeight="semibold"
+            >
+              Content Registry
+            </Tab>
           </TabList>
 
           <TabPanels>
@@ -133,6 +140,9 @@ export default function EGHub() {
             </TabPanel>
             <TabPanel p={0}>
               <ClanStats />
+            </TabPanel>
+            <TabPanel p={0}>
+              <ContentRegistryViewer />
             </TabPanel>
           </TabPanels>
         </Tabs>

@@ -1834,15 +1834,7 @@ const BOSSES = {
       medium: { min: 75, max: 100 },
       long: { min: 100, max: 150 },
     },
-    drops: [
-      'Oathplate Helm',
-      'Oathplate Body',
-      'Oathplate Legs',
-      'Soulflame Horn',
-      'Forgotten Lockbox',
-      'Dossier',
-      'Yami',
-    ],
+    drops: ['Oathplate Helm', 'Oathplate Body', 'Oathplate Legs', 'Soulflame Horn', 'Yami'],
     dropQuantities: {
       long: { min: 1, max: 1 },
     },
