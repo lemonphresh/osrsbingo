@@ -88,6 +88,108 @@ function fmtDateTime(iso) {
   return `${day} ${time}`;
 }
 
+// Wrap a CSV field: double-quote everything, escape internal quotes. Simpler
+// than "quote only if needed" and reliably safe for Excel/Sheets import.
+function csvCell(value) {
+  const s = value == null ? '' : String(value);
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function triggerDownload(filename, csv) {
+  // Prefix with BOM so Excel recognizes UTF-8 without prompting.
+  const blob = new Blob(['﻿', csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
+// Builds a CSV row per shot in the log, enriched with team names, coord
+// label, tile type (SHIP/OCEAN + ship class), and the task that was
+// revealed. Only usable after the event is COMPLETED because that's when
+// the server unmasks shipType on unshot tiles for admins (canSeeShips also
+// returns true for COMPLETED, so it works either way, but the natural
+// use-case is a post-event export for archival / stat nerds).
+function buildShotLogCsv({ event, shotLog, teams }) {
+  const teamNameById = new Map(teams.map((t) => [t.teamId, t.teamName]));
+  const teamByBoardId = new Map(
+    teams.filter((t) => t.board?.boardId).map((t) => [t.board.boardId, t])
+  );
+  const tileByBoardAndCoord = new Map();
+  for (const team of teams) {
+    const boardId = team.board?.boardId;
+    if (!boardId) continue;
+    for (const tile of team.board.tiles ?? []) {
+      tileByBoardAndCoord.set(`${boardId}:${tile.row},${tile.col}`, tile);
+    }
+  }
+  const taskById = new Map((event.tasks ?? []).map((t) => [t.taskId, t]));
+
+  const header = [
+    'Shot #',
+    'Timestamp (ISO)',
+    'Timestamp (Local)',
+    'Firing Team',
+    'Target Team',
+    'Coordinate',
+    'Row',
+    'Col',
+    'Result',
+    'Tile Type',
+    'Ship',
+    'Task',
+    'Metric Target',
+  ];
+
+  const sorted = [...shotLog].sort(
+    (a, b) => new Date(a.shotAt).getTime() - new Date(b.shotAt).getTime()
+  );
+
+  const rows = sorted.map((shot, idx) => {
+    const firingName = teamNameById.get(shot.firingTeamId) ?? shot.firingTeamId;
+    const targetTeam = teamByBoardId.get(shot.targetBoardId);
+    const targetName = targetTeam?.teamName ?? shot.targetBoardId;
+    const tile = tileByBoardAndCoord.get(`${shot.targetBoardId}:${shot.row},${shot.col}`);
+    const tileType = tile?.shipType ? 'SHIP' : 'OCEAN';
+    const shipLabel = tile?.shipType ?? '';
+    const task = shot.taskId ? taskById.get(shot.taskId) : null;
+    const taskLabel = task?.bossOrSkill ?? task?.label ?? '';
+    const metricLabel = task?.metricLabel ?? '';
+    const iso = shot.shotAt ?? '';
+    const local = shot.shotAt ? new Date(shot.shotAt).toLocaleString() : '';
+    return [
+      idx + 1,
+      iso,
+      local,
+      firingName,
+      targetName,
+      coordLabel(shot.row, shot.col),
+      shot.row,
+      shot.col,
+      shot.result,
+      tileType,
+      shipLabel,
+      taskLabel,
+      metricLabel,
+    ]
+      .map(csvCell)
+      .join(',');
+  });
+
+  return [header.map(csvCell).join(','), ...rows].join('\n');
+}
+
+function safeFilename(name) {
+  return String(name || 'battleship-event')
+    .replace(/[^a-z0-9_-]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80);
+}
+
 // Live-queries the placement suggestions for a single team. Server-side auth
 // returns [] for a ref who isn't on the team, so refs only see their own team;
 // admins see everything.
@@ -2401,6 +2503,36 @@ export default function BattleshipAdminPage() {
               </AccordionButton>
 
               <AccordionPanel px={4} py={4} bg={BG}>
+                {(event?.status === 'COMPLETED' || event?.status === 'ARCHIVED') && (
+                  <HStack mb={3} justify="space-between" align="center" flexWrap="wrap" gap={2}>
+                    <Text fontSize="xs" color={DIM} fontFamily="mono">
+                      Post-event archive: download every shot with tile type,
+                      coordinate, timestamp, and revealed task.
+                    </Text>
+                    <Button
+                      size="xs"
+                      variant="outline"
+                      colorScheme="green"
+                      borderColor={BORDER}
+                      color={GREEN}
+                      fontFamily="mono"
+                      fontSize="10px"
+                      letterSpacing="wider"
+                      textTransform="uppercase"
+                      onClick={() => {
+                        const csv = buildShotLogCsv({ event, shotLog, teams });
+                        const stamp = new Date().toISOString().slice(0, 10);
+                        triggerDownload(
+                          `${safeFilename(event.eventName)}-shot-log-${stamp}.csv`,
+                          csv
+                        );
+                      }}
+                      _hover={{ bg: CARD_BG, borderColor: GREEN }}
+                    >
+                      Export Shot Log (CSV)
+                    </Button>
+                  </HStack>
+                )}
                 <VStack align="stretch" spacing={1} maxH="400px" overflowY="auto">
                   {[...shotLog].reverse().map((shot) => {
                     const firingTeam = teams.find((t) => t.teamId === shot.firingTeamId);
