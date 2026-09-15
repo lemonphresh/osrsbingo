@@ -44,6 +44,15 @@ module.exports = {
     return BSShotLog.findAll({ where: { eventId }, order: [['shotAt', 'DESC']] });
   },
 
+  getBSProposalLog: async (_, { eventId }, context) => {
+    requireAuth(context);
+    const { BSProposalLog } = getModels();
+    return BSProposalLog.findAll({
+      where: { eventId },
+      order: [['resolvedAt', 'DESC']],
+    });
+  },
+
   getBSViewerCount: async (_, { eventId }, context) => {
     requireAuth(context);
     return getViewerCount(eventId);

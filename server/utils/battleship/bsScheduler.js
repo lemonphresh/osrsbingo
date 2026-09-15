@@ -6,6 +6,7 @@ const { runBSGameStart } = require('./bsGameStart');
 const { runBSPlacementStart } = require('./bsPlacementStart');
 const { sweepExpiredProposals, clearedProposal, getProposal } = require('./bsProposals');
 const { sweepExpiredSkipProposals, clearedSkipProposal } = require('./bsSkipProposals');
+const { logProposalOutcome } = require('./bsProposalLog');
 const { syncBSWomProgress } = require('./bsWomSync');
 const { pubsub } = require('../../schema/pubsub');
 
@@ -113,7 +114,20 @@ async function checkBSPlacementPhase() {
 
 async function sweepProposals() {
   const expiredProposals = await sweepExpiredProposals();
-  for (const { firingTeamId: teamId, proposalId } of expiredProposals) {
+  for (const proposal of expiredProposals) {
+    const { firingTeamId: teamId, proposalId } = proposal;
+    // Record who voted what before the row disappeared. The log helper dedupes
+    // via unique index, so a REJECTED proposal that also happens to be expired
+    // won't produce a second row.
+    try {
+      await logProposalOutcome({
+        kind: 'SHOT',
+        proposal,
+        finalStatus: proposal.status === 'REJECTED' ? 'REJECTED' : 'EXPIRED',
+      });
+    } catch (err) {
+      logger.error({ err, proposalId }, '[bsScheduler] failed to log expired shot proposal');
+    }
     // A new proposal may have been created after the expired row was deleted.
     // Do not let a delayed CLEARED frame dismiss that newer proposal.
     if (await getProposal(teamId)) continue;
@@ -123,8 +137,21 @@ async function sweepProposals() {
     });
   }
 
-  const expiredSkipTeamIds = sweepExpiredSkipProposals();
-  for (const teamId of expiredSkipTeamIds) {
+  const expiredSkipProposals = sweepExpiredSkipProposals();
+  for (const proposal of expiredSkipProposals) {
+    const teamId = proposal.teamId;
+    try {
+      await logProposalOutcome({
+        kind: 'SKIP',
+        proposal,
+        finalStatus: 'EXPIRED',
+      });
+    } catch (err) {
+      logger.error(
+        { err, proposalId: proposal.proposalId },
+        '[bsScheduler] failed to log expired skip proposal'
+      );
+    }
     logger.info({ teamId }, '[bsScheduler] skip proposal expired — auto-clearing');
     pubsub.publish(`BS_SKIP_PROPOSAL_${teamId}`, {
       bsSkipProposalUpdated: clearedSkipProposal(teamId),

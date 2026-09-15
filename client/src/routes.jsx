@@ -68,6 +68,7 @@ const BattleshipCreatePage = lazy(() => import('./pages/battleship/BattleshipCre
 const BattleshipRefsPage = lazy(() => import('./pages/battleship/BattleshipRefsPage'));
 const BattleshipGuidePage = lazy(() => import('./pages/battleship/BattleshipGuidePage'));
 const BattleshipAdminPage = lazy(() => import('./pages/battleship/BattleshipAdminPage'));
+const BattleshipPlaygroundPage = lazy(() => import('./pages/battleship/BattleshipPlaygroundPage'));
 
 const WhodunnitLanding = lazy(() => import('./pages/whodunnit/WhodunnitLanding'));
 const WhodunnitCreatePage = lazy(() => import('./pages/whodunnit/WhodunnitCreatePage'));
@@ -415,6 +416,11 @@ const routes = [
       {
         path: '/battleship/:eventId/admin',
         element: withFeatureFlag(FEATURE_FLAG_KEYS.BATTLESHIP, BattleshipAdminPage),
+        errorElement: <ErrorPage />,
+      },
+      {
+        path: '/battleship/playground',
+        element: withSuspense(BattleshipPlaygroundPage),
         errorElement: <ErrorPage />,
       },
       {

@@ -43,6 +43,8 @@ import BSDiscordSetupModal from '../../molecules/battleship/BSDiscordSetupModal'
 import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
 import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { BoardPanel } from '../../organisms/battleship/BSSharedComponents';
+import BSProposalLogPanel from '../../organisms/battleship/BSProposalLogPanel';
+import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
 import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
 import {
   GET_BS_PLACEMENT_SUGGESTIONS,
@@ -58,6 +60,7 @@ import {
   ADMIN_FORCE_BS_GAME_OVER,
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
+  GET_BS_PROPOSAL_LOG,
   REMOVE_BS_ADMIN,
   REMOVE_BS_REF,
   SEND_BS_TEST_DISCORD_MESSAGES,
@@ -1251,11 +1254,41 @@ export default function BattleshipAdminPage() {
     fetchPolicy: 'cache-and-network',
   });
 
+  const { data: proposalLogData } = useQuery(GET_BS_PROPOSAL_LOG, {
+    variables: { eventId },
+    skip: !isAuthenticated || !eventId,
+    fetchPolicy: 'cache-and-network',
+    pollInterval: 30000,
+  });
+
   const event = eventData?.getBSEvent;
   // useMemo so `?? []` doesn't produce a fresh array reference every render
   // (would re-run any useMemo that depends on `teams` / `shotLog`).
   const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
   const shotLog = useMemo(() => shotLogData?.getBSShotLog ?? [], [shotLogData?.getBSShotLog]);
+  const proposalLog = useMemo(
+    () => proposalLogData?.getBSProposalLog ?? [],
+    [proposalLogData?.getBSProposalLog]
+  );
+
+  // Discord IDs surfaced in the proposal log (proposer + every voter) so we
+  // can render usernames instead of raw 18-digit IDs. Unioned with team
+  // rosters so members with no vote activity yet still get resolved.
+  const proposalLogNameIds = useMemo(() => {
+    const ids = new Set();
+    for (const t of teams) for (const m of t.members ?? []) if (m) ids.add(m);
+    for (const entry of proposalLog) {
+      if (entry.proposedBy) ids.add(entry.proposedBy);
+      for (const id of entry.approvals ?? []) if (id) ids.add(id);
+      for (const id of entry.rejections ?? []) if (id) ids.add(id);
+    }
+    return Array.from(ids);
+  }, [teams, proposalLog]);
+  const resolvedProposalLogNames = useDiscordUsernames(proposalLogNameIds, {});
+  const proposalLogNameForId = useCallback(
+    (id) => resolvedProposalLogNames.find((m) => m.discordUserId === id)?.discordUsername ?? id,
+    [resolvedProposalLogNames]
+  );
 
   const [womCompInput, setWomCompInput] = useState('');
   const [womTeamNames, setWomTeamNames] = useState({});
@@ -2581,6 +2614,52 @@ export default function BattleshipAdminPage() {
                     );
                   })}
                 </VStack>
+              </AccordionPanel>
+            </AccordionItem>
+          )}
+
+          {/* Section 5.5: Shot Proposals & Skips — audit trail of every vote-based
+              action (who proposed, who approved, who vetoed, terminal status). */}
+          {proposalLog.length > 0 && (
+            <AccordionItem
+              border="1px solid"
+              borderColor={BORDER}
+              borderRadius="lg"
+              mb={3}
+              overflow="hidden"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={CARD_BG}
+                _hover={{ bg: '#0e2418' }}
+                _expanded={{ bg: CARD_BG }}
+              >
+                <HStack flex={1} spacing={2}>
+                  <FaHistory color={DIM} />
+                  <Text
+                    fontWeight="semibold"
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    letterSpacing="wide"
+                    fontSize="sm"
+                  >
+                    SHOT PROPOSALS &amp; SKIPS
+                  </Text>
+                  <Badge colorScheme="green" fontSize="xs">
+                    {proposalLog.length}
+                  </Badge>
+                </HStack>
+                <AccordionIcon color={DIM} />
+              </AccordionButton>
+
+              <AccordionPanel px={4} py={4} bg={BG}>
+                <BSProposalLogPanel
+                  entries={proposalLog}
+                  teams={teams}
+                  teamFilter={null}
+                  nameForDiscordId={proposalLogNameForId}
+                />
               </AccordionPanel>
             </AccordionItem>
           )}

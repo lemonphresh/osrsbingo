@@ -18,6 +18,7 @@ const {
   assertCooldownReady,
   assertNoUnresolvedShot,
 } = require('../../../../utils/battleship/bsShotEligibility');
+const { logProposalOutcome } = require('../../../../utils/battleship/bsProposalLog');
 
 module.exports = {
   proposeBSShot: async (_, { eventId, row, col, firingTeamId }, context) => {
@@ -74,7 +75,16 @@ module.exports = {
       if (existing && !isProposalExpired(existing) && existing.status !== 'REJECTED') {
         throw new UserInputError('This team already has an active shot proposal');
       }
-      if (existing) await existing.destroy({ transaction });
+      if (existing) {
+        // Any leftover row here is either REJECTED (already logged at vote time)
+        // or EXPIRED (the unique index makes the second log a no-op either way).
+        const finalStatus = isProposalExpired(existing) ? 'EXPIRED' : 'CLEARED';
+        await logProposalOutcome(
+          { kind: 'SHOT', proposal: existing, finalStatus },
+          { transaction }
+        );
+        await existing.destroy({ transaction });
+      }
 
       const tile = await BSTile.findOne({
         where: { boardId: targetBoard.boardId, row, col },
@@ -114,9 +124,11 @@ module.exports = {
       const { postBSProposalCreated } = require('../../../../utils/battleship/bsDiscord');
       const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
       const coord = `${COL_LABELS[col] ?? col}${row + 1}`;
+      // No role ping here on purpose — see postBSProposalCreated's docstring.
+      // The task-complete post right before the next fire cycle is what
+      // carries the role ping now.
       postBSProposalCreated({
         channelId: firingTeam.discordChannelId,
-        roleId: firingTeam.discordRoleId ?? null,
         proposerDiscordId: user.discordUserId,
         teamName: firingTeam.teamName,
         coord,
@@ -139,6 +151,10 @@ module.exports = {
       if (!existing) throw new UserInputError('No active proposal found');
       if (isProposalExpired(existing)) {
         const teamId = existing.firingTeamId;
+        await logProposalOutcome(
+          { kind: 'SHOT', proposal: existing, finalStatus: 'EXPIRED' },
+          { transaction }
+        );
         await existing.destroy({ transaction });
         return { expiredTeamId: teamId };
       }
@@ -159,6 +175,12 @@ module.exports = {
 
       const changes = applyProposalVote(existing, actorId, approve);
       await existing.update(changes, { transaction });
+      if (existing.status === 'REJECTED') {
+        await logProposalOutcome(
+          { kind: 'SHOT', proposal: existing, finalStatus: 'REJECTED' },
+          { transaction }
+        );
+      }
       return { proposal: existing };
     });
 
@@ -199,6 +221,17 @@ module.exports = {
         throw new UserInputError('Only the proposal creator or an admin can clear this proposal');
       }
       const id = proposal?.proposalId ?? null;
+      if (proposal) {
+        const finalStatus = isProposalExpired(proposal)
+          ? 'EXPIRED'
+          : proposal.status === 'REJECTED'
+          ? 'REJECTED'
+          : 'CLEARED';
+        await logProposalOutcome(
+          { kind: 'SHOT', proposal, finalStatus },
+          { transaction }
+        );
+      }
       await clearProposal(teamId, { transaction });
       return id;
     });
