@@ -1031,6 +1031,7 @@ const typeDefs = gql`
     getBSTaskPool(eventId: ID!): [BSTask!]!
     getBSBoard(boardId: ID!): BSBoard
     getBSShotLog(eventId: ID!): [BSShotLog!]!
+    getBSProposalLog(eventId: ID!): [BSProposalLogEntry!]!
     getBSViewerCount(eventId: ID!): Int!
     getBSSubmissions(eventId: ID!, status: BSSubmissionStatus, tileId: ID): [BSSubmission!]!
     getActiveBSProposal(teamId: ID!): BSProposal
@@ -1961,6 +1962,29 @@ const typeDefs = gql`
     result: BSShotResult!
     taskId: String
     shotAt: DateTime!
+  }
+
+  enum BSProposalLogKind { SHOT SKIP }
+  enum BSProposalLogStatus { APPROVED REJECTED EXPIRED CLEARED }
+
+  type BSProposalLogEntry {
+    logId: ID!
+    eventId: ID!
+    kind: BSProposalLogKind!
+    firingTeamId: ID!
+    targetTeamId: ID
+    sourceProposalId: ID!
+    row: Int
+    col: Int
+    tileId: ID
+    tileLabel: String
+    proposedBy: String!
+    approvals: [String!]!
+    rejections: [String!]!
+    threshold: Int!
+    finalStatus: BSProposalLogStatus!
+    proposedAt: DateTime!
+    resolvedAt: DateTime!
   }
 
   enum BSProposalStatus { PENDING APPROVED REJECTED CLEARED }

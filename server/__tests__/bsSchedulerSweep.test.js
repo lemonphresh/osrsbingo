@@ -21,6 +21,9 @@ jest.mock('../utils/battleship/bsSkipProposals', () => ({
   sweepExpiredSkipProposals: jest.fn(() => []),
   clearedSkipProposal: jest.fn(),
 }));
+jest.mock('../utils/battleship/bsProposalLog', () => ({
+  logProposalOutcome: jest.fn(),
+}));
 jest.mock('../schema/pubsub', () => ({ pubsub: { publish: jest.fn() } }));
 jest.mock('../utils/battleship/bsGameStart', () => ({ runBSGameStart: jest.fn() }));
 jest.mock('../utils/battleship/bsPlacementStart', () => ({ runBSPlacementStart: jest.fn() }));

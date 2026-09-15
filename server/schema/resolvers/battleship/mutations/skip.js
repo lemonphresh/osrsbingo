@@ -6,11 +6,13 @@ const { UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const {
   createSkipProposal,
+  getSkipProposal,
   getSkipProposalById,
   voteOnSkip,
   clearSkipProposal,
   clearedSkipProposal,
 } = require('../../../../utils/battleship/bsSkipProposals');
+const { logProposalOutcome } = require('../../../../utils/battleship/bsProposalLog');
 
 module.exports = {
   proposeSkipToken: async (_, { tileId, firingTeamId }, context) => {
@@ -57,6 +59,17 @@ module.exports = {
     const task = tile.taskId ? await BSTask.findByPk(tile.taskId) : null;
     const tileLabel = task?.bossOrSkill ?? task?.label ?? null;
 
+    // Any existing skip proposal being replaced by this new one is either
+    // REJECTED (already logged at vote time), EXPIRED, or abandoned mid-vote.
+    // Log it as CLEARED for the overwrite case — unique index deduplicates.
+    const priorSkip = getSkipProposal(firingTeam.teamId);
+    if (priorSkip) {
+      await logProposalOutcome({
+        kind: 'SKIP',
+        proposal: priorSkip,
+        finalStatus: priorSkip.status === 'REJECTED' ? 'REJECTED' : 'CLEARED',
+      });
+    }
     clearSkipProposal(firingTeam.teamId);
 
     // Use event.voteThreshold if set (clamped to team size), otherwise the auto formula.
@@ -101,6 +114,13 @@ module.exports = {
     }
 
     const updated = voteOnSkip(proposalId, user.discordUserId, approve);
+    if (updated && updated.status === 'REJECTED') {
+      await logProposalOutcome({
+        kind: 'SKIP',
+        proposal: updated,
+        finalStatus: 'REJECTED',
+      });
+    }
     await pubsub.publish(`BS_SKIP_PROPOSAL_${existing.teamId}`, { bsSkipProposalUpdated: updated });
     return updated;
   },
@@ -117,6 +137,14 @@ module.exports = {
       event.creatorId === String(user.id);
     if (!isAdmin && !(team.members ?? []).includes(user.discordUserId)) {
       throw new UserInputError('You are not on this team');
+    }
+    const snapshot = getSkipProposal(teamId);
+    if (snapshot) {
+      await logProposalOutcome({
+        kind: 'SKIP',
+        proposal: snapshot,
+        finalStatus: snapshot.status === 'REJECTED' ? 'REJECTED' : 'CLEARED',
+      });
     }
     clearSkipProposal(teamId);
     const empty = clearedSkipProposal(teamId);

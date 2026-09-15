@@ -310,6 +310,29 @@ export const GET_BS_SHOT_LOG = gql`
   }
 `;
 
+export const GET_BS_PROPOSAL_LOG = gql`
+  query GetBSProposalLog($eventId: ID!) {
+    getBSProposalLog(eventId: $eventId) {
+      logId
+      kind
+      firingTeamId
+      targetTeamId
+      sourceProposalId
+      row
+      col
+      tileId
+      tileLabel
+      proposedBy
+      approvals
+      rejections
+      threshold
+      finalStatus
+      proposedAt
+      resolvedAt
+    }
+  }
+`;
+
 export const EXPORT_BS_DRAFT_WORKBOOK = gql`
   query ExportBSDraftWorkbook($eventId: ID!) {
     exportBSDraftWorkbook(eventId: $eventId) {

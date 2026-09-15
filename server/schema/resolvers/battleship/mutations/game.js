@@ -16,6 +16,7 @@ const {
   postBSShotResult,
   postBSHitOnShip,
   postBSTaskComplete,
+  postBSTaskSkipped,
   postBSShipSunk,
   postBSGameOver,
 } = require('../../../../utils/battleship/bsDiscord');
@@ -26,7 +27,9 @@ const {
 const {
   clearSkipProposal,
   clearedSkipProposal,
+  getSkipProposal,
 } = require('../../../../utils/battleship/bsSkipProposals');
+const { logProposalOutcome } = require('../../../../utils/battleship/bsProposalLog');
 const {
   getProposal,
   isProposalExpired,
@@ -123,6 +126,10 @@ module.exports = {
         }
         if (isProposalExpired(proposal)) {
           const expiredProposalId = proposal.proposalId;
+          await logProposalOutcome(
+            { kind: 'SHOT', proposal, finalStatus: 'EXPIRED' },
+            { transaction }
+          );
           await proposal.destroy({ transaction });
           return { expiredTeamId: firingTeam.teamId, expiredProposalId };
         }
@@ -169,7 +176,13 @@ module.exports = {
         },
         { transaction }
       );
-      if (proposal) await proposal.destroy({ transaction });
+      if (proposal) {
+        await logProposalOutcome(
+          { kind: 'SHOT', proposal, finalStatus: 'APPROVED' },
+          { transaction }
+        );
+        await proposal.destroy({ transaction });
+      }
 
       return {
         event,
@@ -296,6 +309,7 @@ module.exports = {
     if (!allSunk && firingTeam?.discordChannelId) {
       await postBSTaskComplete({
         channelId: firingTeam.discordChannelId,
+        roleId: firingTeam.discordRoleId ?? null,
         teamName: firingTeam.teamName,
         taskLabel,
         coord,
@@ -389,10 +403,42 @@ module.exports = {
     }
     await tile.update({ skipped: true, taskCompletedAt: new Date() });
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
+    // Snapshot the in-memory skip proposal (if any) before we clear it, so the
+    // audit log captures who voted what on the skip that just got consumed.
+    const skipSnapshot = getSkipProposal(firingTeam.teamId);
+    if (skipSnapshot) {
+      await logProposalOutcome({
+        kind: 'SKIP',
+        proposal: skipSnapshot,
+        finalStatus: 'APPROVED',
+      });
+    }
     clearSkipProposal(firingTeam.teamId);
     await pubsub.publish(`BS_SKIP_PROPOSAL_${firingTeam.teamId}`, {
       bsSkipProposalUpdated: clearedSkipProposal(firingTeam.teamId),
     });
+
+    // Discord notification (best-effort, non-blocking). Mirrors the
+    // postBSTaskComplete "wake up for the next fire cycle" flow so a team
+    // that skips instead of completing gets the same nudge to line up
+    // votes on the next proposal.
+    if (firingTeam.discordChannelId) {
+      const { BSTask } = getModels();
+      const effectiveTaskId = tile.shipTaskId ?? tile.taskId;
+      const task = effectiveTaskId ? await BSTask.findByPk(effectiveTaskId) : null;
+      const taskLabel = task?.label ?? 'Unknown task';
+      const coord = bsCoord(tile.row, tile.col);
+      postBSTaskSkipped({
+        channelId: firingTeam.discordChannelId,
+        roleId: firingTeam.discordRoleId ?? null,
+        teamName: firingTeam.teamName,
+        taskLabel,
+        coord,
+        tokensRemaining: firingTeam.skipTokens,
+        eventId: event.eventId,
+      }).catch(() => {});
+    }
+
     return tile;
   },
 };

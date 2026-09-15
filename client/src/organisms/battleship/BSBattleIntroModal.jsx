@@ -9,11 +9,13 @@ import {
   Box,
   VStack,
   HStack,
+  Image,
   Text,
   Badge,
   Button,
   Checkbox,
 } from '@chakra-ui/react';
+import voteExampleImg from '../../assets/bs/voteexample.png';
 
 const NAVY = '#071523';
 const CARD = '#0d2137';
@@ -191,13 +193,28 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
                 . A popup appears showing the target on a mini-board and asking your teammates to
                 approve or veto.
               </Text>
+              <Box
+                mb={3}
+                borderRadius="md"
+                overflow="hidden"
+                border="1px solid"
+                borderColor={BORDER}
+                bg={NAVY}
+              >
+                <Image
+                  src={voteExampleImg}
+                  alt="Example of the team-vote popup shown after a shot proposal"
+                  width="100%"
+                  display="block"
+                />
+              </Box>
               <VStack align="stretch" spacing={2}>
                 <RuleRow badge="Approve" scheme="green">
-                  Vote yes. Once enough teammates approve, the shot is locked in and fires.
+                  Vote yes. Once enough teammates approve, the user that proposed the shot can fire.
                 </RuleRow>
                 <RuleRow badge="Veto" scheme="red">
-                  Any single teammate can veto. The shot is cancelled and your team proposes a new
-                  target.
+                  Any single teammate can veto. The shot is cancelled and your team can propose a
+                  new target.
                 </RuleRow>
                 <RuleRow badge="Expire" scheme="yellow">
                   Proposals expire after{' '}
@@ -241,8 +258,8 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
                   {cooldownMinutes ?? '?'} minute{cooldownMinutes !== 1 ? 's' : ''}
                 </Text>{' '}
-                before firing again. Use this time to coordinate on your next target. The countdown
-                is shown on the board.
+                before firing again. Use this time to regroup and coordinate on your next target.
+                The countdown is shown on the board.
               </Text>
             </InfoCard>
 
@@ -271,7 +288,8 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
               <Text fontSize="sm" color={BODY} lineHeight="1.7">
                 A ship is sunk once{' '}
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
-                  every cell has been hit and the task for each hit approved
+                  every cell it consists of has been hit and the task for each hit has been
+                  completed
                 </Text>
                 . The first team to sink all of the enemy's ships wins the campaign.
               </Text>

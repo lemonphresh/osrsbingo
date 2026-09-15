@@ -92,7 +92,8 @@ function sweepExpiredSkipProposals() {
   for (const [teamId, p] of proposals.entries()) {
     if (p.status === 'PENDING' && new Date(p.expiresAt).getTime() <= now) {
       proposals.delete(teamId);
-      expired.push(teamId);
+      // Return full snapshots so the scheduler can write audit-log entries.
+      expired.push(p);
     }
   }
   return expired;

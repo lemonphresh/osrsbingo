@@ -151,11 +151,11 @@ describe('clearSkipProposal', () => {
 });
 
 describe('sweepExpiredSkipProposals', () => {
-  test('removes an expired PENDING proposal and returns its teamId', () => {
+  test('removes an expired PENDING proposal and returns its snapshot', () => {
     const p = createSkipProposal(base({ teamId: 'team_b' }));
     p.expiresAt = new Date(Date.now() - 1).toISOString();
     const swept = sweepExpiredSkipProposals();
-    expect(swept).toContain('team_b');
+    expect(swept.map((s) => s.teamId)).toContain('team_b');
     expect(getSkipProposal('team_b')).toBeNull();
   });
 
@@ -184,7 +184,8 @@ describe('sweepExpiredSkipProposals', () => {
     p2.expiresAt = new Date(Date.now() - 1).toISOString();
     const swept = sweepExpiredSkipProposals();
     expect(swept).toHaveLength(2);
-    expect(swept).toContain('team_b');
-    expect(swept).toContain('team_c');
+    const teamIds = swept.map((s) => s.teamId);
+    expect(teamIds).toContain('team_b');
+    expect(teamIds).toContain('team_c');
   });
 });

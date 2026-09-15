@@ -8,11 +8,13 @@ import {
   Box,
   VStack,
   HStack,
+  Image,
   Text,
   Badge,
   Button,
   Checkbox,
 } from '@chakra-ui/react';
+import placementExampleImg from '../../assets/bs/placementexample.png';
 
 const NAVY = '#071523';
 const CARD = '#0d2137';
@@ -237,7 +239,7 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
             {/* Deadline */}
             <InfoCard>
               <SectionLabel>Placement Window</SectionLabel>
-              <Text fontSize="sm" color={BODY} lineHeight="1.7">
+              <Text fontSize="sm" color={BODY} lineHeight="1.7" mb={3}>
                 Placement lasts{' '}
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
                   {placementPhaseHours ?? '?'} hour{placementPhaseHours !== 1 ? 's' : ''}
@@ -245,6 +247,20 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
                 . When the timer runs out, votes are locked in, the winning suggestion becomes
                 your team fleet, and the battle phase begins.
               </Text>
+              <Box
+                borderRadius="md"
+                overflow="hidden"
+                border="1px solid"
+                borderColor={BORDER}
+                bg={NAVY}
+              >
+                <Image
+                  src={placementExampleImg}
+                  alt="Placement page showing the countdown timer during the placement window"
+                  width="100%"
+                  display="block"
+                />
+              </Box>
             </InfoCard>
 
             {/* Secrecy */}

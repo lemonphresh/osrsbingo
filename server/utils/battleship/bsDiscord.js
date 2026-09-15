@@ -90,9 +90,8 @@ async function postBSTestMessage({ channelId, teamName, eventName, eventId }) {
     method: 'POST',
     body: JSON.stringify({
       content: [
-        `⚓ **Battleship Discord test: ${eventName}**`,
-        `Notifications for **${teamName}** are working in this channel.`,
-        `No roles were pinged. This test message will delete itself in 15 seconds.`,
+        `📡 **Comms check: ${eventName}**`,
+        `Signal received loud and clear on **${teamName}**'s channel. No roles were pinged. This transmission self-destructs in 15 seconds.`,
         dashLink(eventId, 'Open the event'),
       ].join('\n'),
       flags: SUPPRESS_EMBEDS,
@@ -138,13 +137,13 @@ async function postBSPreScreenshotResult({
   if (approved) {
     await post(
       channelId,
-      `<@${discordUserId}> ✅ Your pre-screenshot for **${taskLabel}** was accepted as a baseline -- go ahead and complete the task!`
+      `<@${discordUserId}> ✅ Baseline logged for **${taskLabel}**. Ordinance is armed. Go complete the task.`
     );
   } else {
     const reason = denialReason || 'No reason given.';
     await post(
       channelId,
-      `<@${discordUserId}> ❌ Your pre-screenshot for **${taskLabel}** was rejected.\n**Reason:** ${reason}\nPlease resubmit.`
+      `<@${discordUserId}> ❌ Baseline for **${taskLabel}** was kicked back.\n**Reason:** ${reason}\nRun the pre-screenshot again when you're ready.`
     );
   }
 }
@@ -162,24 +161,68 @@ async function postBSSubmissionResult({
   if (approved) {
     await post(
       channelId,
-      `<@${discordUserId}> ✅ Your submission for **${taskLabel}** was approved!`
+      `<@${discordUserId}> ✅ Submission for **${taskLabel}** approved. Nicely done, sailor.`
     );
   } else {
     const reason = denialReason || 'No reason given.';
     await post(
       channelId,
-      `<@${discordUserId}> ❌ Your submission for **${taskLabel}** was denied.\n**Reason:** ${reason}\nPlease resubmit.`
+      `<@${discordUserId}> ❌ Submission for **${taskLabel}** denied.\n**Reason:** ${reason}\nRegroup and resubmit.`
     );
   }
 }
 
 /**
- * When a ref marks a tile complete — posted to the team that owns the board (they fired and completed the task).
+ * When a ref marks a tile complete. Posted to the firing team's channel with
+ * a role ping so teammates know the team is unblocked to fire again and to
+ * keep an eye out for the next shot proposal. This is the intentional "wake
+ * up" ping for the firing cycle: propose-shot posts intentionally stay
+ * un-ping'd so we're not blowing up phones on every vote request.
  */
-async function postBSTaskComplete({ channelId, teamName, taskLabel, coord, eventId }) {
+async function postBSTaskComplete({ channelId, roleId, teamName, taskLabel, coord, eventId }) {
+  const ping = roleId ? `<@&${roleId}>` : '';
   await post(
     channelId,
-    `✅ **${taskLabel}** (${coord}) has been marked complete by a ref!\n**${teamName}**, you may now fire at a new tile. Get your team ready to vote on the next shot!\n${dashLink(eventId)}`
+    [
+      ping,
+      `✅ **${taskLabel}** (${coord}) cleared by a ref.`,
+      `**${teamName}**, the guns are hot again. Eyes on the channel for the next shot call, and get your votes in fast so the salvo can fly.`,
+      dashLink(eventId),
+    ]
+      .filter(Boolean)
+      .join('\n')
+  );
+}
+
+/**
+ * When a team burns a skip token on a miss tile. Same "wake up" role-ping
+ * pattern as postBSTaskComplete since the team is now unblocked to fire the
+ * next shot. Skip-token count is included so the team can see what's left.
+ */
+async function postBSTaskSkipped({
+  channelId,
+  roleId,
+  teamName,
+  taskLabel,
+  coord,
+  tokensRemaining,
+  eventId,
+}) {
+  const ping = roleId ? `<@&${roleId}>` : '';
+  const balance =
+    tokensRemaining != null
+      ? ` (${tokensRemaining} skip token${tokensRemaining === 1 ? '' : 's'} left)`
+      : '';
+  await post(
+    channelId,
+    [
+      ping,
+      `🎟️ **${teamName}** invoked a skip on **${taskLabel}** (${coord})${balance}.`,
+      `The guns are hot again. Eyes on the channel for the next shot call, and get your votes in fast so the salvo can fly.`,
+      dashLink(eventId),
+    ]
+      .filter(Boolean)
+      .join('\n')
   );
 }
 
@@ -199,7 +242,9 @@ async function postBSShotResult({
   const metricStr = metric ? `\n**Target:** ${metric}` : '';
   await post(
     channelId,
-    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nSubmit your screenshots to show your progress or completion -- your team cannot fire again until a ref marks this task done.\n${dashLink(eventId)}`
+    `${hitStr} at **${coord}**!\n**Task:** ${taskLabel}${metricStr}\nGet your screenshots up the flagpole. The next salvo is on hold until a ref signs off on this task.\n${dashLink(
+      eventId
+    )}`
   );
 }
 
@@ -210,7 +255,9 @@ async function postBSShotResult({
 async function postBSHitOnShip({ channelId, firingTeamName, coord, eventId }) {
   await post(
     channelId,
-    `⚠️ **${firingTeamName}** has hit one of your ships at **${coord}**!\n${dashLink(eventId)}`
+    `⚠️ **${firingTeamName}** just landed a shot on your fleet at **${coord}**. Damage assessment inbound.\n${dashLink(
+      eventId
+    )}`
   );
 }
 
@@ -227,18 +274,18 @@ async function postBSPlacementStarted({ channelId, roleId, teamName, eventName, 
     [
       ping,
       `⚓ **${eventName} -- Ship Placement Phase has begun!**`,
-      `**${teamName}**, it's time to deploy your fleet. Head to the event page and arrange your ships before time runs out.`,
+      `Attention crew of **${teamName}**: your fleet is at the docks awaiting orders. Head to the event page and plot your formation before the tide turns.`,
       deadline,
       ``,
       `📋 **How Battleship works:**`,
-      `• **Placement Phase** *(right now)*: Each team secretly places their ships on their own board. Your opponent cannot see your board.`,
-      `• **Battle Phase**: Teams alternate firing at a coordinate on the enemy board.`,
-      `• A 💥 **hit** reveals a task -- your team must complete it before firing again.`,
-      `• A 🌊 **miss** also reveals a task -- complete it to end your turn.`,
-      `• Tasks are completed by submitting a screenshot to a ref for approval.`,
-      `• First team to **sink all enemy ships** wins the campaign!`,
+      `• **Placement Phase** *(right now)*: Each crew secretly deploys their fleet. The enemy cannot see your board.`,
+      `• **Battle Phase**: Start calling shots on the enemy's waters.`,
+      `• A 💥 **hit** reveals a task. Your crew must complete it before the next volley.`,
+      `• A 🌊 **miss** also reveals a task. Complete it to hand off the turn.`,
+      `• Tasks are cleared by submitting a screenshot to a ref for approval.`,
+      `• First crew to **sink the entire enemy fleet** takes the campaign.`,
       ``,
-      `⚠️ Make sure you are **logged in** to OSRS Bingo Hub and have your **Discord account linked** -- this is required to view your team's board.`,
+      `⚠️ Make sure you're **logged in** to OSRS Bingo Hub and have your **Discord account linked**. That's how the site knows which bridge you belong to.`,
       ``,
       dashLink(eventId),
     ]
@@ -263,42 +310,38 @@ async function postBSShipSunk({
   if (firingChannelId) {
     await postWithFile(
       firingChannelId,
-      `🚢💥 **${firingTeamName}** has sunk the enemy **${shipName}**! The fleet shrinks...\n${link}`,
+      `🚢💥 Direct hit sends the enemy **${shipName}** to the bottom. The opposing fleet shrinks. Good shooting, **${firingTeamName}**.\n${link}`,
       SINKING_SHIP_GIF
     );
   }
   if (defendingChannelId) {
     await postWithFile(
       defendingChannelId,
-      `💀 Your **${shipName}** has been sunk by **${firingTeamName}**!\n${link}`,
+      `💀 **${firingTeamName}** just put your **${shipName}** under. Rally the survivors.\n${link}`,
       SINKING_SHIP_GIF
     );
   }
 }
 
 /**
- * When a team member proposes a shot — posted to that team's channel so
- * teammates get pinged to open the dashboard and vote.
+ * When a team member proposes a shot. Posts to the team channel with the
+ * proposer @-mentioned. Intentionally does NOT ping the team role: with
+ * proposals firing every few minutes during battle, role-pinging every one
+ * would blow up phones. The `postBSTaskComplete` message earlier in the
+ * cycle carries the role ping ("watch for shot proposals from teammates"),
+ * so an active team already has the heads-up to check the channel.
  */
-async function postBSProposalCreated({
-  channelId,
-  roleId,
-  proposerDiscordId,
-  teamName,
-  coord,
-  eventId,
-}) {
-  const ping = roleId ? `<@&${roleId}>` : '';
+async function postBSProposalCreated({ channelId, proposerDiscordId, teamName, coord, eventId }) {
   const proposer = proposerDiscordId ? `<@${proposerDiscordId}>` : 'A teammate';
   await post(
     channelId,
     [
-      ping,
-      `🎯 **${proposer}** just proposed a shot at **${coord}**.`,
-      `${dashLink(eventId, 'View your dashboard')} to vote yes or no before the proposal expires.`,
-    ]
-      .filter(Boolean)
-      .join('\n')
+      `🎯 **${proposer}** is calling a shot at **${coord}**.`,
+      `${dashLink(
+        eventId,
+        'View your dashboard'
+      )} and cast your vote before the target of opportunity slips away.`,
+    ].join('\n')
   );
 }
 
@@ -312,8 +355,8 @@ async function postBSPlacementVoteReminder({ channelId, roleId, teamName, eventI
     channelId,
     [
       ping,
-      `⏰ **${teamName}**, 1 hour left in the placement phase!`,
-      `Get your last votes in on your team's placement suggestions. Highest-voted layout wins; ties break at random.`,
+      `⏰ **${teamName}**, the placement window closes in one hour.`,
+      `Get your last votes in on the proposed formations. Highest-voted layout goes to sea. Ties get settled by coin toss.`,
       dashLink(eventId, 'View your dashboard'),
     ]
       .filter(Boolean)
@@ -325,7 +368,15 @@ async function postBSPlacementVoteReminder({ channelId, roleId, teamName, eventI
  * When an admin manually awards skip tokens to a team — announce in the
  * team's channel with an optional reason so members know why.
  */
-async function postBSSkipTokensAwarded({ channelId, roleId, teamName, count, newTotal, reason, eventId }) {
+async function postBSSkipTokensAwarded({
+  channelId,
+  roleId,
+  teamName,
+  count,
+  newTotal,
+  reason,
+  eventId,
+}) {
   const ping = roleId ? `<@&${roleId}>` : '';
   const noun = Math.abs(count) === 1 ? 'skip token' : 'skip tokens';
   const verb = count >= 0 ? 'awarded' : 'removed';
@@ -335,7 +386,7 @@ async function postBSSkipTokensAwarded({ channelId, roleId, teamName, count, new
     channelId,
     [
       ping,
-      `🎟️ **${teamName}**: ${displayCount} ${noun} ${verb} by admin. New balance: **${newTotal}**.`,
+      `🎟️ Admiralty adjustment for **${teamName}**: ${displayCount} ${noun} ${verb} by admin. New balance of skip tokens: **${newTotal}**.`,
       reasonLine,
       dashLink(eventId),
     ]
@@ -354,12 +405,12 @@ async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eve
     [
       ping,
       `🔥 **${eventName} -- Battle Phase has begun!**`,
-      `**${teamName}**, your fleet is deployed. It's time to hunt the enemy.`,
+      `**${teamName}**, your fleet is at sea and the enemy is on the horizon. Time to open fire.`,
       ``,
-      `• Propose a shot from your dashboard -- teammates must vote to confirm.`,
-      `• A 💥 **hit** reveals a task -- complete it before firing again.`,
-      `• A 🌊 **miss** also reveals a task -- complete it to end your turn.`,
-      `• Sink every enemy ship to win the campaign!`,
+      `• Call a shot from your dashboard. Your crew must confirm before the guns speak.`,
+      `• A 💥 **hit** reveals a task. Complete it before the next salvo.`,
+      `• A 🌊 **miss** also reveals a task. Complete it to hand off the turn.`,
+      `• Sink every enemy ship to take the campaign.`,
       ``,
       dashLink(eventId),
     ]
@@ -374,7 +425,10 @@ async function postBSBattleStarted({ channelId, roleId, teamName, eventName, eve
 async function postBSGameOver({ channelId, winnerName, loserName, eventId }) {
   await post(
     channelId,
-    `🏁 **The battle is over!**\n🏆 **${winnerName}** has sunk all of **${loserName}**'s ships and won the campaign!\n${dashLink(eventId, 'View the full battle report')}.`
+    `🏁 **The battle is over.**\n🏆 **${winnerName}** has sent the last of **${loserName}**'s fleet to the depths and claimed the campaign.\n${dashLink(
+      eventId,
+      'View the full battle report'
+    )}.`
   );
 }
 
@@ -392,10 +446,12 @@ async function postBSAdminGameOver({
 }) {
   await post(
     channelId,
-    `🚨 **The campaign has been called by the admin.**\n` +
-      `🏆 **${winnerName}** takes the day with **${winnerHits}** ship hit${winnerHits === 1 ? '' : 's'} ` +
+    `🚨 **Campaign called by the admin.**\n` +
+      `🏆 **${winnerName}** takes the day with **${winnerHits}** ship hit${
+        winnerHits === 1 ? '' : 's'
+      } ` +
       `to **${loserName}**'s **${loserHits}**.\n` +
-      `Not every ship went down, but the fleet with the sharpest shots wins.\n` +
+      `Not every hull went down, but the fleet with the sharpest gunners wins the day.\n` +
       `${dashLink(eventId, 'View the full battle report')}.`
   );
 }
@@ -404,6 +460,7 @@ module.exports = {
   postBSPreScreenshotResult,
   postBSSubmissionResult,
   postBSTaskComplete,
+  postBSTaskSkipped,
   postBSShotResult,
   postBSHitOnShip,
   postBSPlacementStarted,

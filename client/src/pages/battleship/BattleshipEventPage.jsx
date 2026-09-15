@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { playBSSound, warmUpBSAudio } from '../../utils/battleship/bsAudio';
 import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
@@ -6,6 +6,7 @@ import {
   Box,
   VStack,
   HStack,
+  Stack,
   Text,
   Badge,
   Button,
@@ -13,6 +14,7 @@ import {
   Center,
   SimpleGrid,
   Divider,
+  useBreakpointValue,
   useDisclosure,
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
@@ -23,6 +25,7 @@ import BSEventDraftAdmin from '../../organisms/battleship/BSDraftAdmin';
 import { BSPlacementView } from '../../organisms/battleship/BSPlacementView';
 import { BoardPanel, SectionLabel } from '../../organisms/battleship/BSSharedComponents';
 import { TeamStatusCard, ShotLogEntry } from '../../organisms/battleship/BSActiveComponents';
+import BSProposalLogPanel from '../../organisms/battleship/BSProposalLogPanel';
 import { ProposalModal } from '../../organisms/battleship/BSProposalModal';
 import { DevAdminPanel } from '../../organisms/battleship/BSDevAdminPanel';
 import {
@@ -35,6 +38,7 @@ import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModa
 import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
+  GET_BS_PROPOSAL_LOG,
   GET_ACTIVE_BS_PROPOSAL,
   FIRE_BS,
   PROPOSE_BS_SHOT,
@@ -150,6 +154,11 @@ export default function BattleshipEventPage() {
     fetchPolicy: 'cache-and-network',
   });
 
+  const { data: proposalLogData, refetch: refetchProposalLog } = useQuery(GET_BS_PROPOSAL_LOG, {
+    variables: { eventId },
+    fetchPolicy: 'cache-and-network',
+  });
+
   // Final placement is published only after its database transaction commits.
   // Refetching here moves every open placement screen into the battle phase.
   useSubscription(BS_BOARD_UPDATED, {
@@ -171,6 +180,7 @@ export default function BattleshipEventPage() {
       setActiveProposal(null);
       refetchEvent();
       refetchShotLog();
+      refetchProposalLog();
     },
     onError: (err) => {
       showToast(err.message ?? 'Failed to fire. Try again.', 'error');
@@ -215,6 +225,7 @@ export default function BattleshipEventPage() {
   const event = eventData?.getBSEvent;
   const teams = event?.teams ?? [];
   const shotLog = shotLogData?.getBSShotLog ?? [];
+  const proposalLog = proposalLogData?.getBSProposalLog ?? [];
 
   // The user's actual team. Active players always render from this team's POV;
   // non-team members use the dedicated spectator view.
@@ -344,6 +355,7 @@ export default function BattleshipEventPage() {
       // is what keeps everyone else in sync.
       refetchEvent();
       refetchShotLog();
+      refetchProposalLog();
       // Close any stale proposal modal on the firing team's clients. The
       // BS_PROPOSAL_UPDATED CLEARED broadcast usually handles this, but this
       // extra check makes sure a dropped/reordered subscription frame doesn't
@@ -373,6 +385,7 @@ export default function BattleshipEventPage() {
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
         prevApprovalsRef.current = 0;
         setActiveProposal(null);
+        refetchProposalLog();
         return;
       }
       if (p.status === 'REJECTED') {
@@ -380,6 +393,7 @@ export default function BattleshipEventPage() {
         setProposalHistory((h) => [...h, p]);
         setActiveProposal(null);
         showToast('Shot proposal vetoed. Pick a new target.', 'warning');
+        refetchProposalLog();
         return;
       }
       const newCount = (p.approvals ?? []).length;
@@ -418,11 +432,13 @@ export default function BattleshipEventPage() {
       const p = data?.data?.bsSkipProposalUpdated;
       if (!p || p.status === 'CLEARED' || !p.proposalId) {
         setActiveSkipProposal(null);
+        refetchProposalLog();
         return;
       }
       if (p.status === 'REJECTED') {
         setActiveSkipProposal(null);
         showToast('Skip proposal vetoed. Tokens preserved.', 'warning');
+        refetchProposalLog();
         return;
       }
       setActiveSkipProposal(p);
@@ -571,6 +587,31 @@ export default function BattleshipEventPage() {
     currentUser?.discordUserId
       ? { [currentUser.discordUserId]: currentUser.discordUsername ?? currentUser.displayName }
       : {}
+  );
+
+  // Every discord ID that shows up anywhere in the proposal audit log, unioned
+  // with all team rosters. The audit log surfaces proposedBy/approvals/rejections
+  // by raw discord ID; without this resolve step the log renders 18-digit
+  // numeric IDs instead of usernames.
+  const proposalLogNameIds = useMemo(() => {
+    const ids = new Set();
+    for (const t of teams) for (const m of t.members ?? []) if (m) ids.add(m);
+    for (const entry of proposalLog) {
+      if (entry.proposedBy) ids.add(entry.proposedBy);
+      for (const id of entry.approvals ?? []) if (id) ids.add(id);
+      for (const id of entry.rejections ?? []) if (id) ids.add(id);
+    }
+    return Array.from(ids);
+  }, [teams, proposalLog]);
+  const resolvedProposalLogNames = useDiscordUsernames(
+    proposalLogNameIds,
+    currentUser?.discordUserId
+      ? { [currentUser.discordUserId]: currentUser.discordUsername ?? currentUser.displayName }
+      : {}
+  );
+  const proposalLogNameForId = useCallback(
+    (id) => resolvedProposalLogNames.find((m) => m.discordUserId === id)?.discordUsername ?? id,
+    [resolvedProposalLogNames]
   );
 
   // ── Handlers ─────────────────────────────────────────────────────────────
@@ -901,6 +942,103 @@ export default function BattleshipEventPage() {
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────
 
+  // Only render the team-info block in ONE location per breakpoint — either up
+  // in the main column (mobile) or in the right sidebar (desktop). Doing this
+  // via useBreakpointValue instead of `display: none` on twin mounts avoids
+  // double-mounting <TeamMemberRow> (each row fires a Discord user-lookup fetch,
+  // so a duplicate mount would double every request).
+  const isDesktopLayout = useBreakpointValue({ base: false, xl: true }, { fallback: 'base' });
+
+  // Shared team-status + event-info block. Rendered in two spots depending on
+  // viewport: inside the main column on mobile (so it sits under the current
+  // task) and inside the right sidebar on desktop. Declared once here so the
+  // markup stays in sync between the two mount points.
+  const teamInfoBlock = (
+    <VStack align="stretch" spacing={4}>
+      <SectionLabel>{isAdminOrRef ? 'Fleet Status' : 'Your Team'}</SectionLabel>
+      {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map((team) => {
+        const i = teams.findIndex((t) => t.teamId === team.teamId);
+        return (
+          <TeamStatusCard
+            key={team.teamId}
+            team={team}
+            cooldownMinutes={event.cooldownMinutes}
+            isViewing={i === viewingTeamIndex}
+          />
+        );
+      })}
+
+      <Divider borderColor="#1a4028" />
+
+      <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={3}>
+        <SectionLabel>Event Info</SectionLabel>
+        <VStack align="stretch" spacing={1}>
+          {event.eventPassword && (
+            <HStack justify="space-between">
+              <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+                Password
+              </Text>
+              <Text
+                fontFamily="mono"
+                fontSize="xs"
+                color="#facc15"
+                fontWeight="bold"
+                letterSpacing="wider"
+              >
+                {event.eventPassword}
+              </Text>
+            </HStack>
+          )}
+          <HStack justify="space-between">
+            <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+              Cooldown
+            </Text>
+            <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+              {event.cooldownMinutes ?? 0}m
+            </Text>
+          </HStack>
+          <HStack justify="space-between">
+            <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+              Placement hours
+            </Text>
+            <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+              {event.placementPhaseHours ?? '—'}
+            </Text>
+          </HStack>
+          <HStack justify="space-between">
+            <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+              Teams
+            </Text>
+            <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
+              {teams.length}
+            </Text>
+          </HStack>
+        </VStack>
+
+        {(viewingTeam?.members ?? []).length > 0 && (
+          <>
+            <Divider borderColor="#1a4028" my={3} />
+            <Text
+              fontFamily="mono"
+              fontSize="10px"
+              color="#6b9e78"
+              letterSpacing="widest"
+              textTransform="uppercase"
+              mb={2}
+            >
+              {viewingTeam?.teamName ?? 'Team'} Members
+            </Text>
+            <VStack align="stretch" spacing={1}>
+              {(viewingTeam?.members ?? []).map((discordId) => (
+                <TeamMemberRow key={discordId} discordId={discordId} />
+              ))}
+            </VStack>
+          </>
+        )}
+      </Box>
+    </VStack>
+  );
+
   return (
     <Box flex="1" minH="100vh" bg="#060f0a">
       <BSBattleIntroModal
@@ -988,12 +1126,17 @@ export default function BattleshipEventPage() {
                     >
                       Current Orders
                     </Text>
-                    <HStack spacing={4} align="center" flexWrap="wrap">
+                    <Stack
+                      direction={{ base: 'column', md: 'row' }}
+                      spacing={{ base: 3, md: 4 }}
+                      align={{ base: 'stretch', md: 'center' }}
+                    >
                       {/* Submarine alert light */}
                       <HStack
                         spacing={2}
                         align="center"
                         flexShrink={0}
+                        alignSelf={{ base: 'flex-start', md: 'center' }}
                         px={2}
                         py={1}
                         bg="#020604"
@@ -1036,22 +1179,20 @@ export default function BattleshipEventPage() {
                         </Text>
                       </HStack>
 
-                      {/* Steps */}
-                      <HStack
-                        spacing={0}
-                        align="center"
-                        flexWrap="wrap"
-                        rowGap={2}
+                      {/* Steps — vertical list on mobile (readable), row-wrapped
+                          with slash dividers on md+ (compact). */}
+                      <Stack
+                        direction={{ base: 'column', md: 'row' }}
+                        spacing={{ base: 2, md: 0 }}
+                        align={{ base: 'stretch', md: 'center' }}
+                        flexWrap={{ md: 'wrap' }}
+                        rowGap={{ md: 2 }}
                         flex={1}
                         minW={0}
-                        divider={
-                          <Text fontFamily="mono" fontSize="xs" color="#3d6b4a" mx={3}>
-                            /
-                          </Text>
-                        }
+                        divider={undefined}
                       >
                         {steps.map((label, i) => (
-                          <HStack key={i} spacing={2}>
+                          <HStack key={i} spacing={2} align="flex-start">
                             <Box
                               w="16px"
                               h="16px"
@@ -1061,6 +1202,7 @@ export default function BattleshipEventPage() {
                               alignItems="center"
                               justifyContent="center"
                               flexShrink={0}
+                              mt="1px"
                             >
                               <Text
                                 fontFamily="mono"
@@ -1074,10 +1216,21 @@ export default function BattleshipEventPage() {
                             <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
                               {label}
                             </Text>
+                            {i < steps.length - 1 && (
+                              <Text
+                                display={{ base: 'none', md: 'inline' }}
+                                fontFamily="mono"
+                                fontSize="xs"
+                                color="#3d6b4a"
+                                pl={3}
+                              >
+                                /
+                              </Text>
+                            )}
                           </HStack>
                         ))}
-                      </HStack>
-                    </HStack>
+                      </Stack>
+                    </Stack>
                   </Box>
                 );
               })()}
@@ -1363,6 +1516,11 @@ export default function BattleshipEventPage() {
                   );
                 })()}
 
+              {/* Mobile-only team info mount. Sits directly under the current
+                  task (or under the boards when there's no task) so status you
+                  glance at often is above the fold before the logs. */}
+              {!isDesktopLayout && teamInfoBlock}
+
               {!pendingTask && event.status === 'ACTIVE' && !canFire && cooldownLabel && (
                 <Box
                   bg="#091a10"
@@ -1413,99 +1571,24 @@ export default function BattleshipEventPage() {
                   )}
                 </Box>
               </Box>
+
+              {/* Proposal & skip audit log — team-scoped for regular players,
+                  refs/admins see everyone via the admin/refs pages. */}
+              <BSProposalLogPanel
+                entries={proposalLog}
+                teams={teams}
+                teamFilter={isAdminOrRef ? null : myTeam?.teamId ?? null}
+                nameForDiscordId={proposalLogNameForId}
+              />
             </VStack>
           </Box>
 
           {/* Right sidebar — team status. Regular players only see their own
               team (skip tokens etc. are intel the opposing team shouldn't have);
-              admins and refs see both teams for oversight. */}
-          <Box>
-            <VStack align="stretch" spacing={4}>
-              <SectionLabel>{isAdminOrRef ? 'Fleet Status' : 'Your Team'}</SectionLabel>
-              {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map(
-                (team) => {
-                  const i = teams.findIndex((t) => t.teamId === team.teamId);
-                  return (
-                    <TeamStatusCard
-                      key={team.teamId}
-                      team={team}
-                      cooldownMinutes={event.cooldownMinutes}
-                      isViewing={i === viewingTeamIndex}
-                    />
-                  );
-                }
-              )}
-
-              <Divider borderColor="#1a4028" />
-
-              <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={3}>
-                <SectionLabel>Event Info</SectionLabel>
-                <VStack align="stretch" spacing={1}>
-                  {event.eventPassword && (
-                    <HStack justify="space-between">
-                      <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                        Password
-                      </Text>
-                      <Text
-                        fontFamily="mono"
-                        fontSize="xs"
-                        color="#facc15"
-                        fontWeight="bold"
-                        letterSpacing="wider"
-                      >
-                        {event.eventPassword}
-                      </Text>
-                    </HStack>
-                  )}
-                  <HStack justify="space-between">
-                    <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                      Cooldown
-                    </Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
-                      {event.cooldownMinutes ?? 0}m
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                      Placement hours
-                    </Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
-                      {event.placementPhaseHours ?? '—'}
-                    </Text>
-                  </HStack>
-                  <HStack justify="space-between">
-                    <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-                      Teams
-                    </Text>
-                    <Text fontFamily="mono" fontSize="xs" color="#d4f0da">
-                      {teams.length}
-                    </Text>
-                  </HStack>
-                </VStack>
-
-                {(viewingTeam?.members ?? []).length > 0 && (
-                  <>
-                    <Divider borderColor="#1a4028" my={3} />
-                    <Text
-                      fontFamily="mono"
-                      fontSize="10px"
-                      color="#6b9e78"
-                      letterSpacing="widest"
-                      textTransform="uppercase"
-                      mb={2}
-                    >
-                      {viewingTeam?.teamName ?? 'Team'} Members
-                    </Text>
-                    <VStack align="stretch" spacing={1}>
-                      {(viewingTeam?.members ?? []).map((discordId) => (
-                        <TeamMemberRow key={discordId} discordId={discordId} />
-                      ))}
-                    </VStack>
-                  </>
-                )}
-              </Box>
-            </VStack>
-          </Box>
+              admins and refs see both teams for oversight. On mobile we render
+              the same block up in the main column (see teamInfoBlock above) so
+              team info sits under the current task rather than beneath the logs. */}
+          {isDesktopLayout && <Box>{teamInfoBlock}</Box>}
         </SimpleGrid>
       </Box>
 

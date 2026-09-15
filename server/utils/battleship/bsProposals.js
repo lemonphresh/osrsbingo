@@ -97,16 +97,12 @@ async function clearProposal(teamId, options = {}) {
 async function sweepExpiredProposals(now = new Date()) {
   const BSShotProposal = getModel();
   const where = { expiresAt: { [Op.lte]: now } };
-  const expired = await BSShotProposal.findAll({
-    where,
-    attributes: ['proposalId', 'firingTeamId'],
-  });
+  const expired = await BSShotProposal.findAll({ where });
   if (!expired.length) return [];
   await BSShotProposal.destroy({ where });
-  return expired.map((proposal) => ({
-    firingTeamId: proposal.firingTeamId,
-    proposalId: proposal.proposalId,
-  }));
+  // Return the full rows so the caller can write audit-log entries. The scheduler
+  // needs approvals/rejections/threshold to record who voted what before expiry.
+  return expired.map((proposal) => proposal.get({ plain: true }));
 }
 
 module.exports = {
