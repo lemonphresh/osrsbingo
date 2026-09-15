@@ -100,6 +100,10 @@ export default function BattleshipEventPage() {
   const { showToast } = useToastContext();
   const { user: currentUser } = useAuth();
 
+  // Hook must sit above every early return so hook order is stable regardless
+  // of event status. See `teamInfoBlock` below for how this drives placement.
+  const isDesktopLayout = useBreakpointValue({ base: false, xl: true }, { fallback: 'base' });
+
   usePageTitle('Battleship');
 
   // Register the audio warm-up so sound effects can fire even when the tab
@@ -942,12 +946,11 @@ export default function BattleshipEventPage() {
 
   // ── Status: ACTIVE ────────────────────────────────────────────────────────
 
-  // Only render the team-info block in ONE location per breakpoint — either up
-  // in the main column (mobile) or in the right sidebar (desktop). Doing this
-  // via useBreakpointValue instead of `display: none` on twin mounts avoids
-  // double-mounting <TeamMemberRow> (each row fires a Discord user-lookup fetch,
-  // so a duplicate mount would double every request).
-  const isDesktopLayout = useBreakpointValue({ base: false, xl: true }, { fallback: 'base' });
+  // `isDesktopLayout` (declared at top of component to satisfy rules-of-hooks)
+  // drives whether the team-info block lives in the main column (mobile) or in
+  // the sidebar column (desktop). Rendering it in only one location per
+  // breakpoint avoids double-mounting <TeamMemberRow>, which would double every
+  // Discord user-lookup fetch.
 
   // Shared team-status + event-info block. Rendered in two spots depending on
   // viewport: inside the main column on mobile (so it sits under the current
