@@ -395,7 +395,7 @@ function StatBox({ label, value }) {
 
 const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
 
-function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode = false }) {
+function TeamSection({ team, allTeams, guildId, refetchEvent, showToast, colorblindMode = false }) {
   const palette = getBSColorPalette(colorblindMode);
   const [memberIds, setMemberIds] = useState(team.members ?? []);
   const [pendingMemberId, setPendingMemberId] = useState('');
@@ -421,7 +421,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode =
     if (!ids.length) return undefined;
 
     let cancelled = false;
-    fetchDiscordUsers(ids).then((users) => {
+    fetchDiscordUsers(ids, { guildId }).then((users) => {
       if (cancelled) return;
       const next = {};
       ids.forEach((id) => {
@@ -439,7 +439,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode =
     return () => {
       cancelled = true;
     };
-  }, [memberIds]);
+  }, [guildId, memberIds]);
 
   // Build a map of Discord ID -> team name for members on the OTHER team
   const otherTeamMemberMap = useMemo(() => {
@@ -2503,6 +2503,7 @@ export default function BattleshipAdminPage() {
                     key={team.teamId}
                     team={team}
                     allTeams={event?.teams ?? []}
+                    guildId={event?.guildId || null}
                     refetchEvent={refetchEvent}
                     showToast={showToast}
                     colorblindMode={colorblindMode}
