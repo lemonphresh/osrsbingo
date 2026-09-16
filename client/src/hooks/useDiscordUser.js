@@ -57,7 +57,7 @@ export const useDiscordUser = (userId) => {
 };
 
 // Batch fetch for multiple users
-export const fetchDiscordUsers = async (userIds) => {
+export const fetchDiscordUsers = async (userIds, { guildId } = {}) => {
   const validIds = [...new Set((userIds ?? []).map(String).filter((id) => /^\d{17,19}$/.test(id)))];
 
   if (validIds.length === 0) return {};
@@ -75,7 +75,7 @@ export const fetchDiscordUsers = async (userIds) => {
       const response = await fetch(`${API_BASE}/users/batch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIds: batch }),
+        body: JSON.stringify({ userIds: batch, guildId }),
       });
 
       if (!response.ok) throw new Error(`Batch lookup failed (${response.status})`);

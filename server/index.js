@@ -260,11 +260,12 @@ app.get('/discchannel/:channelId', discordLimiter, async (req, res) => {
 });
 
 /**
- * POST /api/discord/users/batch
- * Fetches multiple Discord users at once
+ * POST /users/batch
+ * Resolves multiple Discord users from the local database first, then the
+ * event guild, and finally Discord's global user endpoint.
  */
 app.post('/users/batch', discordLimiter, async (req, res) => {
-  const { userIds } = req.body;
+  const { userIds, guildId } = req.body;
 
   if (!Array.isArray(userIds) || userIds.length === 0) {
     return res.status(400).json({ error: 'userIds must be a non-empty array' });
@@ -274,24 +275,45 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Maximum 20 users per request' });
   }
 
+  if (guildId && !/^\d{17,19}$/.test(String(guildId))) {
+    return res.status(400).json({ error: 'Invalid Discord guild ID format' });
+  }
+
   const results = {};
   const uniqueUserIds = [...new Set(userIds.map(String))];
-  let cursor = 0;
   const batchSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  const fetchBatchUser = async (userId, retries = 2) => {
+  // Most event members already have a linked site account. Resolve all of
+  // those with one database query so they consume no Discord API requests.
+  try {
+    const linkedUsers = await models.User.findAll({
+      where: { discordUserId: uniqueUserIds },
+      attributes: ['discordUserId', 'discordUsername', 'discordAvatar', 'username'],
+    });
+    linkedUsers.forEach((user) => {
+      const userId = String(user.discordUserId);
+      const safeData = {
+        id: userId,
+        username: user.discordUsername || user.username || 'Discord user',
+        globalName: user.discordUsername || user.username || null,
+        avatar: user.discordAvatar || null,
+        avatarUrl: user.discordAvatar
+          ? `https://cdn.discordapp.com/avatars/${userId}/${user.discordAvatar}.png`
+          : null,
+        linkedAccount: true,
+      };
+      results[userId] = safeData;
+      userCache.set(userId, { data: safeData, timestamp: Date.now() });
+    });
+  } catch (error) {
+    // Discord remains a best-effort fallback if the local lookup fails.
+    logger.warn({ err: error }, 'Local Discord user batch lookup failed');
+  }
+
+  const requestDiscord = async (url, retries = 2) => {
     for (let attempt = 0; attempt <= retries; attempt++) {
-      if (!/^\d{17,19}$/.test(userId)) {
-        return { error: 'Invalid ID format' };
-      }
-
-      const cached = userCache.get(userId);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
-      }
-
       try {
-        const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+        const response = await fetch(url, {
           signal: AbortSignal.timeout(8000),
           headers: {
             Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
@@ -304,28 +326,19 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
           await batchSleep(retryMs);
           continue;
         }
-        if (response.status === 429) return { error: 'Discord rate limited' };
+        if (response.status === 429) return { error: 'Discord rate limited', status: 429 };
 
         if (response.status >= 500 && attempt < retries) {
           await batchSleep(500 * 2 ** attempt);
           continue;
         }
-        if (response.status >= 500) return { error: 'Discord temporarily unavailable' };
+        if (response.status >= 500) {
+          return { error: 'Discord temporarily unavailable', status: response.status };
+        }
 
-        if (!response.ok) return { error: 'User not found' };
+        if (!response.ok) return { error: 'User not found', status: response.status };
 
-        const userData = await response.json();
-        const safeData = {
-          id: userData.id,
-          username: userData.username,
-          globalName: userData.global_name,
-          avatar: userData.avatar,
-          avatarUrl: userData.avatar
-            ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
-            : null,
-        };
-        userCache.set(userId, { data: safeData, timestamp: Date.now() });
-        return safeData;
+        return { data: await response.json(), status: response.status };
       } catch (error) {
         if (attempt < retries) {
           await batchSleep(500 * 2 ** attempt);
@@ -338,16 +351,53 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
     return { error: 'Failed to fetch' };
   };
 
+  const toSafeUser = (userData, displayName = null) => ({
+    id: userData.id,
+    username: userData.username,
+    globalName: displayName || userData.global_name,
+    avatar: userData.avatar,
+    avatarUrl: userData.avatar
+      ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+      : null,
+  });
+
+  const fetchBatchUser = async (userId) => {
+    if (!/^\d{17,19}$/.test(userId)) return { error: 'Invalid ID format' };
+
+    const cached = userCache.get(userId);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
+
+    if (guildId) {
+      const guildResult = await requestDiscord(
+        `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`
+      );
+      if (guildResult.data?.user) {
+        const safeData = toSafeUser(guildResult.data.user, guildResult.data.nick);
+        userCache.set(userId, { data: safeData, timestamp: Date.now() });
+        return safeData;
+      }
+    }
+
+    const globalResult = await requestDiscord(`https://discord.com/api/v10/users/${userId}`);
+    if (!globalResult.data) return { error: globalResult.error || 'User not found' };
+
+    const safeData = toSafeUser(globalResult.data);
+    userCache.set(userId, { data: safeData, timestamp: Date.now() });
+    return safeData;
+  };
+
   // A small worker pool prevents a large roster from bursting Discord's
   // per-route rate limit while still resolving substantially faster than a
   // fully sequential list.
+  const unresolvedUserIds = uniqueUserIds.filter((userId) => !results[userId]);
+  let cursor = 0;
   const worker = async () => {
-    while (cursor < uniqueUserIds.length) {
-      const userId = uniqueUserIds[cursor++];
+    while (cursor < unresolvedUserIds.length) {
+      const userId = unresolvedUserIds[cursor++];
       results[userId] = await fetchBatchUser(userId);
     }
   };
-  const workerCount = Math.min(4, uniqueUserIds.length);
+  const workerCount = Math.min(4, unresolvedUserIds.length);
   await Promise.all(Array.from({ length: workerCount }, worker));
 
   res.json(results);

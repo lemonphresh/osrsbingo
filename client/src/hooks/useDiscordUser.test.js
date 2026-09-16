@@ -20,10 +20,13 @@ describe('fetchDiscordUsers', () => {
       };
     });
 
-    const users = await fetchDiscordUsers([...ids, ids[0]]);
+    const users = await fetchDiscordUsers([...ids, ids[0]], {
+      guildId: '200000000000000000',
+    });
 
     expect(global.fetch).toHaveBeenCalledTimes(3);
     expect(JSON.parse(global.fetch.mock.calls[0][1].body).userIds).toHaveLength(20);
+    expect(JSON.parse(global.fetch.mock.calls[0][1].body).guildId).toBe('200000000000000000');
     expect(JSON.parse(global.fetch.mock.calls[1][1].body).userIds).toHaveLength(20);
     expect(JSON.parse(global.fetch.mock.calls[2][1].body).userIds).toHaveLength(5);
     expect(Object.keys(users)).toHaveLength(45);
