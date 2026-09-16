@@ -3,6 +3,8 @@ import { debounce } from 'lodash';
 
 // Cache to prevent duplicate requests
 const localCache = new Map();
+const API_BASE = process.env.REACT_APP_SERVER_URL || '';
+const DISCORD_BATCH_SIZE = 20;
 
 export const useDiscordUser = (userId) => {
   const [user, setUser] = useState(null);
@@ -28,7 +30,7 @@ export const useDiscordUser = (userId) => {
       setError(null);
 
       try {
-        const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/discuser/${id}`);
+        const response = await fetch(`${API_BASE}/discuser/${id}`);
 
         if (!response.ok) {
           throw new Error(response.status === 404 ? 'User not found' : 'Failed to fetch');
@@ -56,24 +58,41 @@ export const useDiscordUser = (userId) => {
 
 // Batch fetch for multiple users
 export const fetchDiscordUsers = async (userIds) => {
-  const validIds = userIds.filter((id) => /^\d{17,19}$/.test(id));
+  const validIds = [...new Set((userIds ?? []).map(String).filter((id) => /^\d{17,19}$/.test(id)))];
 
   if (validIds.length === 0) return {};
 
-  try {
-    const response = await fetch(`${process.env.REACT_APP_SERVER_URL}/users/batch`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userIds: validIds }),
-    });
+  const results = {};
+  const missingIds = [];
+  validIds.forEach((id) => {
+    if (localCache.has(id)) results[id] = localCache.get(id);
+    else missingIds.push(id);
+  });
 
-    if (!response.ok) throw new Error('Failed to fetch users');
+  for (let start = 0; start < missingIds.length; start += DISCORD_BATCH_SIZE) {
+    const batch = missingIds.slice(start, start + DISCORD_BATCH_SIZE);
+    try {
+      const response = await fetch(`${API_BASE}/users/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: batch }),
+      });
 
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to fetch Discord users:', error);
-    return {};
+      if (!response.ok) throw new Error(`Batch lookup failed (${response.status})`);
+
+      const batchResults = await response.json();
+      Object.entries(batchResults).forEach(([id, user]) => {
+        if (!user?.error) {
+          localCache.set(id, user);
+          results[id] = user;
+        }
+      });
+    } catch (error) {
+      console.error('Failed to fetch Discord user batch:', error);
+    }
   }
+
+  return results;
 };
 
 export default useDiscordUser;

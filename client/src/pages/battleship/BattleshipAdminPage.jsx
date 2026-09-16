@@ -31,7 +31,6 @@ import {
   Textarea,
   VStack,
 } from '@chakra-ui/react';
-import { AddIcon } from '@chakra-ui/icons';
 import {
   FaClipboardList,
   FaDiscord,
@@ -48,6 +47,7 @@ import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { BoardPanel } from '../../organisms/battleship/BSSharedComponents';
 import BSProposalLogPanel from '../../organisms/battleship/BSProposalLogPanel';
 import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
+import { fetchDiscordUsers } from '../../hooks/useDiscordUser';
 import useBSColorblindMode from '../../hooks/useBSColorblindMode';
 import { getBSColorPalette, getBSTeamColor } from '../../utils/battleship/bsColorPalette';
 import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
@@ -398,6 +398,8 @@ const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
 function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode = false }) {
   const palette = getBSColorPalette(colorblindMode);
   const [memberIds, setMemberIds] = useState(team.members ?? []);
+  const [pendingMemberId, setPendingMemberId] = useState('');
+  const [resolvedMembers, setResolvedMembers] = useState({});
   const [saving, setSaving] = useState(false);
   const [addingTokens, setAddingTokens] = useState(false);
   const [customTokenCount, setCustomTokenCount] = useState('');
@@ -414,6 +416,31 @@ function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode =
     setMemberIds(team.members ?? []);
   }, [team.members]);
 
+  useEffect(() => {
+    const ids = memberIds.filter(isValidDiscordId);
+    if (!ids.length) return undefined;
+
+    let cancelled = false;
+    fetchDiscordUsers(ids).then((users) => {
+      if (cancelled) return;
+      const next = {};
+      ids.forEach((id) => {
+        const user = users[id];
+        if (!user) return;
+        next[id] = {
+          discordUserId: id,
+          discordUsername: user.globalName || user.username || 'Discord user',
+          discordAvatar: user.avatar ?? null,
+        };
+      });
+      setResolvedMembers((prev) => ({ ...prev, ...next }));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [memberIds]);
+
   // Build a map of Discord ID -> team name for members on the OTHER team
   const otherTeamMemberMap = useMemo(() => {
     const map = new Map();
@@ -426,10 +453,30 @@ function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode =
     return map;
   }, [allTeams, team.teamId]);
 
-  const handleAddMember = () => setMemberIds((prev) => [...prev, '']);
-  const handleRemoveMember = (i) => setMemberIds((prev) => prev.filter((_, idx) => idx !== i));
-  const handleMemberChange = (i, val) =>
-    setMemberIds((prev) => prev.map((m, idx) => (idx === i ? val : m)));
+  const handleRemoveMember = (discordId) =>
+    setMemberIds((prev) => prev.filter((id) => id !== discordId));
+  const handleAddMember = (discordId) => {
+    if (!isValidDiscordId(discordId)) return;
+    if (memberIds.includes(discordId)) {
+      showToast('That member is already on this team', 'warning');
+      setPendingMemberId('');
+      return;
+    }
+    setMemberIds((prev) => [...prev.filter(isValidDiscordId), discordId]);
+    setPendingMemberId('');
+  };
+
+  const memberDisplayMap = useMemo(() => {
+    const map = {};
+    memberIds.filter(isValidDiscordId).forEach((id) => {
+      map[id] = resolvedMembers[id] ?? {
+        discordUserId: id,
+        discordUsername: 'Discord user',
+        discordAvatar: null,
+      };
+    });
+    return map;
+  }, [memberIds, resolvedMembers]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -529,32 +576,38 @@ function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode =
             Members ({memberIds.filter(isValidDiscordId).length})
           </Text>
           <VStack align="stretch" spacing={3} maxW="400px">
-            {memberIds.map((id, i) => (
+            {memberIds.filter(isValidDiscordId).map((id) => (
               <DiscordMemberInput
-                key={i}
+                key={id}
                 value={id}
-                onChange={(val) => handleMemberChange(i, val)}
-                onRemove={() => handleRemoveMember(i)}
+                onChange={() => {}}
+                onRemove={() => handleRemoveMember(id)}
                 showRemove
-                colorMode="dark"
-                conflictTeam={isValidDiscordId(id) ? otherTeamMemberMap.get(id) ?? null : null}
-                isDuplicateInForm={
-                  isValidDiscordId(id) && memberIds.some((m, idx) => idx !== i && m === id)
-                }
+                colorMode="bs"
+                conflictTeam={otherTeamMemberMap.get(id) ?? null}
+                isDuplicateInForm={false}
+                resolvedUser={memberDisplayMap[id]}
               />
             ))}
-            <Button
-              leftIcon={<AddIcon />}
-              size="sm"
-              variant="outline"
-              onClick={handleAddMember}
-              color={DIM}
-              borderColor={BORDER}
-              _hover={{ borderColor: GREEN, color: GREEN }}
-              alignSelf="flex-start"
-            >
-              Add Member
-            </Button>
+            <Box>
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wider" mb={1}>
+                ADD MEMBER
+              </Text>
+              <DiscordMemberInput
+                value={pendingMemberId}
+                onChange={(id) => {
+                  setPendingMemberId(id);
+                  handleAddMember(id);
+                }}
+                onRemove={() => setPendingMemberId('')}
+                showRemove={false}
+                colorMode="bs"
+                conflictTeam={
+                  pendingMemberId ? otherTeamMemberMap.get(pendingMemberId) ?? null : null
+                }
+                isDuplicateInForm={pendingMemberId ? memberIds.includes(pendingMemberId) : false}
+              />
+            </Box>
           </VStack>
           <Button
             mt={3}

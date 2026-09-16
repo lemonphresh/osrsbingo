@@ -275,49 +275,80 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
   }
 
   const results = {};
+  const uniqueUserIds = [...new Set(userIds.map(String))];
+  let cursor = 0;
+  const batchSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  await Promise.all(
-    userIds.map(async (userId) => {
+  const fetchBatchUser = async (userId, retries = 2) => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
       if (!/^\d{17,19}$/.test(userId)) {
-        results[userId] = { error: 'Invalid ID format' };
-        return;
+        return { error: 'Invalid ID format' };
       }
 
-      // Check cache
       const cached = userCache.get(userId);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        results[userId] = cached.data;
-        return;
+        return cached.data;
       }
 
       try {
         const response = await fetch(`https://discord.com/api/v10/users/${userId}`, {
+          signal: AbortSignal.timeout(8000),
           headers: {
             Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
           },
         });
 
-        if (response.ok) {
-          const userData = await response.json();
-          const safeData = {
-            id: userData.id,
-            username: userData.username,
-            globalName: userData.global_name,
-            avatar: userData.avatar,
-            avatarUrl: userData.avatar
-              ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
-              : null,
-          };
-          userCache.set(userId, { data: safeData, timestamp: Date.now() });
-          results[userId] = safeData;
-        } else {
-          results[userId] = { error: 'User not found' };
+        if (response.status === 429 && attempt < retries) {
+          const body = await response.json().catch(() => ({}));
+          const retryMs = Math.min(10000, Math.max(250, Number(body.retry_after ?? 1) * 1000));
+          await batchSleep(retryMs);
+          continue;
         }
+        if (response.status === 429) return { error: 'Discord rate limited' };
+
+        if (response.status >= 500 && attempt < retries) {
+          await batchSleep(500 * 2 ** attempt);
+          continue;
+        }
+        if (response.status >= 500) return { error: 'Discord temporarily unavailable' };
+
+        if (!response.ok) return { error: 'User not found' };
+
+        const userData = await response.json();
+        const safeData = {
+          id: userData.id,
+          username: userData.username,
+          globalName: userData.global_name,
+          avatar: userData.avatar,
+          avatarUrl: userData.avatar
+            ? `https://cdn.discordapp.com/avatars/${userData.id}/${userData.avatar}.png`
+            : null,
+        };
+        userCache.set(userId, { data: safeData, timestamp: Date.now() });
+        return safeData;
       } catch (error) {
-        results[userId] = { error: 'Failed to fetch' };
+        if (attempt < retries) {
+          await batchSleep(500 * 2 ** attempt);
+          continue;
+        }
+        return { error: 'Failed to fetch' };
       }
-    })
-  );
+    }
+
+    return { error: 'Failed to fetch' };
+  };
+
+  // A small worker pool prevents a large roster from bursting Discord's
+  // per-route rate limit while still resolving substantially faster than a
+  // fully sequential list.
+  const worker = async () => {
+    while (cursor < uniqueUserIds.length) {
+      const userId = uniqueUserIds[cursor++];
+      results[userId] = await fetchBatchUser(userId);
+    }
+  };
+  const workerCount = Math.min(4, uniqueUserIds.length);
+  await Promise.all(Array.from({ length: workerCount }, worker));
 
   res.json(results);
 });
