@@ -287,12 +287,12 @@ function BulkLookupPanel() {
     runQuery({ variables: { discordUserIds: requestedIds } });
   };
 
-  // Bulleted `- <@id>` list for pasting into Discord. Preserves the input order
-  // (missing IDs still get a `- <@id>` line — mentions render fine even for
-  // users the site doesn't know) so recipients see the same order they gave.
-  const handleCopyMentions = () => {
-    if (!requestedIds.length) return;
-    const text = requestedIds.map((id) => `- <@${id}>`).join('\n');
+  // Bulleted `- <@id>` list for pasting into Discord — used to ping every
+  // user who came back unmatched so an admin can nudge them to link their
+  // Discord account.
+  const handleCopyMissingMentions = () => {
+    if (!missingIds.length) return;
+    const text = missingIds.map((id) => `- <@${id}>`).join('\n');
     navigator.clipboard.writeText(text).then(() => {
       setCopiedMentions(true);
       setTimeout(() => setCopiedMentions(false), 1500);
@@ -331,22 +331,6 @@ function BulkLookupPanel() {
         >
           Look up {requestedIds.length || ''} ID{requestedIds.length === 1 ? '' : 's'}
         </Button>
-        <Tooltip
-          label="Copies a bulleted `- <@id>` list of every ID above — paste straight into Discord."
-          hasArrow
-          placement="top"
-        >
-          <Button
-            size="sm"
-            variant="outline"
-            colorScheme={copiedMentions ? 'green' : 'purple'}
-            leftIcon={copiedMentions ? <CheckIcon /> : <CopyIcon />}
-            onClick={handleCopyMentions}
-            isDisabled={!requestedIds.length}
-          >
-            {copiedMentions ? 'Copied!' : 'Copy Discord mentions'}
-          </Button>
-        </Tooltip>
         {called && (
           <Button size="sm" variant="ghost" color="gray.400" onClick={() => setText('')}>
             Clear
@@ -377,9 +361,26 @@ function BulkLookupPanel() {
               borderColor="gray.600"
               borderRadius="md"
             >
-              <Text color="yellow.400" fontSize="xs" fontWeight="semibold" mb={1}>
-                No account for {missingIds.length} ID{missingIds.length === 1 ? '' : 's'}
-              </Text>
+              <HStack justify="space-between" align="flex-start" mb={1} spacing={2}>
+                <Text color="yellow.400" fontSize="xs" fontWeight="semibold">
+                  No account for {missingIds.length} ID{missingIds.length === 1 ? '' : 's'}
+                </Text>
+                <Tooltip
+                  label="Copies a bulleted `- <@id>` list of the unmatched IDs — paste straight into Discord to ping them."
+                  hasArrow
+                  placement="top"
+                >
+                  <Button
+                    size="xs"
+                    variant="outline"
+                    colorScheme={copiedMentions ? 'green' : 'yellow'}
+                    leftIcon={copiedMentions ? <CheckIcon /> : <CopyIcon />}
+                    onClick={handleCopyMissingMentions}
+                  >
+                    {copiedMentions ? 'Copied!' : 'Copy as Discord mentions'}
+                  </Button>
+                </Tooltip>
+              </HStack>
               <Text color="gray.400" fontSize="xs" fontFamily="mono" wordBreak="break-all">
                 {missingIds.join(', ')}
               </Text>
