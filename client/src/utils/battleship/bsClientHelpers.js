@@ -26,6 +26,18 @@ export const SHIP_CONFIGS = [
   { shipType: 'DESTROYER', label: 'DESTROYER', cells: 2 },
 ];
 
+export const TOTAL_SHIP_TILES = SHIP_CONFIGS.reduce((total, ship) => total + ship.cells, 0);
+
+// Spectator/opponent payloads deliberately redact unstruck ships, so hull
+// integrity must use the known fleet size rather than counting visible ship
+// metadata. Damage is applied only once a struck ship task is completed.
+export function getFleetHullIntegrity(tiles = []) {
+  const destroyedTiles = tiles.filter(
+    (tile) => tile.isShot && tile.shipType && tile.taskCompleted
+  ).length;
+  return Math.max(0, Math.round(((TOTAL_SHIP_TILES - destroyedTiles) / TOTAL_SHIP_TILES) * 100));
+}
+
 export const SHIP_SIZES = { CARRIER: 5, BATTLESHIP: 4, CRUISER: 3, SUBMARINE: 3, DESTROYER: 2 };
 
 export const SHIP_COLORS = {
