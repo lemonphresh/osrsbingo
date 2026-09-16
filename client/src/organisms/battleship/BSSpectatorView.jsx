@@ -12,6 +12,7 @@ import {
 } from '../../graphql/bsOperations';
 import { playBSSound } from '../../utils/battleship/bsAudio';
 import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
+import { getFleetHullIntegrity } from '../../utils/battleship/bsClientHelpers';
 
 const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 const coord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -177,6 +178,8 @@ export function BSSpectatorView({
   refetch,
   colorblindMode = false,
   onToggleColorblindMode,
+  previewShotLog,
+  disableRealtime = false,
 }) {
   const teams = useMemo(() => event.teams ?? [], [event.teams]);
   const teamA = teams[0] ?? null;
@@ -194,6 +197,7 @@ export function BSSpectatorView({
   const { data: shotLogData } = useQuery(GET_BS_SHOT_LOG, {
     variables: { eventId: event.eventId },
     fetchPolicy: 'cache-and-network',
+    skip: disableRealtime,
   });
 
   const [flash, setFlash] = useState(null);
@@ -201,7 +205,7 @@ export function BSSpectatorView({
   const flashTimeoutRef = useRef(null);
 
   const historicalShots = useMemo(() => {
-    const log = shotLogData?.getBSShotLog ?? [];
+    const log = previewShotLog ?? shotLogData?.getBSShotLog ?? [];
     return [...log]
       .sort((a, b) => new Date(b.shotAt) - new Date(a.shotAt))
       .slice(0, 20)
@@ -217,7 +221,7 @@ export function BSSpectatorView({
           shotAt: s.shotAt,
         };
       });
-  }, [shotLogData, teamMap, teams, colorblindMode]);
+  }, [previewShotLog, shotLogData, teamMap, teams, colorblindMode]);
 
   useEffect(() => {
     setLiveShots((current) =>
@@ -249,7 +253,7 @@ export function BSSpectatorView({
 
   useSubscription(BS_SHOT_FIRED, {
     variables: { eventId: event.eventId },
-    skip: event.status !== 'ACTIVE',
+    skip: disableRealtime || event.status !== 'ACTIVE',
     onData: ({ data }) => {
       const shot = data?.data?.bsShotFired;
       if (!shot) return;
@@ -272,33 +276,23 @@ export function BSSpectatorView({
 
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: boardA?.boardId },
-    skip: !boardA?.boardId || event.status !== 'ACTIVE',
+    skip: disableRealtime || !boardA?.boardId || event.status !== 'ACTIVE',
     onData: () => refetch(),
   });
   useSubscription(BS_TILE_UPDATED, {
     variables: { boardId: boardB?.boardId },
-    skip: !boardB?.boardId || event.status !== 'ACTIVE',
+    skip: disableRealtime || !boardB?.boardId || event.status !== 'ACTIVE',
     onData: () => refetch(),
   });
   useSubscription(BS_GAME_OVER, {
     variables: { eventId: event.eventId },
-    skip: !event.eventId || event.status === 'COMPLETED',
+    skip: disableRealtime || !event.eventId || event.status === 'COMPLETED',
     onData: () => refetch(),
   });
 
   const clearFlash = () => {
     if (flashTimeoutRef.current) clearTimeout(flashTimeoutRef.current);
     setFlash(null);
-  };
-
-  const hitsAgainst = (tiles) => tiles.filter((t) => t.isShot && t.shipType).length;
-  const shipTilesLeft = (tiles) =>
-    tiles.filter((t) => t.shipType && !(t.taskCompleted || t.skipped)).length;
-  const totalShipTiles = (tiles) => tiles.filter((t) => t.shipType).length;
-  const healthPct = (tiles) => {
-    const total = totalShipTiles(tiles);
-    if (total === 0) return 100;
-    return Math.round((shipTilesLeft(tiles) / total) * 100);
   };
 
   return (
@@ -448,7 +442,7 @@ export function BSSpectatorView({
                 color="white"
                 lineHeight="1"
               >
-                {healthPct(tilesA)}%
+                {getFleetHullIntegrity(tilesA)}%
               </Text>
               <Text fontFamily="mono" fontSize="10px" color={colA.primary} opacity={0.7} mt={1}>
                 hull integrity
@@ -457,7 +451,7 @@ export function BSSpectatorView({
               <Box mt={2} h="4px" bg={colA.dim} borderRadius="full" overflow="hidden">
                 <Box
                   h="full"
-                  w={`${healthPct(tilesA)}%`}
+                  w={`${getFleetHullIntegrity(tilesA)}%`}
                   bg={colA.primary}
                   borderRadius="full"
                   sx={{ transition: 'width 0.6s ease', boxShadow: `0 0 6px ${colA.primary}` }}
@@ -514,7 +508,7 @@ export function BSSpectatorView({
                 color="white"
                 lineHeight="1"
               >
-                {healthPct(tilesB)}%
+                {getFleetHullIntegrity(tilesB)}%
               </Text>
               <Text fontFamily="mono" fontSize="10px" color={colB.primary} opacity={0.7} mt={1}>
                 hull integrity
@@ -522,7 +516,7 @@ export function BSSpectatorView({
               <Box mt={2} h="4px" bg={colB.dim} borderRadius="full" overflow="hidden">
                 <Box
                   h="full"
-                  w={`${healthPct(tilesB)}%`}
+                  w={`${getFleetHullIntegrity(tilesB)}%`}
                   bg={colB.primary}
                   borderRadius="full"
                   sx={{ transition: 'width 0.6s ease', boxShadow: `0 0 6px ${colB.primary}` }}

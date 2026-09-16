@@ -269,6 +269,7 @@ function UserRow({ u, onDelete, isCurrentUser }) {
 
 function BulkLookupPanel() {
   const [text, setText] = useState('');
+  const [copiedMentions, setCopiedMentions] = useState(false);
   const [runQuery, { data, loading, error, called }] = useLazyQuery(GET_USERS_BY_DISCORD_IDS, {
     fetchPolicy: 'network-only',
   });
@@ -284,6 +285,18 @@ function BulkLookupPanel() {
   const handleLookup = () => {
     if (!requestedIds.length) return;
     runQuery({ variables: { discordUserIds: requestedIds } });
+  };
+
+  // Bulleted `- <@id>` list for pasting into Discord. Preserves the input order
+  // (missing IDs still get a `- <@id>` line — mentions render fine even for
+  // users the site doesn't know) so recipients see the same order they gave.
+  const handleCopyMentions = () => {
+    if (!requestedIds.length) return;
+    const text = requestedIds.map((id) => `- <@${id}>`).join('\n');
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedMentions(true);
+      setTimeout(() => setCopiedMentions(false), 1500);
+    });
   };
 
   return (
@@ -308,7 +321,7 @@ function BulkLookupPanel() {
         _placeholder={{ color: 'gray.600' }}
         mb={3}
       />
-      <HStack>
+      <HStack wrap="wrap">
         <Button
           size="sm"
           colorScheme="purple"
@@ -318,13 +331,24 @@ function BulkLookupPanel() {
         >
           Look up {requestedIds.length || ''} ID{requestedIds.length === 1 ? '' : 's'}
         </Button>
-        {called && (
+        <Tooltip
+          label="Copies a bulleted `- <@id>` list of every ID above — paste straight into Discord."
+          hasArrow
+          placement="top"
+        >
           <Button
             size="sm"
-            variant="ghost"
-            color="gray.400"
-            onClick={() => setText('')}
+            variant="outline"
+            colorScheme={copiedMentions ? 'green' : 'purple'}
+            leftIcon={copiedMentions ? <CheckIcon /> : <CopyIcon />}
+            onClick={handleCopyMentions}
+            isDisabled={!requestedIds.length}
           >
+            {copiedMentions ? 'Copied!' : 'Copy Discord mentions'}
+          </Button>
+        </Tooltip>
+        {called && (
+          <Button size="sm" variant="ghost" color="gray.400" onClick={() => setText('')}>
             Clear
           </Button>
         )}

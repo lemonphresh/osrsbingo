@@ -12,6 +12,8 @@ import {
   metricOptionsForCategory,
   COL_LABELS,
   SHIP_SIZES,
+  TOTAL_SHIP_TILES,
+  getFleetHullIntegrity,
 } from './bsClientHelpers';
 
 // ── coordLabel ────────────────────────────────────────────────────────────
@@ -205,6 +207,39 @@ describe('getShipCells', () => {
   });
 });
 
+// ── getFleetHullIntegrity ────────────────────────────────────────────────
+
+describe('getFleetHullIntegrity', () => {
+  test('uses the full 17-cell fleet when hidden ships are redacted', () => {
+    expect(TOTAL_SHIP_TILES).toBe(17);
+    expect(
+      getFleetHullIntegrity([
+        { isShot: true, shipType: 'CARRIER', taskCompleted: true },
+        { isShot: true, shipType: 'CARRIER', taskCompleted: true },
+      ])
+    ).toBe(88);
+  });
+
+  test('does not count misses, skipped ocean, or unresolved hits as hull damage', () => {
+    expect(
+      getFleetHullIntegrity([
+        { isShot: true, shipType: null, taskCompleted: true },
+        { isShot: true, shipType: null, skipped: true },
+        { isShot: true, shipType: 'CRUISER', taskCompleted: false },
+      ])
+    ).toBe(100);
+  });
+
+  test('never returns a negative percentage for malformed duplicate input', () => {
+    const duplicateDestroyedTiles = Array.from({ length: 20 }, () => ({
+      isShot: true,
+      shipType: 'CARRIER',
+      taskCompleted: true,
+    }));
+    expect(getFleetHullIntegrity(duplicateDestroyedTiles)).toBe(0);
+  });
+});
+
 // ── isValidPlacement ──────────────────────────────────────────────────────
 
 describe('isValidPlacement', () => {
@@ -242,9 +277,7 @@ describe('isValidPlacement', () => {
   });
 
   test('replacingShipType skips overlap check for that ship', () => {
-    const existing = [
-      { shipType: 'CARRIER', orientation: 'HORIZONTAL', startRow: 0, startCol: 0 },
-    ];
+    const existing = [{ shipType: 'CARRIER', orientation: 'HORIZONTAL', startRow: 0, startCol: 0 }];
     expect(isValidPlacement('CARRIER', 'HORIZONTAL', 0, 0, existing, 'CARRIER')).toBe(true);
     expect(isValidPlacement('CARRIER', 'HORIZONTAL', 0, 0, existing)).toBe(false);
   });
@@ -288,7 +321,7 @@ describe('getContentCategory', () => {
 describe('groupedBossSkillOptions', () => {
   const tasks = [
     { bossOrSkill: 'Zulrah', metricType: 'kc' },
-    { bossOrSkill: 'Zulrah', metricType: 'unique' },    // duplicate — should be deduped
+    { bossOrSkill: 'Zulrah', metricType: 'unique' }, // duplicate — should be deduped
     { bossOrSkill: 'Attack', metricType: 'xp' },
     { bossOrSkill: 'Wintertodt', metricType: 'kc' },
     { bossOrSkill: 'Chambers of Xeric', metricType: 'kc' },

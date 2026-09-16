@@ -172,6 +172,105 @@ export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
   );
 }
 
+// ── Read-only placement view ──────────────────────────────────────────────
+// Kept separate from the team workshop so it can also be rendered safely in
+// the UI playground without mounting presence, suggestion, or voting calls.
+export function BSPlacementSpectatorView({
+  event,
+  topBar,
+  isAdmin = false,
+  viewerCount = 0,
+  colorblindMode = false,
+}) {
+  const redTeamDot = colorblindMode ? '#fb923c' : '#f87171';
+  const teams = event.teams ?? [];
+  const viewerBadge =
+    viewerCount > 0 ? (
+      <HStack spacing={1} align="center">
+        <Box w="6px" h="6px" borderRadius="full" bg="green.400" />
+        <Text fontFamily="mono" fontSize="9px" color="#3d6b4a" letterSpacing="wide">
+          {viewerCount} team member{viewerCount !== 1 ? 's' : ''} viewing
+        </Text>
+      </HStack>
+    ) : null;
+
+  return (
+    <Box flex="1" minH="100vh" bg="#060f0a">
+      {topBar}
+      <Box maxW="700px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
+        <VStack align="stretch" spacing={5}>
+          <HStack justify="space-between" align="center">
+            <Text
+              fontFamily="mono"
+              fontSize="10px"
+              color="#6b9e78"
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              Placement Phase / {isAdmin ? 'Admin View' : 'Spectator View'}
+            </Text>
+            {viewerBadge}
+          </HStack>
+          <Box display="flex" flexDirection="column" alignItems="center" py={2} gap={2}>
+            <Text
+              fontFamily="mono"
+              fontSize="10px"
+              color="#3d6b4a"
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              countdown til launch:
+            </Text>
+            <BSPlacementCountdown event={event} />
+          </Box>
+          {teams.map((team) => {
+            const tc = team.color === 'RED' ? redTeamDot : '#60a5fa';
+            return (
+              <Box
+                key={team.teamId}
+                bg="#091a10"
+                border="1px solid"
+                borderColor="#1a4028"
+                borderRadius="md"
+                p={4}
+              >
+                <HStack justify="space-between" align="center">
+                  <HStack spacing={2}>
+                    <Box w="8px" h="8px" borderRadius="full" bg={tc} />
+                    <Text fontFamily="mono" fontSize="sm" fontWeight="bold" color="#d4f0da">
+                      {team.teamName}
+                    </Text>
+                  </HStack>
+                  <Badge
+                    colorScheme="cyan"
+                    fontSize="9px"
+                    letterSpacing="wider"
+                    textTransform="uppercase"
+                  >
+                    workshopping
+                  </Badge>
+                </HStack>
+              </Box>
+            );
+          })}
+          <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
+            <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
+              Each team member workshops a layout privately then shares it to their team. Teammates
+              vote on the shared suggestions, and the highest-voted layout wins at phase end. Ties
+              break at random. Teams with zero suggestions get a random auto-placement.
+            </Text>
+            {isAdmin && (
+              <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" mt={2}>
+                Admins can manually advance from the event's Admin page.
+              </Text>
+            )}
+          </Box>
+        </VStack>
+      </Box>
+    </Box>
+  );
+}
+
 // ── Team participation footer ──────────────────────────────────────────────
 // Shows the team's roster with icons indicating who has shared a suggestion
 // and who has cast a vote. Includes a small legend below.
@@ -628,6 +727,19 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
 
   const dotColor = myTeam?.color === 'RED' ? redTeamDot : '#60a5fa';
 
+  // ── Admin / spectator view (no team) ─────────────────────────────────────
+  if (!myTeam) {
+    return (
+      <BSPlacementSpectatorView
+        event={event}
+        topBar={topBar}
+        isAdmin={isAdmin}
+        viewerCount={viewerCount}
+        colorblindMode={colorblindMode}
+      />
+    );
+  }
+
   const viewerBadge =
     viewerCount > 0 ? (
       <HStack spacing={1} align="center">
@@ -637,85 +749,6 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
         </Text>
       </HStack>
     ) : null;
-
-  // ── Admin / spectator view (no team) ─────────────────────────────────────
-  if (!myTeam) {
-    return (
-      <Box flex="1" minH="100vh" bg="#060f0a">
-        {topBar}
-        <Box maxW="700px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
-          <VStack align="stretch" spacing={5}>
-            <HStack justify="space-between" align="center">
-              <Text
-                fontFamily="mono"
-                fontSize="10px"
-                color="#6b9e78"
-                letterSpacing="widest"
-                textTransform="uppercase"
-              >
-                Placement Phase / {isAdmin ? 'Admin View' : 'Spectator View'}
-              </Text>
-              {viewerBadge}
-            </HStack>
-            <Box display="flex" flexDirection="column" alignItems="center" py={2} gap={2}>
-              <Text
-                fontFamily="mono"
-                fontSize="10px"
-                color="#3d6b4a"
-                letterSpacing="widest"
-                textTransform="uppercase"
-              >
-                countdown til launch:
-              </Text>
-              <BSPlacementCountdown event={event} />
-            </Box>
-            {teams.map((team) => {
-              const tc = team.color === 'RED' ? redTeamDot : '#60a5fa';
-              return (
-                <Box
-                  key={team.teamId}
-                  bg="#091a10"
-                  border="1px solid"
-                  borderColor="#1a4028"
-                  borderRadius="md"
-                  p={4}
-                >
-                  <HStack justify="space-between" align="center">
-                    <HStack spacing={2}>
-                      <Box w="8px" h="8px" borderRadius="full" bg={tc} />
-                      <Text fontFamily="mono" fontSize="sm" fontWeight="bold" color="#d4f0da">
-                        {team.teamName}
-                      </Text>
-                    </HStack>
-                    <Badge
-                      colorScheme="cyan"
-                      fontSize="9px"
-                      letterSpacing="wider"
-                      textTransform="uppercase"
-                    >
-                      workshopping
-                    </Badge>
-                  </HStack>
-                </Box>
-              );
-            })}
-            <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
-              <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
-                Each team member workshops a layout privately then shares it to their team.
-                Teammates vote on the shared suggestions, and the highest-voted layout wins at phase
-                end. Ties break at random. Teams with zero suggestions get a random auto-placement.
-              </Text>
-              {isAdmin && (
-                <Text fontFamily="mono" fontSize="10px" color="#3d6b4a" letterSpacing="wide" mt={2}>
-                  Admins can manually advance from the event's Admin page.
-                </Text>
-              )}
-            </Box>
-          </VStack>
-        </Box>
-      </Box>
-    );
-  }
 
   // ── Team member view ─────────────────────────────────────────────────────
   return (

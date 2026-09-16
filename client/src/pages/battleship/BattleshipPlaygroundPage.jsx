@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Box,
+  Badge,
   Button,
   Center,
   Divider,
@@ -27,7 +28,13 @@ import { BSGameOverScreen } from '../../organisms/battleship/BSGameOverScreen';
 import BSLaunchControl from '../../organisms/battleship/BSLaunchControl';
 import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 import { BSPlacementCountdown } from '../../organisms/battleship/BSFlipClock';
-import { SectionLabel, FieldLabel, BoardPanel } from '../../organisms/battleship/BSSharedComponents';
+import { BSPlacementSpectatorView } from '../../organisms/battleship/BSPlacementView';
+import { BSSpectatorView } from '../../organisms/battleship/BSSpectatorView';
+import {
+  SectionLabel,
+  FieldLabel,
+  BoardPanel,
+} from '../../organisms/battleship/BSSharedComponents';
 
 // ─── palette / typography ────────────────────────────────────────────
 const BS_PALETTE = {
@@ -68,19 +75,35 @@ const BS_PALETTE = {
 
 // ─── mock tiles for grid demos ───────────────────────────────────────
 const shipTile = (row, col, shipType, opts = {}) => ({
-  row, col, shipType, isShot: false, taskCompleted: false, skipped: false, ...opts,
+  row,
+  col,
+  shipType,
+  isShot: false,
+  taskCompleted: false,
+  skipped: false,
+  ...opts,
 });
 
 const OCEAN_TILES = [];
 
 const OWN_FLEET_TILES = [
-  shipTile(0, 0, 'CARRIER'), shipTile(0, 1, 'CARRIER'), shipTile(0, 2, 'CARRIER'),
-  shipTile(0, 3, 'CARRIER'), shipTile(0, 4, 'CARRIER'),
-  shipTile(2, 1, 'BATTLESHIP'), shipTile(2, 2, 'BATTLESHIP'),
-  shipTile(2, 3, 'BATTLESHIP'), shipTile(2, 4, 'BATTLESHIP'),
-  shipTile(4, 6, 'CRUISER'), shipTile(5, 6, 'CRUISER'), shipTile(6, 6, 'CRUISER'),
-  shipTile(7, 2, 'SUBMARINE'), shipTile(7, 3, 'SUBMARINE'), shipTile(7, 4, 'SUBMARINE'),
-  shipTile(9, 8, 'DESTROYER'), shipTile(9, 9, 'DESTROYER'),
+  shipTile(0, 0, 'CARRIER'),
+  shipTile(0, 1, 'CARRIER'),
+  shipTile(0, 2, 'CARRIER'),
+  shipTile(0, 3, 'CARRIER'),
+  shipTile(0, 4, 'CARRIER'),
+  shipTile(2, 1, 'BATTLESHIP'),
+  shipTile(2, 2, 'BATTLESHIP'),
+  shipTile(2, 3, 'BATTLESHIP'),
+  shipTile(2, 4, 'BATTLESHIP'),
+  shipTile(4, 6, 'CRUISER'),
+  shipTile(5, 6, 'CRUISER'),
+  shipTile(6, 6, 'CRUISER'),
+  shipTile(7, 2, 'SUBMARINE'),
+  shipTile(7, 3, 'SUBMARINE'),
+  shipTile(7, 4, 'SUBMARINE'),
+  shipTile(9, 8, 'DESTROYER'),
+  shipTile(9, 9, 'DESTROYER'),
 ];
 
 const MID_BATTLE_ENEMY = [
@@ -96,7 +119,9 @@ const MID_BATTLE_ENEMY = [
   shipTile(2, 3, 'BATTLESHIP'),
   shipTile(2, 4, 'BATTLESHIP'),
   // untouched cruiser
-  shipTile(4, 6, 'CRUISER'), shipTile(5, 6, 'CRUISER'), shipTile(6, 6, 'CRUISER'),
+  shipTile(4, 6, 'CRUISER'),
+  shipTile(5, 6, 'CRUISER'),
+  shipTile(6, 6, 'CRUISER'),
   // skipped tile with a miss
   { row: 5, col: 2, isShot: true, taskCompleted: false, skipped: true },
   // scattered misses
@@ -180,11 +205,46 @@ const MOCK_GAME_OVER_EVENT = {
 };
 
 const MOCK_SHOT_LOG = [
-  { firingTeamId: 'team-alpha', targetBoardId: 'board-b', row: 0, col: 0, result: 'HIT', shotAt: new Date(NOW - 3000000).toISOString() },
-  { firingTeamId: 'team-bravo', targetBoardId: 'board-a', row: 3, col: 3, result: 'MISS', shotAt: new Date(NOW - 2800000).toISOString() },
-  { firingTeamId: 'team-alpha', targetBoardId: 'board-b', row: 0, col: 1, result: 'HIT', shotAt: new Date(NOW - 2600000).toISOString() },
-  { firingTeamId: 'team-alpha', targetBoardId: 'board-b', row: 0, col: 2, result: 'HIT', shotAt: new Date(NOW - 2400000).toISOString() },
-  { firingTeamId: 'team-bravo', targetBoardId: 'board-a', row: 5, col: 5, result: 'MISS', shotAt: new Date(NOW - 2200000).toISOString() },
+  {
+    firingTeamId: 'team-alpha',
+    targetBoardId: 'board-b',
+    row: 0,
+    col: 0,
+    result: 'HIT',
+    shotAt: new Date(NOW - 3000000).toISOString(),
+  },
+  {
+    firingTeamId: 'team-bravo',
+    targetBoardId: 'board-a',
+    row: 3,
+    col: 3,
+    result: 'MISS',
+    shotAt: new Date(NOW - 2800000).toISOString(),
+  },
+  {
+    firingTeamId: 'team-alpha',
+    targetBoardId: 'board-b',
+    row: 0,
+    col: 1,
+    result: 'HIT',
+    shotAt: new Date(NOW - 2600000).toISOString(),
+  },
+  {
+    firingTeamId: 'team-alpha',
+    targetBoardId: 'board-b',
+    row: 0,
+    col: 2,
+    result: 'HIT',
+    shotAt: new Date(NOW - 2400000).toISOString(),
+  },
+  {
+    firingTeamId: 'team-bravo',
+    targetBoardId: 'board-a',
+    row: 5,
+    col: 5,
+    result: 'MISS',
+    shotAt: new Date(NOW - 2200000).toISOString(),
+  },
 ];
 
 // ─── mock event for launch control ────────────────────────────────────
@@ -211,20 +271,92 @@ const MOCK_PLACEMENT_EVENT_CLOSED = {
   placementPhaseHours: 2.5,
 };
 
+// ─── mock spectator states ─────────────────────────────────────────────────
+// Spectators receive ship metadata only for struck cells. Keeping the mock in
+// that same redacted shape catches accidental dependencies on hidden ships.
+const SPECTATOR_BOARD_A_TILES = [
+  shipTile(1, 1, 'CRUISER', { isShot: true, taskCompleted: true }),
+  shipTile(1, 2, 'CRUISER', { isShot: true, taskCompleted: true }),
+  { row: 0, col: 8, isShot: true, taskCompleted: true },
+  { row: 3, col: 3, isShot: true, taskCompleted: true },
+  { row: 8, col: 2, isShot: true, taskCompleted: false, skipped: true },
+];
+
+const SPECTATOR_BOARD_B_TILES = MID_BATTLE_ENEMY.filter((tile) => tile.isShot);
+
+const MOCK_SPECTATOR_EVENT = {
+  eventId: 'mock-spectator-event',
+  eventName: 'The Salty Spitoon Invitational',
+  status: 'ACTIVE',
+  teams: [
+    {
+      teamId: 'team-alpha',
+      teamName: 'Broadside Bandits',
+      color: 'RED',
+      board: { boardId: 'board-a', tiles: SPECTATOR_BOARD_A_TILES },
+    },
+    {
+      teamId: 'team-bravo',
+      teamName: 'Port Sarim Privateers',
+      color: 'BLUE',
+      board: { boardId: 'board-b', tiles: SPECTATOR_BOARD_B_TILES },
+    },
+  ],
+};
+
+const MOCK_PLACEMENT_SPECTATOR_EVENT = {
+  ...MOCK_SPECTATOR_EVENT,
+  eventId: 'mock-placement-spectator-event',
+  status: 'PLACEMENT',
+  placementPhaseHours: 2.5,
+  placementStartsAt: new Date(NOW - 30 * 60 * 1000).toISOString(),
+  placementEndsAt: new Date(NOW + 2 * 60 * 60 * 1000).toISOString(),
+};
+
+const MOCK_SPECTATOR_SHOT_LOG = [
+  ...MOCK_SHOT_LOG,
+  {
+    firingTeamId: 'team-bravo',
+    targetBoardId: 'board-a',
+    row: 1,
+    col: 1,
+    result: 'HIT',
+    shotAt: new Date(NOW - 1800000).toISOString(),
+  },
+  {
+    firingTeamId: 'team-alpha',
+    targetBoardId: 'board-b',
+    row: 6,
+    col: 0,
+    result: 'MISS',
+    shotAt: new Date(NOW - 900000).toISOString(),
+  },
+];
+
 // ─── page ─────────────────────────────────────────────────────────────
 export default function BattleshipPlaygroundPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
 
   if (isCheckingAuth) {
-    return <Shell><Center py={20}><Text color="#94a3b8">Loading...</Text></Center></Shell>;
+    return (
+      <Shell>
+        <Center py={20}>
+          <Text color="#94a3b8">Loading...</Text>
+        </Center>
+      </Shell>
+    );
   }
   if (!isAuthenticated || !user?.admin) {
     return (
       <Shell>
         <Center py={20}>
           <VStack spacing={2}>
-            <Text color="#e2e8f0" fontSize="xl">Restricted waters.</Text>
-            <Text color="#94a3b8" fontSize="sm">Site admins only.</Text>
+            <Text color="#e2e8f0" fontSize="xl">
+              Restricted waters.
+            </Text>
+            <Text color="#94a3b8" fontSize="sm">
+              Site admins only.
+            </Text>
           </VStack>
         </Center>
       </Shell>
@@ -258,6 +390,8 @@ export default function BattleshipPlaygroundPage() {
         <SectionDivider />
         <VolumeSection />
         <SectionDivider />
+        <SpectatorViewsSection />
+        <SectionDivider />
         <ModalsSection user={user} />
         <SectionDivider />
         <GameOverSection />
@@ -265,6 +399,78 @@ export default function BattleshipPlaygroundPage() {
         <LaunchControlSection />
       </VStack>
     </Shell>
+  );
+}
+
+function SpectatorPreviewTopBar() {
+  return (
+    <Box bg="#091a10" borderBottom="1px solid" borderColor="#1a4028" px={[4, 6, 8]} py={3}>
+      <HStack justify="space-between" maxW="1400px" mx="auto" flexWrap="wrap" gap={2}>
+        <HStack spacing={3}>
+          <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
+            ← Campaigns
+          </Text>
+          <Box w="1px" h="16px" bg="#1a4028" />
+          <Text fontFamily="mono" fontSize="sm" fontWeight="bold" color="#d4f0da">
+            {MOCK_PLACEMENT_SPECTATOR_EVENT.eventName}
+          </Text>
+          <Badge colorScheme="yellow" fontSize="xs" letterSpacing="wider">
+            Placement
+          </Badge>
+        </HStack>
+        <BSVolumeControl />
+      </HStack>
+    </Box>
+  );
+}
+
+function SpectatorViewsSection() {
+  const [view, setView] = useState('placement');
+  const [colorblindMode, setColorblindMode] = useState(false);
+
+  return (
+    <VStack align="stretch" spacing={4}>
+      <SectionHeading note="The production read-only screens with frozen, server-shaped data. No queries, mutations, presence heartbeats, or subscriptions are opened here.">
+        Spectator views
+      </SectionHeading>
+      <HStack spacing={3} wrap="wrap">
+        <Button
+          size="sm"
+          colorScheme="cyan"
+          variant={view === 'placement' ? 'solid' : 'outline'}
+          onClick={() => setView('placement')}
+        >
+          Placement phase
+        </Button>
+        <Button
+          size="sm"
+          colorScheme="cyan"
+          variant={view === 'battle' ? 'solid' : 'outline'}
+          onClick={() => setView('battle')}
+        >
+          Live battle
+        </Button>
+      </HStack>
+      <Box border="1px solid" borderColor="#1e4976" borderRadius="md" overflow="hidden">
+        {view === 'placement' ? (
+          <BSPlacementSpectatorView
+            event={MOCK_PLACEMENT_SPECTATOR_EVENT}
+            topBar={<SpectatorPreviewTopBar />}
+            viewerCount={6}
+            colorblindMode={colorblindMode}
+          />
+        ) : (
+          <BSSpectatorView
+            event={MOCK_SPECTATOR_EVENT}
+            refetch={() => Promise.resolve()}
+            colorblindMode={colorblindMode}
+            onToggleColorblindMode={() => setColorblindMode((enabled) => !enabled)}
+            previewShotLog={MOCK_SPECTATOR_SHOT_LOG}
+            disableRealtime
+          />
+        )}
+      </Box>
+    </VStack>
   );
 }
 
@@ -286,7 +492,11 @@ function SectionHeading({ children, note }) {
       <Heading size="md" color="#e2e8f0" fontFamily="mono" letterSpacing="wider">
         {children}
       </Heading>
-      {note && <Text fontSize="sm" color="#94a3b8">{note}</Text>}
+      {note && (
+        <Text fontSize="sm" color="#94a3b8">
+          {note}
+        </Text>
+      )}
     </VStack>
   );
 }
@@ -309,22 +519,22 @@ function Intro() {
 function PaletteSection() {
   return (
     <VStack align="stretch" spacing={4}>
-      <SectionHeading note="Recurring hex values across the Battleship module.">Palette</SectionHeading>
+      <SectionHeading note="Recurring hex values across the Battleship module.">
+        Palette
+      </SectionHeading>
       {Object.entries(BS_PALETTE).map(([group, swatches]) => (
         <VStack key={group} align="stretch" spacing={2}>
           <FieldLabel>{group}</FieldLabel>
           <SimpleGrid columns={{ base: 3, md: 6 }} spacing={3}>
             {Object.entries(swatches).map(([hex, name]) => (
               <VStack key={hex} align="stretch" spacing={1}>
-                <Box
-                  h="60px"
-                  bg={hex}
-                  borderRadius="md"
-                  border="1px solid"
-                  borderColor="#1e4976"
-                />
-                <Text fontSize="xs" fontFamily="mono" color="#cbd5e1">{name}</Text>
-                <Text fontSize="xs" fontFamily="mono" color="#94a3b8">{hex}</Text>
+                <Box h="60px" bg={hex} borderRadius="md" border="1px solid" borderColor="#1e4976" />
+                <Text fontSize="xs" fontFamily="mono" color="#cbd5e1">
+                  {name}
+                </Text>
+                <Text fontSize="xs" fontFamily="mono" color="#94a3b8">
+                  {hex}
+                </Text>
               </VStack>
             ))}
           </SimpleGrid>
@@ -337,12 +547,39 @@ function PaletteSection() {
 function TypographySection() {
   return (
     <VStack align="stretch" spacing={4}>
-      <SectionHeading note="Chakra defaults + mono for HUD-style labels/headings.">Typography</SectionHeading>
+      <SectionHeading note="Chakra defaults + mono for HUD-style labels/headings.">
+        Typography
+      </SectionHeading>
       <VStack align="stretch" spacing={3}>
-        <FontRow role="heading (mono)" fontFamily="mono" sample="⚓ BATTLESHIP UI PLAYGROUND" size="2xl" color="#38bdf8" />
-        <FontRow role="section label" fontFamily="mono" sample="SECTION LABEL" size="10px" color="#6b9e78" upper />
-        <FontRow role="body" fontFamily="body" sample="The fleet with the sharpest gunners wins the day." size="md" color="#cbd5e1" />
-        <FontRow role="dim / hint" fontFamily="body" sample="Placement window closes in one hour." size="sm" color="#94a3b8" />
+        <FontRow
+          role="heading (mono)"
+          fontFamily="mono"
+          sample="⚓ BATTLESHIP UI PLAYGROUND"
+          size="2xl"
+          color="#38bdf8"
+        />
+        <FontRow
+          role="section label"
+          fontFamily="mono"
+          sample="SECTION LABEL"
+          size="10px"
+          color="#6b9e78"
+          upper
+        />
+        <FontRow
+          role="body"
+          fontFamily="body"
+          sample="The fleet with the sharpest gunners wins the day."
+          size="md"
+          color="#cbd5e1"
+        />
+        <FontRow
+          role="dim / hint"
+          fontFamily="body"
+          sample="Placement window closes in one hour."
+          size="sm"
+          color="#94a3b8"
+        />
       </VStack>
     </VStack>
   );
@@ -351,7 +588,14 @@ function TypographySection() {
 function FontRow({ role, fontFamily, sample, size, color, upper }) {
   return (
     <Box bg="#0d2137" border="1px solid" borderColor="#1e4976" p={3} borderRadius="md">
-      <Text fontSize="xs" color="#6b9e78" fontFamily="mono" letterSpacing="widest" textTransform="uppercase" mb={1}>
+      <Text
+        fontSize="xs"
+        color="#6b9e78"
+        fontFamily="mono"
+        letterSpacing="widest"
+        textTransform="uppercase"
+        mb={1}
+      >
         {role}
       </Text>
       <Text
@@ -370,13 +614,15 @@ function FontRow({ role, fontFamily, sample, size, color, upper }) {
 function SharedLabelsSection() {
   return (
     <VStack align="stretch" spacing={4}>
-      <SectionHeading note="From BSSharedComponents — 10px mono uppercase, olive-green.">Shared labels</SectionHeading>
+      <SectionHeading note="From BSSharedComponents — 10px mono uppercase, olive-green.">
+        Shared labels
+      </SectionHeading>
       <Box bg="#0d2137" border="1px solid" borderColor="#1e4976" p={4} borderRadius="md">
         <SectionLabel>Section label</SectionLabel>
         <FieldLabel>Field label</FieldLabel>
         <Text color="#cbd5e1" fontSize="sm">
-          Both render identically today. Kept as separate exports so callers can convey intent, and so
-          spacing can diverge later without a rename.
+          Both render identically today. Kept as separate exports so callers can convey intent, and
+          so spacing can diverge later without a rename.
         </Text>
       </Box>
     </VStack>
@@ -394,16 +640,39 @@ function GridSection() {
         Grid cells
       </SectionHeading>
       <HStack spacing={3} wrap="wrap">
-        <Button size="sm" colorScheme="cyan" variant={colorblind ? 'solid' : 'outline'} onClick={() => setColorblind((v) => !v)}>
+        <Button
+          size="sm"
+          colorScheme="cyan"
+          variant={colorblind ? 'solid' : 'outline'}
+          onClick={() => setColorblind((v) => !v)}
+        >
           Colorblind: {colorblind ? 'ON' : 'OFF'}
         </Button>
-        <Button size="sm" variant="outline" colorScheme="green" onClick={() => setHighlightedCell({ row: 5, col: 5 })}>
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme="green"
+          onClick={() => setHighlightedCell({ row: 5, col: 5 })}
+        >
           Highlight (5,5)
         </Button>
-        <Button size="sm" variant="outline" colorScheme="orange" onClick={() => setRadarCell({ row: 5, col: 5 })}>
+        <Button
+          size="sm"
+          variant="outline"
+          colorScheme="orange"
+          onClick={() => setRadarCell({ row: 5, col: 5 })}
+        >
           Radar (5,5)
         </Button>
-        <Button size="sm" variant="ghost" colorScheme="gray" onClick={() => { setHighlightedCell(null); setRadarCell(null); }}>
+        <Button
+          size="sm"
+          variant="ghost"
+          colorScheme="gray"
+          onClick={() => {
+            setHighlightedCell(null);
+            setRadarCell(null);
+          }}
+        >
           Clear
         </Button>
       </HStack>
@@ -516,32 +785,107 @@ function ModalsSection({ user }) {
         Modals
       </SectionHeading>
       <Wrap spacing={3}>
-        <WrapItem><Button colorScheme="cyan" onClick={() => setInfoOpen(true)}>Info modal</Button></WrapItem>
-        <WrapItem><Button colorScheme="cyan" variant="outline" onClick={() => setBattleOpen(true)}>Battle intro</Button></WrapItem>
-        <WrapItem><Button colorScheme="cyan" variant="outline" onClick={() => setPlacementOpen(true)}>Placement intro</Button></WrapItem>
-        <WrapItem><Button colorScheme="purple" variant="outline" onClick={() => setMultiplierOpen(true)}>Difficulty multiplier</Button></WrapItem>
-        <WrapItem><Button colorScheme="purple" variant="outline" onClick={() => setContentOpen(true)}>⚡ Content selection</Button></WrapItem>
-        <WrapItem><Button colorScheme="purple" variant="outline" onClick={() => setDiscordOpen(true)}>⚡ Discord setup</Button></WrapItem>
-        <WrapItem><Button colorScheme="purple" variant="outline" onClick={() => setParticipantOpen(true)}>Participant setup</Button></WrapItem>
+        <WrapItem>
+          <Button colorScheme="cyan" onClick={() => setInfoOpen(true)}>
+            Info modal
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="cyan" variant="outline" onClick={() => setBattleOpen(true)}>
+            Battle intro
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="cyan" variant="outline" onClick={() => setPlacementOpen(true)}>
+            Placement intro
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="purple" variant="outline" onClick={() => setMultiplierOpen(true)}>
+            Difficulty multiplier
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="purple" variant="outline" onClick={() => setContentOpen(true)}>
+            ⚡ Content selection
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="purple" variant="outline" onClick={() => setDiscordOpen(true)}>
+            ⚡ Discord setup
+          </Button>
+        </WrapItem>
+        <WrapItem>
+          <Button colorScheme="purple" variant="outline" onClick={() => setParticipantOpen(true)}>
+            Participant setup
+          </Button>
+        </WrapItem>
       </Wrap>
 
       <VStack align="stretch" spacing={2} pt={4}>
         <FieldLabel>Skip proposal modal — vote states</FieldLabel>
         <HStack spacing={2} wrap="wrap">
-          <Button size="sm" colorScheme="yellow" variant="outline" onClick={() => setSkipVariant('pending')}>Pending</Button>
-          <Button size="sm" colorScheme="green" variant="outline" onClick={() => setSkipVariant('approved')}>Approved</Button>
-          <Button size="sm" colorScheme="red" variant="outline" onClick={() => setSkipVariant('rejected')}>Rejected</Button>
+          <Button
+            size="sm"
+            colorScheme="yellow"
+            variant="outline"
+            onClick={() => setSkipVariant('pending')}
+          >
+            Pending
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="green"
+            variant="outline"
+            onClick={() => setSkipVariant('approved')}
+          >
+            Approved
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="red"
+            variant="outline"
+            onClick={() => setSkipVariant('rejected')}
+          >
+            Rejected
+          </Button>
         </HStack>
       </VStack>
 
       <VStack align="stretch" spacing={2}>
         <FieldLabel>Shot proposal modal — vote states (no built-in close)</FieldLabel>
         <HStack spacing={2} wrap="wrap">
-          <Button size="sm" colorScheme="yellow" variant="outline" onClick={() => setProposalVariant('pending')}>Pending</Button>
-          <Button size="sm" colorScheme="green" variant="outline" onClick={() => setProposalVariant('approved')}>Approved</Button>
-          <Button size="sm" colorScheme="red" variant="outline" onClick={() => setProposalVariant('rejected')}>Rejected</Button>
+          <Button
+            size="sm"
+            colorScheme="yellow"
+            variant="outline"
+            onClick={() => setProposalVariant('pending')}
+          >
+            Pending
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="green"
+            variant="outline"
+            onClick={() => setProposalVariant('approved')}
+          >
+            Approved
+          </Button>
+          <Button
+            size="sm"
+            colorScheme="red"
+            variant="outline"
+            onClick={() => setProposalVariant('rejected')}
+          >
+            Rejected
+          </Button>
           {proposalVariant && (
-            <Button size="sm" variant="ghost" colorScheme="gray" onClick={() => setProposalVariant(null)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              colorScheme="gray"
+              onClick={() => setProposalVariant(null)}
+            >
               Close (playground only)
             </Button>
           )}
@@ -571,7 +915,14 @@ function ModalsSection({ user }) {
       <BSContentSelectionModal
         isOpen={contentOpen}
         onClose={() => setContentOpen(false)}
-        currentSelections={{ bosses: [], raids: [], skills: [], minigames: [], clues: [], metricTypes: [] }}
+        currentSelections={{
+          bosses: [],
+          raids: [],
+          skills: [],
+          minigames: [],
+          clues: [],
+          metricTypes: [],
+        }}
         onSave={() => setContentOpen(false)}
       />
       <BSDiscordSetupModal
@@ -625,7 +976,13 @@ function GameOverSection() {
         </Button>
       ) : (
         <VStack align="stretch" spacing={3}>
-          <Button size="sm" variant="outline" colorScheme="gray" alignSelf="start" onClick={() => setShow(false)}>
+          <Button
+            size="sm"
+            variant="outline"
+            colorScheme="gray"
+            alignSelf="start"
+            onClick={() => setShow(false)}
+          >
             Stop / hide
           </Button>
           <Box border="1px solid" borderColor="#1e4976" borderRadius="md" overflow="hidden">
