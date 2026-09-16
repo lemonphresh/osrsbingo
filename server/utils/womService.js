@@ -103,15 +103,21 @@ async function fetchPlayerStats(rsn, retries = 1) {
  */
 async function fetchAllPlayerStats(rsns) {
   const results = [];
+  let madeRequest = false;
   for (let i = 0; i < rsns.length; i++) {
     const cached = getCachedStats(rsns[i]);
     try {
-      results.push(cached ?? (await fetchPlayerStats(rsns[i])));
+      if (cached) {
+        results.push(cached);
+      } else {
+        if (madeRequest) await sleep(SEQUENTIAL_DELAY_MS);
+        results.push(await fetchPlayerStats(rsns[i]));
+        madeRequest = true;
+      }
     } catch (err) {
       logger.warn(`WOM fetch rejected for "${rsns[i]}":`, err.message);
       results.push({ rsn: rsns[i], notFound: true });
     }
-    if (!cached && i < rsns.length - 1) await sleep(SEQUENTIAL_DELAY_MS);
   }
   return results;
 }
@@ -165,12 +171,78 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
 
 const playerCompCache = new Map();
 const PLAYER_COMP_TTL_MS = 30 * 60 * 1000; // 30 minutes
+const competitionEfficiencyCache = new Map();
+const PLAYER_COMP_SAMPLE_SIZE = 5;
+const MAX_COMPETITION_DETAIL_REQUESTS = 40;
+const COMPETITION_FETCH_TIMEOUT_MS = 8000;
+const COMPETITION_FETCH_MAX_RETRIES = 2;
+const COMPETITION_FETCH_BACKOFF_MS = 1000;
+const TRANSIENT_WOM_STATUSES = new Set([429, 500, 502, 503, 504, 520, 522, 524]);
+
+function getCompetitionRetryDelay(res, attempt) {
+  const retryAfter = res?.headers?.get?.('retry-after');
+  if (retryAfter != null) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+    const retryAt = Date.parse(retryAfter);
+    if (Number.isFinite(retryAt)) return Math.max(0, retryAt - Date.now());
+  }
+  return COMPETITION_FETCH_BACKOFF_MS * 2 ** attempt;
+}
+
+/**
+ * Fetch JSON for the team-balancer competition analysis only. Retries bounded
+ * transient WOM/Cloudflare failures and aborts stalled requests. Other WOM
+ * integrations intentionally keep their existing behavior.
+ */
+async function fetchCompetitionJson(url, label) {
+  for (let attempt = 0; attempt <= COMPETITION_FETCH_MAX_RETRIES; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), COMPETITION_FETCH_TIMEOUT_MS);
+    let res;
+    let error;
+
+    try {
+      res = await fetch(url, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'OSRSBingoHub/1.0', Accept: 'application/json' },
+      });
+
+      if (res.ok) {
+        try {
+          return { data: await res.json(), status: res.status };
+        } catch (err) {
+          // Cloudflare can return an HTML challenge with a successful status.
+          error = `invalid JSON (${err.message})`;
+        }
+      } else if (!TRANSIENT_WOM_STATUSES.has(res.status)) {
+        return { data: null, status: res.status };
+      } else {
+        error = `HTTP ${res.status}`;
+      }
+    } catch (err) {
+      error = err.name === 'AbortError' ? 'request timed out' : err.message;
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (attempt === COMPETITION_FETCH_MAX_RETRIES) {
+      logger.warn(`WOM ${label} failed after ${attempt + 1} attempts: ${error}`);
+      return { data: null, status: res?.status ?? null };
+    }
+
+    const delay = getCompetitionRetryDelay(res, attempt);
+    logger.warn(`WOM ${label} ${error}; retrying in ${delay}ms`);
+    await sleep(delay);
+  }
+
+  return { data: null, status: null };
+}
 
 /**
  * Fetch recent competition participations for a player.
- * Returns { rsn, count, rankedRate, recent[] } where recent items have
- * { title, metric, gained, rank, endsAt }.
- * "rankedRate" = % of competitions where the player received a rank (i.e. showed up in rankings).
+ * Returns recent finished competition metadata. Performance is added in bulk by
+ * fetchAllPlayerCompetitions so shared competitions only cost one WOM request.
  */
 async function fetchPlayerCompetitions(rsn) {
   const key = rsn.toLowerCase().trim();
@@ -178,48 +250,166 @@ async function fetchPlayerCompetitions(rsn) {
   if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
 
   const encoded = encodeURIComponent(rsn.trim());
-  try {
-    const res = await fetch(`${WOM_BASE}/players/${encoded}/competitions?limit=20`);
-    if (!res.ok) {
-      const result = { rsn, count: 0, rankedRate: 0, recent: [] };
+  const response = await fetchCompetitionJson(
+    `${WOM_BASE}/players/${encoded}/competitions?status=finished`,
+    `competition history for "${rsn}"`
+  );
+  if (!response.data) {
+    const result = { rsn, count: 0, recent: [] };
+    // A real 404 is stable; transient failures should be retried on the next load.
+    if (response.status === 404) {
       playerCompCache.set(key, { data: result, ts: Date.now() });
-      return result;
     }
-    const data = await res.json();
-    const comps = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : []);
+    return result;
+  }
+
+  try {
+    const data = response.data;
+    const comps = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+    const finished = comps
+      .filter((c) => c.competition?.endsAt)
+      .sort((a, b) => new Date(b.competition.endsAt) - new Date(a.competition.endsAt));
     const result = {
       rsn,
-      count: comps.length,
-      recent: comps.slice(0, 10).map((c) => ({
+      count: finished.length,
+      recent: finished.slice(0, PLAYER_COMP_SAMPLE_SIZE).map((c) => ({
         id: String(c.competition?.id ?? ''),
         title: c.competition?.title ?? 'Unknown',
+        startsAt: c.competition?.startsAt,
+        endsAt: c.competition?.endsAt,
+        playerId: c.playerId,
       })),
     };
     playerCompCache.set(key, { data: result, ts: Date.now() });
     return result;
-  } catch {
-    const result = { rsn, count: 0, recent: [] };
-    playerCompCache.set(key, { data: result, ts: Date.now() });
+  } catch (err) {
+    logger.warn(`WOM competition history parse failed for "${rsn}": ${err.message}`);
+    return { rsn, count: 0, recent: [] };
+  }
+}
+
+function getCompetitionParticipations(data) {
+  if (Array.isArray(data?.teams)) {
+    return data.teams.flatMap((team) => team.participations ?? []);
+  }
+  return Array.isArray(data?.participations) ? data.participations : [];
+}
+
+function getEfficiencyGain(participation, metric) {
+  const delta = participation?.deltas?.find((item) => item.metric === metric);
+  const gained = Number(delta?.values?.gained);
+  return Number.isFinite(gained) ? Math.max(0, gained) : 0;
+}
+
+async function fetchCompetitionEfficiency(competition) {
+  const cached = competitionEfficiencyCache.get(competition.id);
+  if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
+
+  const params = new URLSearchParams();
+  params.append('metrics', 'ehp');
+  params.append('metrics', 'ehb');
+
+  try {
+    const response = await fetchCompetitionJson(
+      `${WOM_BASE}/competitions/${competition.id}?${params}`,
+      `competition detail ${competition.id}`
+    );
+    if (!response.data) return null;
+
+    const data = response.data;
+    const startsAt = new Date(data.startsAt ?? competition.startsAt);
+    const endsAt = new Date(data.endsAt ?? competition.endsAt);
+    const durationDays = (endsAt - startsAt) / (24 * 60 * 60 * 1000);
+    if (!Number.isFinite(durationDays) || durationDays <= 0) return null;
+
+    const players = new Map();
+    for (const participation of getCompetitionParticipations(data)) {
+      if (participation.playerId == null) continue;
+      players.set(String(participation.playerId), {
+        ehp: getEfficiencyGain(participation, 'ehp'),
+        ehb: getEfficiencyGain(participation, 'ehb'),
+      });
+    }
+
+    const result = { durationDays, players };
+    competitionEfficiencyCache.set(competition.id, { data: result, ts: Date.now() });
     return result;
+  } catch {
+    return null;
   }
 }
 
 /**
  * Fetch competition history for multiple players sequentially with a short
  * delay between uncached calls to avoid WOM rate limits.
+ *
+ * Options (all optional):
+ *   maxCompDetailRequests: cap on unique competition detail fetches (default 40
+ *     to protect production traffic — one-off scripts pass a higher number).
+ *   sampleSize: how deep into each player's recent-comp list to look (default 5).
  */
-async function fetchAllPlayerCompetitions(rsns) {
+async function fetchAllPlayerCompetitions(rsns, options = {}) {
+  const maxCompDetailRequests = options.maxCompDetailRequests ?? MAX_COMPETITION_DETAIL_REQUESTS;
+  const sampleSize = options.sampleSize ?? PLAYER_COMP_SAMPLE_SIZE;
+
   const results = [];
+  let madeHistoryRequest = false;
   for (let i = 0; i < rsns.length; i++) {
     const key = rsns[i].toLowerCase().trim();
     const cached = playerCompCache.get(key);
     if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
       results.push(cached.data);
     } else {
+      if (madeHistoryRequest) await sleep(SEQUENTIAL_DELAY_MS);
       results.push(await fetchPlayerCompetitions(rsns[i]));
-      if (i < rsns.length - 1) await sleep(SEQUENTIAL_DELAY_MS);
+      madeHistoryRequest = true;
     }
   }
+
+  // Select competitions round-robin so a roster with unrelated histories gives
+  // every player a recent sample before the request budget is exhausted.
+  const selected = new Map();
+  for (let depth = 0; depth < sampleSize; depth++) {
+    for (const result of results) {
+      const competition = result.recent[depth];
+      if (competition?.id && !selected.has(competition.id)) {
+        selected.set(competition.id, competition);
+        if (selected.size >= maxCompDetailRequests) break;
+      }
+    }
+    if (selected.size >= maxCompDetailRequests) break;
+  }
+
+  const details = new Map();
+  const competitions = [...selected.values()];
+  let madeDetailRequest = false;
+  for (let i = 0; i < competitions.length; i++) {
+    const competition = competitions[i];
+    const cached = competitionEfficiencyCache.get(competition.id);
+    const cacheIsFresh = cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS;
+    if (!cacheIsFresh && madeDetailRequest) await sleep(SEQUENTIAL_DELAY_MS);
+    details.set(competition.id, await fetchCompetitionEfficiency(competition));
+    if (!cacheIsFresh) madeDetailRequest = true;
+  }
+
+  for (const result of results) {
+    const totals = {
+      ehp: { gained: 0, durationDays: 0, competitions: 0 },
+      ehb: { gained: 0, durationDays: 0, competitions: 0 },
+    };
+    for (const competition of result.recent) {
+      const detail = details.get(competition.id);
+      const gains = detail?.players.get(String(competition.playerId));
+      if (!detail || !gains) continue;
+      for (const metric of ['ehp', 'ehb']) {
+        totals[metric].gained += gains[metric];
+        totals[metric].durationDays += detail.durationDays;
+        totals[metric].competitions += 1;
+      }
+    }
+    result.performance = totals;
+  }
+
   return results;
 }
 

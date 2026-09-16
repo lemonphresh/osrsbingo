@@ -106,8 +106,8 @@ const TEAM_COLORS = [
   'red.400',
 ];
 
-// Delay between per-player fetches to stay under WOM rate limits
-const CLIENT_FETCH_DELAY_MS = 1000;
+const WOM_STATS_BATCH_SIZE = 50;
+const CLIENT_BATCH_DELAY_MS = 500;
 
 // Columns shown in the player table (all except name which is sticky)
 const COLUMNS = [
@@ -169,8 +169,29 @@ function fmt(n) {
   return Math.round(n).toLocaleString();
 }
 
-function exportToCsv(teams, preset) {
+function competitionPaceRatio(players, compData, metric) {
+  const yearlyKey = metric === 'ehp' ? 'ehpy' : 'ehby';
+  let actual = 0;
+  let expected = 0;
+
+  players.forEach((player) => {
+    const performance = compData?.[player.rsn.toLowerCase()]?.performance?.[metric];
+    const yearlyGain = player[yearlyKey] ?? 0;
+    if (!performance || performance.durationDays <= 0 || yearlyGain <= 0) return;
+    actual += performance.gained;
+    expected += (yearlyGain / 365) * performance.durationDays;
+  });
+
+  return expected > 0 ? actual / expected : null;
+}
+
+function formatPace(ratio) {
+  return ratio == null ? '—' : `${Math.round(ratio * 100)}%`;
+}
+
+function exportToCsv(teams, preset, compData) {
   const anyHours = teams.some((t) => t.players.some((p) => p.hoursPerDay !== null));
+  const hasCompetitionData = compData !== null;
   const rows = [
     [
       'Team',
@@ -185,10 +206,28 @@ function exportToCsv(teams, preset) {
       'ToA',
       ...(anyHours ? ['Hrs/Day'] : []),
       'Score',
+      ...(hasCompetitionData
+        ? [
+            'Comp EHP Pace %',
+            'Comp EHB Pace %',
+            'Sampled Competitions',
+            'Comp EHP Gained',
+            'Comp EHB Gained',
+          ]
+        : []),
     ],
   ];
   teams.forEach((team, i) => {
     team.players.forEach((p) => {
+      const compEntry = compData?.[p.rsn.toLowerCase()];
+      const ehpPerformance = compEntry?.performance?.ehp;
+      const ehbPerformance = compEntry?.performance?.ehb;
+      const ehpPace = competitionPaceRatio([p], compData, 'ehp');
+      const ehbPace = competitionPaceRatio([p], compData, 'ehb');
+      const sampledCompetitions = Math.max(
+        ehpPerformance?.competitions ?? 0,
+        ehbPerformance?.competitions ?? 0
+      );
       rows.push([
         `Team ${i + 1}`,
         p.rsn,
@@ -202,6 +241,15 @@ function exportToCsv(teams, preset) {
         Math.round(p.toa ?? 0),
         ...(anyHours ? [p.hoursPerDay ?? ''] : []),
         Math.round(p.score),
+        ...(hasCompetitionData
+          ? [
+              ehpPace == null ? '' : `${Math.round(ehpPace * 100)}%`,
+              ehbPace == null ? '' : `${Math.round(ehbPace * 100)}%`,
+              sampledCompetitions || '',
+              ehpPerformance?.gained?.toFixed(2) ?? '',
+              ehbPerformance?.gained?.toFixed(2) ?? '',
+            ]
+          : []),
       ]);
     });
   });
@@ -233,7 +281,7 @@ export default function TeamBalancerPage() {
   const [sortCol, setSortCol] = useState('score');
   const [sortDir, setSortDir] = useState('desc');
 
-  // Competition history: rsn → { count, participationRate, recent[] }
+  // Competition history: rsn → { count, recent[], performance: { ehp, ehb } }
   const [compData, setCompData] = useState(null); // null = not loaded
   const [compLoading, setCompLoading] = useState(false);
 
@@ -432,25 +480,40 @@ export default function TeamBalancerPage() {
       .filter(Boolean);
   }
 
+  async function fetchWomStatsInBatches(rsns, setFetchProgress) {
+    const allStats = [];
+    for (let start = 0; start < rsns.length; start += WOM_STATS_BATCH_SIZE) {
+      const batch = rsns.slice(start, start + WOM_STATS_BATCH_SIZE);
+      setFetchProgress({
+        fetched: start,
+        total: rsns.length,
+        current: batch.length === 1 ? batch[0] : `${batch[0]} + ${batch.length - 1} more`,
+      });
+      const result = await apolloClient.query({
+        query: FETCH_WOM_STATS,
+        variables: { rsns: batch },
+        fetchPolicy: 'network-only',
+      });
+      allStats.push(...(result.data?.fetchWomStats ?? []));
+      if (start + batch.length < rsns.length) {
+        await new Promise((resolve) => setTimeout(resolve, CLIENT_BATCH_DELAY_MS));
+      }
+    }
+    return allStats;
+  }
+
   async function handleBalance() {
     const parsed = parseRsnInput();
     if (parsed.length < numTeams) {
       return showToast(`Need at least ${numTeams} RSNs for ${numTeams} teams`, 'warning');
     }
 
-    const allStats = [];
+    let allStats;
     try {
-      for (let i = 0; i < parsed.length; i++) {
-        setProgress({ fetched: i, total: parsed.length, current: parsed[i].rsn });
-        const result = await apolloClient.query({
-          query: FETCH_WOM_STATS,
-          variables: { rsns: [parsed[i].rsn] },
-          fetchPolicy: 'network-only',
-        });
-        allStats.push(...(result.data?.fetchWomStats ?? []));
-        if (i < parsed.length - 1)
-          await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
-      }
+      allStats = await fetchWomStatsInBatches(
+        parsed.map((player) => player.rsn),
+        setProgress
+      );
     } catch (e) {
       showToast(`Failed to fetch stats: ${e.message}`, 'error');
       setProgress(null);
@@ -520,23 +583,12 @@ export default function TeamBalancerPage() {
 
   async function handleRefetchNotFound() {
     const weights = activeWeights;
-    const allStats = [];
+    let allStats;
     try {
-      for (let i = 0; i < notFoundRsns.length; i++) {
-        setRefetchProgress({
-          fetched: i,
-          total: notFoundRsns.length,
-          current: notFoundRsns[i].rsn,
-        });
-        const result = await apolloClient.query({
-          query: FETCH_WOM_STATS,
-          variables: { rsns: [notFoundRsns[i].rsn] },
-          fetchPolicy: 'network-only',
-        });
-        allStats.push(...(result.data?.fetchWomStats ?? []));
-        if (i < notFoundRsns.length - 1)
-          await new Promise((res) => setTimeout(res, CLIENT_FETCH_DELAY_MS));
-      }
+      allStats = await fetchWomStatsInBatches(
+        notFoundRsns.map((player) => player.rsn),
+        setRefetchProgress
+      );
     } catch (e) {
       showToast(`Failed to refetch: ${e.message}`, 'error');
       setRefetchProgress(null);
@@ -667,7 +719,7 @@ export default function TeamBalancerPage() {
       : []),
     COLUMNS.find((c) => c.key === 'score'),
     ...(compData
-      ? [{ key: '__comps', label: 'Comps', title: 'Competition participations (last 20 on WOM)' }]
+      ? [{ key: '__comps', label: 'Comps', title: 'Finished competition history on WOM' }]
       : []),
   ];
 
@@ -1029,7 +1081,7 @@ export default function TeamBalancerPage() {
                 size="sm"
                 variant="ghost"
                 colorScheme="whiteAlpha"
-                onClick={() => exportToCsv(teams, preset)}
+                onClick={() => exportToCsv(teams, preset, compData)}
               >
                 Export CSV
               </Button>
@@ -1043,6 +1095,25 @@ export default function TeamBalancerPage() {
             This is not perfect team balancing! You know your players better than any algorithm
             does. Drag players between teams to adjust, scores recalculate automatically.
           </Text>
+
+          {compData && (
+            <Box
+              px={3}
+              py={2}
+              bg="blue.900"
+              border="1px solid"
+              borderColor="blue.700"
+              borderRadius="md"
+            >
+              <Text fontSize="xs" color="blue.100">
+                <Text as="span" fontWeight="bold">
+                  Competition pace
+                </Text>{' '}
+                compares EHP/EHB earned during up to five of each player’s most recent finished
+                competitions with their usual past-year pace. 100% = usual pace.
+              </Text>
+            </Box>
+          )}
 
           {/* Preset + weight controls available in results view too */}
           <Box bg="gray.700" borderRadius="lg" p={4} border="1px solid" borderColor="gray.600">
@@ -1424,10 +1495,48 @@ export default function TeamBalancerPage() {
                                               {compEntry.count !== 1 ? 's' : ''} on WOM
                                             </Text>
                                             <Text fontSize="xs" color="gray.400" mb={2}>
-                                              Most recent competitions:
+                                              Most recent finished competitions:
                                             </Text>
+                                            {['ehp', 'ehb'].map((metric) => {
+                                              const performance = compEntry.performance?.[metric];
+                                              const yearlyGain =
+                                                player[metric === 'ehp' ? 'ehpy' : 'ehby'] ?? 0;
+                                              const expected =
+                                                yearlyGain > 0 && performance?.durationDays > 0
+                                                  ? (yearlyGain / 365) * performance.durationDays
+                                                  : 0;
+                                              const ratio =
+                                                expected > 0 ? performance.gained / expected : null;
+                                              return (
+                                                <Box key={metric} mb={1}>
+                                                  <Text fontSize="xs" color="gray.300">
+                                                    {metric.toUpperCase()}:{' '}
+                                                    <Text
+                                                      as="span"
+                                                      fontWeight="bold"
+                                                      color="blue.200"
+                                                    >
+                                                      {ratio == null
+                                                        ? 'Not enough data'
+                                                        : `${formatPace(ratio)} of usual pace`}
+                                                    </Text>
+                                                  </Text>{' '}
+                                                  <Text fontSize="10px" color="gray.500">
+                                                    {ratio == null
+                                                      ? 'Needs both past-year activity and finished competition history.'
+                                                      : `${performance.gained.toFixed(
+                                                          1
+                                                        )} ${metric.toUpperCase()} across ${
+                                                          performance.competitions
+                                                        } sampled competition${
+                                                          performance.competitions === 1 ? '' : 's'
+                                                        }.`}
+                                                  </Text>
+                                                </Box>
+                                              );
+                                            })}
                                             {compEntry.recent.length > 0 && (
-                                              <VStack align="stretch" spacing={0.5}>
+                                              <VStack align="stretch" spacing={0.5} mt={2}>
                                                 {compEntry.recent.map((c, ci) => {
                                                   return (
                                                     <Box
@@ -1506,6 +1615,8 @@ export default function TeamBalancerPage() {
                           { label: 'avg EHB', val: avg('ehb') },
                           { label: 'avg EHB/Y', val: avg('ehby') },
                         ];
+                        const ehpPace = competitionPaceRatio(team.players, compData, 'ehp');
+                        const ehbPace = competitionPaceRatio(team.players, compData, 'ehb');
                         return (
                           <HStack spacing={4} flexWrap="wrap">
                             {stats.map(({ label, val }) => (
@@ -1519,6 +1630,17 @@ export default function TeamBalancerPage() {
                             <Text fontSize="9px" color="gray.500">
                               {team.players.length} player{team.players.length !== 1 ? 's' : ''}
                             </Text>
+                            {compData && (
+                              <Tooltip
+                                label="EHP/EHB earned during sampled competitions versus each player's past-year pace, normalized for competition duration. This measures efficiency gains—not placement, rank, or the competition's original metric. — means there is not enough history to compare."
+                                placement="top"
+                              >
+                                <Text fontSize="9px" color="blue.300" cursor="help">
+                                  vs usual pace: EHP {formatPace(ehpPace)} · EHB{' '}
+                                  {formatPace(ehbPace)}
+                                </Text>
+                              </Tooltip>
+                            )}
                           </HStack>
                         );
                       })()}

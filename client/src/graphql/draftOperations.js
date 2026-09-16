@@ -85,6 +85,18 @@ export const FETCH_PLAYER_COMP_HISTORY = gql`
         id
         title
       }
+      performance {
+        ehp {
+          gained
+          durationDays
+          competitions
+        }
+        ehb {
+          gained
+          durationDays
+          competitions
+        }
+      }
     }
   }
 `;

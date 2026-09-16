@@ -543,10 +543,22 @@ const typeDefs = gql`
     title: String!
   }
 
+  type PlayerCompPerformanceMetric {
+    gained: Float!
+    durationDays: Float!
+    competitions: Int!
+  }
+
+  type PlayerCompPerformance {
+    ehp: PlayerCompPerformanceMetric!
+    ehb: PlayerCompPerformanceMetric!
+  }
+
   type PlayerCompHistory {
     rsn: String!
     count: Int!
     recent: [PlayerCompRecentEntry!]!
+    performance: PlayerCompPerformance!
   }
 
   type DraftRoom {
