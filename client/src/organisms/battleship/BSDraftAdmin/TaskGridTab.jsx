@@ -38,6 +38,7 @@ import {
   COL_LABELS,
   SHIP_CONFIGS,
   SHIP_COLORS,
+  SHIP_COLORS_COLORBLIND,
   formatMetricLabel,
   metricUnitFor,
   getContentCategory,
@@ -58,7 +59,8 @@ function stableStringify(val) {
   );
 }
 
-export function TaskGridTab({ event, refetch }) {
+export function TaskGridTab({ event, refetch, colorblindMode = false }) {
+  const shipColors = colorblindMode ? SHIP_COLORS_COLORBLIND : SHIP_COLORS;
   const { showToast } = useToastContext();
   const tasks = useMemo(() => event.tasks ?? [], [event.tasks]);
   const shipTemplates = useMemo(() => event.shipTemplates ?? [], [event.shipTemplates]);
@@ -958,7 +960,7 @@ export function TaskGridTab({ event, refetch }) {
                     {Array.from({ length: cells }, (_, i) => {
                       const tmpl = templateMap[`${shipType}:${i}`];
                       const isSel = isShipSel && sel.shipType === shipType && sel.cellIndex === i;
-                      const shipColor = SHIP_COLORS[shipType];
+                      const shipColor = shipColors[shipType];
                       const SHIP_BG = {
                         CARRIER: '#1e0a38',
                         BATTLESHIP: '#2e0a0a',

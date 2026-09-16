@@ -15,6 +15,7 @@ import {
   IconButton,
   Tooltip,
 } from '@chakra-ui/react';
+import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 import { coordLabel, COL_LABELS } from '../../utils/battleship/bsClientHelpers';
 
 const GRID_SIZE = 10;
@@ -188,6 +189,7 @@ export function ProposalModal({
   const rejectedBg = colorblindMode ? '#1a0e00' : '#1c0a0a';
   const rejectedBorder = colorblindMode ? '#78350f' : '#7f1d1d';
   const rejectedText = colorblindMode ? '#fcd34d' : '#f87171';
+  const palette = getBSColorPalette(colorblindMode);
 
   return (
     <Modal
@@ -202,7 +204,7 @@ export function ProposalModal({
       <ModalContent
         bg="#060f0a"
         border="1px solid"
-        borderColor={isApproved ? '#22c55e' : isRejected ? rejectedBorder : '#1a4028'}
+        borderColor={isApproved ? palette.positive : isRejected ? rejectedBorder : '#1a4028'}
         borderRadius="lg"
         mx={3}
       >
@@ -212,7 +214,7 @@ export function ProposalModal({
               w="6px"
               h="6px"
               borderRadius="full"
-              bg={isApproved ? '#4ade80' : isRejected ? rejectedColor : '#facc15'}
+              bg={isApproved ? palette.positive : isRejected ? rejectedColor : '#facc15'}
               flexShrink={0}
             />
             <Text>
@@ -306,7 +308,7 @@ export function ProposalModal({
                   <Text
                     fontFamily="mono"
                     fontSize="xs"
-                    color={isApproved ? '#4ade80' : '#d4f0da'}
+                    color={isApproved ? palette.positive : '#d4f0da'}
                     fontWeight="bold"
                   >
                     {approvalCount}/{threshold}
@@ -316,7 +318,7 @@ export function ProposalModal({
                   <Box
                     h="100%"
                     w={`${Math.min(100, (approvalCount / (threshold || 1)) * 100)}%`}
-                    bg={isApproved ? '#4ade80' : '#22d3ee'}
+                    bg={isApproved ? palette.positive : '#22d3ee'}
                     borderRadius="full"
                     transition="width 0.3s ease"
                   />
@@ -328,7 +330,7 @@ export function ProposalModal({
                       const name =
                         teamMembers?.find((m) => m.discordUserId === id)?.discordUsername ?? id;
                       return (
-                        <Badge key={id} colorScheme="green" fontSize="9px">
+                        <Badge key={id} colorScheme={palette.positiveScheme} fontSize="9px">
                           ✓ {name}
                         </Badge>
                       );
@@ -369,12 +371,12 @@ export function ProposalModal({
                   <IconButton
                     aria-label="Reject"
                     icon={<Text fontSize="xl">✗</Text>}
-                    colorScheme="red"
+                    colorScheme={palette.negativeScheme}
                     variant="outline"
                     size="lg"
-                    borderColor="#7f1d1d"
-                    color="#f87171"
-                    _hover={{ bg: '#1c0a0a', borderColor: '#ef4444' }}
+                    borderColor={palette.negativeBorder}
+                    color={palette.negative}
+                    _hover={{ bg: palette.negativeDark, borderColor: palette.negative }}
                     isLoading={votingLoading}
                     onClick={() => onVote(proposalId, false)}
                   />
@@ -383,12 +385,12 @@ export function ProposalModal({
                   <IconButton
                     aria-label="Approve"
                     icon={<Text fontSize="xl">✓</Text>}
-                    colorScheme="green"
+                    colorScheme={palette.positiveScheme}
                     variant="outline"
                     size="lg"
-                    borderColor="#14532d"
-                    color="#4ade80"
-                    _hover={{ bg: '#052e16', borderColor: '#22c55e' }}
+                    borderColor={palette.positiveBorder}
+                    color={palette.positive}
+                    _hover={{ bg: palette.positiveDark, borderColor: palette.positive }}
                     isLoading={votingLoading}
                     onClick={() => onVote(proposalId, true)}
                   />
@@ -415,7 +417,7 @@ export function ProposalModal({
               <Text
                 fontFamily="mono"
                 fontSize="xs"
-                color="#4ade80"
+                color={palette.positive}
                 textAlign="center"
                 fontWeight="semibold"
               >
@@ -477,7 +479,7 @@ export function ProposalModal({
                       <Text fontFamily="mono" fontSize="9px" color="#3d6b4a">
                         {coordLabel(h.row, h.col)}
                       </Text>
-                      <Text fontFamily="mono" fontSize="9px" color="#f87171">
+                      <Text fontFamily="mono" fontSize="9px" color={palette.negative}>
                         vetoed
                       </Text>
                       <Text fontFamily="mono" fontSize="9px" color="#3d6b4a">

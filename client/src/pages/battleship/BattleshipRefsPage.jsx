@@ -34,6 +34,8 @@ import {
   useDisclosure,
 } from '@chakra-ui/react';
 import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
+import useBSColorblindMode from '../../hooks/useBSColorblindMode';
+import { getBSColorPalette, getBSTeamColor } from '../../utils/battleship/bsColorPalette';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
@@ -114,14 +116,13 @@ function ScreenshotThumb({ url }) {
 
 // ── Progress slider ────────────────────────────────────────────────────────
 
-function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
+function TileProgressSlider({ tileId, initialProgress, task, onSave, colorblindMode = false }) {
   // For "uniques" tasks the slider walks 1..N (N = metricTarget) instead of
   // 0-100%. Progress is still stored server-side as a 0-100 percentage, so
   // we translate between the two here.
   const isUniques = task?.metricType === 'unique' || task?.metricType === 'uniques';
-  const target = Number.isFinite(task?.metricTarget) && task.metricTarget > 0
-    ? task.metricTarget
-    : null;
+  const target =
+    Number.isFinite(task?.metricTarget) && task.metricTarget > 0 ? task.metricTarget : null;
   const useCountMode = isUniques && target != null;
 
   const pctToCount = (pct) => {
@@ -143,9 +144,8 @@ function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
 
   const displayMax = useCountMode ? target : 100;
   const displayComplete = val >= displayMax;
-  const label = useCountMode
-    ? `${val} / ${target} unique${target === 1 ? '' : 's'}`
-    : `${val}%`;
+  const label = useCountMode ? `${val} / ${target} unique${target === 1 ? '' : 's'}` : `${val}%`;
+  const completeColor = getBSColorPalette(colorblindMode).positive;
 
   return (
     <Box>
@@ -159,7 +159,7 @@ function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
         >
           Progress
         </Text>
-        <Text fontSize="xs" color={displayComplete ? '#4ade80' : '#22d3ee'} fontWeight="bold">
+        <Text fontSize="xs" color={displayComplete ? completeColor : '#22d3ee'} fontWeight="bold">
           {label}
         </Text>
       </HStack>
@@ -173,9 +173,9 @@ function TileProgressSlider({ tileId, initialProgress, task, onSave }) {
         focusThumbOnChange={false}
       >
         <SliderTrack bg="#1a4028" h="6px" borderRadius="full">
-          <SliderFilledTrack bg={displayComplete ? '#4ade80' : '#22d3ee'} />
+          <SliderFilledTrack bg={displayComplete ? completeColor : '#22d3ee'} />
         </SliderTrack>
-        <SliderThumb boxSize={4} bg={displayComplete ? '#4ade80' : '#22d3ee'} />
+        <SliderThumb boxSize={4} bg={displayComplete ? completeColor : '#22d3ee'} />
       </Slider>
     </Box>
   );
@@ -191,6 +191,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
   const isApproved = sub.status === 'APPROVED';
   const isDenied = sub.status === 'DENIED';
   const subLoadKey = sub.submissionId;
+  const palette = getBSColorPalette(colorblindMode);
 
   const borderColor = isDenied
     ? colorblindMode
@@ -243,7 +244,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
             </Text>
           </HStack>
           {isDenied && sub.denialReason && (
-            <Text fontSize="xs" color="#fca5a5" mt={1}>
+            <Text fontSize="xs" color={palette.negativeBright} mt={1}>
               Reason: {sub.denialReason}
             </Text>
           )}
@@ -259,7 +260,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
       {isDenied && (
         <Button
           size="xs"
-          colorScheme="green"
+          colorScheme={palette.positiveScheme}
           variant="ghost"
           isLoading={loadingId === subLoadKey + '-approve'}
           onClick={() => onApprove(sub.submissionId)}
@@ -273,7 +274,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
           <Button
             size="xs"
             variant="outline"
-            colorScheme="red"
+            colorScheme={palette.negativeScheme}
             onClick={() => setDenying(true)}
             isDisabled={!!loadingId}
           >
@@ -281,7 +282,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
           </Button>
           <Button
             size="xs"
-            colorScheme="green"
+            colorScheme={palette.positiveScheme}
             isLoading={loadingId === subLoadKey + '-approve'}
             isDisabled={!!loadingId && loadingId !== subLoadKey + '-approve'}
             onClick={() => onApprove(sub.submissionId)}
@@ -318,7 +319,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
             </Button>
             <Button
               size="xs"
-              colorScheme="red"
+              colorScheme={palette.negativeScheme}
               isLoading={loadingId === subLoadKey + '-deny'}
               onClick={() => {
                 onDeny(sub.submissionId, denyReason);
@@ -361,9 +362,10 @@ function TileGroup({
   const progress = localProgress;
   const isComplete = tile?.taskCompleted;
   const canComplete = approved.length > 0 && !isComplete && pending.length === 0 && progress >= 100;
+  const palette = getBSColorPalette(colorblindMode);
 
   const coord = tile ? coordLabel(tile.row, tile.col) : '?';
-  const dotColor = teamColor === 'RED' ? (colorblindMode ? '#fb923c' : '#f87171') : '#60a5fa';
+  const dotColor = getBSTeamColor(teamColor, colorblindMode);
 
   return (
     <AccordionItem
@@ -404,7 +406,7 @@ function TileGroup({
               </Badge>
             )}
             {isComplete && (
-              <Badge colorScheme="green" fontSize="xs">
+              <Badge colorScheme={palette.positiveScheme} fontSize="xs">
                 complete
               </Badge>
             )}
@@ -416,7 +418,7 @@ function TileGroup({
                 <HStack spacing={2}>
                   <Button
                     size="xs"
-                    colorScheme="green"
+                    colorScheme={palette.positiveScheme}
                     isLoading={loadingId === tileId + '-complete'}
                     onClick={() => {
                       setConfirming(false);
@@ -437,7 +439,7 @@ function TileGroup({
               ) : (
                 <Button
                   size="xs"
-                  colorScheme="green"
+                  colorScheme={palette.positiveScheme}
                   variant="outline"
                   onClick={() => setConfirming(true)}
                 >
@@ -457,6 +459,7 @@ function TileGroup({
               tileId={tileId}
               initialProgress={progress}
               task={tile?.task ?? null}
+              colorblindMode={colorblindMode}
               onSave={(tid, v) => {
                 setLocalProgress(v);
                 onSetProgress(tid, v);
@@ -563,10 +566,12 @@ export default function BattleshipRefsPage() {
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNew, setPendingNew] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(
-    () => localStorage.getItem('bsRefsSoundEnabled') === 'true',
+    () => localStorage.getItem('bsRefsSoundEnabled') === 'true'
   );
   useEffect(() => {
-    try { localStorage.setItem('bsRefsSoundEnabled', String(soundEnabled)); } catch (_) {}
+    try {
+      localStorage.setItem('bsRefsSoundEnabled', String(soundEnabled));
+    } catch (_) {}
   }, [soundEnabled]);
   // If sound was persisted ON from a prior visit, prime the audio context on
   // the first user gesture so incoming-submission chimes aren't blocked by
@@ -585,9 +590,8 @@ export default function BattleshipRefsPage() {
       window.removeEventListener('keydown', kick);
     };
   }, [soundEnabled]);
-  const [colorblindMode, setColorblindMode] = useState(
-    () => localStorage.getItem('bsColorblindMode') === 'true'
-  );
+  const { colorblindMode, toggleColorblindMode } = useBSColorblindMode();
+  const semanticColors = getBSColorPalette(colorblindMode);
 
   const [stableGroupOrder, setStableGroupOrder] = useState(null);
   const [openKeys, setOpenKeys] = useState(new Set());
@@ -901,13 +905,7 @@ export default function BattleshipRefsPage() {
                 id="cb-toggle"
                 colorScheme="blue"
                 isChecked={colorblindMode}
-                onChange={() => {
-                  setColorblindMode((v) => {
-                    const next = !v;
-                    localStorage.setItem('bsColorblindMode', String(next));
-                    return next;
-                  });
-                }}
+                onChange={toggleColorblindMode}
               />
               <FormLabel htmlFor="cb-toggle" mb={0} fontSize="sm" color={DIM} cursor="pointer">
                 Colorblind Mode
@@ -944,7 +942,14 @@ export default function BattleshipRefsPage() {
             they can gauge pressure while reviewing submissions. */}
         {event?.status === 'ACTIVE' && (event.teams ?? []).length > 0 && (
           <Box>
-            <Heading size="xs" color={DIM} fontFamily="mono" letterSpacing="widest" mb={3} textTransform="uppercase">
+            <Heading
+              size="xs"
+              color={DIM}
+              fontFamily="mono"
+              letterSpacing="widest"
+              mb={3}
+              textTransform="uppercase"
+            >
               Fleet Status
             </Heading>
             <VStack align="stretch" spacing={3}>
@@ -953,6 +958,7 @@ export default function BattleshipRefsPage() {
                   key={team.teamId}
                   team={team}
                   cooldownMinutes={event.cooldownMinutes}
+                  colorblindMode={colorblindMode}
                 />
               ))}
             </VStack>
@@ -1122,7 +1128,11 @@ export default function BattleshipRefsPage() {
           {/* Completed tiles */}
           {completedGroups.length > 0 && (
             <Accordion allowToggle mt={2} onChange={() => {}}>
-              <AccordionItem border="1px solid" borderColor="#14532d" borderRadius="md">
+              <AccordionItem
+                border="1px solid"
+                borderColor={semanticColors.positiveBorder}
+                borderRadius="md"
+              >
                 <AccordionButton
                   px={4}
                   py={3}
@@ -1131,10 +1141,10 @@ export default function BattleshipRefsPage() {
                   borderRadius="md"
                 >
                   <HStack flex={1} spacing={2}>
-                    <Text fontSize="sm" fontWeight="semibold" color={GREEN}>
+                    <Text fontSize="sm" fontWeight="semibold" color={semanticColors.positive}>
                       Completed Tiles
                     </Text>
-                    <Badge colorScheme="green" fontSize="xs">
+                    <Badge colorScheme={semanticColors.positiveScheme} fontSize="xs">
                       {completedGroups.length}
                     </Badge>
                   </HStack>

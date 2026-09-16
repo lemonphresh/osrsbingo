@@ -275,6 +275,71 @@ module.exports = {
       }
     },
 
+    // Paginated + server-side searched/filtered users. Backs the admin/users
+    // page so the whole table isn't shipped over the wire on every visit.
+    getUsersPaged: async (_, { limit = 50, offset = 0, search, filter = 'ALL' }, context) => {
+      if (!context.user?.admin) {
+        throw new AuthenticationError('Admin access required');
+      }
+      const cappedLimit = Math.max(1, Math.min(limit, 200));
+      const filters = [];
+      if (filter === 'DISCORD_LINKED') filters.push({ discordUserId: { [Op.ne]: null } });
+      else if (filter === 'NOT_LINKED') filters.push({ discordUserId: null });
+      else if (filter === 'ADMINS') filters.push({ admin: true });
+
+      const trimmed = search?.trim();
+      if (trimmed) {
+        const like = `%${trimmed}%`;
+        const orClauses = [
+          { username: { [Op.iLike]: like } },
+          { displayName: { [Op.iLike]: like } },
+          { rsn: { [Op.iLike]: like } },
+          { discordUsername: { [Op.iLike]: like } },
+        ];
+        // Numeric IDs — allow exact match on primary key or discord snowflake.
+        if (/^\d+$/.test(trimmed)) {
+          orClauses.push({ id: trimmed });
+          orClauses.push({ discordUserId: trimmed });
+        }
+        filters.push({ [Op.or]: orClauses });
+      }
+      const where = filters.length ? { [Op.and]: filters } : undefined;
+      try {
+        const { rows, count } = await User.findAndCountAll({
+          where,
+          order: [['createdAt', 'DESC']],
+          limit: cappedLimit,
+          offset: Math.max(0, offset),
+        });
+        return { users: rows, total: count };
+      } catch (error) {
+        logger.error('Error fetching paged users:', error);
+        throw new ApolloError('Failed to fetch users');
+      }
+    },
+
+    // Bulk lookup by Discord ID. Any ID that doesn't match a user is simply
+    // absent from the returned array — callers diff against their input list
+    // to figure out which IDs were unknown.
+    getUsersByDiscordIds: async (_, { discordUserIds }, context) => {
+      if (!context.user?.admin) {
+        throw new AuthenticationError('Admin access required');
+      }
+      const cleaned = Array.from(
+        new Set((discordUserIds ?? []).map((id) => String(id).trim()).filter(Boolean))
+      );
+      if (!cleaned.length) return [];
+      try {
+        return await User.findAll({
+          where: { discordUserId: { [Op.in]: cleaned } },
+          order: [['createdAt', 'DESC']],
+        });
+      } catch (error) {
+        logger.error('Error fetching users by discord ids:', error);
+        throw new ApolloError('Failed to fetch users by discord ids');
+      }
+    },
+
     searchUsers: async (_, { search }, context) => {
       if (!context.user) {
         throw new AuthenticationError('You must be logged in to perform this action.');

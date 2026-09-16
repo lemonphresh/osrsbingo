@@ -150,6 +150,41 @@ export const GET_USERS = gql`
   }
 `;
 
+export const GET_USERS_PAGED = gql`
+  query GetUsersPaged($limit: Int, $offset: Int, $search: String, $filter: UserListFilter) {
+    getUsersPaged(limit: $limit, offset: $offset, search: $search, filter: $filter) {
+      users {
+        id
+        admin
+        displayName
+        username
+        rsn
+        discordUserId
+        discordUsername
+        discordAvatar
+        createdAt
+      }
+      total
+    }
+  }
+`;
+
+export const GET_USERS_BY_DISCORD_IDS = gql`
+  query GetUsersByDiscordIds($discordUserIds: [ID!]!) {
+    getUsersByDiscordIds(discordUserIds: $discordUserIds) {
+      id
+      admin
+      displayName
+      username
+      rsn
+      discordUserId
+      discordUsername
+      discordAvatar
+      createdAt
+    }
+  }
+`;
+
 export const GET_USER = gql`
   query GetUser($id: ID!) {
     getUser(id: $id) {

@@ -24,6 +24,9 @@ import {
   ModalOverlay,
   SimpleGrid,
   Spinner,
+  Switch,
+  FormControl,
+  FormLabel,
   Text,
   Textarea,
   VStack,
@@ -45,6 +48,8 @@ import { TeamStatusCard } from '../../organisms/battleship/BSActiveComponents';
 import { BoardPanel } from '../../organisms/battleship/BSSharedComponents';
 import BSProposalLogPanel from '../../organisms/battleship/BSProposalLogPanel';
 import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
+import useBSColorblindMode from '../../hooks/useBSColorblindMode';
+import { getBSColorPalette, getBSTeamColor } from '../../utils/battleship/bsColorPalette';
 import { BSPlacementMiniBoard } from '../../organisms/battleship/BSPlacementView';
 import {
   GET_BS_PLACEMENT_SUGGESTIONS,
@@ -196,7 +201,7 @@ function safeFilename(name) {
 // Live-queries the placement suggestions for a single team. Server-side auth
 // returns [] for a ref who isn't on the team, so refs only see their own team;
 // admins see everything.
-function TeamPlacementSuggestions({ team }) {
+function TeamPlacementSuggestions({ team, colorblindMode = false }) {
   const { data, refetch } = useQuery(GET_BS_PLACEMENT_SUGGESTIONS, {
     variables: { teamId: team.teamId },
     fetchPolicy: 'cache-and-network',
@@ -206,7 +211,7 @@ function TeamPlacementSuggestions({ team }) {
     onData: () => refetch(),
   });
   const suggestions = data?.getBSPlacementSuggestions ?? [];
-  const dotColor = team.color === 'RED' ? '#f87171' : '#60a5fa';
+  const dotColor = getBSTeamColor(team.color, colorblindMode);
   return (
     <Box>
       <HStack spacing={2} mb={3}>
@@ -242,7 +247,7 @@ function TeamPlacementSuggestions({ team }) {
               borderRadius="md"
               p={2}
             >
-              <BSPlacementMiniBoard ships={s.ships ?? []} />
+              <BSPlacementMiniBoard ships={s.ships ?? []} colorblindMode={colorblindMode} />
               <VStack align="flex-start" spacing={1} minW="120px">
                 <Text fontFamily="mono" fontSize="10px" color="#d4f0da" noOfLines={1}>
                   {s.proposerDiscordId?.slice(0, 12) ?? 'unknown'}
@@ -390,7 +395,8 @@ function StatBox({ label, value }) {
 
 const isValidDiscordId = (id) => /^\d{17,19}$/.test(id);
 
-function TeamSection({ team, allTeams, refetchEvent, showToast }) {
+function TeamSection({ team, allTeams, refetchEvent, showToast, colorblindMode = false }) {
+  const palette = getBSColorPalette(colorblindMode);
   const [memberIds, setMemberIds] = useState(team.members ?? []);
   const [saving, setSaving] = useState(false);
   const [addingTokens, setAddingTokens] = useState(false);
@@ -489,7 +495,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
           w={3}
           h={3}
           borderRadius="full"
-          bg={team.color === 'RED' ? '#fc8181' : '#76e4f7'}
+          bg={getBSTeamColor(team.color, colorblindMode)}
           flexShrink={0}
         />
         <Text
@@ -501,7 +507,10 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
         >
           {team.teamName}
         </Text>
-        <Badge colorScheme={team.color === 'RED' ? 'red' : 'cyan'} fontSize="xs">
+        <Badge
+          colorScheme={team.color === 'RED' ? (colorblindMode ? 'orange' : 'red') : 'cyan'}
+          fontSize="xs"
+        >
           {team.color}
         </Badge>
       </HStack>
@@ -606,7 +615,11 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 {pendingValid && (
                   <Text fontSize="10px" color={DIM} fontFamily="mono">
                     →{' '}
-                    <Text as="span" color={isAward ? '#4ade80' : '#f87171'} fontWeight="bold">
+                    <Text
+                      as="span"
+                      color={isAward ? palette.positive : palette.negative}
+                      fontWeight="bold"
+                    >
                       {newBalance}
                     </Text>
                     <Text as="span" color={DIM}>
@@ -625,7 +638,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                       key={n}
                       size="xs"
                       variant="outline"
-                      colorScheme="green"
+                      colorScheme={palette.positiveScheme}
                       borderColor="#1a4028"
                       color={GREEN}
                       _hover={{ borderColor: GREEN }}
@@ -637,10 +650,10 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                   <Button
                     size="xs"
                     variant="outline"
-                    colorScheme="red"
+                    colorScheme={palette.negativeScheme}
                     borderColor="#4c1a1a"
-                    color="#f87171"
-                    _hover={{ bg: '#1a0a0a', borderColor: '#f87171' }}
+                    color={palette.negative}
+                    _hover={{ bg: palette.negativeDark, borderColor: palette.negative }}
                     onClick={() => bumpPending(-1)}
                   >
                     −1
@@ -706,7 +719,7 @@ function TeamSection({ team, allTeams, refetchEvent, showToast }) {
                 {/* Single submit button */}
                 <Button
                   size="sm"
-                  colorScheme={isAward ? 'green' : 'red'}
+                  colorScheme={isAward ? palette.positiveScheme : palette.negativeScheme}
                   isLoading={addingTokens}
                   isDisabled={submitDisabled}
                   onClick={submitPending}
@@ -1237,6 +1250,7 @@ export default function BattleshipAdminPage() {
   const { eventId } = useParams();
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { showToast } = useToastContext();
+  const { colorblindMode, toggleColorblindMode } = useBSColorblindMode();
 
   const {
     data: eventData,
@@ -1500,6 +1514,23 @@ export default function BattleshipAdminPage() {
           </VStack>
 
           <HStack spacing={3} flexWrap="wrap">
+            <FormControl display="flex" alignItems="center" gap={2} w="auto">
+              <Switch
+                id="admin-cb-toggle"
+                colorScheme="blue"
+                isChecked={colorblindMode}
+                onChange={toggleColorblindMode}
+              />
+              <FormLabel
+                htmlFor="admin-cb-toggle"
+                mb={0}
+                fontSize="sm"
+                color={DIM}
+                cursor="pointer"
+              >
+                Colorblind Mode
+              </FormLabel>
+            </FormControl>
             <Button
               as={RouterLink}
               to={`/battleship/${eventId}`}
@@ -1796,6 +1827,7 @@ export default function BattleshipAdminPage() {
                       key={team.teamId}
                       team={team}
                       cooldownMinutes={event.cooldownMinutes}
+                      colorblindMode={colorblindMode}
                     />
                   ))}
                 </VStack>
@@ -1869,6 +1901,7 @@ export default function BattleshipAdminPage() {
                         tiles={team.board?.tiles ?? []}
                         showShips
                         canFire={false}
+                        colorblindMode={colorblindMode}
                       />
                     </Box>
                   ))}
@@ -2057,7 +2090,11 @@ export default function BattleshipAdminPage() {
                     random.
                   </Text>
                   {(event.teams ?? []).map((team) => (
-                    <TeamPlacementSuggestions key={team.teamId} team={team} />
+                    <TeamPlacementSuggestions
+                      key={team.teamId}
+                      team={team}
+                      colorblindMode={colorblindMode}
+                    />
                   ))}
                 </VStack>
               </AccordionPanel>
@@ -2285,7 +2322,7 @@ export default function BattleshipAdminPage() {
                           w="6px"
                           h="6px"
                           borderRadius="full"
-                          bg={t.color === 'RED' ? '#fc8181' : '#76e4f7'}
+                          bg={getBSTeamColor(t.color, colorblindMode)}
                           flexShrink={0}
                         />
                         <Text
@@ -2415,6 +2452,7 @@ export default function BattleshipAdminPage() {
                     allTeams={event?.teams ?? []}
                     refetchEvent={refetchEvent}
                     showToast={showToast}
+                    colorblindMode={colorblindMode}
                   />
                 ))}
               </VStack>
@@ -2539,8 +2577,8 @@ export default function BattleshipAdminPage() {
                 {(event?.status === 'COMPLETED' || event?.status === 'ARCHIVED') && (
                   <HStack mb={3} justify="space-between" align="center" flexWrap="wrap" gap={2}>
                     <Text fontSize="xs" color={DIM} fontFamily="mono">
-                      Post-event archive: download every shot with tile type,
-                      coordinate, timestamp, and revealed task.
+                      Post-event archive: download every shot with tile type, coordinate, timestamp,
+                      and revealed task.
                     </Text>
                     <Button
                       size="xs"
@@ -2569,7 +2607,8 @@ export default function BattleshipAdminPage() {
                 <VStack align="stretch" spacing={1} maxH="400px" overflowY="auto">
                   {[...shotLog].reverse().map((shot) => {
                     const firingTeam = teams.find((t) => t.teamId === shot.firingTeamId);
-                    const accentColor = firingTeam?.color === 'RED' ? '#fc8181' : '#76e4f7';
+                    const palette = getBSColorPalette(colorblindMode);
+                    const accentColor = getBSTeamColor(firingTeam?.color, colorblindMode);
                     const isHit = shot.result === 'HIT';
                     return (
                       <HStack
@@ -2603,7 +2642,11 @@ export default function BattleshipAdminPage() {
                           <Text fontFamily="mono" fontSize="xs" color={DIM} noOfLines={1}>
                             {firingTeam?.teamName ?? shot.firingTeamId}
                           </Text>
-                          <Badge colorScheme={isHit ? 'red' : 'gray'} fontSize="9px" flexShrink={0}>
+                          <Badge
+                            colorScheme={isHit ? palette.negativeScheme : 'gray'}
+                            fontSize="9px"
+                            flexShrink={0}
+                          >
                             {isHit ? 'Hit' : 'Miss'}
                           </Badge>
                         </HStack>
@@ -2659,6 +2702,7 @@ export default function BattleshipAdminPage() {
                   teams={teams}
                   teamFilter={null}
                   nameForDiscordId={proposalLogNameForId}
+                  colorblindMode={colorblindMode}
                 />
               </AccordionPanel>
             </AccordionItem>

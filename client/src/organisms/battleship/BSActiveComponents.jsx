@@ -6,11 +6,13 @@ import {
   coordLabel,
   timeAgo,
 } from '../../utils/battleship/bsClientHelpers';
+import { getBSColorPalette, getBSTeamColor } from '../../utils/battleship/bsColorPalette';
 
-export function TeamStatusCard({ team, cooldownMinutes, isViewing }) {
+export function TeamStatusCard({ team, cooldownMinutes, isViewing, colorblindMode = false }) {
   const cooldownMs = cooldownRemaining(team.lastShotAt, cooldownMinutes);
   const cooldownLabel = formatCooldown(cooldownMs);
-  const accentColor = team.color === 'RED' ? 'red.400' : 'cyan.400';
+  const accentColor = getBSTeamColor(team.color, colorblindMode);
+  const palette = getBSColorPalette(colorblindMode);
 
   return (
     <Box
@@ -90,7 +92,11 @@ export function TeamStatusCard({ team, cooldownMinutes, isViewing }) {
           <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
             Cooldown
           </Text>
-          <Text fontFamily="mono" fontSize="xs" color={cooldownLabel ? 'yellow.400' : 'green.400'}>
+          <Text
+            fontFamily="mono"
+            fontSize="xs"
+            color={cooldownLabel ? 'yellow.400' : palette.positive}
+          >
             {cooldownLabel ? cooldownLabel : 'Ready'}
           </Text>
         </HStack>
@@ -99,11 +105,12 @@ export function TeamStatusCard({ team, cooldownMinutes, isViewing }) {
   );
 }
 
-export function ShotLogEntry({ shot, teams }) {
+export function ShotLogEntry({ shot, teams, colorblindMode = false }) {
   const firingTeam = teams.find((t) => t.teamId === shot.firingTeamId);
   const targetTeam = teams.find((t) => t.board?.boardId === shot.targetBoardId);
   const isHit = shot.result === 'HIT';
-  const accentColor = firingTeam?.color === 'RED' ? 'red.400' : 'cyan.400';
+  const accentColor = getBSTeamColor(firingTeam?.color, colorblindMode);
+  const palette = getBSColorPalette(colorblindMode);
 
   return (
     <Box py={2} px={3} bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="sm">
@@ -120,7 +127,7 @@ export function ShotLogEntry({ shot, teams }) {
               : ''}
           </Text>
           <Badge
-            colorScheme={isHit ? 'red' : 'gray'}
+            colorScheme={isHit ? palette.negativeScheme : 'gray'}
             fontSize="9px"
             textTransform="uppercase"
             letterSpacing="wider"

@@ -28,6 +28,7 @@ const {
   clearSkipProposal,
   clearedSkipProposal,
   getSkipProposal,
+  isSkipProposalExpired,
 } = require('../../../../utils/battleship/bsSkipProposals');
 const { logProposalOutcome } = require('../../../../utils/battleship/bsProposalLog');
 const {
@@ -40,6 +41,7 @@ const {
   assertCooldownReady,
   assertNoUnresolvedShot,
 } = require('../../../../utils/battleship/bsShotEligibility');
+const logger = require('../../../../utils/logger');
 
 const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 const bsCoord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -242,11 +244,21 @@ module.exports = {
         metric,
         isHit,
         eventId,
-      });
+      }).catch((err) =>
+        logger.error(
+          { err, eventId, teamId: firingTeam.teamId },
+          '[Battleship] shot Discord post failed'
+        )
+      );
     }
     // Capture WOM baseline for the defending team at reveal time (best-effort)
     if (isHit && task) {
-      captureMetricBaseline(tile, task, event, targetTeam ?? null);
+      captureMetricBaseline(tile, task, event, targetTeam ?? null).catch((err) =>
+        logger.error(
+          { err, eventId, tileId: tile.tileId },
+          '[Battleship] WOM baseline capture failed'
+        )
+      );
     }
 
     if (isHit && targetTeam?.discordChannelId) {
@@ -255,7 +267,12 @@ module.exports = {
         firingTeamName: firingTeam.teamName,
         coord,
         eventId,
-      });
+      }).catch((err) =>
+        logger.error(
+          { err, eventId, teamId: targetTeam.teamId },
+          '[Battleship] hit Discord post failed'
+        )
+      );
     }
 
     return shot;
@@ -263,50 +280,90 @@ module.exports = {
 
   completeBSTile: async (_, { tileId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard, BSTeam, BSTile, BSEvent, BSTask } = getModels();
-    const tile = await getTileOrThrow(tileId);
-    if (!tile.isShot) throw new UserInputError('Tile has not been shot yet');
-    if (tile.taskCompleted) throw new UserInputError('Task already completed');
+    const { sequelize, BSEvent, BSBoard, BSTeam, BSTile, BSTask } = getModels();
+    const seedTile = await getTileOrThrow(tileId);
+    const seedBoard = await BSBoard.findByPk(seedTile.boardId);
+    if (!seedBoard) throw new UserInputError('Board not found');
 
-    const board = await BSBoard.findByPk(tile.boardId);
-    const event = await getEventOrThrow(board.eventId);
-    requireAdminOrRef(event, user.id, user.admin);
+    const result = await sequelize.transaction(async (transaction) => {
+      // The event row serializes ref completions and game-over detection so two
+      // refs cannot both complete the last tile and announce two winners.
+      const event = await BSEvent.findByPk(seedBoard.eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!event || event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
+      requireAdminOrRef(event, user.id, user.admin);
 
-    await tile.update({ taskCompleted: true, taskCompletedAt: new Date() });
+      const board = await BSBoard.findByPk(seedBoard.boardId, { transaction });
+      const tile = await BSTile.findByPk(tileId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!tile?.isShot) throw new UserInputError('Tile has not been shot yet');
+      if (tile.taskCompleted || tile.skipped) throw new UserInputError('Tile already resolved');
+
+      const completedAt = new Date();
+      await tile.update({ taskCompleted: true, taskCompletedAt: completedAt }, { transaction });
+      const effectiveTaskId = tile.shipTaskId ?? tile.taskId;
+      const task = effectiveTaskId ? await BSTask.findByPk(effectiveTaskId, { transaction }) : null;
+      const allTeams = await BSTeam.findAll({ where: { eventId: event.eventId }, transaction });
+      const firingTeam = allTeams.find((team) => team.teamId !== board.teamId);
+      const defendingTeam = allTeams.find((team) => team.teamId === board.teamId);
+      if (!firingTeam || !defendingTeam) throw new UserInputError('Event teams are incomplete');
+
+      let thisShipSunk = false;
+      let allSunk = false;
+      if (tile.shipType) {
+        const { Op } = require('sequelize');
+        const shipTiles = await BSTile.findAll({
+          where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
+          transaction,
+          lock: transaction.LOCK.UPDATE,
+        });
+        const thisShipTiles = shipTiles.filter((candidate) => candidate.shipType === tile.shipType);
+        thisShipSunk = thisShipTiles.every(
+          (candidate) => candidate.isShot && candidate.taskCompleted
+        );
+        allSunk = shipTiles.every((candidate) => candidate.isShot && candidate.taskCompleted);
+      }
+
+      if (allSunk) {
+        await event.update(
+          { status: 'COMPLETED', winnerId: firingTeam.teamId, completedAt },
+          { transaction }
+        );
+      }
+      return {
+        event,
+        board,
+        tile,
+        taskLabel: task?.label ?? 'task',
+        firingTeam,
+        defendingTeam,
+        allTeams,
+        thisShipSunk,
+        allSunk,
+        completedAt,
+      };
+    });
+
+    const {
+      event,
+      board,
+      tile,
+      taskLabel,
+      firingTeam,
+      defendingTeam,
+      allTeams,
+      thisShipSunk,
+      allSunk,
+      completedAt,
+    } = result;
+    const coord = bsCoord(tile.row, tile.col);
     await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
 
-    // Resolve task info for Discord messages
-    const effectiveTaskId = tile.shipTaskId ?? tile.taskId;
-    const task = effectiveTaskId ? await BSTask.findByPk(effectiveTaskId) : null;
-    const taskLabel = task?.label ?? 'task';
-    const coord = bsCoord(tile.row, tile.col);
-
-    // Precompute ship-sunk / all-sunk status so we can decide what to post
-    // and in what order. Ship-related checks only apply to ship tiles while
-    // the event is ACTIVE.
-    const allTeams = await BSTeam.findAll({ where: { eventId: event.eventId } });
-    const firingTeam = allTeams.find((t) => t.teamId !== board.teamId);
-    const defendingTeam = allTeams.find((t) => t.teamId === board.teamId);
-
-    let thisShipSunk = false;
-    let allSunk = false;
-    if (tile.shipType && event.status === 'ACTIVE') {
-      const { Op } = require('sequelize');
-      const shipTiles = await BSTile.findAll({
-        where: { boardId: board.boardId, shipType: { [Op.ne]: null } },
-      });
-      const thisShipTiles = shipTiles.filter((t) => t.shipType === tile.shipType);
-      thisShipSunk = thisShipTiles.every(
-        (t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId)
-      );
-      allSunk = shipTiles.every((t) => t.isShot && (t.taskCompleted || t.tileId === tile.tileId));
-    }
-
-    // Post messages in a deterministic order (task-complete → ship-sunk →
-    // game-over) by awaiting each in turn. Skip the "you can fire again"
-    // task-complete post when the game is over — the win announcement makes
-    // the fire-again invite nonsensical.
-    if (!allSunk && firingTeam?.discordChannelId) {
+    if (!allSunk && firingTeam.discordChannelId) {
       await postBSTaskComplete({
         channelId: firingTeam.discordChannelId,
         roleId: firingTeam.discordRoleId ?? null,
@@ -314,47 +371,52 @@ module.exports = {
         taskLabel,
         coord,
         eventId: event.eventId,
-      });
+      }).catch((err) =>
+        logger.error(
+          { err, eventId: event.eventId, tileId },
+          '[Battleship] task-complete Discord post failed'
+        )
+      );
     }
 
     if (thisShipSunk) {
       await postBSShipSunk({
-        firingChannelId: firingTeam?.discordChannelId,
-        defendingChannelId: defendingTeam?.discordChannelId,
+        firingChannelId: firingTeam.discordChannelId,
+        defendingChannelId: defendingTeam.discordChannelId,
         shipType: tile.shipType,
-        firingTeamName: firingTeam?.teamName,
-        defendingTeamName: defendingTeam?.teamName,
+        firingTeamName: firingTeam.teamName,
+        defendingTeamName: defendingTeam.teamName,
         eventId: event.eventId,
-      });
+      }).catch((err) =>
+        logger.error(
+          { err, eventId: event.eventId, tileId },
+          '[Battleship] ship-sunk Discord post failed'
+        )
+      );
     }
 
     if (allSunk) {
-      const winningTeam = firingTeam;
-      const losingTeam = defendingTeam;
-      const completedAt = new Date();
-      await BSEvent.update(
-        { status: 'COMPLETED', winnerId: winningTeam.teamId, completedAt },
-        { where: { eventId: event.eventId } }
-      );
       await pubsub.publish(`BS_GAME_OVER_${event.eventId}`, {
         bsGameOver: {
           eventId: event.eventId,
-          winnerId: winningTeam.teamId,
+          winnerId: firingTeam.teamId,
           losingTeamId: board.teamId,
           completedAt,
         },
       });
-      // Notify both teams — sequential await so both posts land after the
-      // ship-sunk one (and thus in a logical read-order).
       for (const team of allTeams) {
-        if (team.discordChannelId) {
-          await postBSGameOver({
-            channelId: team.discordChannelId,
-            winnerName: winningTeam.teamName,
-            loserName: losingTeam.teamName,
-            eventId: event.eventId,
-          });
-        }
+        if (!team.discordChannelId) continue;
+        await postBSGameOver({
+          channelId: team.discordChannelId,
+          winnerName: firingTeam.teamName,
+          loserName: defendingTeam.teamName,
+          eventId: event.eventId,
+        }).catch((err) =>
+          logger.error(
+            { err, eventId: event.eventId, teamId: team.teamId },
+            '[Battleship] game-over Discord post failed'
+          )
+        );
       }
     }
 
@@ -363,57 +425,93 @@ module.exports = {
 
   skipBSTile: async (_, { tileId }, context) => {
     const user = requireAuth(context);
-    const { BSBoard, BSTeam } = getModels();
-    const tile = await getTileOrThrow(tileId);
-    if (!tile.isShot) throw new UserInputError('Tile has not been shot yet');
-    if (tile.shipType !== null) throw new UserInputError('Can only skip ocean (miss) tiles');
-    if (tile.taskCompleted || tile.skipped) throw new UserInputError('Tile already resolved');
+    const { sequelize, BSEvent, BSBoard, BSTeam, BSTile } = getModels();
+    const seedTile = await getTileOrThrow(tileId);
+    const seedBoard = await BSBoard.findByPk(seedTile.boardId);
+    if (!seedBoard) throw new UserInputError('Board not found');
 
-    const board = await BSBoard.findByPk(tile.boardId);
-    const event = await getEventOrThrow(board.eventId);
+    const result = await sequelize.transaction(async (transaction) => {
+      const event = await BSEvent.findByPk(seedBoard.eventId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!event || event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
+      const board = await BSBoard.findByPk(seedBoard.boardId, { transaction });
+      const teams = await BSTeam.findAll({
+        where: { eventId: event.eventId },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      const firingTeam = teams.find((team) => team.teamId !== board.teamId);
+      if (!firingTeam) throw new UserInputError('Could not determine firing team');
+      const tile = await BSTile.findByPk(tileId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!tile?.isShot) throw new UserInputError('Tile has not been shot yet');
+      if (tile.shipType !== null) throw new UserInputError('Can only skip ocean (miss) tiles');
+      if (tile.taskCompleted || tile.skipped) throw new UserInputError('Tile already resolved');
 
-    // Find the team that fired at this tile (board belongs to opponent; firer is the other team)
-    const teams = await BSTeam.findAll({ where: { eventId: event.eventId } });
-    const firingTeam = teams.find((t) => t.teamId !== board.teamId);
-    if (!firingTeam) throw new UserInputError('Could not determine firing team');
-
-    // Admin bypass only applies to site admins who are NOT members of the
-    // firing team (e.g. a support admin unsticking a game). Site admins who
-    // are *also* on the team follow team rules, otherwise a solo admin team
-    // could skip infinitely without burning any tokens.
-    const isSiteAdmin =
-      user.admin === true && !firingTeam.members.includes(user.discordUserId);
-    if (!isSiteAdmin) {
-      if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
-      if (!firingTeam.members.includes(user.discordUserId)) {
-        throw new UserInputError('Only the firing team can use skip tokens');
+      // A support admin who is not playing may unstick a game. Everyone else
+      // must be on the firing team and consume the exact approved proposal.
+      const isSupportAdmin =
+        user.admin === true && !(firingTeam.members ?? []).includes(user.discordUserId);
+      const skipSnapshot = getSkipProposal(firingTeam.teamId);
+      if (!isSupportAdmin) {
+        if (!(firingTeam.members ?? []).includes(user.discordUserId)) {
+          throw new UserInputError('Only the firing team can use skip tokens');
+        }
+        if (!skipSnapshot || skipSnapshot.status !== 'APPROVED') {
+          throw new UserInputError('No approved skip proposal for this team.');
+        }
+        if (isSkipProposalExpired(skipSnapshot)) {
+          await logProposalOutcome(
+            { kind: 'SKIP', proposal: skipSnapshot, finalStatus: 'EXPIRED' },
+            { transaction }
+          );
+          return {
+            expired: true,
+            eventId: event.eventId,
+            teamId: firingTeam.teamId,
+          };
+        }
+        if (skipSnapshot.eventId !== event.eventId || skipSnapshot.tileId !== tileId) {
+          throw new UserInputError('Skip target does not match the approved proposal.');
+        }
+        if (firingTeam.skipTokens <= 0) throw new UserInputError('No skip tokens remaining');
       }
-    }
-    const isAdmin = isSiteAdmin;
 
-    // Skipping consumes a token but resets the cooldown so the team can fire
-    // again immediately — no penalty on top of the token cost.
-    if (!isAdmin) {
-      await firingTeam.update({
-        skipTokens: firingTeam.skipTokens - 1,
-        lastShotAt: null,
+      await firingTeam.update(
+        isSupportAdmin
+          ? { lastShotAt: null }
+          : { skipTokens: firingTeam.skipTokens - 1, lastShotAt: null },
+        { transaction }
+      );
+      await tile.update({ skipped: true, taskCompletedAt: new Date() }, { transaction });
+      if (skipSnapshot) {
+        await logProposalOutcome(
+          {
+            kind: 'SKIP',
+            proposal: skipSnapshot,
+            finalStatus: skipSnapshot.status === 'APPROVED' ? 'APPROVED' : 'CLEARED',
+          },
+          { transaction }
+        );
+      }
+      return { event, board, firingTeam, tile, skipSnapshot };
+    });
+
+    if (result.expired) {
+      clearSkipProposal(result.teamId);
+      await pubsub.publish(`BS_SKIP_PROPOSAL_${result.teamId}`, {
+        bsSkipProposalUpdated: clearedSkipProposal(result.teamId),
       });
-    } else {
-      await firingTeam.update({ lastShotAt: null });
+      throw new UserInputError('Proposal has expired');
     }
-    await tile.update({ skipped: true, taskCompletedAt: new Date() });
-    await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
-    // Snapshot the in-memory skip proposal (if any) before we clear it, so the
-    // audit log captures who voted what on the skip that just got consumed.
-    const skipSnapshot = getSkipProposal(firingTeam.teamId);
-    if (skipSnapshot) {
-      await logProposalOutcome({
-        kind: 'SKIP',
-        proposal: skipSnapshot,
-        finalStatus: 'APPROVED',
-      });
-    }
+
+    const { event, board, firingTeam, tile } = result;
     clearSkipProposal(firingTeam.teamId);
+    await pubsub.publish(`BS_TILE_UPDATED_${board.boardId}`, { bsTileUpdated: tile });
     await pubsub.publish(`BS_SKIP_PROPOSAL_${firingTeam.teamId}`, {
       bsSkipProposalUpdated: clearedSkipProposal(firingTeam.teamId),
     });

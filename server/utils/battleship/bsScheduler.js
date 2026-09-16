@@ -5,7 +5,11 @@ const logger = require('../logger');
 const { runBSGameStart } = require('./bsGameStart');
 const { runBSPlacementStart } = require('./bsPlacementStart');
 const { sweepExpiredProposals, clearedProposal, getProposal } = require('./bsProposals');
-const { sweepExpiredSkipProposals, clearedSkipProposal } = require('./bsSkipProposals');
+const {
+  sweepExpiredSkipProposals,
+  clearedSkipProposal,
+  getSkipProposal,
+} = require('./bsSkipProposals');
 const { logProposalOutcome } = require('./bsProposalLog');
 const { syncBSWomProgress } = require('./bsWomSync');
 const { pubsub } = require('../../schema/pubsub');
@@ -152,6 +156,9 @@ async function sweepProposals() {
         '[bsScheduler] failed to log expired skip proposal'
       );
     }
+    // Like shot proposals, do not let a delayed expiry frame dismiss a fresh
+    // skip proposal created while its predecessor was being logged.
+    if (getSkipProposal(teamId)) continue;
     logger.info({ teamId }, '[bsScheduler] skip proposal expired — auto-clearing');
     pubsub.publish(`BS_SKIP_PROPOSAL_${teamId}`, {
       bsSkipProposalUpdated: clearedSkipProposal(teamId),

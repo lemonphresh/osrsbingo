@@ -59,6 +59,17 @@ const SECRET = process.env.JWTSECRETKEY;
 const app = express();
 const httpServer = createServer(app);
 
+app.set('trust proxy', 1);
+
+// Keep one canonical production origin. This runs before static files, APIs,
+// and GraphQL so every apex-domain request preserves its path and query string.
+app.use((req, res, next) => {
+  if (req.hostname.toLowerCase() === 'osrsbingohub.com') {
+    return res.redirect(301, `https://www.osrsbingohub.com${req.originalUrl}`);
+  }
+  return next();
+});
+
 /*  START setup  */
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
@@ -71,7 +82,6 @@ app.use(
 );
 app.use(compression());
 app.use(express.json());
-app.set('trust proxy', 1);
 app.use(
   helmet({
     contentSecurityPolicy: {

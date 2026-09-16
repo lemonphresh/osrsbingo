@@ -9,6 +9,10 @@ const {
 } = require('./helpers');
 const { getViewerCount } = require('../../../utils/battleship/bsViewers');
 const { getProposal, isProposalExpired } = require('../../../utils/battleship/bsProposals');
+const {
+  getSkipProposal,
+  isSkipProposalExpired,
+} = require('../../../utils/battleship/bsSkipProposals');
 const { createDraftWorkbook } = require('../../../utils/battleship/bsDraftWorkbook');
 const { ForbiddenError } = require('apollo-server-express');
 
@@ -100,6 +104,27 @@ module.exports = {
       return null;
     }
     return proposal ?? null;
+  },
+
+  getActiveBSSkipProposal: async (_, { teamId }, context) => {
+    const user = requireAuth(context);
+    const { BSTeam, BSEvent } = getModels();
+    const team = await BSTeam.findByPk(teamId);
+    if (!team) return null;
+    const event = await BSEvent.findByPk(team.eventId);
+    if (!event) return null;
+    const uid = String(user.id);
+    const canView =
+      user.admin === true ||
+      event.creatorId === uid ||
+      (event.adminIds ?? []).includes(uid) ||
+      (event.refIds ?? []).includes(uid) ||
+      (!!user.discordUserId && (team.members ?? []).includes(user.discordUserId));
+    if (!canView) throw new ForbiddenError('Team access required');
+
+    const proposal = getSkipProposal(teamId);
+    if (proposal && isSkipProposalExpired(proposal)) return null;
+    return proposal;
   },
 
   getBSPlacementSuggestions: async (_, { teamId }, context) => {

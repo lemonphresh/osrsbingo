@@ -11,6 +11,7 @@ import {
   GET_BS_SHOT_LOG,
 } from '../../graphql/bsOperations';
 import { playBSSound } from '../../utils/battleship/bsAudio';
+import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 
 const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 const coord = (row, col) => `${COL_LABELS[col] ?? col}${row + 1}`;
@@ -57,12 +58,16 @@ const fallbackColors = [
   { primary: '#ef4444', dim: '#7f1d1d', bg: 'rgba(239,68,68,0.08)', glow: 'rgba(239,68,68,0.3)' },
   { primary: '#3b82f6', dim: '#1e3a8a', bg: 'rgba(59,130,246,0.08)', glow: 'rgba(59,130,246,0.3)' },
 ];
-const teamColor = (team, idx) =>
-  (team?.color && TEAM_COLORS[team.color.toUpperCase()]) ??
-  fallbackColors[idx] ??
-  fallbackColors[0];
+const teamColor = (team, idx, colorblindMode = false) => {
+  if (colorblindMode && team?.color?.toUpperCase() === 'RED') return TEAM_COLORS.ORANGE;
+  return (
+    (team?.color && TEAM_COLORS[team.color.toUpperCase()]) ??
+    fallbackColors[idx] ??
+    fallbackColors[0]
+  );
+};
 
-function ShotFlash({ flash, onDone }) {
+function ShotFlash({ flash, onDone, colorblindMode = false }) {
   useEffect(() => {
     if (!flash) return;
     const t = setTimeout(onDone, 3500);
@@ -71,6 +76,7 @@ function ShotFlash({ flash, onDone }) {
 
   if (!flash) return null;
   const isHit = flash.result === 'HIT';
+  const palette = getBSColorPalette(colorblindMode);
 
   return (
     <Box
@@ -96,16 +102,24 @@ function ShotFlash({ flash, onDone }) {
       }}
     >
       <Box
-        bg={isHit ? 'rgba(127,15,15,0.95)' : 'rgba(10,30,80,0.95)'}
+        bg={
+          isHit
+            ? colorblindMode
+              ? 'rgba(120,53,15,0.95)'
+              : 'rgba(127,15,15,0.95)'
+            : 'rgba(10,30,80,0.95)'
+        }
         border="2px solid"
-        borderColor={isHit ? '#f87171' : '#60a5fa'}
+        borderColor={isHit ? palette.negative : '#60a5fa'}
         borderRadius="2xl"
         px={[8, 16]}
         py={[5, 8]}
         textAlign="center"
         boxShadow={
           isHit
-            ? '0 0 80px #ef4444, 0 0 160px rgba(239,68,68,0.4), inset 0 0 40px rgba(239,68,68,0.1)'
+            ? colorblindMode
+              ? '0 0 80px #f97316, 0 0 160px rgba(249,115,22,0.4), inset 0 0 40px rgba(249,115,22,0.1)'
+              : '0 0 80px #ef4444, 0 0 160px rgba(239,68,68,0.4), inset 0 0 40px rgba(239,68,68,0.1)'
             : '0 0 80px #3b82f6, 0 0 160px rgba(59,130,246,0.4), inset 0 0 40px rgba(59,130,246,0.1)'
         }
       >
@@ -158,16 +172,22 @@ function ShotFlash({ flash, onDone }) {
   );
 }
 
-export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
-  const teams = event.teams ?? [];
+export function BSSpectatorView({
+  event,
+  refetch,
+  colorblindMode = false,
+  onToggleColorblindMode,
+}) {
+  const teams = useMemo(() => event.teams ?? [], [event.teams]);
   const teamA = teams[0] ?? null;
   const teamB = teams[1] ?? null;
   const boardA = teamA?.board ?? null;
   const boardB = teamB?.board ?? null;
   const tilesA = boardA?.tiles ?? [];
   const tilesB = boardB?.tiles ?? [];
-  const colA = teamColor(teamA, 0);
-  const colB = teamColor(teamB, 1);
+  const colA = teamColor(teamA, 0, colorblindMode);
+  const colB = teamColor(teamB, 1, colorblindMode);
+  const palette = getBSColorPalette(colorblindMode);
 
   const teamMap = useMemo(() => new Map(teams.map((t) => [t.teamId, t])), [teams]);
 
@@ -192,11 +212,24 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
           row: s.row,
           col: s.col,
           firingTeamName: team?.teamName ?? 'Unknown',
-          teamColor: teamColor(team, teams.indexOf(team)),
+          firingTeamId: s.firingTeamId,
+          teamColor: teamColor(team, teams.indexOf(team), colorblindMode),
           shotAt: s.shotAt,
         };
       });
-  }, [shotLogData, teamMap, teams]);
+  }, [shotLogData, teamMap, teams, colorblindMode]);
+
+  useEffect(() => {
+    setLiveShots((current) =>
+      current.map((shot) => {
+        const team = teamMap.get(shot.firingTeamId);
+        return {
+          ...shot,
+          teamColor: teamColor(team, teams.indexOf(team), colorblindMode),
+        };
+      })
+    );
+  }, [colorblindMode, teamMap, teams]);
 
   // Merge live shots on top of historical; deduplicate by coord+team+time
   const recentShots = useMemo(() => {
@@ -226,7 +259,8 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
         row: shot.row,
         col: shot.col,
         firingTeamName: firingTeam?.teamName ?? 'Unknown',
-        teamColor: teamColor(firingTeam, teams.indexOf(firingTeam)),
+        firingTeamId: shot.firingTeamId,
+        teamColor: teamColor(firingTeam, teams.indexOf(firingTeam), colorblindMode),
         shotAt: shot.shotAt,
       };
       playBSSound(shot.result === 'HIT' ? 'directhit' : 'splash');
@@ -277,7 +311,7 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
           'radial-gradient(ellipse at 20% 50%, rgba(34,197,94,0.03) 0%, transparent 60%), radial-gradient(ellipse at 80% 50%, rgba(34,197,94,0.03) 0%, transparent 60%)',
       }}
     >
-      <ShotFlash flash={flash} onDone={clearFlash} />
+      <ShotFlash flash={flash} onDone={clearFlash} colorblindMode={colorblindMode} />
 
       {/* Spectator topbar */}
       <Box
@@ -326,6 +360,20 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
             </Badge>
           </HStack>
           <HStack spacing={2}>
+            <Button
+              size="xs"
+              variant={colorblindMode ? 'solid' : 'outline'}
+              colorScheme={colorblindMode ? 'blue' : 'gray'}
+              borderColor="#1a4028"
+              color={colorblindMode ? 'white' : '#6b9e78'}
+              fontFamily="mono"
+              fontSize="10px"
+              letterSpacing="wider"
+              onClick={onToggleColorblindMode}
+              aria-pressed={colorblindMode}
+            >
+              Colorblind Mode
+            </Button>
             <Box
               w="6px"
               h="6px"
@@ -583,12 +631,16 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
                       bg={
                         i === 0
                           ? isHit
-                            ? 'rgba(239,68,68,0.08)'
+                            ? colorblindMode
+                              ? 'rgba(249,115,22,0.08)'
+                              : 'rgba(239,68,68,0.08)'
                             : 'rgba(59,130,246,0.08)'
                           : '#060f0a'
                       }
                       border="1px solid"
-                      borderColor={i === 0 ? (isHit ? '#7f1d1d' : '#1e3a8a') : '#0d2018'}
+                      borderColor={
+                        i === 0 ? (isHit ? palette.negativeBorder : '#1e3a8a') : '#0d2018'
+                      }
                       borderRadius="sm"
                       spacing={3}
                       opacity={1 - i * 0.04}
@@ -611,7 +663,7 @@ export function BSSpectatorView({ event, refetch, colorblindMode = false }) {
                         fontSize="9px"
                         textTransform="uppercase"
                         letterSpacing="wider"
-                        colorScheme={isHit ? 'red' : 'blue'}
+                        colorScheme={isHit ? palette.negativeScheme : 'blue'}
                         flexShrink={0}
                       >
                         {isHit ? 'Hit' : 'Miss'}

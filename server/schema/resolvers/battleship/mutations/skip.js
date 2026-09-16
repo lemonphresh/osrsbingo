@@ -11,12 +11,15 @@ const {
   voteOnSkip,
   clearSkipProposal,
   clearedSkipProposal,
+  isSkipProposalExpired,
 } = require('../../../../utils/battleship/bsSkipProposals');
 const { logProposalOutcome } = require('../../../../utils/battleship/bsProposalLog');
+const { getProposalActorId } = require('../../../../utils/battleship/bsProposals');
 
 module.exports = {
   proposeSkipToken: async (_, { tileId, firingTeamId }, context) => {
     const user = requireAuth(context);
+    const actorId = getProposalActorId(user);
     const { BSBoard, BSTeam, BSTask } = getModels();
 
     const tile = await getTileOrThrow(tileId);
@@ -67,7 +70,11 @@ module.exports = {
       await logProposalOutcome({
         kind: 'SKIP',
         proposal: priorSkip,
-        finalStatus: priorSkip.status === 'REJECTED' ? 'REJECTED' : 'CLEARED',
+        finalStatus: isSkipProposalExpired(priorSkip)
+          ? 'EXPIRED'
+          : priorSkip.status === 'REJECTED'
+          ? 'REJECTED'
+          : 'CLEARED',
       });
     }
     clearSkipProposal(firingTeam.teamId);
@@ -87,7 +94,7 @@ module.exports = {
       teamId: firingTeam.teamId,
       tileId,
       tileLabel,
-      proposedBy: user.discordUserId,
+      proposedBy: actorId,
       threshold,
     });
 
@@ -103,17 +110,28 @@ module.exports = {
 
     const existing = getSkipProposalById(proposalId);
     if (!existing) throw new UserInputError('No active skip proposal found');
+    if (isSkipProposalExpired(existing)) {
+      await logProposalOutcome({ kind: 'SKIP', proposal: existing, finalStatus: 'EXPIRED' });
+      clearSkipProposal(existing.teamId);
+      await pubsub.publish(`BS_SKIP_PROPOSAL_${existing.teamId}`, {
+        bsSkipProposalUpdated: clearedSkipProposal(existing.teamId),
+      });
+      throw new UserInputError('Proposal has expired');
+    }
     if (existing.status !== 'PENDING') throw new UserInputError('Proposal is no longer pending');
 
     const event = await getEventOrThrow(existing.eventId);
+    if (event.status !== 'ACTIVE') throw new UserInputError('Event is not active');
     const team = await BSTeam.findByPk(existing.teamId);
     const isAdmin =
-      (event.adminIds ?? []).includes(String(user.id)) || event.creatorId === String(user.id);
+      user.admin === true ||
+      (event.adminIds ?? []).includes(String(user.id)) ||
+      event.creatorId === String(user.id);
     if (!team?.members.includes(user.discordUserId) && !isAdmin) {
       throw new UserInputError('You are not on this team');
     }
 
-    const updated = voteOnSkip(proposalId, user.discordUserId, approve);
+    const updated = voteOnSkip(proposalId, getProposalActorId(user), approve);
     if (updated && updated.status === 'REJECTED') {
       await logProposalOutcome({
         kind: 'SKIP',

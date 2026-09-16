@@ -46,6 +46,10 @@ function getSkipProposalById(proposalId) {
   return null;
 }
 
+function isSkipProposalExpired(proposal, now = new Date()) {
+  return !!proposal?.expiresAt && new Date(proposal.expiresAt).getTime() <= now.getTime();
+}
+
 function voteOnSkip(proposalId, discordUserId, approve) {
   const p = getSkipProposalById(proposalId);
   if (!p || p.status !== 'PENDING') return p ?? null;
@@ -90,7 +94,7 @@ function sweepExpiredSkipProposals() {
   const now = Date.now();
   const expired = [];
   for (const [teamId, p] of proposals.entries()) {
-    if (p.status === 'PENDING' && new Date(p.expiresAt).getTime() <= now) {
+    if (new Date(p.expiresAt).getTime() <= now) {
       proposals.delete(teamId);
       // Return full snapshots so the scheduler can write audit-log entries.
       expired.push(p);
@@ -103,6 +107,7 @@ module.exports = {
   createSkipProposal,
   getSkipProposal,
   getSkipProposalById,
+  isSkipProposalExpired,
   voteOnSkip,
   clearSkipProposal,
   clearedSkipProposal,

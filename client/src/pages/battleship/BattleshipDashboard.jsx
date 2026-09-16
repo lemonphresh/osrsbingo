@@ -20,6 +20,8 @@ import usePageTitle from '../../hooks/usePageTitle';
 import { useAuth } from '../../providers/AuthProvider';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
+import useBSColorblindMode from '../../hooks/useBSColorblindMode';
+import { getBSColorPalette, getBSTeamColor } from '../../utils/battleship/bsColorPalette';
 
 // ── Constants ─────────────────────────────────────────────────────────────
 
@@ -41,12 +43,12 @@ const STATUS_LABEL = {
 
 // ── Sub-components ────────────────────────────────────────────────────────
 
-function TeamColorDot({ color }) {
-  const bg = color === 'RED' ? 'red.400' : 'cyan.400';
+function TeamColorDot({ color, colorblindMode }) {
+  const bg = getBSTeamColor(color, colorblindMode);
   return <Box w="8px" h="8px" borderRadius="full" bg={bg} flexShrink={0} />;
 }
 
-function EventCard({ event, selectMode, isSelected, onToggle }) {
+function EventCard({ event, selectMode, isSelected, onToggle, colorblindMode }) {
   const teams = event.teams ?? [];
 
   return (
@@ -109,7 +111,7 @@ function EventCard({ event, selectMode, isSelected, onToggle }) {
         <VStack align="stretch" spacing={1}>
           {teams.map((team) => (
             <HStack key={team.teamId} spacing={2} align="center">
-              <TeamColorDot color={team.color} />
+              <TeamColorDot color={team.color} colorblindMode={colorblindMode} />
               <Text fontFamily="mono" fontSize="xs" color="#94a3b8" noOfLines={1}>
                 {team.teamName}
               </Text>
@@ -149,6 +151,8 @@ export default function BattleshipDashboard() {
   usePageTitle('Battleship');
   const { user } = useAuth();
   const { showToast } = useToastContext();
+  const { colorblindMode, toggleColorblindMode } = useBSColorblindMode();
+  const palette = getBSColorPalette(colorblindMode);
   const [infoOpen, setInfoOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -260,6 +264,20 @@ export default function BattleshipDashboard() {
               <HStack spacing={2} mt={[0, 2]}>
                 <Button
                   size="sm"
+                  variant={colorblindMode ? 'solid' : 'ghost'}
+                  colorScheme={colorblindMode ? 'blue' : 'gray'}
+                  color={colorblindMode ? 'white' : '#94a3b8'}
+                  fontFamily="mono"
+                  fontSize="10px"
+                  letterSpacing="widest"
+                  textTransform="uppercase"
+                  onClick={toggleColorblindMode}
+                  aria-pressed={colorblindMode}
+                >
+                  Colorblind {colorblindMode ? 'On' : 'Off'}
+                </Button>
+                <Button
+                  size="sm"
                   variant="ghost"
                   color="#94a3b8"
                   fontFamily="mono"
@@ -322,7 +340,7 @@ export default function BattleshipDashboard() {
 
           {error && (
             <Center py={20}>
-              <Text fontFamily="mono" fontSize="sm" color="red.400" letterSpacing="wide">
+              <Text fontFamily="mono" fontSize="sm" color={palette.negative} letterSpacing="wide">
                 FAILED TO LOAD / CHECK CONNECTION
               </Text>
             </Center>
@@ -387,7 +405,7 @@ export default function BattleshipDashboard() {
                     </Button>
                     <Button
                       size="xs"
-                      colorScheme="red"
+                      colorScheme={palette.negativeScheme}
                       fontFamily="mono"
                       fontSize="10px"
                       letterSpacing="widest"
@@ -410,6 +428,7 @@ export default function BattleshipDashboard() {
                     selectMode={selectMode}
                     isSelected={selected.has(event.eventId)}
                     onToggle={() => toggleSelect(event.eventId)}
+                    colorblindMode={colorblindMode}
                   />
                 ))}
               </SimpleGrid>

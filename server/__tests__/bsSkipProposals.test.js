@@ -8,6 +8,7 @@ const {
   getSkipProposalById,
   voteOnSkip,
   clearSkipProposal,
+  isSkipProposalExpired,
   sweepExpiredSkipProposals,
 } = require('../utils/battleship/bsSkipProposals');
 
@@ -65,6 +66,15 @@ describe('createSkipProposal / getSkipProposal', () => {
     expect(proposedMs).toBeGreaterThanOrEqual(before);
     expect(proposedMs).toBeLessThanOrEqual(after);
     expect(expiresMs).toBeGreaterThan(proposedMs);
+  });
+
+  test('detects expiration for pending and approved proposals', () => {
+    const pending = createSkipProposal(base({ teamId: 'team_b' }));
+    const approved = createSkipProposal(base({ teamId: 'team_c', threshold: 1 }));
+    pending.expiresAt = new Date(Date.now() - 1).toISOString();
+    approved.expiresAt = new Date(Date.now() - 1).toISOString();
+    expect(isSkipProposalExpired(pending)).toBe(true);
+    expect(isSkipProposalExpired(approved)).toBe(true);
   });
 
   test('getSkipProposal returns null for unknown team', () => {
@@ -165,11 +175,12 @@ describe('sweepExpiredSkipProposals', () => {
     expect(getSkipProposal('team_c')).not.toBeNull();
   });
 
-  test('does not remove an APPROVED proposal even if timestamp is past', () => {
+  test('removes an expired APPROVED proposal too', () => {
     const p = createSkipProposal(base({ threshold: 1 }));
     p.expiresAt = new Date(Date.now() - 1).toISOString();
-    sweepExpiredSkipProposals();
-    expect(getSkipProposal('team_a')).not.toBeNull();
+    const swept = sweepExpiredSkipProposals();
+    expect(swept).toContain(p);
+    expect(getSkipProposal('team_a')).toBeNull();
   });
 
   test('returns empty array when nothing is expired', () => {

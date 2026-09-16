@@ -15,4 +15,4 @@ Disallow: /gielinor-rush/event_*
 Disallow: /api/
 
 # Sitemap location
-Sitemap: https://osrsbingohub.com/sitemap.xml
+Sitemap: https://www.osrsbingohub.com/sitemap.xml
