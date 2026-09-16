@@ -36,6 +36,17 @@ export const SHIP_COLORS = {
   DESTROYER: '#84cc16',
 };
 
+// Okabe-Ito-inspired categorical palette. These colors remain distinguishable
+// for common red/green color-vision deficiencies while retaining five clear
+// ship classes on the dark board background.
+export const SHIP_COLORS_COLORBLIND = {
+  CARRIER: '#cc79a7',
+  BATTLESHIP: '#56b4e9',
+  CRUISER: '#f0e442',
+  SUBMARINE: '#e69f00',
+  DESTROYER: '#009e73',
+};
+
 // All 100 cells are ocean tiles — ships replace them at runtime when placed
 export const DRAFT_OCEAN_CELLS = (() => {
   const cells = [];
@@ -136,20 +147,34 @@ export function formatCooldown(ms) {
 // ── Task category helpers ─────────────────────────────────────────────────
 
 const MINIGAME_NAMES = new Set([
-  'Tempoross', 'Guardians of the Rift', 'Wintertodt', 'Zalcano',
-  'Barbarian Assault', 'Pest Control', 'Castle Wars',
-  'Fight Caves', 'Inferno', 'Colosseum',
+  'Tempoross',
+  'Guardians of the Rift',
+  'Wintertodt',
+  'Zalcano',
+  'Barbarian Assault',
+  'Pest Control',
+  'Castle Wars',
+  'Fight Caves',
+  'Inferno',
+  'Colosseum',
 ]);
 
 const CLUE_NAMES = new Set([
-  'Beginner Clues', 'Easy Clues', 'Medium Clues',
-  'Hard Clues', 'Elite Clues', 'Master Clues',
+  'Beginner Clues',
+  'Easy Clues',
+  'Medium Clues',
+  'Hard Clues',
+  'Elite Clues',
+  'Master Clues',
 ]);
 
 const RAID_NAMES = new Set([
-  'Chambers of Xeric', 'Challenge Mode Chambers of Xeric',
-  'Theatre of Blood', 'Hard Mode Theatre of Blood',
-  'Tombs of Amascut', 'Tombs of Amascut (Expert)',
+  'Chambers of Xeric',
+  'Challenge Mode Chambers of Xeric',
+  'Theatre of Blood',
+  'Hard Mode Theatre of Blood',
+  'Tombs of Amascut',
+  'Tombs of Amascut (Expert)',
 ]);
 
 export function getContentCategory(task) {
@@ -181,10 +206,11 @@ export function groupedBossSkillOptions(tasks) {
 export function metricOptionsForCategory(category) {
   if (category === 'skill') return [{ value: 'xp', label: 'XP' }];
   if (category === 'clue') return [{ value: 'kc', label: 'KC' }];
-  if (category === 'minigame') return [
-    { value: 'kc', label: 'KC' },
-    { value: 'unique', label: 'Uniques' },
-  ];
+  if (category === 'minigame')
+    return [
+      { value: 'kc', label: 'KC' },
+      { value: 'unique', label: 'Uniques' },
+    ];
   return [
     { value: 'kc', label: 'Boss KC' },
     { value: 'unique', label: 'Uniques' },

@@ -18,18 +18,18 @@ import {
 
 const PROPOSAL_TTL_S = 120;
 
-function useSkipCountdown(proposedAt, isPending) {
+function useSkipCountdown(proposedAt, isActive) {
   const [secondsLeft, setSecondsLeft] = useState(() => {
-    if (!proposedAt || !isPending) return PROPOSAL_TTL_S;
+    if (!proposedAt || !isActive) return PROPOSAL_TTL_S;
     const elapsed = Math.floor((Date.now() - new Date(proposedAt).getTime()) / 1000);
     return Math.max(0, PROPOSAL_TTL_S - elapsed);
   });
 
   useEffect(() => {
-    if (!isPending) return;
+    if (!isActive) return;
     const id = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
     return () => clearInterval(id);
-  }, [isPending]);
+  }, [isActive]);
 
   return secondsLeft;
 }
@@ -49,7 +49,7 @@ export function SkipProposalModal({
   const isApproved = status === 'APPROVED';
   const isRejected = status === 'REJECTED';
 
-  const secondsLeft = useSkipCountdown(proposal?.proposedAt ?? null, isPending);
+  const secondsLeft = useSkipCountdown(proposal?.proposedAt ?? null, isPending || isApproved);
 
   if (!proposal || status === 'CLEARED' || !proposal.proposalId) return null;
 
@@ -136,7 +136,7 @@ export function SkipProposalModal({
             </Box>
 
             {/* Countdown */}
-            {isPending && (
+            {(isPending || isApproved) && (
               <Box>
                 <HStack justify="space-between" mb={1}>
                   <Text
@@ -300,6 +300,7 @@ export function SkipProposalModal({
                 _hover={{ bg: '#92400e' }}
                 _active={{ bg: '#451a03' }}
                 isLoading={skipping}
+                isDisabled={secondsLeft === 0}
                 loadingText="Skipping..."
                 onClick={onSkip}
                 sx={{

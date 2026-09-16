@@ -922,6 +922,15 @@ const BS_SKIP_PROPOSAL_FIELDS = gql`
   }
 `;
 
+export const GET_ACTIVE_BS_SKIP_PROPOSAL = gql`
+  query GetActiveBSSkipProposal($teamId: ID!) {
+    getActiveBSSkipProposal(teamId: $teamId) {
+      ...BSSkipProposalFields
+    }
+  }
+  ${BS_SKIP_PROPOSAL_FIELDS}
+`;
+
 export const PROPOSE_SKIP_TOKEN = gql`
   mutation ProposeSkipToken($tileId: ID!, $firingTeamId: ID) {
     proposeSkipToken(tileId: $tileId, firingTeamId: $firingTeamId) {

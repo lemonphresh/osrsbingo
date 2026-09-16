@@ -1,5 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Box, IconButton, SimpleGrid, Text, VStack, HStack, Button, Center } from '@chakra-ui/react';
+import {
+  Box,
+  IconButton,
+  SimpleGrid,
+  Text,
+  VStack,
+  HStack,
+  Button,
+  Center,
+} from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FaPlay, FaPause } from 'react-icons/fa';
 import BSGrid from './BSGrid';
@@ -213,7 +222,11 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
                 </Text>
               </VStack>
               <Box display="flex" justifyContent="center" w="100%">
-                <BSGrid tiles={team?.board?.tiles ?? []} showShips colorblindMode={colorblindMode} />
+                <BSGrid
+                  tiles={team?.board?.tiles ?? []}
+                  showShips
+                  colorblindMode={colorblindMode}
+                />
               </Box>
             </VStack>
           </Box>
@@ -225,8 +238,7 @@ function FinalBoards({ winnerTeam, loserTeam, colorblindMode }) {
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export function BSGameOverScreen({ event, shotLog }) {
-  const colorblindMode = localStorage.getItem('bsColorblindMode') === 'true';
+export function BSGameOverScreen({ event, shotLog, colorblindMode = false }) {
   // The typewriter animation runs on every visit/refresh. Once someone has
   // seen it through at least once (per browser, per event), we surface a
   // "Skip to end" button so they can bypass on re-watches.
@@ -334,29 +346,24 @@ export function BSGameOverScreen({ event, shotLog }) {
       S('> ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓', winColor, { glow: true }),
       BLANK(),
       {
-        ...S(
-          wasCalled ? `>     CAMPAIGN CALLED` : `>     MISSION ACCOMPLISHED`,
-          winColor,
-          { charDelay: 45, glow: true },
-        ),
+        ...S(wasCalled ? `>     CAMPAIGN CALLED` : `>     MISSION ACCOMPLISHED`, winColor, {
+          charDelay: 45,
+          glow: true,
+        }),
       },
       BLANK(),
       C(`>     VICTOR    :  ${winnerName}`, winColor, { charDelay: 28 }),
       C(
-        wasCalled
-          ? `>     RUNNER-UP :  ${loserName}`
-          : `>     DEFEATED  :  ${loserName}`,
+        wasCalled ? `>     RUNNER-UP :  ${loserName}` : `>     DEFEATED  :  ${loserName}`,
         loseColor,
-        { charDelay: 28 },
+        { charDelay: 28 }
       ),
       ...(wasCalled
         ? [
             BLANK(),
-            C(
-              `>     WON ON SHIP-HITS :  ${wStats.hits} to ${lStats.hits}`,
-              winColor,
-              { charDelay: 28 },
-            ),
+            C(`>     WON ON SHIP-HITS :  ${wStats.hits} to ${lStats.hits}`, winColor, {
+              charDelay: 28,
+            }),
             C('>     (Campaign called by the admin.)', DIM, { charDelay: 22 }),
           ]
         : []),
@@ -386,7 +393,7 @@ export function BSGameOverScreen({ event, shotLog }) {
       C(
         wasCalled
           ? `> SHIPS SUNK          :  ${shipsSunk} / 5   (campaign called before conclusion)`
-          : `> SHIPS SUNK          :  ${shipsSunk} / 5`,
+          : `> SHIPS SUNK          :  ${shipsSunk} / 5`
       ),
       BLANK(500),
 

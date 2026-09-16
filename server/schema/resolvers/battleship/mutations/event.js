@@ -570,7 +570,6 @@ module.exports = {
     }
 
     const { runBSPlacementStart } = require('../../../../utils/battleship/bsPlacementStart');
-    await runBSPlacementStart(event);
-    return event;
+    return runBSPlacementStart(event);
   },
 };

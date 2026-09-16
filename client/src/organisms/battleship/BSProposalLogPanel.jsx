@@ -1,13 +1,12 @@
 import React, { useMemo } from 'react';
 import { Box, HStack, Text, VStack, Badge, Wrap, WrapItem } from '@chakra-ui/react';
+import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 
 const COL_LABELS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
 const coord = (row, col) =>
   row == null || col == null ? '—' : `${COL_LABELS[col] ?? col}${row + 1}`;
 
 const STATUS_META = {
-  APPROVED: { label: 'Approved', color: '#4ade80', bg: '#0d1f13', border: '#1a4028' },
-  REJECTED: { label: 'Vetoed', color: '#f87171', bg: '#1c0a0a', border: '#7f1d1d' },
   EXPIRED: { label: 'Expired', color: '#fcd34d', bg: '#1a0e00', border: '#713f12' },
   CLEARED: { label: 'Cleared', color: '#94a3b8', bg: '#0d1621', border: '#1e293b' },
 };
@@ -28,7 +27,13 @@ const KIND_META = {
  *   that team (the team-page audience). Admin page passes null to see both.
  * @param nameForDiscordId — optional (discordId) => displayName resolver
  */
-export default function BSProposalLogPanel({ entries = [], teams = [], teamFilter = null, nameForDiscordId }) {
+export default function BSProposalLogPanel({
+  entries = [],
+  teams = [],
+  teamFilter = null,
+  nameForDiscordId,
+  colorblindMode = false,
+}) {
   const teamNameById = useMemo(() => {
     const m = new Map();
     for (const t of teams) m.set(t.teamId, t.teamName);
@@ -43,13 +48,7 @@ export default function BSProposalLogPanel({ entries = [], teams = [], teamFilte
   const resolveName = (id) => (nameForDiscordId ? nameForDiscordId(id) ?? id : id);
 
   return (
-    <Box
-      bg="#091a10"
-      border="1px solid"
-      borderColor="#1a4028"
-      borderRadius="md"
-      overflow="hidden"
-    >
+    <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" overflow="hidden">
       <Box bg="#060f0a" borderBottom="1px solid" borderColor="#1a4028" px={4} py={2}>
         <Text
           fontFamily="mono"
@@ -79,6 +78,7 @@ export default function BSProposalLogPanel({ entries = [], teams = [], teamFilte
                     : null
                 }
                 resolveName={resolveName}
+                colorblindMode={colorblindMode}
               />
             ))}
           </VStack>
@@ -88,8 +88,24 @@ export default function BSProposalLogPanel({ entries = [], teams = [], teamFilte
   );
 }
 
-function LogRow({ entry, teamName, targetTeamName, resolveName }) {
-  const status = STATUS_META[entry.finalStatus] ?? STATUS_META.CLEARED;
+function LogRow({ entry, teamName, targetTeamName, resolveName, colorblindMode }) {
+  const palette = getBSColorPalette(colorblindMode);
+  const semanticStatus = {
+    APPROVED: {
+      label: 'Approved',
+      color: palette.positive,
+      bg: palette.positiveDark,
+      border: palette.positiveBorder,
+    },
+    REJECTED: {
+      label: 'Vetoed',
+      color: palette.negative,
+      bg: palette.negativeDark,
+      border: palette.negativeBorder,
+    },
+  };
+  const status =
+    semanticStatus[entry.finalStatus] ?? STATUS_META[entry.finalStatus] ?? STATUS_META.CLEARED;
   const kind = KIND_META[entry.kind] ?? KIND_META.SHOT;
   const when = new Date(entry.resolvedAt);
   const timeLabel = when.toLocaleString(undefined, {
@@ -141,7 +157,10 @@ function LogRow({ entry, teamName, targetTeamName, resolveName }) {
           {target}
         </Text>
         <Text fontFamily="mono" fontSize="xs" color="#6b9e78">
-          — proposed by <Text as="span" color="#d4f0da">{resolveName(entry.proposedBy)}</Text>
+          — proposed by{' '}
+          <Text as="span" color="#d4f0da">
+            {resolveName(entry.proposedBy)}
+          </Text>
         </Text>
         <Text fontFamily="mono" fontSize="10px" color="#6b9e78" ml="auto">
           {timeLabel}
@@ -149,22 +168,33 @@ function LogRow({ entry, teamName, targetTeamName, resolveName }) {
       </HStack>
       <HStack spacing={4} fontFamily="mono" fontSize="10px" color="#6b9e78" mb={1} wrap="wrap">
         <Text>
-          <Text as="span" color="#d4f0da">{teamName}</Text>
+          <Text as="span" color="#d4f0da">
+            {teamName}
+          </Text>
           {targetTeamName && (
             <>
               {' → '}
-              <Text as="span" color="#d4f0da">{targetTeamName}</Text>
+              <Text as="span" color="#d4f0da">
+                {targetTeamName}
+              </Text>
             </>
           )}
         </Text>
-        <Text>Threshold {approvals.length}/{entry.threshold}</Text>
+        <Text>
+          Threshold {approvals.length}/{entry.threshold}
+        </Text>
       </HStack>
       {(approvals.length > 0 || rejections.length > 0) && (
         <VStack align="stretch" spacing={1}>
           {approvals.length > 0 && (
             <Wrap spacing={1}>
               <WrapItem>
-                <Text fontFamily="mono" fontSize="10px" color="#4ade80" letterSpacing="wide">
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color={palette.positive}
+                  letterSpacing="wide"
+                >
                   APPROVED:
                 </Text>
               </WrapItem>
@@ -174,9 +204,9 @@ function LogRow({ entry, teamName, targetTeamName, resolveName }) {
                     fontFamily="mono"
                     fontSize="10px"
                     bg="transparent"
-                    color="#4ade80"
+                    color={palette.positive}
                     border="1px solid"
-                    borderColor="#1a4028"
+                    borderColor={palette.positiveBorder}
                   >
                     {resolveName(id)}
                   </Badge>
@@ -187,7 +217,12 @@ function LogRow({ entry, teamName, targetTeamName, resolveName }) {
           {rejections.length > 0 && (
             <Wrap spacing={1}>
               <WrapItem>
-                <Text fontFamily="mono" fontSize="10px" color="#f87171" letterSpacing="wide">
+                <Text
+                  fontFamily="mono"
+                  fontSize="10px"
+                  color={palette.negative}
+                  letterSpacing="wide"
+                >
                   VETOED:
                 </Text>
               </WrapItem>
@@ -197,9 +232,9 @@ function LogRow({ entry, teamName, targetTeamName, resolveName }) {
                     fontFamily="mono"
                     fontSize="10px"
                     bg="transparent"
-                    color="#f87171"
+                    color={palette.negative}
                     border="1px solid"
-                    borderColor="#7f1d1d"
+                    borderColor={palette.negativeBorder}
                   >
                     {resolveName(id)}
                   </Badge>

@@ -1,14 +1,20 @@
 'use strict';
 
-const { getModels, requireAuth, requireAdminOrRef, getEventOrThrow, getTileOrThrow } = require('../helpers');
+const {
+  getModels,
+  requireAuth,
+  requireAdminOrRef,
+  getEventOrThrow,
+  getTileOrThrow,
+} = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { UserInputError } = require('apollo-server-express');
 const { pubsub } = require('../../../pubsub');
 const {
   postBSPreScreenshotResult,
   postBSSubmissionResult,
-  postBSTaskComplete,
 } = require('../../../../utils/battleship/bsDiscord');
+const logger = require('../../../../utils/logger');
 
 module.exports = {
   createBSSubmission: async (_, { input }, context) => {
@@ -55,26 +61,24 @@ module.exports = {
     // explicitly. For regular players, use their own JWT identity so people
     // can't spoof submissions as someone else.
     const submitterDiscordId = isStaff
-      ? (input.discordUserId ?? user.discordUserId ?? null)
-      : (user.discordUserId ?? null);
-    const submitterDiscordUsername = isStaff
-      ? (input.discordUsername ?? null)
-      : null;
+      ? input.discordUserId ?? user.discordUserId ?? null
+      : user.discordUserId ?? null;
+    const submitterDiscordUsername = isStaff ? input.discordUsername ?? null : null;
 
     const submission = await BSSubmission.create({
-      submissionId:     generateId('bssub'),
-      eventId:          board.eventId,
-      tileId:           tile.tileId,
-      boardId:          tile.boardId,
-      teamId:           team?.teamId ?? '',
+      submissionId: generateId('bssub'),
+      eventId: board.eventId,
+      tileId: tile.tileId,
+      boardId: tile.boardId,
+      teamId: team?.teamId ?? '',
       tileLabel,
-      discordUserId:    submitterDiscordId,
-      discordUsername:  submitterDiscordUsername,
-      screenshotUrl:    input.screenshotUrl    ?? null,
-      channelId:        input.channelId        ?? null,
+      discordUserId: submitterDiscordId,
+      discordUsername: submitterDiscordUsername,
+      screenshotUrl: input.screenshotUrl ?? null,
+      channelId: input.channelId ?? null,
       discordMessageId: input.discordMessageId ?? null,
-      submissionType:   input.submissionType   ?? 'SUBMISSION',
-      submittedAt:      new Date(),
+      submissionType: input.submissionType ?? 'SUBMISSION',
+      submittedAt: new Date(),
     });
 
     await pubsub.publish(`BS_SUBMISSION_ADDED_${board.eventId}`, { bsSubmissionAdded: submission });
@@ -83,21 +87,34 @@ module.exports = {
 
   reviewBSSubmission: async (_, { submissionId, approved, denialReason }, context) => {
     const user = requireAuth(context);
-    const { BSSubmission, BSTeam, BSTile, BSBoard } = getModels();
+    const { sequelize, BSSubmission, BSTeam, BSEvent } = getModels();
 
-    const submission = await BSSubmission.findByPk(submissionId);
-    if (!submission) throw new UserInputError('Submission not found');
-    if (submission.status !== 'PENDING') throw new UserInputError('Submission is not pending');
+    // Serialize referee decisions so two refs cannot approve/deny the same
+    // pending submission at the same time and both receive a successful result.
+    const submission = await sequelize.transaction(async (transaction) => {
+      const lockedSubmission = await BSSubmission.findByPk(submissionId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+      if (!lockedSubmission) throw new UserInputError('Submission not found');
+      if (lockedSubmission.status !== 'PENDING') {
+        throw new UserInputError('Submission is not pending');
+      }
 
-    const event = await getEventOrThrow(submission.eventId);
-    requireAdminOrRef(event, user.id, user.admin);
+      const event = await BSEvent.findByPk(lockedSubmission.eventId, { transaction });
+      if (!event) throw new UserInputError(`BSEvent ${lockedSubmission.eventId} not found`);
+      requireAdminOrRef(event, user.id, user.admin);
 
-    const now = new Date();
-    await submission.update({
-      status:       approved ? 'APPROVED' : 'DENIED',
-      reviewedBy:   String(user.id),
-      reviewedAt:   now,
-      denialReason: approved ? null : (denialReason ?? null),
+      await lockedSubmission.update(
+        {
+          status: approved ? 'APPROVED' : 'DENIED',
+          reviewedBy: String(user.id),
+          reviewedAt: new Date(),
+          denialReason: approved ? null : denialReason ?? null,
+        },
+        { transaction }
+      );
+      return lockedSubmission;
     });
 
     const team = await BSTeam.findByPk(submission.teamId);
@@ -107,13 +124,36 @@ module.exports = {
 
     if (channelId) {
       if (submission.submissionType === 'PRESCREENSHOT') {
-        postBSPreScreenshotResult({ channelId, discordUserId, taskLabel, approved, denialReason });
+        postBSPreScreenshotResult({
+          channelId,
+          discordUserId,
+          taskLabel,
+          approved,
+          denialReason,
+        }).catch((err) => {
+          logger.error(
+            { err, submissionId },
+            '[reviewBSSubmission] Discord prescreenshot result failed'
+          );
+        });
       } else {
-        postBSSubmissionResult({ channelId, discordUserId, taskLabel, approved, denialReason });
+        postBSSubmissionResult({
+          channelId,
+          discordUserId,
+          taskLabel,
+          approved,
+          denialReason,
+        }).catch((err) => {
+          logger.error({ err, submissionId }, '[reviewBSSubmission] Discord result failed');
+        });
       }
     }
 
-    await pubsub.publish(`BS_SUBMISSION_REVIEWED_${submission.eventId}`, { bsSubmissionReviewed: submission });
+    await pubsub
+      .publish(`BS_SUBMISSION_REVIEWED_${submission.eventId}`, { bsSubmissionReviewed: submission })
+      .catch((err) => {
+        logger.error({ err, submissionId }, '[reviewBSSubmission] publish failed');
+      });
     return submission;
   },
 

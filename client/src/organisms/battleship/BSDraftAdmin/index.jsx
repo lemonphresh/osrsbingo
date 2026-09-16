@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  Box,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
-} from '@chakra-ui/react';
+import { Box, Tabs, TabList, TabPanels, Tab, TabPanel } from '@chakra-ui/react';
 import { TeamsTab } from './TeamsTab';
 import { TaskGridTab } from './TaskGridTab';
 import { BSRefsTab } from './RefsTab';
@@ -15,7 +8,7 @@ import { LaunchTab } from './LaunchTab';
 
 const DRAFT_TABS = ['Teams', 'Task Grid', 'Admins', 'Refs', 'Launch'];
 
-export default function BSEventDraftAdmin({ event, refetch }) {
+export default function BSEventDraftAdmin({ event, refetch, colorblindMode = false }) {
   return (
     <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md">
       <Tabs variant="unstyled" colorScheme="green">
@@ -51,10 +44,10 @@ export default function BSEventDraftAdmin({ event, refetch }) {
         </TabList>
         <TabPanels>
           <TabPanel p={5}>
-            <TeamsTab event={event} refetch={refetch} />
+            <TeamsTab event={event} refetch={refetch} colorblindMode={colorblindMode} />
           </TabPanel>
           <TabPanel p={5}>
-            <TaskGridTab event={event} refetch={refetch} />
+            <TaskGridTab event={event} refetch={refetch} colorblindMode={colorblindMode} />
           </TabPanel>
           <TabPanel p={5}>
             <BSAdminsTab event={event} refetch={refetch} />

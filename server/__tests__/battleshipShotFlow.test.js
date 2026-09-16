@@ -4,6 +4,7 @@ process.env.NODE_ENV = 'test';
 
 const db = require('../db/models');
 const { Mutation, Query } = require('../schema/resolvers/Battleship');
+const { clearSkipProposal } = require('../utils/battleship/bsSkipProposals');
 
 const suffix = `${process.pid}_${Date.now()}`;
 const eventId = `bs_flow_evt_${suffix}`;
@@ -14,6 +15,7 @@ const targetBoardId = `bs_flow_board_b_${suffix}`;
 const proposer = { id: 'bs-user-1', admin: false, discordUserId: 'bs-discord-1' };
 const teammate = { id: 'bs-user-2', admin: false, discordUserId: 'bs-discord-2' };
 const outsider = { id: 'bs-user-3', admin: false, discordUserId: 'bs-discord-3' };
+const referee = { id: 'bs-ref-1', admin: false, discordUserId: 'bs-ref-discord' };
 const ctx = (user) => ({ user });
 
 beforeAll(async () => {
@@ -24,6 +26,7 @@ beforeAll(async () => {
     status: 'ACTIVE',
     cooldownMinutes: 0,
     voteThreshold: 2,
+    refIds: [referee.id],
   });
   await db.BSTeam.bulkCreate([
     {
@@ -51,6 +54,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  clearSkipProposal(firingTeamId);
   await db.BSShotProposal.destroy({ where: { eventId }, force: true });
   await db.BSShotLog.destroy({ where: { eventId }, force: true });
   await db.BSTile.destroy({ where: { boardId: [firingBoardId, targetBoardId] }, force: true });
@@ -132,4 +136,57 @@ test('the shot-log database constraint rejects a duplicate tile log', async () =
       shotAt: new Date(),
     })
   ).rejects.toThrow();
+});
+
+test('skip consumption requires approval and is atomic under concurrent calls', async () => {
+  const tile = await db.BSTile.findOne({ where: { boardId: targetBoardId, row: 0, col: 2 } });
+  await tile.update({ isShot: true, shotAt: new Date() });
+  await db.BSTeam.update({ skipTokens: 1 }, { where: { teamId: firingTeamId } });
+
+  const proposal = await Mutation.proposeSkipToken(
+    null,
+    { tileId: tile.tileId, firingTeamId },
+    ctx(proposer)
+  );
+  expect(proposal.status).toBe('PENDING');
+  expect(
+    await Query.getActiveBSSkipProposal(null, { teamId: firingTeamId }, ctx(teammate))
+  ).toMatchObject({ proposalId: proposal.proposalId });
+  await expect(
+    Query.getActiveBSSkipProposal(null, { teamId: firingTeamId }, ctx(outsider))
+  ).rejects.toThrow(/team access/i);
+  await expect(Mutation.skipBSTile(null, { tileId: tile.tileId }, ctx(proposer))).rejects.toThrow(
+    /approved skip proposal/i
+  );
+
+  const approved = await Mutation.voteOnSkipProposal(
+    null,
+    { proposalId: proposal.proposalId, approve: true },
+    ctx(teammate)
+  );
+  expect(approved.status).toBe('APPROVED');
+
+  const attempts = await Promise.allSettled([
+    Mutation.skipBSTile(null, { tileId: tile.tileId }, ctx(proposer)),
+    Mutation.skipBSTile(null, { tileId: tile.tileId }, ctx(teammate)),
+  ]);
+  expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+  expect((await db.BSTile.findByPk(tile.tileId)).skipped).toBe(true);
+  expect((await db.BSTeam.findByPk(firingTeamId)).skipTokens).toBe(0);
+});
+
+test('concurrent ref completion resolves the final ship tile and game over once', async () => {
+  const tile = await db.BSTile.findOne({ where: { boardId: targetBoardId, row: 0, col: 1 } });
+  await tile.update({ isShot: true, shipType: 'DESTROYER', cellIndex: 0, shotAt: new Date() });
+
+  const attempts = await Promise.allSettled([
+    Mutation.completeBSTile(null, { tileId: tile.tileId }, ctx(referee)),
+    Mutation.completeBSTile(null, { tileId: tile.tileId }, ctx(referee)),
+  ]);
+  expect(attempts.filter((attempt) => attempt.status === 'fulfilled')).toHaveLength(1);
+  expect(await db.BSTile.findByPk(tile.tileId)).toMatchObject({ taskCompleted: true });
+  expect(await db.BSEvent.findByPk(eventId)).toMatchObject({
+    status: 'COMPLETED',
+    winnerId: firingTeamId,
+  });
 });

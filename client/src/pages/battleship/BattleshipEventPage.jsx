@@ -40,6 +40,7 @@ import {
   GET_BS_SHOT_LOG,
   GET_BS_PROPOSAL_LOG,
   GET_ACTIVE_BS_PROPOSAL,
+  GET_ACTIVE_BS_SKIP_PROPOSAL,
   FIRE_BS,
   PROPOSE_BS_SHOT,
   VOTE_ON_BS_PROPOSAL,
@@ -53,11 +54,13 @@ import {
   BS_SKIP_PROPOSAL_UPDATED,
   BS_GAME_OVER,
   GET_BS_SUBMISSIONS,
+  BS_SUBMISSION_REVIEWED,
 } from '../../graphql/bsOperations';
 import { useToastContext } from '../../providers/ToastProvider';
 import { useAuth } from '../../providers/AuthProvider';
 import usePageTitle from '../../hooks/usePageTitle';
 import useDiscordUsernames from '../../hooks/useBSDiscordUsernames';
+import useBSColorblindMode from '../../hooks/useBSColorblindMode';
 import {
   STATUS_COLOR,
   STATUS_LABEL,
@@ -67,6 +70,7 @@ import {
 } from '../../utils/battleship/bsClientHelpers';
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
+import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 
 // Resolves a single team member: RSN → Discord username → truncated ID.
 function TeamMemberRow({ discordId }) {
@@ -114,17 +118,8 @@ export default function BattleshipEventPage() {
     warmUpBSAudio();
   }, []);
 
-  const [colorblindMode, setColorblindMode] = useState(
-    () => localStorage.getItem('bsColorblindMode') === 'true'
-  );
-
-  const toggleColorblindMode = useCallback(() => {
-    setColorblindMode((v) => {
-      const next = !v;
-      localStorage.setItem('bsColorblindMode', String(next));
-      return next;
-    });
-  }, []);
+  const { colorblindMode, toggleColorblindMode } = useBSColorblindMode();
+  const accessibilityPalette = getBSColorPalette(colorblindMode);
 
   const [showBattleIntro, setShowBattleIntro] = useState(
     () => !localStorage.getItem(getBSBattleIntroKey(eventId))
@@ -282,6 +277,18 @@ export default function BattleshipEventPage() {
     onCompleted: (data) => applyActiveProposal(data?.getActiveBSProposal),
   });
 
+  const { refetch: refetchActiveSkipProposal } = useQuery(GET_ACTIVE_BS_SKIP_PROPOSAL, {
+    variables: { teamId: myTeam?.teamId },
+    skip: !myTeam?.teamId || event?.status !== 'ACTIVE',
+    fetchPolicy: 'network-only',
+    onCompleted: (data) => {
+      const proposal = data?.getActiveBSSkipProposal;
+      setActiveSkipProposal(
+        proposal?.proposalId && !['CLEARED', 'REJECTED'].includes(proposal.status) ? proposal : null
+      );
+    },
+  });
+
   // When the user tabs back, re-sync the proposal state from the server.
   // Also refetch the event so tile state is fresh — this catches the case
   // where the skip proposal was resolved while the tab was hidden and the
@@ -295,11 +302,28 @@ export default function BattleshipEventPage() {
           applyActiveProposal(data?.getActiveBSProposal, { authoritativeClear: true })
         )
         .catch(() => {});
+      refetchActiveSkipProposal({ teamId: myTeam.teamId })
+        .then(({ data }) => {
+          const proposal = data?.getActiveBSSkipProposal;
+          setActiveSkipProposal(
+            proposal?.proposalId && !['CLEARED', 'REJECTED'].includes(proposal.status)
+              ? proposal
+              : null
+          );
+        })
+        .catch(() => {});
       refetchEvent().catch(() => {});
     };
     document.addEventListener('visibilitychange', handler);
     return () => document.removeEventListener('visibilitychange', handler);
-  }, [myTeam?.teamId, event?.status, refetchActiveProposal, applyActiveProposal, refetchEvent]);
+  }, [
+    myTeam?.teamId,
+    event?.status,
+    refetchActiveProposal,
+    refetchActiveSkipProposal,
+    applyActiveProposal,
+    refetchEvent,
+  ]);
 
   // Guard: need at least 2 teams
   const viewingTeam = teams[viewingTeamIndex] ?? null;
@@ -451,7 +475,11 @@ export default function BattleshipEventPage() {
 
   // Same client-side TTL cleanup for skip proposals.
   useEffect(() => {
-    if (!activeSkipProposal?.expiresAt || activeSkipProposal.status !== 'PENDING') return;
+    if (
+      !activeSkipProposal?.expiresAt ||
+      !['PENDING', 'APPROVED'].includes(activeSkipProposal.status)
+    )
+      return;
     const msRemaining = new Date(activeSkipProposal.expiresAt).getTime() - Date.now();
     if (msRemaining <= 0) {
       setActiveSkipProposal(null);
@@ -510,10 +538,7 @@ export default function BattleshipEventPage() {
   // Pending submissions on the active tile. Drives the "Ref review in progress"
   // badge below. Refetched whenever the tile updates so the badge disappears
   // as soon as a ref approves/denies.
-  const {
-    data: pendingSubsData,
-    refetch: refetchPendingSubs,
-  } = useQuery(GET_BS_SUBMISSIONS, {
+  const { data: pendingSubsData, refetch: refetchPendingSubs } = useQuery(GET_BS_SUBMISSIONS, {
     variables: { eventId, status: 'PENDING', tileId: pendingTask?.tileId ?? '' },
     skip: !eventId || !pendingTask?.tileId,
     fetchPolicy: 'cache-and-network',
@@ -522,6 +547,30 @@ export default function BattleshipEventPage() {
   useEffect(() => {
     if (pendingTask?.tileId) refetchPendingSubs();
   }, [pendingTask?.tileId, pendingTask?.progress, pendingTask?.taskCompleted, refetchPendingSubs]);
+
+  // Submission review does not necessarily mutate the tile (a denial in
+  // particular leaves it untouched), so tile subscriptions alone cannot keep
+  // the "Ref review in progress" badge accurate.
+  useSubscription(BS_SUBMISSION_REVIEWED, {
+    variables: { eventId },
+    skip: !eventId || !myTeam || !pendingTask?.tileId,
+    onData: () => refetchPendingSubs(),
+  });
+
+  // Subscription messages are not replayed after a disconnected/backgrounded
+  // WebSocket. Reconcile the pending-submission badge whenever the tab returns.
+  useEffect(() => {
+    if (!pendingTask?.tileId) return undefined;
+    const recoverPendingSubmissions = () => {
+      if (document.visibilityState === 'visible') refetchPendingSubs().catch(() => {});
+    };
+    window.addEventListener('focus', recoverPendingSubmissions);
+    document.addEventListener('visibilitychange', recoverPendingSubmissions);
+    return () => {
+      window.removeEventListener('focus', recoverPendingSubmissions);
+      document.removeEventListener('visibilitychange', recoverPendingSubmissions);
+    };
+  }, [pendingTask?.tileId, refetchPendingSubs]);
 
   // Radar pulse on the opponent's board at the active task tile
   const opponentPendingTile = pendingTask ?? null;
@@ -742,7 +791,12 @@ export default function BattleshipEventPage() {
             </Text>
           )}
           {!cooldownLabel && event.status === 'ACTIVE' && (
-            <Text fontFamily="mono" fontSize="xs" color="green.400" letterSpacing="wide">
+            <Text
+              fontFamily="mono"
+              fontSize="xs"
+              color={accessibilityPalette.positive}
+              letterSpacing="wide"
+            >
               Ready to fire
             </Text>
           )}
@@ -835,35 +889,27 @@ export default function BattleshipEventPage() {
                   {event.eventName}
                 </Text>
               </VStack>
-              <Box
-                bg="#091a10"
-                border="1px solid"
-                borderColor="#1a4028"
-                borderRadius="md"
-                p={5}
-              >
+              <Box bg="#091a10" border="1px solid" borderColor="#1a4028" borderRadius="md" p={5}>
                 <VStack align="stretch" spacing={3}>
                   <Text fontSize="sm" color="#d4f0da" lineHeight="1.7">
-                    The admin is finalizing setup. When the placement phase
-                    opens you'll see the ship-placement workshop here and
-                    Discord will announce the start in your team channel.
+                    The admin is finalizing setup. When the placement phase opens you'll see the
+                    ship-placement workshop here and Discord will announce the start in your team
+                    channel.
                   </Text>
                   {myTeam && (
                     <Text fontSize="sm" color="#6b9e78">
-                      You're on team{' '}
-                      <strong style={{ color: '#d4f0da' }}>{myTeam.teamName}</strong>.
+                      You're on team <strong style={{ color: '#d4f0da' }}>{myTeam.teamName}</strong>
+                      .
                     </Text>
                   )}
                   {scheduled && !Number.isNaN(scheduled.getTime()) && (
                     <Text fontSize="sm" color="#4ade80">
-                      Scheduled to launch at{' '}
-                      <strong>{scheduled.toLocaleString()}</strong>.
+                      Scheduled to launch at <strong>{scheduled.toLocaleString()}</strong>.
                     </Text>
                   )}
                   <Text fontSize="xs" color="#6b9e78" lineHeight="1.7">
-                    Make sure your Discord account is linked on your OSRS Bingo
-                    Hub profile so you can propose, vote, and submit tasks once
-                    the battle starts.
+                    Make sure your Discord account is linked on your OSRS Bingo Hub profile so you
+                    can propose, vote, and submit tasks once the battle starts.
                   </Text>
                 </VStack>
               </Box>
@@ -898,7 +944,11 @@ export default function BattleshipEventPage() {
                 {event.eventName}
               </Text>
             </VStack>
-            <BSEventDraftAdmin event={event} refetch={refetchEvent} />
+            <BSEventDraftAdmin
+              event={event}
+              refetch={refetchEvent}
+              colorblindMode={colorblindMode}
+            />
           </VStack>
         </Box>
       </Box>
@@ -928,7 +978,7 @@ export default function BattleshipEventPage() {
     return (
       <Box flex="1" minH="100vh" bg="#060f0a">
         {topBar}
-        <BSGameOverScreen event={event} shotLog={shotLog} />
+        <BSGameOverScreen event={event} shotLog={shotLog} colorblindMode={colorblindMode} />
       </Box>
     );
   }
@@ -938,7 +988,12 @@ export default function BattleshipEventPage() {
   if (isSpectator) {
     return (
       <>
-        <BSSpectatorView event={event} refetch={refetchEvent} colorblindMode={colorblindMode} />
+        <BSSpectatorView
+          event={event}
+          refetch={refetchEvent}
+          colorblindMode={colorblindMode}
+          onToggleColorblindMode={toggleColorblindMode}
+        />
         {participantSetupModal}
       </>
     );
@@ -967,6 +1022,7 @@ export default function BattleshipEventPage() {
             team={team}
             cooldownMinutes={event.cooldownMinutes}
             isViewing={i === viewingTeamIndex}
+            colorblindMode={colorblindMode}
           />
         );
       })}
@@ -1082,15 +1138,15 @@ export default function BattleshipEventPage() {
                     ? colorblindMode
                       ? '#fbbf24'
                       : '#f87171'
-                    : '#4ade80'
-                  : '#4ade80';
+                    : accessibilityPalette.positive
+                  : accessibilityPalette.positive;
                 const borderColor = pendingTask
                   ? isShipTask
                     ? colorblindMode
                       ? '#78350f'
                       : '#2d0a0a'
-                    : '#1a4028'
-                  : '#1a4028';
+                    : accessibilityPalette.positiveBorder
+                  : accessibilityPalette.positiveBorder;
 
                 // Alert-light state: red while on a task, yellow while a vote is
                 // pending or the cooldown is active, green when the team is free
@@ -1104,10 +1160,18 @@ export default function BattleshipEventPage() {
                   : 'READY';
                 const YELLOW = { core: '#facc15', glow: 'rgba(250,204,21,0.7)' };
                 const alertPalette = {
-                  RED: { core: '#f87171', glow: 'rgba(248,113,113,0.7)', label: 'ON TASK' },
+                  RED: {
+                    core: accessibilityPalette.negative,
+                    glow: colorblindMode ? 'rgba(251,146,60,0.7)' : 'rgba(248,113,113,0.7)',
+                    label: 'ON TASK',
+                  },
                   VOTING: { ...YELLOW, label: 'VOTING' },
                   COOLDOWN: { ...YELLOW, label: 'COOLDOWN' },
-                  READY: { core: '#4ade80', glow: 'rgba(74,222,128,0.7)', label: 'READY' },
+                  READY: {
+                    core: accessibilityPalette.positive,
+                    glow: colorblindMode ? 'rgba(96,165,250,0.7)' : 'rgba(74,222,128,0.7)',
+                    label: 'READY',
+                  },
                 }[alertState];
 
                 return (
@@ -1298,14 +1362,14 @@ export default function BattleshipEventPage() {
                           preScheme: 'red',
                         }
                     : {
-                        accent: '#4ade80',
-                        accentBright: '#4ade80',
+                        accent: accessibilityPalette.positive,
+                        accentBright: accessibilityPalette.positive,
                         muted: '#3d6b4a',
                         dark: '#1a4028',
-                        border: '#22c55e',
+                        border: accessibilityPalette.positive,
                         bg: '#060f0a',
                         cmdBg: '#091a10',
-                        submitScheme: 'green',
+                        submitScheme: accessibilityPalette.positiveScheme,
                         preScheme: 'cyan',
                       };
 
@@ -1332,7 +1396,8 @@ export default function BattleshipEventPage() {
                           </Text>
                         </HStack>
                         <HStack spacing={1}>
-                          {(hasPendingSubmission || (progress >= 100 && !pendingTask.taskCompleted)) && (
+                          {(hasPendingSubmission ||
+                            (progress >= 100 && !pendingTask.taskCompleted)) && (
                             <Badge
                               colorScheme="yellow"
                               fontSize="9px"
@@ -1568,7 +1633,12 @@ export default function BattleshipEventPage() {
                       {[...shotLog]
                         .sort((a, b) => new Date(b.shotAt) - new Date(a.shotAt))
                         .map((shot) => (
-                          <ShotLogEntry key={shot.shotId} shot={shot} teams={teams} />
+                          <ShotLogEntry
+                            key={shot.shotId}
+                            shot={shot}
+                            teams={teams}
+                            colorblindMode={colorblindMode}
+                          />
                         ))}
                     </VStack>
                   )}
@@ -1582,6 +1652,7 @@ export default function BattleshipEventPage() {
                 teams={teams}
                 teamFilter={isAdminOrRef ? null : myTeam?.teamId ?? null}
                 nameForDiscordId={proposalLogNameForId}
+                colorblindMode={colorblindMode}
               />
             </VStack>
           </Box>

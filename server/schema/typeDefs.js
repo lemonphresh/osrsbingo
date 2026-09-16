@@ -42,6 +42,18 @@ const typeDefs = gql`
     message: String!
   }
 
+  enum UserListFilter {
+    ALL
+    DISCORD_LINKED
+    NOT_LINKED
+    ADMINS
+  }
+
+  type PagedUsers {
+    users: [User!]!
+    total: Int!
+  }
+
   # ============================================================
   # BINGO BOARDS
   # ============================================================
@@ -917,6 +929,13 @@ const typeDefs = gql`
     # --- Users ---
     getUser(id: ID!): User
     getUsers: [User!]
+    getUsersPaged(
+      limit: Int = 50
+      offset: Int = 0
+      search: String
+      filter: UserListFilter = ALL
+    ): PagedUsers!
+    getUsersByDiscordIds(discordUserIds: [ID!]!): [User!]!
     getUserByDiscordId(discordUserId: String!): User
     searchUsers(search: String!): [User]
     searchUsersByIds(ids: [ID!]): [User]
@@ -1035,6 +1054,7 @@ const typeDefs = gql`
     getBSViewerCount(eventId: ID!): Int!
     getBSSubmissions(eventId: ID!, status: BSSubmissionStatus, tileId: ID): [BSSubmission!]!
     getActiveBSProposal(teamId: ID!): BSProposal
+    getActiveBSSkipProposal(teamId: ID!): BSSkipProposal
     getBSPlacementSuggestions(teamId: ID!): [BSPlacementSuggestion!]!
     exportBSDraftWorkbook(eventId: ID!): BSDraftWorkbookFile!
 

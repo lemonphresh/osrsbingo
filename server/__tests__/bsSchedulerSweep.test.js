@@ -20,6 +20,7 @@ jest.mock('../utils/battleship/bsProposals', () => ({
 jest.mock('../utils/battleship/bsSkipProposals', () => ({
   sweepExpiredSkipProposals: jest.fn(() => []),
   clearedSkipProposal: jest.fn(),
+  getSkipProposal: jest.fn(),
 }));
 jest.mock('../utils/battleship/bsProposalLog', () => ({
   logProposalOutcome: jest.fn(),
@@ -35,6 +36,11 @@ const {
   clearedProposal,
 } = require('../utils/battleship/bsProposals');
 const { pubsub } = require('../schema/pubsub');
+const {
+  sweepExpiredSkipProposals,
+  getSkipProposal: getSkipProposalState,
+  clearedSkipProposal: clearedSkipProposalState,
+} = require('../utils/battleship/bsSkipProposals');
 const { sweepProposals } = require('../utils/battleship/bsScheduler');
 
 beforeEach(() => {
@@ -78,10 +84,7 @@ test('does not publish CLEARED when a fresh proposal has replaced the swept row'
   expect(pubsub.publish).toHaveBeenCalledWith('BS_PROPOSAL_team-b', {
     bsProposalUpdated: expect.objectContaining({ proposalId: 'prop-old-b' }),
   });
-  expect(pubsub.publish).not.toHaveBeenCalledWith(
-    'BS_PROPOSAL_team-a',
-    expect.anything()
-  );
+  expect(pubsub.publish).not.toHaveBeenCalledWith('BS_PROPOSAL_team-a', expect.anything());
 });
 
 test('does nothing when there are no expired proposals to sweep', async () => {
@@ -91,4 +94,21 @@ test('does nothing when there are no expired proposals to sweep', async () => {
 
   expect(getProposal).not.toHaveBeenCalled();
   expect(pubsub.publish).not.toHaveBeenCalled();
+});
+
+test('does not clear a fresh skip proposal that replaced an expired one', async () => {
+  sweepExpiredProposals.mockResolvedValueOnce([]);
+  sweepExpiredSkipProposals.mockReturnValueOnce([
+    { teamId: 'team-a', proposalId: 'skip-old', status: 'PENDING' },
+  ]);
+  getSkipProposalState.mockReturnValueOnce({
+    teamId: 'team-a',
+    proposalId: 'skip-fresh',
+    status: 'PENDING',
+  });
+
+  await sweepProposals();
+
+  expect(clearedSkipProposalState).not.toHaveBeenCalled();
+  expect(pubsub.publish).not.toHaveBeenCalledWith('BS_SKIP_PROPOSAL_team-a', expect.anything());
 });

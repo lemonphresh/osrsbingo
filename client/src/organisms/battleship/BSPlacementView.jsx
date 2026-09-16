@@ -33,10 +33,12 @@ import { BSPlacementIntroModal, getBSPlacementIntroKey } from './BSPlacementIntr
 import {
   SHIP_CONFIGS,
   SHIP_COLORS,
+  SHIP_COLORS_COLORBLIND,
   COL_LABELS,
   getShipCells,
   isValidPlacement,
 } from '../../utils/battleship/bsClientHelpers';
+import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 
 // ── Workshop state (localStorage) ──────────────────────────────────────────
 // Each user has one workshop layout per event. Persisted so a refresh doesn't
@@ -45,7 +47,7 @@ import {
 // to the ship list. Complements the big flip-clock at the top of the page
 // which drops out of view once the player starts placing ships. Color gets
 // louder as the deadline approaches so a distracted player notices.
-function PlacementDeadlineHint({ event }) {
+function PlacementDeadlineHint({ event, colorblindMode = false }) {
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 15_000);
@@ -61,9 +63,17 @@ function PlacementDeadlineHint({ event }) {
 
   const ms = endTime - now;
   if (ms <= 0) {
+    const palette = getBSColorPalette(colorblindMode);
     return (
-      <Box bg="#1a0a0a" border="1px solid" borderColor="#7f1d1d" borderRadius="md" px={3} py={2}>
-        <Text fontFamily="mono" fontSize="10px" color="#fca5a5" letterSpacing="wide">
+      <Box
+        bg={palette.negativeDark}
+        border="1px solid"
+        borderColor={palette.negativeBorder}
+        borderRadius="md"
+        px={3}
+        py={2}
+      >
+        <Text fontFamily="mono" fontSize="10px" color={palette.negativeBright} letterSpacing="wide">
           ⏰ Placement window closed
         </Text>
       </Box>
@@ -77,9 +87,10 @@ function PlacementDeadlineHint({ event }) {
 
   const urgent = ms <= 60 * 60 * 1000; // < 1h
   const soon = !urgent && ms <= 3 * 60 * 60 * 1000; // < 3h
-  const color = urgent ? '#fca5a5' : soon ? '#fbbf24' : '#4ade80';
-  const bg = urgent ? '#1a0a0a' : soon ? '#1a1400' : '#060f0a';
-  const border = urgent ? '#7f1d1d' : soon ? '#78350f' : '#1a4028';
+  const palette = getBSColorPalette(colorblindMode);
+  const color = urgent ? palette.negativeBright : soon ? '#fbbf24' : palette.positive;
+  const bg = urgent ? palette.negativeDark : soon ? '#1a1400' : '#060f0a';
+  const border = urgent ? palette.negativeBorder : soon ? '#78350f' : palette.positiveBorder;
 
   return (
     <Box bg={bg} border="1px solid" borderColor={border} borderRadius="md" px={3} py={2}>
@@ -120,6 +131,7 @@ function saveWorkshop(eventId, discordUserId, ships) {
 
 // ── Tiny board preview for the suggestions gallery ─────────────────────────
 export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
+  const shipColors = colorblindMode ? SHIP_COLORS_COLORBLIND : SHIP_COLORS;
   const cellMap = new Map();
   for (const p of ships ?? []) {
     for (const c of getShipCells(p.shipType, p.orientation, p.startRow, p.startCol)) {
@@ -141,7 +153,7 @@ export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
             {Array.from({ length: 10 }, (_, col) => {
               const key = `${row}-${col}`;
               const shipType = cellMap.get(key);
-              const color = shipType ? SHIP_COLORS[shipType] : null;
+              const color = shipType ? shipColors[shipType] : null;
               return (
                 <Box
                   key={col}
@@ -163,7 +175,8 @@ export function BSPlacementMiniBoard({ ships, colorblindMode = false }) {
 // ── Team participation footer ──────────────────────────────────────────────
 // Shows the team's roster with icons indicating who has shared a suggestion
 // and who has cast a vote. Includes a small legend below.
-function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
+function TeamParticipationFooter({ team, suggestions, myDiscordId, colorblindMode = false }) {
+  const voteColor = colorblindMode ? '#a78bfa' : '#4ade80';
   const members = team?.members ?? [];
   const resolved = useDiscordUsernames(members);
 
@@ -194,7 +207,7 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
             <Text>Shared a suggestion</Text>
           </HStack>
           <HStack spacing={1}>
-            <Box w="8px" h="8px" borderRadius="full" bg="#4ade80" />
+            <Box w="8px" h="8px" borderRadius="full" bg={voteColor} />
             <Text>Cast a vote</Text>
           </HStack>
           <HStack spacing={1}>
@@ -234,7 +247,7 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
                   w="8px"
                   h="8px"
                   borderRadius="full"
-                  bg={voted ? '#4ade80' : '#3d6b4a'}
+                  bg={voted ? voteColor : '#3d6b4a'}
                   opacity={voted ? 1 : 0.35}
                   title={voted ? 'Cast a vote' : 'Has not voted'}
                 />
@@ -260,7 +273,7 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId }) {
                 )}
                 {voted && (
                   <Badge
-                    colorScheme="green"
+                    colorScheme={colorblindMode ? 'purple' : 'green'}
                     fontSize="9px"
                     letterSpacing="wider"
                     textTransform="uppercase"
@@ -282,6 +295,8 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   // RED-team dot) for amber/orange to stay distinguishable from ship colors.
   const invalidColor = colorblindMode ? '#f59e0b' : '#ef4444';
   const redTeamDot = colorblindMode ? '#fb923c' : '#f87171';
+  const shipColors = colorblindMode ? SHIP_COLORS_COLORBLIND : SHIP_COLORS;
+  const semanticColors = getBSColorPalette(colorblindMode);
   const { showToast } = useToastContext();
   const teams = event.teams ?? [];
 
@@ -393,6 +408,23 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
     () => suggestionsData?.getBSPlacementSuggestions ?? [],
     [suggestionsData]
   );
+
+  // PubSub frames are intentionally ephemeral. If the browser suspended its
+  // socket in the background, recover both the lifecycle transition and the
+  // latest team votes as soon as the player returns.
+  useEffect(() => {
+    const recoverPlacementState = () => {
+      if (document.visibilityState !== 'visible') return;
+      refetch?.().catch(() => {});
+      if (teamId) refetchSuggestions().catch(() => {});
+    };
+    window.addEventListener('focus', recoverPlacementState);
+    document.addEventListener('visibilitychange', recoverPlacementState);
+    return () => {
+      window.removeEventListener('focus', recoverPlacementState);
+      document.removeEventListener('visibilitychange', recoverPlacementState);
+    };
+  }, [refetch, refetchSuggestions, teamId]);
 
   const [shareSuggestion, { loading: sharing }] = useMutation(SHARE_BS_PLACEMENT_SUGGESTION, {
     onError: (err) => showToast(err.message ?? 'Failed to share suggestion.', 'error'),
@@ -775,8 +807,8 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                     const inPreview = previewCells.has(key);
                     const isHistoryHighlight =
                       hoveredHistoryShip && shipType === hoveredHistoryShip;
-                    const shipColor = shipType ? SHIP_COLORS[shipType] : null;
-                    const previewColor = previewValid ? SHIP_COLORS[selectedShip] : invalidColor;
+                    const shipColor = shipType ? shipColors[shipType] : null;
+                    const previewColor = previewValid ? shipColors[selectedShip] : invalidColor;
                     return (
                       <Box
                         key={col}
@@ -839,7 +871,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
               {/* Deadline reminder — the flip-clock countdown lives at the top
                   of the page, but by the time the player is placing ships and
                   scrolling the ship list they've usually scrolled past it. */}
-              <PlacementDeadlineHint event={event} />
+              <PlacementDeadlineHint event={event} colorblindMode={colorblindMode} />
               <Box>
                 <Text
                   fontFamily="mono"
@@ -888,7 +920,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                   {SHIP_CONFIGS.map(({ shipType, label, cells }) => {
                     const isPlaced = placedShipTypes.has(shipType);
                     const isSelected = selectedShip === shipType;
-                    const color = SHIP_COLORS[shipType];
+                    const color = shipColors[shipType];
                     return (
                       <Box
                         key={shipType}
@@ -921,7 +953,11 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                             </Text>
                           </HStack>
                           {isPlaced && (
-                            <Badge colorScheme="green" fontSize="9px" letterSpacing="wider">
+                            <Badge
+                              colorScheme={semanticColors.positiveScheme}
+                              fontSize="9px"
+                              letterSpacing="wider"
+                            >
                               placed
                             </Badge>
                           )}
@@ -936,8 +972,8 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
               <VStack align="stretch" spacing={2}>
                 <Button
                   size="sm"
-                  colorScheme="green"
-                  bg="#22c55e"
+                  colorScheme={semanticColors.positiveScheme}
+                  bg={semanticColors.positive}
                   color="#060f0a"
                   fontFamily="mono"
                   fontSize="xs"
@@ -945,7 +981,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                   textTransform="uppercase"
                   isLoading={sharing}
                   isDisabled={!workshopComplete}
-                  _hover={{ bg: '#4ade80' }}
+                  _hover={{ bg: semanticColors.positive }}
                   _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
                   onClick={handleShare}
                 >
@@ -963,7 +999,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                     color="#6b9e78"
                     fontFamily="mono"
                     fontSize="10px"
-                    _hover={{ color: '#f87171', bg: 'transparent' }}
+                    _hover={{ color: semanticColors.negative, bg: 'transparent' }}
                     onClick={() => setConfirmClearWorkshop(true)}
                   >
                     Clear Workshop
@@ -973,7 +1009,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                   <HStack spacing={2} justify="center">
                     <Button
                       size="xs"
-                      colorScheme="red"
+                      colorScheme={semanticColors.negativeScheme}
                       fontFamily="mono"
                       fontSize="10px"
                       onClick={handleClearWorkshop}
@@ -1046,13 +1082,22 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                       key={s.suggestionId}
                       bg="#091a10"
                       border="1px solid"
-                      borderColor={iVoted ? '#22c55e' : isMine ? '#4ade8055' : '#1a4028'}
+                      borderColor={
+                        iVoted
+                          ? semanticColors.positive
+                          : isMine
+                          ? `${semanticColors.positive}55`
+                          : '#1a4028'
+                      }
                       borderRadius="md"
                       p={3}
-                      boxShadow={iVoted ? '0 0 0 1px #22c55e33' : undefined}
+                      boxShadow={iVoted ? `0 0 0 1px ${semanticColors.positive}33` : undefined}
                     >
                       <HStack align="flex-start" spacing={3} flexWrap="wrap">
-                        <BSPlacementMiniBoard ships={s.ships ?? []} />
+                        <BSPlacementMiniBoard
+                          ships={s.ships ?? []}
+                          colorblindMode={colorblindMode}
+                        />
                         <VStack align="stretch" spacing={2} flex="1" minW="140px">
                           <HStack justify="space-between" spacing={2} flexWrap="wrap">
                             <Text
@@ -1069,7 +1114,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                             <HStack spacing={1} flexWrap="wrap" justify="flex-end">
                               {isMine && isSoloTeam && (
                                 <Badge
-                                  colorScheme="green"
+                                  colorScheme={semanticColors.positiveScheme}
                                   fontSize="9px"
                                   letterSpacing="widest"
                                   textTransform="uppercase"
@@ -1079,7 +1124,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                               )}
                               {iVoted && !isSoloTeam && (
                                 <Badge
-                                  colorScheme="green"
+                                  colorScheme={semanticColors.positiveScheme}
                                   fontSize="9px"
                                   letterSpacing="widest"
                                   textTransform="uppercase"
@@ -1096,14 +1141,14 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                             <Button
                               size="xs"
                               variant={iVoted ? 'solid' : 'outline'}
-                              colorScheme={iVoted ? 'green' : 'gray'}
+                              colorScheme={iVoted ? semanticColors.positiveScheme : 'gray'}
                               borderColor="#1a4028"
-                              color={iVoted ? '#060f0a' : '#4ade80'}
+                              color={iVoted ? '#060f0a' : semanticColors.positive}
                               fontFamily="mono"
                               fontSize="10px"
                               letterSpacing="wider"
                               textTransform="uppercase"
-                              _hover={{ borderColor: '#4ade80' }}
+                              _hover={{ borderColor: semanticColors.positive }}
                               onClick={() => handleVote(s.suggestionId)}
                             >
                               {iVoted ? 'Remove Vote' : 'Vote'}
@@ -1112,11 +1157,11 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                               <Button
                                 size="xs"
                                 variant="ghost"
-                                color="#f87171"
+                                color={semanticColors.negative}
                                 fontFamily="mono"
                                 fontSize="10px"
                                 letterSpacing="wider"
-                                _hover={{ color: '#ef4444', bg: 'transparent' }}
+                                _hover={{ color: semanticColors.negativeBright, bg: 'transparent' }}
                                 onClick={handleDeleteMine}
                               >
                                 Delete
@@ -1138,6 +1183,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
           team={myTeam}
           suggestions={suggestions}
           myDiscordId={myDiscordId}
+          colorblindMode={colorblindMode}
         />
       </Box>
 

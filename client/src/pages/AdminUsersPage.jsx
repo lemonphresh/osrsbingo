@@ -1,26 +1,40 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Avatar,
   Badge,
   Box,
+  Button,
+  Divider,
   Flex,
   HStack,
   IconButton,
   Input,
   Spinner,
   Text,
+  Textarea,
   Tooltip,
   useToast,
   VStack,
 } from '@chakra-ui/react';
 import { CheckIcon, CloseIcon, CopyIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQuery } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
 import { debounce } from 'lodash';
 import { useAuth } from '../providers/AuthProvider';
-import { GET_USERS } from '../graphql/queries';
+import {
+  GET_USERS_PAGED,
+  GET_USERS_BY_DISCORD_IDS,
+} from '../graphql/queries';
 import { DELETE_USER } from '../graphql/mutations';
 import usePageTitle from '../hooks/usePageTitle';
+
+const PAGE_SIZE = 50;
+const FILTERS = [
+  { key: 'ALL', label: 'All' },
+  { key: 'DISCORD_LINKED', label: 'Discord Linked' },
+  { key: 'NOT_LINKED', label: 'Not Linked' },
+  { key: 'ADMINS', label: 'Admins' },
+];
 
 // ── Copy button ───────────────────────────────────────────────────────────────
 
@@ -65,9 +79,21 @@ function formatDate(iso) {
   });
 }
 
-// ── Filter tabs ───────────────────────────────────────────────────────────────
+// Splits a textarea blob into unique, trimmed IDs. Accepts newlines, commas,
+// spaces, or tabs as separators — pasting from spreadsheets or Discord admin
+// tools tends to produce any of those.
+function parseDiscordIds(text) {
+  return Array.from(
+    new Set(
+      String(text || '')
+        .split(/[\s,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );
+}
 
-const FILTERS = ['All', 'Discord Linked', 'Not Linked', 'Admins'];
+// ── Filter tab ────────────────────────────────────────────────────────────────
 
 function FilterTab({ label, active, count, onClick }) {
   return (
@@ -122,15 +148,8 @@ function UserRow({ u, onDelete, isCurrentUser }) {
       borderColor="gray.700"
       wrap="wrap"
     >
-      {/* Avatar */}
-      <Avatar
-        size="sm"
-        src={avatarSrc}
-        name={u.discordUsername || u.username}
-        bg="purple.600"
-      />
+      <Avatar size="sm" src={avatarSrc} name={u.discordUsername || u.username} bg="purple.600" />
 
-      {/* Identity */}
       <Box flex="1" minW="140px">
         <HStack spacing={2} wrap="wrap">
           <Text fontWeight="semibold" color="white" fontSize="sm">
@@ -155,7 +174,6 @@ function UserRow({ u, onDelete, isCurrentUser }) {
         </HStack>
       </Box>
 
-      {/* RSN */}
       {u.rsn && (
         <Box minW="80px">
           <Text color="gray.500" fontSize="xs">
@@ -167,7 +185,6 @@ function UserRow({ u, onDelete, isCurrentUser }) {
         </Box>
       )}
 
-      {/* Discord */}
       <Box minW="160px">
         {isLinked ? (
           <>
@@ -191,7 +208,6 @@ function UserRow({ u, onDelete, isCurrentUser }) {
         )}
       </Box>
 
-      {/* Joined */}
       <Box minW="90px" textAlign="right">
         <Text color="gray.500" fontSize="xs">
           Joined
@@ -201,8 +217,7 @@ function UserRow({ u, onDelete, isCurrentUser }) {
         </Text>
       </Box>
 
-      {/* Delete */}
-      {!isCurrentUser && (
+      {onDelete && !isCurrentUser && (
         <Box>
           {confirming ? (
             <HStack spacing={1}>
@@ -214,7 +229,10 @@ function UserRow({ u, onDelete, isCurrentUser }) {
                   size="xs"
                   icon={<CheckIcon />}
                   colorScheme="red"
-                  onClick={() => { setConfirming(false); onDelete(u.id); }}
+                  onClick={() => {
+                    setConfirming(false);
+                    onDelete(u.id);
+                  }}
                   aria-label="Confirm delete"
                 />
               </Tooltip>
@@ -247,25 +265,133 @@ function UserRow({ u, onDelete, isCurrentUser }) {
   );
 }
 
+// ── Bulk lookup ───────────────────────────────────────────────────────────────
+
+function BulkLookupPanel() {
+  const [text, setText] = useState('');
+  const [runQuery, { data, loading, error, called }] = useLazyQuery(GET_USERS_BY_DISCORD_IDS, {
+    fetchPolicy: 'network-only',
+  });
+
+  const requestedIds = useMemo(() => parseDiscordIds(text), [text]);
+  const found = useMemo(() => data?.getUsersByDiscordIds ?? [], [data]);
+  const foundIdSet = useMemo(() => new Set(found.map((u) => u.discordUserId)), [found]);
+  const missingIds = useMemo(
+    () => (called ? requestedIds.filter((id) => !foundIdSet.has(id)) : []),
+    [requestedIds, foundIdSet, called]
+  );
+
+  const handleLookup = () => {
+    if (!requestedIds.length) return;
+    runQuery({ variables: { discordUserIds: requestedIds } });
+  };
+
+  return (
+    <Box bg="gray.900" border="1px solid" borderColor="gray.700" borderRadius="md" p={4} mb={6}>
+      <Text fontSize="sm" fontWeight="semibold" color="white" mb={1}>
+        Bulk lookup by Discord ID
+      </Text>
+      <Text color="gray.400" fontSize="xs" mb={3}>
+        Paste one or more Discord user IDs (newline, comma, or space separated). Site users matching
+        those IDs will be listed below; any IDs without a matching account are called out.
+      </Text>
+      <Textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="221415080514945035&#10;123456789012345678&#10;..."
+        size="sm"
+        rows={4}
+        bg="gray.800"
+        borderColor="gray.600"
+        color="white"
+        fontFamily="mono"
+        _placeholder={{ color: 'gray.600' }}
+        mb={3}
+      />
+      <HStack>
+        <Button
+          size="sm"
+          colorScheme="purple"
+          onClick={handleLookup}
+          isLoading={loading}
+          isDisabled={!requestedIds.length}
+        >
+          Look up {requestedIds.length || ''} ID{requestedIds.length === 1 ? '' : 's'}
+        </Button>
+        {called && (
+          <Button
+            size="sm"
+            variant="ghost"
+            color="gray.400"
+            onClick={() => setText('')}
+          >
+            Clear
+          </Button>
+        )}
+      </HStack>
+
+      {error && (
+        <Text color="red.400" mt={3} fontSize="sm">
+          Lookup failed: {error.message}
+        </Text>
+      )}
+
+      {called && !loading && !error && (
+        <VStack align="stretch" spacing={2} mt={4}>
+          <Text color="gray.400" fontSize="xs">
+            Matched {found.length} of {requestedIds.length}
+          </Text>
+          {found.map((u) => (
+            <UserRow key={u.id} u={u} />
+          ))}
+          {missingIds.length > 0 && (
+            <Box
+              mt={2}
+              p={3}
+              bg="gray.800"
+              border="1px dashed"
+              borderColor="gray.600"
+              borderRadius="md"
+            >
+              <Text color="yellow.400" fontSize="xs" fontWeight="semibold" mb={1}>
+                No account for {missingIds.length} ID{missingIds.length === 1 ? '' : 's'}
+              </Text>
+              <Text color="gray.400" fontSize="xs" fontFamily="mono" wordBreak="break-all">
+                {missingIds.join(', ')}
+              </Text>
+            </Box>
+          )}
+        </VStack>
+      )}
+    </Box>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 const AdminUsersPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('ALL');
 
   usePageTitle('Users (Admin)');
 
   useEffect(() => {
-    if (user?.admin === false) {
-      navigate('/');
-    }
+    if (user?.admin === false) navigate('/');
   }, [navigate, user]);
 
-  const { data, loading, error } = useQuery(GET_USERS, { skip: !user?.admin });
+  // First page — cache-and-network so revisits render from cache immediately
+  // while a fresh fetch runs in the background.
+  const { data, loading, error, fetchMore } = useQuery(GET_USERS_PAGED, {
+    variables: { limit: PAGE_SIZE, offset: 0, search: debouncedSearch, filter: activeFilter },
+    skip: !user?.admin,
+    fetchPolicy: 'cache-and-network',
+    notifyOnNetworkStatusChange: true,
+  });
 
   const [deleteUser] = useMutation(DELETE_USER);
 
@@ -274,14 +400,30 @@ const AdminUsersPage = () => {
       await deleteUser({
         variables: { id },
         update(cache) {
-          cache.updateQuery({ query: GET_USERS }, (existing) =>
-            existing ? { getUsers: existing.getUsers.filter((u) => u.id !== id) } : existing
-          );
+          // Evict the deleted user from every getUsersPaged cache entry so the
+          // list reflects the delete without a full refetch. The paged type is
+          // a plain object (no id), so we surgically rewrite each shape.
+          cache.modify({
+            fields: {
+              getUsersPaged(existing = {}, { readField }) {
+                if (!existing.users) return existing;
+                const nextUsers = existing.users.filter((ref) => readField('id', ref) !== id);
+                if (nextUsers.length === existing.users.length) return existing;
+                return { ...existing, users: nextUsers, total: Math.max(0, (existing.total ?? 1) - 1) };
+              },
+            },
+          });
         },
       });
       toast({ title: 'User deleted', status: 'success', duration: 3000, isClosable: true });
     } catch (err) {
-      toast({ title: 'Delete failed', description: err.message, status: 'error', duration: 4000, isClosable: true });
+      toast({
+        title: 'Delete failed',
+        description: err.message,
+        status: 'error',
+        duration: 4000,
+        isClosable: true,
+      });
     }
   };
 
@@ -296,40 +438,44 @@ const AdminUsersPage = () => {
     debounceSearch(e.target.value);
   };
 
-  const users = data?.getUsers ?? [];
+  const users = data?.getUsersPaged?.users ?? [];
+  const total = data?.getUsersPaged?.total ?? 0;
+  const hasMore = users.length < total;
 
-  const filterCounts = useMemo(
-    () => ({
-      All: users.length,
-      'Discord Linked': users.filter((u) => u.discordUserId).length,
-      'Not Linked': users.filter((u) => !u.discordUserId).length,
-      Admins: users.filter((u) => u.admin).length,
-    }),
-    [users]
-  );
-
-  const filtered = useMemo(() => {
-    let list = users;
-
-    if (activeFilter === 'Discord Linked') list = list.filter((u) => u.discordUserId);
-    else if (activeFilter === 'Not Linked') list = list.filter((u) => !u.discordUserId);
-    else if (activeFilter === 'Admins') list = list.filter((u) => u.admin);
-
-    if (debouncedSearch.trim()) {
-      const q = debouncedSearch.toLowerCase();
-      list = list.filter(
-        (u) =>
-          u.username?.toLowerCase().includes(q) ||
-          u.displayName?.toLowerCase().includes(q) ||
-          u.discordUsername?.toLowerCase().includes(q) ||
-          u.rsn?.toLowerCase().includes(q) ||
-          String(u.id) === q ||
-          u.discordUserId?.includes(q)
-      );
-    }
-
-    return list;
-  }, [users, activeFilter, debouncedSearch]);
+  // Infinite scroll — trip `fetchMore` when a sentinel Div at the list bottom
+  // scrolls into view. Cleaner than a manual "Load more" button and matches
+  // how every other paged list on the site works.
+  const sentinelRef = useRef(null);
+  const [fetchingMore, setFetchingMore] = useState(false);
+  useEffect(() => {
+    if (!sentinelRef.current || !hasMore || loading || fetchingMore) return;
+    const observer = new IntersectionObserver(
+      async ([entry]) => {
+        if (!entry.isIntersecting) return;
+        setFetchingMore(true);
+        try {
+          await fetchMore({
+            variables: { offset: users.length },
+            updateQuery: (prev, { fetchMoreResult }) => {
+              if (!fetchMoreResult?.getUsersPaged) return prev;
+              return {
+                getUsersPaged: {
+                  __typename: prev.getUsersPaged.__typename,
+                  users: [...prev.getUsersPaged.users, ...fetchMoreResult.getUsersPaged.users],
+                  total: fetchMoreResult.getUsersPaged.total,
+                },
+              };
+            },
+          });
+        } finally {
+          setFetchingMore(false);
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    observer.observe(sentinelRef.current);
+    return () => observer.disconnect();
+  }, [hasMore, loading, fetchingMore, fetchMore, users.length]);
 
   return (
     <Flex
@@ -341,7 +487,6 @@ const AdminUsersPage = () => {
       mx="auto"
       w="100%"
     >
-      {/* Header */}
       <Box mb={6}>
         <Text fontSize="2xl" fontWeight="bold" color="white">
           Users
@@ -351,7 +496,10 @@ const AdminUsersPage = () => {
         </Text>
       </Box>
 
-      {/* Controls */}
+      <BulkLookupPanel />
+
+      <Divider borderColor="gray.700" mb={6} />
+
       <Flex gap={3} mb={4} wrap="wrap" align="center">
         <Input
           value={search}
@@ -367,18 +515,16 @@ const AdminUsersPage = () => {
         <HStack spacing={2} wrap="wrap">
           {FILTERS.map((f) => (
             <FilterTab
-              key={f}
-              label={f}
-              active={activeFilter === f}
-              count={filterCounts[f]}
-              onClick={() => setActiveFilter(f)}
+              key={f.key}
+              label={f.label}
+              active={activeFilter === f.key}
+              onClick={() => setActiveFilter(f.key)}
             />
           ))}
         </HStack>
       </Flex>
 
-      {/* Content */}
-      {loading ? (
+      {loading && users.length === 0 ? (
         <Flex justify="center" mt={16}>
           <Spinner size="xl" color="purple.400" />
         </Flex>
@@ -386,23 +532,23 @@ const AdminUsersPage = () => {
         <Text color="red.400" mt={8}>
           Failed to load users: {error.message}
         </Text>
-      ) : filtered.length === 0 ? (
+      ) : users.length === 0 ? (
         <Text color="gray.500" mt={8}>
           No users match.
         </Text>
       ) : (
         <VStack spacing={2} align="stretch">
           <Text color="gray.500" fontSize="xs" mb={1}>
-            {filtered.length} user{filtered.length !== 1 ? 's' : ''}
+            Showing {users.length} of {total} user{total === 1 ? '' : 's'}
           </Text>
-          {filtered.map((u) => (
-            <UserRow
-              key={u.id}
-              u={u}
-              onDelete={handleDelete}
-              isCurrentUser={u.id === user?.id}
-            />
+          {users.map((u) => (
+            <UserRow key={u.id} u={u} onDelete={handleDelete} isCurrentUser={u.id === user?.id} />
           ))}
+          {hasMore && (
+            <Flex ref={sentinelRef} justify="center" py={4}>
+              {fetchingMore && <Spinner size="sm" color="purple.400" />}
+            </Flex>
+          )}
         </VStack>
       )}
     </Flex>

@@ -25,6 +25,7 @@ import { GET_USER_BY_DISCORD_ID } from '../../../graphql/queries';
 import { useToastContext } from '../../../providers/ToastProvider';
 import DiscordMemberInput from '../../../molecules/DiscordMemberInput';
 import { FieldLabel } from '../BSSharedComponents';
+import { getBSTeamColor } from '../../../utils/battleship/bsColorPalette';
 
 const API_BASE = process.env.REACT_APP_SERVER_URL || '';
 
@@ -81,7 +82,7 @@ export function MemberTag({ discordId, onRemove, isUpdating }) {
   );
 }
 
-export function TeamCard({ team, allTeams, refetch }) {
+export function TeamCard({ team, allTeams, refetch, colorblindMode = false }) {
   const { showToast } = useToastContext();
   const [pendingMemberId, setPendingMemberId] = useState('');
   const [channelId, setChannelId] = useState(team.discordChannelId ?? '');
@@ -132,7 +133,7 @@ export function TeamCard({ team, allTeams, refetch }) {
     });
   };
 
-  const dotColor = team.color === 'RED' ? 'red.400' : 'cyan.400';
+  const dotColor = getBSTeamColor(team.color, colorblindMode);
 
   return (
     <Box bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
@@ -148,7 +149,7 @@ export function TeamCard({ team, allTeams, refetch }) {
           {team.teamName}
         </Text>
         <Badge
-          colorScheme={team.color === 'RED' ? 'red' : 'cyan'}
+          colorScheme={team.color === 'RED' ? (colorblindMode ? 'orange' : 'red') : 'cyan'}
           fontSize="9px"
           textTransform="uppercase"
           letterSpacing="wider"
@@ -282,7 +283,7 @@ export function TeamCard({ team, allTeams, refetch }) {
   );
 }
 
-export function TeamsTab({ event, refetch }) {
+export function TeamsTab({ event, refetch, colorblindMode = false }) {
   const { showToast } = useToastContext();
   const teams = event.teams ?? [];
   const canAddTeam = teams.length < 2;
@@ -401,8 +402,8 @@ export function TeamsTab({ event, refetch }) {
                     </Text>
                   </Text>
                   <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
-                    3. Paste the 17–19 digit number here — that&apos;s where the bot will post
-                    shot results, prompts, and other team notifications.
+                    3. Paste the 17–19 digit number here — that&apos;s where the bot will post shot
+                    results, prompts, and other team notifications.
                   </Text>
                   <Text fontFamily="mono" fontSize="10px" color="#94a3b8" letterSpacing="wide">
                     4. Make sure the bot has access to that channel (it needs{' '}
@@ -429,7 +430,13 @@ export function TeamsTab({ event, refetch }) {
       ) : (
         <VStack align="stretch" spacing={4}>
           {teams.map((team) => (
-            <TeamCard key={team.teamId} team={team} allTeams={teams} refetch={refetch} />
+            <TeamCard
+              key={team.teamId}
+              team={team}
+              allTeams={teams}
+              refetch={refetch}
+              colorblindMode={colorblindMode}
+            />
           ))}
         </VStack>
       )}
