@@ -20,10 +20,7 @@ const {
   postBSShipSunk,
   postBSGameOver,
 } = require('../../../../utils/battleship/bsDiscord');
-const {
-  captureMetricBaseline,
-  syncBSWomProgress,
-} = require('../../../../utils/battleship/bsWomSync');
+const { syncBSWomProgress } = require('../../../../utils/battleship/bsWomSync');
 const {
   clearSkipProposal,
   clearedSkipProposal,
@@ -53,10 +50,7 @@ module.exports = {
     requireAdmin(event, user.id);
     if (!event.womCompetitionId)
       throw new UserInputError('No WOM competition ID set for this event');
-    syncBSWomProgress(event).catch((err) => {
-      const logger = require('../../../../utils/logger');
-      logger.error({ err, eventId }, '[triggerBSWomSync] manual sync failed');
-    });
+    await syncBSWomProgress(event);
     return true;
   },
 
@@ -251,16 +245,6 @@ module.exports = {
         )
       );
     }
-    // Capture WOM baseline for the defending team at reveal time (best-effort)
-    if (isHit && task) {
-      captureMetricBaseline(tile, task, event, targetTeam ?? null).catch((err) =>
-        logger.error(
-          { err, eventId, tileId: tile.tileId },
-          '[Battleship] WOM baseline capture failed'
-        )
-      );
-    }
-
     if (isHit && targetTeam?.discordChannelId) {
       postBSHitOnShip({
         channelId: targetTeam.discordChannelId,

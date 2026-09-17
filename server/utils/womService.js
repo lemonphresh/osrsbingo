@@ -191,9 +191,8 @@ function getCompetitionRetryDelay(res, attempt) {
 }
 
 /**
- * Fetch JSON for the team-balancer competition analysis only. Retries bounded
- * transient WOM/Cloudflare failures and aborts stalled requests. Other WOM
- * integrations intentionally keep their existing behavior.
+ * Fetch WOM competition JSON with bounded retries for transient WOM/Cloudflare
+ * failures and a timeout for stalled requests.
  */
 async function fetchCompetitionJson(url, label) {
   for (let attempt = 0; attempt <= COMPETITION_FETCH_MAX_RETRIES; attempt++) {
@@ -687,24 +686,66 @@ async function fetchPlayerGainsInRange(username, metric, startDate, endDate) {
  * Used as a fallback for players not in the WOM group.
  */
 async function fetchCompetitionPlayerGains(competitionId, metric) {
-  const params = new URLSearchParams({ metric });
-  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}?${params}`, {
-    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    logger.warn(`WOM competition player gains ${res.status} for comp ${competitionId} metric "${metric}": ${body}`);
-    return {};
+  const params = new URLSearchParams();
+  params.append('metrics', metric);
+  const response = await fetchCompetitionJson(
+    `${WOM_BASE}/competitions/${competitionId}?${params}`,
+    `competition ${competitionId} gains for metric "${metric}"`
+  );
+  if (!response.data) {
+    throw new Error(
+      `WOM competition ${competitionId} gains request failed for metric "${metric}"` +
+        (response.status ? ` (HTTP ${response.status})` : '')
+    );
   }
-  const data = await res.json();
-  const participations = Array.isArray(data.teams)
-    ? data.teams.flatMap((t) => t.participations ?? [])
-    : Array.isArray(data.participations) ? data.participations : [];
+
+  const participations = getCompetitionParticipations(response.data);
   const result = {};
+  let metricValuesFound = 0;
+
   for (const p of participations) {
     const name = p.player?.displayName ?? p.player?.username;
-    if (name) result[name] = Math.max(0, (p.progress?.end ?? 0) - (p.progress?.start ?? 0));
+    if (!name) continue;
+
+    const matchingDelta = Array.isArray(p.deltas)
+      ? p.deltas.find((delta) => delta?.metric === metric)
+      : null;
+    let gained;
+
+    if (matchingDelta) {
+      const reportedGain = Number(matchingDelta.values?.gained);
+      const start = Number(matchingDelta.values?.start);
+      const end = Number(matchingDelta.values?.end);
+      gained = Number.isFinite(reportedGain)
+        ? reportedGain
+        : Number.isFinite(start) && Number.isFinite(end)
+          ? end - start
+          : null;
+    } else if (!Array.isArray(p.deltas) && p.progress) {
+      // Backward compatibility for old WOM responses. Do not use progress if
+      // deltas are present but omit the requested metric: progress may refer to
+      // the competition's primary metric and would silently count the wrong one.
+      const reportedGain = Number(p.progress.gained);
+      const start = Number(p.progress.start);
+      const end = Number(p.progress.end);
+      gained = Number.isFinite(reportedGain)
+        ? reportedGain
+        : Number.isFinite(start) && Number.isFinite(end)
+          ? end - start
+          : null;
+    }
+
+    if (!Number.isFinite(gained)) continue;
+    result[name] = Math.max(0, gained);
+    metricValuesFound++;
   }
+
+  if (participations.length > 0 && metricValuesFound === 0) {
+    throw new Error(
+      `WOM competition ${competitionId} returned no values for metric "${metric}"`
+    );
+  }
+
   return result;
 }
 
@@ -713,15 +754,17 @@ async function fetchCompetitionPlayerGains(competitionId, metric) {
  * Returns { teamName: [displayName, ...] } for use with point-in-time group gains lookups.
  */
 async function fetchCompetitionTeamRosters(competitionId) {
-  const res = await fetch(`${WOM_BASE}/competitions/${competitionId}`, {
-    headers: { 'User-Agent': 'OSRSBingoHub/1.0', 'Accept': 'application/json' },
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    logger.warn(`WOM competition rosters ${res.status} for comp ${competitionId}: ${body}`);
-    return { rosters: {}, usernameMap: {} };
+  const response = await fetchCompetitionJson(
+    `${WOM_BASE}/competitions/${competitionId}`,
+    `competition ${competitionId} rosters`
+  );
+  if (!response.data) {
+    throw new Error(
+      `WOM competition ${competitionId} roster request failed` +
+        (response.status ? ` (HTTP ${response.status})` : '')
+    );
   }
-  const data = await res.json();
+  const data = response.data;
   const rosters = {};
   const usernameMap = {}; // displayName → username for per-player gains fallback
   const allParticipations = Array.isArray(data.teams)
@@ -736,7 +779,7 @@ async function fetchCompetitionTeamRosters(competitionId) {
     rosters[teamName].push(displayName);
     if (username) usernameMap[displayName] = username;
   }
-  return { rosters, usernameMap };
+  return { rosters, usernameMap, groupId: data.groupId ?? null };
 }
 
 /**
