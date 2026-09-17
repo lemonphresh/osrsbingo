@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-
-const API_BASE = process.env.REACT_APP_SERVER_URL || '';
+import { fetchDiscordUsers } from './useDiscordUser';
 
 // Resolves an array of discord user IDs → [{ discordUserId, discordUsername }]
 // knownNames: optional { [discordUserId]: username } for IDs we already know
-export default function useDiscordUsernames(ids, knownNames = {}) {
+export default function useDiscordUsernames(ids, knownNames = {}, { guildId } = {}) {
   const [nameMap, setNameMap] = useState(knownNames);
 
   useEffect(() => {
@@ -14,18 +13,28 @@ export default function useDiscordUsernames(ids, knownNames = {}) {
 
   useEffect(() => {
     const missing = (ids ?? []).filter((id) => id && !nameMap[id]);
-    if (!missing.length) return;
-    missing.forEach((id) => {
-      fetch(`${API_BASE}/discuser/${id}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
-          const name = d?.global_name ?? d?.username ?? null;
-          if (name) setNameMap((prev) => ({ ...prev, [id]: name }));
-        })
-        .catch(() => {});
-    });
+    if (!missing.length) return undefined;
+
+    let cancelled = false;
+    const applyUsers = (users) => {
+      if (cancelled) return;
+      const resolvedNames = {};
+      Object.entries(users).forEach(([id, user]) => {
+        const name = user?.globalName ?? user?.global_name ?? user?.username ?? null;
+        if (name) resolvedNames[id] = name;
+      });
+      if (Object.keys(resolvedNames).length) {
+        setNameMap((prev) => ({ ...prev, ...resolvedNames }));
+      }
+    };
+
+    fetchDiscordUsers(missing, { guildId, onBatch: applyUsers }).then(applyUsers);
+
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(ids)]);
+  }, [guildId, JSON.stringify(ids)]);
 
   return (ids ?? []).map((id) => ({ discordUserId: id, discordUsername: nameMap[id] ?? id }));
 }
