@@ -1,6 +1,10 @@
 'use strict';
 
-const { postBSTestMessage } = require('../utils/battleship/bsDiscord');
+const {
+  postBSBattleStarted,
+  postBSPlacementStarted,
+  postBSTestMessage,
+} = require('../utils/battleship/bsDiscord');
 
 const originalBotToken = process.env.DISCORD_BOT_TOKEN;
 const originalFetch = global.fetch;
@@ -82,5 +86,30 @@ describe('Battleship Discord test messages', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Missing Access' });
+  });
+
+  it('describes task locks without implying that battles are turn-based', async () => {
+    process.env.DISCORD_BOT_TOKEN = 'test-token';
+    global.fetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await postBSPlacementStarted({
+      channelId: 'channel-1',
+      teamName: 'Saradomin',
+      eventName: 'Test Event',
+      eventId: 'event-1',
+    });
+    await postBSBattleStarted({
+      channelId: 'channel-1',
+      teamName: 'Saradomin',
+      eventName: 'Test Event',
+      eventId: 'event-1',
+    });
+
+    const contents = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).content);
+    expect(contents).toHaveLength(2);
+    contents.forEach((content) => {
+      expect(content).toContain('Your crew must complete it before firing again.');
+      expect(content).not.toContain('hand off the turn');
+    });
   });
 });

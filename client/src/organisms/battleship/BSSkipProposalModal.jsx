@@ -43,6 +43,7 @@ export function SkipProposalModal({
   onClose,
   votingLoading,
   skipping,
+  readOnly = false,
 }) {
   const status = proposal?.status;
   const isPending = status === 'PENDING';
@@ -108,6 +109,11 @@ export function SkipProposalModal({
         <ModalCloseButton color="#78350f" />
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
+            {readOnly && (
+              <Badge alignSelf="flex-start" colorScheme="yellow" fontSize="9px">
+                CREATOR PREVIEW / READ ONLY
+              </Badge>
+            )}
             {/* Who proposed / what tile */}
             <Box
               bg="#130f00"
@@ -241,7 +247,7 @@ export function SkipProposalModal({
             )}
 
             {/* Actions */}
-            {isPending && !alreadyVoted && !isProposer && (
+            {!readOnly && isPending && !alreadyVoted && !isProposer && (
               <HStack spacing={3} justify="center">
                 <Tooltip label="Reject — keep the token" placement="top">
                   <IconButton
@@ -287,7 +293,7 @@ export function SkipProposalModal({
             )}
 
             {/* USE SKIP TOKEN button — only when approved */}
-            {isApproved && (
+            {!readOnly && isApproved && (
               <Button
                 size="lg"
                 bg="#713f12"

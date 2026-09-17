@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { playBSSound, warmUpBSAudio } from '../../utils/battleship/bsAudio';
-import { useParams, Link as RouterLink, Navigate } from 'react-router-dom';
+import { useParams, Link as RouterLink, Navigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   Center,
   SimpleGrid,
   Divider,
+  Select,
   useBreakpointValue,
   useDisclosure,
 } from '@chakra-ui/react';
@@ -71,6 +72,7 @@ import {
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
+import { redactBSOpponentBoardForTeam } from '../../utils/battleship/bsPreview';
 
 // Resolves a single team member: RSN → Discord username → truncated ID.
 function TeamMemberRow({ discordId }) {
@@ -101,6 +103,7 @@ function TeamMemberRow({ discordId }) {
 
 export default function BattleshipEventPage() {
   const { eventId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToastContext();
   const { user: currentUser } = useAuth();
 
@@ -222,16 +225,28 @@ export default function BattleshipEventPage() {
   // ── Derived state ────────────────────────────────────────────────────────
 
   const event = eventData?.getBSEvent;
-  const teams = event?.teams ?? [];
+  const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
   const shotLog = shotLogData?.getBSShotLog ?? [];
-  const proposalLog = proposalLogData?.getBSProposalLog ?? [];
+  const proposalLog = useMemo(
+    () => proposalLogData?.getBSProposalLog ?? [],
+    [proposalLogData?.getBSProposalLog]
+  );
 
-  // The user's actual team. Active players always render from this team's POV;
-  // non-team members use the dedicated spectator view.
-  const myTeam =
+  const actualTeam =
     event && currentUser?.discordUserId
       ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
       : null;
+  const isCreator = !!(event && currentUser && String(event.creatorId) === String(currentUser.id));
+  const requestedPreviewTeamId = isCreator ? searchParams.get('viewAsTeam') : null;
+  const previewTeam = requestedPreviewTeamId
+    ? teams.find((team) => team.teamId === requestedPreviewTeamId) ?? null
+    : null;
+  const isReadOnlyPreview = !!previewTeam;
+
+  // The creator can render the live page from either team's perspective. This
+  // changes presentation only; server auth remains the creator's and every
+  // mutation path is disabled while previewing.
+  const myTeam = previewTeam ?? actualTeam;
 
   const myTeamIndex = myTeam ? teams.findIndex((t) => t.teamId === myTeam.teamId) : -1;
   const viewingTeamIndex = myTeamIndex >= 0 ? myTeamIndex : 0;
@@ -330,7 +345,11 @@ export default function BattleshipEventPage() {
   const opponentTeam = teams.find((_, i) => i !== viewingTeamIndex) ?? null;
 
   const myBoard = viewingTeam?.board ?? null;
-  const opponentBoard = opponentTeam?.board ?? null;
+  const rawOpponentBoard = opponentTeam?.board ?? null;
+  const opponentBoard = useMemo(() => {
+    if (!isReadOnlyPreview || !rawOpponentBoard) return rawOpponentBoard;
+    return redactBSOpponentBoardForTeam(rawOpponentBoard, event?.tasks ?? []);
+  }, [event?.tasks, isReadOnlyPreview, rawOpponentBoard]);
 
   // Live-update when a ref marks any tile complete on either board. Also
   // close a stale skip-proposal modal if the tile it targeted just flipped
@@ -580,6 +599,7 @@ export default function BattleshipEventPage() {
     (activeProposal?.status === 'PENDING' || activeProposal?.status === 'APPROVED')
   );
   const canFire =
+    !isReadOnlyPreview &&
     event?.status === 'ACTIVE' &&
     myCooldownMs <= 0 &&
     !firing &&
@@ -596,6 +616,7 @@ export default function BattleshipEventPage() {
     isAdmin || !!(event && currentUser && (event.refIds ?? []).includes(String(currentUser.id)));
 
   const isSpectator = !!event && event.status === 'ACTIVE' && !myTeam;
+  const showStaffPerspective = isAdminOrRef && !isReadOnlyPreview;
 
   // Nudge non-logged-in visitors (or logged-in but Discord-unlinked visitors)
   // toward setup so they don't miss out. Skips admins/refs, already-linked
@@ -671,11 +692,18 @@ export default function BattleshipEventPage() {
 
   const handleFireCell = useCallback(
     (row, col) => {
-      if (!canFire || !opponentTeam) return;
+      if (isReadOnlyPreview || !canFire || !opponentTeam) return;
       proposeShot({ variables: { eventId, row, col } });
     },
-    [canFire, opponentTeam, eventId, proposeShot]
+    [isReadOnlyPreview, canFire, opponentTeam, eventId, proposeShot]
   );
+
+  const handlePreviewTeamChange = (teamId) => {
+    const next = new URLSearchParams(searchParams);
+    if (teamId) next.set('viewAsTeam', teamId);
+    else next.delete('viewAsTeam');
+    setSearchParams(next, { replace: true });
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -784,7 +812,40 @@ export default function BattleshipEventPage() {
           )}
         </HStack>
 
-        <HStack spacing={2}>
+        <HStack
+          spacing={0}
+          gap={2}
+          flexWrap="wrap"
+          justify={{ base: 'flex-start', md: 'flex-end' }}
+          w={{ base: '100%', xl: 'auto' }}
+        >
+          {isCreator && teams.length > 0 && (
+            <Select
+              aria-label="Preview event as a team"
+              size="xs"
+              value={previewTeam?.teamId ?? ''}
+              onChange={(event) => handlePreviewTeamChange(event.target.value)}
+              w="210px"
+              flexShrink={0}
+              bg="#060f0a"
+              borderColor={isReadOnlyPreview ? '#facc15' : '#1a4028'}
+              color={isReadOnlyPreview ? '#facc15' : '#6b9e78'}
+              fontFamily="mono"
+              fontSize="10px"
+            >
+              <option value="">Admin/default view</option>
+              {teams.map((team) => (
+                <option key={team.teamId} value={team.teamId}>
+                  View as {team.teamName}
+                </option>
+              ))}
+            </Select>
+          )}
+          {isReadOnlyPreview && (
+            <Badge colorScheme="yellow" fontSize="9px" letterSpacing="wider">
+              READ ONLY
+            </Badge>
+          )}
           {cooldownLabel && (
             <Text fontFamily="mono" fontSize="xs" color="yellow.400" letterSpacing="wide">
               Cooldown: {cooldownLabel}
@@ -800,8 +861,11 @@ export default function BattleshipEventPage() {
               Ready to fire
             </Text>
           )}
-          <BSVolumeControl />
+          <Box flexShrink={0}>
+            <BSVolumeControl />
+          </Box>
           <Button
+            flexShrink={0}
             size="xs"
             variant={colorblindMode ? 'solid' : 'outline'}
             colorScheme={colorblindMode ? 'blue' : 'gray'}
@@ -817,37 +881,41 @@ export default function BattleshipEventPage() {
             Colorblind Mode
           </Button>
           {isAdminOrRef && (
-            <RouterLink to={`/battleship/${eventId}/refs`}>
-              <Button
-                size="xs"
-                variant="outline"
-                borderColor="#1a4028"
-                color="#6b9e78"
-                fontFamily="mono"
-                fontSize="10px"
-                letterSpacing="wider"
-                _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
-              >
-                Refs ⚓
-              </Button>
-            </RouterLink>
+            <Box flexShrink={0}>
+              <RouterLink to={`/battleship/${eventId}/refs`}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  borderColor="#1a4028"
+                  color="#6b9e78"
+                  fontFamily="mono"
+                  fontSize="10px"
+                  letterSpacing="wider"
+                  _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
+                >
+                  Refs ⚓
+                </Button>
+              </RouterLink>
+            </Box>
           )}
           {isAdmin && (
-            <RouterLink to={`/battleship/${eventId}/admin`}>
-              <Button
-                size="xs"
-                variant="outline"
-                borderColor="#1a4028"
-                color="#6b9e78"
-                fontFamily="mono"
-                fontSize="10px"
-                letterSpacing="wider"
-                leftIcon={<FaCrown />}
-                _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
-              >
-                Admin
-              </Button>
-            </RouterLink>
+            <Box flexShrink={0}>
+              <RouterLink to={`/battleship/${eventId}/admin`}>
+                <Button
+                  size="xs"
+                  variant="outline"
+                  borderColor="#1a4028"
+                  color="#6b9e78"
+                  fontFamily="mono"
+                  fontSize="10px"
+                  letterSpacing="wider"
+                  leftIcon={<FaCrown />}
+                  _hover={{ borderColor: '#4ade80', color: '#4ade80' }}
+                >
+                  Admin
+                </Button>
+              </RouterLink>
+            </Box>
           )}
         </HStack>
       </HStack>
@@ -860,7 +928,7 @@ export default function BattleshipEventPage() {
     // Admins/refs see the full setup console. Everyone else (roster members
     // who wandered in early, spectators) gets a lightweight waiting screen so
     // they aren't confused by an admin surface they can't interact with.
-    if (!isAdminOrRef) {
+    if (!isAdminOrRef || isReadOnlyPreview) {
       const scheduled = event.scheduledPlacementStart
         ? new Date(event.scheduledPlacementStart)
         : null;
@@ -966,6 +1034,8 @@ export default function BattleshipEventPage() {
           topBar={topBar}
           refetch={refetchEvent}
           colorblindMode={colorblindMode}
+          previewTeamId={previewTeam?.teamId ?? null}
+          readOnly={isReadOnlyPreview}
         />
         {participantSetupModal}
       </>
@@ -1013,19 +1083,21 @@ export default function BattleshipEventPage() {
   // markup stays in sync between the two mount points.
   const teamInfoBlock = (
     <VStack align="stretch" spacing={4}>
-      <SectionLabel>{isAdminOrRef ? 'Fleet Status' : 'Your Team'}</SectionLabel>
-      {(isAdminOrRef ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map((team) => {
-        const i = teams.findIndex((t) => t.teamId === team.teamId);
-        return (
-          <TeamStatusCard
-            key={team.teamId}
-            team={team}
-            cooldownMinutes={event.cooldownMinutes}
-            isViewing={i === viewingTeamIndex}
-            colorblindMode={colorblindMode}
-          />
-        );
-      })}
+      <SectionLabel>{showStaffPerspective ? 'Fleet Status' : 'Your Team'}</SectionLabel>
+      {(showStaffPerspective ? teams : teams.filter((t) => t.teamId === myTeam?.teamId)).map(
+        (team) => {
+          const i = teams.findIndex((t) => t.teamId === team.teamId);
+          return (
+            <TeamStatusCard
+              key={team.teamId}
+              team={team}
+              cooldownMinutes={event.cooldownMinutes}
+              isViewing={i === viewingTeamIndex}
+              colorblindMode={colorblindMode}
+            />
+          );
+        }
+      )}
 
       <Divider borderColor="#1a4028" />
 
@@ -1101,7 +1173,7 @@ export default function BattleshipEventPage() {
   return (
     <Box flex="1" minH="100vh" bg="#060f0a">
       <BSBattleIntroModal
-        isOpen={showBattleIntro}
+        isOpen={showBattleIntro && !isReadOnlyPreview}
         onClose={() => setShowBattleIntro(false)}
         eventId={event.eventId}
         cooldownMinutes={event.cooldownMinutes}
@@ -1318,7 +1390,9 @@ export default function BattleshipEventPage() {
                   title={`Enemy Waters / ${opponentTeam?.teamName ?? 'Opponent'}`}
                   tiles={opponentTiles}
                   showShips={false}
-                  onCellClick={event.status === 'ACTIVE' ? handleFireCell : undefined}
+                  onCellClick={
+                    event.status === 'ACTIVE' && !isReadOnlyPreview ? handleFireCell : undefined
+                  }
                   canFire={canFire}
                   highlightedCell={highlightedCell}
                   radarCell={opponentPendingTile}
@@ -1553,7 +1627,7 @@ export default function BattleshipEventPage() {
                           ? 'Opponents must complete this. Refs will mark it done.'
                           : 'Your team must complete this. Refs will mark it done.'}
                       </Text>
-                      {!isShipTask && (viewingTeam?.skipTokens ?? 0) > 0 && (
+                      {!isReadOnlyPreview && !isShipTask && (viewingTeam?.skipTokens ?? 0) > 0 && (
                         <Box borderTop="1px solid" borderColor={th.dark} pt={3} mt={2}>
                           <HStack justify="space-between" align="center">
                             <Text fontFamily="mono" fontSize="10px" color={th.muted}>
@@ -1650,7 +1724,7 @@ export default function BattleshipEventPage() {
               <BSProposalLogPanel
                 entries={proposalLog}
                 teams={teams}
-                teamFilter={isAdminOrRef ? null : myTeam?.teamId ?? null}
+                teamFilter={showStaffPerspective ? null : myTeam?.teamId ?? null}
                 nameForDiscordId={proposalLogNameForId}
                 colorblindMode={colorblindMode}
               />
@@ -1670,12 +1744,14 @@ export default function BattleshipEventPage() {
         <ProposalModal
           proposal={activeProposal}
           opponentTiles={opponentTiles}
-          currentDiscordId={currentUser?.discordUserId}
+          currentDiscordId={isReadOnlyPreview ? null : currentUser?.discordUserId}
           teamMembers={resolvedTeamMembers}
           votingLoading={votingOnProposal}
           firingLoading={firing || proposing}
           proposalHistory={proposalHistory}
           colorblindMode={colorblindMode}
+          readOnly={isReadOnlyPreview}
+          onClose={() => setActiveProposal(null)}
           onVote={(proposalId, approve) => {
             voteOnProposal({ variables: { proposalId, approve } });
           }}
@@ -1697,10 +1773,11 @@ export default function BattleshipEventPage() {
       {activeSkipProposal && (
         <SkipProposalModal
           proposal={activeSkipProposal}
-          currentDiscordId={currentUser?.discordUserId}
+          currentDiscordId={isReadOnlyPreview ? null : currentUser?.discordUserId}
           teamMembers={resolvedTeamMembers}
           votingLoading={votingOnSkip}
           skipping={skipping}
+          readOnly={isReadOnlyPreview}
           onVote={(proposalId, approve) => {
             voteOnSkip({ variables: { proposalId, approve } });
           }}

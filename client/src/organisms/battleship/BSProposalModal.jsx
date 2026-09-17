@@ -12,6 +12,7 @@ import {
   ModalContent,
   ModalBody,
   ModalHeader,
+  ModalCloseButton,
   IconButton,
   Tooltip,
 } from '@chakra-ui/react';
@@ -157,6 +158,8 @@ export function ProposalModal({
   firingLoading,
   proposalHistory,
   colorblindMode = false,
+  readOnly = false,
+  onClose,
 }) {
   const status = proposal?.status;
   const isPending = status === 'PENDING';
@@ -194,9 +197,9 @@ export function ProposalModal({
   return (
     <Modal
       isOpen
-      onClose={() => {}}
-      closeOnEsc={false}
-      closeOnOverlayClick={false}
+      onClose={readOnly ? onClose : () => {}}
+      closeOnEsc={readOnly}
+      closeOnOverlayClick={readOnly}
       isCentered
       size="lg"
     >
@@ -226,8 +229,14 @@ export function ProposalModal({
             </Text>
           </HStack>
         </ModalHeader>
+        {readOnly && <ModalCloseButton color="#6b9e78" />}
         <ModalBody pb={6}>
           <VStack align="stretch" spacing={4}>
+            {readOnly && (
+              <Badge alignSelf="flex-start" colorScheme="yellow" fontSize="9px">
+                CREATOR PREVIEW / READ ONLY
+              </Badge>
+            )}
             {/* Who proposed */}
             <Box
               bg="#091a10"
@@ -365,7 +374,7 @@ export function ProposalModal({
             )}
 
             {/* Actions */}
-            {isPending && !alreadyVoted && !isProposer && (
+            {!readOnly && isPending && !alreadyVoted && !isProposer && (
               <HStack spacing={3} justify="center">
                 <Tooltip label="Reject this shot" placement="top">
                   <IconButton
@@ -424,7 +433,7 @@ export function ProposalModal({
                 Approved — waiting for {proposerName} to fire.
               </Text>
             )}
-            {isApproved && isProposer && (
+            {!readOnly && isApproved && isProposer && (
               <Button
                 size="lg"
                 bg={colorblindMode ? '#c2700a' : '#991b1b'}
