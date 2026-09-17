@@ -31,4 +31,29 @@ describe('fetchDiscordUsers', () => {
     expect(JSON.parse(global.fetch.mock.calls[2][1].body).userIds).toHaveLength(5);
     expect(Object.keys(users)).toHaveLength(45);
   });
+
+  test('serializes batches started by different team sections', async () => {
+    let activeRequests = 0;
+    let maxActiveRequests = 0;
+    global.fetch = jest.fn(async (_url, options) => {
+      activeRequests += 1;
+      maxActiveRequests = Math.max(maxActiveRequests, activeRequests);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      activeRequests -= 1;
+
+      const { userIds } = JSON.parse(options.body);
+      return {
+        ok: true,
+        json: async () => Object.fromEntries(userIds.map((id) => [id, { id, username: id }])),
+      };
+    });
+
+    await Promise.all([
+      fetchDiscordUsers(['300000000000000001']),
+      fetchDiscordUsers(['300000000000000002']),
+    ]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(maxActiveRequests).toBe(1);
+  });
 });

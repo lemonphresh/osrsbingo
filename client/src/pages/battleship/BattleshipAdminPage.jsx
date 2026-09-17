@@ -400,6 +400,7 @@ function TeamSection({ team, allTeams, guildId, refetchEvent, showToast, colorbl
   const [memberIds, setMemberIds] = useState(team.members ?? []);
   const [pendingMemberId, setPendingMemberId] = useState('');
   const [resolvedMembers, setResolvedMembers] = useState({});
+  const [resolvingMembers, setResolvingMembers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [addingTokens, setAddingTokens] = useState(false);
   const [customTokenCount, setCustomTokenCount] = useState('');
@@ -418,10 +419,14 @@ function TeamSection({ team, allTeams, guildId, refetchEvent, showToast, colorbl
 
   useEffect(() => {
     const ids = memberIds.filter(isValidDiscordId);
-    if (!ids.length) return undefined;
+    if (!ids.length) {
+      setResolvingMembers(false);
+      return undefined;
+    }
 
     let cancelled = false;
-    fetchDiscordUsers(ids, { guildId }).then((users) => {
+    setResolvingMembers(true);
+    const applyUsers = (users) => {
       if (cancelled) return;
       const next = {};
       ids.forEach((id) => {
@@ -434,7 +439,12 @@ function TeamSection({ team, allTeams, guildId, refetchEvent, showToast, colorbl
         };
       });
       setResolvedMembers((prev) => ({ ...prev, ...next }));
-    });
+    };
+    fetchDiscordUsers(ids, { guildId, onBatch: applyUsers })
+      .then(applyUsers)
+      .finally(() => {
+        if (!cancelled) setResolvingMembers(false);
+      });
 
     return () => {
       cancelled = true;
@@ -575,6 +585,11 @@ function TeamSection({ team, allTeams, guildId, refetchEvent, showToast, colorbl
           >
             Members ({memberIds.filter(isValidDiscordId).length})
           </Text>
+          {resolvingMembers && (
+            <Text fontSize="xs" color={DIM} fontFamily="mono" mb={3}>
+              Resolving Discord names safely…
+            </Text>
+          )}
           <VStack align="stretch" spacing={3} maxW="400px">
             {memberIds.filter(isValidDiscordId).map((id) => (
               <DiscordMemberInput
@@ -1339,19 +1354,24 @@ export default function BattleshipAdminPage() {
   );
 
   // Discord IDs surfaced in the proposal log (proposer + every voter) so we
-  // can render usernames instead of raw 18-digit IDs. Unioned with team
-  // rosters so members with no vote activity yet still get resolved.
+  // can render usernames instead of raw 18-digit IDs. TeamSection resolves
+  // roster cards separately through the same shared batch cache.
   const proposalLogNameIds = useMemo(() => {
     const ids = new Set();
-    for (const t of teams) for (const m of t.members ?? []) if (m) ids.add(m);
     for (const entry of proposalLog) {
       if (entry.proposedBy) ids.add(entry.proposedBy);
       for (const id of entry.approvals ?? []) if (id) ids.add(id);
       for (const id of entry.rejections ?? []) if (id) ids.add(id);
     }
     return Array.from(ids);
-  }, [teams, proposalLog]);
-  const resolvedProposalLogNames = useDiscordUsernames(proposalLogNameIds, {});
+  }, [proposalLog]);
+  const resolvedProposalLogNames = useDiscordUsernames(
+    proposalLogNameIds,
+    {},
+    {
+      guildId: event?.guildId || null,
+    }
+  );
   const proposalLogNameForId = useCallback(
     (id) => resolvedProposalLogNames.find((m) => m.discordUserId === id)?.discordUsername ?? id,
     [resolvedProposalLogNames]

@@ -43,6 +43,29 @@ const userCache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 const searchCache = new Map(); // { query -> { results, cachedAt } }
 const SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const DISCORD_LOOKUP_INTERVAL_MS = 175;
+let discordLookupQueue = Promise.resolve();
+let lastDiscordLookupAt = 0;
+
+// Discord rate limits are shared across HTTP requests. A module-level queue
+// prevents separate teams and roster chunks from creating independent bursts.
+const enqueueDiscordLookup = (lookup) => {
+  const queued = discordLookupQueue.then(async () => {
+    const waitMs = Math.max(
+      0,
+      DISCORD_LOOKUP_INTERVAL_MS - (Date.now() - lastDiscordLookupAt)
+    );
+    if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+
+    try {
+      return await lookup();
+    } finally {
+      lastDiscordLookupAt = Date.now();
+    }
+  });
+  discordLookupQueue = queued.catch(() => {});
+  return queued;
+};
 
 // Evict stale entries from unbounded Maps — prevents memory leak on long-running dynos
 setInterval(() => {
@@ -368,8 +391,8 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) return cached.data;
 
     if (guildId) {
-      const guildResult = await requestDiscord(
-        `https://discord.com/api/v10/guilds/${guildId}/members/${userId}`
+      const guildResult = await enqueueDiscordLookup(() =>
+        requestDiscord(`https://discord.com/api/v10/guilds/${guildId}/members/${userId}`)
       );
       if (guildResult.data?.user) {
         const safeData = toSafeUser(guildResult.data.user, guildResult.data.nick);
@@ -378,7 +401,9 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
       }
     }
 
-    const globalResult = await requestDiscord(`https://discord.com/api/v10/users/${userId}`);
+    const globalResult = await enqueueDiscordLookup(() =>
+      requestDiscord(`https://discord.com/api/v10/users/${userId}`)
+    );
     if (!globalResult.data) return { error: globalResult.error || 'User not found' };
 
     const safeData = toSafeUser(globalResult.data);
@@ -386,9 +411,8 @@ app.post('/users/batch', discordLimiter, async (req, res) => {
     return safeData;
   };
 
-  // A small worker pool prevents a large roster from bursting Discord's
-  // per-route rate limit while still resolving substantially faster than a
-  // fully sequential list.
+  // Workers can prepare lookups concurrently, but the shared queue above is
+  // the single authority for actual Discord request pacing across all teams.
   const unresolvedUserIds = uniqueUserIds.filter((userId) => !results[userId]);
   let cursor = 0;
   const worker = async () => {

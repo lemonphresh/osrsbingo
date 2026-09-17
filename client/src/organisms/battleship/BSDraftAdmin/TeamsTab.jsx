@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useMutation, useQuery } from '@apollo/client';
+import { useMutation } from '@apollo/client';
 import {
   Box,
   VStack,
@@ -21,35 +21,14 @@ import {
   ADD_BS_TEAM,
   UPDATE_BS_TEAM_DISCORD,
 } from '../../../graphql/bsOperations';
-import { GET_USER_BY_DISCORD_ID } from '../../../graphql/queries';
 import { useToastContext } from '../../../providers/ToastProvider';
 import DiscordMemberInput from '../../../molecules/DiscordMemberInput';
+import useDiscordUsernames from '../../../hooks/useBSDiscordUsernames';
 import { FieldLabel } from '../BSSharedComponents';
 import { getBSTeamColor } from '../../../utils/battleship/bsColorPalette';
 
-const API_BASE = process.env.REACT_APP_SERVER_URL || '';
-
-export function MemberTag({ discordId, onRemove, isUpdating }) {
-  const [resolvedName, setResolvedName] = useState(null);
-
-  const { loading } = useQuery(GET_USER_BY_DISCORD_ID, {
-    variables: { discordUserId: discordId },
-    fetchPolicy: 'cache-first',
-    onCompleted: (data) => {
-      if (data?.getUserByDiscordId?.displayName) {
-        setResolvedName(data.getUserByDiscordId.displayName);
-      } else {
-        fetch(`${API_BASE}/discuser/${discordId}`)
-          .then((r) => r.json())
-          .then((d) => {
-            if (d?.username || d?.global_name) setResolvedName(d.global_name ?? d.username);
-          })
-          .catch(() => {});
-      }
-    },
-  });
-
-  const label = resolvedName ?? (loading ? '…' : `${discordId.slice(0, 8)}…`);
+export function MemberTag({ discordId, resolvedName, onRemove, isUpdating }) {
+  const label = resolvedName ?? `${discordId.slice(0, 8)}…`;
 
   return (
     <HStack
@@ -82,7 +61,7 @@ export function MemberTag({ discordId, onRemove, isUpdating }) {
   );
 }
 
-export function TeamCard({ team, allTeams, refetch, colorblindMode = false }) {
+export function TeamCard({ team, allTeams, memberNames, refetch, colorblindMode = false }) {
   const { showToast } = useToastContext();
   const [pendingMemberId, setPendingMemberId] = useState('');
   const [channelId, setChannelId] = useState(team.discordChannelId ?? '');
@@ -175,6 +154,7 @@ export function TeamCard({ team, allTeams, refetch, colorblindMode = false }) {
               <MemberTag
                 key={discordId}
                 discordId={discordId}
+                resolvedName={memberNames.get(discordId)}
                 onRemove={handleRemove}
                 isUpdating={updatingMembers}
               />
@@ -289,6 +269,14 @@ export function TeamsTab({ event, refetch, colorblindMode = false }) {
   const canAddTeam = teams.length < 2;
   const takenColors = teams.map((t) => t.color).filter(Boolean);
   const availableColors = ['BLUE', 'RED'].filter((c) => !takenColors.includes(c));
+  const resolvedMembers = useDiscordUsernames(
+    teams.flatMap((team) => team.members ?? []),
+    {},
+    { guildId: event.guildId || null }
+  );
+  const memberNames = new Map(
+    resolvedMembers.map((member) => [member.discordUserId, member.discordUsername])
+  );
 
   const [teamName, setTeamName] = useState('');
   const [teamColor, setTeamColor] = useState(availableColors[0] ?? 'BLUE');
@@ -434,6 +422,7 @@ export function TeamsTab({ event, refetch, colorblindMode = false }) {
               key={team.teamId}
               team={team}
               allTeams={teams}
+              memberNames={memberNames}
               refetch={refetch}
               colorblindMode={colorblindMode}
             />
