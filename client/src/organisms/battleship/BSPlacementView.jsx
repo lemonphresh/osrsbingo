@@ -389,7 +389,15 @@ function TeamParticipationFooter({ team, suggestions, myDiscordId, colorblindMod
   );
 }
 
-export function BSPlacementView({ event, currentUser, topBar, refetch, colorblindMode = false }) {
+export function BSPlacementView({
+  event,
+  currentUser,
+  topBar,
+  refetch,
+  colorblindMode = false,
+  previewTeamId = null,
+  readOnly = false,
+}) {
   // In colorblind mode, swap red-tinted cues (invalid-placement warning,
   // RED-team dot) for amber/orange to stay distinguishable from ship colors.
   const invalidColor = colorblindMode ? '#f59e0b' : '#ef4444';
@@ -403,18 +411,24 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
     (event.adminIds ?? []).includes(String(currentUser?.id)) ||
     event.creatorId === String(currentUser?.id);
 
-  const myTeam = teams.find((t) => (t.members ?? []).includes(currentUser?.discordUserId)) ?? null;
+  const actualTeam =
+    teams.find((t) => (t.members ?? []).includes(currentUser?.discordUserId)) ?? null;
+  const previewTeam = readOnly ? teams.find((team) => team.teamId === previewTeamId) ?? null : null;
+  const myTeam = previewTeam ?? actualTeam;
 
   // ── Workshop state (localStorage) ────────────────────────────────────────
   const eventId = event.eventId;
-  const myDiscordId = currentUser?.discordUserId ?? '';
-  const [workshop, setWorkshop] = useState(() => loadWorkshop(eventId, myDiscordId));
+  const myDiscordId = readOnly ? '' : currentUser?.discordUserId ?? '';
+  const [workshop, setWorkshop] = useState(() =>
+    readOnly ? [] : loadWorkshop(eventId, myDiscordId)
+  );
   useEffect(() => {
-    setWorkshop(loadWorkshop(eventId, myDiscordId));
-  }, [eventId, myDiscordId]);
+    setWorkshop(readOnly ? [] : loadWorkshop(eventId, myDiscordId));
+  }, [eventId, myDiscordId, readOnly]);
   const savedFailedRef = useRef(false);
   const updateWorkshop = useCallback(
     (nextShips) => {
+      if (readOnly) return;
       setWorkshop(nextShips);
       const ok = saveWorkshop(eventId, myDiscordId, nextShips);
       // Only toast the first time in a session so a persistent storage problem
@@ -427,7 +441,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
         );
       }
     },
-    [eventId, myDiscordId, showToast]
+    [eventId, myDiscordId, readOnly, showToast]
   );
 
   const [selectedShip, setSelectedShip] = useState('CARRIER');
@@ -440,7 +454,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
 
   // Intro modal: only prompt actual team members (not spectators/admin refs).
   const [showPlacementIntro, setShowPlacementIntro] = useState(
-    () => !!myTeam && !localStorage.getItem(getBSPlacementIntroKey(event.eventId))
+    () => !readOnly && !!myTeam && !localStorage.getItem(getBSPlacementIntroKey(event.eventId))
   );
 
   // ── Presence tracking (unchanged from prior implementation) ──────────────
@@ -462,6 +476,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   });
 
   useEffect(() => {
+    if (readOnly) return undefined;
     let intervalId = null;
     const startHeartbeat = () => {
       joinBSView({ variables: { eventId } });
@@ -486,7 +501,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
       if (intervalId) clearInterval(intervalId);
       leaveBSView({ variables: { eventId } });
     };
-  }, [eventId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventId, readOnly]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Suggestions (server) ─────────────────────────────────────────────────
   const teamId = myTeam?.teamId ?? null;
@@ -536,16 +551,17 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   });
 
   const mySharedSuggestion = useMemo(
-    () => suggestions.find((s) => s.proposerDiscordId === myDiscordId) ?? null,
-    [suggestions, myDiscordId]
+    () => (readOnly ? null : suggestions.find((s) => s.proposerDiscordId === myDiscordId) ?? null),
+    [readOnly, suggestions, myDiscordId]
   );
 
   const teamMemberCount = (myTeam?.members ?? []).length;
   const isSoloTeam = teamMemberCount <= 1;
 
   const myActiveVote = useMemo(
-    () => suggestions.find((s) => (s.votes ?? []).includes(myDiscordId)) ?? null,
-    [suggestions, myDiscordId]
+    () =>
+      readOnly ? null : suggestions.find((s) => (s.votes ?? []).includes(myDiscordId)) ?? null,
+    [readOnly, suggestions, myDiscordId]
   );
 
   // Resolve every proposer's Discord ID to a display name for the gallery.
@@ -627,6 +643,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   }, [placedShipTypes.size]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCellClick = (row, col) => {
+    if (readOnly) return;
     if (!isValidPlacement(selectedShip, orientation, row, col, workshop, selectedShip)) return;
     // Replace any existing placement of the same ship type in the workshop.
     const next = workshop
@@ -638,6 +655,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   const workshopComplete = workshop.length === SHIP_CONFIGS.length;
 
   const handleShare = () => {
+    if (readOnly) return;
     if (!teamId) return;
     if (!workshopComplete) {
       showToast('Place all 5 ships in your workshop before sharing.', 'warning');
@@ -651,6 +669,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   };
 
   const doShare = () => {
+    if (readOnly) return;
     shareSuggestion({
       variables: {
         teamId,
@@ -683,6 +702,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   };
 
   const handleVote = (suggestionId) => {
+    if (readOnly) return;
     // Figure out where the caller's vote is right now (if anywhere) so we can
     // tell them it moved — one-vote-per-team is enforced server-side.
     const previouslyVotedFor = suggestions.find((s) => (s.votes ?? []).includes(myDiscordId));
@@ -713,6 +733,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   };
 
   const handleDeleteMine = () => {
+    if (readOnly) return;
     if (!mySharedSuggestion) return;
     deleteSuggestion({
       variables: { suggestionId: mySharedSuggestion.suggestionId },
@@ -721,6 +742,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   };
 
   const handleClearWorkshop = () => {
+    if (readOnly) return;
     updateWorkshop([]);
     setConfirmClearWorkshop(false);
   };
@@ -754,13 +776,29 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
   return (
     <Box flex="1" minH="100vh" bg="#060f0a">
       <BSPlacementIntroModal
-        isOpen={showPlacementIntro}
+        isOpen={showPlacementIntro && !readOnly}
         onClose={() => setShowPlacementIntro(false)}
         eventId={event.eventId}
         placementPhaseHours={event.placementPhaseHours}
       />
       {topBar}
       <Box maxW="1400px" mx="auto" px={[4, 6, 8]} py={[6, 8]}>
+        {readOnly && (
+          <Box
+            bg="#1a1600"
+            border="1px solid"
+            borderColor="#facc15"
+            borderRadius="md"
+            px={4}
+            py={3}
+            mb={5}
+          >
+            <Text fontFamily="mono" fontSize="xs" color="#facc15" letterSpacing="wide">
+              Creator preview / viewing {myTeam.teamName} in read-only mode. Shared suggestions and
+              votes are live; private workshop drafts stay in each member&apos;s browser.
+            </Text>
+          </Box>
+        )}
         <HStack spacing={3} mb={2} align="center" justify="space-between">
           <HStack spacing={2}>
             <Box w="8px" h="8px" borderRadius="full" bg={dotColor} />
@@ -798,12 +836,13 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
             letterSpacing="wide"
             lineHeight="tall"
           >
-            Workshop your fleet on the board below. It's saved locally and only you can see it. When
-            you're happy, hit <strong>Share Suggestion</strong> so your teammates can vote on it.
-            The highest-voted suggestion at phase end becomes your team's fleet.
-            {isSoloTeam
-              ? " You're the only member of this team, so your shared suggestion wins by default."
-              : ' Ties break at random.'}
+            {readOnly
+              ? `This is the live placement view for ${myTeam.teamName}. Private workshop layouts are not available until a member shares them.`
+              : "Workshop your fleet on the board below. It's saved locally and only you can see it. When you're happy, hit Share Suggestion so your teammates can vote on it. The highest-voted suggestion at phase end becomes your team's fleet."}
+            {!readOnly &&
+              (isSoloTeam
+                ? " You're the only member of this team, so your shared suggestion wins by default."
+                : ' Ties break at random.')}
           </Text>
         </Box>
 
@@ -868,9 +907,11 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                             ? `${shipColor}22`
                             : '#060f0a'
                         }
-                        cursor="crosshair"
-                        onClick={() => handleCellClick(row, col)}
-                        onMouseEnter={() => !hoveredHistoryShip && setHoveredCell({ row, col })}
+                        cursor={readOnly ? 'default' : 'crosshair'}
+                        onClick={readOnly ? undefined : () => handleCellClick(row, col)}
+                        onMouseEnter={() =>
+                          !readOnly && !hoveredHistoryShip && setHoveredCell({ row, col })
+                        }
                         onMouseLeave={() => setHoveredCell(null)}
                         display="flex"
                         alignItems="center"
@@ -894,7 +935,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
               ))}
             </VStack>
             <Text fontFamily="mono" fontSize="9px" color="#3d6b4a" mt={2} letterSpacing="wide">
-              Click to place · hover to preview · private to you until you share
+              {readOnly
+                ? 'Private workshop unavailable in creator preview'
+                : 'Click to place · hover to preview · private to you until you share'}
             </Text>
           </Box>
 
@@ -929,6 +972,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                       fontSize="10px"
                       letterSpacing="wider"
                       textTransform="uppercase"
+                      isDisabled={readOnly}
                       onClick={() => setOrientation(o)}
                       _hover={{ borderColor: '#4ade80' }}
                     >
@@ -963,8 +1007,8 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                         borderColor={isSelected ? color : '#1a4028'}
                         borderRadius="sm"
                         bg={isSelected ? `${color}18` : '#060f0a'}
-                        cursor="pointer"
-                        onClick={() => setSelectedShip(shipType)}
+                        cursor={readOnly ? 'default' : 'pointer'}
+                        onClick={readOnly ? undefined : () => setSelectedShip(shipType)}
                         onMouseEnter={() => isPlaced && setHoveredHistoryShip(shipType)}
                         onMouseLeave={() => setHoveredHistoryShip(null)}
                         _hover={{ borderColor: color }}
@@ -1013,7 +1057,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                   letterSpacing="widest"
                   textTransform="uppercase"
                   isLoading={sharing}
-                  isDisabled={!workshopComplete}
+                  isDisabled={readOnly || !workshopComplete}
                   _hover={{ bg: semanticColors.positive }}
                   _disabled={{ opacity: 0.4, cursor: 'not-allowed' }}
                   onClick={handleShare}
@@ -1025,7 +1069,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                     Place all 5 ships to enable sharing.
                   </Text>
                 )}
-                {workshop.length > 0 && !confirmClearWorkshop && (
+                {!readOnly && workshop.length > 0 && !confirmClearWorkshop && (
                   <Button
                     size="xs"
                     variant="ghost"
@@ -1078,7 +1122,7 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
             >
               Team Suggestions ({suggestions.length})
             </Text>
-            {suggestions.length > 0 && !myActiveVote && !isSoloTeam && (
+            {suggestions.length > 0 && !readOnly && !myActiveVote && !isSoloTeam && (
               <Box
                 mb={3}
                 bg="#1a1a00"
@@ -1102,7 +1146,9 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
             {suggestions.length === 0 ? (
               <Box bg="#091a10" border="1px dashed" borderColor="#1a4028" borderRadius="md" p={4}>
                 <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
-                  No suggestions yet. Be the first to share yours!
+                  {readOnly
+                    ? 'No shared suggestions yet.'
+                    : 'No suggestions yet. Be the first to share yours!'}
                 </Text>
               </Box>
             ) : (
@@ -1181,10 +1227,11 @@ export function BSPlacementView({ event, currentUser, topBar, refetch, colorblin
                               fontSize="10px"
                               letterSpacing="wider"
                               textTransform="uppercase"
+                              isDisabled={readOnly}
                               _hover={{ borderColor: semanticColors.positive }}
                               onClick={() => handleVote(s.suggestionId)}
                             >
-                              {iVoted ? 'Remove Vote' : 'Vote'}
+                              {readOnly ? 'View only' : iVoted ? 'Remove Vote' : 'Vote'}
                             </Button>
                             {isMine && (
                               <Button

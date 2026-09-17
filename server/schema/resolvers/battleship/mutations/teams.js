@@ -68,9 +68,6 @@ module.exports = {
         lock: transaction.LOCK.UPDATE,
       });
       requireAdmin(event, user.id);
-      if (event.status !== 'DRAFT') {
-        throw new UserInputError('Team rosters are locked when the placement phase begins.');
-      }
       const teams = await BSTeam.findAll({
         where: { eventId: event.eventId },
         transaction,

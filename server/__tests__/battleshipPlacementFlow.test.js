@@ -144,20 +144,40 @@ afterAll(async () => {
   await db.sequelize.close();
 });
 
-test('placement access cannot be obtained by joining or direct board writes', async () => {
+test('placement access stays admin-managed while admins can replace roster members', async () => {
   await expect(
     Mutation.joinBSTeam(null, { teamId: mutationTeamId }, ctx(outsider))
   ).rejects.toThrow(/admin-managed/i);
   await expect(
     Mutation.placeBSShip(null, { boardId: mutationBoardId, input: layoutA[0] }, ctx(p1))
   ).rejects.toThrow(/direct ship placement is disabled/i);
-  await expect(
-    Mutation.updateBSTeamMembers(
-      null,
-      { teamId: mutationTeamId, members: [p1.discordUserId] },
-      ctx(creator)
-    )
-  ).rejects.toThrow(/rosters are locked/i);
+
+  const replacementId = `bs-place-replacement-${suffix}`;
+  const updated = await Mutation.updateBSTeamMembers(
+    null,
+    {
+      teamId: mutationTeamId,
+      members: [p1.discordUserId, p2.discordUserId, p3.discordUserId, replacementId],
+    },
+    ctx(creator)
+  );
+  expect(updated.members).toContain(replacementId);
+  expect(updated.members).not.toContain(p4.discordUserId);
+
+  const event = await db.BSEvent.findByPk(mutationEventId);
+  await event.update({ status: 'ACTIVE' });
+  const activeUpdate = await Mutation.updateBSTeamMembers(
+    null,
+    {
+      teamId: mutationTeamId,
+      members: [p1.discordUserId, p2.discordUserId, p3.discordUserId, p4.discordUserId],
+    },
+    ctx(creator)
+  );
+  expect(activeUpdate.members).toContain(p4.discordUserId);
+
+  // Restore the fixture phase used by the remaining placement-voting tests.
+  await event.update({ status: 'PLACEMENT' });
 });
 
 test('team setup serializes the two-team limit and forbids dual membership', async () => {
