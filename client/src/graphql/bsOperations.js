@@ -302,6 +302,7 @@ export const GET_BS_EVENT_FULL = gql`
         }
       }
       womCompetitionId
+      womShotAnchorBufferHours
       winnerId
       completedAt
     }
@@ -1072,6 +1073,7 @@ export const UPDATE_BS_EVENT = gql`
       eventId
       guildId
       womCompetitionId
+      womShotAnchorBufferHours
     }
   }
 `;

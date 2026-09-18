@@ -33,6 +33,9 @@ const { syncBSWomProgress } = require('../utils/battleship/bsWomSync');
 
 const event = { eventId: 'event-1', womCompetitionId: '156252' };
 const shotAt = new Date('2026-09-19T12:00:00.000Z');
+// Sync shifts startDate back by 3h to work around OSRS's logout-only snapshot
+// model — mirror the same shift here so the mock-call expectations stay honest.
+const anchoredStart = new Date(shotAt.getTime() - 3 * 60 * 60 * 1000);
 
 function makeTile(patch = {}) {
   return {
@@ -80,7 +83,7 @@ test('uses the firing team roster and anchors an ocean KC task to shotAt', async
 
   await syncBSWomProgress(event);
 
-  expect(wom.fetchGroupGains).toHaveBeenCalledWith(9738, 'zulrah', shotAt, expect.any(Date));
+  expect(wom.fetchGroupGains).toHaveBeenCalledWith(9738, 'zulrah', anchoredStart, expect.any(Date));
   expect(tile.update).toHaveBeenCalledWith({ progress: 70 });
   expect(pubsub.publish).toHaveBeenCalledTimes(1);
 });
@@ -132,7 +135,7 @@ test('uses per-player shot-window gains for competition members missing from gro
   expect(wom.fetchPlayerGainsInRange).toHaveBeenCalledWith(
     'bob',
     'zulrah',
-    shotAt,
+    anchoredStart,
     expect.any(Date)
   );
   expect(tile.update).toHaveBeenCalledWith({ progress: 70 });

@@ -1874,6 +1874,7 @@ const typeDefs = gql`
     announcementsChannelId: String
     eventPassword: String
     womCompetitionId: String
+    womShotAnchorBufferHours: Float!
     contentSelections: JSON
     winnerId: ID
     completedAt: DateTime
@@ -2124,6 +2125,7 @@ const typeDefs = gql`
     guildId: String
     announcementsChannelId: String
     womCompetitionId: String
+    womShotAnchorBufferHours: Float
     scheduledPlacementStart: DateTime
   }
 

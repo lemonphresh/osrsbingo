@@ -11,6 +11,11 @@ const {
 const eventSyncsInProgress = new Map();
 const TRACKABLE_METRIC_TYPES = new Set(['xp', 'kc']);
 
+// Fallback used when an event has no explicit buffer configured. See the WOM
+// integration section of the BS admin page for per-event tuning; the rationale
+// for having a buffer at all is documented on that input.
+const DEFAULT_SHOT_ANCHOR_BUFFER_HOURS = 3;
+
 function getModels() {
   return require('../../db/models');
 }
@@ -70,6 +75,11 @@ function findRoster(rosters, teamName) {
 }
 
 async function syncEvent(event, { BSTeam, BSBoard, BSTile, BSTask, pubsub }) {
+  const bufferHours = Number.isFinite(Number(event.womShotAnchorBufferHours))
+    ? Math.max(0, Number(event.womShotAnchorBufferHours))
+    : DEFAULT_SHOT_ANCHOR_BUFFER_HOURS;
+  const shotAnchorBufferMs = bufferHours * 60 * 60 * 1000;
+
   const teams = await BSTeam.findAll({ where: { eventId: event.eventId } });
   const boards = await BSBoard.findAll({ where: { eventId: event.eventId } });
 
@@ -133,7 +143,7 @@ async function syncEvent(event, { BSTeam, BSBoard, BSTile, BSTask, pubsub }) {
     }
 
     const shotAt = new Date(tile.shotAt);
-    const startDate = shotAt;
+    const startDate = new Date(shotAt.getTime() - shotAnchorBufferMs);
     const endDate = new Date();
     let groupGains;
     try {

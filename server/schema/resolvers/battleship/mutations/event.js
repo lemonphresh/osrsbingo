@@ -372,6 +372,9 @@ module.exports = {
         announcementsChannelId: input.announcementsChannelId,
       }),
       ...(input.womCompetitionId != null && { womCompetitionId: input.womCompetitionId || null }),
+      ...(input.womShotAnchorBufferHours != null && {
+        womShotAnchorBufferHours: Math.max(0, Number(input.womShotAnchorBufferHours) || 0),
+      }),
       ...(input.scheduledPlacementStart !== undefined && {
         scheduledPlacementStart: input.scheduledPlacementStart ?? null,
       }),

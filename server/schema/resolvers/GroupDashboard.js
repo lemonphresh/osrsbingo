@@ -196,6 +196,15 @@ async function fetchAndCacheProgress(event, forceRefresh = false, fireNotificati
       const bufferMs = (event.womStartBufferHours || 0) * 60 * 60 * 1000;
       const effectiveStartDate = new Date(new Date(event.startDate).getTime() - bufferMs);
 
+      // fetchGroupGains caps endDate to `now`, so a not-yet-started event
+      // produces startDate > endDate → WOM returns INVALID_DATE_RANGE.
+      // Gains are zero for pre-start events anyway; skip the fetch and let
+      // the next scheduled tick pick up real data once startDate is past.
+      if (effectiveStartDate > new Date()) {
+        const roleMap = await fetchGroupMembers(event.dashboard.womGroupId).catch(() => ({}));
+        return calculateGoalProgress(event.goals ?? [], womData ?? {}, roleMap);
+      }
+
       await Promise.all(
         metrics.map(async (metric) => {
           try {
