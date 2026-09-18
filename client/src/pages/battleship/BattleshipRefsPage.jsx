@@ -41,12 +41,15 @@ import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
   GET_BS_EVENT,
+  GET_BS_REF_ACTIVE_TASKS,
   GET_BS_SUBMISSIONS,
   REVIEW_BS_SUBMISSION,
   COMPLETE_BS_TILE,
   SET_BS_TILE_PROGRESS,
   BS_SUBMISSION_ADDED,
   BS_SUBMISSION_REVIEWED,
+  BS_BOARD_UPDATED,
+  BS_TILE_UPDATED,
 } from '../../graphql/bsOperations';
 import {
   playSubmissionIncoming,
@@ -54,6 +57,10 @@ import {
   playSubmissionDenied,
   warmUpAudio,
 } from '../../utils/soundEngine';
+import {
+  formatBSActiveTaskProgress,
+  getBSActiveTasksByTeam,
+} from '../../utils/battleship/bsRefActiveTasks';
 
 const GREEN = '#4ade80';
 const DIM = '#6b9e78';
@@ -613,6 +620,42 @@ export default function BattleshipRefsPage() {
     fetchPolicy: 'network-only',
   });
 
+  const { data: activeTasksData, refetch: refetchActiveTasks } = useQuery(
+    GET_BS_REF_ACTIVE_TASKS,
+    {
+      variables: { eventId },
+      skip: !isAuthenticated || !eventId,
+      fetchPolicy: 'cache-and-network',
+    }
+  );
+
+  const activeTaskTeams = useMemo(
+    () => activeTasksData?.getBSEvent?.teams ?? [],
+    [activeTasksData]
+  );
+  const activeTasksByTeam = useMemo(
+    () => getBSActiveTasksByTeam(activeTaskTeams),
+    [activeTaskTeams]
+  );
+  const firstBoardId = activeTaskTeams[0]?.board?.boardId;
+  const secondBoardId = activeTaskTeams[1]?.board?.boardId;
+
+  useSubscription(BS_BOARD_UPDATED, {
+    variables: { eventId },
+    skip: !eventId || !isAuthenticated,
+    onData: () => refetchActiveTasks(),
+  });
+  useSubscription(BS_TILE_UPDATED, {
+    variables: { boardId: firstBoardId },
+    skip: !firstBoardId || !isAuthenticated,
+    onData: () => refetchActiveTasks(),
+  });
+  useSubscription(BS_TILE_UPDATED, {
+    variables: { boardId: secondBoardId },
+    skip: !secondBoardId || !isAuthenticated,
+    onData: () => refetchActiveTasks(),
+  });
+
   const [doReview] = useMutation(REVIEW_BS_SUBMISSION);
   const [doComplete] = useMutation(COMPLETE_BS_TILE);
   const [doProgress] = useMutation(SET_BS_TILE_PROGRESS);
@@ -752,7 +795,8 @@ export default function BattleshipRefsPage() {
     setPendingNew(0);
     setStableGroupOrder(null);
     refetchSubs();
-  }, [refetchSubs]);
+    refetchActiveTasks();
+  }, [refetchSubs, refetchActiveTasks]);
 
   useEffect(() => {
     const onVisibility = () => {
@@ -812,7 +856,7 @@ export default function BattleshipRefsPage() {
     try {
       await doComplete({ variables: { tileId } });
       showToast('Tile marked complete!', 'success');
-      await refetchSubs();
+      await Promise.all([refetchSubs(), refetchActiveTasks()]);
     } catch (e) {
       showToast(e.message ?? 'Failed to complete tile', 'error');
     } finally {
@@ -823,6 +867,7 @@ export default function BattleshipRefsPage() {
   const handleSetProgress = async (tileId, progress) => {
     try {
       await doProgress({ variables: { tileId, progress } });
+      await refetchActiveTasks();
     } catch (e) {
       showToast(e.message ?? 'Failed to set progress', 'error');
     }
@@ -961,6 +1006,99 @@ export default function BattleshipRefsPage() {
                   colorblindMode={colorblindMode}
                 />
               ))}
+            </VStack>
+          </Box>
+        )}
+
+        {event?.status === 'ACTIVE' && activeTasksByTeam.length > 0 && (
+          <Box>
+            <Heading
+              size="xs"
+              color={DIM}
+              fontFamily="mono"
+              letterSpacing="widest"
+              mb={3}
+              textTransform="uppercase"
+            >
+              Active Team Tasks
+            </Heading>
+            <VStack align="stretch" spacing={2}>
+              {activeTasksByTeam.map(({ team, activeTile }) => {
+                const task = activeTile?.task;
+                const drops = task?.validDrops?.filter(Boolean) ?? [];
+                const teamColor = getBSTeamColor(team.color, colorblindMode);
+                return (
+                  <Box
+                    key={team.teamId}
+                    bg="#091a10"
+                    border="1px solid"
+                    borderColor="#1a4028"
+                    borderRadius="md"
+                    px={3}
+                    py={2}
+                  >
+                    <HStack justify="space-between" align="flex-start" spacing={3}>
+                      <HStack spacing={2} minW={0} align="flex-start">
+                        <Box
+                          w="8px"
+                          h="8px"
+                          mt="5px"
+                          borderRadius="full"
+                          bg={teamColor}
+                          flexShrink={0}
+                        />
+                        <VStack align="flex-start" spacing={0.5} minW={0}>
+                          <Text fontSize="xs" color="#d4f0da" fontWeight="bold">
+                            {team.teamName}
+                          </Text>
+                          {activeTile ? (
+                            <>
+                              <Text fontSize="sm" color="#d4f0da" fontWeight="semibold">
+                                {coordLabel(activeTile.row, activeTile.col)} ·{' '}
+                                {task?.bossOrSkill ?? task?.label ?? 'Unknown task'}
+                              </Text>
+                              {task?.metricLabel && (
+                                <Text fontSize="xs" color={DIM}>
+                                  {task.metricLabel}
+                                </Text>
+                              )}
+                              {drops.length > 0 && (
+                                <Text
+                                  fontSize="xs"
+                                  color={DIM}
+                                  noOfLines={2}
+                                  title={drops.join(', ')}
+                                >
+                                  Accepted: {drops.join(' · ')}
+                                </Text>
+                              )}
+                            </>
+                          ) : (
+                            <Text fontSize="xs" color={DIM}>
+                              No active task
+                            </Text>
+                          )}
+                        </VStack>
+                      </HStack>
+                      {activeTile && (
+                        <VStack align="flex-end" spacing={1} flexShrink={0}>
+                          <Badge
+                            colorScheme={
+                              activeTile.shipType ? semanticColors.negativeScheme : 'gray'
+                            }
+                            fontSize="9px"
+                          >
+                            {activeTile.shipType ? 'Ship hit' : 'Ocean'}
+                          </Badge>
+                          <Text fontFamily="mono" fontSize="xs" color="#22d3ee">
+                            {formatBSActiveTaskProgress(activeTile)}
+                          </Text>
+                        </VStack>
+                      )}
+                    </HStack>
+                  </Box>
+                );
+              })}
             </VStack>
           </Box>
         )}

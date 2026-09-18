@@ -36,6 +36,7 @@ import {
 import { BSGameOverScreen } from '../../organisms/battleship/BSGameOverScreen';
 import { BSSpectatorView } from '../../organisms/battleship/BSSpectatorView';
 import { SkipProposalModal } from '../../organisms/battleship/BSSkipProposalModal';
+import { BSAcceptedDrops } from '../../organisms/battleship/BSAcceptedDrops';
 import {
   GET_BS_EVENT_FULL,
   GET_BS_SHOT_LOG,
@@ -908,12 +909,12 @@ export default function BattleshipEventPage() {
               READ ONLY
             </Badge>
           )}
-          {cooldownLabel && (
+          {myTeam && cooldownLabel && (
             <Text fontFamily="mono" fontSize="xs" color="yellow.400" letterSpacing="wide">
               Cooldown: {cooldownLabel}
             </Text>
           )}
-          {!cooldownLabel && event.status === 'ACTIVE' && (
+          {myTeam && !cooldownLabel && event.status === 'ACTIVE' && (
             <Text
               fontFamily="mono"
               fontSize="xs"
@@ -1125,6 +1126,7 @@ export default function BattleshipEventPage() {
           refetch={refetchEvent}
           colorblindMode={colorblindMode}
           onToggleColorblindMode={toggleColorblindMode}
+          topBar={topBar}
         />
         {participantSetupModal}
       </>
@@ -1567,6 +1569,10 @@ export default function BattleshipEventPage() {
                           {task.metricLabel}
                         </Text>
                       )}
+                      <BSAcceptedDrops
+                        validDrops={task?.validDrops}
+                        accentColor={th.accentBright}
+                      />
                       {/* Progress bar — updated live by refs */}
                       <Box mb={3}>
                         <HStack justify="space-between" mb={1}>
@@ -1815,10 +1821,11 @@ export default function BattleshipEventPage() {
           readOnly={isReadOnlyPreview}
           onClose={() => setActiveProposal(null)}
           onVote={(proposalId, approve) => {
+            if (isReadOnlyPreview) return;
             voteOnProposal({ variables: { proposalId, approve } });
           }}
           onFire={() => {
-            if (!activeProposal?.targetTeamId) return;
+            if (isReadOnlyPreview || !activeProposal?.targetTeamId) return;
             fireBS({
               variables: {
                 eventId,
@@ -1841,10 +1848,11 @@ export default function BattleshipEventPage() {
           skipping={skipping}
           readOnly={isReadOnlyPreview}
           onVote={(proposalId, approve) => {
+            if (isReadOnlyPreview) return;
             voteOnSkip({ variables: { proposalId, approve } });
           }}
           onSkip={() => {
-            if (!activeSkipProposal?.tileId) return;
+            if (isReadOnlyPreview || !activeSkipProposal?.tileId) return;
             skipTile({ variables: { tileId: activeSkipProposal.tileId } });
           }}
           onClose={() => setActiveSkipProposal(null)}

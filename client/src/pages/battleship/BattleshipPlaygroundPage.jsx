@@ -30,6 +30,7 @@ import BSVolumeControl from '../../molecules/battleship/BSVolumeControl';
 import { BSPlacementCountdown } from '../../organisms/battleship/BSFlipClock';
 import { BSPlacementSpectatorView } from '../../organisms/battleship/BSPlacementView';
 import { BSSpectatorView } from '../../organisms/battleship/BSSpectatorView';
+import { BSAcceptedDrops } from '../../organisms/battleship/BSAcceptedDrops';
 import {
   SectionLabel,
   FieldLabel,
@@ -271,6 +272,29 @@ const MOCK_PLACEMENT_EVENT_CLOSED = {
   placementPhaseHours: 2.5,
 };
 
+const MOCK_SARACHNIS_DROPS = [
+  'Sraracha',
+  'Sarachnis Cudgel',
+  'Jar of Eyes',
+  'Pristine Spider Silk',
+];
+
+const MOCK_COX_DROPS = [
+  'Olmlet',
+  'Twisted Bow',
+  'Elder Maul',
+  'Kodai Insignia',
+  'Dragon Claws',
+  'Ancestral Hat',
+  'Ancestral Robe Top',
+  'Ancestral Robe Bottom',
+  'Dexterous Prayer Scroll',
+  'Arcane Prayer Scroll',
+  "Dinh's Bulwark",
+  'Dragon Hunter Crossbow',
+  'Twisted Buckler',
+];
+
 // ─── mock spectator states ─────────────────────────────────────────────────
 // Spectators receive ship metadata only for struck cells. Keeping the mock in
 // that same redacted shape catches accidental dependencies on hidden ships.
@@ -381,6 +405,8 @@ export default function BattleshipPlaygroundPage() {
         <TypographySection />
         <SectionDivider />
         <SharedLabelsSection />
+        <SectionDivider />
+        <AcceptedDropsSection />
         <SectionDivider />
         <GridSection />
         <SectionDivider />
@@ -625,6 +651,38 @@ function SharedLabelsSection() {
           so spacing can diverge later without a rename.
         </Text>
       </Box>
+    </VStack>
+  );
+}
+
+function AcceptedDropsSection() {
+  return (
+    <VStack align="stretch" spacing={4}>
+      <SectionHeading note="The exact accepted-drop list shown under an active unique-drop task. Long pools scroll inside the card instead of stretching the whole battle view.">
+        Accepted drop tasks
+      </SectionHeading>
+      <SimpleGrid columns={{ base: 1, md: 2 }} spacing={5}>
+        <Box bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
+          <FieldLabel>Short pool</FieldLabel>
+          <Text fontFamily="mono" fontSize="sm" color="#d4f0da" fontWeight="bold" mb={1}>
+            Sarachnis
+          </Text>
+          <Text fontFamily="mono" fontSize="xs" color="#4ade80" mb={2}>
+            1 unique
+          </Text>
+          <BSAcceptedDrops validDrops={MOCK_SARACHNIS_DROPS} />
+        </Box>
+        <Box bg="#060f0a" border="1px solid" borderColor="#1a4028" borderRadius="md" p={4}>
+          <FieldLabel>Long pool with overflow</FieldLabel>
+          <Text fontFamily="mono" fontSize="sm" color="#d4f0da" fontWeight="bold" mb={1}>
+            Chambers of Xeric
+          </Text>
+          <Text fontFamily="mono" fontSize="xs" color="#fbbf24" mb={2}>
+            2 uniques
+          </Text>
+          <BSAcceptedDrops validDrops={MOCK_COX_DROPS} accentColor="#fcd34d" />
+        </Box>
+      </SimpleGrid>
     </VStack>
   );
 }
