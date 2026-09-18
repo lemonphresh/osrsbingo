@@ -291,7 +291,8 @@ export function BSBattleIntroModal({ isOpen, onClose, eventId, cooldownMinutes }
                   every cell it consists of has been hit and the task for each hit has been
                   completed
                 </Text>
-                . The first team to sink all of the enemy's ships wins the campaign.
+                . When that happens, both teams are notified in Discord and told which type of ship
+                sank. The first team to sink all of the enemy's ships wins the campaign.
               </Text>
             </Box>
           </VStack>

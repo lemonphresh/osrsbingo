@@ -838,7 +838,7 @@ export function BSPlacementView({
           >
             {readOnly
               ? `This is the live placement view for ${myTeam.teamName}. Private workshop layouts are not available until a member shares them.`
-              : "Workshop your fleet on the board below. It's saved locally and only you can see it. When you're happy, hit Share Suggestion so your teammates can vote on it. The highest-voted suggestion at phase end becomes your team's fleet."}
+              : "Workshop your fleet on the board below. It's saved locally and only you can see it. When you're happy, hit Share Suggestion so your teammates can vote on it. The highest-voted suggestion at phase end becomes your team's fleet. Unshared workshops do not count. If your team shares no suggestion, all five ships are assigned randomly."}
             {!readOnly &&
               (isSoloTeam
                 ? " You're the only member of this team, so your shared suggestion wins by default."
@@ -1147,8 +1147,8 @@ export function BSPlacementView({
               <Box bg="#091a10" border="1px dashed" borderColor="#1a4028" borderRadius="md" p={4}>
                 <Text fontFamily="mono" fontSize="10px" color="#6b9e78" lineHeight="tall">
                   {readOnly
-                    ? 'No shared suggestions yet.'
-                    : 'No suggestions yet. Be the first to share yours!'}
+                    ? 'No shared suggestions yet. If none are shared, all five ships will be assigned randomly.'
+                    : 'No suggestions yet. Share a complete layout before the deadline, or all five ships will be assigned randomly!'}
                 </Text>
               </Box>
             ) : (

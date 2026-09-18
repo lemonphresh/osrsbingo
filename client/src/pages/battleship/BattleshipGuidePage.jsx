@@ -137,8 +137,11 @@ function ParticipantGuide() {
         channel one hour before placement ends. Get your votes in before the clock runs out.
       </Step>
       <Callout color={AMBER} icon={FaExclamationTriangle}>
-        If nobody on your team shares a suggestion, the game randomly places your fleet for you. If
-        it&apos;s just you on the team, your shared suggestion wins by default.
+        Only complete layouts submitted with <strong>Share Suggestion</strong> count. An unfinished
+        or unshared private workshop is ignored. If your team has no shared suggestion when
+        placement ends, the site assigns all five ships as a valid random fleet. Your team still
+        plays normally, but has no control over that layout. If it&apos;s just you on the team, your
+        shared suggestion wins by default.
       </Callout>
 
       <SectionHeader>Battle Phase</SectionHeader>
@@ -179,7 +182,8 @@ function ParticipantGuide() {
       </Step>
       <Step num="7" title="Under fire" color={AMBER}>
         The enemy shoots at your board too. Your Discord channel pings when a ship of yours takes a
-        hit. Sunk ships get a distinct dark-red state with a ✕ marker across every cell.
+        hit. When a ship is fully sunk, both teams are notified in Discord and told which type of
+        ship sank. Sunk ships also get a distinct dark-red state with a ✕ marker across every cell.
       </Step>
 
       <SectionHeader>Submissions via Discord</SectionHeader>
