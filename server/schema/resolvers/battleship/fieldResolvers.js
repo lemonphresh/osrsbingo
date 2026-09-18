@@ -2,6 +2,17 @@
 
 const { Op, literal } = require('sequelize');
 const { getModels } = require('./helpers');
+const { getLayout } = require('../../../utils/battleship/bsLayoutCache');
+
+// Wrap getLayout in a fail-open helper: any cache path exception falls through
+// to null so callers do their existing DB lookup instead of blowing up a read.
+async function tryLayout(eventId) {
+  try {
+    return await getLayout(eventId);
+  } catch (_) {
+    return null;
+  }
+}
 
 // Ship data (placements + unshot tile.shipType) must not leak to opponents while
 // the game is live. Site admins, event admins/refs, and members of the board's
@@ -39,14 +50,18 @@ const BSEvent = {
       order: [['createdAt', 'ASC']],
     });
   },
-  tasks: (event) => {
+  tasks: async (event) => {
+    const layout = await tryLayout(event.eventId);
+    if (layout) return layout.tasks.filter((t) => t.isActive);
     const { BSTask } = getModels();
     return BSTask.findAll({
       where: { eventId: event.eventId, isActive: true },
       order: [['createdAt', 'ASC']],
     });
   },
-  shipTemplates: (event) => {
+  shipTemplates: async (event) => {
+    const layout = await tryLayout(event.eventId);
+    if (layout) return layout.templates;
     const { BSShipTemplate } = getModels();
     return BSShipTemplate.findAll({ where: { eventId: event.eventId } });
   },
@@ -161,16 +176,38 @@ const BSBoard = {
       // NULLS LAST keeps pre-placement tiles (row=null) from breaking sorted views
       order: [literal('"row" ASC NULLS LAST, "col" ASC NULLS LAST')],
     });
+    const layout = await tryLayout(board.eventId);
     const visible = await canSeeShips(board, context);
-    if (visible) return tiles;
+    // Decorate each tile with .task from the layout cache. BSTile.task reads it
+    // if set; if the cache miss fell back to null, BSTile.task keeps its DB
+    // fallback and existing behavior is preserved.
+    if (visible) {
+      if (layout) {
+        tiles.forEach((t) => {
+          const activeTaskId = t.shipTaskId ?? t.taskId;
+          t.task = activeTaskId ? layout.tasksById.get(activeTaskId) ?? null : null;
+        });
+      }
+      return tiles;
+    }
     // Redact ship overlays on cells the opponent hasn't shot yet.
     return tiles.map((t) => {
-      if (t.isShot) return t;
+      if (t.isShot) {
+        if (layout) {
+          const activeTaskId = t.shipTaskId ?? t.taskId;
+          t.task = activeTaskId ? layout.tasksById.get(activeTaskId) ?? null : null;
+        }
+        return t;
+      }
       // Return a shallow plain object so the ORM instance isn't mutated in-place.
       const plain = t.get({ plain: true });
       plain.shipType = null;
       plain.cellIndex = null;
       plain.shipTaskId = null;
+      // With ship overlay redacted, the exposed task is the ocean task only.
+      if (layout) {
+        plain.task = plain.taskId ? layout.tasksById.get(plain.taskId) ?? null : null;
+      }
       return plain;
     });
   },
@@ -178,6 +215,9 @@ const BSBoard = {
 
 const BSShipTemplate = {
   task: (template) => {
+    // Layout cache hydrates template.task upfront. Only fall back to a DB
+    // findByPk when the cache path didn't run (kill switch, cold error, etc.).
+    if (template.task !== undefined) return template.task;
     if (!template.taskId) return null;
     const { BSTask } = getModels();
     return BSTask.findByPk(template.taskId);
@@ -186,6 +226,9 @@ const BSShipTemplate = {
 
 const BSTile = {
   task: (tile) => {
+    // Decorated by BSBoard.tiles when the cache is populated. Undefined means
+    // no decoration happened — preserve original DB behavior.
+    if (tile.task !== undefined) return tile.task;
     const activeTaskId = tile.shipTaskId ?? tile.taskId;
     if (!activeTaskId) return null;
     const { BSTask } = getModels();
