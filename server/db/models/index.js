@@ -41,6 +41,14 @@ Object.keys(db).forEach((modelName) => {
   }
 });
 
+try {
+  require('../../utils/battleship/bsLayoutCache').installInvalidationHooks(db);
+} catch (err) {
+  // Hooks are a cache optimization only — never block boot on failure.
+  // eslint-disable-next-line no-console
+  console.warn('[bsLayoutCache] failed to install invalidation hooks:', err?.message);
+}
+
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
 

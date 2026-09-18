@@ -7,6 +7,7 @@ const {
   isAdminOrRef,
   getEventOrThrow,
 } = require('./helpers');
+const { getLayout } = require('../../../utils/battleship/bsLayoutCache');
 const { getViewerCount } = require('../../../utils/battleship/bsViewers');
 const { getProposal, isProposalExpired } = require('../../../utils/battleship/bsProposals');
 const {
@@ -32,6 +33,12 @@ module.exports = {
 
   getBSTaskPool: async (_, { eventId }, context) => {
     requireAuth(context);
+    try {
+      const layout = await getLayout(eventId);
+      if (layout) return layout.tasks.filter((t) => t.isActive);
+    } catch (_) {
+      // Fail open — fall through to the direct DB read.
+    }
     const { BSTask } = getModels();
     return BSTask.findAll({ where: { eventId, isActive: true }, order: [['createdAt', 'ASC']] });
   },
