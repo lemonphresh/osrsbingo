@@ -1,7 +1,6 @@
 'use strict';
 
 const { generateId } = require('./bsConfig');
-const { UniqueConstraintError } = require('sequelize');
 
 const getModel = () => require('../../db/models').BSProposalLog;
 
@@ -11,7 +10,12 @@ const getModel = () => require('../../db/models').BSProposalLog;
  * Called from every mutation that resolves a proposal (approve-and-fire, reject,
  * expire, clear). The unique index on sourceProposalId means duplicate calls for
  * the same proposal (e.g. cleanup after an already-rejected proposal is
- * overwritten) are silently discarded — callers don't need to gate themselves.
+ * overwritten) need to be silently discarded — but a JS-level catch of the
+ * UniqueConstraintError isn't enough: Postgres still marks the surrounding
+ * transaction as aborted, and every subsequent query in that transaction fails
+ * with "current transaction is aborted, commands ignored until end of
+ * transaction block". We use bulkCreate + ignoreDuplicates so the ON CONFLICT
+ * DO NOTHING happens at the SQL layer, keeping the transaction alive.
  *
  * @param {'SHOT'|'SKIP'} kind
  * @param {object} proposal — snapshot of the proposal at the terminal moment
@@ -21,8 +25,8 @@ const getModel = () => require('../../db/models').BSProposalLog;
 async function logProposalOutcome({ kind, proposal, finalStatus, tileLabel = null }, options = {}) {
   if (!proposal || !proposal.proposalId) return null;
   const Model = getModel();
-  try {
-    return await Model.create(
+  const [row] = await Model.bulkCreate(
+    [
       {
         logId: generateId('bsplog'),
         eventId: proposal.eventId,
@@ -42,12 +46,13 @@ async function logProposalOutcome({ kind, proposal, finalStatus, tileLabel = nul
         proposedAt: proposal.proposedAt ?? new Date(),
         resolvedAt: new Date(),
       },
-      options
-    );
-  } catch (err) {
-    if (err instanceof UniqueConstraintError) return null;
-    throw err;
-  }
+    ],
+    {
+      ignoreDuplicates: true,
+      ...options,
+    }
+  );
+  return row ?? null;
 }
 
 module.exports = { logProposalOutcome };
