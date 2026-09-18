@@ -39,6 +39,7 @@ import {
   isValidPlacement,
 } from '../../utils/battleship/bsClientHelpers';
 import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
+import { findBSTeamForDiscordId } from '../../utils/battleship/bsPreview';
 
 // ── Workshop state (localStorage) ──────────────────────────────────────────
 // Each user has one workshop layout per event. Persisted so a refresh doesn't
@@ -411,8 +412,7 @@ export function BSPlacementView({
     (event.adminIds ?? []).includes(String(currentUser?.id)) ||
     event.creatorId === String(currentUser?.id);
 
-  const actualTeam =
-    teams.find((t) => (t.members ?? []).includes(currentUser?.discordUserId)) ?? null;
+  const actualTeam = findBSTeamForDiscordId(teams, currentUser?.discordUserId);
   const previewTeam = readOnly ? teams.find((team) => team.teamId === previewTeamId) ?? null : null;
   const myTeam = previewTeam ?? actualTeam;
 

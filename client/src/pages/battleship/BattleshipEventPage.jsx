@@ -72,7 +72,10 @@ import {
 import { isBattleshipEnabled } from '../../config/featureFlags';
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
-import { redactBSOpponentBoardForTeam } from '../../utils/battleship/bsPreview';
+import {
+  findBSTeamForDiscordId,
+  redactBSOpponentBoardForTeam,
+} from '../../utils/battleship/bsPreview';
 
 // Resolves a single team member: RSN → Discord username → truncated ID.
 function TeamMemberRow({ discordId }) {
@@ -105,7 +108,7 @@ export default function BattleshipEventPage() {
   const { eventId } = useParams();
   const [searchParams, setSearchParams] = useSearchParams();
   const { showToast } = useToastContext();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refetchUser, setUser } = useAuth();
 
   // Hook must sit above every early return so hook order is stable regardless
   // of event status. See `teamInfoBlock` below for how this drives placement.
@@ -232,10 +235,7 @@ export default function BattleshipEventPage() {
     [proposalLogData?.getBSProposalLog]
   );
 
-  const actualTeam =
-    event && currentUser?.discordUserId
-      ? teams.find((t) => t.members?.includes(currentUser.discordUserId))
-      : null;
+  const actualTeam = event ? findBSTeamForDiscordId(teams, currentUser?.discordUserId) : null;
   const isCreator = !!(event && currentUser && String(event.creatorId) === String(currentUser.id));
   const requestedPreviewTeamId = isCreator ? searchParams.get('viewAsTeam') : null;
   const previewTeam = requestedPreviewTeamId
@@ -247,6 +247,68 @@ export default function BattleshipEventPage() {
   // changes presentation only; server auth remains the creator's and every
   // mutation path is disabled while previewing.
   const myTeam = previewTeam ?? actualTeam;
+
+  // A mobile browser may restore this page from memory after an admin adds the
+  // viewer to a roster. Spectators previously had no roster subscription and
+  // the tab-focus refetch below only ran after they were already recognized as
+  // a team member, so they could remain stuck in spectator mode indefinitely.
+  // Refresh both identity and event data once, then refresh unmatched viewers
+  // when a suspended or backgrounded page becomes active again.
+  const identityRefreshKeyRef = useRef(null);
+  useEffect(() => {
+    if (!event?.eventId || actualTeam || isCreator || !currentUser?.id) return;
+    const key = `${event.eventId}:${currentUser.id}:${currentUser.discordUserId ?? 'unlinked'}`;
+    if (identityRefreshKeyRef.current === key) return;
+    identityRefreshKeyRef.current = key;
+    refetchUser()
+      .then(({ data }) => {
+        if (data?.getUser) setUser(data.getUser);
+      })
+      .catch(() => {});
+  }, [
+    event?.eventId,
+    actualTeam,
+    isCreator,
+    currentUser?.id,
+    currentUser?.discordUserId,
+    refetchUser,
+    setUser,
+  ]);
+
+  useEffect(() => {
+    if (
+      !event?.eventId ||
+      actualTeam ||
+      isCreator ||
+      ['COMPLETED', 'ARCHIVED'].includes(event.status)
+    ) {
+      return undefined;
+    }
+
+    let refreshInFlight = false;
+    const refreshAccess = () => {
+      if (refreshInFlight) return;
+      refreshInFlight = true;
+      refetchEvent()
+        .catch(() => {})
+        .finally(() => {
+          refreshInFlight = false;
+        });
+    };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === 'visible') refreshAccess();
+    };
+
+    refreshAccess();
+    window.addEventListener('focus', refreshAccess);
+    window.addEventListener('pageshow', refreshAccess);
+    document.addEventListener('visibilitychange', refreshWhenVisible);
+    return () => {
+      window.removeEventListener('focus', refreshAccess);
+      window.removeEventListener('pageshow', refreshAccess);
+      document.removeEventListener('visibilitychange', refreshWhenVisible);
+    };
+  }, [event?.eventId, event?.status, actualTeam, isCreator, refetchEvent]);
 
   const myTeamIndex = myTeam ? teams.findIndex((t) => t.teamId === myTeam.teamId) : -1;
   const viewingTeamIndex = myTeamIndex >= 0 ? myTeamIndex : 0;

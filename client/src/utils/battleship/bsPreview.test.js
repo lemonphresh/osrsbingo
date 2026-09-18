@@ -1,4 +1,4 @@
-import { redactBSOpponentBoardForTeam } from './bsPreview';
+import { findBSTeamForDiscordId, redactBSOpponentBoardForTeam } from './bsPreview';
 
 test('creator team preview hides unshot opponent ships and restores the ocean task', () => {
   const oceanTask = { taskId: 'ocean-task', label: 'Zulrah KC' };
@@ -37,4 +37,12 @@ test('creator team preview hides unshot opponent ships and restores the ocean ta
 
 test('handles an absent board', () => {
   expect(redactBSOpponentBoardForTeam(null, [])).toBeNull();
+});
+
+test('finds a Battleship team using a normalized Discord ID', () => {
+  const team = { teamId: 'salty-dogs', members: [' 857666197243953173 '] };
+
+  expect(findBSTeamForDiscordId([team], '857666197243953173')).toBe(team);
+  expect(findBSTeamForDiscordId([team], null)).toBeNull();
+  expect(findBSTeamForDiscordId([team], 'different-id')).toBeNull();
 });
