@@ -241,6 +241,7 @@ export const GET_BS_EVENT_FULL = gql`
               metricType
               metricTarget
               metricLabel
+              validDrops
             }
           }
         }
