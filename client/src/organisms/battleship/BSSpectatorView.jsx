@@ -180,6 +180,7 @@ export function BSSpectatorView({
   onToggleColorblindMode,
   previewShotLog,
   disableRealtime = false,
+  topBar = null,
 }) {
   const teams = useMemo(() => event.teams ?? [], [event.teams]);
   const teamA = teams[0] ?? null;
@@ -307,92 +308,93 @@ export function BSSpectatorView({
     >
       <ShotFlash flash={flash} onDone={clearFlash} colorblindMode={colorblindMode} />
 
-      {/* Spectator topbar */}
-      <Box
-        bg="rgba(2,10,4,0.9)"
-        borderBottom="1px solid"
-        borderColor="#1a4028"
-        px={[4, 6, 8]}
-        py={3}
-        position="sticky"
-        top={0}
-        zIndex={2}
-        backdropFilter="blur(8px)"
-      >
-        <HStack justify="space-between" maxW="1400px" mx="auto" flexWrap="wrap" gap={2}>
-          <HStack spacing={3}>
-            <RouterLink to="/battleship">
+      {topBar ?? (
+        <Box
+          bg="rgba(2,10,4,0.9)"
+          borderBottom="1px solid"
+          borderColor="#1a4028"
+          px={[4, 6, 8]}
+          py={3}
+          position="sticky"
+          top={0}
+          zIndex={2}
+          backdropFilter="blur(8px)"
+        >
+          <HStack justify="space-between" maxW="1400px" mx="auto" flexWrap="wrap" gap={2}>
+            <HStack spacing={3}>
+              <RouterLink to="/battleship">
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color="#6b9e78"
+                  leftIcon={<ArrowBackIcon />}
+                  fontFamily="mono"
+                  fontSize="xs"
+                  _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                >
+                  Campaigns
+                </Button>
+              </RouterLink>
+              <Box w="1px" h="16px" bg="#1a4028" />
+              <Text
+                fontFamily="mono"
+                fontSize="sm"
+                fontWeight="bold"
+                color="#d4f0da"
+                letterSpacing="wide"
+              >
+                {event.eventName}
+              </Text>
+              <Badge
+                colorScheme="green"
+                fontSize="xs"
+                textTransform="uppercase"
+                letterSpacing="wider"
+              >
+                LIVE
+              </Badge>
+            </HStack>
+            <HStack spacing={2}>
               <Button
                 size="xs"
-                variant="ghost"
-                color="#6b9e78"
-                leftIcon={<ArrowBackIcon />}
+                variant={colorblindMode ? 'solid' : 'outline'}
+                colorScheme={colorblindMode ? 'blue' : 'gray'}
+                borderColor="#1a4028"
+                color={colorblindMode ? 'white' : '#6b9e78'}
                 fontFamily="mono"
-                fontSize="xs"
-                _hover={{ color: '#d4f0da', bg: 'transparent' }}
+                fontSize="10px"
+                letterSpacing="wider"
+                onClick={onToggleColorblindMode}
+                aria-pressed={colorblindMode}
               >
-                Campaigns
+                Colorblind Mode
               </Button>
-            </RouterLink>
-            <Box w="1px" h="16px" bg="#1a4028" />
-            <Text
-              fontFamily="mono"
-              fontSize="sm"
-              fontWeight="bold"
-              color="#d4f0da"
-              letterSpacing="wide"
-            >
-              {event.eventName}
-            </Text>
-            <Badge
-              colorScheme="green"
-              fontSize="xs"
-              textTransform="uppercase"
-              letterSpacing="wider"
-            >
-              LIVE
-            </Badge>
+              <Box
+                w="6px"
+                h="6px"
+                borderRadius="full"
+                bg="#22c55e"
+                sx={{
+                  animation: 'specPulse 1.5s ease-in-out infinite',
+                  '@keyframes specPulse': {
+                    '0%,100%': { opacity: 1, boxShadow: '0 0 4px #22c55e' },
+                    '50%': { opacity: 0.4, boxShadow: 'none' },
+                  },
+                }}
+              />
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color="#3d6b4a"
+                letterSpacing="wider"
+                textTransform="uppercase"
+              >
+                Spectating
+              </Text>
+            </HStack>
           </HStack>
-          <HStack spacing={2}>
-            <Button
-              size="xs"
-              variant={colorblindMode ? 'solid' : 'outline'}
-              colorScheme={colorblindMode ? 'blue' : 'gray'}
-              borderColor="#1a4028"
-              color={colorblindMode ? 'white' : '#6b9e78'}
-              fontFamily="mono"
-              fontSize="10px"
-              letterSpacing="wider"
-              onClick={onToggleColorblindMode}
-              aria-pressed={colorblindMode}
-            >
-              Colorblind Mode
-            </Button>
-            <Box
-              w="6px"
-              h="6px"
-              borderRadius="full"
-              bg="#22c55e"
-              sx={{
-                animation: 'specPulse 1.5s ease-in-out infinite',
-                '@keyframes specPulse': {
-                  '0%,100%': { opacity: 1, boxShadow: '0 0 4px #22c55e' },
-                  '50%': { opacity: 0.4, boxShadow: 'none' },
-                },
-              }}
-            />
-            <Text
-              fontFamily="mono"
-              fontSize="10px"
-              color="#3d6b4a"
-              letterSpacing="wider"
-              textTransform="uppercase"
-            >
-              Spectating
-            </Text>
-          </HStack>
-        </HStack>
-      </Box>
+        </Box>
+      )}
 
       <Box maxW="1400px" mx="auto" px={[4, 6, 8]} py={[5, 7]}>
         <VStack align="stretch" spacing={6}>
