@@ -156,6 +156,60 @@ module.exports = {
     });
   },
 
+  // Focused ref-console query. Instead of shipping every tile on every board
+  // to derive one active shot per firing team, we resolve the shape server-side
+  // with a single indexed BSTile.findAll over just the open shots. Payload drops
+  // from ~200 tiles to at most one per team, which matters when the refs page
+  // refetches on every BS_TILE_UPDATED broadcast.
+  getBSRefActiveShots: async (_, { eventId }, context) => {
+    requireAuth(context);
+    const { BSTeam, BSBoard, BSTile } = getModels();
+
+    const teams = await BSTeam.findAll({
+      where: { eventId },
+      order: [['createdAt', 'ASC']],
+    });
+    if (teams.length === 0) return [];
+
+    const boards = await BSBoard.findAll({
+      where: { eventId, teamId: teams.map((t) => t.teamId) },
+    });
+    if (boards.length === 0) return teams.map((team) => ({ team, activeTile: null }));
+
+    // One query — indexed on boardId — for every currently-open shot across
+    // every team's board. shotAt DESC so the first match per firing team wins.
+    const openTiles = await BSTile.findAll({
+      where: {
+        boardId: boards.map((b) => b.boardId),
+        isShot: true,
+        taskCompleted: false,
+        skipped: false,
+      },
+      order: [['shotAt', 'DESC']],
+    });
+
+    const boardOwnerByBoardId = new Map(boards.map((b) => [b.boardId, b.teamId]));
+
+    // Decorate .task from the layout cache so BSTile.task returns without a DB
+    // hop. Fail-open: if the cache errors we skip decoration and BSTile.task
+    // falls back to its own findByPk.
+    const layout = await getLayout(eventId).catch(() => null);
+    if (layout) {
+      openTiles.forEach((tile) => {
+        const activeTaskId = tile.shipTaskId ?? tile.taskId;
+        tile.task = activeTaskId ? layout.tasksById.get(activeTaskId) ?? null : null;
+      });
+    }
+
+    return teams.map((team) => {
+      // A firing team's active tile lives on any board they don't own. openTiles
+      // is already sorted newest-first, so .find returns the most recent match.
+      const activeTile =
+        openTiles.find((t) => boardOwnerByBoardId.get(t.boardId) !== team.teamId) ?? null;
+      return { team, activeTile };
+    });
+  },
+
   exportBSDraftWorkbook: async (_, { eventId }, context) => {
     const user = requireAuth(context);
     const event = await getEventOrThrow(eventId);

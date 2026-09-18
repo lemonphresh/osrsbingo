@@ -1316,6 +1316,38 @@ describe('Battleship Queries', () => {
     `);
     expect(result.valid).toBe(true);
   });
+
+  test('GET_BS_REF_ACTIVE_SHOTS', () => {
+    const result = validateOperation(`
+      query GetBSRefActiveShots($eventId: ID!) {
+        getBSRefActiveShots(eventId: $eventId) {
+          team {
+            teamId
+            teamName
+            color
+            board { boardId }
+          }
+          activeTile {
+            tileId
+            row
+            col
+            shipType
+            progress
+            shotAt
+            task {
+              taskId
+              label
+              metricLabel
+              metricType
+              metricTarget
+              validDrops
+            }
+          }
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
 });
 
 // ============================================================

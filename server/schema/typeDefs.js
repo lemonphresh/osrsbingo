@@ -1069,6 +1069,7 @@ const typeDefs = gql`
     getActiveBSSkipProposal(teamId: ID!): BSSkipProposal
     getBSPlacementSuggestions(teamId: ID!): [BSPlacementSuggestion!]!
     exportBSDraftWorkbook(eventId: ID!): BSDraftWorkbookFile!
+    getBSRefActiveShots(eventId: ID!): [BSRefActiveShot!]!
 
     # --- A Gielinor Whodunnit ---
     myWhodunnitCampaigns: [WhodunnitCampaign!]!
@@ -1953,6 +1954,14 @@ const typeDefs = gql`
     isPlacementLocked: Boolean!
     shipPlacements: [BSShipPlacement!]!
     tiles: [BSTile!]!
+  }
+
+  # Ref-console shape: per firing team, the tile they currently need to
+  # complete (most recent unresolved shot on any opposing board), or null if
+  # they have no active shot in flight.
+  type BSRefActiveShot {
+    team: BSTeam!
+    activeTile: BSTile
   }
 
   type BSShipPlacement {
