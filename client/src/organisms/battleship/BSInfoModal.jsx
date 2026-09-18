@@ -45,7 +45,7 @@ const PHASES = [
     label: 'Placement',
     color: '#38bdf8',
     border: '#0369a1',
-    desc: "Each team member workshops a ship layout privately, then submits it as a suggestion for the team to vote on. Whichever suggestion has the most votes when placement ends becomes the team's fleet. Neither team can see the other's board.",
+    desc: "Each team member workshops a ship layout privately, then submits it as a suggestion for the team to vote on. Whichever suggestion has the most votes when placement ends becomes the team's fleet. Unshared workshops do not count. A team with no shared suggestion receives a complete random fleet. Neither team can see the other's board.",
   },
   {
     num: '03',
@@ -61,7 +61,7 @@ const PHASES = [
     label: 'Victory',
     color: '#fbbf24',
     border: '#b45309',
-    desc: "The first team to sink all five enemy ships wins. A ship is sunk when every hit cell's task is completed and verified by a ref.",
+    desc: "The first team to sink all five enemy ships wins. A ship is sunk when every hit cell's task is completed and verified by a ref. Both teams are then notified in Discord and told which type of ship sank.",
   },
 ];
 
@@ -145,7 +145,8 @@ function BSInfoContent({ embedded = false }) {
               BATTLESHIP
             </Text>
             <Text fontSize="sm" color={DIM} letterSpacing="wide">
-              A strategic OSRS naval warfare event. Sink the enemy fleet by completing in-game tasks.
+              A strategic OSRS naval warfare event. Sink the enemy fleet by completing in-game
+              tasks.
             </Text>
             <HStack spacing={2} pt={1}>
               <Box w="32px" h="1px" bg={CYAN} />
@@ -223,6 +224,7 @@ function BSInfoContent({ embedded = false }) {
           {[
             'Each team has five ships hidden on a 10x10 grid. Ships range from 2 to 5 cells.',
             'During placement, teammates submit ship-layout suggestions and vote. The winning suggestion becomes the team fleet; ties break at random.',
+            'Only shared suggestions count. If a team shares none, the site assigns all five ships as a valid random fleet.',
             'To fire, a teammate proposes a coordinate and the team votes on it. Once the vote threshold is met, the shot fires automatically.',
             'A hit reveals a task. Your team cannot fire again until a ref marks that task complete.',
             'A miss also reveals a task, but ocean tasks can be skipped using skip tokens.',
@@ -278,7 +280,14 @@ export function BSLanding() {
           pointerEvents="none"
           backgroundImage="repeating-linear-gradient(0deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px), repeating-linear-gradient(90deg, #0ea5e9 0px, #0ea5e9 1px, transparent 1px, transparent 40px)"
         />
-        <Box maxW="1200px" mx="auto" px={[4, 6, 8]} py={[12, 16, 20]} position="relative" zIndex={1}>
+        <Box
+          maxW="1200px"
+          mx="auto"
+          px={[4, 6, 8]}
+          py={[12, 16, 20]}
+          position="relative"
+          zIndex={1}
+        >
           <VStack align="flex-start" spacing={4}>
             <Text
               fontFamily="mono"
@@ -291,7 +300,13 @@ export function BSLanding() {
             >
               BATTLESHIP
             </Text>
-            <Text fontFamily="mono" fontSize={['xs', 'sm']} color={DIM} letterSpacing="wider" textTransform="uppercase">
+            <Text
+              fontFamily="mono"
+              fontSize={['xs', 'sm']}
+              color={DIM}
+              letterSpacing="wider"
+              textTransform="uppercase"
+            >
               A strategic OSRS naval warfare event
             </Text>
             <HStack spacing={2} pt={1}>

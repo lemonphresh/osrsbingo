@@ -156,7 +156,9 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
               <Text fontSize="sm" color={BODY} lineHeight="1.7">
                 Each team plays with a single fleet layout. Everyone on your team designs a layout
                 privately, then shares it as a suggestion for the team to vote on. Whichever
-                suggestion has the most votes when placement ends becomes the team's fleet.
+                suggestion has the most votes when placement ends becomes the team's fleet. During
+                battle, when a ship is fully sunk, both teams are notified in Discord and told which
+                type of ship sank.
               </Text>
             </InfoCard>
 
@@ -217,12 +219,13 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
                   The suggestion with the most votes when placement ends becomes the team fleet.
                 </RuleRow>
                 <RuleRow badge="Ties" scheme="yellow">
-                  If two or more suggestions are tied, the winner is picked at random from the
-                  tied set.
+                  If two or more suggestions are tied, the winner is picked at random from the tied
+                  set.
                 </RuleRow>
                 <RuleRow badge="No Votes" scheme="red">
-                  If nobody on your team has shared a suggestion, the team enters battle without a
-                  fleet and cannot be hit. Make sure someone shares.
+                  If your team has no shared suggestion when placement ends, the site assigns all
+                  five ships as a valid random fleet. Private workshop layouts that were never
+                  shared do not count.
                 </RuleRow>
               </VStack>
             </Box>
@@ -232,7 +235,8 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
               <SectionLabel>Solo Teams</SectionLabel>
               <Text fontSize="sm" color="#fcd34d" lineHeight="1.7">
                 If you're the only player on your team, whatever you share becomes the fleet by
-                default. You still need to share a suggestion before placement ends.
+                default. If you do not share a complete suggestion before placement ends, your
+                entire fleet is assigned randomly.
               </Text>
             </InfoCard>
 
@@ -244,8 +248,8 @@ export function BSPlacementIntroModal({ isOpen, onClose, eventId, placementPhase
                 <Text as="span" fontWeight="bold" color="#e2e8f0">
                   {placementPhaseHours ?? '?'} hour{placementPhaseHours !== 1 ? 's' : ''}
                 </Text>
-                . When the timer runs out, votes are locked in, the winning suggestion becomes
-                your team fleet, and the battle phase begins.
+                . When the timer runs out, votes are locked in, the winning suggestion becomes your
+                team fleet, and the battle phase begins.
               </Text>
               <Box
                 borderRadius="md"

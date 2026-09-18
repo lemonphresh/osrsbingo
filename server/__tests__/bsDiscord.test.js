@@ -3,6 +3,7 @@
 const {
   postBSBattleStarted,
   postBSPlacementStarted,
+  postBSPlacementVoteReminder,
   postBSTestMessage,
 } = require('../utils/battleship/bsDiscord');
 
@@ -107,9 +108,30 @@ describe('Battleship Discord test messages', () => {
 
     const contents = global.fetch.mock.calls.map(([, options]) => JSON.parse(options.body).content);
     expect(contents).toHaveLength(2);
+    expect(contents[0]).toContain(
+      'If your team shares none, the site assigns all five ships as a valid random fleet.'
+    );
     contents.forEach((content) => {
       expect(content).toContain('Your crew must complete it before firing again.');
+      expect(content).toContain(
+        'When a ship is fully sunk, both teams are notified and told which type of ship sank.'
+      );
       expect(content).not.toContain('hand off the turn');
     });
+  });
+
+  it('warns before the deadline that teams without a shared suggestion get a random fleet', async () => {
+    process.env.DISCORD_BOT_TOKEN = 'test-token';
+    global.fetch.mockResolvedValue({ ok: true, status: 200 });
+
+    await postBSPlacementVoteReminder({
+      channelId: 'channel-1',
+      teamName: 'Saradomin',
+      eventId: 'event-1',
+    });
+
+    const content = JSON.parse(global.fetch.mock.calls[0][1].body).content;
+    expect(content).toContain('the site will assign all five ships randomly');
+    expect(content).toContain('Private workshop drafts do not count until shared.');
   });
 });
