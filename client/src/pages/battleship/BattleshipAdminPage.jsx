@@ -1379,9 +1379,18 @@ export default function BattleshipAdminPage() {
 
   const [womCompInput, setWomCompInput] = useState('');
   const [womTeamNames, setWomTeamNames] = useState({});
+  // Text state so admins can freely type "0.5", "12", or clear the field before
+  // committing. Coerced to a number at save time; blank/invalid preserves the
+  // server default (3h) via the resolver.
+  const [womBufferInput, setWomBufferInput] = useState('');
   useEffect(() => {
     if (event?.womCompetitionId != null) setWomCompInput(event.womCompetitionId);
   }, [event?.womCompetitionId]);
+  useEffect(() => {
+    if (event?.womShotAnchorBufferHours != null) {
+      setWomBufferInput(String(event.womShotAnchorBufferHours));
+    }
+  }, [event?.womShotAnchorBufferHours]);
   useEffect(() => {
     if (!event?.teams) return;
     setWomTeamNames(Object.fromEntries(event.teams.map((t) => [t.teamId, t.womTeamName ?? ''])));
@@ -1499,9 +1508,13 @@ export default function BattleshipAdminPage() {
   const handleSaveWom = async () => {
     setSavingWom(true);
     try {
-      await updateBSEvent({
-        variables: { eventId, input: { womCompetitionId: womCompInput.trim() } },
-      });
+      const trimmedBuffer = womBufferInput.trim();
+      const parsedBuffer = trimmedBuffer.length > 0 ? Number(trimmedBuffer) : null;
+      const input = { womCompetitionId: womCompInput.trim() };
+      if (parsedBuffer != null && Number.isFinite(parsedBuffer) && parsedBuffer >= 0) {
+        input.womShotAnchorBufferHours = parsedBuffer;
+      }
+      await updateBSEvent({ variables: { eventId, input } });
       await Promise.all(
         teams.map((t) =>
           updateTeamWomName({
@@ -2381,6 +2394,41 @@ export default function BattleshipAdminPage() {
                     _focus={{ borderColor: GREEN, boxShadow: 'none' }}
                     _hover={{ borderColor: DIM }}
                   />
+                </Box>
+
+                <Box>
+                  <Text
+                    fontSize="10px"
+                    color={DIM}
+                    textTransform="uppercase"
+                    letterSpacing="wider"
+                    mb={1}
+                  >
+                    Sync Anchor Buffer (hours)
+                  </Text>
+                  <Input
+                    value={womBufferInput}
+                    onChange={(e) => setWomBufferInput(e.target.value)}
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="3"
+                    bg={CARD_BG}
+                    border="1px solid"
+                    borderColor={BORDER}
+                    color="#d4f0da"
+                    fontFamily="mono"
+                    fontSize="sm"
+                    _placeholder={{ color: DIM }}
+                    _focus={{ borderColor: GREEN, boxShadow: 'none' }}
+                    _hover={{ borderColor: DIM }}
+                  />
+                  <Text fontSize="xs" color={DIM} mt={1}>
+                    OSRS hiscores only refresh on logout, so the sync shifts its start
+                    anchor back by this many hours to catch the last snapshot before the
+                    shot. Higher values credit more pre-shot activity (rougher but more
+                    forgiving); lower values are stricter. Default 3.
+                  </Text>
                 </Box>
 
                 {teams.length < 2 ? (
