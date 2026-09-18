@@ -9,6 +9,8 @@ const {
 } = require('../helpers');
 const { generateId } = require('../../../../utils/battleship/bsConfig');
 const { UserInputError } = require('apollo-server-express');
+const { pubsub } = require('../../../pubsub');
+const logger = require('../../../../utils/logger');
 
 module.exports = {
   addBSTeam: async (_, { eventId, input }, context) => {
@@ -60,9 +62,9 @@ module.exports = {
 
   updateBSTeamMembers: async (_, { teamId, members }, context) => {
     const user = requireAuth(context);
-    const { sequelize, BSEvent, BSTeam } = getModels();
+    const { sequelize, BSEvent, BSBoard, BSTeam } = getModels();
     const seedTeam = await getTeamOrThrow(teamId);
-    return sequelize.transaction(async (transaction) => {
+    const updatedTeam = await sequelize.transaction(async (transaction) => {
       const event = await BSEvent.findByPk(seedTeam.eventId, {
         transaction,
         lock: transaction.LOCK.UPDATE,
@@ -85,6 +87,22 @@ module.exports = {
       await team.update({ members: deduped }, { transaction });
       return team;
     });
+
+    // Notify open event pages only after the roster transaction commits. The
+    // existing event-level board signal already makes those pages refetch, so
+    // roster changes do not need recurring full-event polling.
+    try {
+      const eventBoard = await BSBoard.findOne({ where: { eventId: updatedTeam.eventId } });
+      if (eventBoard) {
+        await pubsub.publish(`BS_BOARD_UPDATED_${updatedTeam.eventId}`, {
+          bsBoardUpdated: eventBoard,
+        });
+      }
+    } catch (error) {
+      logger.warn('[Battleship] Failed to publish roster update:', error.message);
+    }
+
+    return updatedTeam;
   },
 
   joinBSTeam: async (_, { teamId }, context) => {

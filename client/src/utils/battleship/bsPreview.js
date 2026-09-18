@@ -16,3 +16,13 @@ export function redactBSOpponentBoardForTeam(board, tasks = []) {
     ),
   };
 }
+
+export function findBSTeamForDiscordId(teams = [], discordUserId) {
+  const targetId = String(discordUserId ?? '').trim();
+  if (!targetId) return null;
+  return (
+    teams.find((team) =>
+      (team.members ?? []).some((memberId) => String(memberId ?? '').trim() === targetId)
+    ) ?? null
+  );
+}
