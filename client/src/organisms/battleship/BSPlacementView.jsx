@@ -11,6 +11,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalOverlay,
+  Select,
   Text,
   VStack,
 } from '@chakra-ui/react';
@@ -40,6 +41,7 @@ import {
 } from '../../utils/battleship/bsClientHelpers';
 import { getBSColorPalette } from '../../utils/battleship/bsColorPalette';
 import { findBSTeamForDiscordId } from '../../utils/battleship/bsPreview';
+import { sortBSPlacementSuggestions } from '../../utils/battleship/bsPlacementSuggestions';
 
 // ── Workshop state (localStorage) ──────────────────────────────────────────
 // Each user has one workshop layout per event. Persisted so a refresh doesn't
@@ -521,6 +523,11 @@ export function BSPlacementView({
   const suggestions = useMemo(
     () => suggestionsData?.getBSPlacementSuggestions ?? [],
     [suggestionsData]
+  );
+  const [suggestionSort, setSuggestionSort] = useState('votes');
+  const sortedSuggestions = useMemo(
+    () => sortBSPlacementSuggestions(suggestions, suggestionSort),
+    [suggestions, suggestionSort]
   );
 
   // PubSub frames are intentionally ephemeral. If the browser suspended its
@@ -1112,16 +1119,37 @@ export function BSPlacementView({
 
           {/* Right panel: suggestions gallery */}
           <Box flex="1" minW="280px">
-            <Text
-              fontFamily="mono"
-              fontSize="10px"
-              color="#3d6b4a"
-              letterSpacing="widest"
-              textTransform="uppercase"
-              mb={3}
-            >
-              Team Suggestions ({suggestions.length})
-            </Text>
+            <HStack justify="space-between" align="center" spacing={2} mb={3} flexWrap="wrap">
+              <Text
+                fontFamily="mono"
+                fontSize="10px"
+                color="#3d6b4a"
+                letterSpacing="widest"
+                textTransform="uppercase"
+              >
+                Team Suggestions ({suggestions.length})
+              </Text>
+              {suggestions.length > 1 && (
+                <Select
+                  aria-label="Sort team suggestions"
+                  value={suggestionSort}
+                  onChange={(event) => setSuggestionSort(event.target.value)}
+                  size="xs"
+                  width="auto"
+                  minW="132px"
+                  bg="#091a10"
+                  borderColor="#1a4028"
+                  color="#9bc7a6"
+                  fontFamily="mono"
+                  fontSize="10px"
+                  _hover={{ borderColor: semanticColors.positive }}
+                  _focusVisible={{ borderColor: semanticColors.positive }}
+                >
+                  <option value="votes">Most votes</option>
+                  <option value="shared">First shared</option>
+                </Select>
+              )}
+            </HStack>
             {suggestions.length > 0 && !readOnly && !myActiveVote && !isSoloTeam && (
               <Box
                 mb={3}
@@ -1153,7 +1181,7 @@ export function BSPlacementView({
               </Box>
             ) : (
               <VStack align="stretch" spacing={3}>
-                {suggestions.map((s) => {
+                {sortedSuggestions.map((s) => {
                   const iVoted = (s.votes ?? []).includes(myDiscordId);
                   const isMine = s.proposerDiscordId === myDiscordId;
                   return (
