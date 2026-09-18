@@ -41,7 +41,7 @@ import { isBattleshipEnabled } from '../../config/featureFlags';
 import { useToastContext } from '../../providers/ToastProvider';
 import {
   GET_BS_EVENT,
-  GET_BS_REF_ACTIVE_TASKS,
+  GET_BS_REF_ACTIVE_SHOTS,
   GET_BS_SUBMISSIONS,
   REVIEW_BS_SUBMISSION,
   COMPLETE_BS_TILE,
@@ -57,10 +57,7 @@ import {
   playSubmissionDenied,
   warmUpAudio,
 } from '../../utils/soundEngine';
-import {
-  formatBSActiveTaskProgress,
-  getBSActiveTasksByTeam,
-} from '../../utils/battleship/bsRefActiveTasks';
+import { formatBSActiveTaskProgress } from '../../utils/battleship/bsRefActiveTasks';
 
 const GREEN = '#4ade80';
 const DIM = '#6b9e78';
@@ -628,7 +625,7 @@ export default function BattleshipRefsPage() {
   });
 
   const { data: activeTasksData, refetch: refetchActiveTasks } = useQuery(
-    GET_BS_REF_ACTIVE_TASKS,
+    GET_BS_REF_ACTIVE_SHOTS,
     {
       variables: { eventId },
       skip: !isAuthenticated || !eventId,
@@ -636,16 +633,14 @@ export default function BattleshipRefsPage() {
     }
   );
 
-  const activeTaskTeams = useMemo(
-    () => activeTasksData?.getBSEvent?.teams ?? [],
+  // Server pre-shapes { team, activeTile } per firing team, so we render
+  // straight from the query result — no client-side filtering pass needed.
+  const activeTasksByTeam = useMemo(
+    () => activeTasksData?.getBSRefActiveShots ?? [],
     [activeTasksData]
   );
-  const activeTasksByTeam = useMemo(
-    () => getBSActiveTasksByTeam(activeTaskTeams),
-    [activeTaskTeams]
-  );
-  const firstBoardId = activeTaskTeams[0]?.board?.boardId;
-  const secondBoardId = activeTaskTeams[1]?.board?.boardId;
+  const firstBoardId = activeTasksByTeam[0]?.team?.board?.boardId;
+  const secondBoardId = activeTasksByTeam[1]?.team?.board?.boardId;
 
   useSubscription(BS_BOARD_UPDATED, {
     variables: { eventId },

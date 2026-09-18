@@ -140,40 +140,38 @@ export const GET_BS_EVENT = gql`
   ${BS_EVENT_FIELDS}
 `;
 
-// Focused board query for the refs dashboard. It intentionally omits ship
-// placements and unrelated event configuration while still exposing the
-// unresolved shot on each team's opponent board.
-export const GET_BS_REF_ACTIVE_TASKS = gql`
-  query GetBSRefActiveTasks($eventId: ID!) {
-    getBSEvent(eventId: $eventId) {
-      eventId
-      status
-      teams {
+// Compact ref-console query: server pre-shapes { team, activeTile } per firing
+// team so we don't ship every tile on every board just to derive the one
+// unresolved shot per team. Cheap to refetch on every BS_TILE_UPDATED broadcast.
+export const GET_BS_REF_ACTIVE_SHOTS = gql`
+  query GetBSRefActiveShots($eventId: ID!) {
+    getBSRefActiveShots(eventId: $eventId) {
+      team {
         teamId
         teamName
         color
         board {
           boardId
-          tiles {
-            tileId
-            row
-            col
-            shipType
-            isShot
-            taskCompleted
-            skipped
-            progress
-            shotAt
-            task {
-              taskId
-              label
-              bossOrSkill
-              metricType
-              metricTarget
-              metricLabel
-              validDrops
-            }
-          }
+        }
+      }
+      activeTile {
+        tileId
+        row
+        col
+        shipType
+        isShot
+        taskCompleted
+        skipped
+        progress
+        shotAt
+        task {
+          taskId
+          label
+          bossOrSkill
+          metricType
+          metricTarget
+          metricLabel
+          validDrops
         }
       }
     }
