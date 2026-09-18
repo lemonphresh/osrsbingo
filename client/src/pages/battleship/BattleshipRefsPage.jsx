@@ -228,6 +228,13 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId, guildId, colorblind
             <Badge colorScheme={badgeScheme} fontSize="xs">
               {sub.status}
             </Badge>
+            <Badge
+              colorScheme={sub.submissionType === 'PRESCREENSHOT' ? 'blue' : 'purple'}
+              variant="outline"
+              fontSize="xs"
+            >
+              {sub.submissionType === 'PRESCREENSHOT' ? 'Pre-screenshot' : 'Submission'}
+            </Badge>
             {sub.discordUsername && (
               <Text fontSize="xs" color={DIM} fontWeight="semibold">
                 @{sub.discordUsername}
