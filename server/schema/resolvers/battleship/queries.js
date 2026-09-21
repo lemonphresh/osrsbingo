@@ -17,11 +17,19 @@ const {
 const { createDraftWorkbook } = require('../../../utils/battleship/bsDraftWorkbook');
 const { ForbiddenError } = require('apollo-server-express');
 
+// Completed / archived events are public game-recap material — the URL is safe
+// to share with anyone. Everything else still requires auth.
+function isPublicRecap(event) {
+  return event?.status === 'COMPLETED' || event?.status === 'ARCHIVED';
+}
+
 module.exports = {
   getBSEvent: async (_, { eventId }, context) => {
-    requireAuth(context);
     const { BSEvent } = getModels();
-    return BSEvent.findByPk(eventId);
+    const event = await BSEvent.findByPk(eventId);
+    if (isPublicRecap(event)) return event;
+    requireAuth(context);
+    return event;
   },
 
   getAllBSEvents: async (_, { creatorId } = {}, context) => {
@@ -50,14 +58,16 @@ module.exports = {
   },
 
   getBSShotLog: async (_, { eventId }, context) => {
-    requireAuth(context);
-    const { BSShotLog } = getModels();
+    const { BSEvent, BSShotLog } = getModels();
+    const event = await BSEvent.findByPk(eventId);
+    if (!isPublicRecap(event)) requireAuth(context);
     return BSShotLog.findAll({ where: { eventId }, order: [['shotAt', 'DESC']] });
   },
 
   getBSProposalLog: async (_, { eventId }, context) => {
-    requireAuth(context);
-    const { BSProposalLog } = getModels();
+    const { BSEvent, BSProposalLog } = getModels();
+    const event = await BSEvent.findByPk(eventId);
+    if (!isPublicRecap(event)) requireAuth(context);
     return BSProposalLog.findAll({
       where: { eventId },
       order: [['resolvedAt', 'DESC']],
