@@ -19,20 +19,22 @@ async function tryLayout(eventId) {
 // own team can see everything. Everyone else sees only the coordinates that
 // have already been shot.
 async function canSeeShips(board, context) {
-  const user = context?.user;
-  if (!user) return false;
-  if (user.admin === true) return true;
   const { BSEvent, BSTeam } = getModels();
   const event = await BSEvent.findByPk(board.eventId, {
     attributes: ['eventId', 'creatorId', 'adminIds', 'refIds', 'status'],
   });
   if (!event) return false;
+  // Completed events are a public post-game recap — visible to anonymous
+  // viewers too. Check this before any user gate so shareable URLs work
+  // without a login.
+  if (event.status === 'COMPLETED' || event.status === 'ARCHIVED') return true;
+  const user = context?.user;
+  if (!user) return false;
+  if (user.admin === true) return true;
   const uid = String(user.id);
   if (event.creatorId === uid) return true;
   if ((event.adminIds ?? []).includes(uid)) return true;
   if ((event.refIds ?? []).includes(uid)) return true;
-  // Completed events reveal both boards to everyone (post-game recap).
-  if (event.status === 'COMPLETED' || event.status === 'ARCHIVED') return true;
   // Template boards (teamId is null) hold no ship overlays anyway.
   if (!board.teamId) return true;
   if (!user.discordUserId) return false;
@@ -131,19 +133,20 @@ const BSEvent = {
 // last-shot timing). Site admins, event admins/refs, own-team members always
 // can. Everyone else gets redacted values.
 async function canSeeTeamIntel(team, context) {
-  const user = context?.user;
-  if (!user) return false;
-  if (user.admin === true) return true;
   const { BSEvent } = getModels();
   const event = await BSEvent.findByPk(team.eventId, {
     attributes: ['eventId', 'creatorId', 'adminIds', 'refIds', 'status'],
   });
   if (!event) return false;
+  // Completed events reveal intel to everyone (post-game recap) — public URL.
+  if (event.status === 'COMPLETED' || event.status === 'ARCHIVED') return true;
+  const user = context?.user;
+  if (!user) return false;
+  if (user.admin === true) return true;
   const uid = String(user.id);
   if (event.creatorId === uid) return true;
   if ((event.adminIds ?? []).includes(uid)) return true;
   if ((event.refIds ?? []).includes(uid)) return true;
-  if (event.status === 'COMPLETED' || event.status === 'ARCHIVED') return true;
   if (!user.discordUserId) return false;
   return (team.members ?? []).includes(user.discordUserId);
 }
