@@ -30,6 +30,7 @@ import {
   CREATE_SPOOPY_EVENT,
   SEED_SPOOPY_MOCK_EVENT,
   REFRESH_SPOOPY_EVENT_FROM_MOCK,
+  IMPORT_SPOOPY_EVENT_FROM_FIXTURES,
   UPDATE_SPOOPY_EVENT_STATUS,
   UPDATE_SPOOPY_EVENT_BOARD,
   SET_SPOOPY_EVENT_PASSWORD,
@@ -49,6 +50,7 @@ import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import SpoopyMemberTag from '../../organisms/spoopy/SpoopyMemberTag';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp, GP_PER_CANDY } from '../../organisms/spoopy/spoopyCurrency';
+import { isDevEnv } from '../../organisms/spoopy/spoopyDevUtils';
 
 // ── UI atoms — shared paper-on-night styling for form panels ────────────
 
@@ -309,7 +311,7 @@ function CreateEventForm({ refetch }) {
           />
         </Box>
         <Box>
-          <FieldLabel hint="optional — staff-only notification channel">
+          <FieldLabel hint="optional. staff-only notification channel">
             staff discord channel id
           </FieldLabel>
           <Input
@@ -398,6 +400,23 @@ function EventSettingsPanel({ event, refetch }) {
     onError: (e) => toast({ title: 'refresh failed', description: e.message, status: 'error' }),
   });
 
+  const [importEvent, { loading: importing }] = useMutation(IMPORT_SPOOPY_EVENT_FROM_FIXTURES, {
+    onCompleted: (res) => {
+      const warnings = res?.importSpoopyEventFromFixtures?.warnings ?? [];
+      toast({
+        title: 'board + content imported',
+        description: warnings.length
+          ? `${warnings.length} warning${warnings.length === 1 ? '' : 's'}:\n${warnings.join('\n')}`
+          : 'no warnings. clean import.',
+        status: warnings.length ? 'warning' : 'success',
+        duration: warnings.length ? 15000 : 4000,
+        isClosable: true,
+      });
+      refetch();
+    },
+    onError: (e) => toast({ title: 'import failed', description: e.message, status: 'error', duration: 15000, isClosable: true }),
+  });
+
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_SPOOPY_EVENT_STATUS, {
     onCompleted: () => {
       toast({ title: 'status updated', status: 'success' });
@@ -462,7 +481,45 @@ function EventSettingsPanel({ event, refetch }) {
                 color={event.status === s ? SPOOPY_COLORS.paper : SPOOPY_COLORS.paper}
                 borderColor={SPOOPY_COLORS.nightMist}
                 _hover={{ bg: SPOOPY_COLORS.nightMist }}
-                onClick={() => updateStatus({ variables: { eventId: event.eventId, status: s } })}
+                onClick={() => {
+                  // Going live is irreversible in effect (team pool allocations
+                  // get snapshotted, curfewStart snaps to now if unset/future).
+                  // Force a confirm so it can't happen from a stray click.
+                  if (event.status === 'SETUP' && s === 'ACTIVE') {
+                    const teamCount = (event.teams ?? []).length;
+                    if (
+                      !window.confirm(
+                        `flip "${event.eventName}" to ACTIVE now?\n\n` +
+                          `• ${teamCount} team${teamCount === 1 ? '' : 's'} will have their prize pool share locked in\n` +
+                          '• the event will go live and boards become interactable\n' +
+                          '• curfew start time will snap to now\n\n' +
+                          'this cannot be cleanly undone.',
+                      )
+                    ) {
+                      return;
+                    }
+                  }
+                  // Ending the event early runs handleCurfew on every team,
+                  // which forfeits ALL banked gp for any team that hasn't
+                  // cashed out at the candybag. Guaranteed to make people mad
+                  // if fired by accident.
+                  if (event.status === 'ACTIVE' && s === 'COMPLETE') {
+                    const teams = event.teams ?? [];
+                    const atRisk = teams.filter((t) => !t.cashedOut).length;
+                    if (
+                      !window.confirm(
+                        `end "${event.eventName}" NOW?\n\n` +
+                          `• ${atRisk} team${atRisk === 1 ? '' : 's'} have not cashed out yet — they will forfeit ALL banked gp\n` +
+                          '• event goes into recap mode, no more board interactions\n' +
+                          '• this normally auto-fires at curfew end. only click if you really mean it.\n\n' +
+                          'this cannot be undone.',
+                      )
+                    ) {
+                      return;
+                    }
+                  }
+                  updateStatus({ variables: { eventId: event.eventId, status: s } });
+                }}
               >
                 {s.toLowerCase()}
               </Button>
@@ -630,26 +687,41 @@ function EventSettingsPanel({ event, refetch }) {
 
       <VStack align="stretch" spacing={2}>
         <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
-          content refresh
+          content
         </Text>
         <Text fontSize="xs" opacity={0.55}>
-          re-runs the mock generator and overwrites the event's board, tile content, and
-          haunted-house config in place. team state (unlocked tiles, gp, submissions) is preserved —
-          this only rewrites the static content the mock produces (dialog copy, discord commands,
-          tile types).
+          drop <Text as="span" fontFamily="mono">board.csv</Text> and{' '}
+          <Text as="span" fontFamily="mono">content.csv</Text> into{' '}
+          <Text as="span" fontFamily="mono">server/utils/spoopy/fixtures/</Text> and hit import.
+          overwrites the event's board, tile content, haunted-house config, and starting tile in
+          place. team state (unlocked tiles, gp, submissions) is preserved. every non-start /
+          non-candybag tile on the board must have a matching row in the content CSV.
         </Text>
-        <Button
-          size="sm"
-          alignSelf="flex-start"
-          variant="outline"
-          borderColor={SPOOPY_COLORS.nightMist}
-          color={SPOOPY_COLORS.paper}
-          _hover={{ bg: SPOOPY_COLORS.nightMist }}
-          isLoading={refreshing}
-          onClick={() => refreshEvent({ variables: { eventId: event.eventId } })}
-        >
-          🔄 refresh content from mock
-        </Button>
+        <HStack spacing={2}>
+          <Button
+            size="sm"
+            bg={SPOOPY_COLORS.pumpkin}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+            isLoading={importing}
+            onClick={() => importEvent({ variables: { eventId: event.eventId } })}
+          >
+            📜 import board + content
+          </Button>
+          {isDevEnv() && (
+            <Button
+              size="sm"
+              variant="outline"
+              borderColor={SPOOPY_COLORS.nightMist}
+              color={SPOOPY_COLORS.paper}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+              isLoading={refreshing}
+              onClick={() => refreshEvent({ variables: { eventId: event.eventId } })}
+            >
+              🔄 refresh content from mock (dev only)
+            </Button>
+          )}
+        </HStack>
       </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -917,7 +989,7 @@ function TeamCard({ team, allTeams, refetch }) {
             />
           </Box>
           <Box flex="1 1 200px" minW="180px">
-            <FieldLabel hint="optional — pings on ref actions">role id</FieldLabel>
+            <FieldLabel hint="optional. pings on ref actions">role id</FieldLabel>
             <Input
               {...themedInput({ size: 'sm', fontFamily: 'mono' })}
               value={roleInput}

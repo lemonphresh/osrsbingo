@@ -885,6 +885,14 @@ const typeDefs = gql`
     teamBoard: SpoopyTeamBoardState
   }
 
+  # Returned by importSpoopyEventFromFixtures — bundles the updated event with
+  # soft warnings surfaced by parseBoard (isolated tiles, ambiguous cells, etc.)
+  # so the admin can see them in the toast without having to check server logs.
+  type SpoopyImportResult {
+    event:    SpoopyEvent!
+    warnings: [String!]!
+  }
+
   input CreateSpoopyEventInput {
     eventName:        String!
     curfewStart:      DateTime
@@ -1367,6 +1375,15 @@ const typeDefs = gql`
     completeSpoopyTile(teamId: ID!, tileId: String!): SpoopyTeamBoardState!
     seedSpoopyMockEvent: SpoopyEvent!
     refreshSpoopyEventFromMock(eventId: ID!): SpoopyEvent!
+    # Site-admin only. Reads board.csv + content.csv from server/utils/spoopy/fixtures,
+    # runs the parsers, and overwrites the event's board / content / haunted-house /
+    # startingTileIds in place. Team state (unlocked tiles, gp, submissions) is
+    # preserved. Filenames are optional overrides.
+    importSpoopyEventFromFixtures(
+      eventId: ID!
+      boardFilename: String
+      contentFilename: String
+    ): SpoopyImportResult!
     deleteSpoopyEvent(eventId: ID!): Boolean!
     deleteSpoopyTeam(teamId: ID!): Boolean!
     createSpoopyChoice(input: CreateSpoopyChoiceInput!): SpoopyTeamBoardState!

@@ -62,24 +62,25 @@ describe('parseBoard against real fixture', () => {
   const board = parseBoard(fixtureCsv);
 
   test('detects playfield dimensions, stripping legend + counts columns', () => {
-    expect(board.dimensions).toEqual({ rows: 21, cols: 31 });
+    expect(board.dimensions).toEqual({ rows: 22, cols: 31 });
   });
 
-  test('finds 48 houses (matches sheet legend count)', () => {
-    expect(tileCountsByType(board).house).toBe(48);
+  test('finds 21 houses on the finalized board', () => {
+    expect(tileCountsByType(board).house).toBe(21);
   });
 
-  test('finds one candybag placed on the current draft', () => {
-    expect(tileCountsByType(board).candybag).toBe(1);
-  });
-
-  test('special tiles present on current draft match the legend counts', () => {
+  test('exactly one candybag and one start tile', () => {
     const counts = tileCountsByType(board);
-    expect(counts.grave).toBe(6);
-    expect(counts['black-cat']).toBe(2);
-    // These types aren't on the current draft yet.
-    expect(counts.pumpkin).toBeUndefined();
-    expect(counts.ghost).toBeUndefined();
+    expect(counts.candybag).toBe(1);
+    expect(counts.start).toBe(1);
+  });
+
+  test('non-house tile counts match the finalized layout', () => {
+    const counts = tileCountsByType(board);
+    expect(counts.grave).toBe(7);
+    expect(counts['black-cat']).toBe(5);
+    expect(counts.pumpkin).toBe(11);
+    expect(counts.ghost).toBe(16);
   });
 
   test('preserves main-road connectors even when the path is unfinished', () => {

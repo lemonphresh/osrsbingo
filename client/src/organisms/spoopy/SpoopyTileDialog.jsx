@@ -50,7 +50,8 @@ export default function SpoopyTileDialog({
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
-  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.pumpkinDeep;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -71,7 +72,7 @@ export default function SpoopyTileDialog({
             <Heading
               size="md"
               fontFamily={SPOOPY_FONTS.heading}
-              color={SPOOPY_COLORS.pumpkinDeep}
+              color={titleColor}
               letterSpacing="wider"
               textAlign="center"
             >
@@ -250,7 +251,7 @@ function DiscordSubmitHint({ tileId, taskKind, womEnabled }) {
           fontFamily={SPOOPY_FONTS.hand}
         >
           {womEnabled
-            ? '⚠️ pre-screenshot first — this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
+            ? '⚠️ pre-screenshot first. this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
             : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}
           only one team member needs to do this.
         </Text>

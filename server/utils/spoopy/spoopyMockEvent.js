@@ -231,7 +231,7 @@ function startTileContent(tileId) {
   return {
     id: tileId,
     tile_type: TILE_TYPES.START,
-    flavor_text: 'ready up — get the gang together',
+    flavor_text: 'ready up. get the gang together',
     story: {
       intro:
         "it's spooky season, and it's time to get the gang together to go trick-or-treating... " +
@@ -356,13 +356,13 @@ function synthContentFor(tile) {
         prompt: 'trick or treat! …a spoopy silhouette answers the door.',
         options: {
           a: {
-            label: 'be nice — compliment their costume',
+            label: 'be nice. compliment their costume',
             outcome: OPTION_OUTCOMES.TREAT,
             task: { kind: TASK_KINDS.SKILLING_XP, target: 'firemaking', amount: 50000 },
             reward_gp: 250000,
           },
           b: {
-            label: 'be rude — tp the yard on the way out',
+            label: 'be rude. tp the yard on the way out',
             outcome: OPTION_OUTCOMES.TRICK,
             task: { kind: TASK_KINDS.BOSS_KC, target: 'callisto', amount: 3 },
             reward_gp: 100000,
@@ -443,7 +443,7 @@ function buildRealBoardMockEvent() {
 
   return {
     id: 'spoopy-real-board-mock',
-    name: 'Spooptober (mock — real board)',
+    name: 'Spooptober (mock: real board)',
     curfew: {
       // +15 min so the seed lands in SETUP with a small buffer before the
       // event auto-activates — enough time to set the prize pool, add a
@@ -482,4 +482,10 @@ function buildRealBoardMockEvent() {
   };
 }
 
-module.exports = { mockEvent, makeInitialTeamState, MOCK_EVENT_ID, buildRealBoardMockEvent };
+module.exports = {
+  mockEvent,
+  makeInitialTeamState,
+  MOCK_EVENT_ID,
+  buildRealBoardMockEvent,
+  startTileContent,
+};

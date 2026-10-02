@@ -5,7 +5,7 @@ const { pubsub } = require('../pubsub');
 const {
   loadTeamState,
   persistTeamState,
-  createInitialTeamTiles,
+  syncTeamTilesToBoard,
   toEventDefinition,
   generateId,
 } = require('../../utils/spoopy/spoopyPersistence');
@@ -435,6 +435,7 @@ const Mutation = {
     if (event.status === 'SETUP' && status === 'ACTIVE') {
       const { SpoopyEvent, SpoopyTeam } = getModels();
       const sequelize = SpoopyEvent.sequelize;
+      const activationTime = new Date();
       await sequelize.transaction(async (t) => {
         const lockedEvent = await SpoopyEvent.findByPk(eventId, {
           transaction: t,
@@ -442,7 +443,7 @@ const Mutation = {
         });
         if (!lockedEvent) throw new UserInputError(`SpoopyEvent ${eventId} not found`);
         if (lockedEvent.status !== 'SETUP') {
-          // Someone else beat us to it — bail without touching allocations.
+          // Someone else beat us to it. bail without touching allocations.
           return;
         }
         const teams = await SpoopyTeam.findAll({
@@ -456,8 +457,29 @@ const Mutation = {
           if (team.poolAllocation !== perTeam) {
             await team.update({ poolAllocation: perTeam }, { transaction: t });
           }
+          // Seed team tile rows from the (now-final) board. Idempotent — if
+          // the team already has rows from a prior activation attempt, only
+          // missing tiles get added. Runs inside the transaction so a partial
+          // seed can't leave a team half-initialized if the update fails.
+          await syncTeamTilesToBoard(
+            eventId,
+            team.teamId,
+            lockedEvent.board,
+            lockedEvent.startingTileIds,
+            { transaction: t },
+          );
         }
-        await lockedEvent.update({ status }, { transaction: t });
+        // Snap curfewStart to now if it was null or still in the future.
+        // Manual activation means "start the event now" — any UI or scheduler
+        // logic that gates behavior on curfewStart (WOM anchors, countdown
+        // math, "night hasn't started" states) should see a start time in
+        // the past. If curfewStart is already in the past, leave it alone.
+        const patch = { status };
+        const start = lockedEvent.curfewStart ? new Date(lockedEvent.curfewStart) : null;
+        if (!start || start > activationTime) {
+          patch.curfewStart = activationTime;
+        }
+        await lockedEvent.update(patch, { transaction: t });
       });
       // Return the reloaded event so callers see the new status.
       return getEventOrThrow(eventId);
@@ -494,6 +516,9 @@ const Mutation = {
     requireAdmin(event, user);
     const { SpoopyTeam } = getModels();
 
+    // Team tile rows are NOT seeded here. They're created at the SETUP→ACTIVE
+    // transition (see updateSpoopyEventStatus), so it doesn't matter whether
+    // the admin adds teams before or after importing the board.
     const team = await SpoopyTeam.create({
       teamId: generateId('spt'),
       eventId,
@@ -504,8 +529,6 @@ const Mutation = {
       discordRoleId: input.discordRoleId ?? null,
       teamToken: generateId('tok').slice(0, 16),
     });
-
-    await createInitialTeamTiles(eventId, team.teamId, event.board, event.startingTileIds);
     await publishEventUpdated(eventId);
     return team;
   },
@@ -589,7 +612,9 @@ const Mutation = {
     const team1MemberDiscordId = user.discordUserId ?? '221415080514945035';
     const team2MemberDiscordId = '136602347999592448';
 
-    const team1 = await SpoopyTeam.create({
+    // Both teams start with no tile rows. Rows are seeded when the admin
+    // flips the event to ACTIVE, matching the real-event flow.
+    await SpoopyTeam.create({
       teamId: generateId('spt'),
       eventId: event.eventId,
       teamName: 'test team spoopy',
@@ -599,9 +624,7 @@ const Mutation = {
       discordRoleId: null,
       teamToken: generateId('tok').slice(0, 16),
     });
-    await createInitialTeamTiles(event.eventId, team1.teamId, mock.board, mock.startingTileIds);
-
-    const team2 = await SpoopyTeam.create({
+    await SpoopyTeam.create({
       teamId: generateId('spt'),
       eventId: event.eventId,
       teamName: 'the ghouls next door',
@@ -611,7 +634,6 @@ const Mutation = {
       discordRoleId: null,
       teamToken: generateId('tok').slice(0, 16),
     });
-    await createInitialTeamTiles(event.eventId, team2.teamId, mock.board, mock.startingTileIds);
 
     return event;
   },
@@ -635,6 +657,75 @@ const Mutation = {
       startingTileIds: mock.startingTileIds,
     });
     return event;
+  },
+
+  // Reads board.csv + content.csv from server/utils/spoopy/fixtures, runs the
+  // parsers, and overwrites the event's board / content / haunted-house /
+  // startingTileIds. Team state (unlocked tiles, gp, submissions) is preserved.
+  // Site admins only — content is authored offline in a spreadsheet and dropped
+  // into the fixtures directory, so this is intentionally not a normal admin
+  // action.
+  importSpoopyEventFromFixtures: async (
+    _,
+    { eventId, boardFilename, contentFilename },
+    context,
+  ) => {
+    const user = requireUser(context);
+    if (!user.admin) throw new AuthenticationError('Site admin only');
+    const event = await getEventOrThrow(eventId);
+    const {
+      buildImportedEventPayloadFromFixtures,
+    } = require('../../utils/spoopy/spoopyImport');
+
+    let payload;
+    try {
+      payload = buildImportedEventPayloadFromFixtures({
+        boardFilename: boardFilename || undefined,
+        contentFilename: contentFilename || undefined,
+      });
+    } catch (err) {
+      throw new UserInputError(err.message);
+    }
+
+    validateBoardShape({
+      board: payload.board,
+      contentById: payload.contentById,
+      startingTileIds: payload.startingTileIds,
+    });
+
+    await event.update({
+      board: payload.board,
+      contentById: payload.contentById,
+      hauntedHouse: payload.hauntedHouse,
+      startingTileIds: payload.startingTileIds,
+    });
+
+    // Reconcile team tile rows against the new board for teams whose event
+    // is already ACTIVE (i.e., they already have tile rows from activation).
+    // Teams in a SETUP-status event have no rows yet and don't need any
+    // action here — they'll get seeded when the event goes live. The helper
+    // itself is idempotent, but skipping SETUP teams keeps the log clean and
+    // avoids spurious pubsub publishes.
+    if (event.status === 'ACTIVE') {
+      const { SpoopyTeam } = getModels();
+      const teams = await SpoopyTeam.findAll({ where: { eventId } });
+      for (const team of teams) {
+        const { added, dropped } = await syncTeamTilesToBoard(
+          eventId,
+          team.teamId,
+          payload.board,
+          payload.startingTileIds,
+        );
+        if (added || dropped) {
+          await pubsub.publish(`SPOOPY_TEAM_BOARD_UPDATED_${team.teamId}`, {
+            spoopyTeamBoardUpdated: await loadTeamState(team.teamId),
+          });
+        }
+      }
+    }
+
+    await publishEventUpdated(eventId);
+    return { event, warnings: payload.warnings };
   },
 
   // Nukes an event and everything hanging off of it. Site admins only —

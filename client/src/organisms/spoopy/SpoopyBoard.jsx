@@ -17,11 +17,19 @@ import { SPOOPY_COLORS, SPOOPY_FONTS, CONNECTOR_COLOR } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
 import paperTextureAsset from '../../assets/spoopy/paper.jpg';
 import uwuBatAsset from '../../assets/spoopy/uwubat.webp';
+import angyBatAsset from '../../assets/spoopy/angybat.webp';
 import ghostKittyAsset from '../../assets/spoopy/ghostkitty.webp';
 import spoderAsset from '../../assets/spoopy/spoder.webp';
 import spoopleechAsset from '../../assets/spoopy/spoopleech.webp';
 import spooplemonAsset from '../../assets/spoopy/spooplemon.webp';
 import spoopshaAsset from '../../assets/spoopy/spoopsha.webp';
+import bushesAsset from '../../assets/spoopy/bushes.webp';
+import roadsignAsset from '../../assets/spoopy/roadsign.webp';
+import scarecrowAsset from '../../assets/spoopy/scarecrow.webp';
+import froggoAsset from '../../assets/spoopy/froggo.webp';
+import punkinsAsset from '../../assets/spoopy/punkins.webp';
+import zambieAsset from '../../assets/spoopy/zambie.webp';
+
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 
 // Decorative doodads scattered across the board. `top`/`left` are fractions
@@ -33,11 +41,25 @@ const BOARD_DECORATIONS = [
   { src: uwuBatAsset, top: 0.06, left: 0.69, size: 120, rotation: -16, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.03, left: 0.65, size: 90, rotation: -2, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.06, left: 0.62, size: 110, rotation: 20, alt: 'uwu bat' },
-  { src: spoderAsset, top: 0.02, left: 0.48, size: 148, rotation: -4, alt: 'spooder' },
-  { src: ghostKittyAsset, top: 0.3, left: 0.12, size: 120, rotation: 4, alt: 'ghost kitty' },
-  { src: spoopshaAsset, top: 0.32, left: 0.93, size: 110, rotation: -6, alt: 'spoopsha' },
-  { src: spoopleechAsset, top: 0.95, left: 0.25, size: 100, rotation: 8, alt: 'spoopleech' },
-  { src: spooplemonAsset, top: 0.69, left: 0.6, size: 110, rotation: -5, alt: 'spooplemon' },
+  { src: uwuBatAsset, top: 0.81, left: 0.62, size: 120, rotation: 12, alt: 'uwu bat' },
+  { src: uwuBatAsset, top: 0.83, left: 0.57, size: 90, rotation: -8, alt: 'uwu bat' },
+  { src: uwuBatAsset, top: 0.87, left: 0.61, size: 110, rotation: 24, alt: 'uwu bat' },
+  { src: angyBatAsset, top: 0.46, left: 0.2, size: 90, rotation: -12, alt: 'angy bat' },
+  { src: angyBatAsset, top: 0.75, left: 0.84, size: 90, rotation: 6, alt: 'angy bat' },
+  { src: angyBatAsset, top: 0.7, left: 0.86, size: 100, rotation: 3, alt: 'angy bat' },
+  { src: spoderAsset, top: 0.03, left: 0.3, size: 148, rotation: -4, alt: 'spooder' },
+  { src: ghostKittyAsset, top: 0.24, left: 0.12, size: 140, rotation: 4, alt: 'ghost kitty' },
+  { src: spoopshaAsset, top: 0.94, left: 0.85, size: 110, rotation: -6, alt: 'spoopsha' },
+  { src: spoopleechAsset, top: 0.7, left: 0.16, size: 100, rotation: 8, alt: 'spoopleech' },
+  { src: spooplemonAsset, top: 0.61, left: 0.6, size: 135, rotation: -5, alt: 'spooplemon' },
+  { src: scarecrowAsset, top: 0.5, left: 0.8, size: 170, rotation: 2, alt: 'scarecrow' },
+  { src: roadsignAsset, top: 0.2, left: 0.48, size: 220, rotation: 0, alt: 'road sign' },
+  { src: bushesAsset, top: 0.88, left: 0.5, size: 275, rotation: -2, alt: 'bushes' },
+  { src: froggoAsset, top: 0.92, left: 0.42, size: 125, rotation: -8, alt: 'froggo' },
+  { src: punkinsAsset, top: 0.94, left: 0.16, size: 140, rotation: -3, alt: 'punkins' },
+  { src: zambieAsset, top: 0.32, left: 0.72, size: 120, rotation: -5, alt: 'zambie' },
+  { src: zambieAsset, top: 0.28, left: 0.68, size: 115, rotation: -5, alt: 'zambie' },
+  { src: zambieAsset, top: 0.27, left: 0.78, size: 125, rotation: -5, alt: 'zambie' },
 ];
 
 const API_BASE = process.env.REACT_APP_SERVER_URL || '';
@@ -71,8 +93,16 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
   // read the same toggle without prop-drilling. See useSpoopyTheme.js.
   const { darkMode, setDarkMode, surfaceBg, surfaceInk, surfaceRecessed } = useSpoopyTheme();
   const baseRgb = hexToRgb(surfaceBg);
-  // Title text: pumpkin-ember on paper / brighter ember on dark bg.
-  const titleColor = darkMode ? SPOOPY_COLORS.ember : SPOOPY_COLORS.emberDeep;
+  // Title text: pumpkin-ember on paper (light mode), toxic-slime green on
+  // the dark bg. The slime tone reads as glowing / radioactive against the
+  // deep purple, which fits the "creepy neighborhood at night" vibe better
+  // than the red does. Shadow flips to a green-tinted drip glow in dark mode
+  // so the drop looks like it belongs to the color, not left over from the
+  // light theme.
+  const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.emberDeep;
+  const titleShadow = darkMode
+    ? '2px 2px 0 rgba(80, 180, 50, 0.45), 4px 4px 16px rgba(120, 255, 90, 0.25)'
+    : '2px 2px 0 rgba(139, 58, 45, 0.35), 4px 4px 12px rgba(0, 0, 0, 0.15)';
 
   // Zoom applied to the paper Box via the CSS `zoom` property. Non-standard
   // but supported in Chrome/Safari/Edge and (as of v126) Firefox — unlike
@@ -125,7 +155,19 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
       {/* Board controls cluster — sits on the outer stage (outside the
           paper's `overflow-x: auto` container) so they stay pinned to the
           visible board area regardless of horizontal scroll. */}
-      <HStack position="absolute" top={10} right={10} zIndex={5} spacing={2} align="center">
+      <HStack
+        position="absolute"
+        top={10}
+        right={10}
+        zIndex={5}
+        spacing={2}
+        align="center"
+        px={3}
+        py={1.5}
+        borderRadius="full"
+        bg={darkMode ? 'rgba(239, 230, 208, 0.08)' : 'rgba(30, 20, 37, 0.35)'}
+        backdropFilter="blur(4px)"
+      >
         <Tooltip label="zoom out" fontSize="xs">
           <IconButton
             aria-label="zoom out"
@@ -340,7 +382,7 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
                 fontSize="7xl"
                 lineHeight={1}
                 color={titleColor}
-                textShadow="2px 2px 0 rgba(139, 58, 45, 0.35), 4px 4px 12px rgba(0, 0, 0, 0.15)"
+                textShadow={titleShadow}
                 letterSpacing="0.02em"
               >
                 a spoopy situation

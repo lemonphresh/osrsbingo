@@ -14,7 +14,7 @@ import {
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
-import { taskLine } from './SpoopyTaskCard';
+import { taskLine, AcceptableUniquesDrops } from './SpoopyTaskCard';
 import { MockDevButton } from './SpoopyStartModal';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
 
@@ -56,7 +56,7 @@ export default function SpoopyTaskModal({
   // TILE_META.fillColor is designed for light-mode paper (dark ink on cream).
   // On the dark nightmist surface it disappears, so swap to a warm pumpkin
   // tone that stays legible while keeping the halloween palette.
-  const headingColor = darkMode ? SPOOPY_COLORS.pumpkinLight : meta.fillColor;
+  const headingColor = darkMode ? SPOOPY_COLORS.slime : meta.fillColor;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -121,6 +121,8 @@ export default function SpoopyTaskModal({
               </Text>
             </Box>
 
+            <AcceptableUniquesDrops task={content.task} />
+
             {/* Progress bar — updated live by refs from /spoopy-event/refs */}
             <Box>
               <HStack justify="space-between" mb={1}>
@@ -170,7 +172,7 @@ export default function SpoopyTaskModal({
                   fontFamily={SPOOPY_FONTS.hand}
                 >
                   {womEnabled
-                    ? '⚠️ pre-screenshot first — this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
+                    ? '⚠️ pre-screenshot first. this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
                     : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}{' '}
                   only one team member needs to do this.
                 </Text>

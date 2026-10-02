@@ -166,7 +166,7 @@ export default function SpoopyHauntedHouseModal({
                     fontWeight="bold"
                     mb={2}
                   >
-                    stage {currentStage.level} of 3 — {currentStage.heading}
+                    stage {currentStage.level} of 3: {currentStage.heading}
                   </Text>
                   {gauntletLevel === 0 && warningDialog && (
                     <Text
@@ -240,20 +240,10 @@ export default function SpoopyHauntedHouseModal({
                       : 'complete the bonus'}
                   </Text>
                 </Box>
-                {typeof bonusRewardGp === 'number' && bonusRewardGp > 0 && (
-                  <HStack justify="space-between">
-                    <Text fontSize="sm" opacity={0.7}>
-                      bonus on approval
-                    </Text>
-                    <Text
-                      fontFamily={SPOOPY_FONTS.hand}
-                      fontSize="lg"
-                      color={SPOOPY_COLORS.pumpkinDeep}
-                    >
-                      +{bonusRewardGp.toLocaleString()} gp
-                    </Text>
-                  </HStack>
-                )}
+                {/* Bonus amount is intentionally not displayed. Real payout is
+                    the state machine's 3× per-house share derived from the
+                    team's pool allocation, not whatever's on this field.
+                    Candy totals live on the team header already. */}
                 {tileId && (
                   <Box
                     bg={SPOOPY_COLORS.night}

@@ -44,6 +44,12 @@ const TARGETS = [
   'spoopleech.webp',
   'spooplemon.webp',
   'spoopsha.webp',
+  'bushes.png',
+  'roadsign.png',
+  'scarecrow.png',
+  'froggo.webp',
+  'punkins.webp',
+  'zambie.webp',
 ];
 
 // Paper cream — must match SPOOPY_COLORS.paper (#efe6d0). Fills the
@@ -76,13 +82,27 @@ const CANVAS_PAD = BORDER_RADIUS + 2;
 // 1.0–1.3 for a more painterly edge.
 const EDGE_BLUR_SIGMA = 0.7;
 
-function ensureBackup(inputPath) {
-  const backupPath = inputPath.replace(/\.webp$/, '.orig.webp');
-  if (!fs.existsSync(backupPath)) {
-    fs.copyFileSync(inputPath, backupPath);
-    return { madeBackup: true, sourcePath: backupPath };
+// Two modes:
+//   - .webp input: source and output are the same file, so we back it up
+//     to <name>.orig.webp first and read from that backup on every run.
+//     Idempotent + revertible.
+//   - .png (or any non-webp) input: source stays intact, processed output
+//     is written to a separate <name>.webp. No backup needed since the
+//     original file is never overwritten. Re-runs read the source directly.
+function planIo(inputPath) {
+  const ext = path.extname(inputPath).toLowerCase();
+  const base = inputPath.slice(0, -ext.length);
+  const outputPath = `${base}.webp`;
+  if (ext === '.webp') {
+    const backupPath = `${base}.orig.webp`;
+    let madeBackup = false;
+    if (!fs.existsSync(backupPath)) {
+      fs.copyFileSync(inputPath, backupPath);
+      madeBackup = true;
+    }
+    return { sourcePath: backupPath, outputPath, madeBackup };
   }
-  return { madeBackup: false, sourcePath: backupPath };
+  return { sourcePath: inputPath, outputPath, madeBackup: false };
 }
 
 function thresholdAlpha(data, size) {
@@ -158,9 +178,8 @@ function dilateMask(mask, width, height, radius) {
 }
 
 async function processOne(inputPath) {
-  const outputPath = inputPath;
+  const { sourcePath, outputPath, madeBackup } = planIo(inputPath);
   const relPath = path.relative(process.cwd(), inputPath);
-  const { madeBackup, sourcePath } = ensureBackup(inputPath);
 
   // Pad the canvas with transparent space on every side so the border
   // ring has room to draw fully around the drawing, even when the ink

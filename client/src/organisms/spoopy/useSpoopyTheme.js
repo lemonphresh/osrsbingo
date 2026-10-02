@@ -9,11 +9,16 @@ import { SPOOPY_COLORS } from './spoopyTheme';
 const LS_KEY = 'spoopyBoardDarkMode';
 const EVENT = 'spoopy:darkmode';
 
+// Default is dark mode. A missing key means the user has never toggled, so
+// we start them in nightfall (matches the event's aesthetic and avoids the
+// jarring bright-paper first paint). Only an explicit 'false' opts out.
 function readStored() {
   try {
-    return localStorage.getItem(LS_KEY) === 'true';
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw === null) return true;
+    return raw === 'true';
   } catch (_) {
-    return false;
+    return true;
   }
 }
 

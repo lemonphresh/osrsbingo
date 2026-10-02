@@ -83,18 +83,53 @@ async function persistTeamState(prevState, nextState, options = {}) {
   }
 }
 
-// Seed a new team's tile rows from the event's board + starting tile ids.
-async function createInitialTeamTiles(eventId, teamId, board, startingTileIds) {
+// Idempotent reconcile of a team's tile rows against a board. Adds rows for
+// tiles the team is missing (marking starting tiles as unlocked, the rest as
+// locked). Drops rows for tiles that no longer exist on the board. Existing
+// rows for tiles still on the board are left alone so in-progress team state
+// (choices, submissions, progress) survives.
+//
+// Called at:
+//   1. SETUP → ACTIVE transition — teams start with zero rows; this seeds
+//      them at the moment the event actually goes live, so the order the
+//      admin used during setup (add team first? import first?) stops
+//      mattering.
+//   2. importSpoopyEventFromFixtures — safety net if the board is changed
+//      after teams already have rows (rare, but keeps state consistent).
+//
+// Returns { added, dropped } counts for logging / pubsub decisions.
+async function syncTeamTilesToBoard(eventId, teamId, board, startingTileIds, options = {}) {
   const { SpoopyTeamTile } = getModels();
+  const { transaction } = options;
   const startSet = new Set(startingTileIds || []);
-  const rows = board.tiles.map((tile) => ({
-    teamTileId: generateId('stt'),
-    teamId,
-    eventId,
-    tileId: tile.id,
-    status: startSet.has(tile.id) ? TILE_STATUSES.UNLOCKED : TILE_STATUSES.LOCKED,
-  }));
-  await SpoopyTeamTile.bulkCreate(rows);
+  const boardTileIds = new Set((board?.tiles ?? []).map((t) => t.id));
+
+  const existing = await SpoopyTeamTile.findAll({ where: { teamId }, transaction });
+  const existingIds = new Set(existing.map((r) => r.tileId));
+
+  const missing = (board?.tiles ?? []).filter((t) => !existingIds.has(t.id));
+  if (missing.length) {
+    await SpoopyTeamTile.bulkCreate(
+      missing.map((tile) => ({
+        teamTileId: generateId('stt'),
+        teamId,
+        eventId,
+        tileId: tile.id,
+        status: startSet.has(tile.id) ? TILE_STATUSES.UNLOCKED : TILE_STATUSES.LOCKED,
+      })),
+      { transaction },
+    );
+  }
+
+  const stale = existing.filter((r) => !boardTileIds.has(r.tileId));
+  if (stale.length) {
+    await SpoopyTeamTile.destroy({
+      where: { teamTileId: stale.map((r) => r.teamTileId) },
+      transaction,
+    });
+  }
+
+  return { added: missing.length, dropped: stale.length };
 }
 
 // Convert a SpoopyEvent row into the event definition the state machine expects.
@@ -116,7 +151,7 @@ function toEventDefinition(eventRow) {
 module.exports = {
   loadTeamState,
   persistTeamState,
-  createInitialTeamTiles,
+  syncTeamTilesToBoard,
   toEventDefinition,
   generateId,
 };

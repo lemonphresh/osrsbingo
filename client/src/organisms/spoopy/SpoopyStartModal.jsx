@@ -41,7 +41,8 @@ export default function SpoopyStartModal({
 }) {
   // Hook has to fire before any early-return branch — React requires the
   // same hook order every render.
-  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.pumpkinDeep;
   if (!story) return null;
   const paragraphs = composeStoryParagraphs(story, eventPassword);
   const command = story.command;
@@ -66,7 +67,7 @@ export default function SpoopyStartModal({
               <Heading
                 size="md"
                 fontFamily={SPOOPY_FONTS.heading}
-                color={SPOOPY_COLORS.pumpkinDeep}
+                color={titleColor}
                 letterSpacing="wider"
               >
                 🎃 ready up

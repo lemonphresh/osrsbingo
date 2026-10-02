@@ -142,8 +142,8 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
               <WomSyncStatus event={event} />
             </Box>
           )}
-          <Text opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-            nothing on your plate right now — go trick-or-treating 🎃
+          <Text color={SPOOPY_COLORS.paper} opacity={0.85} fontFamily={SPOOPY_FONTS.hand}>
+            nothing on your plate right now. go trick-or-treating 🎃
           </Text>
         </VStack>
       </Box>

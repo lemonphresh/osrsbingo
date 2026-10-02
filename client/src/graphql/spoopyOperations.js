@@ -308,6 +308,24 @@ export const REFRESH_SPOOPY_EVENT_FROM_MOCK = gql`
   ${SPOOPY_EVENT_FIELDS}
 `;
 
+export const IMPORT_SPOOPY_EVENT_FROM_FIXTURES = gql`
+  mutation ImportSpoopyEventFromFixtures(
+    $eventId: ID!
+    $boardFilename: String
+    $contentFilename: String
+  ) {
+    importSpoopyEventFromFixtures(
+      eventId: $eventId
+      boardFilename: $boardFilename
+      contentFilename: $contentFilename
+    ) {
+      event { ...SpoopyEventFields }
+      warnings
+    }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
 export const DELETE_SPOOPY_EVENT = gql`
   mutation DeleteSpoopyEvent($eventId: ID!) {
     deleteSpoopyEvent(eventId: $eventId)

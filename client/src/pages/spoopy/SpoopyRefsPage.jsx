@@ -856,7 +856,7 @@ export default function SpoopyRefsPage() {
                 approve
               </Text>{' '}
               a submission once you've verified the screenshot. teams can stack multiple submissions
-              on a tile — approving one doesn't finish the tile.
+              on a tile. approving one doesn't finish the tile.
             </Text>
             <Text>
               <Text as="span" color={SPOOPY_COLORS.ember} fontWeight="semibold">
@@ -874,11 +874,11 @@ export default function SpoopyRefsPage() {
               <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">
                 mark complete
               </Text>{' '}
-              once all approvals are in — that's what unlocks neighbors, banks gp, and cashes out
+              once all approvals are in. that's what unlocks neighbors, banks gp, and cashes out
               the scary castle.
             </Text>
             <Text opacity={0.7}>
-              pre-screenshots are informational only — they don't advance the tile.
+              pre-screenshots are informational only. they don't advance the tile.
             </Text>
           </VStack>
         </Box>
@@ -898,7 +898,7 @@ export default function SpoopyRefsPage() {
             justifyContent="center"
           >
             <Text fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.paper}>
-              🎃 {pendingNew} new submission{pendingNew !== 1 ? 's' : ''} — click to load
+              🎃 {pendingNew} new submission{pendingNew !== 1 ? 's' : ''}. click to load
             </Text>
           </Box>
         )}
@@ -921,7 +921,7 @@ export default function SpoopyRefsPage() {
             completedGroups.length === 0 && (
               <Center py={10}>
                 <Text opacity={0.65} fontFamily={SPOOPY_FONTS.hand} fontSize="md">
-                  no submissions yet — quiet night
+                  no submissions yet. quiet night
                 </Text>
               </Center>
             )}

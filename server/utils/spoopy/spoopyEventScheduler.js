@@ -3,8 +3,13 @@
 const cron = require('node-cron');
 const logger = require('../logger');
 const { pubsub } = require('../../schema/pubsub');
-const { loadTeamState, persistTeamState, toEventDefinition } = require('./spoopyPersistence');
-const { postSpoopyEventStarted } = require('./spoopyDiscord');
+const {
+  loadTeamState,
+  persistTeamState,
+  syncTeamTilesToBoard,
+  toEventDefinition,
+} = require('./spoopyPersistence');
+const { postSpoopyEventStarted, postSpoopyCurfewForfeit } = require('./spoopyDiscord');
 const sm = require('./spoopyStateMachine');
 
 // Auto-transitions spoopy events based on their curfew fields:
@@ -44,6 +49,21 @@ async function checkSpoopyEventSchedule() {
         } catch (err) {
           logger.error({ err, teamId: team.teamId }, '[spoopyScheduler] pool snapshot failed');
         }
+      }
+      // Seed team tile rows from the event's (now-final) board. Mirrors the
+      // same step in updateSpoopyEventStatus so the auto-start and manual-flip
+      // code paths produce identical state. Without this, teams end up on an
+      // ACTIVE event with zero SpoopyTeamTile rows and every tile renders as
+      // locked — exactly the "I can't interact with the board" bug.
+      try {
+        await syncTeamTilesToBoard(
+          event.eventId,
+          team.teamId,
+          event.board,
+          event.startingTileIds,
+        );
+      } catch (err) {
+        logger.error({ err, teamId: team.teamId }, '[spoopyScheduler] tile seed failed');
       }
     }
     await event.update({ status: 'ACTIVE' });
@@ -86,6 +106,21 @@ async function checkSpoopyEventSchedule() {
           await pubsub.publish(`SPOOPY_TEAM_BOARD_UPDATED_${team.teamId}`, {
             spoopyTeamBoardUpdated: await loadTeamState(team.teamId),
           });
+          // Post the forfeit notice only when handleCurfew actually flipped
+          // the team into the forfeited-cashout state (i.e. gp was zeroed).
+          // A no-op transition happens for teams that already cashed out.
+          if (next.cashedOut?.forfeited) {
+            postSpoopyCurfewForfeit({
+              channelId: team.discordChannelId,
+              teamName: team.teamName,
+              forfeitedGp: prev.gpEarned ?? 0,
+            }).catch((err) =>
+              logger.error(
+                { err, teamId: team.teamId, channelId: team.discordChannelId },
+                '[spoopyScheduler] curfew forfeit discord post failed',
+              ),
+            );
+          }
         }
       } catch (err) {
         logger.error({ err, teamId: team.teamId }, '[spoopyScheduler] handleCurfew failed');

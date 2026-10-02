@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
-import { Box, Center, Spinner, Text, Heading, VStack, Badge, Button, useToast } from '@chakra-ui/react';
+import {
+  Box,
+  Center,
+  Spinner,
+  Text,
+  Heading,
+  VStack,
+  Badge,
+  Button,
+  useToast,
+} from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../providers/AuthProvider';
 import {
@@ -17,12 +27,14 @@ import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
+import SpoopyLastHourModal from '../../organisms/spoopy/SpoopyLastHourModal';
 import SpoopyAmbiancePlayer from '../../organisms/spoopy/SpoopyAmbiancePlayer';
 import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevUtils';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp } from '../../organisms/spoopy/spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
 import leatherTextureAsset from '../../assets/spoopy/leather.webp';
+import allureDrawingAsset from '../../assets/spoopy/alluresdrawing.webp';
 
 // Curated spooky-lofi loop that plays via the floating ambiance widget.
 const SPOOPY_AMBIANCE_YT_ID = 'Wwk7oJRUhqQ';
@@ -82,24 +94,61 @@ export default function SpoopyEventPage() {
     };
   }, [isAuthenticated, refetch]);
 
-  if (isCheckingAuth) return <PageShell><CenteredSpinner /></PageShell>;
-  if (!isAuthenticated) return <PageShell><LoggedOutState /></PageShell>;
-  if (loading && !data) return <PageShell><CenteredSpinner /></PageShell>;
-  if (error) return <PageShell><ErrorState message={error.message} /></PageShell>;
+  if (isCheckingAuth)
+    return (
+      <PageShell>
+        <CenteredSpinner />
+      </PageShell>
+    );
+  if (!isAuthenticated)
+    return (
+      <PageShell>
+        <LoggedOutState />
+      </PageShell>
+    );
+  if (loading && !data)
+    return (
+      <PageShell>
+        <CenteredSpinner />
+      </PageShell>
+    );
+  if (error)
+    return (
+      <PageShell>
+        <ErrorState message={error.message} />
+      </PageShell>
+    );
 
-  if (!event) return <PageShell><NoEventState /></PageShell>;
+  if (!event)
+    return (
+      <PageShell>
+        <NoEventState />
+      </PageShell>
+    );
 
   if (event.status === 'SETUP') {
-    return <PageShell event={event}><SetupPlaceholder event={event} /></PageShell>;
+    return (
+      <PageShell event={event}>
+        <SetupPlaceholder event={event} />
+      </PageShell>
+    );
   }
 
   if (event.status === 'COMPLETE') {
-    return <PageShell event={event}><CompleteRecap event={event} myTeam={myTeam} /></PageShell>;
+    return (
+      <PageShell event={event}>
+        <CompleteRecap event={event} myTeam={myTeam} />
+      </PageShell>
+    );
   }
 
   // ACTIVE
   if (!myTeam) {
-    return <PageShell event={event}><NotOnTeamState event={event} /></PageShell>;
+    return (
+      <PageShell event={event}>
+        <NotOnTeamState event={event} />
+      </PageShell>
+    );
   }
 
   return (
@@ -255,8 +304,13 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
             chosenOptionData ? (
               <SpoopyTaskCard
                 task={chosenOptionData.task}
-                rewardGp={chosenOptionData.reward_gp}
-                status={openState?.status === 'submitted' ? 'submitted' : (openState?.status === 'complete' ? 'complete' : 'unlocked')}
+                status={
+                  openState?.status === 'submitted'
+                    ? 'submitted'
+                    : openState?.status === 'complete'
+                    ? 'complete'
+                    : 'unlocked'
+                }
               />
             ) : null
           }
@@ -274,22 +328,22 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
         />
       )}
 
-      {openTile
-        && openTile.tile_type !== 'house'
-        && openTile.tile_type !== 'start'
-        && openTile.tile_type !== 'candybag'
-        && openContent?.task && (
-        <SpoopyTaskModal
-          isOpen
-          onClose={() => setOpenTileId(null)}
-          content={openContent}
-          tileState={openState}
-          tileType={openTile.tile_type}
-          womEnabled={Boolean(event?.womCompetitionId)}
-          onMockSubmit={showMockDev ? () => handleMockSubmit(openTile.id) : null}
-          mockSubmitting={mocking}
-        />
-      )}
+      {openTile &&
+        openTile.tile_type !== 'house' &&
+        openTile.tile_type !== 'start' &&
+        openTile.tile_type !== 'candybag' &&
+        openContent?.task && (
+          <SpoopyTaskModal
+            isOpen
+            onClose={() => setOpenTileId(null)}
+            content={openContent}
+            tileState={openState}
+            tileType={openTile.tile_type}
+            womEnabled={Boolean(event?.womCompetitionId)}
+            onMockSubmit={showMockDev ? () => handleMockSubmit(openTile.id) : null}
+            mockSubmitting={mocking}
+          />
+        )}
 
       {openTile?.tile_type === 'candybag' && (
         <SpoopyHauntedHouseModal
@@ -305,6 +359,16 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           onSubmit={closeHauntedHouse}
         />
       )}
+
+      <SpoopyLastHourModal
+        eventId={event.eventId}
+        curfewEnd={event.curfewEnd}
+        cashedOut={team.cashedOut}
+        onGoToCandybag={() => {
+          const candybagId = event.board?.candybagTileId;
+          if (candybagId) handleTileClick(candybagId);
+        }}
+      />
     </>
   );
 }
@@ -316,9 +380,8 @@ function PageShell({ event, myTeam, children }) {
   // Site admin gets a link to the admin surface; site admins + event admins
   // both get a link to the refs queue.
   const isSiteAdmin = user?.admin === true;
-  const isEventAdmin = event && user
-    ? (event.adminIds ?? []).map(String).includes(String(user.id))
-    : false;
+  const isEventAdmin =
+    event && user ? (event.adminIds ?? []).map(String).includes(String(user.id)) : false;
   const showRefs = isSiteAdmin || isEventAdmin;
   const showAdmin = isSiteAdmin;
 
@@ -346,61 +409,69 @@ function PageShell({ event, myTeam, children }) {
     >
       {/* Everything inside sits above the leather overlay. */}
       <Box position="relative" zIndex={1}>
-      <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
-        <Box display="flex" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={2}>
-          <VStack align="start" spacing={0}>
-            <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-              🎃 spoopy event
-            </Heading>
-            {event?.eventPassword && (
-              <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-                event password:{' '}
-                <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                  {event.eventPassword}
+        <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="space-between"
+            flexWrap="wrap"
+            gap={2}
+          >
+            <VStack align="start" spacing={0}>
+              <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
+                🎃 spoopy event
+              </Heading>
+              {event?.eventPassword && (
+                <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+                  event password:{' '}
+                  <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+                    {event.eventPassword}
+                  </Text>
                 </Text>
-              </Text>
-            )}
-          </VStack>
-          {event && (
-            <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
-              <Text opacity={0.8} fontSize="sm">{event.eventName}</Text>
-              <StatusBadge status={event.status} />
-              {myTeam && <GpBadge gp={myTeam.gpEarned} cashedOut={myTeam.cashedOut} />}
-              {(showRefs || showAdmin) && (
-                <Box display="flex" gap={2}>
-                  {showRefs && (
-                    <Button
-                      as={RouterLink}
-                      to="/spoopy-event/refs"
-                      size="sm"
-                      variant="outline"
-                      borderColor={SPOOPY_COLORS.nightMist}
-                      color={SPOOPY_COLORS.paper}
-                      _hover={{ bg: SPOOPY_COLORS.nightMist }}
-                    >
-                      🕯️ refs
-                    </Button>
-                  )}
-                  {showAdmin && (
-                    <Button
-                      as={RouterLink}
-                      to="/spoopy-event/admin"
-                      size="sm"
-                      variant="outline"
-                      borderColor={SPOOPY_COLORS.nightMist}
-                      color={SPOOPY_COLORS.paper}
-                      _hover={{ bg: SPOOPY_COLORS.nightMist }}
-                    >
-                      🎃 admin
-                    </Button>
-                  )}
-                </Box>
               )}
-            </Box>
-          )}
+            </VStack>
+            {event && (
+              <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
+                <Text opacity={0.8} fontSize="sm">
+                  {event.eventName}
+                </Text>
+                <StatusBadge status={event.status} />
+                {myTeam && <GpBadge gp={myTeam.gpEarned} cashedOut={myTeam.cashedOut} />}
+                {(showRefs || showAdmin) && (
+                  <Box display="flex" gap={2}>
+                    {showRefs && (
+                      <Button
+                        as={RouterLink}
+                        to="/spoopy-event/refs"
+                        size="sm"
+                        variant="outline"
+                        borderColor={SPOOPY_COLORS.nightMist}
+                        color={SPOOPY_COLORS.paper}
+                        _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                      >
+                        🕯️ refs
+                      </Button>
+                    )}
+                    {showAdmin && (
+                      <Button
+                        as={RouterLink}
+                        to="/spoopy-event/admin"
+                        size="sm"
+                        variant="outline"
+                        borderColor={SPOOPY_COLORS.nightMist}
+                        color={SPOOPY_COLORS.paper}
+                        _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                      >
+                        🎃 admin
+                      </Button>
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
         </Box>
-      </Box>
-      {children}
+        {children}
       </Box>
     </Box>
   );
@@ -408,9 +479,9 @@ function PageShell({ event, myTeam, children }) {
 
 function StatusBadge({ status }) {
   const map = {
-    SETUP:    { label: 'coming soon', bg: SPOOPY_COLORS.purple },
-    ACTIVE:   { label: 'live',        bg: SPOOPY_COLORS.pumpkin },
-    COMPLETE: { label: 'over',        bg: SPOOPY_COLORS.green },
+    SETUP: { label: 'coming soon', bg: SPOOPY_COLORS.purple },
+    ACTIVE: { label: 'live', bg: SPOOPY_COLORS.pumpkin },
+    COMPLETE: { label: 'over', bg: SPOOPY_COLORS.green },
   };
   const m = map[status] ?? { label: status, bg: SPOOPY_COLORS.purple };
   return (
@@ -473,7 +544,11 @@ function CandyStat({ gp, size = 16, color, fontWeight = '600' }) {
 }
 
 function CenteredSpinner() {
-  return <Center py={20}><Spinner size="xl" color={SPOOPY_COLORS.pumpkin} /></Center>;
+  return (
+    <Center py={20}>
+      <Spinner size="xl" color={SPOOPY_COLORS.pumpkin} />
+    </Center>
+  );
 }
 
 function ErrorState({ message }) {
@@ -481,7 +556,9 @@ function ErrorState({ message }) {
     <Center py={20}>
       <VStack spacing={3}>
         <Text fontSize="lg">something went wrong</Text>
-        <Text opacity={0.7} fontSize="sm">{message}</Text>
+        <Text opacity={0.7} fontSize="sm">
+          {message}
+        </Text>
       </VStack>
     </Center>
   );
@@ -506,8 +583,12 @@ function NoEventState() {
   return (
     <Center py={20}>
       <VStack spacing={2}>
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">no spoopy event right now</Text>
-        <Text opacity={0.7} fontSize="sm">check back closer to halloween 👻</Text>
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
+          no spoopy event right now
+        </Text>
+        <Text opacity={0.7} fontSize="sm">
+          check back closer to halloween 👻
+        </Text>
       </VStack>
     </Center>
   );
@@ -517,10 +598,12 @@ function NotOnTeamState({ event }) {
   return (
     <Center py={20}>
       <VStack spacing={2} maxW="md" textAlign="center">
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">you're not on a team yet</Text>
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
+          you're not on a team yet
+        </Text>
         <Text opacity={0.75} fontSize="sm">
-          {event.eventName} is live, but your discord id isn't on a team roster yet. talk to an event
-          admin to get signed up, or make sure your discord is linked to your profile.
+          {event.eventName} is live, but your discord id isn't on a team roster yet. talk to an
+          event admin to get signed up, or make sure your discord is linked to your profile.
         </Text>
       </VStack>
     </Center>
@@ -567,11 +650,47 @@ function CompleteRecap({ event, myTeam }) {
 
   return (
     <Center py={{ base: 8, md: 16 }} px={4}>
-      <VStack spacing={6} maxW="2xl" textAlign="center" w="100%">
-        <Text fontSize="6xl">🎃</Text>
+      <VStack spacing={6} maxW="900px" textAlign="center" w="100%">
         <Heading size="xl" fontFamily={SPOOPY_FONTS.heading}>
           {event.eventName} is over
         </Heading>
+
+        {/* Signoff piece — a framed drawing by allure. Sits at the bottom of
+            the recap so it reads as a "signed & sealed" close to the event
+            rather than competing with the leaderboard for attention. */}
+        <VStack spacing={2} pt={4}>
+          <Box
+            // Chunky paper frame with a subtle drop shadow. Rotation matches
+            // the other paper elements on the page for a hand-placed feel.
+            bg={SPOOPY_COLORS.paper}
+            border="6px solid"
+            borderColor={SPOOPY_COLORS.paperEdge}
+            borderRadius="sm"
+            p={2}
+            transform="rotate(1.2deg)"
+            boxShadow={`0 12px 0 ${SPOOPY_COLORS.paperShadow}, 0 20px 40px rgba(0,0,0,0.35)`}
+            maxW="780px"
+          >
+            <Box
+              as="img"
+              src={allureDrawingAsset}
+              alt="a drawing by allure"
+              display="block"
+              w="100%"
+              h="auto"
+              borderRadius="sm"
+            />
+          </Box>
+          <Text
+            fontFamily={SPOOPY_FONTS.hand}
+            fontSize="sm"
+            opacity={0.7}
+            transform="rotate(-0.6deg)"
+            mt="16px"
+          >
+            drawn by allure
+          </Text>
+        </VStack>
 
         <Box
           bg={SPOOPY_COLORS.paper}
@@ -605,8 +724,8 @@ function CompleteRecap({ event, myTeam }) {
 
         {myTeam?.cashedOut?.forfeited && (
           <Text opacity={0.75} fontSize="sm">
-            your team didn't make it to the spooky house in time. curfew hit and the sweets vanished.
-            better luck next spooktober!
+            your team didn't make it to the spooky house in time. curfew hit and the sweets
+            vanished. better luck next spooktober!
           </Text>
         )}
       </VStack>
@@ -677,12 +796,18 @@ function TeamHeader({ event, team }) {
       gap={3}
     >
       <VStack align="start" spacing={0}>
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg">team {team.teamName}</Text>
-        <Text fontSize="xs" opacity={0.7}>{team.members?.length ?? 0} members</Text>
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg">
+          team {team.teamName}
+        </Text>
+        <Text fontSize="xs" opacity={0.7}>
+          {team.members?.length ?? 0} members
+        </Text>
       </VStack>
       {curfewEnd && (
         <VStack align="end" spacing={0}>
-          <Text fontSize="xs" opacity={0.7}>curfew</Text>
+          <Text fontSize="xs" opacity={0.7}>
+            curfew
+          </Text>
           <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
             {curfewEnd.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
           </Text>

@@ -113,6 +113,23 @@ async function postSpoopyTileComplete({ channelId, taskLabel, rewardGp, isCandyb
 }
 
 /**
+ * When curfew hits and the scheduler zeros a team's gp for not cashing out,
+ * post a hard-to-miss forfeit notice to their channel so they see the wipe
+ * without having to open the site. Only called for teams that were actually
+ * forfeited — teams that cashed out in time get their own tile-complete post
+ * from postSpoopyTileComplete.
+ */
+async function postSpoopyCurfewForfeit({ channelId, teamName, forfeitedGp }) {
+  const teamLabel = teamName ? `**${teamName}**` : 'your team';
+  const amountLine =
+    forfeitedGp > 0 ? ` all **${formatCandy(forfeitedGp)}** vanished into the fog.` : '';
+  await post(
+    channelId,
+    `🕯️ curfew has passed and ${teamLabel} didn't make it to the spooky house.${amountLine} the streets are empty now. better luck next halloween. 👻`,
+  );
+}
+
+/**
  * When an event auto-transitions from SETUP to ACTIVE, ping each team's
  * channel so players know the night has started and where to go on the
  * site. Best-effort — a failed post shouldn't block the transition.
@@ -141,4 +158,5 @@ module.exports = {
   postSpoopySubmissionResult,
   postSpoopyTileComplete,
   postSpoopyEventStarted,
+  postSpoopyCurfewForfeit,
 };
