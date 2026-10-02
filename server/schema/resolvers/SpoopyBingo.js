@@ -314,6 +314,29 @@ const Query = {
     return loadTeamState(teamId);
   },
 
+  // Admin-only batched fetch — one call returns every team's board state.
+  // Backs the spectator view's "all teams at once" overlay so the client
+  // doesn't have to fan out one query per team. Returns an empty array when
+  // the event has no teams rather than throwing.
+  spoopyAllTeamBoards: async (_, { eventId }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    const { SpoopyTeam } = getModels();
+    const teams = await SpoopyTeam.findAll({ where: { eventId } });
+    const states = [];
+    for (const team of teams) {
+      try {
+        states.push(await loadTeamState(team.teamId));
+      } catch (err) {
+        // Partial failure on one team shouldn't blank the whole view.
+        // Logging is skipped here because loadTeamState already surfaces
+        // the underlying error upstream when the admin opens that team solo.
+      }
+    }
+    return states;
+  },
+
   // Token-scoped access — the token is the auth. Kept public so a team can
   // share a board link without every viewer needing to log in.
   spoopyTeamBoardByToken: async (_, { token }) => {

@@ -1053,6 +1053,9 @@ const typeDefs = gql`
     spoopyTeam(teamId: ID!): SpoopyTeam
     spoopyTeamBoard(teamId: ID!): SpoopyTeamBoardState
     spoopyTeamBoardByToken(token: String!): SpoopyTeamBoardState
+    # Admin-only. Returns the current board state for every team on the event
+    # in a single call so the spectator view can overlay all teams at once.
+    spoopyAllTeamBoards(eventId: ID!): [SpoopyTeamBoardState!]!
     spoopySubmissions(eventId: ID!, status: String): [SpoopySubmission!]!
 
     # --- Group Goal Dashboard ---

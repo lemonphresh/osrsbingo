@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import {
   Box,
@@ -7,6 +7,7 @@ import {
   Text,
   Heading,
   VStack,
+  HStack,
   Badge,
   Button,
   useToast,
@@ -19,6 +20,8 @@ import {
   CREATE_SPOOPY_SUBMISSION,
   CREATE_SPOOPY_CHOICE,
   ENTER_SPOOPY_HAUNTED_HOUSE,
+  GET_SPOOPY_TEAM_BOARD,
+  GET_SPOOPY_ALL_TEAM_BOARDS,
 } from '../../graphql/spoopyOperations';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
 import SpoopyActiveTasks from '../../organisms/spoopy/SpoopyActiveTasks';
@@ -51,7 +54,7 @@ const SPOOPY_AMBIANCE_YT_ID = 'Wwk7oJRUhqQ';
 //   status = ACTIVE, on team → team board rendered with live tile statuses
 
 export default function SpoopyEventPage() {
-  const { isAuthenticated, isCheckingAuth } = useAuth();
+  const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { data, loading, error, refetch } = useQuery(MY_SPOOPY_SITUATION, {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
@@ -144,6 +147,20 @@ export default function SpoopyEventPage() {
 
   // ACTIVE
   if (!myTeam) {
+    // Site admins and event admins get a spectator view instead of the
+    // "you're not on a team yet" blocker, so refs can watch the night unfold
+    // from the same page players use.
+    const isSiteAdmin = user?.admin === true;
+    const isEventAdmin = user
+      ? (event.adminIds ?? []).map(String).includes(String(user.id))
+      : false;
+    if (isSiteAdmin || isEventAdmin) {
+      return (
+        <PageShell event={event}>
+          <SpectatorView event={event} />
+        </PageShell>
+      );
+    }
     return (
       <PageShell event={event}>
         <NotOnTeamState event={event} />
@@ -591,6 +608,237 @@ function NoEventState() {
         </Text>
       </VStack>
     </Center>
+  );
+}
+
+// Palette for the "all teams" overlay chips when team.color isn't set. Each
+// team gets assigned by index so the color stays stable within a session.
+const SPECTATOR_COLORS = [
+  '#e07a3b', // pumpkin
+  '#5c8aa3', // dusk blue
+  '#7a5988', // purple
+  '#8c3a2d', // ember
+  '#5c7a56', // moss
+  '#c4a04a', // mustard
+  '#4a6b6f', // teal
+  '#9f4f4f', // brick
+  '#6b5fa6', // violet
+  '#78a35b', // leaf
+];
+
+// Builds a tileId → markers map from an array of team board states. Only
+// non-locked tiles contribute a marker (locked tiles would be noise since
+// nothing's happening there yet). Markers for the same tile stack in the
+// bottom-right of the tile cell in SpoopyBoard's TeamMarkerStack.
+function buildTeamMarkers(teams, boards) {
+  const byTeamId = new Map();
+  teams.forEach((t, idx) => {
+    byTeamId.set(t.teamId, {
+      teamName: t.teamName,
+      color: t.color || SPECTATOR_COLORS[idx % SPECTATOR_COLORS.length],
+    });
+  });
+
+  const markers = {};
+  for (const board of boards || []) {
+    if (!board?.tiles) continue;
+    const meta = byTeamId.get(board.teamId);
+    if (!meta) continue;
+    for (const [tileId, tileState] of Object.entries(board.tiles)) {
+      const status = tileState?.status;
+      if (!status || status === 'locked') continue;
+      if (!markers[tileId]) markers[tileId] = [];
+      markers[tileId].push({
+        teamId: board.teamId,
+        teamName: meta.teamName,
+        color: meta.color,
+        status,
+      });
+    }
+  }
+  // Sort each tile's markers so complete tiles sit first (most interesting),
+  // then submitted, then unlocked. Keeps the chip stack visually priority-ordered.
+  const order = { complete: 0, submitted: 1, unlocked: 2 };
+  for (const tileId of Object.keys(markers)) {
+    markers[tileId].sort((a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9));
+  }
+  return markers;
+}
+
+// Spectator view for admins / event refs who aren't on a team themselves.
+// Lists every team on the event as a picker chip, plus an "all teams" chip
+// that overlays everyone's current positions as colored markers on the
+// shared board. The board is read-only in both modes — no tile click
+// handler is wired, so modals never open (same visual as players see, minus
+// the interactions).
+function SpectatorView({ event }) {
+  // Memoize to keep a stable identity across renders — otherwise the `?? []`
+  // fallback produces a new array each render, which would re-fire the
+  // teamMarkers useMemo below unnecessarily.
+  const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
+  // null => "all teams" overlay mode. Otherwise a specific teamId.
+  const [selectedTeamId, setSelectedTeamId] = useState(() => teams[0]?.teamId ?? null);
+  const selectedTeam = teams.find((t) => t.teamId === selectedTeamId) ?? null;
+  const isAllTeams = selectedTeamId === '__all__';
+
+  const { data: oneData, refetch: refetchOne } = useQuery(GET_SPOOPY_TEAM_BOARD, {
+    variables: { teamId: selectedTeamId },
+    skip: !selectedTeamId || isAllTeams,
+    fetchPolicy: 'cache-and-network',
+  });
+  const teamBoard = oneData?.spoopyTeamBoard ?? null;
+
+  // Batched fetch for the overlay. One call returns every team's state.
+  // No live subscription here — admin can click "refresh" or flip to a single
+  // team to tail real-time updates. Keeps the hook count bounded.
+  const { data: allData, refetch: refetchAll, loading: loadingAll } = useQuery(
+    GET_SPOOPY_ALL_TEAM_BOARDS,
+    {
+      variables: { eventId: event?.eventId },
+      skip: !event?.eventId || !isAllTeams,
+      fetchPolicy: 'cache-and-network',
+    },
+  );
+  const allBoards = allData?.spoopyAllTeamBoards ?? null;
+
+  // Live updates for the single-team view: resubscribe whenever the admin
+  // picks a different team.
+  useSubscription(SPOOPY_TEAM_BOARD_UPDATED, {
+    variables: { teamId: selectedTeamId },
+    skip: !selectedTeamId || isAllTeams,
+    onData: () => refetchOne().catch(() => {}),
+  });
+
+  const teamMarkers = useMemo(
+    () => (isAllTeams ? buildTeamMarkers(teams, allBoards) : null),
+    [isAllTeams, teams, allBoards],
+  );
+
+  if (teams.length === 0) {
+    return (
+      <Center py={16}>
+        <VStack spacing={2} maxW="md" textAlign="center">
+          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
+            spectator mode
+          </Text>
+          <Text opacity={0.75} fontSize="sm">
+            no teams on this event yet. once teams are added, pick one here to watch their board.
+          </Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  return (
+    <VStack align="stretch" spacing={4} py={{ base: 4, md: 6 }} px={{ base: 2, md: 6 }}>
+      <Box textAlign="center">
+        <Badge
+          bg={SPOOPY_COLORS.purple}
+          color={SPOOPY_COLORS.paper}
+          fontFamily={SPOOPY_FONTS.hand}
+          textTransform="lowercase"
+          fontSize="sm"
+          px={3}
+          py={1}
+        >
+          👁️ spectator mode
+        </Badge>
+        <Text fontSize="xs" opacity={0.6} mt={1}>
+          pick a team to watch their board (updates live), or "all teams" to overlay everyone's
+          positions on one map.
+        </Text>
+      </Box>
+
+      <Box
+        display="flex"
+        flexWrap="wrap"
+        gap={2}
+        justifyContent="center"
+        maxW="900px"
+        mx="auto"
+      >
+        {teams.map((t, idx) => {
+          const isActive = t.teamId === selectedTeamId;
+          const forfeited = t.cashedOut?.forfeited;
+          const color = t.color || SPECTATOR_COLORS[idx % SPECTATOR_COLORS.length];
+          return (
+            <Button
+              key={t.teamId}
+              size="sm"
+              bg={isActive ? SPOOPY_COLORS.pumpkin : SPOOPY_COLORS.night}
+              color={SPOOPY_COLORS.paper}
+              borderWidth="1px"
+              borderColor={isActive ? SPOOPY_COLORS.pumpkin : SPOOPY_COLORS.nightMist}
+              _hover={{ bg: isActive ? SPOOPY_COLORS.pumpkinDeep : SPOOPY_COLORS.nightMist }}
+              onClick={() => setSelectedTeamId(t.teamId)}
+              fontFamily={SPOOPY_FONTS.hand}
+            >
+              {/* Color dot matches the chip color used in the all-teams overlay
+                  so the admin can map team → marker at a glance. */}
+              <Box
+                as="span"
+                display="inline-block"
+                width="8px"
+                height="8px"
+                borderRadius="full"
+                bg={color}
+                mr={2}
+              />
+              {t.teamName}
+              <Text
+                as="span"
+                ml={2}
+                fontSize="10px"
+                opacity={0.8}
+                color={forfeited ? SPOOPY_COLORS.ember : SPOOPY_COLORS.paper}
+              >
+                {forfeited ? '🕯️ forfeited' : `🍬 ${formatCandy(t.gpEarned ?? 0)}`}
+              </Text>
+            </Button>
+          );
+        })}
+        <Button
+          size="sm"
+          bg={isAllTeams ? SPOOPY_COLORS.pumpkin : SPOOPY_COLORS.night}
+          color={SPOOPY_COLORS.paper}
+          borderWidth="1px"
+          borderColor={isAllTeams ? SPOOPY_COLORS.pumpkin : SPOOPY_COLORS.nightMist}
+          _hover={{ bg: isAllTeams ? SPOOPY_COLORS.pumpkinDeep : SPOOPY_COLORS.nightMist }}
+          onClick={() => setSelectedTeamId('__all__')}
+          fontFamily={SPOOPY_FONTS.hand}
+        >
+          🗺️ all teams
+        </Button>
+      </Box>
+
+      {isAllTeams ? (
+        <Box>
+          <Center py={2}>
+            <HStack spacing={3}>
+              <Text fontSize="xs" opacity={0.65}>
+                {loadingAll ? 'loading all teams…' : `${(allBoards ?? []).length} team board${(allBoards ?? []).length === 1 ? '' : 's'} overlaid`}
+              </Text>
+              <Button
+                size="xs"
+                variant="outline"
+                borderColor={SPOOPY_COLORS.nightMist}
+                color={SPOOPY_COLORS.paper}
+                _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                onClick={() => refetchAll().catch(() => {})}
+              >
+                🔄 refresh
+              </Button>
+            </HStack>
+          </Center>
+          <SpoopyBoard board={event.board} teamMarkers={teamMarkers} />
+        </Box>
+      ) : selectedTeam ? (
+        <Box>
+          <TeamHeader event={event} team={selectedTeam} />
+          <SpoopyBoard board={event.board} teamState={teamBoard} />
+        </Box>
+      ) : null}
+    </VStack>
   );
 }
 

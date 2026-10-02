@@ -161,6 +161,13 @@ export const GET_SPOOPY_TEAM = gql`
   ${SPOOPY_TEAM_FIELDS}
 `;
 
+export const GET_SPOOPY_ALL_TEAM_BOARDS = gql`
+  query GetSpoopyAllTeamBoards($eventId: ID!) {
+    spoopyAllTeamBoards(eventId: $eventId) { ...SpoopyTeamBoardFields }
+  }
+  ${SPOOPY_TEAM_BOARD_FIELDS}
+`;
+
 export const GET_SPOOPY_TEAM_BOARD = gql`
   query SpoopyTeamBoard($teamId: ID!) {
     spoopyTeamBoard(teamId: $teamId) { ...SpoopyTeamBoardFields }

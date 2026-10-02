@@ -84,7 +84,17 @@ function hexToRgb(hex) {
   return `${parseInt(m[1], 16)},${parseInt(m[2], 16)},${parseInt(m[3], 16)}`;
 }
 
-export default function SpoopyBoard({ board, teamState = null, onTileClick, cellSize = 64 }) {
+export default function SpoopyBoard({
+  board,
+  teamState = null,
+  onTileClick,
+  cellSize = 64,
+  // Optional map of tileId → array of { teamId, teamName, color, status }.
+  // When set, each tile renders a stack of tiny colored chips in its bottom
+  // corner showing which teams have that tile active (unlocked/submitted/
+  // complete). Used by the admin spectator view's "all teams" overlay.
+  teamMarkers = null,
+}) {
   const dims = board?.dimensions ?? { rows: 0, cols: 0 };
   const tiles = board?.tiles ?? [];
   const cells = board?.cells ?? null;
@@ -465,6 +475,7 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
           {/* Real tiles as paper stickers */}
           {tiles.map((tile) => {
             const status = statusById[tile.id] ?? 'locked';
+            const markers = teamMarkers?.[tile.id] ?? null;
             return (
               <Box
                 key={tile.id}
@@ -473,6 +484,7 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
                 display="flex"
                 alignItems="center"
                 justifyContent="center"
+                position="relative"
               >
                 <SpoopyTile
                   tileId={tile.id}
@@ -482,6 +494,9 @@ export default function SpoopyBoard({ board, teamState = null, onTileClick, cell
                   size={Math.floor(cellSize * 0.88)}
                   onClick={onTileClick ? () => onTileClick(tile.id) : undefined}
                 />
+                {markers && markers.length > 0 && (
+                  <TeamMarkerStack markers={markers} cellSize={cellSize} />
+                )}
               </Box>
             );
           })}
@@ -537,4 +552,82 @@ function HandwrittenMemberName({ discordId }) {
   });
 
   return <>{resolvedName ?? (loading ? '…' : discordId)}</>;
+}
+
+// Stack of per-team chips rendered in the bottom-right of a tile. Tiny
+// solid-color dots — one per team at that tile — letting the admin spot
+// crowding at a glance without letters cluttering the sticker. Status is
+// conveyed via the dot's border: solid white ring = complete, dashed white
+// ring = submitted, no ring = unlocked. Hover tooltip has the team name +
+// status for the full detail. Clamps to 6 visible dots, then "+N" for
+// overflow. Pointer-events none on the wrapper so clicks pass through to
+// the tile sticker underneath (dots themselves re-enable it for tooltips).
+function TeamMarkerStack({ markers, cellSize }) {
+  const dotSize = Math.max(8, Math.floor(cellSize * 0.18));
+  const visible = markers.slice(0, 6);
+  const overflow = markers.length - visible.length;
+  return (
+    <Box
+      position="absolute"
+      bottom="-2px"
+      right="-2px"
+      display="flex"
+      flexWrap="wrap"
+      justifyContent="flex-end"
+      gap="2px"
+      maxWidth={`${cellSize}px`}
+      pointerEvents="none"
+      zIndex={2}
+    >
+      {visible.map((m) => {
+        // Border style encodes status so the dot stays tiny while still
+        // showing complete-vs-in-progress at a glance.
+        const border =
+          m.status === 'complete'
+            ? '2px solid #fff'
+            : m.status === 'submitted'
+            ? '1.5px dashed #fff'
+            : '1px solid rgba(255,255,255,0.4)';
+        return (
+          <Tooltip
+            key={m.teamId}
+            label={`${m.teamName} — ${m.status}`}
+            fontSize="xs"
+            hasArrow
+          >
+            <Box
+              as="span"
+              width={`${dotSize}px`}
+              height={`${dotSize}px`}
+              borderRadius="full"
+              bg={m.color}
+              border={border}
+              boxShadow="0 1px 3px rgba(0,0,0,0.6)"
+              pointerEvents="auto"
+            />
+          </Tooltip>
+        );
+      })}
+      {overflow > 0 && (
+        <Box
+          as="span"
+          height={`${dotSize}px`}
+          minWidth={`${dotSize + 4}px`}
+          px="3px"
+          borderRadius="full"
+          bg={SPOOPY_COLORS.nightDeep}
+          color="#fff"
+          border="1px solid rgba(255,255,255,0.5)"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize={`${Math.max(8, Math.floor(dotSize * 0.75))}px`}
+          fontWeight="700"
+          lineHeight="1"
+        >
+          +{overflow}
+        </Box>
+      )}
+    </Box>
+  );
 }
