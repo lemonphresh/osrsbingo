@@ -58,6 +58,26 @@ function truthyCell(raw) {
   return v === 'y' || v === 'yes' || v === 'true' || v === '1' || v === 'x';
 }
 
+// Parses the override cell into one of three outcomes:
+//   null                        - cell blank, no override
+//   { pending: true, drops: [] }- cell is a truthy flag (yes/y/true/1/x),
+//                                 override declared with no list yet
+//   { pending: false, drops: [...] }
+//                               - cell contains the authoritative drop list.
+//                                 Pipe-separated for multiple items; a single
+//                                 item without pipes is treated as a 1-length
+//                                 list ("Pet Chaos Elemental" alone works).
+// Trims whitespace around each piece and drops empty pieces so trailing
+// pipes don't produce ghost entries.
+function parseDropsOverrideCell(raw) {
+  const s = (raw ?? '').trim();
+  if (!s) return null;
+  if (truthyCell(s)) return { pending: true, drops: [] };
+  const drops = s.split('|').map((d) => d.trim()).filter(Boolean);
+  if (drops.length === 0) return null;
+  return { pending: false, drops };
+}
+
 function toRowObjects(rawRows) {
   if (rawRows.length === 0) return [];
   const header = rawRows[0].map((h) => h.trim());
@@ -74,7 +94,7 @@ function optionalInt(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-function buildTask(kind, target, amount, ctx, errors, { hasDropsOverride = false } = {}) {
+function buildTask(kind, target, amount, ctx, errors, { dropsOverride = null } = {}) {
   if (!kind && !target && amount == null) return null;
   const normalizedKind = normalizeTaskKind(kind);
   if (!VALID_TASK_KINDS.has(normalizedKind)) {
@@ -84,12 +104,14 @@ function buildTask(kind, target, amount, ctx, errors, { hasDropsOverride = false
   if (!target) { errors.push(`${ctx}: missing task_target`); return null; }
   if (amount == null || amount <= 0) { errors.push(`${ctx}: missing or invalid task_amount`); return null; }
   const task = { kind: normalizedKind, target, amount };
-  // `acceptable_drops: []` signals "override declared, list pending — do NOT
-  // fall back to the content registry." The UI shows a placeholder until
-  // someone populates the list via a post-import data edit. Only meaningful
-  // for `uniques` tasks (otherwise the registry isn't consulted anyway).
-  if (hasDropsOverride && normalizedKind === TASK_KINDS.UNIQUES) {
-    task.acceptable_drops = [];
+  // Only `uniques` tasks consult the drop list — registry isn't used for
+  // other kinds, so the override field is meaningless there.
+  //   - `pending: true, drops: []` → "I'll fill this in later via admin UI"
+  //     (UI shows a "drops pending" placeholder, no registry fallback).
+  //   - `pending: false, drops: [...]` → authoritative list baked into the
+  //     CSV. UI renders exactly these as the badge grid.
+  if (dropsOverride && normalizedKind === TASK_KINDS.UNIQUES) {
+    task.acceptable_drops = dropsOverride.drops;
   }
   return task;
 }
@@ -102,14 +124,14 @@ function buildOption(row, letter, tileId, errors) {
   // (real payout comes from the prize pool split), default 0.
   const label = row[`option_${letter}_label`] || null;
   const rewardGp = optionalInt(row[`option_${letter}_reward_gp`]) ?? 0;
-  const hasDropsOverride = truthyCell(row[`option_${letter}_acceptable_drops_override`]);
+  const dropsOverride = parseDropsOverrideCell(row[`option_${letter}_acceptable_drops_override`]);
   const task = buildTask(
     row[`option_${letter}_task_kind`],
     row[`option_${letter}_task_target`],
     optionalInt(row[`option_${letter}_task_amount`]),
     `${tileId} option ${letter}`,
     errors,
-    { hasDropsOverride },
+    { dropsOverride },
   );
 
   if (!VALID_OUTCOMES.has(outcome)) errors.push(`${tileId} option ${letter}: invalid outcome "${outcome}"`);
@@ -153,11 +175,11 @@ function buildTileContent(row, errors) {
     };
   } else {
     // Non-house tiles have one task. Authors use `option_a_acceptable_drops_override`
-    // as the override flag for it (same column that houses use for option A).
+    // as the override field for it (same column that houses use for option A).
     // That way there's one override convention across tile types instead of a
     // separate top-level column. `acceptable_drops_override` is still honored
     // as a fallback for existing CSVs.
-    const hasDropsOverride = truthyCell(
+    const dropsOverride = parseDropsOverrideCell(
       row.option_a_acceptable_drops_override || row.acceptable_drops_override,
     );
     const task = buildTask(
@@ -166,7 +188,7 @@ function buildTileContent(row, errors) {
       optionalInt(row.task_amount),
       id,
       errors,
-      { hasDropsOverride },
+      { dropsOverride },
     );
     if (task) content.task = task;
     else errors.push(`${id}: ${tile_type} tile missing valid task`);

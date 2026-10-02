@@ -326,6 +326,23 @@ export const IMPORT_SPOOPY_EVENT_FROM_FIXTURES = gql`
   ${SPOOPY_EVENT_FIELDS}
 `;
 
+export const SET_SPOOPY_TILE_ACCEPTABLE_DROPS = gql`
+  mutation SetSpoopyTileAcceptableDrops(
+    $eventId: ID!
+    $tileId: String!
+    $option: String
+    $drops: [String!]!
+  ) {
+    setSpoopyTileAcceptableDrops(
+      eventId: $eventId
+      tileId: $tileId
+      option: $option
+      drops: $drops
+    ) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
 export const DELETE_SPOOPY_EVENT = gql`
   mutation DeleteSpoopyEvent($eventId: ID!) {
     deleteSpoopyEvent(eventId: $eventId)

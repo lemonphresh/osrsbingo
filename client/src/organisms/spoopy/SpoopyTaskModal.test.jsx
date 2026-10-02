@@ -13,6 +13,8 @@ jest.mock('@chakra-ui/react', () => {
     Text: passthrough('span'),
     Heading: passthrough('h2'),
     Badge: passthrough('span'),
+    Wrap: passthrough('div'),
+    WrapItem: passthrough('div'),
     Modal: ({ isOpen, children }) => (isOpen ? React.createElement('div', null, children) : null),
     ModalOverlay: passthrough('div'),
     ModalContent: passthrough('div'),
@@ -21,6 +23,25 @@ jest.mock('@chakra-ui/react', () => {
     useClipboard: () => ({ onCopy: () => {}, hasCopied: false }),
   };
 });
+
+// Theme hook pulls from a browser-only context (localStorage, custom events)
+// that jsdom doesn't fully model — give it a static dark/light-neutral return.
+jest.mock('./useSpoopyTheme', () => ({
+  useSpoopyTheme: () => ({
+    darkMode: false,
+    setDarkMode: () => {},
+    surfaceBg: '#efe6d0',
+    surfaceInk: '#2a1d34',
+    surfaceEdge: '#d9cba9',
+    surfaceRecessed: '#c4b58b',
+  }),
+}));
+
+// Stub the content registry so uniques tasks don't fetch over the network.
+jest.mock('../../hooks/useContentRegistry', () => ({
+  __esModule: true,
+  default: () => ({ soloBosses: {}, raids: {}, minigames: {}, skills: {} }),
+}));
 
 import SpoopyTaskModal from './SpoopyTaskModal';
 
@@ -48,7 +69,7 @@ describe('SpoopyTaskModal', () => {
       />,
     );
     expect(screen.getByText('a stray jack-o-lantern')).toBeInTheDocument();
-    expect(screen.getByText(/100,000 xp.*firemaking/)).toBeInTheDocument();
+    expect(screen.getByText(/100,000 xp.*Firemaking/)).toBeInTheDocument();
     expect(screen.getByText('40%')).toBeInTheDocument();
     expect(screen.getByText(/!spoopypre t-r5-c11/)).toBeInTheDocument();
     expect(screen.getByText(/!spoopysubmit t-r5-c11/)).toBeInTheDocument();

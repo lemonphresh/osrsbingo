@@ -1373,6 +1373,16 @@ const typeDefs = gql`
     reviewSpoopySubmission(submissionId: ID!, approved: Boolean!, denialReason: String): SpoopySubmission!
     setSpoopyTileProgress(teamId: ID!, tileId: String!, progress: Int!): SpoopyTeamBoardState!
     completeSpoopyTile(teamId: ID!, tileId: String!): SpoopyTeamBoardState!
+    # Admin-only. Writes a custom accepted-drops list for a uniques tile that
+    # has the override flag set. The 'option' arg is "a" or "b" for a house
+    # option, or null for a non-house tile's single task. Pass an empty array
+    # to reset the list (UI falls back to "drops pending" placeholder).
+    setSpoopyTileAcceptableDrops(
+      eventId: ID!
+      tileId: String!
+      option: String
+      drops: [String!]!
+    ): SpoopyEvent!
     seedSpoopyMockEvent: SpoopyEvent!
     refreshSpoopyEventFromMock(eventId: ID!): SpoopyEvent!
     # Site-admin only. Reads board.csv + content.csv from server/utils/spoopy/fixtures,

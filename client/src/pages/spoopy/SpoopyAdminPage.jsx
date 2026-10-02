@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useQuery, useMutation } from '@apollo/client';
 import {
@@ -12,6 +12,7 @@ import {
   Badge,
   Button,
   Input,
+  Textarea,
   Divider,
   Accordion,
   AccordionItem,
@@ -31,6 +32,7 @@ import {
   SEED_SPOOPY_MOCK_EVENT,
   REFRESH_SPOOPY_EVENT_FROM_MOCK,
   IMPORT_SPOOPY_EVENT_FROM_FIXTURES,
+  SET_SPOOPY_TILE_ACCEPTABLE_DROPS,
   UPDATE_SPOOPY_EVENT_STATUS,
   UPDATE_SPOOPY_EVENT_BOARD,
   SET_SPOOPY_EVENT_PASSWORD,
@@ -1041,6 +1043,181 @@ function TeamManager({ event, refetch }) {
   );
 }
 
+// ── Drop overrides ───────────────────────────────────────────────────────
+//
+// Walks the event's contentById looking for uniques tasks whose
+// `acceptable_drops` is defined (even if empty) — the signal set by the
+// importer when the author checked the override flag in the CSV. For each
+// one we render a textarea so the admin can type the actual accepted drop
+// list (one per line) that players will see on the tile. Empty list → UI
+// shows the "accepted drops pending" placeholder.
+
+function collectDropOverrideEntries(event) {
+  const out = [];
+  const contentById = event?.contentById ?? {};
+  for (const [tileId, content] of Object.entries(contentById)) {
+    if (!content) continue;
+    // Non-house tiles store the single task at the top level.
+    if (content.task?.kind === 'uniques' && Array.isArray(content.task.acceptable_drops)) {
+      out.push({
+        tileId,
+        option: null,
+        tileType: content.tile_type,
+        label: `${content.flavor_text ? `${content.flavor_text} · ` : ''}${content.tile_type} · ${content.task.target}`,
+        target: content.task.target,
+        drops: content.task.acceptable_drops,
+      });
+    }
+    // House tiles store a task per option.
+    const options = content.dialog?.options ?? {};
+    for (const letter of ['a', 'b']) {
+      const opt = options[letter];
+      if (opt?.task?.kind === 'uniques' && Array.isArray(opt.task.acceptable_drops)) {
+        out.push({
+          tileId,
+          option: letter,
+          tileType: 'house',
+          label: `${content.flavor_text ? `${content.flavor_text}'s ` : ''}house · option ${letter} · ${opt.task.target}`,
+          target: opt.task.target,
+          drops: opt.task.acceptable_drops,
+        });
+      }
+    }
+  }
+  // Stable sort by tileId then option so the panel order doesn't flap.
+  out.sort((a, b) => {
+    if (a.tileId !== b.tileId) return a.tileId < b.tileId ? -1 : 1;
+    return (a.option ?? '').localeCompare(b.option ?? '');
+  });
+  return out;
+}
+
+function DropOverrideManager({ event, refetch }) {
+  const entries = useMemo(() => collectDropOverrideEntries(event), [event]);
+
+  if (entries.length === 0) {
+    return (
+      <Text fontSize="sm" opacity={0.6}>
+        no tiles are flagged for a custom drop list. add the override column (yes) in content.csv
+        and re-import to make one appear here.
+      </Text>
+    );
+  }
+
+  return (
+    <VStack align="stretch" spacing={3}>
+      <Text fontSize="xs" opacity={0.6}>
+        each tile below has <Text as="span" fontFamily="mono">acceptable_drops_override</Text> set
+        in the content CSV. type the actual accepted drops (one per line) that count toward
+        completion. empty list = players see a "drops pending" placeholder on the tile.
+      </Text>
+      {entries.map((entry) => (
+        <DropOverrideRow
+          key={`${entry.tileId}:${entry.option ?? 'root'}`}
+          event={event}
+          entry={entry}
+          refetch={refetch}
+        />
+      ))}
+    </VStack>
+  );
+}
+
+function DropOverrideRow({ event, entry, refetch }) {
+  const toast = useToast();
+  const [text, setText] = useState(() => (entry.drops || []).join('\n'));
+
+  const [save, { loading }] = useMutation(SET_SPOOPY_TILE_ACCEPTABLE_DROPS, {
+    onCompleted: () => {
+      toast({ title: 'drop list saved', status: 'success' });
+      refetch();
+    },
+    onError: (e) =>
+      toast({ title: 'save failed', description: e.message, status: 'error' }),
+  });
+
+  const parseLines = (raw) =>
+    raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  const onSave = () => {
+    save({
+      variables: {
+        eventId: event.eventId,
+        tileId: entry.tileId,
+        option: entry.option,
+        drops: parseLines(text),
+      },
+    });
+  };
+
+  const currentCount = parseLines(text).length;
+  const savedCount = (entry.drops || []).length;
+  const dirty = currentCount !== savedCount || parseLines(text).join('|') !== (entry.drops || []).join('|');
+
+  return (
+    <Box
+      bg={SPOOPY_COLORS.nightDeep}
+      border="1px solid"
+      borderColor={SPOOPY_COLORS.nightMist}
+      borderRadius="md"
+      p={3}
+    >
+      <HStack justify="space-between" align="start" mb={2}>
+        <VStack align="start" spacing={0} minW={0}>
+          <Text fontSize="sm" fontWeight="semibold">
+            {entry.label}
+          </Text>
+          <Text fontSize="10px" opacity={0.5} fontFamily="mono">
+            {entry.tileId}
+            {entry.option ? ` · option ${entry.option}` : ''}
+          </Text>
+        </VStack>
+        <Badge
+          bg={savedCount > 0 ? SPOOPY_COLORS.green : SPOOPY_COLORS.ember}
+          color={SPOOPY_COLORS.paper}
+          fontSize="10px"
+        >
+          {savedCount > 0 ? `${savedCount} saved` : 'pending'}
+        </Badge>
+      </HStack>
+      <Textarea
+        {...themedInput({ fontFamily: 'mono' })}
+        rows={6}
+        resize="vertical"
+        placeholder={'one accepted drop per line\n(e.g. "Torva Helm")'}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <HStack mt={2} justify="space-between">
+        <Text fontSize="xs" opacity={0.55}>
+          {currentCount} drop{currentCount === 1 ? '' : 's'} in textarea
+          {dirty && (
+            <Text as="span" color={SPOOPY_COLORS.pumpkinLight}>
+              {' '}
+              · unsaved
+            </Text>
+          )}
+        </Text>
+        <Button
+          size="sm"
+          variant="outline"
+          borderColor={SPOOPY_COLORS.nightMist}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.nightMist }}
+          isLoading={loading}
+          isDisabled={!dirty}
+          onClick={onSave}
+        >
+          save
+        </Button>
+      </HStack>
+    </Box>
+  );
+}
+
 // ── Admin manager ────────────────────────────────────────────────────────
 
 function AdminManager({ event, refetch }) {
@@ -1281,6 +1458,35 @@ export default function SpoopyAdminPage() {
                 sx={{ '.chakra-collapse': { overflow: 'visible !important' } }}
               >
                 <TeamManager event={event} refetch={refetch} />
+              </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              mb={3}
+            >
+              <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
+                <Box flex={1} textAlign="left">
+                  <HStack spacing={2}>
+                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                      drop overrides
+                    </Text>
+                    {(() => {
+                      const n = collectDropOverrideEntries(event).length;
+                      return n > 0 ? (
+                        <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} borderRadius="full">
+                          {n}
+                        </Badge>
+                      ) : null;
+                    })()}
+                  </HStack>
+                </Box>
+                <AccordionIcon color={SPOOPY_COLORS.paper} />
+              </AccordionButton>
+              <AccordionPanel px={4} pb={4} bg={SPOOPY_COLORS.nightDeep}>
+                <DropOverrideManager event={event} refetch={refetch} />
               </AccordionPanel>
             </AccordionItem>
 

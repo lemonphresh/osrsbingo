@@ -181,6 +181,38 @@ describe('parseContent relaxations for spooptober coordinator CSVs', () => {
     expect(contentById.p1.task.acceptable_drops).toBeUndefined();
   });
 
+  test('pipe-separated override cell is parsed as the authoritative drop list', () => {
+    // Author bakes the full accepted list into the CSV cell instead of
+    // populating it later via admin UI. "|" splits, surrounding whitespace is
+    // trimmed, blank pieces are dropped.
+    const csv = [
+      'tile_id,tile_type,task_kind,task_target,task_amount,option_a_acceptable_drops_override',
+      's6-1,ghost,uniques,dagannoth_kings,5,"Berserker Ring|Archers Ring| Seers Ring |Warrior Ring"',
+    ].join('\n');
+    const { contentById, errors } = parseContent(csv);
+    expect(errors).toEqual([]);
+    expect(contentById['s6-1'].task.acceptable_drops).toEqual([
+      'Berserker Ring',
+      'Archers Ring',
+      'Seers Ring',
+      'Warrior Ring',
+    ]);
+  });
+
+  test('pipe-separated override works on a house option task too', () => {
+    const csv = [
+      'tile_id,tile_type,dialog_prompt,option_a_label,option_a_outcome,option_a_task_kind,option_a_task_target,option_a_task_amount,option_a_reward_gp,option_a_acceptable_drops_override,option_b_label,option_b_outcome,option_b_task_kind,option_b_task_target,option_b_task_amount,option_b_reward_gp,option_b_acceptable_drops_override',
+      'h1,house,,,trick,uniques,chambers_of_xeric,1,,"Twisted Bow|Elder Maul",,treat,uniques,nex,1,,',
+    ].join('\n');
+    const { contentById, errors } = parseContent(csv);
+    expect(errors).toEqual([]);
+    expect(contentById.h1.dialog.options.a.task.acceptable_drops).toEqual([
+      'Twisted Bow',
+      'Elder Maul',
+    ]);
+    expect(contentById.h1.dialog.options.b.task.acceptable_drops).toBeUndefined();
+  });
+
   test('per-option acceptable_drops_override works on house uniques options', () => {
     const csv = [
       'tile_id,tile_type,dialog_prompt,option_a_label,option_a_outcome,option_a_task_kind,option_a_task_target,option_a_task_amount,option_a_reward_gp,option_a_acceptable_drops_override,option_b_label,option_b_outcome,option_b_task_kind,option_b_task_target,option_b_task_amount,option_b_reward_gp,option_b_acceptable_drops_override',

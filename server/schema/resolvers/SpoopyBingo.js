@@ -828,6 +828,61 @@ const Mutation = {
     return loadTeamState(teamId);
   },
 
+  // Patches the acceptable_drops list on an override tile's task. The admin
+  // UI collects a newline-separated list of accepted drops from the author
+  // and ships them here. Writes to contentById[tileId].task.acceptable_drops
+  // for non-house tiles, or contentById[tileId].dialog.options[option].task
+  // .acceptable_drops for house options. Only overwrites the array, never
+  // the surrounding task fields.
+  setSpoopyTileAcceptableDrops: async (
+    _,
+    { eventId, tileId, option, drops },
+    context,
+  ) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    if (!tileId) throw new UserInputError('tileId is required');
+    if (!Array.isArray(drops)) throw new UserInputError('drops must be an array');
+    if (option != null && option !== 'a' && option !== 'b') {
+      throw new UserInputError('option must be "a", "b", or null');
+    }
+
+    const contentById = { ...(event.contentById || {}) };
+    const content = contentById[tileId] ? { ...contentById[tileId] } : null;
+    if (!content) {
+      throw new UserInputError(`no content for tile ${tileId}`);
+    }
+
+    // JSONB column needs a full tree rewrite for Sequelize to detect the
+    // change and persist it — shallow spreads at every level we touch.
+    const cleaned = drops.map((d) => String(d).trim()).filter(Boolean);
+    if (option) {
+      const dialog = content.dialog ? { ...content.dialog } : null;
+      const options = dialog?.options ? { ...dialog.options } : null;
+      const optEntry = options?.[option] ? { ...options[option] } : null;
+      const task = optEntry?.task ? { ...optEntry.task } : null;
+      if (!dialog || !options || !optEntry || !task) {
+        throw new UserInputError(`tile ${tileId} has no option "${option}" with a task`);
+      }
+      task.acceptable_drops = cleaned;
+      optEntry.task = task;
+      options[option] = optEntry;
+      dialog.options = options;
+      content.dialog = dialog;
+    } else {
+      if (!content.task) {
+        throw new UserInputError(`tile ${tileId} has no top-level task`);
+      }
+      content.task = { ...content.task, acceptable_drops: cleaned };
+    }
+    contentById[tileId] = content;
+
+    await event.update({ contentById });
+    await publishEventUpdated(eventId);
+    return event;
+  },
+
   reviewSpoopySubmission: async (_, { submissionId, approved, denialReason }, context) => {
     const user = requireUser(context);
     const { SpoopySubmission } = getModels();
