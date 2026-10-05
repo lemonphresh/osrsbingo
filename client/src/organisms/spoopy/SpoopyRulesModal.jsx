@@ -235,11 +235,16 @@ export default function SpoopyRulesModal({
                 Task proof is submitted in your team's Discord channel. For XP and KC tasks, take
                 the pre-screenshot first so refs have a baseline.
               </Text>
-              <Text fontSize="sm" lineHeight="1.7">
+              <Text fontSize="sm" lineHeight="1.7" mb={3}>
                 Submit completion proof with the command shown on the tile. A ref reviews it and
                 marks the task complete. Some of these house tasks are unique, to say the least --
                 ask questions about submission preferences if you're unsure, but please be patient
                 and do not spam the volunteer refs.
+              </Text>
+              <Text fontSize="sm" lineHeight="1.7">
+                Given some of these tile tasks will be different from what we'd usually be able to
+                track easily, please play this game in good faith and honor with your teammates.
+                It's about the spirit of the game, please do not try to fake them.
               </Text>
             </RuleCard>
 
