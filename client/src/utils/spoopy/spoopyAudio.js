@@ -31,8 +31,44 @@ function getAudio(name) {
   return audioByName.get(name);
 }
 
+// Browsers block programmatic `.play()` until the user has interacted with
+// the page. Mirrors the battleship warm-up: on the first pointer/key/touch
+// event we silently prime each pooled Audio element so future `.play()`
+// calls from subscription handlers (including in backgrounded tabs) are
+// allowed through. Preloads bytes immediately but defers the unlock gesture
+// until there's genuine user activity.
+let spoopyWarmupArmed = false;
 export function warmUpSpoopySounds() {
   Object.keys(SOURCES).forEach((name) => getAudio(name)?.load?.());
+  if (spoopyWarmupArmed || typeof window === 'undefined') return;
+  spoopyWarmupArmed = true;
+  const kick = () => {
+    for (const name of Object.keys(SOURCES)) {
+      const audio = getAudio(name);
+      if (!audio) continue;
+      const restoreVolume = audio.volume;
+      audio.muted = true;
+      audio.volume = 0;
+      const p = audio.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = false;
+          audio.volume = restoreVolume;
+        }).catch(() => {
+          audio.muted = false;
+          audio.volume = restoreVolume;
+        });
+      }
+    }
+    window.removeEventListener('pointerdown', kick);
+    window.removeEventListener('keydown', kick);
+    window.removeEventListener('touchstart', kick);
+  };
+  window.addEventListener('pointerdown', kick, { once: true });
+  window.addEventListener('keydown', kick, { once: true });
+  window.addEventListener('touchstart', kick, { once: true, passive: true });
 }
 
 export function playSpoopySound(name) {

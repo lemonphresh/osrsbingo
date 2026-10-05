@@ -2,15 +2,17 @@
 
 // Human-friendly label for a spoopy tile, used in Discord messages and bot
 // replies in place of the raw internal id (`t-r21-c9` reads like a bug
-// report). Picks the best available string from the tile's content:
+// report). Prefers the tile's `flavor_text` — on houses that's the
+// resident's name ("GigiEz's house"), on other tile types it's a short
+// scene description ("the pumpkin patch").
 //
-//   1. For a house tile with a locked choice, use that option's `label`
-//      (the thing the team actually clicked).
-//   2. Fall back to the tile's `flavor_text` (usually the resident's name
-//      or house theme).
-//   3. Fall back to a one-liner summary of the task (e.g. "Firemaking —
-//      100,000 xp") when no flavor text is set.
-//   4. Fall back to the tile's `tile_type` so we never surface the raw id.
+// Resolution order:
+//   1. flavor_text (shaped into "'s house" for house tiles so the string
+//      reads naturally in sentences).
+//   2. For houses with a locked choice: the chosen option's `label`, then
+//      a describe-the-task fallback.
+//   3. For other tiles: a describe-the-task fallback.
+//   4. Fall back to the tile_type so we NEVER surface the raw tile id.
 //
 // Pure — safe to call from both the GraphQL resolvers and the bot layer.
 
@@ -47,10 +49,12 @@ function buildSpoopyTaskLabel(boardTile, content, teamTile) {
   const tileType = boardTile.tile_type;
 
   if (tileType === 'house') {
+    if (content?.flavor_text) return `${content.flavor_text}'s house`;
     const choice = teamTile?.choice ?? null;
     const chosenOption = choice ? content?.dialog?.options?.[choice] : null;
     if (chosenOption?.label) return chosenOption.label;
-    if (content?.flavor_text) return `${content.flavor_text}'s house`;
+    const chosenTaskDescription = describeTask(chosenOption?.task);
+    if (chosenTaskDescription) return chosenTaskDescription;
     return 'house';
   }
 
