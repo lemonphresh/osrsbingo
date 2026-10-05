@@ -79,7 +79,6 @@ export default function SpoopyTile({
       as={isInteractive ? 'button' : 'div'}
       onClick={isInteractive ? onClick : undefined}
       aria-label={ariaLabel ?? `${meta.label}${status ? ` (${status})` : ''}`}
-      title={ariaLabel ?? meta.label}
       position="relative"
       width={`${size}px`}
       height={`${size}px`}

@@ -1229,8 +1229,27 @@ const SpoopySubmission = {
 // Topic-isolated per eventId / teamId. Follows the Rainbow / BS pattern of
 // relying on topic scoping rather than per-subscription auth.
 
+// `pubsub.asyncIterator` was removed from graphql-redis-subscriptions —
+// staging/prod use the Redis-backed instance, which only exposes
+// `asyncIterableIterator`. Wrap it in a Symbol.asyncIterator-conforming
+// object so graphql-ws / Apollo subscribe cleanly. Mirrors the shape used
+// by Rainbow / Battleship / Champion Forge subscription resolvers.
 function makeSubscription(topicFn) {
-  return { subscribe: (_, args) => pubsub.asyncIterator(topicFn(args)) };
+  return {
+    subscribe: (_, args) => {
+      const topic = topicFn(args);
+      const iterator = pubsub.asyncIterableIterator(topic);
+      return {
+        [Symbol.asyncIterator]() {
+          return iterator;
+        },
+        return() {
+          if (iterator.return) iterator.return();
+          return Promise.resolve({ done: true });
+        },
+      };
+    },
+  };
 }
 
 const Subscription = {
