@@ -6,6 +6,16 @@
 // without touching the site.
 
 const getModels = () => require('../../server/db/models');
+const { buildSpoopyTaskLabel } = require('../../server/utils/spoopy/spoopyLabels');
+
+// Produces the human-facing label we show in bot replies for `tile` (a
+// SpoopyTeamTile row). Looks up the board tile + content on the event so the
+// label mirrors what the resolver uses for the Discord ping on completion.
+function labelForTile(event, tile) {
+  const boardTile = event?.board?.tiles?.find((b) => b.id === tile.tileId);
+  const content = event?.contentById?.[tile.tileId];
+  return buildSpoopyTaskLabel(boardTile, content, tile);
+}
 
 // `Op` isn't available as its own module inside bot/node_modules — the bot
 // only transitively pulls sequelize via the server models. Re-export it
@@ -303,7 +313,7 @@ module.exports = {
         await setGauntletLevel(team, 0);
       }
       return message.reply(
-        `✅ Submission logged for **${tile.tileId}**. Pending ref review. Stay spooky! 🎃`,
+        `✅ Submission logged for **${labelForTile(event, tile)}**. Pending ref review. Stay spooky! 🎃`,
       );
     } catch (err) {
       if (err.userFacing) return message.reply(err.userFacing);
@@ -351,7 +361,7 @@ module.exports.spoopypre = {
     try {
       await createSubmissionRecord({ event, team, tile, type: 'PRE', screenshot, message });
       return message.reply(
-        `📸 Pre-screenshot logged for **${tile.tileId}**. Refs will keep it for reference.`,
+        `📸 Pre-screenshot logged for **${labelForTile(event, tile)}**. Refs will keep it for reference.`,
       );
     } catch (err) {
       if (err.userFacing) return message.reply(err.userFacing);

@@ -5,14 +5,15 @@ import flashlightClickSound from '../../assets/spoopy/flashlightclick.mp3';
 import skeleSound from '../../assets/spoopy/skelesound.mp3';
 
 // Each entry is { src, loop? }. loop:true keeps the clip running until
-// stopSpoopySound is called (used for the dancing skeleton while the
-// flashlight beam is on).
+// stopSpoopySound is called; omit for one-shot playback. The skele clip
+// plays through once when the flashlight is turned on and stays stopped
+// unless the user toggles the light off and on again.
 const SOURCES = {
   intro:           { src: introSound },
   taskComplete:    { src: taskCompleteSound },
   gameOver:        { src: gameOverSound },
   flashlightClick: { src: flashlightClickSound },
-  skele:           { src: skeleSound, loop: true },
+  skele:           { src: skeleSound },
 };
 
 const audioByName = new Map();

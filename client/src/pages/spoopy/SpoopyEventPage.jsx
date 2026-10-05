@@ -129,8 +129,12 @@ export default function SpoopyEventPage() {
   });
 
   // Live board updates — the server publishes SPOOPY_TEAM_BOARD_UPDATED_{teamId}
-  // whenever a tile transitions (approval/deny/choice/etc.). Subscribing here
-  // keeps the visible board in sync without polling.
+  // whenever a tile transitions (approval/deny/choice/etc.). Mirrors the
+  // battleship pattern: inspect the subscription payload directly and play
+  // the sound inline before kicking off a refetch to resync the rest of the
+  // UI. WebSocket handlers fire in background tabs, so this reaches the
+  // player even while the tab is unfocused (modulo browser throttling of
+  // the socket itself).
   useSubscription(SPOOPY_TEAM_BOARD_UPDATED, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam?.teamId,
@@ -146,10 +150,6 @@ export default function SpoopyEventPage() {
       if (incomingBoard) {
         completedTileIdsRef.current = getCompletedSpoopyTileIds(incomingBoard);
       }
-      // Simplest correct approach — refetch the situation so team gp, cashedOut,
-      // and per-tile state all update together. Subscription payload already
-      // contains the board state; we could update the cache directly, but
-      // refetch keeps this component free of cache-shape assumptions.
       refetch();
     },
   });

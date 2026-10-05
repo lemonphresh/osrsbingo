@@ -15,6 +15,7 @@ const {
   postSpoopyPreScreenshotResult,
   postSpoopyTileComplete,
 } = require('../../utils/spoopy/spoopyDiscord');
+const { buildSpoopyTaskLabel } = require('../../utils/spoopy/spoopyLabels');
 const {
   syncSpoopyEventWom,
   syncSpoopyTileForPreApproval,
@@ -875,7 +876,9 @@ const Mutation = {
     // notification purposely doesn't mention either.
     const boardTile = event.board?.tiles?.find((t) => t.id === tileId);
     const isCandybag = boardTile?.tile_type === 'candybag';
-    const taskLabel = boardTile ? `${boardTile.tile_type} (${tileId})` : tileId;
+    const content = event.contentById?.[tileId];
+    const latestTeamTile = next?.tiles?.[tileId] ?? null;
+    const taskLabel = buildSpoopyTaskLabel(boardTile, content, latestTeamTile);
     const rewardGp = rewardTile?.rewardEarned ?? 0;
     postSpoopyTileComplete({
       channelId: team.discordChannelId,
@@ -992,11 +995,15 @@ const Mutation = {
     });
     await publishBoardUpdated(team);
 
-    // Best-effort Discord notification to the team channel. Falls back to the
-    // tile id when we don't have a friendlier label to hand — the tile-type
-    // label is more informative for spot-checking on Discord.
+    // Best-effort Discord notification to the team channel. Uses the shared
+    // label helper so players see the house name / task description rather
+    // than the raw tile id.
     const boardTile = event.board?.tiles?.find((t) => t.id === submission.tileId);
-    const taskLabel = boardTile ? `${boardTile.tile_type} (${submission.tileId})` : submission.tileId;
+    const content = event.contentById?.[submission.tileId];
+    const teamTileNow = await getModels().SpoopyTeamTile.findOne({
+      where: { teamId: submission.teamId, tileId: submission.tileId },
+    });
+    const taskLabel = buildSpoopyTaskLabel(boardTile, content, teamTileNow);
     const opts = {
       channelId: submission.channelId ?? team.discordChannelId,
       discordUserId: submission.discordUserId,
