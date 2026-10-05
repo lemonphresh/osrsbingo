@@ -290,7 +290,7 @@ export default function GroupDashboardCreatePage() {
                   fontFamily="mono"
                 >
                   <Text fontSize="xs" color="gray.500">
-                    osrsbingo.com/group/
+                    osrsbingohub.com/group/
                   </Text>
                   <Text fontSize="sm" color="purple.300" display="inline">
                     your-group-slug

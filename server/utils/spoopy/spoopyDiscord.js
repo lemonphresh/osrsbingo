@@ -125,7 +125,7 @@ async function postSpoopyCurfewForfeit({ channelId, teamName, forfeitedGp }) {
     forfeitedGp > 0 ? ` all **${formatCandy(forfeitedGp)}** vanished into the fog.` : '';
   await post(
     channelId,
-    `🕯️ curfew has passed and ${teamLabel} didn't make it to the spooky house.${amountLine} the streets are empty now. better luck next halloween. 👻`,
+    `🕯️ curfew has passed and ${teamLabel} didn't make it to the spooky house.${amountLine} the streets are empty now. better luck next halloween. 👻`
   );
 }
 
@@ -142,13 +142,11 @@ async function postSpoopyEventStarted({ channelId, eventName }) {
       `🎃 the night has begun. ${label} is live!`,
       '',
       'proceed (if you dare…!) to the spoopy event dashboard:',
-      'https://osrsbingo.com/spoopy-event',
+      'https://www.osrsbingohub.com/spoopy-event',
       '',
-      "🔑 be sure to log in and have your discord linked to access the board. you'll only see " +
-        "your team's view.",
+      "🔑 be sure to log in to access the board. you'll only see " + "your team's view.",
       '',
-      "check the trick-or-treat houses, and don't forget the scary house at the end of the street. " +
-        'curfew is coming. good luck out there. 🕯️',
+      'curfew is coming. good luck out there. 🕯️',
     ].join('\n')
   );
 }
