@@ -29,6 +29,16 @@ import scarecrowAsset from '../../assets/spoopy/scarecrow.webp';
 import froggoAsset from '../../assets/spoopy/froggo.webp';
 import punkinsAsset from '../../assets/spoopy/punkins.webp';
 import zambieAsset from '../../assets/spoopy/zambie.webp';
+import candyReal1Asset from '../../assets/spoopy/pagedecor/candyreal1.webp';
+import candyReal2Asset from '../../assets/spoopy/pagedecor/candyreal2.png';
+import candyReal3Asset from '../../assets/spoopy/pagedecor/candyreal3.webp';
+import candyWrapperAsset from '../../assets/spoopy/pagedecor/wrapper.png';
+import flashlightAsset from '../../assets/spoopy/pagedecor/flashlight.png';
+import candycornAsset from '../../assets/spoopy/pagedecor/candycorn.webp';
+import pencilAsset from '../../assets/spoopy/pagedecor/pencil.png';
+import lightbeam from '../../assets/spoopy/pagedecor/lightbeam.png';
+import gummyWorms from '../../assets/spoopy/pagedecor/gummyworms.webp';
+import woodenBgAsset from '../../assets/spoopy/woodenbg.webp';
 
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 
@@ -60,6 +70,152 @@ const BOARD_DECORATIONS = [
   { src: zambieAsset, top: 0.32, left: 0.72, size: 120, rotation: -5, alt: 'zambie' },
   { src: zambieAsset, top: 0.28, left: 0.68, size: 115, rotation: -5, alt: 'zambie' },
   { src: zambieAsset, top: 0.27, left: 0.78, size: 125, rotation: -5, alt: 'zambie' },
+];
+
+// Desk-dressing props laid out beside the paper — scattered candy / pencils
+// / flashlight on the "desk" around the map. Fixed-size, anchored to the
+// paper's edges (not the stage edges), so they stay hugging the paper no
+// matter the viewport width. When the admin zooms the board way in and the
+// paper fills the viewport, the props end up off-screen past the paper's
+// edges — that's expected; they're only visible at ~50-75% zoom.
+//
+// `side` + `offset` set the horizontal gap (in px) between the prop and the
+// corresponding paper edge: left-side props have their RIGHT edge sitting
+// `offset` px left of the paper's left edge; right-side props have their
+// LEFT edge `offset` px right of the paper's right edge. Negative offsets
+// let the prop overlap into the paper. `top` is px from the paper's top
+// edge.
+const DESK_PROPS = [
+  {
+    src: pencilAsset,
+    side: 'right',
+    offset: -60,
+    top: 860,
+    size: 600,
+    rotation: 200,
+    alt: 'pencil',
+  },
+  { src: pencilAsset, side: 'left', offset: -50, top: 120, size: 600, rotation: 70, alt: 'pencil' },
+  { src: pencilAsset, side: 'left', offset: 120, top: 130, size: 600, rotation: 60, alt: 'pencil' },
+
+  {
+    src: candyReal1Asset,
+    side: 'left',
+    offset: 40,
+    top: 400,
+    size: 225,
+    rotation: -14,
+    alt: 'candy',
+  },
+  {
+    src: candyReal2Asset,
+    side: 'left',
+    offset: 100,
+    top: 930,
+    size: 300,
+    rotation: 25,
+    alt: 'candy',
+  },
+  {
+    src: candyReal2Asset,
+    side: 'left',
+    offset: 30,
+    top: 1200,
+    size: 300,
+    rotation: -15,
+    alt: 'candy',
+  },
+  {
+    src: candycornAsset,
+    side: 'left',
+    offset: 345,
+    top: 1030,
+    size: 250,
+    rotation: 190,
+    alt: 'candy',
+  },
+  {
+    src: gummyWorms,
+    side: 'left',
+    offset: 400,
+    top: 650,
+    size: 425,
+    rotation: -25,
+    alt: 'candy',
+  },
+  {
+    src: candyWrapperAsset,
+    side: 'left',
+    offset: 20,
+    top: 660,
+    size: 270,
+    rotation: -22,
+    alt: 'candy wrapper',
+  },
+  {
+    src: candyReal3Asset,
+    side: 'right',
+    offset: 98,
+    top: 90,
+    size: 300,
+    rotation: 12,
+    alt: 'candy',
+  },
+  {
+    src: candyReal2Asset,
+    side: 'right',
+    offset: 40,
+    top: 240,
+    size: 270,
+    rotation: 20,
+    alt: 'candy',
+  },
+  {
+    src: candyWrapperAsset,
+    side: 'right',
+    offset: 275,
+    top: 370,
+    size: 270,
+    rotation: -120,
+    alt: 'candy',
+  },
+  {
+    src: candycornAsset,
+    side: 'right',
+    offset: 350,
+    top: 0,
+    size: 250,
+    rotation: -40,
+    alt: 'candy',
+  },
+  {
+    src: flashlightAsset,
+    side: 'right',
+    offset: 120,
+    top: 380,
+    size: 420,
+    rotation: 150,
+    alt: 'flashlight',
+  },
+  {
+    src: lightbeam,
+    side: 'right',
+    offset: -300,
+    top: -230,
+    size: 500,
+    rotation: 150,
+    opacity: 0.5,
+    alt: 'lightbeam',
+  },
+  {
+    src: candyReal1Asset,
+    side: 'right',
+    offset: 50,
+    top: 1220,
+    size: 225,
+    rotation: 24,
+    alt: 'candy',
+  },
 ];
 
 const API_BASE = process.env.REACT_APP_SERVER_URL || '';
@@ -120,7 +276,9 @@ export default function SpoopyBoard({
   // flex stage stays centered and horizontal scrolling still works.
   const [zoom, setZoomState] = useState(() => {
     const stored = Number(localStorage.getItem('spoopyBoardZoom'));
-    return Number.isFinite(stored) && stored >= 0.5 && stored <= 2 ? stored : 1;
+    // Default to 50% so the full board + desk-prop margin fits in a laptop
+    // viewport on first load. Returning users keep their stored preference.
+    return Number.isFinite(stored) && stored >= 0.5 && stored <= 2 ? stored : 0.5;
   });
   const setZoom = (next) => {
     const clamped = Math.max(0.5, Math.min(2, next));
@@ -129,6 +287,11 @@ export default function SpoopyBoard({
       localStorage.setItem('spoopyBoardZoom', String(clamped));
     } catch (_) {}
   };
+
+  // Clicking the flashlight desk prop toggles its lightbeam decor on/off —
+  // a tiny bit of ambient interactivity. Default off so the beam doesn't
+  // obscure other decor until the user turns it on themselves.
+  const [lightbeamOn, setLightbeamOn] = useState(false);
 
   const statusById = useMemo(() => {
     const m = {};
@@ -152,15 +315,24 @@ export default function SpoopyBoard({
 
   return (
     <Box
-      // The dusty-night "stage" around the paper. Fixed padding — the board
-      // itself never resizes (its width is `cellSize * cols`), so responsive
-      // breakpoints don't help anything inside.
+      // The dusty-night "stage" around the paper. Acts as a bounded
+      // scroll container — the entire zoomable surface (paper + decor
+      // columns) lives inside it, and zoom is applied once to that whole
+      // surface. When zoomed in, scrollbars show INSIDE this stage, not on
+      // the page. `safe center` keeps the surface centered when it fits
+      // and falls back to flex-start when it overflows, avoiding the
+      // classic flex+centered-overflow scroll bug.
       position="relative"
       p={8}
-      bg={SPOOPY_COLORS.nightDeep}
+      bgImage={`linear-gradient(rgba(30, 15, 45, 0.35), rgba(30, 15, 45, 0.35)), url(${woodenBgAsset})`}
+      bgRepeat="no-repeat, repeat"
+      bgSize={`100% 100%, ${Math.round(3250 * zoom)}px auto`}
       minHeight="100%"
+      width="100%"
+      overflow="auto"
       display="flex"
-      justifyContent="center"
+      justifyContent="safe center"
+      alignItems="flex-start"
     >
       {/* Board controls cluster — sits on the outer stage (outside the
           paper's `overflow-x: auto` container) so they stay pinned to the
@@ -249,188 +421,209 @@ export default function SpoopyBoard({
           />
         </Tooltip>
       </HStack>
-      {/* The "sheet of paper" the board is drawn on. The paper texture is
+      {/* Flex row: decor-left + paper + decor-right. Columns are fixed
+          width, paper is unchanged (so its zoom + scroll keep working). The
+          whole row grows + centers as the paper zooms. Columns hidden below
+          xl so narrow viewports don't eat horizontal space with decor. */}
+      {/* The single zoomable surface. CSS `zoom` scales the whole flex row
+          (left decor col + paper + right decor col) as one unit, so decor
+          scales with the paper and horizontal/vertical scrolling happens
+          inside the stage container above (not on the page). */}
+      <HStack spacing={0} alignItems="flex-start" style={{ zoom }}>
+        <Box
+          display={{ base: 'none', xl: 'block' }}
+          position="relative"
+          width="240px"
+          flexShrink={0}
+          pointerEvents="none"
+          aria-hidden="true"
+        >
+          {DESK_PROPS.filter((p) => p.side === 'left').map((p, i) => (
+            <Box
+              key={`deskprop-left-${i}`}
+              as="img"
+              src={p.src}
+              alt={p.alt}
+              position="absolute"
+              top={`${p.top}px`}
+              // `right: offset` → prop's right edge sits `offset` px to the
+              // LEFT of the paper's left edge (since the column is flush
+              // against paper). Negative offset lets the prop overlap into
+              // the paper.
+              right={`${p.offset}px`}
+              width={`${p.size}px`}
+              height="auto"
+              maxWidth="none"
+              opacity={p.opacity ?? 1}
+              transform={`rotate(${p.rotation}deg)`}
+              filter="drop-shadow(0 6px 10px rgba(0,0,0,0.45))"
+              // Always ignore pointer events — even though the parent decor
+              // column has pointer-events:none, some stacking contexts can
+              // break inheritance for absolutely-positioned children. Setting
+              // it explicitly here guarantees clicks pass through to anything
+              // under the prop (zoom controls, tiles, etc.).
+              pointerEvents="none"
+              draggable={false}
+              style={{ userSelect: 'none' }}
+            />
+          ))}
+        </Box>
+
+        {/* The "sheet of paper" the board is drawn on. The paper texture is
           applied directly as a repeating `backgroundImage` (not via ::before)
           so it tiles across the entire scrollable content — a pseudo-element
           with `inset: 0` only covers the visible box and would cut off when
           you scroll horizontally on wide boards. `backgroundBlendMode`
           softens the texture over the paper color underneath. */}
-      <Box
-        position="relative"
-        // Right padding on an overflow-x:auto container gets clipped by
-        // Chrome/Safari, so we keep top/bottom/left padding here and move
-        // the right-side breathing room to the grid child below via
-        // `pr` — margins/padding on children inside a scroll container DO
-        // extend the scrollable area.
-        pt={6}
-        pb={6}
-        pl={16}
-        bg={surfaceBg}
-        borderRadius="lg"
-        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 40px rgba(0,0,0,0.55)`}
-        overflowX="auto"
-        maxWidth="fit-content"
-        // CSS `zoom` — the classic Chromium/Safari/Edge zoom property.
-        // Unlike `transform: scale()`, it affects layout, so the outer
-        // flex stage keeps centering the paper and horizontal scrolling
-        // works normally. Firefox picked it up in v126, so cross-browser
-        // support is fine now. Applied via inline style (not sx) because
-        // Chakra's style system sometimes filters non-standard props.
-        style={{ zoom }}
-        // Layered backgrounds, painted top → bottom:
-        //   1. Semi-transparent wash of the base color (paper or nightmist)
-        //      so only ~15% of the texture shows through. (Standalone
-        //      `opacity` would fade tiles too — the gradient trick keeps
-        //      opacity local to the background layer.)
-        //   2. Paper texture tiled at 520px, positioned at (0, 0).
-        //   3. Same paper texture at a different scale (350px) and an odd
-        //      offset. Two tilings at incoherent phases and scales break
-        //      up the visible grid seams without needing mirrored SVGs.
-        backgroundImage={
-          `linear-gradient(rgba(${baseRgb},0.88), rgba(${baseRgb},0.88)),` +
-          ` url(${paperTextureAsset}),` +
-          ` url(${paperTextureAsset})`
-        }
-        backgroundRepeat="no-repeat, repeat, repeat"
-        backgroundSize="auto, 520px 520px, 350px 350px"
-        backgroundPosition="0 0, 0 0, 217px 289px"
-      >
         <Box
           position="relative"
-          display="grid"
-          // Trailing 64px column acts as right-side breathing room without
-          // relying on padding — the paper's `overflow-x: auto` clips
-          // `padding-right` on both the paper Box and grid child. An
-          // explicit grid track IS included in the intrinsic width so the
-          // scroll extent respects it. Same trick could be used with rows
-          // if we ever need bottom breathing room.
-          gridTemplateColumns={`repeat(${dims.cols}, ${cellSize}px) 64px`}
-          gridTemplateRows={`repeat(${dims.rows}, ${cellSize}px)`}
-          gap="0px"
-          // Isolate this stacking context so the decorations' negative
-          // z-index stays scoped here (doesn't slip below the paper's
-          // background texture).
-          sx={{ isolation: 'isolate' }}
+          // Right padding on an overflow-x:auto container gets clipped by
+          // Chrome/Safari, so we keep top/bottom/left padding here and move
+          // the right-side breathing room to the grid child below via
+          // `pr` — margins/padding on children inside a scroll container DO
+          // extend the scrollable area.
+          pt={6}
+          pb={6}
+          pl={16}
+          bg={surfaceBg}
+          borderRadius="lg"
+          boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 40px rgba(0,0,0,0.55)`}
+          overflowX="auto"
+          maxWidth="fit-content"
+          // Zoom lives on the outer HStack now so decor + paper scale as
+          // one surface. Paper itself no longer zooms individually.
+          // Layered backgrounds, painted top → bottom:
+          //   1. Semi-transparent wash of the base color (paper or nightmist)
+          //      so only ~15% of the texture shows through. (Standalone
+          //      `opacity` would fade tiles too — the gradient trick keeps
+          //      opacity local to the background layer.)
+          //   2. Paper texture tiled at 520px, positioned at (0, 0).
+          //   3. Same paper texture at a different scale (350px) and an odd
+          //      offset. Two tilings at incoherent phases and scales break
+          //      up the visible grid seams without needing mirrored SVGs.
+          backgroundImage={
+            `linear-gradient(rgba(${baseRgb},0.88), rgba(${baseRgb},0.88)),` +
+            ` url(${paperTextureAsset}),` +
+            ` url(${paperTextureAsset})`
+          }
+          backgroundRepeat="no-repeat, repeat, repeat"
+          backgroundSize="auto, 520px 520px, 350px 350px"
+          backgroundPosition="0 0, 0 0, 217px 289px"
         >
-          {/* Decorative doodads scattered across the board. Positioned in
+          <Box
+            position="relative"
+            display="grid"
+            // Trailing 64px column acts as right-side breathing room without
+            // relying on padding — the paper's `overflow-x: auto` clips
+            // `padding-right` on both the paper Box and grid child. An
+            // explicit grid track IS included in the intrinsic width so the
+            // scroll extent respects it. Same trick could be used with rows
+            // if we ever need bottom breathing room.
+            gridTemplateColumns={`repeat(${dims.cols}, ${cellSize}px) 64px`}
+            gridTemplateRows={`repeat(${dims.rows}, ${cellSize}px)`}
+            gap="0px"
+            // Isolate this stacking context so the decorations' negative
+            // z-index stays scoped here (doesn't slip below the paper's
+            // background texture).
+            sx={{ isolation: 'isolate' }}
+          >
+            {/* Decorative doodads scattered across the board. Positioned in
               pixels against the *play area* (dims.cols × cellSize wide,
               dims.rows × cellSize tall) — the trailing 64px spacer track
               would otherwise skew any percentage-based left offset to the
               right. Sizes are pixels inside the CSS-zoomed paper, so they
               scale with the rest of the board. `pointerEvents: none` so
               tile clicks underneath still land. */}
-          {BOARD_DECORATIONS.map((deco) => (
-            <Box
-              key={`${deco.src}-${deco.top}-${deco.left}`}
-              position="absolute"
-              top={`${Math.round(deco.top * dims.rows * cellSize)}px`}
-              left={`${Math.round(deco.left * dims.cols * cellSize)}px`}
-              transform={`translate(-50%, -50%) rotate(${deco.rotation}deg)`}
-              width={`${deco.size}px`}
-              height={`${deco.size}px`}
-              pointerEvents="none"
-              userSelect="none"
-              zIndex={-1}
-            >
-              {/* The webps have their enclosed interiors baked to cream by
+            {BOARD_DECORATIONS.map((deco) => (
+              <Box
+                key={`${deco.src}-${deco.top}-${deco.left}`}
+                position="absolute"
+                top={`${Math.round(deco.top * dims.rows * cellSize)}px`}
+                left={`${Math.round(deco.left * dims.cols * cellSize)}px`}
+                transform={`translate(-50%, -50%) rotate(${deco.rotation}deg)`}
+                width={`${deco.size}px`}
+                height={`${deco.size}px`}
+                pointerEvents="none"
+                userSelect="none"
+                zIndex={-1}
+              >
+                {/* The webps have their enclosed interiors baked to cream by
                   `scripts/fillSpoopyDecorations.js`, so they render as
                   proper sticker silhouettes without any CSS trickery. Just
                   add a soft cast shadow for the sticker lift. */}
-              <Box
-                as="img"
-                src={deco.src}
-                alt={deco.alt}
-                width={`${deco.size}px`}
-                height={`${deco.size}px`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'contain',
-                  display: 'block',
-                  filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.2))',
-                }}
-                draggable={false}
-              />
-            </Box>
-          ))}
+                <Box
+                  as="img"
+                  src={deco.src}
+                  alt={deco.alt}
+                  width={`${deco.size}px`}
+                  height={`${deco.size}px`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.2))',
+                  }}
+                  draggable={false}
+                />
+              </Box>
+            ))}
 
-          {/* "eternal gems presents… a spoopy situation" — the title card
+            {/* "eternal gems presents… a spoopy situation" — the title card
               is a real grid item that spans the full board (all rows AND
               all columns) via `1 / -1`. Flex-centered inside that span,
               so the text lands at the geometric middle of the explicit
               grid tracks — the same tracks that define the scrollable
               board width — regardless of any implicit tracks. */}
-          <Box
-            // Span only the real tile columns (1..dims.cols), NOT the
-            // trailing 64px breathing-room track — otherwise the flex-
-            // centered title drifts to the right by half the spacer width.
-            gridColumn={`1 / ${dims.cols + 1}`}
-            gridRow="1 / -1"
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            pointerEvents="none"
-            zIndex={2}
-            userSelect="none"
-          >
-            <Box textAlign="center" transform="translateY(128px) rotate(-1.5deg)">
-              <Box
-                fontSize="xs"
-                letterSpacing="0.35em"
-                textTransform="uppercase"
-                color={surfaceInk}
-                opacity={0.55}
-                mb={2}
-                fontWeight="semibold"
-              >
-                eternal gems presents
-              </Box>
-              <Box
-                // Creepster — classic dripping-blood Halloween display font.
-                // Loaded via `@fontsource/creepster` in client/src/index.js.
-                fontFamily="'Creepster', 'Georgia', serif"
-                fontSize="7xl"
-                lineHeight={1}
-                color={titleColor}
-                textShadow={titleShadow}
-                letterSpacing="0.02em"
-              >
-                a spoopy situation
-              </Box>
+            <Box
+              // Span only the real tile columns (1..dims.cols), NOT the
+              // trailing 64px breathing-room track — otherwise the flex-
+              // centered title drifts to the right by half the spacer width.
+              gridColumn={`1 / ${dims.cols + 1}`}
+              gridRow="1 / -1"
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              pointerEvents="none"
+              zIndex={2}
+              userSelect="none"
+            >
+              <Box textAlign="center" transform="translateY(128px) rotate(-1.5deg)">
+                <Box
+                  fontSize="xs"
+                  letterSpacing="0.35em"
+                  textTransform="uppercase"
+                  color={surfaceInk}
+                  opacity={0.55}
+                  mb={2}
+                  fontWeight="semibold"
+                >
+                  eternal gems presents
+                </Box>
+                <Box
+                  // Creepster — classic dripping-blood Halloween display font.
+                  // Loaded via `@fontsource/creepster` in client/src/index.js.
+                  fontFamily="'Creepster', 'Georgia', serif"
+                  fontSize="7xl"
+                  lineHeight={1}
+                  color={titleColor}
+                  textShadow={titleShadow}
+                  letterSpacing="0.02em"
+                >
+                  a spoopy situation
+                </Box>
 
-              {/* Handwritten goals + roster panels. Both use the same
+                {/* Handwritten goals + roster panels. Both use the same
                   responsive width so their left/right edges line up on the
                   paper. Special Elite (the "hand" font) is used throughout
                   for the scrawled-on-paper feel. */}
-              {(() => {
-                const panelWidth = '420px';
-                const roster = teamState?.roster ?? [];
-                return (
-                  <>
-                    <Box
-                      mt={6}
-                      width={panelWidth}
-                      mx="auto"
-                      textAlign="left"
-                      fontFamily={SPOOPY_FONTS.hand}
-                      fontSize="lg"
-                      color={surfaceInk}
-                      opacity={0.85}
-                      lineHeight={1.6}
-                    >
-                      <Box mb={1} textDecoration="underline">
-                        goals:
-                      </Box>
-                      <Box>· unlock the main road</Box>
-                      <Box>· unlock the side roads</Box>
-                      <Box>· trick-or-treat at all the houses</Box>
-                      <Box>· ???</Box>
-                      <Box>· get all the candy!!!!</Box>
-                    </Box>
-
-                    {roster.length > 0 && (
+                {(() => {
+                  const panelWidth = '420px';
+                  const roster = teamState?.roster ?? [];
+                  return (
+                    <>
                       <Box
-                        mt={12}
+                        mt={6}
                         width={panelWidth}
                         mx="auto"
                         textAlign="left"
@@ -441,67 +634,152 @@ export default function SpoopyBoard({
                         lineHeight={1.6}
                       >
                         <Box mb={1} textDecoration="underline">
-                          the gang:
+                          goals:
                         </Box>
-                        <Box>
-                          {roster.map((id, i) => (
-                            <React.Fragment key={id}>
-                              <HandwrittenMemberName discordId={id} />
-                              {i < roster.length - 1 && (
-                                <Box as="span" mx={2} opacity={0.55} aria-hidden="true">
-                                  ·
-                                </Box>
-                              )}
-                            </React.Fragment>
-                          ))}
-                        </Box>
+                        <Box>· unlock the main road</Box>
+                        <Box>· unlock the side roads</Box>
+                        <Box>· trick-or-treat at all the houses</Box>
+                        <Box>· ???</Box>
+                        <Box>· get all the candy!!!!</Box>
                       </Box>
-                    )}
-                  </>
-                );
-              })()}
-            </Box>
-          </Box>
-          {/* Connector cells (visual-only) */}
-          {cells &&
-            cells.flatMap((row, r) =>
-              row.map((cell, c) =>
-                cell?.kind === 'connector' ? (
-                  <ConnectorCell key={`conn-${r}-${c}`} row={r} col={c} />
-                ) : null
-              )
-            )}
 
-          {/* Real tiles as paper stickers */}
-          {tiles.map((tile) => {
-            const status = statusById[tile.id] ?? 'locked';
-            const markers = teamMarkers?.[tile.id] ?? null;
+                      {roster.length > 0 && (
+                        <Box
+                          mt={12}
+                          width={panelWidth}
+                          mx="auto"
+                          textAlign="left"
+                          fontFamily={SPOOPY_FONTS.hand}
+                          fontSize="lg"
+                          color={surfaceInk}
+                          opacity={0.85}
+                          lineHeight={1.6}
+                        >
+                          <Box mb={1} textDecoration="underline">
+                            the gang:
+                          </Box>
+                          <Box>
+                            {roster.map((id, i) => (
+                              <React.Fragment key={id}>
+                                <HandwrittenMemberName discordId={id} />
+                                {i < roster.length - 1 && (
+                                  <Box as="span" mx={2} opacity={0.55} aria-hidden="true">
+                                    ·
+                                  </Box>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+                    </>
+                  );
+                })()}
+              </Box>
+            </Box>
+            {/* Connector cells (visual-only) */}
+            {cells &&
+              cells.flatMap((row, r) =>
+                row.map((cell, c) =>
+                  cell?.kind === 'connector' ? (
+                    <ConnectorCell key={`conn-${r}-${c}`} row={r} col={c} />
+                  ) : null
+                )
+              )}
+
+            {/* Real tiles as paper stickers */}
+            {tiles.map((tile) => {
+              const status = statusById[tile.id] ?? 'locked';
+              const markers = teamMarkers?.[tile.id] ?? null;
+              return (
+                <Box
+                  key={tile.id}
+                  gridColumn={tile.position.col + 1}
+                  gridRow={tile.position.row + 1}
+                  display="flex"
+                  alignItems="center"
+                  justifyContent="center"
+                  position="relative"
+                >
+                  <SpoopyTile
+                    tileId={tile.id}
+                    tileType={tile.tile_type}
+                    status={status}
+                    progress={progressById[tile.id] ?? 0}
+                    size={Math.floor(cellSize * 0.88)}
+                    onClick={onTileClick ? () => onTileClick(tile.id) : undefined}
+                  />
+                  {markers && markers.length > 0 && (
+                    <TeamMarkerStack markers={markers} cellSize={cellSize} />
+                  )}
+                </Box>
+              );
+            })}
+          </Box>
+        </Box>
+
+        {/* Right-side decor column — mirror of the left column. Same zoom
+          applied so it scales with the paper's zoom. */}
+        <Box
+          display={{ base: 'none', xl: 'block' }}
+          position="relative"
+          width="240px"
+          flexShrink={0}
+          pointerEvents="none"
+          aria-hidden="true"
+        >
+          {DESK_PROPS.filter((p) => p.side === 'right').map((p, i) => {
+            // Two props have special interactive behavior:
+            //   - flashlight: clickable, toggles the lightbeam decor on/off
+            //   - lightbeam: visibility driven by `lightbeamOn` state (its
+            //     authored opacity when on, 0 when off, with a soft fade)
+            const isFlashlight = p.src === flashlightAsset;
+            const isLightbeam = p.src === lightbeam;
+            const resolvedOpacity = isLightbeam
+              ? lightbeamOn
+                ? p.opacity ?? 1
+                : 0
+              : p.opacity ?? 1;
             return (
               <Box
-                key={tile.id}
-                gridColumn={tile.position.col + 1}
-                gridRow={tile.position.row + 1}
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                position="relative"
-              >
-                <SpoopyTile
-                  tileId={tile.id}
-                  tileType={tile.tile_type}
-                  status={status}
-                  progress={progressById[tile.id] ?? 0}
-                  size={Math.floor(cellSize * 0.88)}
-                  onClick={onTileClick ? () => onTileClick(tile.id) : undefined}
-                />
-                {markers && markers.length > 0 && (
-                  <TeamMarkerStack markers={markers} cellSize={cellSize} />
-                )}
-              </Box>
+                key={`deskprop-right-${i}`}
+                as="img"
+                src={p.src}
+                alt={p.alt}
+                position="absolute"
+                top={`${p.top}px`}
+                // `left: offset` → prop's left edge sits `offset` px to the
+                // RIGHT of the paper's right edge (column is flush against
+                // paper). Negative offset lets the prop overlap into the paper.
+                left={`${p.offset}px`}
+                width={`${p.size}px`}
+                height="auto"
+                maxWidth="none"
+                opacity={resolvedOpacity}
+                transition={isLightbeam ? 'opacity 200ms ease-out' : undefined}
+                transform={`rotate(${p.rotation}deg)`}
+                filter="drop-shadow(0 6px 10px rgba(0,0,0,0.45))"
+                // Flashlight is the lone interactive prop — accepts pointer
+                // events + onClick. Everything else stays pointer-events:none
+                // so clicks fall through to tiles / zoom controls underneath.
+                pointerEvents={isFlashlight ? 'auto' : 'none'}
+                cursor={isFlashlight ? 'pointer' : undefined}
+                onClick={isFlashlight ? () => setLightbeamOn((v) => !v) : undefined}
+                role={isFlashlight ? 'button' : undefined}
+                aria-label={
+                  isFlashlight
+                    ? lightbeamOn
+                      ? 'turn flashlight off'
+                      : 'turn flashlight on'
+                    : undefined
+                }
+                draggable={false}
+                style={{ userSelect: 'none' }}
+              />
             );
           })}
         </Box>
-      </Box>
+      </HStack>
     </Box>
   );
 }
@@ -589,12 +867,7 @@ function TeamMarkerStack({ markers, cellSize }) {
             ? '1.5px dashed #fff'
             : '1px solid rgba(255,255,255,0.4)';
         return (
-          <Tooltip
-            key={m.teamId}
-            label={`${m.teamName} — ${m.status}`}
-            fontSize="xs"
-            hasArrow
-          >
+          <Tooltip key={m.teamId} label={`${m.teamName} — ${m.status}`} fontSize="xs" hasArrow>
             <Box
               as="span"
               width={`${dotSize}px`}
