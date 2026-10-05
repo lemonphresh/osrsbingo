@@ -4,16 +4,8 @@
 // (direct DB access via Sequelize models + explicit pubsub publish), so a
 // team member can submit trick-or-treat proof from their Discord channel
 // without touching the site.
-//
-// Submission creation (!spoopysubmit / !spoopypre) is dev-only — on prod the
-// bot refuses and points players at the site UI. The GraphQL
-// createSpoopySubmission mutation is the single prod submission path so refs
-// have one place to look. Choice (!spoopya/b) and the gauntlet commands are
-// always on because they orchestrate the Discord-side game loop.
 
 const getModels = () => require('../../server/db/models');
-
-const SUBMISSIONS_ENABLED = process.env.NODE_ENV !== 'production';
 
 // `Op` isn't available as its own module inside bot/node_modules — the bot
 // only transitively pulls sequelize via the server models. Re-export it
@@ -262,11 +254,6 @@ module.exports = {
   description: 'Submit a Spoopy task (attach a screenshot).',
 
   async execute(message, args = []) {
-    if (!SUBMISSIONS_ENABLED) {
-      return message.reply(
-        '🎃 bot submissions are disabled on prod. please submit from the site: https://osrsbingo.com/spoopy-event',
-      );
-    }
     const screenshot = message.attachments.first()?.url ?? null;
     if (!screenshot) {
       return message.reply(
@@ -332,11 +319,6 @@ module.exports.spoopypre = {
   description: 'Submit a Spoopy pre-screenshot baseline (attach a screenshot).',
 
   async execute(message, args = []) {
-    if (!SUBMISSIONS_ENABLED) {
-      return message.reply(
-        '🎃 bot pre-screenshots are disabled on prod. please upload from the site: https://osrsbingo.com/spoopy-event',
-      );
-    }
     const screenshot = message.attachments.first()?.url ?? null;
     if (!screenshot) {
       return message.reply(
@@ -527,17 +509,6 @@ module.exports.help = {
   aliases: ['spoopyhelp'],
   description: 'Show the Spoopy Halloween event bot commands.',
   async execute(message) {
-    const submitSection = SUBMISSIONS_ENABLED
-      ? [
-          '**Submitting proof (all tiles):**',
-          '• `!spoopysubmit [tile-id]`: attach a screenshot to submit for approval. Alias: `!sps`.',
-          '• `!spoopypre [tile-id]`: attach a pre-screenshot baseline (informational only). Alias: `!spp`.',
-          '',
-        ]
-      : [
-          '**Submitting proof:** please upload from the site: https://osrsbingo.com/spoopy-event',
-          '',
-        ];
     return message.reply(
       [
         '🎃 **Spoopy Halloween: Commands**',
@@ -546,13 +517,14 @@ module.exports.help = {
         '• `!spoopya [tile-id]`: pick option A. Alias: `!spa`.',
         '• `!spoopyb [tile-id]`: pick option B. Alias: `!spb`.',
         '',
-        ...submitSection,
+        '**Submitting proof (all tiles):**',
+        '• `!spoopysubmit [tile-id]`: attach a screenshot to submit for approval. Alias: `!sps`.',
+        '• `!spoopypre [tile-id]`: attach a pre-screenshot baseline (informational only). Alias: `!spp`.',
+        '',
         '**Step inside the spooky house (in order, one wrong move and you start over):**',
         '• `!stepinside`: approach the door.',
         '• `!imserious`: you swear you can hear something inside.',
-        SUBMISSIONS_ENABLED
-          ? '• `!nogoingback`: the door slams shut. now you can `!spoopysubmit castle`.'
-          : '• `!nogoingback`: the door slams shut. now you can submit the castle from the site.',
+        '• `!nogoingback`: the door slams shut. now you can `!spoopysubmit castle`.',
         '• `!nevermind`: bail out at any time, no questions asked.',
         '',
         '**Tile aliases:** `start` = the ready-up tile, `castle` = the scary house at the end. Otherwise use the full tile id (shown on the site modal).',
