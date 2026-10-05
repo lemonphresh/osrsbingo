@@ -294,10 +294,10 @@ export default function SpoopyBoard({
     const stored = Number(localStorage.getItem('spoopyBoardZoom'));
     // Default to 50% so the full board + desk-prop margin fits in a laptop
     // viewport on first load. Returning users keep their stored preference.
-    return Number.isFinite(stored) && stored >= 0.5 && stored <= 2 ? stored : 0.5;
+    return Number.isFinite(stored) && stored >= 0.5 && stored <= 1 ? stored : 0.5;
   });
   const setZoom = (next) => {
-    const clamped = Math.max(0.5, Math.min(2, next));
+    const clamped = Math.max(0.5, Math.min(1, next));
     setZoomState(clamped);
     try {
       localStorage.setItem('spoopyBoardZoom', String(clamped));
@@ -1019,7 +1019,7 @@ export default function SpoopyBoard({
             <Slider
               aria-label="board zoom"
               min={0.5}
-              max={2}
+              max={1}
               step={0.05}
               value={zoom}
               onChange={(v) => setZoom(v)}
@@ -1036,7 +1036,7 @@ export default function SpoopyBoard({
               aria-label="zoom in"
               icon={<FaSearchPlus />}
               onClick={() => setZoom(zoom + 0.1)}
-              isDisabled={zoom >= 2}
+              isDisabled={zoom >= 1}
               size="xs"
               variant="ghost"
               color={SPOOPY_COLORS.paper}
