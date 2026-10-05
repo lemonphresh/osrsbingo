@@ -10,6 +10,7 @@ import {
   STICKER_SHADOW_HOVER,
   SPOOPY_COLORS,
 } from './spoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 import houseAsset from '../../assets/spoopy/house.webp';
 import pumpkinAsset from '../../assets/spoopy/pumpkin.webp';
@@ -66,6 +67,7 @@ export default function SpoopyTile({
   const resolvedAsset = assetSrc ?? TILE_ASSETS[tileType] ?? null;
   const rotation = stickerRotationDeg(tileId);
   const isInteractive = status !== 'locked' && typeof onClick === 'function';
+  const isActive = status === 'unlocked';
   const clampedProgress = Math.max(0, Math.min(100, Number(progress) || 0));
   const showProgress =
     clampedProgress > 0 &&
@@ -107,6 +109,32 @@ export default function SpoopyTile({
       outline="4px solid"
       outlineColor={statusMeta.ring}
       outlineOffset="0px"
+      sx={
+        isActive
+          ? {
+              '@keyframes spoopyActiveTilePulse': {
+                '0%, 100%': { opacity: 0.65, transform: 'scale(0.96)' },
+                '50%': { opacity: 0.92, transform: 'scale(1.14)' },
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                inset: '-3px',
+                borderRadius: 'inherit',
+                boxShadow: `0 0 16px ${SPOOPY_COLORS.greenLight}`,
+                pointerEvents: 'none',
+                animation: 'spoopyActiveTilePulse 5s ease-in-out infinite',
+              },
+              '@media (prefers-reduced-motion: reduce)': {
+                '&::after': {
+                  animation: 'none',
+                  opacity: 1,
+                  transform: 'none',
+                },
+              },
+            }
+          : undefined
+      }
     >
       {resolvedAsset ? (
         <img
@@ -206,7 +234,7 @@ export default function SpoopyTile({
             border={`2px solid ${SPOOPY_COLORS.paper}`}
             transform={`rotate(${-rotation}deg)`}
           >
-            ✓
+            <SpoopyUiIcon name="check" data-testid="spoopy-complete-check" />
           </Box>
         </>
       )}

@@ -14,6 +14,8 @@ import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
 import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
+import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
+import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import {
   SPOOPY_COLORS, SPOOPY_FONTS, TILE_META, STATUS_META,
 } from '../../organisms/spoopy/spoopyTheme';
@@ -129,7 +131,10 @@ function Intro() {
   return (
     <VStack spacing={2} align="start">
       <Heading fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-        🎃 spoopy ui playground
+        <HStack as="span" spacing={2}>
+          <SpoopyUiIcon name="pumpkin" />
+          <Text as="span">spoopy ui playground</Text>
+        </HStack>
       </Heading>
       <Text opacity={0.75} fontSize="sm" maxW="lg">
         every component in isolation, on mock data. safe to click things, nothing here writes to
@@ -280,8 +285,9 @@ function ContentPreviewSection() {
             color={SPOOPY_COLORS.paper}
             _hover={{ bg: SPOOPY_COLORS.nightMist }}
             onClick={() => refetch()}
+            leftIcon={<SpoopyUiIcon name="sync" />}
           >
-            🔄 refresh
+            refresh
           </Button>
         </HStack>
       )}
@@ -364,7 +370,12 @@ function PreviewOverlay({ event, entry, idx, total, entries, onPrev, onNext, onJ
           womEnabled={Boolean(event?.womCompetitionId)}
           resolvedTaskNode={
             chosenOptionData ? (
-              <SpoopyTaskCard task={chosenOptionData.task} status="unlocked" />
+              <VStack align="stretch" spacing={3}>
+                <SpoopyTaskCard task={chosenOptionData.task} status="unlocked" />
+                {entry.tileId === 't-r12-c8' && chosenOptionData.outcome === 'trick' && (
+                  <SpoopyMossyWildyClue locationNumber={4} />
+                )}
+              </VStack>
             ) : null
           }
         />
@@ -449,7 +460,10 @@ function PreviewOverlay({ event, entry, idx, total, entries, onPrev, onNext, onJ
               px={2}
               py={1}
             >
-              👤 {entry.content.flavor_text}
+              <HStack spacing={1.5}>
+                <SpoopyUiIcon name="user" />
+                <Text>{entry.content.flavor_text}</Text>
+              </HStack>
             </Tag>
           )}
           <Select
@@ -525,7 +539,10 @@ function MissingContentModal({ entry, onClose }) {
         textAlign="center"
       >
         <Heading size="md" mb={3} fontFamily={SPOOPY_FONTS.heading}>
-          🕯️ no content for this tile
+          <HStack as="span" justify="center" spacing={2}>
+            <SpoopyUiIcon name="candle" />
+            <Text as="span">no content for this tile</Text>
+          </HStack>
         </Heading>
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
           <code>{entry.tileId}</code> is a <strong>{entry.tileType}</strong>
@@ -715,10 +732,15 @@ function DialogSection() {
         onChoose={(opt) => setChoice(opt)}
         resolvedTaskNode={
           chosenOption ? (
-            <SpoopyTaskCard
-              task={chosenOption.task}
-              status="unlocked"
-            />
+            <VStack align="stretch" spacing={3}>
+              <SpoopyTaskCard
+                task={chosenOption.task}
+                status="unlocked"
+              />
+              {chosenOption.outcome === 'trick' && (
+                <SpoopyMossyWildyClue locationNumber={4} />
+              )}
+            </VStack>
           ) : null
         }
       />
@@ -813,20 +835,21 @@ function GpBannerSection() {
       </Text>
       <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4}>
         <Banner label="mid-run" bg={SPOOPY_COLORS.paper} fg={SPOOPY_COLORS.paperInk} value="1,250,000 gp" />
-        <Banner label="cashed out" bg={SPOOPY_COLORS.green} fg={SPOOPY_COLORS.paper} value="2,250,000 gp (banked) 🎉" />
-        <Banner label="forfeited" bg={SPOOPY_COLORS.emberDeep} fg={SPOOPY_COLORS.paper} value="0 gp (forfeited) 🕯️" />
+        <Banner label="cashed out" bg={SPOOPY_COLORS.green} fg={SPOOPY_COLORS.paper} value="2,250,000 gp (banked)" icon="party" />
+        <Banner label="forfeited" bg={SPOOPY_COLORS.emberDeep} fg={SPOOPY_COLORS.paper} value="0 gp (forfeited)" icon="candle" />
       </SimpleGrid>
     </VStack>
   );
 }
 
-function Banner({ label, bg, fg, value }) {
+function Banner({ label, bg, fg, value, icon }) {
   return (
     <VStack spacing={1} align="stretch">
       <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">{label}</Text>
-      <Box bg={bg} color={fg} px={3} py={2} borderRadius="md" fontWeight="700">
-        {value}
-      </Box>
+      <HStack bg={bg} color={fg} px={3} py={2} borderRadius="md" fontWeight="700" spacing={2}>
+        <Text>{value}</Text>
+        {icon && <SpoopyUiIcon name={icon} />}
+      </HStack>
     </VStack>
   );
 }
@@ -839,7 +862,10 @@ function Shell({ children }) {
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
         <HStack justify="space-between" wrap="wrap" gap={2}>
           <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-            🎃 spoopy playground
+            <HStack as="span" spacing={2}>
+              <SpoopyUiIcon name="pumpkin" />
+              <Text as="span">spoopy playground</Text>
+            </HStack>
           </Heading>
           <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} textTransform="lowercase">
             site admin only

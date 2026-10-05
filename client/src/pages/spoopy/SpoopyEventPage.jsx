@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import {
   Box,
@@ -16,6 +16,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../../providers/AuthProvider';
 import {
   MY_SPOOPY_SITUATION,
+  SPOOPY_EVENT_UPDATED,
   SPOOPY_TEAM_BOARD_UPDATED,
   CREATE_SPOOPY_SUBMISSION,
   CREATE_SPOOPY_CHOICE,
@@ -32,12 +33,21 @@ import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
 import SpoopyLastHourModal from '../../organisms/spoopy/SpoopyLastHourModal';
 import SpoopyAmbiancePlayer from '../../organisms/spoopy/SpoopyAmbiancePlayer';
+import SpoopyRulesModal, { getSpoopyRulesKey } from '../../organisms/spoopy/SpoopyRulesModal';
+import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
+import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevUtils';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp } from '../../organisms/spoopy/spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
 import leatherTextureAsset from '../../assets/spoopy/leather.webp';
 import allureDrawingAsset from '../../assets/spoopy/alluresdrawing.webp';
+import {
+  getCompletedSpoopyTileIds,
+  hasNewSpoopyCompletion,
+  playSpoopySound,
+  warmUpSpoopySounds,
+} from '../../utils/spoopy/spoopyAudio';
 
 // Curated spooky-lofi loop that plays via the floating ambiance widget.
 const SPOOPY_AMBIANCE_YT_ID = 'Wwk7oJRUhqQ';
@@ -62,6 +72,60 @@ export default function SpoopyEventPage() {
 
   const situation = data?.mySpoopySituation ?? { event: null, myTeam: null, teamBoard: null };
   const { event, myTeam, teamBoard } = situation;
+  const completedTileIdsRef = useRef(null);
+  const eventStatusRef = useRef(null);
+  const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+
+  useEffect(() => {
+    warmUpSpoopySounds();
+  }, []);
+
+  useEffect(() => {
+    if (!event?.eventId || event.status !== 'ACTIVE' || !myTeam?.teamId) {
+      setRulesOpen(false);
+      return;
+    }
+    let accepted = false;
+    try {
+      accepted = localStorage.getItem(getSpoopyRulesKey(event.eventId)) === 'true';
+    } catch (_) {}
+    setRulesAccepted(accepted);
+    setRulesOpen(!accepted);
+  }, [event?.eventId, event?.status, myTeam?.teamId]);
+
+  useEffect(() => {
+    completedTileIdsRef.current = teamBoard ? getCompletedSpoopyTileIds(teamBoard) : null;
+  }, [myTeam?.teamId, teamBoard]);
+
+  useEffect(() => {
+    if (!event?.eventId || !event.status) return;
+    const previous = eventStatusRef.current;
+    // Play the game-over sting when either:
+    //  (a) the event transitions ACTIVE → COMPLETE while the page is open, or
+    //  (b) the user lands on / refreshes the recap page (previous ref is
+    //      either null or pointed at a different event).
+    // Autoplay policy still applies — if the browser blocks, the sound stays
+    // silent until the user interacts; nothing to do about that here.
+    const transitionedToComplete =
+      previous?.eventId === event.eventId &&
+      previous.status === 'ACTIVE' &&
+      event.status === 'COMPLETE';
+    const firstViewOfComplete = previous?.eventId !== event.eventId && event.status === 'COMPLETE';
+    if (transitionedToComplete || firstViewOfComplete) {
+      playSpoopySound('gameOver');
+    }
+    eventStatusRef.current = { eventId: event.eventId, status: event.status };
+  }, [event?.eventId, event?.status]);
+
+  // Event lifecycle changes are separate from team-board updates. Listening
+  // here moves open participant and spectator pages to the recap immediately
+  // when an admin ends the game.
+  useSubscription(SPOOPY_EVENT_UPDATED, {
+    variables: { eventId: event?.eventId },
+    skip: !event?.eventId,
+    onData: () => refetch().catch(() => {}),
+  });
 
   // Live board updates — the server publishes SPOOPY_TEAM_BOARD_UPDATED_{teamId}
   // whenever a tile transitions (approval/deny/choice/etc.). Subscribing here
@@ -69,7 +133,18 @@ export default function SpoopyEventPage() {
   useSubscription(SPOOPY_TEAM_BOARD_UPDATED, {
     variables: { teamId: myTeam?.teamId },
     skip: !myTeam?.teamId,
-    onData: () => {
+    onData: ({ data: subscriptionData }) => {
+      const incomingBoard = subscriptionData?.data?.spoopyTeamBoardUpdated;
+      if (
+        rulesAccepted &&
+        incomingBoard &&
+        hasNewSpoopyCompletion(completedTileIdsRef.current, incomingBoard)
+      ) {
+        playSpoopySound('taskComplete');
+      }
+      if (incomingBoard) {
+        completedTileIdsRef.current = getCompletedSpoopyTileIds(incomingBoard);
+      }
       // Simplest correct approach — refetch the situation so team gp, cashedOut,
       // and per-tile state all update together. Subscription payload already
       // contains the board state; we could update the cache directly, but
@@ -169,10 +244,21 @@ export default function SpoopyEventPage() {
   }
 
   return (
-    <PageShell event={event} myTeam={myTeam}>
+    <PageShell event={event} myTeam={myTeam} onOpenRules={() => setRulesOpen(true)}>
       <TeamHeader event={event} team={myTeam} />
       <ActiveBoard event={event} team={myTeam} teamBoard={teamBoard} refetch={refetch} />
       <SpoopyAmbiancePlayer videoId={SPOOPY_AMBIANCE_YT_ID} />
+      <SpoopyRulesModal
+        isOpen={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        onAccept={() => {
+          setRulesAccepted(true);
+          setRulesOpen(false);
+        }}
+        eventId={event.eventId}
+        curfewEnd={event.curfewEnd}
+        requiresAcceptance={!rulesAccepted}
+      />
     </PageShell>
   );
 }
@@ -319,16 +405,21 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           mockChoosingLetter={mockChoosingLetter}
           resolvedTaskNode={
             chosenOptionData ? (
-              <SpoopyTaskCard
-                task={chosenOptionData.task}
-                status={
-                  openState?.status === 'submitted'
-                    ? 'submitted'
-                    : openState?.status === 'complete'
-                    ? 'complete'
-                    : 'unlocked'
-                }
-              />
+              <VStack align="stretch" spacing={3}>
+                <SpoopyTaskCard
+                  task={chosenOptionData.task}
+                  status={
+                    openState?.status === 'submitted'
+                      ? 'submitted'
+                      : openState?.status === 'complete'
+                      ? 'complete'
+                      : 'unlocked'
+                  }
+                />
+                {openTile.id === 't-r12-c8' && chosenOptionData.outcome === 'trick' && (
+                  <SpoopyMossyWildyClue locationNumber={team.mossyWildyLocation} />
+                )}
+              </VStack>
             ) : null
           }
         />
@@ -392,7 +483,7 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
 
 // ── Shell / states ─────────────────────────────────────────────────────
 
-function PageShell({ event, myTeam, children }) {
+function PageShell({ event, myTeam, onOpenRules, children }) {
   const { user } = useAuth();
   // Site admin gets a link to the admin surface; site admins + event admins
   // both get a link to the refs queue.
@@ -436,7 +527,10 @@ function PageShell({ event, myTeam, children }) {
           >
             <VStack align="start" spacing={0}>
               <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-                🎃 spoopy event
+                <HStack as="span" spacing={2}>
+                  <SpoopyUiIcon name="pumpkin" />
+                  <Text as="span">spoopy event</Text>
+                </HStack>
               </Heading>
               {event?.eventPassword && (
                 <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
@@ -454,6 +548,19 @@ function PageShell({ event, myTeam, children }) {
                 </Text>
                 <StatusBadge status={event.status} />
                 {myTeam && <GpBadge gp={myTeam.gpEarned} cashedOut={myTeam.cashedOut} />}
+                {myTeam && onOpenRules && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    borderColor={SPOOPY_COLORS.nightMist}
+                    color={SPOOPY_COLORS.paper}
+                    onClick={onOpenRules}
+                    _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                    leftIcon={<SpoopyUiIcon name="rules" />}
+                  >
+                    rules
+                  </Button>
+                )}
                 {(showRefs || showAdmin) && (
                   <Box display="flex" gap={2}>
                     {showRefs && (
@@ -465,8 +572,9 @@ function PageShell({ event, myTeam, children }) {
                         borderColor={SPOOPY_COLORS.nightMist}
                         color={SPOOPY_COLORS.paper}
                         _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                        leftIcon={<SpoopyUiIcon name="refs" />}
                       >
-                        🕯️ refs
+                        refs
                       </Button>
                     )}
                     {showAdmin && (
@@ -478,8 +586,9 @@ function PageShell({ event, myTeam, children }) {
                         borderColor={SPOOPY_COLORS.nightMist}
                         color={SPOOPY_COLORS.paper}
                         _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                        leftIcon={<SpoopyUiIcon name="admin" />}
                       >
-                        🎃 admin
+                        admin
                       </Button>
                     )}
                   </Box>
@@ -585,10 +694,16 @@ function LoggedOutState() {
   return (
     <Center py={20}>
       <VStack spacing={4}>
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
-          🎃 log in to trick or treat
-        </Text>
-        <Button as={RouterLink} to="/login" colorScheme="purple">
+        <HStack fontFamily={SPOOPY_FONTS.hand} fontSize="2xl" spacing={2}>
+          <SpoopyUiIcon name="pumpkin" />
+          <Text>log in to trick or treat</Text>
+        </HStack>
+        <Button
+          as={RouterLink}
+          to="/login"
+          colorScheme="purple"
+          leftIcon={<SpoopyUiIcon name="signIn" />}
+        >
           log in
         </Button>
       </VStack>
@@ -603,9 +718,10 @@ function NoEventState() {
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
           no spoopy event right now
         </Text>
-        <Text opacity={0.7} fontSize="sm">
-          check back closer to halloween 👻
-        </Text>
+        <HStack opacity={0.7} fontSize="sm" spacing={2}>
+          <Text>check back closer to halloween</Text>
+          <SpoopyUiIcon name="ghost" />
+        </HStack>
       </VStack>
     </Center>
   );
@@ -691,14 +807,15 @@ function SpectatorView({ event }) {
   // Batched fetch for the overlay. One call returns every team's state.
   // No live subscription here — admin can click "refresh" or flip to a single
   // team to tail real-time updates. Keeps the hook count bounded.
-  const { data: allData, refetch: refetchAll, loading: loadingAll } = useQuery(
-    GET_SPOOPY_ALL_TEAM_BOARDS,
-    {
-      variables: { eventId: event?.eventId },
-      skip: !event?.eventId || !isAllTeams,
-      fetchPolicy: 'cache-and-network',
-    },
-  );
+  const {
+    data: allData,
+    refetch: refetchAll,
+    loading: loadingAll,
+  } = useQuery(GET_SPOOPY_ALL_TEAM_BOARDS, {
+    variables: { eventId: event?.eventId },
+    skip: !event?.eventId || !isAllTeams,
+    fetchPolicy: 'cache-and-network',
+  });
   const allBoards = allData?.spoopyAllTeamBoards ?? null;
 
   // Live updates for the single-team view: resubscribe whenever the admin
@@ -711,7 +828,7 @@ function SpectatorView({ event }) {
 
   const teamMarkers = useMemo(
     () => (isAllTeams ? buildTeamMarkers(teams, allBoards) : null),
-    [isAllTeams, teams, allBoards],
+    [isAllTeams, teams, allBoards]
   );
 
   if (teams.length === 0) {
@@ -741,7 +858,10 @@ function SpectatorView({ event }) {
           px={3}
           py={1}
         >
-          👁️ spectator mode
+          <HStack as="span" spacing={1.5}>
+            <SpoopyUiIcon name="eye" />
+            <Text as="span">spectator mode</Text>
+          </HStack>
         </Badge>
         <Text fontSize="xs" opacity={0.6} mt={1}>
           pick a team to watch their board (updates live), or "all teams" to overlay everyone's
@@ -749,14 +869,7 @@ function SpectatorView({ event }) {
         </Text>
       </Box>
 
-      <Box
-        display="flex"
-        flexWrap="wrap"
-        gap={2}
-        justifyContent="center"
-        maxW="900px"
-        mx="auto"
-      >
+      <Box display="flex" flexWrap="wrap" gap={2} justifyContent="center" maxW="900px" mx="auto">
         {teams.map((t, idx) => {
           const isActive = t.teamId === selectedTeamId;
           const forfeited = t.cashedOut?.forfeited;
@@ -785,15 +898,17 @@ function SpectatorView({ event }) {
                 mr={2}
               />
               {t.teamName}
-              <Text
+              <HStack
                 as="span"
                 ml={2}
                 fontSize="10px"
                 opacity={0.8}
                 color={forfeited ? SPOOPY_COLORS.ember : SPOOPY_COLORS.paper}
+                spacing={1}
               >
-                {forfeited ? '🕯️ forfeited' : `🍬 ${formatCandy(t.gpEarned ?? 0)}`}
-              </Text>
+                <SpoopyUiIcon name={forfeited ? 'candle' : 'candy'} />
+                <Text as="span">{forfeited ? 'forfeited' : formatCandy(t.gpEarned ?? 0)}</Text>
+              </HStack>
             </Button>
           );
         })}
@@ -806,8 +921,9 @@ function SpectatorView({ event }) {
           _hover={{ bg: isAllTeams ? SPOOPY_COLORS.pumpkinDeep : SPOOPY_COLORS.nightMist }}
           onClick={() => setSelectedTeamId('__all__')}
           fontFamily={SPOOPY_FONTS.hand}
+          leftIcon={<SpoopyUiIcon name="map" />}
         >
-          🗺️ all teams
+          all teams
         </Button>
       </Box>
 
@@ -816,7 +932,11 @@ function SpectatorView({ event }) {
           <Center py={2}>
             <HStack spacing={3}>
               <Text fontSize="xs" opacity={0.65}>
-                {loadingAll ? 'loading all teams…' : `${(allBoards ?? []).length} team board${(allBoards ?? []).length === 1 ? '' : 's'} overlaid`}
+                {loadingAll
+                  ? 'loading all teams…'
+                  : `${(allBoards ?? []).length} team board${
+                      (allBoards ?? []).length === 1 ? '' : 's'
+                    } overlaid`}
               </Text>
               <Button
                 size="xs"
@@ -825,8 +945,9 @@ function SpectatorView({ event }) {
                 color={SPOOPY_COLORS.paper}
                 _hover={{ bg: SPOOPY_COLORS.nightMist }}
                 onClick={() => refetchAll().catch(() => {})}
+                leftIcon={<SpoopyUiIcon name="sync" />}
               >
-                🔄 refresh
+                refresh
               </Button>
             </HStack>
           </Center>
@@ -864,9 +985,11 @@ function SetupPlaceholder({ event }) {
   return (
     <Center py={{ base: 12, md: 20 }} px={4}>
       <VStack spacing={6} maxW="xl" textAlign="center">
-        <Text fontSize={{ base: '6xl', md: '8xl' }} lineHeight={1}>
-          🎃👻🕯️
-        </Text>
+        <HStack fontSize={{ base: '5xl', md: '7xl' }} lineHeight={1} spacing={4}>
+          <SpoopyUiIcon name="pumpkin" />
+          <SpoopyUiIcon name="ghost" />
+          <SpoopyUiIcon name="candle" />
+        </HStack>
         <Heading size="xl" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wide">
           {event.eventName}
         </Heading>
@@ -895,18 +1018,221 @@ function CompleteRecap({ event, myTeam }) {
   // Sort by final haul, high → low. Forfeited teams naturally end up at
   // the bottom since gpEarned is zeroed on curfew.
   const ranked = [...teams].sort((a, b) => (b.gpEarned ?? 0) - (a.gpEarned ?? 0));
+  const winner = ranked.find((t) => !t.cashedOut?.forfeited && (t.gpEarned ?? 0) > 0) ?? null;
+  const cashedOutCount = teams.filter((t) => t.cashedOut && !t.cashedOut.forfeited).length;
+  const forfeitedCount = teams.filter((t) => t.cashedOut?.forfeited).length;
+  const totalGp = teams.reduce((sum, t) => sum + (t.gpEarned ?? 0), 0);
 
   return (
     <Center py={{ base: 8, md: 16 }} px={4}>
-      <VStack spacing={6} maxW="900px" textAlign="center" w="100%">
-        <Heading size="xl" fontFamily={SPOOPY_FONTS.heading}>
-          {event.eventName} is over
-        </Heading>
+      <VStack spacing={8} maxW="900px" textAlign="center" w="100%">
+        {/* Dramatic opener — the sun is up, bats are scattering, the party's
+            over. Scattered icons at casual rotations do the heavy lifting. */}
+        <VStack spacing={3} position="relative" w="100%">
+          <HStack
+            spacing={{ base: 4, md: 8 }}
+            fontSize={{ base: '3xl', md: '5xl' }}
+            lineHeight={1}
+            justify="center"
+            opacity={0.9}
+          >
+            <Box transform="rotate(-14deg)" color={SPOOPY_COLORS.pumpkin}>
+              <SpoopyUiIcon name="pumpkin" />
+            </Box>
+            <Box transform="rotate(6deg)" color={SPOOPY_COLORS.paper}>
+              <SpoopyUiIcon name="ghost" />
+            </Box>
+            <Box transform="rotate(-4deg)" color={SPOOPY_COLORS.ember}>
+              <SpoopyUiIcon name="candle" />
+            </Box>
+            <Box transform="rotate(10deg)" color={SPOOPY_COLORS.paper}>
+              <SpoopyUiIcon name="skull" />
+            </Box>
+            <Box transform="rotate(-8deg)" color={SPOOPY_COLORS.pumpkinLight}>
+              <SpoopyUiIcon name="pumpkin" />
+            </Box>
+          </HStack>
+          <Heading
+            size={{ base: 'xl', md: '2xl' }}
+            fontFamily={SPOOPY_FONTS.heading}
+            letterSpacing="wider"
+            color={SPOOPY_COLORS.paper}
+          >
+            the night is over
+          </Heading>
+          <Text
+            fontFamily={SPOOPY_FONTS.hand}
+            fontSize={{ base: 'md', md: 'lg' }}
+            opacity={0.75}
+            maxW="520px"
+          >
+            the sun comes up over the neighborhood. porch lights blink off, one by one.
+            {' ' + event.eventName} has wrapped. here's how it all shook out.
+          </Text>
+        </VStack>
+
+        {/* Event-wide stats strip — quick scannable numbers for the whole
+            night. All sourced from the team roster so nothing extra needs
+            fetching. */}
+        <HStack
+          spacing={{ base: 2, md: 4 }}
+          align="stretch"
+          w="100%"
+          justify="center"
+          flexWrap="wrap"
+        >
+          <StatCard
+            icon="candy"
+            iconColor={SPOOPY_COLORS.pumpkin}
+            value={formatCandy(totalGp)}
+            label="candies banked"
+          />
+          <StatCard
+            icon="house"
+            iconColor={SPOOPY_COLORS.paper}
+            value={`${cashedOutCount} / ${teams.length}`}
+            label="teams made it home"
+          />
+          <StatCard
+            icon="candle"
+            iconColor={SPOOPY_COLORS.ember}
+            value={String(forfeitedCount)}
+            label={forfeitedCount === 1 ? 'team forfeited' : 'teams forfeited'}
+          />
+        </HStack>
+
+        {/* Winner spotlight — big crown + name + haul. Only shows when a team
+            actually cashed out something; a forfeited-only night skips this
+            section rather than crowning someone who banked zero. */}
+        {winner && (
+          <VStack
+            spacing={2}
+            bg={`linear-gradient(180deg, ${SPOOPY_COLORS.pumpkinDeep} 0%, ${SPOOPY_COLORS.night} 100%)`}
+            border="2px solid"
+            borderColor={SPOOPY_COLORS.pumpkin}
+            borderRadius="xl"
+            px={{ base: 5, md: 8 }}
+            py={{ base: 4, md: 6 }}
+            w="100%"
+            maxW="640px"
+            boxShadow={`0 0 30px rgba(238, 118, 35, 0.25)`}
+          >
+            <HStack spacing={2} opacity={0.85}>
+              <SpoopyUiIcon name="trophy" color={SPOOPY_COLORS.pumpkinLight} />
+              <Text
+                fontFamily={SPOOPY_FONTS.hand}
+                fontSize="sm"
+                letterSpacing="widest"
+                textTransform="uppercase"
+                color={SPOOPY_COLORS.pumpkinLight}
+              >
+                top of the street
+              </Text>
+              <SpoopyUiIcon name="trophy" color={SPOOPY_COLORS.pumpkinLight} />
+            </HStack>
+            <Heading
+              size={{ base: 'lg', md: 'xl' }}
+              fontFamily={SPOOPY_FONTS.heading}
+              color={SPOOPY_COLORS.paper}
+            >
+              {winner.teamName}
+            </Heading>
+            <HStack spacing={2}>
+              <Box as="img" src={candyIconAsset} alt="candy" w="24px" h="24px" />
+              <Text
+                fontFamily={SPOOPY_FONTS.hand}
+                fontSize={{ base: 'xl', md: '2xl' }}
+                color={SPOOPY_COLORS.paper}
+              >
+                {formatCandy(winner.gpEarned ?? 0)}
+              </Text>
+            </HStack>
+            <Text fontSize="xs" opacity={0.7}>
+              ({formatGp(winner.gpEarned ?? 0)})
+            </Text>
+            {myTeam && winner.teamId === myTeam.teamId && (
+              <Text
+                fontFamily={SPOOPY_FONTS.hand}
+                fontSize="md"
+                color={SPOOPY_COLORS.pumpkinLight}
+                mt={1}
+              >
+                ✨ that's you! happy halloween ✨
+              </Text>
+            )}
+          </VStack>
+        )}
+
+        {/* Full leaderboard — framed as a hand-drawn tally sheet. */}
+        <Box
+          bg={SPOOPY_COLORS.paper}
+          color={SPOOPY_COLORS.paperInk}
+          border="3px solid"
+          borderColor={SPOOPY_COLORS.paperEdge}
+          borderRadius="lg"
+          p={{ base: 4, md: 6 }}
+          w="100%"
+          transform="rotate(-0.3deg)"
+        >
+          <HStack
+            fontFamily={SPOOPY_FONTS.hand}
+            fontSize="lg"
+            mb={4}
+            lineHeight={1.4}
+            justify="center"
+          >
+            <SpoopyUiIcon name="candy" flexShrink={0} />
+            <Text>
+              final tally! we can't pay you in candies, but hopefully the gp equivalent will do.
+            </Text>
+            <SpoopyUiIcon name="candy" flexShrink={0} />
+          </HStack>
+
+          {ranked.length === 0 ? (
+            <Text opacity={0.7}>no teams to tally.</Text>
+          ) : (
+            <VStack align="stretch" spacing={2}>
+              {ranked.map((team, i) => (
+                <TeamHaulRow
+                  key={team.teamId}
+                  team={team}
+                  rank={i + 1}
+                  isYou={myTeam && team.teamId === myTeam.teamId}
+                />
+              ))}
+            </VStack>
+          )}
+        </Box>
+
+        {myTeam?.cashedOut?.forfeited && (
+          <HStack
+            spacing={2}
+            fontFamily={SPOOPY_FONTS.hand}
+            fontSize="sm"
+            opacity={0.8}
+            color={SPOOPY_COLORS.ember}
+          >
+            <SpoopyUiIcon name="candle" />
+            <Text>
+              your team didn't make it to the spooky house in time. curfew hit and the sweets
+              vanished. better luck next spooktober.
+            </Text>
+          </HStack>
+        )}
 
         {/* Signoff piece — a framed drawing by allure. Sits at the bottom of
             the recap so it reads as a "signed & sealed" close to the event
             rather than competing with the leaderboard for attention. */}
         <VStack spacing={2} pt={4}>
+          <Text
+            fontFamily={SPOOPY_FONTS.hand}
+            fontSize="sm"
+            opacity={0.6}
+            letterSpacing="widest"
+            textTransform="uppercase"
+          >
+            — a scene from the night —
+          </Text>
           <Box
             // Chunky paper frame with a subtle drop shadow. Rotation matches
             // the other paper elements on the page for a hand-placed feel.
@@ -940,51 +1266,67 @@ function CompleteRecap({ event, myTeam }) {
           </Text>
         </VStack>
 
-        <Box
-          bg={SPOOPY_COLORS.paper}
-          color={SPOOPY_COLORS.paperInk}
-          border="3px solid"
-          borderColor={SPOOPY_COLORS.paperEdge}
-          borderRadius="lg"
-          p={{ base: 4, md: 6 }}
-          w="100%"
-          transform="rotate(-0.3deg)"
+        <Text
+          fontFamily={SPOOPY_FONTS.heading}
+          fontSize={{ base: 'xl', md: '2xl' }}
+          letterSpacing="wider"
+          color={SPOOPY_COLORS.pumpkinLight}
+          pt={4}
         >
-          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" mb={4} lineHeight={1.4}>
-            well, we can't pay you in candies… but we hope the gp equivalent is sufficient. 🍬
-          </Text>
-
-          {ranked.length === 0 ? (
-            <Text opacity={0.7}>no teams to tally.</Text>
-          ) : (
-            <VStack align="stretch" spacing={2}>
-              {ranked.map((team, i) => (
-                <TeamHaulRow
-                  key={team.teamId}
-                  team={team}
-                  rank={i + 1}
-                  isYou={myTeam && team.teamId === myTeam.teamId}
-                />
-              ))}
-            </VStack>
-          )}
-        </Box>
-
-        {myTeam?.cashedOut?.forfeited && (
-          <Text opacity={0.75} fontSize="sm">
-            your team didn't make it to the spooky house in time. curfew hit and the sweets
-            vanished. better luck next spooktober!
-          </Text>
-        )}
+          🎃 happy halloween, ghouls and ghasts, now please go shake some ass 🎃
+        </Text>
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7} mt="16px">
+          i hope you had fun. i had a lot of fun building this one. special thanks to allure for
+          help with the art and the great trick-or-treat related idea in the first place :) i hope
+          y'all look forward to the last lemon event i'm running in december, and as always, thank
+          you for playing.{' '}
+        </Text>
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7}>
+          love, lemon{' '}
+        </Text>
       </VStack>
     </Center>
+  );
+}
+
+// Small stat tile used by the recap's event-wide stats strip. Fixed-ish
+// width + flex-wrap in the parent so three cards sit neatly in a row on
+// desktop and stack cleanly on narrow screens.
+function StatCard({ icon, iconColor, value, label }) {
+  return (
+    <VStack
+      spacing={1}
+      bg="rgba(30, 20, 37, 0.45)"
+      border="1px solid"
+      borderColor={SPOOPY_COLORS.nightMist}
+      borderRadius="md"
+      px={{ base: 3, md: 5 }}
+      py={{ base: 3, md: 4 }}
+      minW={{ base: '140px', md: '180px' }}
+      flex="1"
+    >
+      <Box fontSize="2xl" color={iconColor}>
+        <SpoopyUiIcon name={icon} />
+      </Box>
+      <Text
+        fontFamily={SPOOPY_FONTS.hand}
+        fontSize={{ base: 'xl', md: '2xl' }}
+        color={SPOOPY_COLORS.paper}
+        lineHeight={1}
+      >
+        {value}
+      </Text>
+      <Text fontSize="xs" opacity={0.7} letterSpacing="wider">
+        {label}
+      </Text>
+    </VStack>
   );
 }
 
 function TeamHaulRow({ team, rank, isYou }) {
   const forfeited = team.cashedOut?.forfeited;
   const gp = team.gpEarned ?? 0;
-  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+  const medalColor = rank === 1 ? '#b8860b' : rank === 2 ? '#6f7782' : '#a05a2c';
   return (
     <Box
       display="flex"
@@ -999,9 +1341,13 @@ function TeamHaulRow({ team, rank, isYou }) {
       gap={3}
     >
       <Box display="flex" alignItems="center" gap={3} minW={0}>
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" minW="32px">
-          {medal}
-        </Text>
+        {rank <= 3 ? (
+          <SpoopyUiIcon name="medal" color={medalColor} boxSize={5} minW="32px" />
+        ) : (
+          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" minW="32px">
+            #{rank}
+          </Text>
+        )}
         <VStack align="start" spacing={0} minW={0}>
           <Text fontWeight="bold" fontSize="md" isTruncated>
             {team.teamName}
@@ -1012,9 +1358,15 @@ function TeamHaulRow({ team, rank, isYou }) {
             )}
           </Text>
           {forfeited && (
-            <Text fontSize="xs" color={SPOOPY_COLORS.emberDeep} fontFamily={SPOOPY_FONTS.hand}>
-              🕯️ forfeited at curfew
-            </Text>
+            <HStack
+              fontSize="xs"
+              color={SPOOPY_COLORS.emberDeep}
+              fontFamily={SPOOPY_FONTS.hand}
+              spacing={1}
+            >
+              <SpoopyUiIcon name="candle" />
+              <Text>forfeited at curfew</Text>
+            </HStack>
           )}
         </VStack>
       </Box>

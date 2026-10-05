@@ -18,6 +18,7 @@ jest.mock('@chakra-ui/react', () => {
 jest.mock('react-icons/fa', () => ({
   FaHome: () => null,
   FaCamera: () => null,
+  FaCheck: (props) => <span {...props} />,
 }));
 
 // Mock the webp asset imports so Jest doesn't try to parse them as JS.
@@ -59,8 +60,8 @@ describe('SpoopyTile', () => {
   });
 
   test('complete tiles show the check overlay', () => {
-    const { container } = render(<SpoopyTile tileType="grave" tileId="gr-1" status="complete" />);
-    expect(container.textContent).toContain('✓');
+    render(<SpoopyTile tileType="grave" tileId="gr-1" status="complete" />);
+    expect(screen.getByTestId('spoopy-complete-check')).toBeInTheDocument();
   });
 
   test('submitted tiles show the pending overlay', () => {

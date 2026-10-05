@@ -53,6 +53,7 @@ import SpoopyMemberTag from '../../organisms/spoopy/SpoopyMemberTag';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp, GP_PER_CANDY } from '../../organisms/spoopy/spoopyCurrency';
 import { isDevEnv } from '../../organisms/spoopy/spoopyDevUtils';
+import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 
 // ── UI atoms — shared paper-on-night styling for form panels ────────────
 
@@ -342,8 +343,9 @@ function CreateEventForm({ refetch }) {
             _hover={{ bg: SPOOPY_COLORS.nightMist }}
             isLoading={seeding}
             onClick={() => seedMock()}
+            leftIcon={<SpoopyUiIcon name="pumpkin" />}
           >
-            🎃 or, seed the mock event
+            or, seed the mock event
           </Button>
         </HStack>
       </VStack>
@@ -670,8 +672,9 @@ function EventSettingsPanel({ event, refetch }) {
             isLoading={syncingWom}
             isDisabled={!event.womCompetitionId}
             onClick={() => syncWom({ variables: { eventId: event.eventId } })}
+            leftIcon={<SpoopyUiIcon name="sync" />}
           >
-            🔄 sync now
+            sync now
           </Button>
         </HStack>
         {event.lastWomSyncAt && (
@@ -707,8 +710,9 @@ function EventSettingsPanel({ event, refetch }) {
             _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
             isLoading={importing}
             onClick={() => importEvent({ variables: { eventId: event.eventId } })}
+            leftIcon={<SpoopyUiIcon name="import" />}
           >
-            📜 import board + content
+            import board + content
           </Button>
           {isDevEnv() && (
             <Button
@@ -719,8 +723,9 @@ function EventSettingsPanel({ event, refetch }) {
               _hover={{ bg: SPOOPY_COLORS.nightMist }}
               isLoading={refreshing}
               onClick={() => refreshEvent({ variables: { eventId: event.eventId } })}
+              leftIcon={<SpoopyUiIcon name="sync" />}
             >
-              🔄 refresh content from mock (dev only)
+              refresh content from mock (dev only)
             </Button>
           )}
         </HStack>
@@ -1345,7 +1350,7 @@ export default function SpoopyAdminPage() {
       <Shell>
         <Center py={20}>
           <VStack>
-            <Text fontSize="2xl">🔒</Text>
+            <SpoopyUiIcon name="lock" boxSize={6} />
             <Text opacity={0.7}>admin access only</Text>
           </VStack>
         </Center>
@@ -1532,7 +1537,10 @@ function Shell({ event, children }) {
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
         <HStack justify="space-between" wrap="wrap" gap={2}>
           <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-            🎃 spoopy admin
+            <HStack as="span" spacing={2}>
+              <SpoopyUiIcon name="admin" />
+              <Text as="span">spoopy admin</Text>
+            </HStack>
           </Heading>
           {event && (
             <HStack spacing={2} fontSize="sm" opacity={0.75}>

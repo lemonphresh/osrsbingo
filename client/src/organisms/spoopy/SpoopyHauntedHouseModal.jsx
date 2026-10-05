@@ -18,6 +18,7 @@ import { useSpoopyTheme } from './useSpoopyTheme';
 import { formatCandy } from './spoopyCurrency';
 import candyIconAsset from '../../assets/spoopy/candy_individual.webp';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Formats a raw msRemaining into a compact 'Xd Yh Zm' string. Used in the
 // haunted-house modal so the team knows what "before curfew" means concretely.
@@ -61,21 +62,24 @@ export function formatMsRemaining(ms) {
 const GAUNTLET_STAGES = [
   {
     level: 1,
-    heading: '🚪 approach the door',
+    heading: 'approach the door',
+    icon: 'door',
     command: '!stepinside',
     prompt:
       "you're standing on the porch. the door groans in the wind. type the command below in your team's discord channel to crack it open.",
   },
   {
     level: 2,
-    heading: '🕯️ a candle flickers',
+    heading: 'a candle flickers',
+    icon: 'candle',
     command: '!imserious',
     prompt:
       'you can hear whispering behind the walls. this is your chance to walk away, or double down. one wrong command and the door slams shut, you know.',
   },
   {
     level: 3,
-    heading: '💀 last chance',
+    heading: 'last chance',
+    icon: 'skull',
     command: '!nogoingback',
     prompt:
       "the floorboards creak. the temperature drops. if you're really sure, type the words. after this, there's no turning back to get more candy. this is your final stop of the night before you go home... hopefully.",
@@ -124,7 +128,10 @@ export default function SpoopyHauntedHouseModal({
               letterSpacing="wider"
               textAlign="center"
             >
-              🏚️ the spooky house
+              <HStack as="span" justify="center" spacing={2}>
+                <SpoopyUiIcon name="house" />
+                <Text as="span">the spooky house</Text>
+              </HStack>
             </Heading>
 
             {!isConfirm ? (
@@ -159,15 +166,17 @@ export default function SpoopyHauntedHouseModal({
                   borderLeft="4px solid"
                   borderColor={SPOOPY_COLORS.ember}
                 >
-                  <Text
+                  <HStack
                     fontFamily={SPOOPY_FONTS.hand}
                     fontSize="md"
                     color={SPOOPY_COLORS.emberDeep}
                     fontWeight="bold"
                     mb={2}
+                    spacing={2}
                   >
-                    stage {currentStage.level} of 3: {currentStage.heading}
-                  </Text>
+                    <SpoopyUiIcon name={currentStage.icon} />
+                    <Text>stage {currentStage.level} of 3: {currentStage.heading}</Text>
+                  </HStack>
                   {gauntletLevel === 0 && warningDialog && (
                     <Text
                       fontFamily={SPOOPY_FONTS.hand}
@@ -253,9 +262,10 @@ export default function SpoopyHauntedHouseModal({
                     fontSize="sm"
                     mt={1}
                   >
-                    <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
-                      📸 submit from discord
-                    </Text>
+                    <HStack fontFamily={SPOOPY_FONTS.hand} mb={2} spacing={2}>
+                      <SpoopyUiIcon name="camera" />
+                      <Text>submit from discord</Text>
+                    </HStack>
                     <VStack align="stretch" spacing={2}>
                       <Box>
                         <Text

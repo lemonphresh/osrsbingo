@@ -67,6 +67,9 @@ async function checkSpoopyEventSchedule() {
       }
     }
     await event.update({ status: 'ACTIVE' });
+    await pubsub.publish(`SPOOPY_EVENT_UPDATED_${event.eventId}`, {
+      spoopyEventUpdated: event,
+    });
 
     // Notify each team channel — fire-and-forget in parallel.
     await Promise.all(
@@ -127,6 +130,9 @@ async function checkSpoopyEventSchedule() {
       }
     }
     await event.update({ status: 'COMPLETE' });
+    await pubsub.publish(`SPOOPY_EVENT_UPDATED_${event.eventId}`, {
+      spoopyEventUpdated: event,
+    });
   }
 
   // ── WOM sync (auto every ~15 min while ACTIVE) ────────────────────────

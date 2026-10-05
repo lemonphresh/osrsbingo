@@ -1,5 +1,6 @@
 import { Box, HStack, Text, useClipboard } from '@chakra-ui/react';
 import { SPOOPY_COLORS } from './spoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // One-shot click-to-copy pill for a Discord command shown in a spoopy modal.
 // Click anywhere on the pill copies the command; the label swaps to
@@ -44,7 +45,7 @@ export default function SpoopyCommandCopy({ command, size = 'md' }) {
         >
           {command}
         </Text>
-        <Text
+        <HStack
           fontSize="10px"
           fontWeight="bold"
           color={hasCopied ? SPOOPY_COLORS.green : SPOOPY_COLORS.paper}
@@ -52,9 +53,11 @@ export default function SpoopyCommandCopy({ command, size = 'md' }) {
           letterSpacing="wider"
           textTransform="uppercase"
           flexShrink={0}
+          spacing={1}
         >
-          {hasCopied ? '✓ copied' : 'click to copy'}
-        </Text>
+          {hasCopied && <SpoopyUiIcon name="check" />}
+          <Text>{hasCopied ? 'copied' : 'click to copy'}</Text>
+        </HStack>
       </HStack>
     </Box>
   );

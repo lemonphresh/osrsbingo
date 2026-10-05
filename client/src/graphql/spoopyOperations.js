@@ -37,6 +37,7 @@ export const SPOOPY_ADMIN_EVENT_FIELDS = gql`
       teamToken
       gpEarned
       cashedOut
+      mossyWildyLocation
     }
     admins {
       id
@@ -61,6 +62,7 @@ export const SPOOPY_TEAM_FIELDS = gql`
     cashedOut
     hauntedGauntletLevel
     poolAllocation
+    mossyWildyLocation
   }
 `;
 
@@ -439,4 +441,11 @@ export const SPOOPY_TEAM_BOARD_UPDATED = gql`
     spoopyTeamBoardUpdated(teamId: $teamId) { ...SpoopyTeamBoardFields }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
+`;
+
+export const SPOOPY_EVENT_UPDATED = gql`
+  subscription SpoopyEventUpdated($eventId: ID!) {
+    spoopyEventUpdated(eventId: $eventId) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
 `;

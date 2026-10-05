@@ -17,6 +17,7 @@ import { useSpoopyTheme } from './useSpoopyTheme';
 import { taskLine, AcceptableUniquesDrops } from './SpoopyTaskCard';
 import { MockDevButton } from './SpoopyStartModal';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Read-only team-facing modal for a non-house tile: shows the task, current
 // progress (0-100% bar), status, and the discord submission commands. All
@@ -161,21 +162,20 @@ export default function SpoopyTaskModal({
               fontSize="sm"
               opacity={0.9}
             >
-              <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
-                📸 submit from discord
-              </Text>
+              <HStack spacing={2} mb={2}>
+                <SpoopyUiIcon name="camera" />
+                <Text fontFamily={SPOOPY_FONTS.hand}>submit from discord</Text>
+              </HStack>
               {(content.task?.kind === 'skilling_xp' || content.task?.kind === 'boss_kc') && (
-                <Text
-                  fontSize="xs"
-                  color={SPOOPY_COLORS.pumpkinLight}
-                  mb={2}
-                  fontFamily={SPOOPY_FONTS.hand}
-                >
-                  {womEnabled
-                    ? '⚠️ pre-screenshot first. this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
-                    : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}{' '}
-                  only one team member needs to do this.
-                </Text>
+                <HStack align="flex-start" spacing={2} mb={2} color={SPOOPY_COLORS.pumpkinLight}>
+                  <SpoopyUiIcon name="warning" mt={0.5} />
+                  <Text fontSize="xs" fontFamily={SPOOPY_FONTS.hand}>
+                    {womEnabled
+                      ? 'pre-screenshot first. this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking. '
+                      : "don't forget a pre-screenshot first so the ref has a baseline to compare against. "}
+                    only one team member needs to do this.
+                  </Text>
+                </HStack>
               )}
               <VStack align="stretch" spacing={2}>
                 <Box>

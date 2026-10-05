@@ -9,11 +9,11 @@ import {
   Button,
   Text,
   VStack,
-  HStack,
   Heading,
 } from '@chakra-ui/react';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Formats msRemaining as "MM:SS" or "HH:MM:SS" for the ticking clock. Distinct
 // from formatMsRemaining in the haunted-house modal (which rounds to minutes)
@@ -101,7 +101,10 @@ export default function SpoopyLastHourModal({ eventId, curfewEnd, cashedOut, onG
               letterSpacing="wider"
               textAlign="center"
             >
-              🕯️ the final hour
+              <Box as="span" display="inline-flex" alignItems="center" gap={2}>
+                <SpoopyUiIcon name="candle" />
+                <Text as="span">the final hour</Text>
+              </Box>
             </Heading>
 
             <Box textAlign="center">
@@ -153,8 +156,9 @@ export default function SpoopyLastHourModal({ eventId, curfewEnd, cashedOut, onG
                 fontFamily={SPOOPY_FONTS.hand}
                 fontSize="lg"
                 py={6}
+                leftIcon={<SpoopyUiIcon name="house" />}
               >
-                🏚️ run to the spooky house
+                run to the spooky house
               </Button>
               <Button
                 w="full"

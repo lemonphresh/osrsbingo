@@ -364,6 +364,7 @@ const Mutation = {
 
   createSpoopyEvent: async (_, { input }, context) => {
     const user = requireUser(context);
+    if (!user.admin) throw new AuthenticationError('Site admin only');
     const { SpoopyEvent } = getModels();
     return SpoopyEvent.create({
       eventId: generateId('sp'),
@@ -398,6 +399,13 @@ const Mutation = {
     if (curfewEnd !== undefined) patch.curfewEnd = curfewEnd ? new Date(curfewEnd) : null;
     if (patch.curfewStart && patch.curfewEnd && patch.curfewStart >= patch.curfewEnd) {
       throw new UserInputError('curfew start must be before curfew end');
+    }
+    // On an ACTIVE event the scheduler sweeps non-cashed-out teams at
+    // curfewEnd. Yanking curfewEnd into the past would mass-forfeit every
+    // team on the next cron tick. If an admin really needs to end the event
+    // early, they should flip status to COMPLETE instead.
+    if (event.status === 'ACTIVE' && patch.curfewEnd && patch.curfewEnd <= new Date()) {
+      throw new UserInputError('Cannot set curfew end to the past on an active event — flip the event to COMPLETE instead.');
     }
     if (Object.keys(patch).length === 0) return event;
     await event.update(patch);
@@ -448,6 +456,20 @@ const Mutation = {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
+
+    // Lifecycle is strictly forward: SETUP → ACTIVE → COMPLETE. Going
+    // backward (e.g. ACTIVE → SETUP) is never safe because team tile rows,
+    // cashedOut snapshots, and poolAllocation freezes all survive the flip
+    // and would desync with the "pre-activation" state the status implies.
+    // Allow no-op same-status updates so the UI's "confirm" button is idempotent.
+    const allowed = {
+      SETUP:    new Set(['SETUP', 'ACTIVE']),
+      ACTIVE:   new Set(['ACTIVE', 'COMPLETE']),
+      COMPLETE: new Set(['COMPLETE']),
+    };
+    if (!allowed[event.status]?.has(status)) {
+      throw new UserInputError(`Cannot transition event from ${event.status} to ${status}.`);
+    }
 
     // SETUP → ACTIVE freezes each team's share of the prize pool. Divides
     // evenly (integer division); any remainder is dropped rather than
@@ -505,10 +527,12 @@ const Mutation = {
         await lockedEvent.update(patch, { transaction: t });
       });
       // Return the reloaded event so callers see the new status.
+      await publishEventUpdated(eventId);
       return getEventOrThrow(eventId);
     }
 
     await event.update({ status });
+    await publishEventUpdated(eventId);
     return event;
   },
 
@@ -516,6 +540,15 @@ const Mutation = {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
+    // Board/content edits are SETUP-only. Swapping the board or redacted
+    // contentById while an event is ACTIVE can orphan team tile rows, change
+    // trick/treat outcomes a team already locked in, or alter neighbor edges
+    // mid-progression — none of which this resolver reconciles. If you need
+    // to tweak content on a live event, use importSpoopyEventFromFixtures
+    // (which runs syncTeamTilesToBoard for every team and republishes).
+    if (event.status !== 'SETUP') {
+      throw new UserInputError('Board and content can only be edited while the event is in SETUP.');
+    }
     // Validate against whatever we're keeping (existing values for fields the
     // admin didn't touch) so partial updates can't break the invariant.
     validateBoardShape({
@@ -539,6 +572,24 @@ const Mutation = {
     requireAdmin(event, user);
     const { SpoopyTeam } = getModels();
 
+    const assignedLocations = new Set(
+      (await SpoopyTeam.findAll({
+        where: { eventId },
+        attributes: ['mossyWildyLocation'],
+      }))
+        .map((existingTeam) => existingTeam.mossyWildyLocation)
+        .filter(Number.isInteger),
+    );
+    const availableLocations = Array.from(
+      { length: 12 },
+      (_, index) => index + 1,
+    ).filter((location) => !assignedLocations.has(location));
+    if (availableLocations.length === 0) {
+      throw new UserInputError('All 12 Mossy Way wilderness clues are already assigned.');
+    }
+    const mossyWildyLocation =
+      availableLocations[Math.floor(Math.random() * availableLocations.length)];
+
     // Team tile rows are NOT seeded here. They're created at the SETUP→ACTIVE
     // transition (see updateSpoopyEventStatus), so it doesn't matter whether
     // the admin adds teams before or after importing the board.
@@ -551,6 +602,7 @@ const Mutation = {
       discordChannelId: input.discordChannelId,
       discordRoleId: input.discordRoleId ?? null,
       teamToken: generateId('tok').slice(0, 16),
+      mossyWildyLocation,
     });
     await publishEventUpdated(eventId);
     return team;
@@ -646,6 +698,7 @@ const Mutation = {
       discordChannelId: 'test-channel-1',
       discordRoleId: null,
       teamToken: generateId('tok').slice(0, 16),
+      mossyWildyLocation: 1,
     });
     await SpoopyTeam.create({
       teamId: generateId('spt'),
@@ -656,6 +709,7 @@ const Mutation = {
       discordChannelId: 'test-channel-2',
       discordRoleId: null,
       teamToken: generateId('tok').slice(0, 16),
+      mossyWildyLocation: 2,
     });
 
     return event;
@@ -669,8 +723,10 @@ const Mutation = {
   refreshSpoopyEventFromMock: async (_, { eventId }, context) => {
     const user = requireUser(context);
     if (!user.admin) throw new AuthenticationError('Site admin only');
-    const { SpoopyEvent } = getModels();
     const event = await getEventOrThrow(eventId);
+    if (event.status !== 'SETUP') {
+      throw new UserInputError('Mock refresh can only run while the event is in SETUP.');
+    }
     const { buildRealBoardMockEvent } = require('../../utils/spoopy/spoopyMockEvent');
     const mock = buildRealBoardMockEvent();
     await event.update({
@@ -987,9 +1043,18 @@ const Mutation = {
     requireTeamMemberOrStaff(event, team, user);
     requireEventActive(event);
 
-    const prev = await loadTeamState(team.teamId);
-    const next = sm.chooseOption(prev, toEventDefinition(event), input.tileId, input.option);
-    await persistTeamState(prev, next);
+    // Lock the team row so two members racing to pick A vs B on the same
+    // house tile serialize instead of silently clobbering each other. The
+    // state machine's `choice === null` guard rejects the second call once
+    // the first has written a choice. Mirrors completeSpoopyTile.
+    const { SpoopyTeam } = getModels();
+    const sequelize = SpoopyTeam.sequelize;
+    await sequelize.transaction(async (t) => {
+      const prev = await loadTeamState(team.teamId, { transaction: t, lock: t.LOCK.UPDATE });
+      if (!prev) throw new UserInputError('Team not found');
+      const next = sm.chooseOption(prev, toEventDefinition(event), input.tileId, input.option);
+      await persistTeamState(prev, next, { transaction: t });
+    });
     await publishBoardUpdated(team);
     return loadTeamState(team.teamId);
   },
@@ -1116,6 +1181,31 @@ const SpoopyEvent = {
   },
 };
 
+// `teamToken` grants read-only access to a team's board via spoopyTeamBoardByToken
+// without logging in — treat it like a shareable password. Only expose it to
+// callers who already have authority over the team: event/site admins, or a
+// Discord-linked team member. Everyone else sees null.
+const SpoopyTeam = {
+  teamToken: async (team, _args, context) => {
+    const user = context?.user;
+    if (!user) return null;
+    const event = await getModels().SpoopyEvent.findByPk(team.eventId);
+    if (!event) return null;
+    if (isAdmin(event, user)) return team.teamToken;
+    if (isTeamMember(team, user.discordUserId)) return team.teamToken;
+    return null;
+  },
+  mossyWildyLocation: async (team, _args, context) => {
+    const user = context?.user;
+    if (!user) return null;
+    const event = await getModels().SpoopyEvent.findByPk(team.eventId);
+    if (!event) return null;
+    if (isAdmin(event, user)) return team.mossyWildyLocation;
+    if (isTeamMember(team, user.discordUserId)) return team.mossyWildyLocation;
+    return null;
+  },
+};
+
 // Surfaces the SpoopyTeamTile row for a submission's (teamId, tileId) so the
 // refs page and the team task modal can read progress + tile status without
 // a separate round-trip.
@@ -1143,4 +1233,4 @@ const Subscription = {
   spoopyEventUpdated:       makeSubscription(({ eventId }) => `SPOOPY_EVENT_UPDATED_${eventId}`),
 };
 
-module.exports = { Query, Mutation, Subscription, SpoopyEvent, SpoopySubmission };
+module.exports = { Query, Mutation, Subscription, SpoopyEvent, SpoopyTeam, SpoopySubmission };

@@ -812,6 +812,7 @@ const typeDefs = gql`
     hauntedGauntletLevel: Int!
     # Snapshot of the team's share of event.prizePool, set at SETUP→ACTIVE.
     poolAllocation:   Int!
+    mossyWildyLocation: Int
     createdAt:        DateTime
   }
 
