@@ -3,9 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 const mockPlaySpoopySound = jest.fn();
+const mockStopSpoopySound = jest.fn();
 
 jest.mock('../../utils/spoopy/spoopyAudio', () => ({
   playSpoopySound: (...args) => mockPlaySpoopySound(...args),
+  stopSpoopySound: (...args) => mockStopSpoopySound(...args),
 }));
 
 jest.mock('@chakra-ui/react', () => {
@@ -201,13 +203,16 @@ describe('SpoopyBoard', () => {
 
     expect(await screen.findByAltText('flashlight beam')).toBeInTheDocument();
     expect(screen.getByAltText('skeleton dancing')).toBeInTheDocument();
-    expect(mockPlaySpoopySound).toHaveBeenLastCalledWith('flashlightClick');
+    // Clicking the flashlight fires the click SFX AND the looping skele clip.
+    expect(mockPlaySpoopySound).toHaveBeenCalledWith('flashlightClick');
+    expect(mockPlaySpoopySound).toHaveBeenCalledWith('skele');
 
     fireEvent.click(container.querySelector('[aria-label="turn flashlight off"]'));
 
     expect(screen.queryByAltText('flashlight beam')).not.toBeInTheDocument();
     expect(screen.queryByAltText('skeleton dancing')).not.toBeInTheDocument();
-    expect(mockPlaySpoopySound).toHaveBeenCalledTimes(2);
+    // Turning the beam off cuts the skele loop early.
+    expect(mockStopSpoopySound).toHaveBeenCalledWith('skele');
   });
 
   test('renders gracefully with an empty board', () => {

@@ -14,6 +14,7 @@ import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
 import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
+import SpoopyCashedOutModal from '../../organisms/spoopy/SpoopyCashedOutModal';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import {
@@ -118,6 +119,8 @@ export default function SpoopyPlaygroundPage() {
         <TaskCardSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <HauntedHouseSection />
+        <Divider borderColor={SPOOPY_COLORS.nightMist} />
+        <CashedOutSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <GpBannerSection />
       </VStack>
@@ -821,6 +824,39 @@ function HauntedHouseSection() {
         bonusTask={{ kind: 'custom', target: 'group photo in spooky outfits', amount: 1 }}
         bonusRewardGp={1000000}
         onSubmit={() => setOpenConfirm(false)}
+      />
+    </VStack>
+  );
+}
+
+function CashedOutSection() {
+  const [open, setOpen] = useState(false);
+  return (
+    <VStack spacing={4} align="stretch">
+      <Heading size="md" fontFamily={SPOOPY_FONTS.heading}>cashed-out modal</Heading>
+      <Text fontSize="sm" opacity={0.7}>
+        pops the moment a team cashes out at the spooky house. non-dismissable; obscures the
+        board so the team can't keep interacting after their night is done.
+      </Text>
+      <HStack>
+        <Button
+          bg={SPOOPY_COLORS.pumpkin}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+          onClick={() => setOpen(true)}
+        >
+          open cashed-out modal
+        </Button>
+        {open && (
+          <Button variant="ghost" onClick={() => setOpen(false)}>
+            close (preview only)
+          </Button>
+        )}
+      </HStack>
+      <SpoopyCashedOutModal
+        isOpen={open}
+        gpEarned={2250000}
+        teamName="the ghouls next door"
       />
     </VStack>
   );

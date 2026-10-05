@@ -32,6 +32,7 @@ import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
 import SpoopyLastHourModal from '../../organisms/spoopy/SpoopyLastHourModal';
+import SpoopyCashedOutModal from '../../organisms/spoopy/SpoopyCashedOutModal';
 import SpoopyAmbiancePlayer from '../../organisms/spoopy/SpoopyAmbiancePlayer';
 import SpoopyRulesModal, { getSpoopyRulesKey } from '../../organisms/spoopy/SpoopyRulesModal';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
@@ -349,7 +350,14 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
   const openContent = openTileId ? event.contentById?.[openTileId] : null;
   const openState = openTileId ? teamBoard?.tiles?.[openTileId] : null;
 
+  // Hard-lock interactions once the team has cashed out at the spooky house.
+  // The modal rendered below also obscures the board, but the handler guard
+  // keeps programmatic paths (active-tasks card, haunted-house redirect) from
+  // sneaking a submit through after the team's night is done.
+  const hasCashedOut = Boolean(team.cashedOut && !team.cashedOut.forfeited);
+
   const handleTileClick = async (tileId) => {
+    if (hasCashedOut) return;
     const tile = event.board.tiles.find((t) => t.id === tileId);
     if (!tile) return;
     // Candybag gets the special haunted-house warning flow — the tier of
@@ -476,6 +484,12 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           const candybagId = event.board?.candybagTileId;
           if (candybagId) handleTileClick(candybagId);
         }}
+      />
+
+      <SpoopyCashedOutModal
+        isOpen={hasCashedOut}
+        gpEarned={team.gpEarned ?? teamBoard?.gpEarned ?? 0}
+        teamName={team.teamName}
       />
     </>
   );
