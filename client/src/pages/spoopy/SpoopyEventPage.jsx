@@ -83,6 +83,14 @@ export default function SpoopyEventPage() {
   const eventStatusRef = useRef(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // Apollo's useSubscription captures `onData` at setup — React state inside
+  // that closure can be stale by the time a frame arrives. Mirror
+  // `rulesAccepted` into a ref so the subscription handler always reads the
+  // live value instead of the mount-time `false`.
+  const rulesAcceptedRef = useRef(false);
+  useEffect(() => {
+    rulesAcceptedRef.current = rulesAccepted;
+  }, [rulesAccepted]);
 
   useEffect(() => {
     warmUpSpoopySounds();
@@ -159,7 +167,7 @@ export default function SpoopyEventPage() {
     onData: ({ data: subscriptionData }) => {
       const incomingBoard = subscriptionData?.data?.spoopyTeamBoardUpdated;
       if (
-        rulesAccepted &&
+        rulesAcceptedRef.current &&
         incomingBoard &&
         hasNewSpoopyCompletion(completedTileIdsRef.current, incomingBoard)
       ) {
