@@ -73,7 +73,13 @@ export default function SpoopyEventPage() {
 
   const situation = data?.mySpoopySituation ?? { event: null, myTeam: null, teamBoard: null };
   const { event, myTeam, teamBoard } = situation;
+  // Snapshot of completed tile ids tracked ONLY by the subscription path. We
+  // seed it once per team from the initial query payload below, then
+  // deliberately leave it alone — any refetch that bumps `teamBoard` must
+  // not racily overwrite this ref, or we'd silently lose the "new tile
+  // completed" signal when the subscription delivery arrives moments later.
   const completedTileIdsRef = useRef(null);
+  const seededForTeamRef = useRef(null);
   const eventStatusRef = useRef(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -95,8 +101,20 @@ export default function SpoopyEventPage() {
     setRulesOpen(!accepted);
   }, [event?.eventId, event?.status, myTeam?.teamId]);
 
+  // One-shot seed per team. Runs on the very first teamBoard delivery (or
+  // whenever the player switches teams) and never again — so the dedicated
+  // subscription-only ref above stays authoritative for sound-trigger
+  // detection. Resets both refs if the team unsubscribes/clears.
   useEffect(() => {
-    completedTileIdsRef.current = teamBoard ? getCompletedSpoopyTileIds(teamBoard) : null;
+    if (!myTeam?.teamId) {
+      completedTileIdsRef.current = null;
+      seededForTeamRef.current = null;
+      return;
+    }
+    if (teamBoard && seededForTeamRef.current !== myTeam.teamId) {
+      completedTileIdsRef.current = getCompletedSpoopyTileIds(teamBoard);
+      seededForTeamRef.current = myTeam.teamId;
+    }
   }, [myTeam?.teamId, teamBoard]);
 
   useEffect(() => {
