@@ -61,6 +61,17 @@ function requireTeamMemberOrStaff(event, team, user) {
   throw new ForbiddenError('You must be a team member to do that');
 }
 
+function toSpectatorBoard(state) {
+  if (!state) return null;
+  return {
+    eventId: state.eventId,
+    teamId: state.teamId,
+    gpEarned: state.gpEarned ?? 0,
+    cashedOut: state.cashedOut ?? null,
+    tiles: state.tiles ?? {},
+  };
+}
+
 // ── Input bounds ──────────────────────────────────────────────────────────
 // Guard against unbounded strings landing in TEXT/JSONB columns. Anything the
 // client can send verbatim is capped to a sane length here — the resolver
@@ -260,6 +271,62 @@ const Query = {
     requireUser(context);
     const { SpoopyEvent } = getModels();
     return SpoopyEvent.findOne({ where: { status: 'ACTIVE' }, order: [['createdAt', 'DESC']] });
+  },
+
+  // Public read-only projection for the active event. Keep this separate from
+  // getActiveSpoopyEvent so GraphQL introspection cannot be used to request
+  // event passwords, Discord ids, team rosters, tokens, or hidden content.
+  spoopySpectatorEvent: async () => {
+    const { SpoopyEvent, SpoopyTeam } = getModels();
+    const event = await SpoopyEvent.findOne({
+      where: { status: 'ACTIVE' },
+      order: [['createdAt', 'DESC']],
+    });
+    if (!event) return null;
+    const teams = await SpoopyTeam.findAll({
+      where: { eventId: event.eventId },
+      order: [['createdAt', 'ASC']],
+    });
+    return {
+      eventId: event.eventId,
+      eventName: event.eventName,
+      status: event.status,
+      curfewStart: event.curfewStart,
+      curfewEnd: event.curfewEnd,
+      board: event.board,
+      teams: teams.map((team) => ({
+        teamId: team.teamId,
+        eventId: team.eventId,
+        teamName: team.teamName,
+        color: team.color,
+        gpEarned: team.gpEarned ?? 0,
+        cashedOut: team.cashedOut ?? null,
+      })),
+    };
+  },
+
+  spoopySpectatorTeamBoard: async (_, { teamId }) => {
+    const team = await getTeamOrThrow(teamId);
+    const event = await getEventOrThrow(team.eventId);
+    if (event.status !== 'ACTIVE') return null;
+    return toSpectatorBoard(await loadTeamState(teamId));
+  },
+
+  spoopySpectatorAllTeamBoards: async (_, { eventId }) => {
+    const event = await getEventOrThrow(eventId);
+    if (event.status !== 'ACTIVE') return [];
+    const { SpoopyTeam } = getModels();
+    const teams = await SpoopyTeam.findAll({ where: { eventId } });
+    const states = await Promise.all(
+      teams.map(async (team) => {
+        try {
+          return toSpectatorBoard(await loadTeamState(team.teamId));
+        } catch (_) {
+          return null;
+        }
+      })
+    );
+    return states.filter(Boolean);
   },
 
   // One-shot query used by `/spoopy-event` to render the caller's view:
@@ -1252,11 +1319,43 @@ function makeSubscription(topicFn) {
   };
 }
 
+function spectatorBoardSubscription() {
+  return {
+    subscribe: async (_, { teamId }) => {
+      const team = await getTeamOrThrow(teamId);
+      const event = await getEventOrThrow(team.eventId);
+      if (event.status !== 'ACTIVE') {
+        throw new ForbiddenError('Spectator boards are only available while the event is active');
+      }
+      return makeSubscription(() => `SPOOPY_TEAM_BOARD_UPDATED_${teamId}`).subscribe();
+    },
+    resolve: (payload) => toSpectatorBoard(payload?.spoopyTeamBoardUpdated),
+  };
+}
+
+function spectatorEventSubscription() {
+  return {
+    subscribe: async (_, { eventId }) => {
+      const event = await getEventOrThrow(eventId);
+      if (event.status !== 'ACTIVE') {
+        throw new ForbiddenError('Spectator updates are only available while the event is active');
+      }
+      return makeSubscription(() => `SPOOPY_EVENT_UPDATED_${eventId}`).subscribe();
+    },
+    resolve: (payload) => ({
+      eventId: payload?.spoopyEventUpdated?.eventId,
+      status: payload?.spoopyEventUpdated?.status,
+    }),
+  };
+}
+
 const Subscription = {
   spoopySubmissionAdded:    makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_ADDED_${eventId}`),
   spoopySubmissionReviewed: makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_REVIEWED_${eventId}`),
   spoopyTeamBoardUpdated:   makeSubscription(({ teamId })  => `SPOOPY_TEAM_BOARD_UPDATED_${teamId}`),
   spoopyEventUpdated:       makeSubscription(({ eventId }) => `SPOOPY_EVENT_UPDATED_${eventId}`),
+  spoopySpectatorBoardUpdated: spectatorBoardSubscription(),
+  spoopySpectatorEventUpdated: spectatorEventSubscription(),
 };
 
 module.exports = { Query, Mutation, Subscription, SpoopyEvent, SpoopyTeam, SpoopySubmission };

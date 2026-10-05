@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
@@ -509,6 +510,7 @@ function Section({ label, count, color, children }) {
 
 export default function SpoopyRefsPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const loginUrl = useLoginUrl();
   const { showToast } = useToastContext();
 
   const { data: activeData, loading: eventLoading } = useQuery(GET_ACTIVE_SPOOPY_EVENT, {
@@ -808,7 +810,7 @@ export default function SpoopyRefsPage() {
       </Center>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!event) {
     return (
       <Shell>
@@ -1131,22 +1133,37 @@ function Shell({ event, children }) {
   return (
     <Box minHeight="calc(100vh - 60px)" bg={SPOOPY_COLORS.nightDeep} color={SPOOPY_COLORS.paper}>
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
-        <VStack align="start" spacing={0}>
-          <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-            <HStack as="span" spacing={2}>
-              <SpoopyUiIcon name="refs" />
-              <Text as="span">spoopy refs</Text>
-            </HStack>
-          </Heading>
-          {event?.eventPassword && (
-            <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-              event password:{' '}
-              <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                {event.eventPassword}
+        <HStack justify="space-between" align="center" flexWrap="wrap" spacing={3}>
+          <VStack align="start" spacing={0}>
+            <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
+              <HStack as="span" spacing={2}>
+                <SpoopyUiIcon name="refs" />
+                <Text as="span">spoopy refs</Text>
+              </HStack>
+            </Heading>
+            {event?.eventPassword && (
+              <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+                event password:{' '}
+                <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+                  {event.eventPassword}
+                </Text>
               </Text>
-            </Text>
-          )}
-        </VStack>
+            )}
+          </VStack>
+          <Button
+            as={RouterLink}
+            to="/spoopy-event"
+            size="sm"
+            variant="outline"
+            colorScheme="purple"
+            borderColor={SPOOPY_COLORS.pumpkin}
+            color={SPOOPY_COLORS.paper}
+            leftIcon={<SpoopyUiIcon name="map" />}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+          >
+            back to board
+          </Button>
+        </HStack>
       </Box>
       {children}
     </Box>

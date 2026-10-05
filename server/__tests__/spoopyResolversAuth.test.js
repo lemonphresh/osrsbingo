@@ -26,6 +26,8 @@ const mockEvent = {
 const mockTeam = {
   teamId: TEAM_ID,
   eventId: EVENT_ID,
+  teamName: 'Test Team',
+  color: '#abcdef',
   members: [TEAM_MEMBER_DISCORD_ID],
   discordChannelId: 'channel-x',
   gpEarned: 0,
@@ -58,7 +60,7 @@ jest.mock('../db/models', () => ({
   },
 }));
 
-const { Mutation, Query } = require('../schema/resolvers/SpoopyBingo');
+const { Mutation, Query, Subscription } = require('../schema/resolvers/SpoopyBingo');
 
 const NO_CTX             = {};
 const NON_ADMIN_CTX      = { user: { id: 'u-42', admin: false, discordUserId: 'discord-stranger' } };
@@ -205,6 +207,87 @@ describe('queries require authentication', () => {
   });
   test('spoopyTeamBoard throws when unauthenticated', async () => {
     await expect(Query.spoopyTeamBoard(null, { teamId: TEAM_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+  });
+});
+
+describe('public spectator queries expose only active-event projections', () => {
+  const { SpoopyEvent, SpoopyTeam } = require('../db/models');
+
+  test('returns the active event and safe team summary without authentication', async () => {
+    SpoopyEvent.findOne.mockResolvedValueOnce(mockEvent);
+    SpoopyTeam.findAll.mockResolvedValueOnce([mockTeam]);
+    const result = await Query.spoopySpectatorEvent(null, {}, NO_CTX);
+    expect(result.eventId).toBe(EVENT_ID);
+    expect(result.teams).toEqual([
+      expect.objectContaining({ teamId: TEAM_ID, teamName: 'Test Team', gpEarned: 0 }),
+    ]);
+    expect(result.teams[0]).not.toHaveProperty('members');
+    expect(result.teams[0]).not.toHaveProperty('teamToken');
+  });
+
+  test('returns a read-only active team board without authentication', async () => {
+    const result = await Query.spoopySpectatorTeamBoard(null, { teamId: TEAM_ID }, NO_CTX);
+    expect(result).toEqual(
+      expect.objectContaining({ eventId: EVENT_ID, teamId: TEAM_ID, tiles: {} })
+    );
+    expect(result).not.toHaveProperty('roster');
+    expect(result).not.toHaveProperty('hauntedGauntletLevel');
+  });
+
+  test('returns all active team boards without authentication', async () => {
+    SpoopyTeam.findAll.mockResolvedValueOnce([mockTeam]);
+    const result = await Query.spoopySpectatorAllTeamBoards(
+      null,
+      { eventId: EVENT_ID },
+      NO_CTX
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].teamId).toBe(TEAM_ID);
+  });
+
+  test('does not expose a team board outside the active phase', async () => {
+    const priorStatus = mockEvent.status;
+    mockEvent.status = 'SETUP';
+    try {
+      await expect(
+        Query.spoopySpectatorTeamBoard(null, { teamId: TEAM_ID }, NO_CTX)
+      ).resolves.toBeNull();
+    } finally {
+      mockEvent.status = priorStatus;
+    }
+  });
+});
+
+describe('public spectator subscriptions expose limited payloads', () => {
+  test('projects board updates without roster or haunted-house state', () => {
+    const result = Subscription.spoopySpectatorBoardUpdated.resolve({
+      spoopyTeamBoardUpdated: {
+        eventId: EVENT_ID,
+        teamId: TEAM_ID,
+        gpEarned: 25,
+        cashedOut: null,
+        tiles: { a: { status: 'complete' } },
+        roster: [{ discordUserId: 'secret' }],
+        hauntedGauntletLevel: 3,
+      },
+    });
+    expect(result).toEqual({
+      eventId: EVENT_ID,
+      teamId: TEAM_ID,
+      gpEarned: 25,
+      cashedOut: null,
+      tiles: { a: { status: 'complete' } },
+    });
+  });
+
+  test('projects event updates down to lifecycle fields', () => {
+    const result = Subscription.spoopySpectatorEventUpdated.resolve({
+      spoopyEventUpdated: {
+        ...mockEvent,
+        eventPassword: 'secret',
+      },
+    });
+    expect(result).toEqual({ eventId: EVENT_ID, status: 'ACTIVE' });
   });
 });
 

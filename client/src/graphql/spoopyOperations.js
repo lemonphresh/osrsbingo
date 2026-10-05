@@ -132,6 +132,51 @@ export const GET_ACTIVE_SPOOPY_EVENT = gql`
   ${SPOOPY_EVENT_FIELDS}
 `;
 
+export const GET_SPOOPY_SPECTATOR_EVENT = gql`
+  query GetSpoopySpectatorEvent {
+    spoopySpectatorEvent {
+      eventId
+      eventName
+      status
+      curfewStart
+      curfewEnd
+      board
+      teams {
+        teamId
+        eventId
+        teamName
+        color
+        gpEarned
+        cashedOut
+      }
+    }
+  }
+`;
+
+export const GET_SPOOPY_SPECTATOR_TEAM_BOARD = gql`
+  query GetSpoopySpectatorTeamBoard($teamId: ID!) {
+    spoopySpectatorTeamBoard(teamId: $teamId) {
+      eventId
+      teamId
+      gpEarned
+      cashedOut
+      tiles
+    }
+  }
+`;
+
+export const GET_SPOOPY_SPECTATOR_ALL_TEAM_BOARDS = gql`
+  query GetSpoopySpectatorAllTeamBoards($eventId: ID!) {
+    spoopySpectatorAllTeamBoards(eventId: $eventId) {
+      eventId
+      teamId
+      gpEarned
+      cashedOut
+      tiles
+    }
+  }
+`;
+
 // Admin variant — fetches the "current" event (any status via spoopyEvents[0])
 // with teams + admins expanded so the admin page can render everything in one
 // round trip. If no event exists returns null.
@@ -441,6 +486,27 @@ export const SPOOPY_TEAM_BOARD_UPDATED = gql`
     spoopyTeamBoardUpdated(teamId: $teamId) { ...SpoopyTeamBoardFields }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
+`;
+
+export const SPOOPY_SPECTATOR_BOARD_UPDATED = gql`
+  subscription SpoopySpectatorBoardUpdated($teamId: ID!) {
+    spoopySpectatorBoardUpdated(teamId: $teamId) {
+      eventId
+      teamId
+      gpEarned
+      cashedOut
+      tiles
+    }
+  }
+`;
+
+export const SPOOPY_SPECTATOR_EVENT_UPDATED = gql`
+  subscription SpoopySpectatorEventUpdated($eventId: ID!) {
+    spoopySpectatorEventUpdated(eventId: $eventId) {
+      eventId
+      status
+    }
+  }
 `;
 
 export const SPOOPY_EVENT_UPDATED = gql`

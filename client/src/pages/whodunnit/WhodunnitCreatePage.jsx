@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useMutation } from '@apollo/client';
 import {
   Box,
@@ -77,6 +78,7 @@ const WhodunnitCreatePage = () => {
   usePageTitle('New case • A Gielinor Whodunnit');
   const { user } = useAuth();
   const navigate = useNavigate();
+  const loginUrl = useLoginUrl();
 
   const [teammateSlots, setTeammateSlots] = useState(['']);
   const [error, setError] = useState('');
@@ -90,7 +92,7 @@ const WhodunnitCreatePage = () => {
     refetchQueries: ['MyWhodunnitCampaigns'],
   });
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
   const hasDiscordLinked = Boolean(user.discordUserId);

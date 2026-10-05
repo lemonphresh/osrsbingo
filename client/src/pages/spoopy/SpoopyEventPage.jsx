@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useSubscription, useMutation } from '@apollo/client';
 import {
   Box,
@@ -13,16 +13,19 @@ import {
   useToast,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useAuth } from '../../providers/AuthProvider';
 import {
   MY_SPOOPY_SITUATION,
-  SPOOPY_EVENT_UPDATED,
   SPOOPY_TEAM_BOARD_UPDATED,
+  SPOOPY_SPECTATOR_BOARD_UPDATED,
+  SPOOPY_SPECTATOR_EVENT_UPDATED,
   CREATE_SPOOPY_SUBMISSION,
   CREATE_SPOOPY_CHOICE,
   ENTER_SPOOPY_HAUNTED_HOUSE,
-  GET_SPOOPY_TEAM_BOARD,
-  GET_SPOOPY_ALL_TEAM_BOARDS,
+  GET_SPOOPY_SPECTATOR_EVENT,
+  GET_SPOOPY_SPECTATOR_TEAM_BOARD,
+  GET_SPOOPY_SPECTATOR_ALL_TEAM_BOARDS,
 } from '../../graphql/spoopyOperations';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
 import SpoopyActiveTasks from '../../organisms/spoopy/SpoopyActiveTasks';
@@ -35,6 +38,7 @@ import SpoopyLastHourModal from '../../organisms/spoopy/SpoopyLastHourModal';
 import SpoopyCashedOutModal from '../../organisms/spoopy/SpoopyCashedOutModal';
 import SpoopyAmbiancePlayer from '../../organisms/spoopy/SpoopyAmbiancePlayer';
 import SpoopyRulesModal, { getSpoopyRulesKey } from '../../organisms/spoopy/SpoopyRulesModal';
+import SpoopyTutorial, { hasSeenSpoopyTutorial } from '../../organisms/spoopy/SpoopyTutorial';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevUtils';
@@ -65,14 +69,25 @@ const SPOOPY_AMBIANCE_YT_ID = 'Wwk7oJRUhqQ';
 //   status = ACTIVE, on team → team board rendered with live tile statuses
 
 export default function SpoopyEventPage() {
-  const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const { isAuthenticated, isCheckingAuth } = useAuth();
   const { data, loading, error, refetch } = useQuery(MY_SPOOPY_SITUATION, {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
   });
+  const {
+    data: spectatorEventData,
+    loading: spectatorEventLoading,
+    error: spectatorEventError,
+    refetch: refetchSpectatorEvent,
+  } = useQuery(GET_SPOOPY_SPECTATOR_EVENT, {
+    fetchPolicy: 'cache-and-network',
+  });
 
   const situation = data?.mySpoopySituation ?? { event: null, myTeam: null, teamBoard: null };
-  const { event, myTeam, teamBoard } = situation;
+  const { myTeam, teamBoard } = situation;
+  const event = isAuthenticated
+    ? situation.event
+    : spectatorEventData?.spoopySpectatorEvent ?? null;
   // Snapshot of completed tile ids tracked ONLY by the subscription path. We
   // seed it once per team from the initial query payload below, then
   // deliberately leave it alone — any refetch that bumps `teamBoard` must
@@ -83,6 +98,11 @@ export default function SpoopyEventPage() {
   const eventStatusRef = useRef(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // Post-rules walkthrough that points out the zoom + ambiance controls.
+  // Shows once per player per event — stored under its own localStorage
+  // key so admins can replay their own rules modal (via Esc) without
+  // retriggering the tutorial every time.
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   // Apollo's useSubscription captures `onData` at setup — React state inside
   // that closure can be stale by the time a frame arrives. Mirror
   // `rulesAccepted` into a ref so the subscription handler always reads the
@@ -148,10 +168,13 @@ export default function SpoopyEventPage() {
   // Event lifecycle changes are separate from team-board updates. Listening
   // here moves open participant and spectator pages to the recap immediately
   // when an admin ends the game.
-  useSubscription(SPOOPY_EVENT_UPDATED, {
+  useSubscription(SPOOPY_SPECTATOR_EVENT_UPDATED, {
     variables: { eventId: event?.eventId },
     skip: !event?.eventId,
-    onData: () => refetch().catch(() => {}),
+    onData: () => {
+      refetchSpectatorEvent().catch(() => {});
+      if (isAuthenticated) refetch().catch(() => {});
+    },
   });
 
   // Live board updates — the server publishes SPOOPY_TEAM_BOARD_UPDATED_{teamId}
@@ -186,8 +209,10 @@ export default function SpoopyEventPage() {
   // change guarantees the board is in sync the moment the user comes back.
   // Same pattern battleship uses on its event page.
   useEffect(() => {
-    if (!isAuthenticated) return undefined;
-    const onFocus = () => refetch().catch(() => {});
+    const onFocus = () => {
+      refetchSpectatorEvent().catch(() => {});
+      if (isAuthenticated) refetch().catch(() => {});
+    };
     const onVisibility = () => {
       if (document.visibilityState === 'visible') onFocus();
     };
@@ -197,7 +222,7 @@ export default function SpoopyEventPage() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [isAuthenticated, refetch]);
+  }, [isAuthenticated, refetch, refetchSpectatorEvent]);
 
   if (isCheckingAuth)
     return (
@@ -205,12 +230,32 @@ export default function SpoopyEventPage() {
         <CenteredSpinner />
       </PageShell>
     );
-  if (!isAuthenticated)
+  if (!isAuthenticated) {
+    if (spectatorEventLoading && !spectatorEventData)
+      return (
+        <PageShell>
+          <CenteredSpinner />
+        </PageShell>
+      );
+    if (spectatorEventError)
+      return (
+        <PageShell>
+          <ErrorState message={spectatorEventError.message} />
+        </PageShell>
+      );
+    if (!event)
+      return (
+        <PageShell>
+          <LoggedOutState />
+        </PageShell>
+      );
     return (
-      <PageShell>
-        <LoggedOutState />
+      <PageShell event={event}>
+        <SpectatorView event={event} />
+        <SpoopyAmbiancePlayer videoId={SPOOPY_AMBIANCE_YT_ID} />
       </PageShell>
     );
+  }
   if (loading && !data)
     return (
       <PageShell>
@@ -249,23 +294,10 @@ export default function SpoopyEventPage() {
 
   // ACTIVE
   if (!myTeam) {
-    // Site admins and event admins get a spectator view instead of the
-    // "you're not on a team yet" blocker, so refs can watch the night unfold
-    // from the same page players use.
-    const isSiteAdmin = user?.admin === true;
-    const isEventAdmin = user
-      ? (event.adminIds ?? []).map(String).includes(String(user.id))
-      : false;
-    if (isSiteAdmin || isEventAdmin) {
-      return (
-        <PageShell event={event}>
-          <SpectatorView event={event} />
-        </PageShell>
-      );
-    }
     return (
       <PageShell event={event}>
-        <NotOnTeamState event={event} />
+        <SpectatorView event={event} />
+        <SpoopyAmbiancePlayer videoId={SPOOPY_AMBIANCE_YT_ID} />
       </PageShell>
     );
   }
@@ -281,10 +313,22 @@ export default function SpoopyEventPage() {
         onAccept={() => {
           setRulesAccepted(true);
           setRulesOpen(false);
+          // Fire the walkthrough right after the rules close — but only the
+          // first time this player sees this event. Deferred a tick so the
+          // tutorial's rect measurement happens AFTER the rules modal has
+          // fully unmounted (its backdrop would otherwise sit in front).
+          if (!hasSeenSpoopyTutorial(event.eventId)) {
+            setTimeout(() => setTutorialOpen(true), 150);
+          }
         }}
         eventId={event.eventId}
         curfewEnd={event.curfewEnd}
         requiresAcceptance={!rulesAccepted}
+      />
+      <SpoopyTutorial
+        isOpen={tutorialOpen}
+        eventId={event.eventId}
+        onClose={() => setTutorialOpen(false)}
       />
     </PageShell>
   );
@@ -731,6 +775,10 @@ function ErrorState({ message }) {
 }
 
 function LoggedOutState() {
+  // Hook has to live here so the login URL carries `/spoopy-event` back as
+  // the returnTo — the parent page is a Fragment, there's no useLocation
+  // available higher up without more plumbing.
+  const loginUrl = useLoginUrl();
   return (
     <Center py={20}>
       <VStack spacing={4}>
@@ -740,7 +788,7 @@ function LoggedOutState() {
         </HStack>
         <Button
           as={RouterLink}
-          to="/login"
+          to={loginUrl}
           colorScheme="purple"
           leftIcon={<SpoopyUiIcon name="signIn" />}
         >
@@ -837,34 +885,55 @@ function SpectatorView({ event }) {
   const selectedTeam = teams.find((t) => t.teamId === selectedTeamId) ?? null;
   const isAllTeams = selectedTeamId === '__all__';
 
-  const { data: oneData, refetch: refetchOne } = useQuery(GET_SPOOPY_TEAM_BOARD, {
+  const { data: oneData, refetch: refetchOne } = useQuery(GET_SPOOPY_SPECTATOR_TEAM_BOARD, {
     variables: { teamId: selectedTeamId },
     skip: !selectedTeamId || isAllTeams,
     fetchPolicy: 'cache-and-network',
   });
-  const teamBoard = oneData?.spoopyTeamBoard ?? null;
+  const teamBoard = oneData?.spoopySpectatorTeamBoard ?? null;
 
-  // Batched fetch for the overlay. One call returns every team's state.
-  // No live subscription here — admin can click "refresh" or flip to a single
-  // team to tail real-time updates. Keeps the hook count bounded.
+  // One public, batched baseline powers the all-teams overlay and lets the
+  // completion detector distinguish a new completion from tiles that were
+  // already complete when the spectator opened the page.
   const {
     data: allData,
     refetch: refetchAll,
     loading: loadingAll,
-  } = useQuery(GET_SPOOPY_ALL_TEAM_BOARDS, {
+  } = useQuery(GET_SPOOPY_SPECTATOR_ALL_TEAM_BOARDS, {
     variables: { eventId: event?.eventId },
-    skip: !event?.eventId || !isAllTeams,
+    skip: !event?.eventId,
     fetchPolicy: 'cache-and-network',
   });
-  const allBoards = allData?.spoopyAllTeamBoards ?? null;
+  const allBoards = allData?.spoopySpectatorAllTeamBoards ?? null;
+  const completedByTeamRef = useRef(new Map());
 
-  // Live updates for the single-team view: resubscribe whenever the admin
-  // picks a different team.
-  useSubscription(SPOOPY_TEAM_BOARD_UPDATED, {
-    variables: { teamId: selectedTeamId },
-    skip: !selectedTeamId || isAllTeams,
-    onData: () => refetchOne().catch(() => {}),
-  });
+  useEffect(() => {
+    for (const board of allBoards ?? []) {
+      if (!completedByTeamRef.current.has(board.teamId)) {
+        completedByTeamRef.current.set(board.teamId, getCompletedSpoopyTileIds(board));
+      }
+    }
+  }, [allBoards]);
+
+  useEffect(() => {
+    if (teamBoard && !completedByTeamRef.current.has(teamBoard.teamId)) {
+      completedByTeamRef.current.set(teamBoard.teamId, getCompletedSpoopyTileIds(teamBoard));
+    }
+  }, [teamBoard]);
+
+  const handleSpectatorBoardUpdate = useCallback(
+    (teamId, incomingBoard) => {
+      if (!incomingBoard) return;
+      const previous = completedByTeamRef.current.get(teamId);
+      if (previous && hasNewSpoopyCompletion(previous, incomingBoard)) {
+        playSpoopySound('taskComplete');
+      }
+      completedByTeamRef.current.set(teamId, getCompletedSpoopyTileIds(incomingBoard));
+      refetchAll().catch(() => {});
+      if (!isAllTeams && selectedTeamId === teamId) refetchOne().catch(() => {});
+    },
+    [isAllTeams, refetchAll, refetchOne, selectedTeamId]
+  );
 
   const teamMarkers = useMemo(
     () => (isAllTeams ? buildTeamMarkers(teams, allBoards) : null),
@@ -888,6 +957,10 @@ function SpectatorView({ event }) {
 
   return (
     <VStack align="stretch" spacing={4} py={{ base: 4, md: 6 }} px={{ base: 2, md: 6 }}>
+      <SpectatorBoardSubscriptions
+        teamIds={teams.map((team) => team.teamId)}
+        onBoardUpdate={handleSpectatorBoardUpdate}
+      />
       <Box textAlign="center">
         <Badge
           bg={SPOOPY_COLORS.purple}
@@ -1003,20 +1076,24 @@ function SpectatorView({ event }) {
   );
 }
 
-function NotOnTeamState({ event }) {
-  return (
-    <Center py={20}>
-      <VStack spacing={2} maxW="md" textAlign="center">
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="2xl">
-          you're not on a team yet
-        </Text>
-        <Text opacity={0.75} fontSize="sm">
-          {event.eventName} is live, but your discord id isn't on a team roster yet. talk to an
-          event admin to get signed up, or make sure your discord is linked to your profile.
-        </Text>
-      </VStack>
-    </Center>
-  );
+function SpectatorBoardSubscriptions({ teamIds, onBoardUpdate }) {
+  return teamIds.map((teamId) => (
+    <SpectatorBoardSubscription
+      key={teamId}
+      teamId={teamId}
+      onBoardUpdate={onBoardUpdate}
+    />
+  ));
+}
+
+function SpectatorBoardSubscription({ teamId, onBoardUpdate }) {
+  useSubscription(SPOOPY_SPECTATOR_BOARD_UPDATED, {
+    variables: { teamId },
+    onData: ({ data: subscriptionData }) => {
+      onBoardUpdate(teamId, subscriptionData?.data?.spoopySpectatorBoardUpdated ?? null);
+    },
+  });
+  return null;
 }
 
 function SetupPlaceholder({ event }) {

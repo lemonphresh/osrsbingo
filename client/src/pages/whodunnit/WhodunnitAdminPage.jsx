@@ -1,5 +1,6 @@
 import React from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery } from '@apollo/client';
 import {
   Box,
@@ -37,11 +38,12 @@ function formatDuration(seconds) {
 
 const WhodunnitAdminPage = () => {
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
   usePageTitle('Whodunnit Admin');
   const { data, loading } = useQuery(GET_ALL_WHODUNNIT_CAMPAIGNS, { skip: !user?.admin });
   const { data: storyData } = useQuery(GET_WHODUNNIT_STORY, { skip: !user?.admin });
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!user.admin) return <Navigate to="/" />;
 
   const campaigns = data?.allWhodunnitCampaigns || [];

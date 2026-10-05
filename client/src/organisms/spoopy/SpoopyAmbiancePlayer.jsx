@@ -273,6 +273,7 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
   return (
     <Box
       ref={widgetRef}
+      data-tutorial-target="ambiance"
       position="fixed"
       bottom={{ base: 3, md: 5 }}
       right={{ base: 3, md: 5 }}

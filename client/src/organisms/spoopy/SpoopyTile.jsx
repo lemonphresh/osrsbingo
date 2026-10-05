@@ -118,7 +118,6 @@ export default function SpoopyTile({
               '&::after': {
                 content: '""',
                 position: 'absolute',
-                inset: '-3px',
                 borderRadius: 'inherit',
                 boxShadow: `0 0 16px ${SPOOPY_COLORS.greenLight}`,
                 pointerEvents: 'none',

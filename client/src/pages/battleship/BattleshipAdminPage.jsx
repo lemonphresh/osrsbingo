@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useLazyQuery, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
@@ -1319,6 +1320,7 @@ export default function BattleshipAdminPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { showToast } = useToastContext();
   const { colorblindMode, toggleColorblindMode } = useBSColorblindMode();
+  const loginUrl = useLoginUrl();
 
   const {
     data: eventData,
@@ -1557,7 +1559,7 @@ export default function BattleshipAdminPage() {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   if (!isAdmin && event) {

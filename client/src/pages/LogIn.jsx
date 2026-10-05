@@ -16,7 +16,7 @@ import {
   Link as ChakraLink,
 } from '@chakra-ui/react';
 import React, { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { WarningIcon } from '@chakra-ui/icons';
 import { FaLock } from 'react-icons/fa';
 import useForm from '../hooks/useForm';
@@ -27,10 +27,16 @@ import GemTitle from '../atoms/GemTitle';
 import { LOGIN_USER } from '../graphql/mutations';
 import { useMutation } from '@apollo/client';
 import usePageTitle from '../hooks/usePageTitle';
+import { readReturnToParam, buildSignupUrl } from '../utils/loginRedirect';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  // Preserve the "come back here" hint on BOTH the post-login navigation
+  // AND the sign-up switch link below, so a user bouncing between the two
+  // auth pages doesn't drop their destination.
+  const returnTo = readReturnToParam(location.search);
   const [errors, setErrors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   usePageTitle('Log In');
@@ -55,9 +61,9 @@ const Login = () => {
     if (data) {
       localStorage.setItem('authToken', data.loginUser.token);
       login(data.loginUser);
-      navigate(`/user/${data.loginUser.user.id}`);
+      navigate(returnTo || `/user/${data.loginUser.user.id}`, { replace: true });
     }
-  }, [data, error, login, navigate]);
+  }, [data, error, login, navigate, returnTo]);
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') onSubmit(e);
@@ -204,7 +210,7 @@ const Login = () => {
 
         <Text marginTop="16px">
           New here?{' '}
-          <NavLink to="/signup">
+          <NavLink to={buildSignupUrl(returnTo)}>
             <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
               Create an account
             </span>

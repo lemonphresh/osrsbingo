@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box,
@@ -1323,6 +1324,7 @@ function AdminManager({ event, refetch }) {
 
 export default function SpoopyAdminPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const loginUrl = useLoginUrl();
   const { data, loading, refetch } = useQuery(GET_SPOOPY_ADMIN_EVENT, {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
@@ -1337,7 +1339,7 @@ export default function SpoopyAdminPage() {
       </Shell>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
 
   const events = data?.spoopyEvents ?? [];
   const event = events[0] ?? null;

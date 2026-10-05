@@ -988,6 +988,7 @@ export default function SpoopyBoard({
         ambiance player's live height (published to --spoopy-ambiance-height
         via ResizeObserver) so we float up when it expands to show the video. */}
       <Box
+        data-tutorial-target="zoom"
         position="fixed"
         bottom={{
           base: 'calc(var(--spoopy-ambiance-height, 56px) + 20px)',

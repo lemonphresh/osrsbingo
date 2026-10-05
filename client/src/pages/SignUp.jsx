@@ -14,7 +14,7 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import React, { useCallback, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { InfoIcon, LockIcon, WarningIcon } from '@chakra-ui/icons';
 import useForm from '../hooks/useForm';
 import theme from '../theme';
@@ -24,6 +24,7 @@ import GemTitle from '../atoms/GemTitle';
 import { useMutation } from '@apollo/client';
 import { CREATE_USER } from '../graphql/mutations';
 import usePageTitle from '../hooks/usePageTitle';
+import { readReturnToParam, buildLoginUrl } from '../utils/loginRedirect';
 
 const validatePasswords = (p1, p2) => p1 === p2;
 
@@ -50,15 +51,21 @@ const HelperText = ({ text }) => (
 const SignUp = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [errors, setErrors] = useState([]);
   const [hasAcknowledgedPassword, setHasAcknowledgedPassword] = useState(false);
 
   usePageTitle('Sign Up');
 
+  // See LogIn.jsx — same returnTo propagation lets a user who got bounced to
+  // signup from a protected page land right back on that page after creating
+  // the account.
+  const returnTo = readReturnToParam(location.search);
+
   const [createUser, { loading }] = useMutation(CREATE_USER, {
     onCompleted: (data) => {
       login(data.createUser);
-      navigate(`/user/${data.createUser.id}`);
+      navigate(returnTo || `/user/${data.createUser.id}`, { replace: true });
     },
     onError: (err) => {
       setErrors([err.message]);
@@ -125,7 +132,7 @@ const SignUp = () => {
         <GemTitle>Get Started</GemTitle>
         <Text mt={2}>
           Already have an account?{' '}
-          <NavLink to="/login">
+          <NavLink to={buildLoginUrl(returnTo)}>
             <span style={{ color: theme.colors.green[400], textDecoration: 'underline' }}>
               Log in here
             </span>

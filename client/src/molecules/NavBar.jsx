@@ -14,6 +14,7 @@ import {
 } from '@chakra-ui/react';
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
+import { useLoginUrl } from '../utils/loginRedirect';
 import { useQuery } from '@apollo/client';
 import theme from '../theme';
 import GemLogo from '../assets/gemlogo-small.png';
@@ -49,6 +50,7 @@ const BANNER_DURATION_MS = 24 * 60 * 60 * 1000;
 
 const NavBar = () => {
   const { user, logout } = useAuth();
+  const loginUrl = useLoginUrl();
   useFeatureFlagRevision();
   const [isBannerOpen, setIsBannerOpen] = useState(false);
   const [isJuneBannerOpen, setIsJuneBannerOpen] = useState(false);
@@ -959,7 +961,7 @@ const NavBar = () => {
           ) : (
             <Link
               style={{ display: 'flex', alignItems: 'center', position: 'relative' }}
-              to="/login"
+              to={loginUrl}
             >
               <Text display={['none', 'block']} fontWeight="semibold" marginRight="8px">
                 log in
