@@ -1078,11 +1078,7 @@ function SpectatorView({ event }) {
 
 function SpectatorBoardSubscriptions({ teamIds, onBoardUpdate }) {
   return teamIds.map((teamId) => (
-    <SpectatorBoardSubscription
-      key={teamId}
-      teamId={teamId}
-      onBoardUpdate={onBoardUpdate}
-    />
+    <SpectatorBoardSubscription key={teamId} teamId={teamId} onBoardUpdate={onBoardUpdate} />
   ));
 }
 
@@ -1416,12 +1412,8 @@ function CompleteRecap({ event, myTeam }) {
             >
               art by
             </Text>
-            <Text
-              fontFamily={SPOOPY_FONTS.hand}
-              fontSize="md"
-              color={SPOOPY_COLORS.pumpkinLight}
-            >
-              allure, mossy way, fartscapes, lemon
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md" color={SPOOPY_COLORS.pumpkinLight}>
+              allure, mossy way, fartscapes, lemon, pirate kanye
             </Text>
             <Text fontFamily={SPOOPY_FONTS.hand} fontSize="xs" opacity={0.75}>
               (no ai art, ever!)
@@ -1437,11 +1429,7 @@ function CompleteRecap({ event, myTeam }) {
             >
               playtested by
             </Text>
-            <Text
-              fontFamily={SPOOPY_FONTS.hand}
-              fontSize="md"
-              color={SPOOPY_COLORS.pumpkinLight}
-            >
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md" color={SPOOPY_COLORS.pumpkinLight}>
               callalillly, mossy way, fartscapes, pirate kanye
             </Text>
           </VStack>

@@ -41,6 +41,23 @@ import lightbeam from '../../assets/spoopy/pagedecor/lightbeam.png';
 import gummyWorms from '../../assets/spoopy/pagedecor/gummyworms.webp';
 import woodenBgAsset from '../../assets/spoopy/woodenbg.webp';
 import brutusAsset from '../../assets/spoopy/brutus.webp';
+import otterAsset from '../../assets/spoopy/otter.webp';
+import broomAsset from '../../assets/spoopy/broom.webp';
+import candlesAsset from '../../assets/spoopy/candles.webp';
+import coffinAsset from '../../assets/spoopy/coffin.webp';
+import jackoAsset from '../../assets/spoopy/jacko.webp';
+import knifeAsset from '../../assets/spoopy/knife.webp';
+import lollipopAsset from '../../assets/spoopy/lollipop.webp';
+import moonCloudsAsset from '../../assets/spoopy/moonclouds.webp';
+import potionAsset from '../../assets/spoopy/potion.webp';
+import scytheAsset from '../../assets/spoopy/scythe.webp';
+import skelehandAsset from '../../assets/spoopy/skelehand.webp';
+import skullAsset from '../../assets/spoopy/skull.webp';
+import smartiesAsset from '../../assets/spoopy/smarties.webp';
+import spiderwebAsset from '../../assets/spoopy/spiderweb.webp';
+import starsAsset from '../../assets/spoopy/stars.webp';
+import toothAsset from '../../assets/spoopy/tooth.webp';
+import vampLipsAsset from '../../assets/spoopy/vamplips.webp';
 
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 import { playSpoopySound, stopSpoopySound } from '../../utils/spoopy/spoopyAudio';
@@ -55,25 +72,48 @@ const BOARD_DECORATIONS = [
   { src: uwuBatAsset, top: 0.06, left: 0.69, size: 120, rotation: -16, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.03, left: 0.65, size: 90, rotation: -2, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.06, left: 0.62, size: 110, rotation: 20, alt: 'uwu bat' },
-  { src: uwuBatAsset, top: 0.81, left: 0.62, size: 120, rotation: 12, alt: 'uwu bat' },
-  { src: uwuBatAsset, top: 0.83, left: 0.57, size: 90, rotation: -8, alt: 'uwu bat' },
-  { src: uwuBatAsset, top: 0.87, left: 0.61, size: 110, rotation: 24, alt: 'uwu bat' },
-  { src: angyBatAsset, top: 0.46, left: 0.2, size: 90, rotation: -12, alt: 'angy bat' },
-  { src: angyBatAsset, top: 0.75, left: 0.84, size: 90, rotation: 6, alt: 'angy bat' },
+  { src: uwuBatAsset, top: 0.74, left: 0.62, size: 120, rotation: 12, alt: 'uwu bat' },
+  { src: uwuBatAsset, top: 0.79, left: 0.57, size: 90, rotation: -8, alt: 'uwu bat' },
+  { src: uwuBatAsset, top: 0.82, left: 0.61, size: 110, rotation: 24, alt: 'uwu bat' },
+  { src: angyBatAsset, top: 0.46, left: 0.2, size: 110, rotation: -12, alt: 'angy bat' },
+  { src: angyBatAsset, top: 0.75, left: 0.84, size: 110, rotation: 6, alt: 'angy bat' },
   { src: angyBatAsset, top: 0.7, left: 0.86, size: 100, rotation: 3, alt: 'angy bat' },
   { src: spoderAsset, top: 0.03, left: 0.3, size: 148, rotation: -4, alt: 'spooder' },
   { src: ghostKittyAsset, top: 0.24, left: 0.12, size: 140, rotation: 4, alt: 'ghost kitty' },
+  { src: otterAsset, top: 0.64, left: 0.97, size: 120, rotation: 35, alt: 'otter' },
   { src: spoopshaAsset, top: 0.94, left: 0.85, size: 110, rotation: -6, alt: 'spoopsha' },
   { src: spoopleechAsset, top: 0.7, left: 0.16, size: 100, rotation: 8, alt: 'spoopleech' },
   { src: spooplemonAsset, top: 0.61, left: 0.6, size: 135, rotation: -5, alt: 'spooplemon' },
   { src: scarecrowAsset, top: 0.5, left: 0.8, size: 170, rotation: 2, alt: 'scarecrow' },
   { src: roadsignAsset, top: 0.2, left: 0.48, size: 220, rotation: 0, alt: 'road sign' },
-  { src: bushesAsset, top: 0.88, left: 0.5, size: 275, rotation: -2, alt: 'bushes' },
-  { src: froggoAsset, top: 0.92, left: 0.42, size: 125, rotation: -8, alt: 'froggo' },
-  { src: punkinsAsset, top: 0.94, left: 0.16, size: 140, rotation: -3, alt: 'punkins' },
-  { src: zambieAsset, top: 0.32, left: 0.72, size: 120, rotation: -5, alt: 'zambie' },
-  { src: zambieAsset, top: 0.28, left: 0.68, size: 115, rotation: -5, alt: 'zambie' },
-  { src: zambieAsset, top: 0.27, left: 0.78, size: 125, rotation: -5, alt: 'zambie' },
+  { src: bushesAsset, top: 0.92, left: 0.5, size: 275, rotation: -2, alt: 'bushes' },
+  { src: froggoAsset, top: 0.96, left: 0.42, size: 125, rotation: -8, alt: 'froggo' },
+  { src: punkinsAsset, top: 0.94, left: 0.1, size: 140, rotation: -3, alt: 'punkins' },
+  { src: zambieAsset, top: 0.33, left: 0.72, size: 120, rotation: -5, alt: 'zambie' },
+  { src: zambieAsset, top: 0.29, left: 0.68, size: 115, rotation: -5, alt: 'zambie' },
+  { src: zambieAsset, top: 0.28, left: 0.78, size: 125, rotation: -5, alt: 'zambie' },
+  {
+    src: moonCloudsAsset,
+    top: 0.06,
+    left: 0.45,
+    size: 180,
+    rotation: -4,
+    alt: 'moon in the clouds',
+  },
+  { src: starsAsset, top: 0.17, left: 0.4, size: 120, rotation: 6, alt: 'stars' },
+  { src: spiderwebAsset, top: 0.05, left: 0.99, size: 170, rotation: 0, alt: 'spiderweb' },
+  { src: potionAsset, top: 0.15, left: 0.3, size: 85, rotation: -6, alt: 'potion bottle' },
+  { src: candlesAsset, top: 0.33, left: 0.27, size: 110, rotation: 3, alt: 'candles' },
+  { src: skullAsset, top: 0.66, left: 0.02, size: 90, rotation: -8, alt: 'skull' },
+  // { src: vampLipsAsset, top: 0.38, left: 0.38, size: 80, rotation: 12, alt: 'vampire lips' },
+  { src: knifeAsset, top: 0.56, left: 0.92, size: 95, rotation: 18, alt: 'bloody knife' },
+  { src: scytheAsset, top: 0.24, left: 0.08, size: 130, rotation: -20, alt: 'scythe' },
+  { src: coffinAsset, top: 0.95, left: 0.19, size: 140, rotation: 4, alt: 'coffin' },
+  { src: skelehandAsset, top: 0.94, left: 0.6, size: 120, rotation: 0, alt: 'skele hand' },
+  { src: broomAsset, top: 0.93, left: 0.82, size: 120, rotation: 0, alt: 'witch broom' },
+  { src: toothAsset, top: 0.79, left: 0.22, size: 60, rotation: -6, alt: 'tooth' },
+  { src: smartiesAsset, top: 0.41, left: 0.41, size: 70, rotation: 10, alt: 'smarties' },
+  { src: lollipopAsset, top: 0.41, left: 0.58, size: 80, rotation: -16, alt: 'lollipop' },
 ];
 
 // Desk-dressing props laid out beside the paper — scattered candy / pencils
