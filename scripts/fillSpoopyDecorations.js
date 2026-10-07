@@ -50,6 +50,7 @@ const TARGETS = [
   'froggo.webp',
   'punkins.webp',
   'zambie.webp',
+  'brutus.webp',
 ];
 
 // Paper cream — must match SPOOPY_COLORS.paper (#efe6d0). Fills the
@@ -143,10 +144,34 @@ function floodFillFromBorders(mask, width, height) {
     const i = queue[qHead++];
     const y = Math.floor(i / width);
     const x = i - y * width;
-    if (x > 0)          { const n = i - 1;     if (!outside[n] && !mask[n]) { outside[n] = 1; queue[qTail++] = n; } }
-    if (x < width - 1)  { const n = i + 1;     if (!outside[n] && !mask[n]) { outside[n] = 1; queue[qTail++] = n; } }
-    if (y > 0)          { const n = i - width; if (!outside[n] && !mask[n]) { outside[n] = 1; queue[qTail++] = n; } }
-    if (y < height - 1) { const n = i + width; if (!outside[n] && !mask[n]) { outside[n] = 1; queue[qTail++] = n; } }
+    if (x > 0) {
+      const n = i - 1;
+      if (!outside[n] && !mask[n]) {
+        outside[n] = 1;
+        queue[qTail++] = n;
+      }
+    }
+    if (x < width - 1) {
+      const n = i + 1;
+      if (!outside[n] && !mask[n]) {
+        outside[n] = 1;
+        queue[qTail++] = n;
+      }
+    }
+    if (y > 0) {
+      const n = i - width;
+      if (!outside[n] && !mask[n]) {
+        outside[n] = 1;
+        queue[qTail++] = n;
+      }
+    }
+    if (y < height - 1) {
+      const n = i + width;
+      if (!outside[n] && !mask[n]) {
+        outside[n] = 1;
+        queue[qTail++] = n;
+      }
+    }
   }
   return outside;
 }
@@ -160,7 +185,10 @@ function dilateMask(mask, width, height, radius) {
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      if (mask[i]) { out[i] = 1; continue; }
+      if (mask[i]) {
+        out[i] = 1;
+        continue;
+      }
       let hit = false;
       for (let dy = -radius; dy <= radius && !hit; dy++) {
         const ny = y + dy;
@@ -168,7 +196,10 @@ function dilateMask(mask, width, height, radius) {
         for (let dx = -radius; dx <= radius; dx++) {
           const nx = x + dx;
           if (nx < 0 || nx >= width) continue;
-          if (mask[ny * width + nx]) { hit = true; break; }
+          if (mask[ny * width + nx]) {
+            hit = true;
+            break;
+          }
         }
       }
       if (hit) out[i] = 1;
@@ -187,15 +218,13 @@ async function processOne(inputPath) {
   const image = sharp(sourcePath)
     .ensureAlpha()
     .extend({
-      top:    CANVAS_PAD,
+      top: CANVAS_PAD,
       bottom: CANVAS_PAD,
-      left:   CANVAS_PAD,
-      right:  CANVAS_PAD,
+      left: CANVAS_PAD,
+      right: CANVAS_PAD,
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     });
-  const { data, info } = await image
-    .raw()
-    .toBuffer({ resolveWithObject: true });
+  const { data, info } = await image.raw().toBuffer({ resolveWithObject: true });
   const { width, height, channels } = info;
   if (channels !== 4) {
     throw new Error(`expected 4 channels (RGBA), got ${channels} for ${relPath}`);
@@ -214,7 +243,7 @@ async function processOne(inputPath) {
 
   // 3. Sticker silhouette = original ink ∪ enclosed interior.
   const sticker = new Uint8Array(size);
-  for (let i = 0; i < size; i++) sticker[i] = (originalOpaque[i] || !outside[i]) ? 1 : 0;
+  for (let i = 0; i < size; i++) sticker[i] = originalOpaque[i] || !outside[i] ? 1 : 0;
 
   // 4. Border ring = dilated silhouette \ silhouette.
   const withBorder = dilateMask(sticker, width, height, BORDER_RADIUS);
@@ -276,9 +305,7 @@ async function processOne(inputPath) {
   fs.renameSync(outputPath + '.tmp', outputPath);
 
   const backupNote = madeBackup ? ' (backup saved)' : '';
-  console.log(
-    `✓ ${path.basename(relPath)}: fill=${filledPx}px border=${borderPx}px${backupNote}`,
-  );
+  console.log(`✓ ${path.basename(relPath)}: fill=${filledPx}px border=${borderPx}px${backupNote}`);
 }
 
 async function main() {

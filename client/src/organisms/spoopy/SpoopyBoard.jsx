@@ -40,6 +40,7 @@ import pencilAsset from '../../assets/spoopy/pagedecor/pencil.png';
 import lightbeam from '../../assets/spoopy/pagedecor/lightbeam.png';
 import gummyWorms from '../../assets/spoopy/pagedecor/gummyworms.webp';
 import woodenBgAsset from '../../assets/spoopy/woodenbg.webp';
+import brutusAsset from '../../assets/spoopy/brutus.webp';
 
 import { GET_USER_BY_DISCORD_ID } from '../../graphql/queries';
 import { playSpoopySound, stopSpoopySound } from '../../utils/spoopy/spoopyAudio';
@@ -50,6 +51,7 @@ import { playSpoopySound, stopSpoopySound } from '../../utils/spoopy/spoopyAudio
 // tile field regardless of the trailing spacer track. Sizes are fixed pixels
 // inside the CSS-zoomed paper, so they scale with the rest of the board.
 const BOARD_DECORATIONS = [
+  { src: brutusAsset, top: 0.06, left: 0.01, size: 160, rotation: -16, alt: 'uwu brutus' },
   { src: uwuBatAsset, top: 0.06, left: 0.69, size: 120, rotation: -16, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.03, left: 0.65, size: 90, rotation: -2, alt: 'uwu bat' },
   { src: uwuBatAsset, top: 0.06, left: 0.62, size: 110, rotation: 20, alt: 'uwu bat' },

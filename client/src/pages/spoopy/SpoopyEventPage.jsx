@@ -880,8 +880,8 @@ function SpectatorView({ event }) {
   // fallback produces a new array each render, which would re-fire the
   // teamMarkers useMemo below unnecessarily.
   const teams = useMemo(() => event?.teams ?? [], [event?.teams]);
-  // null => "all teams" overlay mode. Otherwise a specific teamId.
-  const [selectedTeamId, setSelectedTeamId] = useState(() => teams[0]?.teamId ?? null);
+  // Start on the shared overlay; spectators can still pick an individual team.
+  const [selectedTeamId, setSelectedTeamId] = useState('__all__');
   const selectedTeam = teams.find((t) => t.teamId === selectedTeamId) ?? null;
   const isAllTeams = selectedTeamId === '__all__';
 
@@ -1401,6 +1401,51 @@ function CompleteRecap({ event, myTeam }) {
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7}>
           love, lemon{' '}
         </Text>
+
+        {/* Credits — hand-rolled shoutouts to the people who made the art and
+            helped test. Kept at the very bottom so it reads like a signoff
+            scroll after lemon's note. */}
+        <VStack spacing={3} pt={6} maxW="560px">
+          <VStack spacing={1}>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="xs"
+              opacity={0.6}
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              art by
+            </Text>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="md"
+              color={SPOOPY_COLORS.pumpkinLight}
+            >
+              allure, mossy way, fartscapes, lemon
+            </Text>
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="xs" opacity={0.75}>
+              (no ai art, ever!)
+            </Text>
+          </VStack>
+          <VStack spacing={1}>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="xs"
+              opacity={0.6}
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              playtested by
+            </Text>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="md"
+              color={SPOOPY_COLORS.pumpkinLight}
+            >
+              callalillly, mossy way, fartscapes, pirate kanye
+            </Text>
+          </VStack>
+        </VStack>
       </VStack>
     </Center>
   );

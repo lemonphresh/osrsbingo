@@ -865,6 +865,8 @@ function TeamCard({ team, allTeams, refetch }) {
   const [pendingMemberId, setPendingMemberId] = useState('');
   const [channelInput, setChannelInput] = useState(team.discordChannelId ?? '');
   const [roleInput, setRoleInput] = useState(team.discordRoleId ?? '');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkInput, setBulkInput] = useState('');
 
   const [updateMembers, { loading: updatingMembers }] = useMutation(UPDATE_SPOOPY_TEAM_MEMBERS, {
     onCompleted: () => {
@@ -907,6 +909,32 @@ function TeamCard({ team, allTeams, refetch }) {
     updateMembers({
       variables: { teamId: team.teamId, members: members.filter((m) => m !== discordId) },
     });
+  };
+
+  // Pulls 17-19 digit sequences out of free-form text so you can paste a
+  // newline-separated list, a comma-separated list, or whatever Discord's
+  // "copy user id" dumped into the clipboard. Dedupes against both the
+  // existing roster and other teams in the event.
+  const bulkParsed = useMemo(() => {
+    const matches = bulkInput.match(/\b\d{17,19}\b/g) ?? [];
+    const unique = Array.from(new Set(matches));
+    const alreadyOnTeam = unique.filter((id) => members.includes(id));
+    const onAnotherTeam = unique.filter(
+      (id) => !members.includes(id) && otherTeamMemberMap.has(id)
+    );
+    const toAdd = unique.filter(
+      (id) => !members.includes(id) && !otherTeamMemberMap.has(id)
+    );
+    return { unique, alreadyOnTeam, onAnotherTeam, toAdd };
+  }, [bulkInput, members, otherTeamMemberMap]);
+
+  const handleBulkAdd = () => {
+    if (bulkParsed.toAdd.length === 0) return;
+    updateMembers({
+      variables: { teamId: team.teamId, members: [...members, ...bulkParsed.toAdd] },
+    });
+    setBulkInput('');
+    setBulkOpen(false);
   };
 
   return (
@@ -969,6 +997,77 @@ function TeamCard({ team, allTeams, refetch }) {
             conflictTeam={pendingMemberId ? otherTeamMemberMap.get(pendingMemberId) ?? null : null}
             isDuplicateInForm={pendingMemberId ? members.includes(pendingMemberId) : false}
           />
+          <Button
+            size="xs"
+            mt={1}
+            variant="ghost"
+            color={SPOOPY_COLORS.paper}
+            opacity={0.75}
+            _hover={{ bg: SPOOPY_COLORS.nightMist, opacity: 1 }}
+            onClick={() => setBulkOpen((v) => !v)}
+          >
+            {bulkOpen ? 'hide bulk add' : 'bulk add discord ids'}
+          </Button>
+          {bulkOpen && (
+            <Box mt={2}>
+              <Textarea
+                {...themedInput({
+                  size: 'sm',
+                  fontFamily: 'mono',
+                  rows: 6,
+                  placeholder:
+                    'paste discord ids (one per line, or comma separated)\n228313155070197760\n260516244971716609\n...',
+                })}
+                value={bulkInput}
+                onChange={(e) => setBulkInput(e.target.value)}
+              />
+              {bulkInput.trim() && (
+                <VStack align="start" spacing={0} mt={2} fontSize="xs" opacity={0.85}>
+                  <Text>
+                    found <b>{bulkParsed.unique.length}</b> id
+                    {bulkParsed.unique.length === 1 ? '' : 's'} ·{' '}
+                    <Text as="span" color={SPOOPY_COLORS.pumpkinLight}>
+                      {bulkParsed.toAdd.length} new
+                    </Text>
+                    {bulkParsed.alreadyOnTeam.length > 0 && (
+                      <> · {bulkParsed.alreadyOnTeam.length} already on this team</>
+                    )}
+                    {bulkParsed.onAnotherTeam.length > 0 && (
+                      <>
+                        {' '}
+                        ·{' '}
+                        <Text as="span" color={SPOOPY_COLORS.ember}>
+                          {bulkParsed.onAnotherTeam.length} on another team (skipped)
+                        </Text>
+                      </>
+                    )}
+                  </Text>
+                </VStack>
+              )}
+              <HStack mt={2} spacing={2}>
+                <Button
+                  size="xs"
+                  bg={SPOOPY_COLORS.pumpkin}
+                  color={SPOOPY_COLORS.paper}
+                  _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+                  isLoading={updatingMembers}
+                  isDisabled={bulkParsed.toAdd.length === 0}
+                  onClick={handleBulkAdd}
+                >
+                  add {bulkParsed.toAdd.length || ''}
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color={SPOOPY_COLORS.paper}
+                  _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                  onClick={() => setBulkInput('')}
+                >
+                  clear
+                </Button>
+              </HStack>
+            </Box>
+          )}
         </Box>
 
         {members.length > 0 && (
@@ -1320,6 +1419,67 @@ function AdminManager({ event, refetch }) {
   );
 }
 
+// ── Leftover pool banner ─────────────────────────────────────────────────
+// Shown at the top of the admin surface once the event wraps. Each team's
+// `poolAllocation` is split evenly across the house tiles they can visit, so
+// any house a team never completes leaves that share of their allocation
+// unclaimed. We just surface the delta (budget - paid out) so the running
+// admin can divvy it up however they like (rebate the winner, extra prize,
+// save it for next year — out of band of this app).
+function LeftoverPoolBanner({ event }) {
+  const teams = event.teams ?? [];
+  const totalPaid = teams.reduce((sum, t) => sum + (t.gpEarned ?? 0), 0);
+  const budget = event.prizePool ?? 0;
+  const leftover = Math.max(0, budget - totalPaid);
+  const forfeited = teams.filter((t) => t.cashedOut?.forfeited).length;
+  return (
+    <Box
+      bg={SPOOPY_COLORS.nightDeep}
+      border="2px solid"
+      borderColor={SPOOPY_COLORS.pumpkin}
+      borderRadius="md"
+      px={5}
+      py={4}
+    >
+      <HStack justify="space-between" wrap="wrap" gap={4}>
+        <VStack align="start" spacing={1}>
+          <HStack spacing={2}>
+            <SpoopyUiIcon name="candy" color={SPOOPY_COLORS.pumpkin} />
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" color={SPOOPY_COLORS.paper}>
+              leftover prize pool
+            </Text>
+          </HStack>
+          <Text fontSize="xs" opacity={0.7}>
+            gp from unvisited houses + forfeited teams. divvy up however you want (rebate the winner,
+            extra prize, roll into next event).
+          </Text>
+        </VStack>
+        <VStack align="end" spacing={0}>
+          <Text fontFamily={SPOOPY_FONTS.heading} fontSize="2xl" color={SPOOPY_COLORS.pumpkinLight}>
+            {formatCandy(leftover)}
+          </Text>
+          <Text fontSize="xs" opacity={0.75}>
+            {formatGp(leftover)}
+          </Text>
+        </VStack>
+      </HStack>
+      <HStack mt={3} spacing={4} fontSize="xs" opacity={0.8} wrap="wrap">
+        <Text>
+          budget: <b>{formatCandy(budget)}</b> ({formatGp(budget)})
+        </Text>
+        <Text>
+          paid out: <b>{formatCandy(totalPaid)}</b> ({formatGp(totalPaid)})
+        </Text>
+        {forfeited > 0 && (
+          <Text>
+            {forfeited} team{forfeited === 1 ? '' : 's'} forfeited at curfew
+          </Text>
+        )}
+      </HStack>
+    </Box>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────
 
 export default function SpoopyAdminPage() {
@@ -1407,6 +1567,8 @@ export default function SpoopyAdminPage() {
         </HStack>
 
         {!event && <CreateEventForm refetch={refetch} />}
+
+        {event?.status === 'COMPLETE' && <LeftoverPoolBanner event={event} />}
 
         {event && (
           <Accordion allowMultiple defaultIndex={[0]}>
