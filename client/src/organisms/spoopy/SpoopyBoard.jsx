@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { FaMoon, FaSun, FaSearchMinus, FaSearchPlus } from 'react-icons/fa';
 import SpoopyTile from './SpoopyTile';
-import { SPOOPY_COLORS, SPOOPY_FONTS, CONNECTOR_COLOR } from './spoopyTheme';
+import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
 import paperTextureAsset from '../../assets/spoopy/paper.jpg';
 import uwuBatAsset from '../../assets/spoopy/uwubat.webp';
@@ -856,15 +856,12 @@ export default function SpoopyBoard({
                     })()}
                   </Box>
                 </Box>
-                {/* Connector cells (visual-only) */}
-                {cells &&
-                  cells.flatMap((row, r) =>
-                    row.map((cell, c) =>
-                      cell?.kind === 'connector' ? (
-                        <ConnectorCell key={`conn-${r}-${c}`} row={r} col={c} />
-                      ) : null
-                    )
-                  )}
+                {/* Dashed trail overlay walking tile → connector → tile → ...
+                    through the whole path. Rendered BEFORE tiles in DOM order
+                    so the sticker squares paint over the line and the trail
+                    reads as "ducking under" each house. */}
+                <BoardPathOverlay cells={cells} dims={dims} cellSize={cellSize} />
+
 
                 {/* Real tiles as paper stickers */}
                 {tiles.map((tile) => {
@@ -1119,19 +1116,104 @@ export default function SpoopyBoard({
   );
 }
 
-// A single connector "dash" — dot-in-a-cell so it reads as a trail between
-// tiles without competing with the sticker treatments.
-function ConnectorCell({ row, col }) {
+// Collect every unique edge between adjacent on-path cells (tiles +
+// connectors). Uses 8-directional neighbors with the same "don't squeeze
+// past a tile corner" rule as the server importer in
+// spoopyBoardImporter.js. Returns an array of [[r1, c1], [r2, c2]] pairs.
+// Walking only the four "forward" directions guarantees each edge gets
+// emitted exactly once. Handles branching layouts (main road + side
+// streets) naturally — every link gets a dash.
+const FWD_DIRS = [
+  [0, 1],   // right
+  [1, 0],   // down
+  [1, 1],   // down-right
+  [1, -1],  // down-left
+];
+function computeSpoopyPathEdges(cells, dims) {
+  if (!cells || !dims?.rows || !dims?.cols) return [];
+  const { rows, cols } = dims;
+  const onPath = (r, c) => {
+    const kind = cells[r]?.[c]?.kind;
+    return kind === 'tile' || kind === 'connector';
+  };
+  // Draw-time rule is stricter than the server's canStepBetween: a diagonal
+  // link gets skipped whenever EITHER orthogonal in-between cell is already
+  // on-path (tile OR connector). The orthogonal route around is going to be
+  // drawn by its own edges, so the diagonal would just be a redundant
+  // shortcut — produced the triangle artifacts at corners.
+  const canStep = (fr, fc, tr, tc) => {
+    if (fr === tr || fc === tc) return true;
+    if (onPath(fr, tc)) return false;
+    if (onPath(tr, fc)) return false;
+    return true;
+  };
+  const edges = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if (!onPath(r, c)) continue;
+      for (const [dr, dc] of FWD_DIRS) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
+        if (!onPath(nr, nc)) continue;
+        if (!canStep(r, c, nr, nc)) continue;
+        edges.push([[r, c], [nr, nc]]);
+      }
+    }
+  }
+  return edges;
+}
+
+// Dashed SVG trail along every link in the on-path graph. Each cell-to-cell
+// edge becomes an M...L segment so branches (main road vs. side streets)
+// all render with their own dashes. Painted below the tile grid children in
+// DOM order so sticker squares paint over the line and it reads as a trail
+// that ducks under each house. Pumpkin-orange dashes with a soft dark
+// shadow for lift.
+function BoardPathOverlay({ cells, dims, cellSize }) {
+  const edges = useMemo(
+    () => computeSpoopyPathEdges(cells, dims),
+    [cells, dims],
+  );
+  if (edges.length === 0) return null;
+  const width = dims.cols * cellSize;
+  const height = dims.rows * cellSize;
+  const toX = (c) => (c + 0.5) * cellSize;
+  const toY = (r) => (r + 0.5) * cellSize;
+  const d = edges
+    .map(([[r1, c1], [r2, c2]]) => `M ${toX(c1)} ${toY(r1)} L ${toX(c2)} ${toY(r2)}`)
+    .join(' ');
   return (
     <Box
-      gridColumn={col + 1}
-      gridRow={row + 1}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
+      as="svg"
+      position="absolute"
+      top="0"
+      left="0"
+      width={`${width}px`}
+      height={`${height}px`}
+      viewBox={`0 0 ${width} ${height}`}
       pointerEvents="none"
+      style={{ overflow: 'visible' }}
     >
-      <Box width="14px" height="14px" borderRadius="full" bg={CONNECTOR_COLOR} opacity={0.55} />
+      <path
+        d={d}
+        fill="none"
+        stroke="rgba(0, 0, 0, 0.28)"
+        strokeWidth={7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="12 10"
+        transform="translate(0, 2)"
+      />
+      <path
+        d={d}
+        fill="none"
+        stroke={SPOOPY_COLORS.pumpkin}
+        strokeWidth={5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="12 10"
+      />
     </Box>
   );
 }
