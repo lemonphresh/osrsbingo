@@ -104,13 +104,17 @@ function buildTask(kind, target, amount, ctx, errors, { dropsOverride = null } =
   if (!target) { errors.push(`${ctx}: missing task_target`); return null; }
   if (amount == null || amount <= 0) { errors.push(`${ctx}: missing or invalid task_amount`); return null; }
   const task = { kind: normalizedKind, target, amount };
-  // Only `uniques` tasks consult the drop list — registry isn't used for
-  // other kinds, so the override field is meaningless there.
+  // Drop-list override attaches on both `uniques` (registry-backed by
+  // default; the override overrides) and `custom` (no registry fallback at
+  // all; the override is the only way to scope which drops count — used by
+  // multi-boss custom tasks like "any uniques from Duke or Vardorvis").
   //   - `pending: true, drops: []` → "I'll fill this in later via admin UI"
   //     (UI shows a "drops pending" placeholder, no registry fallback).
   //   - `pending: false, drops: [...]` → authoritative list baked into the
   //     CSV. UI renders exactly these as the badge grid.
-  if (dropsOverride && normalizedKind === TASK_KINDS.UNIQUES) {
+  const canCarryDrops =
+    normalizedKind === TASK_KINDS.UNIQUES || normalizedKind === TASK_KINDS.CUSTOM;
+  if (dropsOverride && canCarryDrops) {
     task.acceptable_drops = dropsOverride.drops;
   }
   return task;

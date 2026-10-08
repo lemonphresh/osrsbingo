@@ -10,25 +10,35 @@ const TASK_KIND_LABELS = {
   custom:      'custom',
 };
 
-// Resolves the accepted-drop list for a uniques task. Three cases, in order:
+// Resolves the accepted-drop list for a drop-scoped task. Handles two kinds:
+//   - uniques: has registry fallback by `task.target`
+//   - custom:  no registry fallback; only an explicit `acceptable_drops`
+//     carries meaning (used by multi-boss custom tasks like "any uniques
+//     from Duke or Vardorvis combined", where the override is the scoped
+//     drop list across the two bosses)
+// Resolution order:
 //   1. task.acceptable_drops is a non-empty array → use it verbatim (override)
 //   2. task.acceptable_drops is an empty array → override declared but list
 //      pending; return { pending: true } so the UI can show a placeholder
 //      rather than falling back to the registry (which would be wrong — the
 //      author explicitly opted out of registry data)
-//   3. task.acceptable_drops is undefined → fall back to the content registry
-//      lookup by `task.target`
-// Returns null if the task isn't a uniques task or has no target. Also returns
-// null when fallback is in play but the registry doesn't know the target
+//   3. task.acceptable_drops is undefined AND kind is uniques → fall back to
+//      the content registry lookup by `task.target`
+// Returns null if the task doesn't carry drops. Also returns null when
+// uniques fallback is in play but the registry doesn't know the target
 // (usually a typo in the CSV).
 function useUniquesDrops(task) {
   const { soloBosses, raids, minigames } = useContentRegistry();
   return useMemo(() => {
-    if (task?.kind !== 'uniques' || !task.target) return null;
+    if (!task?.target) return null;
+    const kind = task.kind;
+    if (kind !== 'uniques' && kind !== 'custom') return null;
     if (Array.isArray(task.acceptable_drops)) {
       if (task.acceptable_drops.length === 0) return { pending: true, drops: [] };
       return { drops: task.acceptable_drops };
     }
+    // No explicit override → only uniques tasks fall back to the registry.
+    if (kind !== 'uniques') return null;
     const key = String(task.target).toLowerCase().trim();
     const entry = soloBosses?.[key] ?? raids?.[key] ?? minigames?.[key];
     if (!entry?.drops?.length) return null;

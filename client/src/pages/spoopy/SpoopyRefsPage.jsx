@@ -54,6 +54,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from '../../organisms/spoopy/spoopyTheme';
 import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWildyLocations';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import { AcceptableUniquesDrops } from '../../organisms/spoopy/SpoopyTaskCard';
 
 // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -438,6 +439,11 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
             buttonColorScheme="green"
             {...normalizeSpoopyTask(task)}
           />
+
+          {/* Accepted-drops panel for uniques / drop-scoped custom tasks.
+              Lets refs eyeball what counts without jumping to the player
+              view. Component short-circuits to null for other task kinds. */}
+          <AcceptableUniquesDrops task={task} />
 
           {pending.length > 0 && (
             <Section label="pending" count={pending.length} color={SPOOPY_COLORS.pumpkin}>

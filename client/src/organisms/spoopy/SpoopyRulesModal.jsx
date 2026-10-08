@@ -194,6 +194,25 @@ export default function SpoopyRulesModal({
             </RuleCard>
 
             <Box>
+              <SectionLabel>How to win</SectionLabel>
+              <VStack align="stretch" spacing={2.5}>
+                <RuleRow badge="finish first" color={SPOOPY_COLORS.pumpkin}>
+                  The first team to complete the entire board and cash out at the scary house wins
+                  outright.
+                </RuleRow>
+                <RuleRow badge="biggest haul" color={SPOOPY_COLORS.green}>
+                  If nobody clears the whole board before curfew, the team with the most candy
+                  cashed out at the scary house takes it.
+                </RuleRow>
+                <RuleRow badge="the big reveal" color={SPOOPY_COLORS.emberDeep}>
+                  No team is announced as the winner during the game. Other teams keep playing in
+                  the dark. All finishes, cash-outs, and candy totals stay hidden until the night
+                  ends.
+                </RuleRow>
+              </VStack>
+            </Box>
+
+            <Box>
               <SectionLabel>Getting started and moving</SectionLabel>
               <VStack align="stretch" spacing={2.5}>
                 <RuleRow badge="ready up" color={SPOOPY_COLORS.green}>
