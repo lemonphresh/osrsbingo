@@ -32,6 +32,7 @@ import {
 import { useApolloClient, useMutation } from '@apollo/client';
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useLoginUrl, useSignupUrl } from '../utils/loginRedirect';
 import { FETCH_WOM_STATS, FETCH_PLAYER_COMP_HISTORY } from '../graphql/draftOperations';
 import { INCREMENT_TEAM_BALANCE } from '../graphql/mutations';
 import usePageTitle from '../hooks/usePageTitle';
@@ -266,6 +267,8 @@ function exportToCsv(teams, preset, compData) {
 export default function TeamBalancerPage() {
   usePageTitle('Team Balancer');
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
+  const signupUrl = useSignupUrl();
   const { showToast } = useToastContext();
   const apolloClient = useApolloClient();
   const [incrementTeamBalance] = useMutation(INCREMENT_TEAM_BALANCE);
@@ -444,10 +447,10 @@ export default function TeamBalancerPage() {
                 Create a free account or log in to balance teams from your RSN list.
               </Text>
               <HStack spacing={3} justify="center">
-                <Link to="/login">
+                <Link to={loginUrl}>
                   <Button colorScheme="purple">Log In</Button>
                 </Link>
-                <Link to="/signup">
+                <Link to={signupUrl}>
                   <Button
                     variant="outline"
                     colorScheme="whiteAlpha"

@@ -1,52 +1,34 @@
 /* eslint-disable no-restricted-globals */
-const CACHE_NAME = 'osrs-bingo-hub-v1';
+const CACHE_NAME = 'osrs-bingo-hub-v2';
 
-// Assets to cache on install
-const PRECACHE_ASSETS = ['/', '/index.html', '/bundle.js', '/manifest.json'];
-
-// Install - cache core assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(PRECACHE_ASSETS);
-    })
-  );
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-// Activate - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))
-      );
-    })
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    )
   );
   self.clients.claim();
 });
 
-// Fetch - network first, fall back to cache
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
+  if (request.url.includes('/graphql') || request.url.includes('/api/')) return;
+  if (request.headers.get('upgrade') === 'websocket') return;
 
-  // Skip GraphQL and API requests - always go to network
-  if (request.url.includes('/graphql') || request.url.includes('/api/')) {
-    return;
-  }
-
-  // Skip WebSocket upgrades
-  if (request.headers.get('upgrade') === 'websocket') {
-    return;
-  }
+  // Navigations always go straight to the network — otherwise a stale cached
+  // index.html can reference hashed JS filenames from a prior deploy that no
+  // longer exist, leaving the page blank until a manual refresh.
+  if (request.mode === 'navigate') return;
 
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful responses for static assets
         if (
           response.ok &&
           (request.url.endsWith('.js') ||
@@ -62,18 +44,6 @@ self.addEventListener('fetch', (event) => {
         }
         return response;
       })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-          // If it's a navigation request, return cached index.html
-          if (request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
+      .catch(() => caches.match(request).then((cached) => cached || new Response('Offline', { status: 503 })))
   );
 });

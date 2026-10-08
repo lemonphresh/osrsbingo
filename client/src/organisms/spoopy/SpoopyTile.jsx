@@ -10,6 +10,7 @@ import {
   STICKER_SHADOW_HOVER,
   SPOOPY_COLORS,
 } from './spoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 import houseAsset from '../../assets/spoopy/house.webp';
 import pumpkinAsset from '../../assets/spoopy/pumpkin.webp';
@@ -66,6 +67,7 @@ export default function SpoopyTile({
   const resolvedAsset = assetSrc ?? TILE_ASSETS[tileType] ?? null;
   const rotation = stickerRotationDeg(tileId);
   const isInteractive = status !== 'locked' && typeof onClick === 'function';
+  const isActive = status === 'unlocked';
   const clampedProgress = Math.max(0, Math.min(100, Number(progress) || 0));
   const showProgress =
     clampedProgress > 0 &&
@@ -77,7 +79,6 @@ export default function SpoopyTile({
       as={isInteractive ? 'button' : 'div'}
       onClick={isInteractive ? onClick : undefined}
       aria-label={ariaLabel ?? `${meta.label}${status ? ` (${status})` : ''}`}
-      title={ariaLabel ?? meta.label}
       position="relative"
       width={`${size}px`}
       height={`${size}px`}
@@ -107,6 +108,31 @@ export default function SpoopyTile({
       outline="4px solid"
       outlineColor={statusMeta.ring}
       outlineOffset="0px"
+      sx={
+        isActive
+          ? {
+              '@keyframes spoopyActiveTilePulse': {
+                '0%, 100%': { opacity: 0.65, transform: 'scale(0.96)' },
+                '50%': { opacity: 0.92, transform: 'scale(1.14)' },
+              },
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                borderRadius: 'inherit',
+                boxShadow: `0 0 16px ${SPOOPY_COLORS.greenLight}`,
+                pointerEvents: 'none',
+                animation: 'spoopyActiveTilePulse 5s ease-in-out infinite',
+              },
+              '@media (prefers-reduced-motion: reduce)': {
+                '&::after': {
+                  animation: 'none',
+                  opacity: 1,
+                  transform: 'none',
+                },
+              },
+            }
+          : undefined
+      }
     >
       {resolvedAsset ? (
         <img
@@ -153,25 +179,62 @@ export default function SpoopyTile({
       )}
 
       {status === 'complete' && (
-        <Box
-          position="absolute"
-          top="-6px"
-          right="-6px"
-          bg={SPOOPY_COLORS.green}
-          color={SPOOPY_COLORS.paper}
-          borderRadius="full"
-          width="18px"
-          height="18px"
-          fontSize="12px"
-          fontWeight="bold"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          border={`2px solid ${SPOOPY_COLORS.paper}`}
-          transform={`rotate(${-rotation}deg)`}
-        >
-          ✓
-        </Box>
+        <>
+          {/* Hand-drawn "crossed off" X. Two slightly-curved strokes drawn as
+              quadratic Beziers so they don't read as perfectly geometric.
+              Pointer-events off so clicks still fall through to the tile. */}
+          <Box
+            position="absolute"
+            inset={0}
+            pointerEvents="none"
+            aria-hidden="true"
+            overflow="visible"
+          >
+            <svg
+              viewBox="0 0 100 100"
+              width="100%"
+              height="100%"
+              preserveAspectRatio="none"
+              style={{ overflow: 'visible' }}
+            >
+              <path
+                d="M 10 12 Q 48 46, 92 90"
+                stroke={SPOOPY_COLORS.ember}
+                strokeWidth="7"
+                strokeLinecap="round"
+                fill="none"
+                opacity="0.85"
+              />
+              <path
+                d="M 92 10 Q 50 54, 8 92"
+                stroke={SPOOPY_COLORS.ember}
+                strokeWidth="7"
+                strokeLinecap="round"
+                fill="none"
+                opacity="0.85"
+              />
+            </svg>
+          </Box>
+          <Box
+            position="absolute"
+            top="-6px"
+            right="-6px"
+            bg={SPOOPY_COLORS.green}
+            color={SPOOPY_COLORS.paper}
+            borderRadius="full"
+            width="18px"
+            height="18px"
+            fontSize="12px"
+            fontWeight="bold"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            border={`2px solid ${SPOOPY_COLORS.paper}`}
+            transform={`rotate(${-rotation}deg)`}
+          >
+            <SpoopyUiIcon name="check" data-testid="spoopy-complete-check" />
+          </Box>
+        </>
       )}
 
       {status === 'submitted' && (

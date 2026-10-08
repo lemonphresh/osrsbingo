@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   Box,
   HStack,
@@ -19,6 +19,7 @@ import {
   FaVolumeUp,
 } from 'react-icons/fa';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Floating spooky-lofi ambiance widget. Mounts a *youtube-nocookie* iframe
 // (same domain rainbow uses on its "event not started" screen — reliably
@@ -66,6 +67,12 @@ function sendCommand(iframe, func, args = []) {
 }
 
 export default function SpoopyAmbiancePlayer({ videoId }) {
+  // Published to the document root as `--spoopy-ambiance-height` so other
+  // floating widgets (SpoopyBoard's zoom pill) can stack above us without
+  // needing to know whether we're collapsed or expanded. See the layout
+  // effect further down.
+  const widgetRef = useRef(null);
+
   // Default to collapsed + muted on FIRST visit so the widget isn't loud or
   // in the user's face. Once they touch it, their choices persist and get
   // restored on subsequent loads.
@@ -100,6 +107,26 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
   useEffect(() => {
     try { localStorage.setItem(LS_KEY_COLLAPSED, String(collapsed)); } catch (_) {}
   }, [collapsed]);
+
+  // Publish our actual rendered height to a CSS custom property on <body> so
+  // other floating widgets can stack above us (eg SpoopyBoard's zoom pill
+  // uses `calc(var(--spoopy-ambiance-height))` to slide up when we expand).
+  // ResizeObserver covers both the collapse toggle AND the responsive width
+  // breakpoint change.
+  useLayoutEffect(() => {
+    const el = widgetRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+    const publish = () => {
+      document.body.style.setProperty('--spoopy-ambiance-height', `${el.offsetHeight}px`);
+    };
+    publish();
+    const ro = new ResizeObserver(publish);
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      document.body.style.removeProperty('--spoopy-ambiance-height');
+    };
+  }, []);
   useEffect(() => {
     try { localStorage.setItem(LS_KEY_VOLUME, String(volume)); } catch (_) {}
   }, [volume]);
@@ -245,6 +272,8 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
 
   return (
     <Box
+      ref={widgetRef}
+      data-tutorial-target="ambiance"
       position="fixed"
       bottom={{ base: 3, md: 5 }}
       right={{ base: 3, md: 5 }}
@@ -254,6 +283,8 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
       borderColor={SPOOPY_COLORS.nightMist}
       borderRadius="lg"
       p={2}
+      // Shared width so the ambiance + zoom pills (SpoopyBoard) line up.
+      w={{ base: 'calc(100vw - 24px)', md: '420px' }}
       boxShadow="0 10px 24px rgba(0,0,0,0.55)"
       color={SPOOPY_COLORS.paper}
     >
@@ -270,15 +301,17 @@ export default function SpoopyAmbiancePlayer({ videoId }) {
               onClick={togglePlay}
             />
           </Tooltip>
-          <Text
+          <HStack
             fontSize="xs"
             fontFamily={SPOOPY_FONTS.hand}
             opacity={0.85}
-            display={{ base: 'none', md: 'block' }}
+            display={{ base: 'none', md: 'inline-flex' }}
             whiteSpace="nowrap"
+            spacing={1.5}
           >
-            🎃 spooky ambiance
-          </Text>
+            <SpoopyUiIcon name="music" />
+            <Text>spooky ambiance</Text>
+          </HStack>
         </HStack>
 
         <HStack spacing={2} minW="110px">

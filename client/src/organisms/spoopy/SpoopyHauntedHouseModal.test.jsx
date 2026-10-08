@@ -97,7 +97,10 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(screen.getByText('!nogoingback')).toBeInTheDocument();
   });
 
-  test('confirm (gauntletLevel>=3) reveals the bonus task and reward', () => {
+  test('confirm (gauntletLevel>=3) reveals the bonus task but no gp amount', () => {
+    // bonusRewardGp display was intentionally stripped — real payout is the
+    // state machine's 3× per-house share, not whatever's on this prop. The
+    // task description still renders so players know what to submit.
     render(
       <SpoopyHauntedHouseModal
         isOpen
@@ -109,7 +112,7 @@ describe('SpoopyHauntedHouseModal', () => {
       />,
     );
     expect(screen.getByText(/group photo/)).toBeInTheDocument();
-    expect(screen.getByText(/\+1,000,000 gp/)).toBeInTheDocument();
+    expect(screen.queryByText(/\+1,000,000 gp/)).not.toBeInTheDocument();
   });
 
   test('confirm shows the discord submit commands when a tileId is present', () => {

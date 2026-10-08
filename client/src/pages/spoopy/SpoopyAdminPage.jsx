@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box,
@@ -12,6 +13,7 @@ import {
   Badge,
   Button,
   Input,
+  Textarea,
   Divider,
   Accordion,
   AccordionItem,
@@ -30,6 +32,8 @@ import {
   CREATE_SPOOPY_EVENT,
   SEED_SPOOPY_MOCK_EVENT,
   REFRESH_SPOOPY_EVENT_FROM_MOCK,
+  IMPORT_SPOOPY_EVENT_FROM_FIXTURES,
+  SET_SPOOPY_TILE_ACCEPTABLE_DROPS,
   UPDATE_SPOOPY_EVENT_STATUS,
   UPDATE_SPOOPY_EVENT_BOARD,
   SET_SPOOPY_EVENT_PASSWORD,
@@ -49,6 +53,8 @@ import DiscordMemberInput from '../../molecules/DiscordMemberInput';
 import SpoopyMemberTag from '../../organisms/spoopy/SpoopyMemberTag';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp, GP_PER_CANDY } from '../../organisms/spoopy/spoopyCurrency';
+import { isDevEnv } from '../../organisms/spoopy/spoopyDevUtils';
+import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 
 // ── UI atoms — shared paper-on-night styling for form panels ────────────
 
@@ -309,7 +315,7 @@ function CreateEventForm({ refetch }) {
           />
         </Box>
         <Box>
-          <FieldLabel hint="optional — staff-only notification channel">
+          <FieldLabel hint="optional. staff-only notification channel">
             staff discord channel id
           </FieldLabel>
           <Input
@@ -338,8 +344,9 @@ function CreateEventForm({ refetch }) {
             _hover={{ bg: SPOOPY_COLORS.nightMist }}
             isLoading={seeding}
             onClick={() => seedMock()}
+            leftIcon={<SpoopyUiIcon name="pumpkin" />}
           >
-            🎃 or, seed the mock event
+            or, seed the mock event
           </Button>
         </HStack>
       </VStack>
@@ -396,6 +403,23 @@ function EventSettingsPanel({ event, refetch }) {
       refetch();
     },
     onError: (e) => toast({ title: 'refresh failed', description: e.message, status: 'error' }),
+  });
+
+  const [importEvent, { loading: importing }] = useMutation(IMPORT_SPOOPY_EVENT_FROM_FIXTURES, {
+    onCompleted: (res) => {
+      const warnings = res?.importSpoopyEventFromFixtures?.warnings ?? [];
+      toast({
+        title: 'board + content imported',
+        description: warnings.length
+          ? `${warnings.length} warning${warnings.length === 1 ? '' : 's'}:\n${warnings.join('\n')}`
+          : 'no warnings. clean import.',
+        status: warnings.length ? 'warning' : 'success',
+        duration: warnings.length ? 15000 : 4000,
+        isClosable: true,
+      });
+      refetch();
+    },
+    onError: (e) => toast({ title: 'import failed', description: e.message, status: 'error', duration: 15000, isClosable: true }),
   });
 
   const [updateStatus, { loading: updatingStatus }] = useMutation(UPDATE_SPOOPY_EVENT_STATUS, {
@@ -462,7 +486,45 @@ function EventSettingsPanel({ event, refetch }) {
                 color={event.status === s ? SPOOPY_COLORS.paper : SPOOPY_COLORS.paper}
                 borderColor={SPOOPY_COLORS.nightMist}
                 _hover={{ bg: SPOOPY_COLORS.nightMist }}
-                onClick={() => updateStatus({ variables: { eventId: event.eventId, status: s } })}
+                onClick={() => {
+                  // Going live is irreversible in effect (team pool allocations
+                  // get snapshotted, curfewStart snaps to now if unset/future).
+                  // Force a confirm so it can't happen from a stray click.
+                  if (event.status === 'SETUP' && s === 'ACTIVE') {
+                    const teamCount = (event.teams ?? []).length;
+                    if (
+                      !window.confirm(
+                        `flip "${event.eventName}" to ACTIVE now?\n\n` +
+                          `• ${teamCount} team${teamCount === 1 ? '' : 's'} will have their prize pool share locked in\n` +
+                          '• the event will go live and boards become interactable\n' +
+                          '• curfew start time will snap to now\n\n' +
+                          'this cannot be cleanly undone.',
+                      )
+                    ) {
+                      return;
+                    }
+                  }
+                  // Ending the event early runs handleCurfew on every team,
+                  // which forfeits ALL banked gp for any team that hasn't
+                  // cashed out at the candybag. Guaranteed to make people mad
+                  // if fired by accident.
+                  if (event.status === 'ACTIVE' && s === 'COMPLETE') {
+                    const teams = event.teams ?? [];
+                    const atRisk = teams.filter((t) => !t.cashedOut).length;
+                    if (
+                      !window.confirm(
+                        `end "${event.eventName}" NOW?\n\n` +
+                          `• ${atRisk} team${atRisk === 1 ? '' : 's'} have not cashed out yet — they will forfeit ALL banked gp\n` +
+                          '• event goes into recap mode, no more board interactions\n' +
+                          '• this normally auto-fires at curfew end. only click if you really mean it.\n\n' +
+                          'this cannot be undone.',
+                      )
+                    ) {
+                      return;
+                    }
+                  }
+                  updateStatus({ variables: { eventId: event.eventId, status: s } });
+                }}
               >
                 {s.toLowerCase()}
               </Button>
@@ -611,8 +673,9 @@ function EventSettingsPanel({ event, refetch }) {
             isLoading={syncingWom}
             isDisabled={!event.womCompetitionId}
             onClick={() => syncWom({ variables: { eventId: event.eventId } })}
+            leftIcon={<SpoopyUiIcon name="sync" />}
           >
-            🔄 sync now
+            sync now
           </Button>
         </HStack>
         {event.lastWomSyncAt && (
@@ -630,26 +693,43 @@ function EventSettingsPanel({ event, refetch }) {
 
       <VStack align="stretch" spacing={2}>
         <Text fontSize="xs" opacity={0.6} textTransform="uppercase" letterSpacing="wider">
-          content refresh
+          content
         </Text>
         <Text fontSize="xs" opacity={0.55}>
-          re-runs the mock generator and overwrites the event's board, tile content, and
-          haunted-house config in place. team state (unlocked tiles, gp, submissions) is preserved —
-          this only rewrites the static content the mock produces (dialog copy, discord commands,
-          tile types).
+          drop <Text as="span" fontFamily="mono">board.csv</Text> and{' '}
+          <Text as="span" fontFamily="mono">content.csv</Text> into{' '}
+          <Text as="span" fontFamily="mono">server/utils/spoopy/fixtures/</Text> and hit import.
+          overwrites the event's board, tile content, haunted-house config, and starting tile in
+          place. team state (unlocked tiles, gp, submissions) is preserved. every non-start /
+          non-candybag tile on the board must have a matching row in the content CSV.
         </Text>
-        <Button
-          size="sm"
-          alignSelf="flex-start"
-          variant="outline"
-          borderColor={SPOOPY_COLORS.nightMist}
-          color={SPOOPY_COLORS.paper}
-          _hover={{ bg: SPOOPY_COLORS.nightMist }}
-          isLoading={refreshing}
-          onClick={() => refreshEvent({ variables: { eventId: event.eventId } })}
-        >
-          🔄 refresh content from mock
-        </Button>
+        <HStack spacing={2}>
+          <Button
+            size="sm"
+            bg={SPOOPY_COLORS.pumpkin}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+            isLoading={importing}
+            onClick={() => importEvent({ variables: { eventId: event.eventId } })}
+            leftIcon={<SpoopyUiIcon name="import" />}
+          >
+            import board + content
+          </Button>
+          {isDevEnv() && (
+            <Button
+              size="sm"
+              variant="outline"
+              borderColor={SPOOPY_COLORS.nightMist}
+              color={SPOOPY_COLORS.paper}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+              isLoading={refreshing}
+              onClick={() => refreshEvent({ variables: { eventId: event.eventId } })}
+              leftIcon={<SpoopyUiIcon name="sync" />}
+            >
+              refresh content from mock (dev only)
+            </Button>
+          )}
+        </HStack>
       </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -785,6 +865,8 @@ function TeamCard({ team, allTeams, refetch }) {
   const [pendingMemberId, setPendingMemberId] = useState('');
   const [channelInput, setChannelInput] = useState(team.discordChannelId ?? '');
   const [roleInput, setRoleInput] = useState(team.discordRoleId ?? '');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkInput, setBulkInput] = useState('');
 
   const [updateMembers, { loading: updatingMembers }] = useMutation(UPDATE_SPOOPY_TEAM_MEMBERS, {
     onCompleted: () => {
@@ -827,6 +909,32 @@ function TeamCard({ team, allTeams, refetch }) {
     updateMembers({
       variables: { teamId: team.teamId, members: members.filter((m) => m !== discordId) },
     });
+  };
+
+  // Pulls 17-19 digit sequences out of free-form text so you can paste a
+  // newline-separated list, a comma-separated list, or whatever Discord's
+  // "copy user id" dumped into the clipboard. Dedupes against both the
+  // existing roster and other teams in the event.
+  const bulkParsed = useMemo(() => {
+    const matches = bulkInput.match(/\b\d{17,19}\b/g) ?? [];
+    const unique = Array.from(new Set(matches));
+    const alreadyOnTeam = unique.filter((id) => members.includes(id));
+    const onAnotherTeam = unique.filter(
+      (id) => !members.includes(id) && otherTeamMemberMap.has(id)
+    );
+    const toAdd = unique.filter(
+      (id) => !members.includes(id) && !otherTeamMemberMap.has(id)
+    );
+    return { unique, alreadyOnTeam, onAnotherTeam, toAdd };
+  }, [bulkInput, members, otherTeamMemberMap]);
+
+  const handleBulkAdd = () => {
+    if (bulkParsed.toAdd.length === 0) return;
+    updateMembers({
+      variables: { teamId: team.teamId, members: [...members, ...bulkParsed.toAdd] },
+    });
+    setBulkInput('');
+    setBulkOpen(false);
   };
 
   return (
@@ -889,6 +997,77 @@ function TeamCard({ team, allTeams, refetch }) {
             conflictTeam={pendingMemberId ? otherTeamMemberMap.get(pendingMemberId) ?? null : null}
             isDuplicateInForm={pendingMemberId ? members.includes(pendingMemberId) : false}
           />
+          <Button
+            size="xs"
+            mt={1}
+            variant="ghost"
+            color={SPOOPY_COLORS.paper}
+            opacity={0.75}
+            _hover={{ bg: SPOOPY_COLORS.nightMist, opacity: 1 }}
+            onClick={() => setBulkOpen((v) => !v)}
+          >
+            {bulkOpen ? 'hide bulk add' : 'bulk add discord ids'}
+          </Button>
+          {bulkOpen && (
+            <Box mt={2}>
+              <Textarea
+                {...themedInput({
+                  size: 'sm',
+                  fontFamily: 'mono',
+                  rows: 6,
+                  placeholder:
+                    'paste discord ids (one per line, or comma separated)\n228313155070197760\n260516244971716609\n...',
+                })}
+                value={bulkInput}
+                onChange={(e) => setBulkInput(e.target.value)}
+              />
+              {bulkInput.trim() && (
+                <VStack align="start" spacing={0} mt={2} fontSize="xs" opacity={0.85}>
+                  <Text>
+                    found <b>{bulkParsed.unique.length}</b> id
+                    {bulkParsed.unique.length === 1 ? '' : 's'} ·{' '}
+                    <Text as="span" color={SPOOPY_COLORS.pumpkinLight}>
+                      {bulkParsed.toAdd.length} new
+                    </Text>
+                    {bulkParsed.alreadyOnTeam.length > 0 && (
+                      <> · {bulkParsed.alreadyOnTeam.length} already on this team</>
+                    )}
+                    {bulkParsed.onAnotherTeam.length > 0 && (
+                      <>
+                        {' '}
+                        ·{' '}
+                        <Text as="span" color={SPOOPY_COLORS.ember}>
+                          {bulkParsed.onAnotherTeam.length} on another team (skipped)
+                        </Text>
+                      </>
+                    )}
+                  </Text>
+                </VStack>
+              )}
+              <HStack mt={2} spacing={2}>
+                <Button
+                  size="xs"
+                  bg={SPOOPY_COLORS.pumpkin}
+                  color={SPOOPY_COLORS.paper}
+                  _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+                  isLoading={updatingMembers}
+                  isDisabled={bulkParsed.toAdd.length === 0}
+                  onClick={handleBulkAdd}
+                >
+                  add {bulkParsed.toAdd.length || ''}
+                </Button>
+                <Button
+                  size="xs"
+                  variant="ghost"
+                  color={SPOOPY_COLORS.paper}
+                  _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                  onClick={() => setBulkInput('')}
+                >
+                  clear
+                </Button>
+              </HStack>
+            </Box>
+          )}
         </Box>
 
         {members.length > 0 && (
@@ -917,7 +1096,7 @@ function TeamCard({ team, allTeams, refetch }) {
             />
           </Box>
           <Box flex="1 1 200px" minW="180px">
-            <FieldLabel hint="optional — pings on ref actions">role id</FieldLabel>
+            <FieldLabel hint="optional. pings on ref actions">role id</FieldLabel>
             <Input
               {...themedInput({ size: 'sm', fontFamily: 'mono' })}
               value={roleInput}
@@ -966,6 +1145,181 @@ function TeamManager({ event, refetch }) {
         </VStack>
       )}
     </VStack>
+  );
+}
+
+// ── Drop overrides ───────────────────────────────────────────────────────
+//
+// Walks the event's contentById looking for uniques tasks whose
+// `acceptable_drops` is defined (even if empty) — the signal set by the
+// importer when the author checked the override flag in the CSV. For each
+// one we render a textarea so the admin can type the actual accepted drop
+// list (one per line) that players will see on the tile. Empty list → UI
+// shows the "accepted drops pending" placeholder.
+
+function collectDropOverrideEntries(event) {
+  const out = [];
+  const contentById = event?.contentById ?? {};
+  for (const [tileId, content] of Object.entries(contentById)) {
+    if (!content) continue;
+    // Non-house tiles store the single task at the top level.
+    if (content.task?.kind === 'uniques' && Array.isArray(content.task.acceptable_drops)) {
+      out.push({
+        tileId,
+        option: null,
+        tileType: content.tile_type,
+        label: `${content.flavor_text ? `${content.flavor_text} · ` : ''}${content.tile_type} · ${content.task.target}`,
+        target: content.task.target,
+        drops: content.task.acceptable_drops,
+      });
+    }
+    // House tiles store a task per option.
+    const options = content.dialog?.options ?? {};
+    for (const letter of ['a', 'b']) {
+      const opt = options[letter];
+      if (opt?.task?.kind === 'uniques' && Array.isArray(opt.task.acceptable_drops)) {
+        out.push({
+          tileId,
+          option: letter,
+          tileType: 'house',
+          label: `${content.flavor_text ? `${content.flavor_text}'s ` : ''}house · option ${letter} · ${opt.task.target}`,
+          target: opt.task.target,
+          drops: opt.task.acceptable_drops,
+        });
+      }
+    }
+  }
+  // Stable sort by tileId then option so the panel order doesn't flap.
+  out.sort((a, b) => {
+    if (a.tileId !== b.tileId) return a.tileId < b.tileId ? -1 : 1;
+    return (a.option ?? '').localeCompare(b.option ?? '');
+  });
+  return out;
+}
+
+function DropOverrideManager({ event, refetch }) {
+  const entries = useMemo(() => collectDropOverrideEntries(event), [event]);
+
+  if (entries.length === 0) {
+    return (
+      <Text fontSize="sm" opacity={0.6}>
+        no tiles are flagged for a custom drop list. add the override column (yes) in content.csv
+        and re-import to make one appear here.
+      </Text>
+    );
+  }
+
+  return (
+    <VStack align="stretch" spacing={3}>
+      <Text fontSize="xs" opacity={0.6}>
+        each tile below has <Text as="span" fontFamily="mono">acceptable_drops_override</Text> set
+        in the content CSV. type the actual accepted drops (one per line) that count toward
+        completion. empty list = players see a "drops pending" placeholder on the tile.
+      </Text>
+      {entries.map((entry) => (
+        <DropOverrideRow
+          key={`${entry.tileId}:${entry.option ?? 'root'}`}
+          event={event}
+          entry={entry}
+          refetch={refetch}
+        />
+      ))}
+    </VStack>
+  );
+}
+
+function DropOverrideRow({ event, entry, refetch }) {
+  const toast = useToast();
+  const [text, setText] = useState(() => (entry.drops || []).join('\n'));
+
+  const [save, { loading }] = useMutation(SET_SPOOPY_TILE_ACCEPTABLE_DROPS, {
+    onCompleted: () => {
+      toast({ title: 'drop list saved', status: 'success' });
+      refetch();
+    },
+    onError: (e) =>
+      toast({ title: 'save failed', description: e.message, status: 'error' }),
+  });
+
+  const parseLines = (raw) =>
+    raw
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+
+  const onSave = () => {
+    save({
+      variables: {
+        eventId: event.eventId,
+        tileId: entry.tileId,
+        option: entry.option,
+        drops: parseLines(text),
+      },
+    });
+  };
+
+  const currentCount = parseLines(text).length;
+  const savedCount = (entry.drops || []).length;
+  const dirty = currentCount !== savedCount || parseLines(text).join('|') !== (entry.drops || []).join('|');
+
+  return (
+    <Box
+      bg={SPOOPY_COLORS.nightDeep}
+      border="1px solid"
+      borderColor={SPOOPY_COLORS.nightMist}
+      borderRadius="md"
+      p={3}
+    >
+      <HStack justify="space-between" align="start" mb={2}>
+        <VStack align="start" spacing={0} minW={0}>
+          <Text fontSize="sm" fontWeight="semibold">
+            {entry.label}
+          </Text>
+          <Text fontSize="10px" opacity={0.5} fontFamily="mono">
+            {entry.tileId}
+            {entry.option ? ` · option ${entry.option}` : ''}
+          </Text>
+        </VStack>
+        <Badge
+          bg={savedCount > 0 ? SPOOPY_COLORS.green : SPOOPY_COLORS.ember}
+          color={SPOOPY_COLORS.paper}
+          fontSize="10px"
+        >
+          {savedCount > 0 ? `${savedCount} saved` : 'pending'}
+        </Badge>
+      </HStack>
+      <Textarea
+        {...themedInput({ fontFamily: 'mono' })}
+        rows={6}
+        resize="vertical"
+        placeholder={'one accepted drop per line\n(e.g. "Torva Helm")'}
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <HStack mt={2} justify="space-between">
+        <Text fontSize="xs" opacity={0.55}>
+          {currentCount} drop{currentCount === 1 ? '' : 's'} in textarea
+          {dirty && (
+            <Text as="span" color={SPOOPY_COLORS.pumpkinLight}>
+              {' '}
+              · unsaved
+            </Text>
+          )}
+        </Text>
+        <Button
+          size="sm"
+          variant="outline"
+          borderColor={SPOOPY_COLORS.nightMist}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.nightMist }}
+          isLoading={loading}
+          isDisabled={!dirty}
+          onClick={onSave}
+        >
+          save
+        </Button>
+      </HStack>
+    </Box>
   );
 }
 
@@ -1065,10 +1419,72 @@ function AdminManager({ event, refetch }) {
   );
 }
 
+// ── Leftover pool banner ─────────────────────────────────────────────────
+// Shown at the top of the admin surface once the event wraps. Each team's
+// `poolAllocation` is split evenly across the house tiles they can visit, so
+// any house a team never completes leaves that share of their allocation
+// unclaimed. We just surface the delta (budget - paid out) so the running
+// admin can divvy it up however they like (rebate the winner, extra prize,
+// save it for next year — out of band of this app).
+function LeftoverPoolBanner({ event }) {
+  const teams = event.teams ?? [];
+  const totalPaid = teams.reduce((sum, t) => sum + (t.gpEarned ?? 0), 0);
+  const budget = event.prizePool ?? 0;
+  const leftover = Math.max(0, budget - totalPaid);
+  const forfeited = teams.filter((t) => t.cashedOut?.forfeited).length;
+  return (
+    <Box
+      bg={SPOOPY_COLORS.nightDeep}
+      border="2px solid"
+      borderColor={SPOOPY_COLORS.pumpkin}
+      borderRadius="md"
+      px={5}
+      py={4}
+    >
+      <HStack justify="space-between" wrap="wrap" gap={4}>
+        <VStack align="start" spacing={1}>
+          <HStack spacing={2}>
+            <SpoopyUiIcon name="candy" color={SPOOPY_COLORS.pumpkin} />
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" color={SPOOPY_COLORS.paper}>
+              leftover prize pool
+            </Text>
+          </HStack>
+          <Text fontSize="xs" opacity={0.7}>
+            gp from unvisited houses + forfeited teams. divvy up however you want (rebate the winner,
+            extra prize, roll into next event).
+          </Text>
+        </VStack>
+        <VStack align="end" spacing={0}>
+          <Text fontFamily={SPOOPY_FONTS.heading} fontSize="2xl" color={SPOOPY_COLORS.pumpkinLight}>
+            {formatCandy(leftover)}
+          </Text>
+          <Text fontSize="xs" opacity={0.75}>
+            {formatGp(leftover)}
+          </Text>
+        </VStack>
+      </HStack>
+      <HStack mt={3} spacing={4} fontSize="xs" opacity={0.8} wrap="wrap">
+        <Text>
+          budget: <b>{formatCandy(budget)}</b> ({formatGp(budget)})
+        </Text>
+        <Text>
+          paid out: <b>{formatCandy(totalPaid)}</b> ({formatGp(totalPaid)})
+        </Text>
+        {forfeited > 0 && (
+          <Text>
+            {forfeited} team{forfeited === 1 ? '' : 's'} forfeited at curfew
+          </Text>
+        )}
+      </HStack>
+    </Box>
+  );
+}
+
 // ── Main page ────────────────────────────────────────────────────────────
 
 export default function SpoopyAdminPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const loginUrl = useLoginUrl();
   const { data, loading, refetch } = useQuery(GET_SPOOPY_ADMIN_EVENT, {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
@@ -1083,7 +1499,7 @@ export default function SpoopyAdminPage() {
       </Shell>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
 
   const events = data?.spoopyEvents ?? [];
   const event = events[0] ?? null;
@@ -1096,7 +1512,7 @@ export default function SpoopyAdminPage() {
       <Shell>
         <Center py={20}>
           <VStack>
-            <Text fontSize="2xl">🔒</Text>
+            <SpoopyUiIcon name="lock" boxSize={6} />
             <Text opacity={0.7}>admin access only</Text>
           </VStack>
         </Center>
@@ -1151,6 +1567,8 @@ export default function SpoopyAdminPage() {
         </HStack>
 
         {!event && <CreateEventForm refetch={refetch} />}
+
+        {event?.status === 'COMPLETE' && <LeftoverPoolBanner event={event} />}
 
         {event && (
           <Accordion allowMultiple defaultIndex={[0]}>
@@ -1222,6 +1640,35 @@ export default function SpoopyAdminPage() {
                 <Box flex={1} textAlign="left">
                   <HStack spacing={2}>
                     <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                      drop overrides
+                    </Text>
+                    {(() => {
+                      const n = collectDropOverrideEntries(event).length;
+                      return n > 0 ? (
+                        <Badge bg={SPOOPY_COLORS.purple} color={SPOOPY_COLORS.paper} borderRadius="full">
+                          {n}
+                        </Badge>
+                      ) : null;
+                    })()}
+                  </HStack>
+                </Box>
+                <AccordionIcon color={SPOOPY_COLORS.paper} />
+              </AccordionButton>
+              <AccordionPanel px={4} pb={4} bg={SPOOPY_COLORS.nightDeep}>
+                <DropOverrideManager event={event} refetch={refetch} />
+              </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              mb={3}
+            >
+              <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
+                <Box flex={1} textAlign="left">
+                  <HStack spacing={2}>
+                    <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
                       admins & refs
                     </Text>
                     {adminCount > 0 && (
@@ -1254,7 +1701,10 @@ function Shell({ event, children }) {
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
         <HStack justify="space-between" wrap="wrap" gap={2}>
           <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-            🎃 spoopy admin
+            <HStack as="span" spacing={2}>
+              <SpoopyUiIcon name="admin" />
+              <Text as="span">spoopy admin</Text>
+            </HStack>
           </Heading>
           {event && (
             <HStack spacing={2} fontSize="sm" opacity={0.75}>

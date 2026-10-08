@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link as RouterLink, Navigate } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery } from '@apollo/client';
 import {
   Box,
@@ -109,9 +110,10 @@ function CampaignCard({ campaign }) {
 const WhodunnitLanding = () => {
   usePageTitle('A Gielinor Whodunnit');
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
   const { data, loading } = useQuery(GET_MY_WHODUNNIT_CAMPAIGNS, { skip: !user });
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
   const campaigns = data?.myWhodunnitCampaigns || [];

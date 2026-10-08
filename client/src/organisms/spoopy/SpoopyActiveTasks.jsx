@@ -3,6 +3,7 @@ import { Box, Heading, HStack, SimpleGrid, Text, VStack, Badge, Tooltip } from '
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from './spoopyTheme';
 import { taskLine } from './SpoopyTaskCard';
 import { useSpoopyTheme } from './useSpoopyTheme';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // A task is WOM-trackable when the sync module knows how to auto-fill it —
 // currently skilling_xp and boss_kc kinds. Kept in the client so we can
@@ -28,7 +29,10 @@ function WomSyncStatus({ event }) {
   if (!event?.lastWomSyncAt) {
     return (
       <Tooltip label="the auto-sync will run within a few minutes of event start" fontSize="xs">
-        <Text>🔄 wom sync: waiting for first run</Text>
+        <HStack as="span" spacing={1.5}>
+          <SpoopyUiIcon name="sync" />
+          <Text as="span">wom sync: waiting for first run</Text>
+        </HStack>
       </Tooltip>
     );
   }
@@ -48,9 +52,10 @@ function WomSyncStatus({ event }) {
       })}`}
       fontSize="xs"
     >
-      <Text>
-        🔄 synced {ago} ago · {nextLabel}
-      </Text>
+      <HStack as="span" spacing={1.5}>
+        <SpoopyUiIcon name="sync" />
+        <Text as="span">synced {ago} ago · {nextLabel}</Text>
+      </HStack>
     </Tooltip>
   );
 }
@@ -142,9 +147,12 @@ export default function SpoopyActiveTasks({ event, teamState, onTileClick }) {
               <WomSyncStatus event={event} />
             </Box>
           )}
-          <Text opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-            nothing on your plate right now — go trick-or-treating 🎃
-          </Text>
+          <HStack color={SPOOPY_COLORS.paper} opacity={0.85} spacing={2}>
+            <SpoopyUiIcon name="pumpkin" />
+            <Text fontFamily={SPOOPY_FONTS.hand}>
+              nothing on your plate right now. go trick-or-treating
+            </Text>
+          </HStack>
         </VStack>
       </Box>
     );
@@ -254,7 +262,8 @@ function ActiveTaskCard({ entry, onClick, womEnabled, surfaceBg, surfaceInk, sur
                 fontSize="10px"
                 title="auto-tracked from wise old man data"
               >
-                🔄 wom
+                <SpoopyUiIcon name="sync" mr={1} />
+                wom
               </Badge>
             )}
             <Badge

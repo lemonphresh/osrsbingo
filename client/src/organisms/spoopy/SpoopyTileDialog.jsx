@@ -16,6 +16,7 @@ import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
 import { MockDevButton, MockDevChoiceButtons } from './SpoopyStartModal';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Trick-or-treat dialog for a house tile. Renders the prompt + two options
 // (labels only — outcomes are hidden until choice is locked, per the
@@ -50,7 +51,8 @@ export default function SpoopyTileDialog({
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
-  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.pumpkinDeep;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
@@ -71,11 +73,14 @@ export default function SpoopyTileDialog({
             <Heading
               size="md"
               fontFamily={SPOOPY_FONTS.heading}
-              color={SPOOPY_COLORS.pumpkinDeep}
+              color={titleColor}
               letterSpacing="wider"
               textAlign="center"
             >
-              🎃 trick or treat
+              <HStack as="span" justify="center" spacing={2}>
+                <SpoopyUiIcon name="pumpkin" />
+                <span>trick or treat</span>
+              </HStack>
             </Heading>
 
             <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" lineHeight={1.5}>
@@ -174,8 +179,12 @@ function OutcomeBadge({ outcome }) {
       bg={isTreat ? SPOOPY_COLORS.green : SPOOPY_COLORS.ember}
       color={SPOOPY_COLORS.paper}
       textTransform="lowercase"
+      display="inline-flex"
+      alignItems="center"
+      gap={1}
     >
-      {isTreat ? '🍬 treat' : '👻 trick'}
+      <SpoopyUiIcon name={isTreat ? 'candy' : 'ghost'} />
+      {isTreat ? 'treat' : 'trick'}
     </Badge>
   );
 }
@@ -239,21 +248,20 @@ function DiscordSubmitHint({ tileId, taskKind, womEnabled }) {
       fontSize="sm"
       mt={1}
     >
-      <Text fontFamily={SPOOPY_FONTS.hand} mb={2}>
-        📸 submit from discord
-      </Text>
+      <HStack spacing={2} mb={2}>
+        <SpoopyUiIcon name="camera" />
+        <Text fontFamily={SPOOPY_FONTS.hand}>submit from discord</Text>
+      </HStack>
       {isMetric && (
-        <Text
-          fontSize="xs"
-          color={SPOOPY_COLORS.pumpkinLight}
-          mb={2}
-          fontFamily={SPOOPY_FONTS.hand}
-        >
-          {womEnabled
-            ? '⚠️ pre-screenshot first — this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking.'
-            : "⚠️ don't forget a pre-screenshot first so the ref has a baseline to compare against."}
-          only one team member needs to do this.
-        </Text>
+        <HStack align="flex-start" spacing={2} mb={2} color={SPOOPY_COLORS.pumpkinLight}>
+          <SpoopyUiIcon name="warning" mt={0.5} />
+          <Text fontSize="xs" fontFamily={SPOOPY_FONTS.hand}>
+            {womEnabled
+              ? 'pre-screenshot first. this task auto-tracks your progress from the moment a ref approves it. no pre = no auto-tracking. '
+              : "don't forget a pre-screenshot first so the ref has a baseline to compare against. "}
+            only one team member needs to do this.
+          </Text>
+        </HStack>
       )}
       <VStack align="stretch" spacing={2}>
         <Box>

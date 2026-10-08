@@ -15,7 +15,8 @@ import {
   useColorMode,
 } from '@chakra-ui/react';
 import { LockIcon, ArrowForwardIcon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { buildLoginUrl, buildSignupUrl } from '../utils/loginRedirect';
 
 /**
  * Modal that prompts unauthenticated users to sign up or log in
@@ -24,6 +25,8 @@ import { useNavigate } from 'react-router-dom';
 const AuthRequiredModal = ({ isOpen, onClose, feature = 'this feature' }) => {
   const { colorMode } = useColorMode();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}`;
 
   const colors = {
     dark: {
@@ -44,12 +47,12 @@ const AuthRequiredModal = ({ isOpen, onClose, feature = 'this feature' }) => {
 
   const handleSignUp = () => {
     onClose();
-    navigate('/signup');
+    navigate(buildSignupUrl(returnTo));
   };
 
   const handleLogin = () => {
     onClose();
-    navigate('/login');
+    navigate(buildLoginUrl(returnTo));
   };
 
   return (

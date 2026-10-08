@@ -11,6 +11,7 @@ import {
   Center,
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl, useSignupUrl } from '../../utils/loginRedirect';
 import { useQuery } from '@apollo/client';
 import { AddIcon, ExternalLinkIcon, SettingsIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../providers/AuthProvider';
@@ -99,6 +100,8 @@ function DashboardCard({ dashboard }) {
 export default function GroupDashboardListPage() {
   usePageTitle('My Group Dashboards');
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
+  const signupUrl = useSignupUrl();
   const { data, loading } = useQuery(GET_MY_GROUP_DASHBOARDS, { skip: !user });
 
   if (!user) {
@@ -118,7 +121,7 @@ export default function GroupDashboardListPage() {
           <VStack spacing={3} w="100%">
             <Button
               as={RouterLink}
-              to="/login"
+              to={loginUrl}
               colorScheme="purple"
               size="md"
               w="100%"
@@ -127,7 +130,7 @@ export default function GroupDashboardListPage() {
             </Button>
             <Button
               as={RouterLink}
-              to="/signup"
+              to={signupUrl}
               variant="outline"
               colorScheme="purple"
               size="md"

@@ -18,7 +18,17 @@ const TILE_STATUSES = {
 };
 
 const OPTION_OUTCOMES = { TRICK: 'trick', TREAT: 'treat' };
-const TASK_KINDS = { SKILLING_XP: 'skilling_xp', BOSS_KC: 'boss_kc', UNIQUES: 'uniques' };
+// `custom` is the catch-all for "for funsies" tasks that don't map cleanly to
+// skilling xp / boss kc / uniques (silly screenshots, irl challenges, minigame
+// points, etc.). task_target is free text, task_amount is a positive integer
+// count. No WOM auto-fill, no registry drop lookup — refs just eyeball the
+// proof and bump progress by hand.
+const TASK_KINDS = {
+  SKILLING_XP: 'skilling_xp',
+  BOSS_KC: 'boss_kc',
+  UNIQUES: 'uniques',
+  CUSTOM: 'custom',
+};
 
 // Maps the labels the content author uses in the board spreadsheet to internal tile types.
 // Comparisons are case-insensitive and whitespace-trimmed (see spoopyBoardImporter).

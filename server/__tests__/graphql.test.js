@@ -1774,6 +1774,31 @@ describe('Spoopy Subscriptions', () => {
     `);
     expect(result.valid).toBe(true);
   });
+
+  test('SPOOPY_SPECTATOR_BOARD_UPDATED', () => {
+    const result = validateOperation(`
+      subscription SpoopySpectatorBoardUpdated($teamId: ID!) {
+        spoopySpectatorBoardUpdated(teamId: $teamId) {
+          teamId
+          gpEarned
+          tiles
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
+
+  test('SPOOPY_SPECTATOR_EVENT_UPDATED', () => {
+    const result = validateOperation(`
+      subscription SpoopySpectatorEventUpdated($eventId: ID!) {
+        spoopySpectatorEventUpdated(eventId: $eventId) {
+          eventId
+          status
+        }
+      }
+    `);
+    expect(result.valid).toBe(true);
+  });
 });
 
 console.log('✅ GraphQL Schema Validation Tests Loaded');

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -655,6 +656,7 @@ function TileGroup({
 export default function RainbowRefsPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { showToast } = useToastContext();
+  const loginUrl = useLoginUrl();
   const { playSubmissionReceived } = useCompletionSound();
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNewSubs, setPendingNewSubs] = useState(0);
@@ -991,7 +993,7 @@ export default function RainbowRefsPage() {
       </Center>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!isAdmin) {
     return (
       <Center h="60vh">

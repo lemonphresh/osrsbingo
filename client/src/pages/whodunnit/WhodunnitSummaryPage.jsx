@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useParams, Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery } from '@apollo/client';
 import {
   Box,
@@ -26,6 +27,7 @@ import usePageTitle from '../../hooks/usePageTitle';
 const WhodunnitSummaryPage = () => {
   const { campaignId } = useParams();
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
   usePageTitle('Casebook Report • A Gielinor Whodunnit');
   const toast = useToast();
   const reportRef = useRef(null);
@@ -39,7 +41,7 @@ const WhodunnitSummaryPage = () => {
     skip: !user,
   });
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
   if (loading || storyLoading) {

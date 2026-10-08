@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery, useMutation } from '@apollo/client';
 import {
   Box,
@@ -751,6 +752,7 @@ function TeamManager({ event, refetch }) {
 
 export default function RainbowAdminPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const loginUrl = useLoginUrl();
 
   const {
     data: eventData,
@@ -772,7 +774,7 @@ export default function RainbowAdminPage() {
       </Center>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!canAccess) {
     return (
       <Center h="60vh">

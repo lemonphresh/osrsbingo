@@ -36,6 +36,11 @@ export const SPOOPY_COLORS = {
   // Ember accent — used sparingly (curfew countdown, forfeit warning)
   ember:        '#8c3a2d',
   emberDeep:    '#5a2018',
+
+  // Toxic / radioactive slime — the dark-mode accent for titles and headings.
+  // Reads as glowing against the deep purple night; keeps the halloween vibe
+  // without the pumpkin-orange getting lost on a dark background.
+  slime:        '#9fff5c',
 };
 
 // ── Tile-type icon color + placeholder icon (until hand-drawn PNGs land) ──

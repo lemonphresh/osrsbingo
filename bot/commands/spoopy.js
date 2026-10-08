@@ -6,6 +6,16 @@
 // without touching the site.
 
 const getModels = () => require('../../server/db/models');
+const { buildSpoopyTaskLabel } = require('../../server/utils/spoopy/spoopyLabels');
+
+// Produces the human-facing label we show in bot replies for `tile` (a
+// SpoopyTeamTile row). Looks up the board tile + content on the event so the
+// label mirrors what the resolver uses for the Discord ping on completion.
+function labelForTile(event, tile) {
+  const boardTile = event?.board?.tiles?.find((b) => b.id === tile.tileId);
+  const content = event?.contentById?.[tile.tileId];
+  return buildSpoopyTaskLabel(boardTile, content, tile);
+}
 
 // `Op` isn't available as its own module inside bot/node_modules — the bot
 // only transitively pulls sequelize via the server models. Re-export it
@@ -163,14 +173,14 @@ const GAUNTLET_STAGES = [
     level: 2,
     command: 'imserious',
     advanceMsg: (team) =>
-      `🕯️ **${team.teamName}** — a candle flickers on unbidden. you can hear ` +
+      `🕯️ **${team.teamName}**: a candle flickers on unbidden. you can hear ` +
       'whispering somewhere behind the walls. one more step. type `!nogoingback` to commit.',
   },
   {
     level: 3,
     command: 'nogoingback',
     advanceMsg: (team) =>
-      `💀 **${team.teamName}** — the door slams shut behind you. no going back now. ` +
+      `💀 **${team.teamName}**: the door slams shut behind you. no going back now. ` +
       'submit the spooky-house proof with `!spoopysubmit castle` (attach a screenshot).',
   },
 ];
@@ -211,7 +221,7 @@ function makeGauntletCommand(stage) {
       const ctx = await resolveContext(message);
       if (!ctx) {
         return message.reply(
-          '❌ No active Spoopy event for this channel — join a team first before you go poking at spooky doors.',
+          '❌ No active Spoopy event for this channel. Join a team first before you go poking at spooky doors.',
         );
       }
       const { team, event } = ctx;
@@ -264,7 +274,7 @@ module.exports = {
     const ctx = await resolveContext(message);
     if (!ctx) {
       return message.reply(
-        "❌ No active Spoopy event for this channel — make sure your team's Discord channel is registered and you're on the roster.",
+        "❌ No active Spoopy event for this channel. Make sure your team's Discord channel is registered and you're on the roster.",
       );
     }
     const { event, team } = ctx;
@@ -274,7 +284,7 @@ module.exports = {
     if (error) {
       const brokeGauntlet = await resetGauntletIfMidway(team);
       const gauntletNote = brokeGauntlet
-        ? '\n👻 you were mid-gauntlet — the door slammed shut. start over with `!stepinside`.'
+        ? '\n👻 you were mid-gauntlet. the door slammed shut. start over with `!stepinside`.'
         : '';
       return message.reply(error + gauntletNote);
     }
@@ -285,7 +295,7 @@ module.exports = {
     if (tile.tileId === candybagId) {
       if (team.hauntedGauntletLevel < 3) {
         return message.reply(
-          "🚪 you can't just walk into the spooky house. run `!stepinside` first — you'll be given further instructions.",
+          "🚪 you can't just walk into the spooky house. run `!stepinside` first. you'll be given further instructions.",
         );
       }
     } else {
@@ -303,7 +313,7 @@ module.exports = {
         await setGauntletLevel(team, 0);
       }
       return message.reply(
-        `✅ Submission logged for **${tile.tileId}** — pending ref review. Stay spooky! 🎃`,
+        `✅ Submission logged for **${labelForTile(event, tile)}**. Pending ref review. Stay spooky! 🎃`,
       );
     } catch (err) {
       if (err.userFacing) return message.reply(err.userFacing);
@@ -329,7 +339,7 @@ module.exports.spoopypre = {
     const ctx = await resolveContext(message);
     if (!ctx) {
       return message.reply(
-        "❌ No active Spoopy event for this channel — make sure your team's Discord channel is registered and you're on the roster.",
+        "❌ No active Spoopy event for this channel. Make sure your team's Discord channel is registered and you're on the roster.",
       );
     }
     const { event, team } = ctx;
@@ -351,7 +361,7 @@ module.exports.spoopypre = {
     try {
       await createSubmissionRecord({ event, team, tile, type: 'PRE', screenshot, message });
       return message.reply(
-        `📸 Pre-screenshot logged for **${tile.tileId}** — refs will keep it for reference.`,
+        `📸 Pre-screenshot logged for **${labelForTile(event, tile)}**. Refs will keep it for reference.`,
       );
     } catch (err) {
       if (err.userFacing) return message.reply(err.userFacing);
@@ -414,7 +424,7 @@ function makeOptionCommand(letter) {
       const ctx = await resolveContext(message);
       if (!ctx) {
         return message.reply(
-          "❌ No active Spoopy event for this channel — make sure your team's Discord channel is registered and you're on the roster.",
+          "❌ No active Spoopy event for this channel. Make sure your team's Discord channel is registered and you're on the roster.",
         );
       }
       const { event, team } = ctx;
@@ -437,7 +447,7 @@ function makeOptionCommand(letter) {
         } else {
           const ids = chooseable.map((t) => `\`${t.tileId}\``).join(', ');
           return message.reply(
-            `❌ Multiple house tiles are open — please specify which one:\n${ids}\n` +
+            `❌ Multiple house tiles are open. Please specify which one:\n${ids}\n` +
               `Usage: \`!spoopy${letter} <tile-id>\``,
           );
         }
@@ -454,9 +464,9 @@ function makeOptionCommand(letter) {
         const { outcome, label } = await runChoice({ message, event, team, tile, option: letter });
         const emoji = outcome === 'treat' ? '🍬' : outcome === 'trick' ? '👻' : '🎃';
         const outcomeLabel = outcome ? outcome : 'locked';
-        const flavor = label ? ` — "${label}"` : '';
+        const flavor = label ? ` ("${label}")` : '';
         return message.reply(
-          `${emoji} **${team.teamName}** locked option **${letter.toUpperCase()}** (${outcomeLabel}) on ${tile.tileId}${flavor}. Task revealed on the site — submit proof with \`!spoopysubmit ${tile.tileId}\` when done.`,
+          `${emoji} **${team.teamName}** locked option **${letter.toUpperCase()}** (${outcomeLabel}) on ${tile.tileId}${flavor}. Task revealed on the site. Submit proof with \`!spoopysubmit ${tile.tileId}\` when done.`,
         );
       } catch (err) {
         if (err.name === 'StateMachineError') {
@@ -488,7 +498,7 @@ module.exports.nevermind = {
     const ctx = await resolveContext(message);
     if (!ctx) {
       return message.reply(
-        '❌ No active Spoopy event for this channel — nothing to bail out of.',
+        '❌ No active Spoopy event for this channel. Nothing to bail out of.',
       );
     }
     const { team } = ctx;
@@ -511,25 +521,25 @@ module.exports.help = {
   async execute(message) {
     return message.reply(
       [
-        '🎃 **Spoopy Halloween — Commands**',
+        '🎃 **Spoopy Halloween: Commands**',
         '',
         '**House tiles (trick or treat):**',
-        '• `!spoopya [tile-id]` — pick option A. Alias: `!spa`.',
-        '• `!spoopyb [tile-id]` — pick option B. Alias: `!spb`.',
+        '• `!spoopya [tile-id]`: pick option A. Alias: `!spa`.',
+        '• `!spoopyb [tile-id]`: pick option B. Alias: `!spb`.',
         '',
         '**Submitting proof (all tiles):**',
-        '• `!spoopysubmit [tile-id]` — attach a screenshot to submit for approval. Alias: `!sps`.',
-        '• `!spoopypre [tile-id]` — attach a pre-screenshot baseline (informational only). Alias: `!spp`.',
+        '• `!spoopysubmit [tile-id]`: attach a screenshot to submit for approval. Alias: `!sps`.',
+        '• `!spoopypre [tile-id]`: attach a pre-screenshot baseline (informational only). Alias: `!spp`.',
         '',
-        '**Step inside the spooky house (in order — one wrong move and you start over):**',
-        '• `!stepinside` — approach the door.',
-        '• `!imserious` — you swear you can hear something inside.',
-        '• `!nogoingback` — the door slams shut. now you can `!spoopysubmit castle`.',
-        '• `!nevermind` — bail out at any time, no questions asked.',
+        '**Step inside the spooky house (in order, one wrong move and you start over):**',
+        '• `!stepinside`: approach the door.',
+        '• `!imserious`: you swear you can hear something inside.',
+        '• `!nogoingback`: the door slams shut. now you can `!spoopysubmit castle`.',
+        '• `!nevermind`: bail out at any time, no questions asked.',
         '',
         '**Tile aliases:** `start` = the ready-up tile, `castle` = the scary house at the end. Otherwise use the full tile id (shown on the site modal).',
         '',
-        'Refs approve or deny from the site — the outcome is posted back here.',
+        'Refs approve or deny from the site. The outcome is posted back here.',
       ].join('\n'),
     );
   },

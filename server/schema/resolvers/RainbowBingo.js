@@ -12,7 +12,13 @@ const {
 const { TILE_FUN_FACTS } = require('../../utils/rainbow/rainbowFunFacts');
 const { postDiscordEmbed } = require('../../utils/rainbow/rainbowDiscord');
 const { fetchCompetitionParticipations } = require('../../utils/womService');
-const { syncTeamWomProgress, startTeamWomSync, syncTeamWomTile, finalizeTeamWomSync, isSyncInProgress } = require('../../utils/rainbow/rainbowWomSync');
+const {
+  syncTeamWomProgress,
+  startTeamWomSync,
+  syncTeamWomTile,
+  finalizeTeamWomSync,
+  isSyncInProgress,
+} = require('../../utils/rainbow/rainbowWomSync');
 
 const getModels = () => require('../../db/models');
 
@@ -61,7 +67,6 @@ async function postDiscordMessage(channelId, content) {
   }
 }
 
-
 async function sendRainbowDiscordNotification({
   type,
   team,
@@ -82,7 +87,7 @@ async function sendRainbowDiscordNotification({
     }`
   );
 
-  const FRONTEND_URL = process.env.FRONTEND_URL || 'https://osrsbingo.com';
+  const FRONTEND_URL = process.env.FRONTEND_URL || 'https://osrsbingohub.com';
   const teamBoardUrl = team.teamToken ? `${FRONTEND_URL}/eg-rainbow/team/${team.teamToken}` : null;
 
   if (type === 'TILE_COMPLETE') {
@@ -100,12 +105,16 @@ async function sendRainbowDiscordNotification({
         `🩷 **Keep going**\nKeep pushing on those other color branches! Complete the rainbow!`
       );
       if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
-      await postDiscordEmbed(team.discordChannelId, {
-        color: 0xffd700,
-        title: `✨ Capstone ${tileCode} complete!`,
-        description: parts.join('\n\n'),
-        timestamp: new Date().toISOString(),
-      }, { roleId: team.discordRoleId });
+      await postDiscordEmbed(
+        team.discordChannelId,
+        {
+          color: 0xffd700,
+          title: `✨ Capstone ${tileCode} complete!`,
+          description: parts.join('\n\n'),
+          timestamp: new Date().toISOString(),
+        },
+        { roleId: team.discordRoleId }
+      );
     } else {
       const unlockedLines = newlyUnlocked.length
         ? newlyUnlocked
@@ -127,20 +136,28 @@ async function sendRainbowDiscordNotification({
       }
       if (teamBoardUrl) parts.push(`[📋 View your team board](${teamBoardUrl})`);
 
-      await postDiscordEmbed(team.discordChannelId, {
-        color: COLOR_HEX[tileDef?.color] ?? 0x95a5a6,
-        title: `🎉 ${tileCode} complete!`,
-        description: parts.join('\n\n'),
-        timestamp: new Date().toISOString(),
-      }, { roleId: team.discordRoleId });
+      await postDiscordEmbed(
+        team.discordChannelId,
+        {
+          color: COLOR_HEX[tileDef?.color] ?? 0x95a5a6,
+          title: `🎉 ${tileCode} complete!`,
+          description: parts.join('\n\n'),
+          timestamp: new Date().toISOString(),
+        },
+        { roleId: team.discordRoleId }
+      );
     }
   } else if (type === 'BOARD_COMPLETE') {
-    await postDiscordEmbed(team.discordChannelId, {
-      color: 0xffd700,
-      title: '🌈 The board is complete!',
-      description: `${team.teamName} has completed every tile on the Rainbow Bingo board. All seven colors, all seven capstones.\n\nThank you for playing, and for everything the rainbow stands for. We love you so much.`,
-      timestamp: new Date().toISOString(),
-    }, { roleId: team.discordRoleId });
+    await postDiscordEmbed(
+      team.discordChannelId,
+      {
+        color: 0xffd700,
+        title: '🌈 The board is complete!',
+        description: `${team.teamName} has completed every tile on the Rainbow Bingo board. All seven colors, all seven capstones.\n\nThank you for playing, and for everything the rainbow stands for. We love you so much.`,
+        timestamp: new Date().toISOString(),
+      },
+      { roleId: team.discordRoleId }
+    );
   } else if (type === 'DENIED') {
     await postDiscordEmbed(team.discordChannelId, {
       color: 0xe74c3c,
@@ -305,16 +322,20 @@ const Mutation = {
     if (status === 'ACTIVE') {
       for (const team of teams) {
         if (team.discordChannelId && team.teamToken) {
-          await postDiscordEmbed(team.discordChannelId, {
-            color: 0x9b59b6,
-            title: `🌈 Rainbow Bingo has started!`,
-            description: [
-              `**Event password:** \`${event.eventName}\``,
-              `Include this password visibly in every screenshot you submit, like by utilizing the Wise Old Man RuneLite plugin.`,
-              `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
-            ].join('\n\n'),
-            timestamp: new Date().toISOString(),
-          }, { roleId: team.discordRoleId });
+          await postDiscordEmbed(
+            team.discordChannelId,
+            {
+              color: 0x9b59b6,
+              title: `🌈 Rainbow Bingo has started!`,
+              description: [
+                `**Event password:** \`${event.eventName}\``,
+                `Include this password visibly in every screenshot you submit, like by utilizing the Wise Old Man RuneLite plugin.`,
+                `Your team board is live! Bookmark the link below, it's your home base for tracking progress and submitting tiles.\n${siteUrl}/eg-rainbow/team/${team.teamToken}`,
+              ].join('\n\n'),
+              timestamp: new Date().toISOString(),
+            },
+            { roleId: team.discordRoleId }
+          );
         }
       }
     }
@@ -322,15 +343,19 @@ const Mutation = {
     if (status === 'COMPLETE') {
       for (const team of teams) {
         if (team.discordChannelId) {
-          await postDiscordEmbed(team.discordChannelId, {
-            color: 0xffd700,
-            title: `🏳️‍🌈 Rainbow Bingo has ended!`,
-            description: [
-              `That's a wrap! Thank you so much for playing, you all made this event something special.`,
-              `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
-            ].join('\n\n'),
-            timestamp: new Date().toISOString(),
-          }, { roleId: team.discordRoleId });
+          await postDiscordEmbed(
+            team.discordChannelId,
+            {
+              color: 0xffd700,
+              title: `🏳️‍🌈 Rainbow Bingo has ended!`,
+              description: [
+                `That's a wrap! Thank you so much for playing, you all made this event something special.`,
+                `Final standings are up on the event page.\n${siteUrl}/eg-rainbow`,
+              ].join('\n\n'),
+              timestamp: new Date().toISOString(),
+            },
+            { roleId: team.discordRoleId }
+          );
         }
       }
     }
@@ -458,8 +483,12 @@ const Mutation = {
 
     const event = await RainbowEvent.findOne({ where: { eventId: team.eventId } });
     if (!event) throw new UserInputError('No event found for this team');
-    if (event.status === 'SETUP') throw new UserInputError('The event has not started yet. Submissions will open once the event begins!');
-    if (event.status === 'COMPLETE') throw new UserInputError('The event has ended. Submissions are closed. Thanks for playing!');
+    if (event.status === 'SETUP')
+      throw new UserInputError(
+        'The event has not started yet. Submissions will open once the event begins!'
+      );
+    if (event.status === 'COMPLETE')
+      throw new UserInputError('The event has ended. Submissions are closed. Thanks for playing!');
     if (event.status !== 'ACTIVE') throw new UserInputError('No active event for this team');
 
     const teamTile = await RainbowTeamTile.findOne({
@@ -518,7 +547,6 @@ const Mutation = {
       reviewedAt: new Date(),
       denialReason: approved ? null : denialReason ?? null,
     });
-
 
     await pubsub.publish(`RAINBOW_SUBMISSION_REVIEWED_${submission.eventId}`, {
       rainbowSubmissionReviewed: submission,

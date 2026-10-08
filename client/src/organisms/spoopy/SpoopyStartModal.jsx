@@ -16,6 +16,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS } from './spoopyTheme';
 import { useSpoopyTheme } from './useSpoopyTheme';
 import SpoopyCommandCopy from './SpoopyCommandCopy';
+import SpoopyUiIcon from './SpoopyUiIcon';
 
 // Renders the ready-up dialog for the start tile: story intro + task
 // description. Purely informational — actual submissions happen via the
@@ -41,7 +42,8 @@ export default function SpoopyStartModal({
 }) {
   // Hook has to fire before any early-return branch — React requires the
   // same hook order every render.
-  const { surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
+  const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.pumpkinDeep;
   if (!story) return null;
   const paragraphs = composeStoryParagraphs(story, eventPassword);
   const command = story.command;
@@ -66,10 +68,13 @@ export default function SpoopyStartModal({
               <Heading
                 size="md"
                 fontFamily={SPOOPY_FONTS.heading}
-                color={SPOOPY_COLORS.pumpkinDeep}
+                color={titleColor}
                 letterSpacing="wider"
               >
-                🎃 ready up
+                <HStack as="span" spacing={2}>
+                  <SpoopyUiIcon name="pumpkin" />
+                  <span>ready up</span>
+                </HStack>
               </Heading>
               <Badge
                 bg={SPOOPY_COLORS.green}
@@ -160,7 +165,8 @@ export function MockDevButton({ onClick, loading }) {
         color="rgba(0,0,0,0.7)"
         _hover={{ bg: 'rgba(0,0,0,0.05)' }}
       >
-        🧪 send mock pre + submission
+        <SpoopyUiIcon name="flask" mr={1.5} />
+        send mock pre + submission
       </Button>
     </Box>
   );
@@ -186,7 +192,8 @@ export function MockDevChoiceButtons({ onChoose, loading, disabledLetter }) {
           color="rgba(0,0,0,0.7)"
           _hover={{ bg: 'rgba(0,0,0,0.05)' }}
         >
-          🧪 lock option a
+          <SpoopyUiIcon name="flask" mr={1.5} />
+          lock option a
         </Button>
         <Button
           size="xs"
@@ -198,7 +205,8 @@ export function MockDevChoiceButtons({ onChoose, loading, disabledLetter }) {
           color="rgba(0,0,0,0.7)"
           _hover={{ bg: 'rgba(0,0,0,0.05)' }}
         >
-          🧪 lock option b
+          <SpoopyUiIcon name="flask" mr={1.5} />
+          lock option b
         </Button>
       </Box>
     </Box>

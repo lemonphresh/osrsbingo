@@ -812,6 +812,7 @@ const typeDefs = gql`
     hauntedGauntletLevel: Int!
     # Snapshot of the team's share of event.prizePool, set at SETUP→ACTIVE.
     poolAllocation:   Int!
+    mossyWildyLocation: Int
     createdAt:        DateTime
   }
 
@@ -827,6 +828,41 @@ const typeDefs = gql`
     # modal without a separate team query.
     hauntedGauntletLevel: Int!
     tiles:     JSON!   # { [tileId]: { status, choice, outcome, submissionId, completedAt, rewardEarned } }
+  }
+
+  # Public, read-only projection used by the live spectator page. Deliberately
+  # excludes rosters, Discord configuration, team tokens, event passwords,
+  # hidden content, and haunted-house state.
+  type SpoopySpectatorEvent {
+    eventId:      ID!
+    eventName:    String!
+    status:       String!
+    curfewStart:  DateTime
+    curfewEnd:    DateTime
+    board:        JSON!
+    teams:        [SpoopySpectatorTeam!]!
+  }
+
+  type SpoopySpectatorTeam {
+    teamId:    ID!
+    eventId:   ID!
+    teamName:  String!
+    color:     String
+    gpEarned:  Int!
+    cashedOut: JSON
+  }
+
+  type SpoopySpectatorBoardState {
+    eventId:   ID!
+    teamId:    ID!
+    gpEarned:  Int!
+    cashedOut: JSON
+    tiles:     JSON!
+  }
+
+  type SpoopySpectatorEventUpdate {
+    eventId: ID!
+    status:  String!
   }
 
   enum SpoopySubmissionType { PRE FINAL }
@@ -883,6 +919,14 @@ const typeDefs = gql`
     event:     SpoopyEvent
     myTeam:    SpoopyTeam
     teamBoard: SpoopyTeamBoardState
+  }
+
+  # Returned by importSpoopyEventFromFixtures — bundles the updated event with
+  # soft warnings surfaced by parseBoard (isolated tiles, ambiguous cells, etc.)
+  # so the admin can see them in the toast without having to check server logs.
+  type SpoopyImportResult {
+    event:    SpoopyEvent!
+    warnings: [String!]!
   }
 
   input CreateSpoopyEventInput {
@@ -1045,6 +1089,14 @@ const typeDefs = gql`
     spoopyTeam(teamId: ID!): SpoopyTeam
     spoopyTeamBoard(teamId: ID!): SpoopyTeamBoardState
     spoopyTeamBoardByToken(token: String!): SpoopyTeamBoardState
+    # Public only while an event is ACTIVE. These return intentionally limited
+    # projections for anonymous and logged-in spectators.
+    spoopySpectatorEvent: SpoopySpectatorEvent
+    spoopySpectatorTeamBoard(teamId: ID!): SpoopySpectatorBoardState
+    spoopySpectatorAllTeamBoards(eventId: ID!): [SpoopySpectatorBoardState!]!
+    # Admin-only. Returns the current board state for every team on the event
+    # in a single call so the spectator view can overlay all teams at once.
+    spoopyAllTeamBoards(eventId: ID!): [SpoopyTeamBoardState!]!
     spoopySubmissions(eventId: ID!, status: String): [SpoopySubmission!]!
 
     # --- Group Goal Dashboard ---
@@ -1365,8 +1417,27 @@ const typeDefs = gql`
     reviewSpoopySubmission(submissionId: ID!, approved: Boolean!, denialReason: String): SpoopySubmission!
     setSpoopyTileProgress(teamId: ID!, tileId: String!, progress: Int!): SpoopyTeamBoardState!
     completeSpoopyTile(teamId: ID!, tileId: String!): SpoopyTeamBoardState!
+    # Admin-only. Writes a custom accepted-drops list for a uniques tile that
+    # has the override flag set. The 'option' arg is "a" or "b" for a house
+    # option, or null for a non-house tile's single task. Pass an empty array
+    # to reset the list (UI falls back to "drops pending" placeholder).
+    setSpoopyTileAcceptableDrops(
+      eventId: ID!
+      tileId: String!
+      option: String
+      drops: [String!]!
+    ): SpoopyEvent!
     seedSpoopyMockEvent: SpoopyEvent!
     refreshSpoopyEventFromMock(eventId: ID!): SpoopyEvent!
+    # Site-admin only. Reads board.csv + content.csv from server/utils/spoopy/fixtures,
+    # runs the parsers, and overwrites the event's board / content / haunted-house /
+    # startingTileIds in place. Team state (unlocked tiles, gp, submissions) is
+    # preserved. Filenames are optional overrides.
+    importSpoopyEventFromFixtures(
+      eventId: ID!
+      boardFilename: String
+      contentFilename: String
+    ): SpoopyImportResult!
     deleteSpoopyEvent(eventId: ID!): Boolean!
     deleteSpoopyTeam(teamId: ID!): Boolean!
     createSpoopyChoice(input: CreateSpoopyChoiceInput!): SpoopyTeamBoardState!
@@ -2298,6 +2369,9 @@ const typeDefs = gql`
     spoopySubmissionAdded(eventId: ID!): SpoopySubmission!
     spoopySubmissionReviewed(eventId: ID!): SpoopySubmission!
     spoopyTeamBoardUpdated(teamId: ID!): SpoopyTeamBoardState!
+    # Public live feeds expose only the fields required by spectator clients.
+    spoopySpectatorBoardUpdated(teamId: ID!): SpoopySpectatorBoardState!
+    spoopySpectatorEventUpdated(eventId: ID!): SpoopySpectatorEventUpdate!
     # Fires when team roster, admins, or team lifecycle changes on an event
     # so admin dashboards re-render without a page refresh.
     spoopyEventUpdated(eventId: ID!): SpoopyEvent!

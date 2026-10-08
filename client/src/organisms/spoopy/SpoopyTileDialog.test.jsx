@@ -87,7 +87,7 @@ describe('SpoopyTileDialog', () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.getByText(/🍬 treat/i)).toBeInTheDocument();
+    expect(screen.getByText(/^treat$/i)).toBeInTheDocument();
   });
 
   test('shows the outcome badge for the locked choice (trick)', () => {
@@ -100,6 +100,6 @@ describe('SpoopyTileDialog', () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.getByText(/👻 trick/i)).toBeInTheDocument();
+    expect(screen.getByText(/^trick$/i)).toBeInTheDocument();
   });
 });

@@ -223,6 +223,9 @@ const resolvers = {
   SpoopyEvent: {
     ...SpoopyResolvers.SpoopyEvent,
   },
+  SpoopyTeam: {
+    ...SpoopyResolvers.SpoopyTeam,
+  },
   SpoopySubmission: {
     ...SpoopyResolvers.SpoopySubmission,
   },

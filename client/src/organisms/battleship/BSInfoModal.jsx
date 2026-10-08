@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import {
   Modal,
   ModalOverlay,
@@ -269,6 +270,7 @@ function BSInfoContent({ embedded = false }) {
 }
 
 export function BSLanding() {
+  const loginUrl = useLoginUrl();
   return (
     <Box flex="1" minH="100vh" bg={NAVY}>
       {/* Hero */}
@@ -315,7 +317,7 @@ export function BSLanding() {
               <Box w="4px" h="1px" bg={BORDER} />
             </HStack>
             <HStack spacing={3} pt={2} flexWrap="wrap">
-              <RouterLink to="/login">
+              <RouterLink to={loginUrl}>
                 <Button
                   size="sm"
                   colorScheme="cyan"

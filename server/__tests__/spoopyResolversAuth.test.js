@@ -26,6 +26,8 @@ const mockEvent = {
 const mockTeam = {
   teamId: TEAM_ID,
   eventId: EVENT_ID,
+  teamName: 'Test Team',
+  color: '#abcdef',
   members: [TEAM_MEMBER_DISCORD_ID],
   discordChannelId: 'channel-x',
   gpEarned: 0,
@@ -58,7 +60,7 @@ jest.mock('../db/models', () => ({
   },
 }));
 
-const { Mutation, Query } = require('../schema/resolvers/SpoopyBingo');
+const { Mutation, Query, Subscription } = require('../schema/resolvers/SpoopyBingo');
 
 const NO_CTX             = {};
 const NON_ADMIN_CTX      = { user: { id: 'u-42', admin: false, discordUserId: 'discord-stranger' } };
@@ -208,6 +210,87 @@ describe('queries require authentication', () => {
   });
 });
 
+describe('public spectator queries expose only active-event projections', () => {
+  const { SpoopyEvent, SpoopyTeam } = require('../db/models');
+
+  test('returns the active event and safe team summary without authentication', async () => {
+    SpoopyEvent.findOne.mockResolvedValueOnce(mockEvent);
+    SpoopyTeam.findAll.mockResolvedValueOnce([mockTeam]);
+    const result = await Query.spoopySpectatorEvent(null, {}, NO_CTX);
+    expect(result.eventId).toBe(EVENT_ID);
+    expect(result.teams).toEqual([
+      expect.objectContaining({ teamId: TEAM_ID, teamName: 'Test Team', gpEarned: 0 }),
+    ]);
+    expect(result.teams[0]).not.toHaveProperty('members');
+    expect(result.teams[0]).not.toHaveProperty('teamToken');
+  });
+
+  test('returns a read-only active team board without authentication', async () => {
+    const result = await Query.spoopySpectatorTeamBoard(null, { teamId: TEAM_ID }, NO_CTX);
+    expect(result).toEqual(
+      expect.objectContaining({ eventId: EVENT_ID, teamId: TEAM_ID, tiles: {} })
+    );
+    expect(result).not.toHaveProperty('roster');
+    expect(result).not.toHaveProperty('hauntedGauntletLevel');
+  });
+
+  test('returns all active team boards without authentication', async () => {
+    SpoopyTeam.findAll.mockResolvedValueOnce([mockTeam]);
+    const result = await Query.spoopySpectatorAllTeamBoards(
+      null,
+      { eventId: EVENT_ID },
+      NO_CTX
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0].teamId).toBe(TEAM_ID);
+  });
+
+  test('does not expose a team board outside the active phase', async () => {
+    const priorStatus = mockEvent.status;
+    mockEvent.status = 'SETUP';
+    try {
+      await expect(
+        Query.spoopySpectatorTeamBoard(null, { teamId: TEAM_ID }, NO_CTX)
+      ).resolves.toBeNull();
+    } finally {
+      mockEvent.status = priorStatus;
+    }
+  });
+});
+
+describe('public spectator subscriptions expose limited payloads', () => {
+  test('projects board updates without roster or haunted-house state', () => {
+    const result = Subscription.spoopySpectatorBoardUpdated.resolve({
+      spoopyTeamBoardUpdated: {
+        eventId: EVENT_ID,
+        teamId: TEAM_ID,
+        gpEarned: 25,
+        cashedOut: null,
+        tiles: { a: { status: 'complete' } },
+        roster: [{ discordUserId: 'secret' }],
+        hauntedGauntletLevel: 3,
+      },
+    });
+    expect(result).toEqual({
+      eventId: EVENT_ID,
+      teamId: TEAM_ID,
+      gpEarned: 25,
+      cashedOut: null,
+      tiles: { a: { status: 'complete' } },
+    });
+  });
+
+  test('projects event updates down to lifecycle fields', () => {
+    const result = Subscription.spoopySpectatorEventUpdated.resolve({
+      spoopyEventUpdated: {
+        ...mockEvent,
+        eventPassword: 'secret',
+      },
+    });
+    expect(result).toEqual({ eventId: EVENT_ID, status: 'ACTIVE' });
+  });
+});
+
 describe('mySpoopySituation returns empty state gracefully', () => {
   const { SpoopyEvent, SpoopyTeam } = require('../db/models');
 
@@ -299,5 +382,184 @@ describe('spoopySubmissions is admin-gated', () => {
   });
   test('accepts a site admin', async () => {
     await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)).resolves.toEqual([]);
+  });
+});
+
+// ── Pre-launch audit coverage ────────────────────────────────────────
+
+describe('createSpoopyEvent is site-admin only', () => {
+  test('rejects a logged-in non-site-admin', async () => {
+    await expect(
+      Mutation.createSpoopyEvent(null, { input: { eventName: 'x' } }, NON_ADMIN_CTX)
+    ).rejects.toThrow(/site admin/i);
+  });
+  test('rejects an event admin who is not a site admin', async () => {
+    await expect(
+      Mutation.createSpoopyEvent(null, { input: { eventName: 'x' } }, EVENT_ADMIN_CTX)
+    ).rejects.toThrow(/site admin/i);
+  });
+  test('accepts a site admin', async () => {
+    await expect(
+      Mutation.createSpoopyEvent(null, { input: { eventName: 'x' } }, SITE_ADMIN_CTX)
+    ).resolves.toBeTruthy();
+  });
+});
+
+describe('updateSpoopyEventBoard is SETUP-only', () => {
+  const { SpoopyEvent } = require('../db/models');
+  test('rejects when event is ACTIVE', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
+    await expect(
+      Mutation.updateSpoopyEventBoard(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/SETUP/);
+  });
+  test('rejects when event is COMPLETE', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'COMPLETE' });
+    await expect(
+      Mutation.updateSpoopyEventBoard(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/SETUP/);
+  });
+  test('does not reject on the SETUP guard when event is SETUP', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'SETUP' });
+    // Downstream board validation may still throw (mock board is intentionally
+    // sparse) — all we care about is that the SETUP guard itself allows the call.
+    await expect(
+      Mutation.updateSpoopyEventBoard(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)
+    ).rejects.not.toThrow(/can only be edited/i);
+  });
+});
+
+describe('refreshSpoopyEventFromMock is SETUP-only', () => {
+  const { SpoopyEvent } = require('../db/models');
+  test('rejects a site admin when event is ACTIVE', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
+    await expect(
+      Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/SETUP/);
+  });
+});
+
+describe('updateSpoopyEventStatus enforces forward-only transitions', () => {
+  const { SpoopyEvent } = require('../db/models');
+  test('ACTIVE → SETUP is rejected', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
+    await expect(
+      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'SETUP' }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/Cannot transition/i);
+  });
+  test('COMPLETE → ACTIVE is rejected', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'COMPLETE' });
+    await expect(
+      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'ACTIVE' }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/Cannot transition/i);
+  });
+  test('COMPLETE → SETUP is rejected', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'COMPLETE' });
+    await expect(
+      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'SETUP' }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/Cannot transition/i);
+  });
+  test('ACTIVE → COMPLETE is allowed', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
+    await expect(
+      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'COMPLETE' }, SITE_ADMIN_CTX)
+    ).resolves.toBeTruthy();
+  });
+});
+
+describe('updateSpoopyEventSchedule guards curfewEnd on ACTIVE events', () => {
+  const { SpoopyEvent } = require('../db/models');
+  test('rejects curfewEnd in the past when event is ACTIVE', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
+    const past = new Date(Date.now() - 60 * 1000).toISOString();
+    await expect(
+      Mutation.updateSpoopyEventSchedule(null, { eventId: EVENT_ID, curfewEnd: past }, SITE_ADMIN_CTX)
+    ).rejects.toThrow(/past/i);
+  });
+  test('allows curfewEnd in the past when event is SETUP (pre-launch backfill)', async () => {
+    SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'SETUP' });
+    const past = new Date(Date.now() - 60 * 1000).toISOString();
+    await expect(
+      Mutation.updateSpoopyEventSchedule(null, { eventId: EVENT_ID, curfewEnd: past }, SITE_ADMIN_CTX)
+    ).resolves.toBeTruthy();
+  });
+});
+
+describe('SpoopyTeam.teamToken field resolver', () => {
+  const { SpoopyTeam } = require('../schema/resolvers/SpoopyBingo');
+  const teamWithToken = { ...mockTeam, teamToken: 'tok_abc123' };
+  const { SpoopyEvent } = require('../db/models');
+  beforeEach(() => {
+    SpoopyEvent.findByPk.mockImplementation(async () => mockEvent);
+  });
+  test('returns null for unauthenticated caller', async () => {
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, NO_CTX)).resolves.toBeNull();
+  });
+  test('returns null for a logged-in non-member, non-admin', async () => {
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, NON_ADMIN_CTX)).resolves.toBeNull();
+  });
+  test('returns the token for an event admin', async () => {
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, EVENT_ADMIN_CTX)).resolves.toBe('tok_abc123');
+  });
+  test('returns the token for a site admin', async () => {
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, SITE_ADMIN_CTX)).resolves.toBe('tok_abc123');
+  });
+  test('returns the token for a linked team member', async () => {
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, TEAM_MEMBER_CTX)).resolves.toBe('tok_abc123');
+  });
+
+  test('hides another team\'s Mossy clue but exposes the caller\'s own clue', async () => {
+    const assignedTeam = { ...mockTeam, mossyWildyLocation: 7 };
+    await expect(
+      SpoopyTeam.mossyWildyLocation(assignedTeam, {}, NON_ADMIN_CTX),
+    ).resolves.toBeNull();
+    await expect(
+      SpoopyTeam.mossyWildyLocation(assignedTeam, {}, TEAM_MEMBER_CTX),
+    ).resolves.toBe(7);
+  });
+});
+
+describe('createSpoopyTeam assigns a unique Mossy Way clue', () => {
+  const { SpoopyTeam } = require('../db/models');
+
+  beforeEach(() => {
+    SpoopyTeam.findAll.mockReset();
+    SpoopyTeam.create.mockClear();
+  });
+
+  test('randomly chooses from the locations not already used by the event', async () => {
+    SpoopyTeam.findAll.mockResolvedValue([
+      { mossyWildyLocation: 1 },
+      { mossyWildyLocation: 3 },
+    ]);
+    const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
+
+    try {
+      await Mutation.createSpoopyTeam(
+        null,
+        { eventId: EVENT_ID, input: { teamName: 'new team', discordChannelId: 'new-channel' } },
+        SITE_ADMIN_CTX,
+      );
+    } finally {
+      randomSpy.mockRestore();
+    }
+
+    expect(SpoopyTeam.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mossyWildyLocation: 2 }),
+    );
+  });
+
+  test('refuses a thirteenth assignment instead of repeating a clue', async () => {
+    SpoopyTeam.findAll.mockResolvedValue(
+      Array.from({ length: 12 }, (_, index) => ({ mossyWildyLocation: index + 1 })),
+    );
+
+    await expect(
+      Mutation.createSpoopyTeam(
+        null,
+        { eventId: EVENT_ID, input: { teamName: 'team 13', discordChannelId: 'channel-13' } },
+        SITE_ADMIN_CTX,
+      ),
+    ).rejects.toThrow(/all 12.*already assigned/i);
   });
 });

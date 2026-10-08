@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Link as RouterLink } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
@@ -51,6 +52,9 @@ import {
   SPOOPY_SUBMISSION_REVIEWED,
 } from '../../graphql/spoopyOperations';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from '../../organisms/spoopy/spoopyTheme';
+import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWildyLocations';
+import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import { AcceptableUniquesDrops } from '../../organisms/spoopy/SpoopyTaskCard';
 
 // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -94,7 +98,7 @@ function ScreenshotThumb({ url }) {
           <ModalCloseButton color={SPOOPY_COLORS.paper} />
           <ModalBody p={4}>
             <Image src={url} alt="screenshot" w="100%" borderRadius="md" objectFit="contain" />
-            <Text
+            <HStack
               as="a"
               href={url}
               target="_blank"
@@ -102,12 +106,13 @@ function ScreenshotThumb({ url }) {
               fontSize="xs"
               color={SPOOPY_COLORS.pumpkinLight}
               _hover={{ textDecoration: 'underline' }}
-              display="block"
+              justify="flex-end"
               mt={2}
-              textAlign="right"
+              spacing={1}
             >
-              Open full size ↗
-            </Text>
+              <Text>Open full size</Text>
+              <SpoopyUiIcon name="external" />
+            </HStack>
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -170,7 +175,7 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId }) {
               </Text>
             )}
             {sub.channelId && sub.discordMessageId && (
-              <Text
+              <HStack
                 as="a"
                 href={`https://discord.com/channels/@me/${sub.channelId}/${sub.discordMessageId}`}
                 target="_blank"
@@ -178,9 +183,11 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId }) {
                 fontSize="xs"
                 color={SPOOPY_COLORS.pumpkinLight}
                 _hover={{ textDecoration: 'underline' }}
+                spacing={1}
               >
-                view in discord ↗
-              </Text>
+                <Text>view in discord</Text>
+                <SpoopyUiIcon name="external" />
+              </HStack>
             )}
             <Text fontSize="xs" opacity={0.55}>
               {formatTime(sub.submittedAt)}
@@ -301,6 +308,7 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
     isComplete,
     progress,
     task,
+    mossyWildyLocation,
   } = group;
   const pending = submissions.filter((s) => s.status === 'PENDING');
   const approved = submissions.filter((s) => s.status === 'APPROVED');
@@ -386,13 +394,43 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
 
       <AccordionPanel px={4} py={4} bg={SPOOPY_COLORS.nightDeep}>
         <VStack align="stretch" spacing={4}>
+          {tileId === 't-r12-c8' && group.teamTileOutcome === 'trick' && (
+            <Box
+              border="2px solid"
+              borderColor={SPOOPY_COLORS.ember}
+              borderRadius="md"
+              bg={SPOOPY_COLORS.night}
+              color={SPOOPY_COLORS.paper}
+              px={4}
+              py={3}
+            >
+              <Text
+                fontSize="10px"
+                color={SPOOPY_COLORS.pumpkinLight}
+                fontWeight="bold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={1}
+              >
+                Mossy Way ref answer · clue {mossyWildyLocation ?? '?'}
+              </Text>
+              <HStack fontFamily={SPOOPY_FONTS.hand} fontWeight="bold" spacing={2}>
+                <SpoopyUiIcon name="search" />
+                <Text>
+                  Search for:{' '}
+                  {getMossyWildyLocationName(mossyWildyLocation) ?? 'no clue assignment found'}
+                </Text>
+              </HStack>
+            </Box>
+          )}
+
           <TileReviewControls
             progress={progress}
             onSetProgress={(pct) => onSetProgress(teamId, tileId, pct)}
             hasApproved={approved.length > 0}
             hasPending={pending.length > 0}
             isComplete={isComplete}
-            loading={loadingId === tileId + '-complete'}
+            loading={loadingId === `${teamId}:${tileId}-complete`}
             onComplete={() => onComplete?.(teamId, tileId)}
             activeColor={SPOOPY_COLORS.pumpkin}
             doneColor={SPOOPY_COLORS.green}
@@ -401,6 +439,11 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
             buttonColorScheme="green"
             {...normalizeSpoopyTask(task)}
           />
+
+          {/* Accepted-drops panel for uniques / drop-scoped custom tasks.
+              Lets refs eyeball what counts without jumping to the player
+              view. Component short-circuits to null for other task kinds. */}
+          <AcceptableUniquesDrops task={task} />
 
           {pending.length > 0 && (
             <Section label="pending" count={pending.length} color={SPOOPY_COLORS.pumpkin}>
@@ -473,6 +516,7 @@ function Section({ label, count, color, children }) {
 
 export default function SpoopyRefsPage() {
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
+  const loginUrl = useLoginUrl();
   const { showToast } = useToastContext();
 
   const { data: activeData, loading: eventLoading } = useQuery(GET_ACTIVE_SPOOPY_EVENT, {
@@ -508,7 +552,7 @@ export default function SpoopyRefsPage() {
   const [reviewedOpenKeys, setReviewedOpenKeys] = useState(new Set());
   const [completedOpenKeys, setCompletedOpenKeys] = useState(new Set());
   const [stableGroupOrder, setStableGroupOrder] = useState(null);
-  const [stickyTileIds, setStickyTileIds] = useState(new Set());
+  const [stickyGroupKeys, setStickyGroupKeys] = useState(new Set());
   const stickyTimersRef = useRef({});
   const openKeysInitializedRef = useRef(false);
 
@@ -518,17 +562,17 @@ export default function SpoopyRefsPage() {
     return (event.adminIds ?? []).includes(String(user.id));
   }, [event, user]);
 
-  const addStickyTile = useCallback((tileId) => {
-    if (!tileId) return;
-    setStickyTileIds((prev) => new Set([...prev, tileId]));
-    if (stickyTimersRef.current[tileId]) clearTimeout(stickyTimersRef.current[tileId]);
-    stickyTimersRef.current[tileId] = setTimeout(() => {
-      setStickyTileIds((prev) => {
+  const addStickyGroup = useCallback((groupKey) => {
+    if (!groupKey) return;
+    setStickyGroupKeys((prev) => new Set([...prev, groupKey]));
+    if (stickyTimersRef.current[groupKey]) clearTimeout(stickyTimersRef.current[groupKey]);
+    stickyTimersRef.current[groupKey] = setTimeout(() => {
+      setStickyGroupKeys((prev) => {
         const next = new Set(prev);
-        next.delete(tileId);
+        next.delete(groupKey);
         return next;
       });
-      delete stickyTimersRef.current[tileId];
+      delete stickyTimersRef.current[groupKey];
     }, 8000);
   }, []);
 
@@ -554,7 +598,9 @@ export default function SpoopyRefsPage() {
     onData: () => refetchSubs(),
   });
 
-  // Group submissions by tileId, split into three pools mirroring battleship.
+  // Group submissions by team + tile, split into three pools mirroring
+  // battleship. The same tile can be active for several teams at once and
+  // must remain separate so refs see the correct team-specific state/clue.
   const { activeGroups, reviewedGroups, completedGroups } = useMemo(() => {
     const allSubs = subsData?.spoopySubmissions ?? [];
     const teamMap = Object.fromEntries((event?.teams ?? []).map((t) => [t.teamId, t]));
@@ -577,11 +623,13 @@ export default function SpoopyRefsPage() {
     };
 
     for (const sub of allSubs) {
-      if (!map.has(sub.tileId)) {
+      const groupKey = `${sub.teamId}:${sub.tileId}`;
+      if (!map.has(groupKey)) {
         const team = teamMap[sub.teamId];
         const boardTile = boardTiles[sub.tileId];
         const tileType = boardTile?.tile_type ?? 'house';
-        map.set(sub.tileId, {
+        map.set(groupKey, {
+          groupKey,
           tileId: sub.tileId,
           tileType,
           tileTypeLabel: TILE_META[tileType]?.label ?? tileType,
@@ -589,13 +637,15 @@ export default function SpoopyRefsPage() {
           teamName: team?.teamName ?? sub.teamId,
           tile: boardTile,
           task: resolveTask(sub.tileId, tileType, sub.teamTile),
+          mossyWildyLocation: team?.mossyWildyLocation ?? null,
+          teamTileOutcome: sub.teamTile?.outcome ?? null,
           submissions: [],
           progress: sub.teamTile?.progress ?? 0,
           teamTileStatus: sub.teamTile?.status ?? null,
           isComplete: false,
         });
       }
-      map.get(sub.tileId).submissions.push(sub);
+      map.get(groupKey).submissions.push(sub);
     }
 
     // Only the authoritative team-tile status marks a tile complete. Approve
@@ -614,7 +664,7 @@ export default function SpoopyRefsPage() {
         completed.push(group);
       } else {
         const pendingCount = group.submissions.filter((s) => s.status === 'PENDING').length;
-        if (pendingCount > 0 || stickyTileIds.has(group.tileId)) active.push(group);
+        if (pendingCount > 0 || stickyGroupKeys.has(group.groupKey)) active.push(group);
         else reviewed.push(group);
       }
     }
@@ -625,7 +675,7 @@ export default function SpoopyRefsPage() {
     });
 
     return { activeGroups: active, reviewedGroups: reviewed, completedGroups: completed };
-  }, [subsData, event, stickyTileIds]);
+  }, [subsData, event, stickyGroupKeys]);
 
   const totalPending = useMemo(
     () =>
@@ -640,35 +690,35 @@ export default function SpoopyRefsPage() {
   // when new submissions land. Manual refresh re-snapshots.
   const sortedActiveGroups = useMemo(() => {
     if (!stableGroupOrder) return activeGroups;
-    const byId = Object.fromEntries(activeGroups.map((g) => [g.tileId, g]));
+    const byId = Object.fromEntries(activeGroups.map((g) => [g.groupKey, g]));
     const ordered = stableGroupOrder.map((k) => byId[k]).filter(Boolean);
-    const brandNew = activeGroups.filter((g) => !stableGroupOrder.includes(g.tileId));
+    const brandNew = activeGroups.filter((g) => !stableGroupOrder.includes(g.groupKey));
     return [...brandNew, ...ordered];
   }, [stableGroupOrder, activeGroups]);
 
   useEffect(() => {
     if (!openKeysInitializedRef.current && activeGroups.length > 0) {
       openKeysInitializedRef.current = true;
-      setOpenKeys(new Set(activeGroups.map((g) => g.tileId)));
+      setOpenKeys(new Set(activeGroups.map((g) => g.groupKey)));
     }
   }, [activeGroups.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (stableGroupOrder === null && activeGroups.length > 0) {
-      setStableGroupOrder(activeGroups.map((g) => g.tileId));
+      setStableGroupOrder(activeGroups.map((g) => g.groupKey));
     }
   }, [activeGroups, stableGroupOrder]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openIndices = sortedActiveGroups
-    .map((g, i) => (openKeys.has(g.tileId) ? i : -1))
+    .map((g, i) => (openKeys.has(g.groupKey) ? i : -1))
     .filter((i) => i !== -1);
 
   const completedOpenIndices = completedGroups
-    .map((g, i) => (completedOpenKeys.has(g.tileId) ? i : -1))
+    .map((g, i) => (completedOpenKeys.has(g.groupKey) ? i : -1))
     .filter((i) => i !== -1);
 
   const reviewedOpenIndices = reviewedGroups
-    .map((g, i) => (reviewedOpenKeys.has(g.tileId) ? i : -1))
+    .map((g, i) => (reviewedOpenKeys.has(g.groupKey) ? i : -1))
     .filter((i) => i !== -1);
 
   const handleRefresh = useCallback(() => {
@@ -692,7 +742,7 @@ export default function SpoopyRefsPage() {
   }, [handleRefresh]);
 
   useEffect(() => {
-    document.title = totalPending > 0 ? `(${totalPending}) 🎃 spoopy refs` : '🎃 spoopy refs';
+    document.title = totalPending > 0 ? `(${totalPending}) spoopy refs` : 'spoopy refs';
     return () => {
       document.title = 'OSRS Bingo Hub';
     };
@@ -700,10 +750,10 @@ export default function SpoopyRefsPage() {
 
   const handleApprove = async (submissionId) => {
     setLoadingId(submissionId + '-approve');
-    const tileId = subsData?.spoopySubmissions?.find(
+    const submission = subsData?.spoopySubmissions?.find(
       (s) => s.submissionId === submissionId
-    )?.tileId;
-    if (tileId) addStickyTile(tileId);
+    );
+    if (submission) addStickyGroup(`${submission.teamId}:${submission.tileId}`);
     try {
       await doReview({ variables: { submissionId, approved: true } });
       if (soundEnabled) playSubmissionApproved();
@@ -726,8 +776,8 @@ export default function SpoopyRefsPage() {
   };
 
   const handleCompleteTile = async (teamId, tileId) => {
-    setLoadingId(tileId + '-complete');
-    addStickyTile(tileId);
+    setLoadingId(`${teamId}:${tileId}-complete`);
+    addStickyGroup(`${teamId}:${tileId}`);
     try {
       await doCompleteTile({ variables: { teamId, tileId } });
       showToast('tile marked complete', 'success');
@@ -741,10 +791,10 @@ export default function SpoopyRefsPage() {
 
   const handleDeny = async (submissionId, denialReason) => {
     setLoadingId(submissionId + '-deny');
-    const tileId = subsData?.spoopySubmissions?.find(
+    const submission = subsData?.spoopySubmissions?.find(
       (s) => s.submissionId === submissionId
-    )?.tileId;
-    if (tileId) addStickyTile(tileId);
+    );
+    if (submission) addStickyGroup(`${submission.teamId}:${submission.tileId}`);
     try {
       await doReview({
         variables: { submissionId, approved: false, denialReason: denialReason || null },
@@ -766,7 +816,7 @@ export default function SpoopyRefsPage() {
       </Center>
     );
   }
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!event) {
     return (
       <Shell>
@@ -783,7 +833,7 @@ export default function SpoopyRefsPage() {
       <Shell event={event}>
         <Center h="60vh">
           <VStack spacing={3}>
-            <Text fontSize="2xl">🔒</Text>
+            <SpoopyUiIcon name="lock" boxSize={6} />
             <Text opacity={0.7}>you don't have access to this page</Text>
           </VStack>
         </Center>
@@ -822,6 +872,7 @@ export default function SpoopyRefsPage() {
               borderColor={SPOOPY_COLORS.nightMist}
               color={SPOOPY_COLORS.paper}
               _hover={{ bg: SPOOPY_COLORS.nightMist }}
+              leftIcon={<SpoopyUiIcon name="sync" />}
             >
               refresh
             </Button>
@@ -837,15 +888,17 @@ export default function SpoopyRefsPage() {
           p={4}
           fontSize="sm"
         >
-          <Text
+          <HStack
             fontWeight="semibold"
             color={SPOOPY_COLORS.paper}
             fontFamily={SPOOPY_FONTS.heading}
             mb={2}
             letterSpacing="wider"
+            spacing={2}
           >
-            🕯️ how reffing works
-          </Text>
+            <SpoopyUiIcon name="candle" />
+            <Text>how reffing works</Text>
+          </HStack>
           <VStack align="stretch" spacing={2} opacity={0.85}>
             <Text>
               submissions come in from discord when a team completes a tile task. teams keep working
@@ -856,7 +909,7 @@ export default function SpoopyRefsPage() {
                 approve
               </Text>{' '}
               a submission once you've verified the screenshot. teams can stack multiple submissions
-              on a tile — approving one doesn't finish the tile.
+              on a tile. approving one doesn't finish the tile.
             </Text>
             <Text>
               <Text as="span" color={SPOOPY_COLORS.ember} fontWeight="semibold">
@@ -874,11 +927,11 @@ export default function SpoopyRefsPage() {
               <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">
                 mark complete
               </Text>{' '}
-              once all approvals are in — that's what unlocks neighbors, banks gp, and cashes out
+              once all approvals are in. that's what unlocks neighbors, banks gp, and cashes out
               the scary castle.
             </Text>
             <Text opacity={0.7}>
-              pre-screenshots are informational only — they don't advance the tile.
+              pre-screenshots are informational only. they don't advance the tile.
             </Text>
           </VStack>
         </Box>
@@ -897,9 +950,10 @@ export default function SpoopyRefsPage() {
             alignItems="center"
             justifyContent="center"
           >
-            <Text fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.paper}>
-              🎃 {pendingNew} new submission{pendingNew !== 1 ? 's' : ''} — click to load
-            </Text>
+            <HStack fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.paper} spacing={2}>
+              <SpoopyUiIcon name="pumpkin" />
+              <Text>{pendingNew} new submission{pendingNew !== 1 ? 's' : ''}. click to load</Text>
+            </HStack>
           </Box>
         )}
 
@@ -921,7 +975,7 @@ export default function SpoopyRefsPage() {
             completedGroups.length === 0 && (
               <Center py={10}>
                 <Text opacity={0.65} fontFamily={SPOOPY_FONTS.hand} fontSize="md">
-                  no submissions yet — quiet night
+                  no submissions yet. quiet night
                 </Text>
               </Center>
             )}
@@ -932,13 +986,13 @@ export default function SpoopyRefsPage() {
               index={openIndices}
               onChange={(newIndices) =>
                 setOpenKeys(
-                  new Set(newIndices.map((i) => sortedActiveGroups[i]?.tileId).filter(Boolean))
+                  new Set(newIndices.map((i) => sortedActiveGroups[i]?.groupKey).filter(Boolean))
                 )
               }
             >
               {sortedActiveGroups.map((group) => (
                 <TileGroup
-                  key={group.tileId}
+                  key={group.groupKey}
                   group={group}
                   onApprove={handleApprove}
                   onDeny={handleDeny}
@@ -985,13 +1039,13 @@ export default function SpoopyRefsPage() {
                     index={reviewedOpenIndices}
                     onChange={(newIndices) =>
                       setReviewedOpenKeys(
-                        new Set(newIndices.map((i) => reviewedGroups[i]?.tileId).filter(Boolean))
+                        new Set(newIndices.map((i) => reviewedGroups[i]?.groupKey).filter(Boolean))
                       )
                     }
                   >
                     {reviewedGroups.map((group) => (
                       <TileGroup
-                        key={group.tileId}
+                        key={group.groupKey}
                         group={group}
                         onApprove={handleApprove}
                         onDeny={handleDeny}
@@ -1041,13 +1095,13 @@ export default function SpoopyRefsPage() {
                     index={completedOpenIndices}
                     onChange={(newIndices) =>
                       setCompletedOpenKeys(
-                        new Set(newIndices.map((i) => completedGroups[i]?.tileId).filter(Boolean))
+                        new Set(newIndices.map((i) => completedGroups[i]?.groupKey).filter(Boolean))
                       )
                     }
                   >
                     {completedGroups.map((group) => (
                       <TileGroup
-                        key={group.tileId}
+                        key={group.groupKey}
                         group={group}
                         onApprove={handleApprove}
                         onDeny={handleDeny}
@@ -1064,15 +1118,18 @@ export default function SpoopyRefsPage() {
         </Box>
 
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
-        <Text
+        <HStack
           fontSize="xs"
           opacity={0.5}
-          textAlign="center"
+          justify="center"
           fontFamily={SPOOPY_FONTS.hand}
           letterSpacing="wider"
+          spacing={1.5}
         >
-          osrs bingo hub · 🕯️ spoopy refs console
-        </Text>
+          <Text>osrs bingo hub ·</Text>
+          <SpoopyUiIcon name="candle" />
+          <Text>spoopy refs console</Text>
+        </HStack>
       </VStack>
     </Shell>
   );
@@ -1082,19 +1139,37 @@ function Shell({ event, children }) {
   return (
     <Box minHeight="calc(100vh - 60px)" bg={SPOOPY_COLORS.nightDeep} color={SPOOPY_COLORS.paper}>
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
-        <VStack align="start" spacing={0}>
-          <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
-            🕯️ spoopy refs
-          </Heading>
-          {event?.eventPassword && (
-            <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-              event password:{' '}
-              <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
-                {event.eventPassword}
+        <HStack justify="space-between" align="center" flexWrap="wrap" spacing={3}>
+          <VStack align="start" spacing={0}>
+            <Heading size="lg" fontFamily={SPOOPY_FONTS.heading} letterSpacing="wider">
+              <HStack as="span" spacing={2}>
+                <SpoopyUiIcon name="refs" />
+                <Text as="span">spoopy refs</Text>
+              </HStack>
+            </Heading>
+            {event?.eventPassword && (
+              <Text fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+                event password:{' '}
+                <Text as="span" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight}>
+                  {event.eventPassword}
+                </Text>
               </Text>
-            </Text>
-          )}
-        </VStack>
+            )}
+          </VStack>
+          <Button
+            as={RouterLink}
+            to="/spoopy-event"
+            size="sm"
+            variant="outline"
+            colorScheme="purple"
+            borderColor={SPOOPY_COLORS.pumpkin}
+            color={SPOOPY_COLORS.paper}
+            leftIcon={<SpoopyUiIcon name="map" />}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+          >
+            back to board
+          </Button>
+        </HStack>
       </Box>
       {children}
     </Box>

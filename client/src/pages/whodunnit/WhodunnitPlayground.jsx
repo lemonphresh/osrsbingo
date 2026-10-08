@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import {
   Box,
   VStack,
@@ -107,13 +108,14 @@ const ENVELOPE_ICONS = {
 
 const WhodunnitPlayground = () => {
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
   usePageTitle('Whodunnit Playground');
 
   // Bumping this key remounts EnvelopeReveal to replay the animation.
   const [envelopeKey, setEnvelopeKey] = useState(0);
   const [envelopeIcon, setEnvelopeIcon] = useState('Tree');
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!user.admin) return <Navigate to="/" />;
 
   return (

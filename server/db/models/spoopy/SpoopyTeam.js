@@ -32,6 +32,8 @@ module.exports = (sequelize) => {
       // (currently impossible while ACTIVE, but a safe invariant) can't
       // dilute already-earned rewards.
       poolAllocation:    { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+      // Stable 1-12 assignment for Mossy Way's wilderness screenshot task.
+      mossyWildyLocation: { type: DataTypes.INTEGER, allowNull: true },
     },
     { sequelize, modelName: 'SpoopyTeam' },
   );

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink, useParams } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
@@ -573,6 +574,7 @@ export default function BattleshipRefsPage() {
   const { eventId } = useParams();
   const { user, isAuthenticated, isCheckingAuth } = useAuth();
   const { showToast } = useToastContext();
+  const loginUrl = useLoginUrl();
 
   const [loadingId, setLoadingId] = useState(null);
   const [pendingNew, setPendingNew] = useState(0);
@@ -884,7 +886,7 @@ export default function BattleshipRefsPage() {
     );
   }
 
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to={loginUrl} replace />;
   if (!isBattleshipEnabled(user)) return <Navigate to="/" replace />;
 
   if (!isAdminOrRef) {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useLoginUrl } from '../../utils/loginRedirect';
 import { useQuery, useMutation, useSubscription } from '@apollo/client';
 import {
   Box,
@@ -42,6 +43,7 @@ const WhodunnitCampaignPage = () => {
   const { campaignId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const loginUrl = useLoginUrl();
   usePageTitle('Investigating • A Gielinor Whodunnit');
 
   const { data, loading, error, refetch } = useQuery(GET_WHODUNNIT_CAMPAIGN, {
@@ -89,7 +91,7 @@ const WhodunnitCampaignPage = () => {
     [campaign, story]
   );
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to={loginUrl} />;
   if (!isWhodunnitEnabled(user)) return <Navigate to="/" />;
 
   if (loading || storyLoading) {
