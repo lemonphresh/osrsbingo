@@ -42,6 +42,10 @@ module.exports = (sequelize) => {
       // Last successful WOM sync; used to enforce a per-event cooldown so
       // we don't hammer the WOM API when refs / cron all fire together.
       lastWomSyncAt:    { type: DataTypes.DATE,   allowNull: true },
+      // One-shot timestamp set by the scheduler when the pre-curfew warning
+      // Discord post has gone out. Null = not yet sent; non-null = sent, so
+      // the next tick inside the warning window short-circuits.
+      lastHourWarningSentAt: { type: DataTypes.DATE, allowNull: true },
     },
     { sequelize, modelName: 'SpoopyEvent' },
   );

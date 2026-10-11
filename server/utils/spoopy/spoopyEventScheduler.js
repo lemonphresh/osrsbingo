@@ -9,7 +9,18 @@ const {
   syncTeamTilesToBoard,
   toEventDefinition,
 } = require('./spoopyPersistence');
-const { postSpoopyEventStarted, postSpoopyCurfewForfeit } = require('./spoopyDiscord');
+const {
+  postSpoopyEventStarted,
+  postSpoopyLastHourWarning,
+  postSpoopyGameOver,
+  postSpoopyCurfewForfeit,
+} = require('./spoopyDiscord');
+
+// Pre-curfew warning window. Scheduler fires the "ONE HOUR LEFT" post the
+// first time it ticks within this window of curfewEnd — not on an exact
+// 1h-remaining boundary, since the cron runs every minute and could miss
+// the exact second.
+const LAST_HOUR_WARNING_MS = 60 * 60 * 1000;
 const sm = require('./spoopyStateMachine');
 
 // Auto-transitions spoopy events based on their curfew fields:
@@ -76,6 +87,7 @@ async function checkSpoopyEventSchedule() {
       teams.map((team) =>
         postSpoopyEventStarted({
           channelId: team.discordChannelId,
+          discordRoleId: team.discordRoleId,
           eventName: event.eventName,
         }).catch((err) => {
           logger.error(
@@ -85,6 +97,46 @@ async function checkSpoopyEventSchedule() {
         }),
       ),
     );
+  }
+
+  // ── Pre-curfew one-hour warning ───────────────────────────────────────
+  //
+  // Fires once per ACTIVE event the first time the scheduler ticks within
+  // the LAST_HOUR_WARNING_MS window before curfewEnd. Marked via
+  // event.lastHourWarningSentAt so subsequent ticks short-circuit. Only
+  // teams that haven't cashed out get the ping — teams that already
+  // reached the spooky house don't need the "you're about to lose it all"
+  // reminder.
+  const warningWindowStart = new Date(now.getTime() + LAST_HOUR_WARNING_MS);
+  const toWarn = await SpoopyEvent.findAll({
+    where: {
+      status: 'ACTIVE',
+      curfewEnd: { [Op.ne]: null, [Op.lte]: warningWindowStart, [Op.gt]: now },
+      lastHourWarningSentAt: null,
+    },
+  });
+  for (const event of toWarn) {
+    logger.info(`[spoopyScheduler] firing one-hour warning for event ${event.eventId}`);
+    const teams = await SpoopyTeam.findAll({ where: { eventId: event.eventId } });
+    const uncashed = teams.filter((team) => team.cashedOut == null);
+    await Promise.all(
+      uncashed.map((team) =>
+        postSpoopyLastHourWarning({
+          channelId: team.discordChannelId,
+          discordRoleId: team.discordRoleId,
+        }).catch((err) => {
+          logger.error(
+            { err, teamId: team.teamId, channelId: team.discordChannelId },
+            '[spoopyScheduler] last-hour warning discord post failed',
+          );
+        }),
+      ),
+    );
+    // Mark the event so the next tick skips. Done after the posts so a
+    // crash mid-loop would retry on the next tick instead of silently
+    // skipping. Setting on the event (not per-team) is fine because the
+    // warning is a one-shot event-wide broadcast.
+    await event.update({ lastHourWarningSentAt: now });
   }
 
   // ── ACTIVE → COMPLETE (+ curfew forfeit) ──────────────────────────────
@@ -133,6 +185,25 @@ async function checkSpoopyEventSchedule() {
     await pubsub.publish(`SPOOPY_EVENT_UPDATED_${event.eventId}`, {
       spoopyEventUpdated: event,
     });
+
+    // Final game-over broadcast. Goes to every team's channel regardless
+    // of cash-out status — teams that forfeited got the pointed forfeit
+    // post above; this one is the general closure notice pointing players
+    // back to the site to see final totals and the winner reveal.
+    await Promise.all(
+      teams.map((team) =>
+        postSpoopyGameOver({
+          channelId: team.discordChannelId,
+          discordRoleId: team.discordRoleId,
+          eventName: event.eventName,
+        }).catch((err) => {
+          logger.error(
+            { err, teamId: team.teamId, channelId: team.discordChannelId },
+            '[spoopyScheduler] game-over discord post failed',
+          );
+        }),
+      ),
+    );
   }
 
   // ── WOM sync (auto every ~15 min while ACTIVE) ────────────────────────
