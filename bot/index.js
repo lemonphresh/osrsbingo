@@ -30,7 +30,6 @@ const spoopy = require('./commands/spoopy');
 const spoopyPre = spoopy.spoopypre;
 const spoopyA = spoopy.spoopya;
 const spoopyB = spoopy.spoopyb;
-const spoopyHelp = spoopy.help;
 // Step-inside gauntlet + bail-out. Have to be registered here or the bot's
 // command router silently drops them.
 const spoopyStepInside = spoopy.stepinside;
@@ -43,7 +42,7 @@ const commands = [
   gielinorrush, nodes, submit, leaderboard, championforge, championforgeHelp,
   championforgePresubmit, rainbowbingo, rbpre, battleship, battleshipHelp,
   battleshipPre,
-  spoopy, spoopyPre, spoopyA, spoopyB, spoopyHelp,
+  spoopy, spoopyPre, spoopyA, spoopyB,
   spoopyStepInside, spoopyImSerious, spoopyNoGoingBack, spoopyNevermind,
   ping,
 ];

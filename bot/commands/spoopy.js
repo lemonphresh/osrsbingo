@@ -67,7 +67,8 @@ async function pickTargetTile({ eligible, event, argRaw }) {
     }
     const ids = eligible.map((t) => `\`${t.tileId}\``).join(', ');
     return {
-      error: `❌ More than one tile is open. Please specify which one:\n${ids}\n` +
+      error:
+        `❌ More than one tile is open. Please specify which one:\n${ids}\n` +
         'Usage: `!spoopysubmit <tile-id>`',
     };
   }
@@ -166,6 +167,10 @@ const GAUNTLET_STAGES = [
     level: 1,
     command: 'stepinside',
     advanceMsg: (team) =>
+      // Prepend a role ping when the team has a role id configured so the
+      // whole team gets notified someone's committing them to the scary
+      // house. No ping if unset — reply still goes out quietly.
+      `${team.discordRoleId ? `<@&${team.discordRoleId}> ` : ''}` +
       `🚪 **${team.teamName}** cracked the door of the spooky house. the hinges groan. ` +
       "you feel the temperature drop 10 degrees. if you're serious, say `!imserious` next.",
   },
@@ -174,7 +179,7 @@ const GAUNTLET_STAGES = [
     command: 'imserious',
     advanceMsg: (team) =>
       `🕯️ **${team.teamName}**: a candle flickers on unbidden. you can hear ` +
-      'whispering somewhere behind the walls. one more step. type `!nogoingback` to commit.',
+      'whispering somewhere behind the walls. one more step — three teammates must each type `!nogoingback` to commit.',
   },
   {
     level: 3,
@@ -187,7 +192,11 @@ const GAUNTLET_STAGES = [
 
 async function setGauntletLevel(team, level) {
   if (team.hauntedGauntletLevel === level) return team;
-  await team.update({ hauntedGauntletLevel: level });
+  // Any level transition — advance OR reset — wipes the final-step signer
+  // list. If we're dropping back to 0 via a stray command, the next
+  // !nogoingback attempt starts fresh. If we're advancing to 3, the three
+  // signers have done their job and the list is no longer meaningful.
+  await team.update({ hauntedGauntletLevel: level, hauntedFinalStepUserIds: [] });
   try {
     const { pubsub } = require('../../server/schema/pubsub');
     const { loadTeamState } = require('../../server/utils/spoopy/spoopyPersistence');
@@ -246,7 +255,7 @@ function makeGauntletCommand(stage) {
         // Wrong order — reset and warn.
         await setGauntletLevel(team, 0);
         return message.reply(
-          "👻 you spoke out of turn. the spooky-house door creaks shut. start over with `!stepinside`.",
+          '👻 you spoke out of turn. the spooky-house door creaks shut. start over with `!stepinside`.',
         );
       }
 
@@ -284,7 +293,7 @@ module.exports = {
     if (error) {
       const brokeGauntlet = await resetGauntletIfMidway(team);
       const gauntletNote = brokeGauntlet
-        ? '\n👻 you were mid-gauntlet. the door slammed shut. start over with `!stepinside`.'
+        ? '\n👻 you and the crew bailed. the door slammed shut. when you are feeling a little braver, start over with `!stepinside`.'
         : '';
       return message.reply(error + gauntletNote);
     }
@@ -301,7 +310,9 @@ module.exports = {
     } else {
       const brokeGauntlet = await resetGauntletIfMidway(team);
       if (brokeGauntlet) {
-        await message.reply('👻 you stepped away from the spooky house door. gauntlet reset.');
+        await message.reply(
+          '👻 you stepped away from the spooky house door. come back when you are feeling a little braver.',
+        );
       }
     }
 
@@ -441,9 +452,7 @@ function makeOptionCommand(letter) {
       if (!argRaw) {
         if (chooseable.length === 1) tile = chooseable[0];
         else if (chooseable.length === 0) {
-          return message.reply(
-            "❌ No house tiles are open for a trick-or-treat pick right now.",
-          );
+          return message.reply('❌ No house tiles are open for a trick-or-treat pick right now.');
         } else {
           const ids = chooseable.map((t) => `\`${t.tileId}\``).join(', ');
           return message.reply(
@@ -454,9 +463,7 @@ function makeOptionCommand(letter) {
       } else {
         tile = chooseable.find((t) => t.tileId === argRaw);
         if (!tile) {
-          return message.reply(
-            `❌ House tile \`${argRaw}\` isn't open for a choice right now.`,
-          );
+          return message.reply(`❌ House tile \`${argRaw}\` isn't open for a choice right now.`);
         }
       }
 
@@ -482,11 +489,86 @@ function makeOptionCommand(letter) {
 module.exports.spoopya = makeOptionCommand('a');
 module.exports.spoopyb = makeOptionCommand('b');
 
-// Step-inside gauntlet — three escalating commands the team has to run in
-// order to unlock the candybag submission.
-module.exports.stepinside  = makeGauntletCommand(GAUNTLET_STAGES[0]);
-module.exports.imserious   = makeGauntletCommand(GAUNTLET_STAGES[1]);
-module.exports.nogoingback = makeGauntletCommand(GAUNTLET_STAGES[2]);
+// Step-inside gauntlet — escalating commands the team has to run in order
+// to unlock the candybag submission. Stages 1 and 2 are single-sender; the
+// final stage (`!nogoingback`) requires three unique teammate voices before
+// advancing (or every member on <3-person squads).
+module.exports.stepinside = makeGauntletCommand(GAUNTLET_STAGES[0]);
+module.exports.imserious = makeGauntletCommand(GAUNTLET_STAGES[1]);
+
+// Final-stage signer threshold. Capped at the team roster size so a team
+// of two can't soft-lock at level 2 forever waiting for a nonexistent
+// third voice.
+const FINAL_STEP_REQUIRED_SIGNERS = 3;
+
+module.exports.nogoingback = {
+  name: 'nogoingback',
+  description: 'Spooky-house commitment gauntlet — final step. Needs three teammates.',
+  async execute(message) {
+    const ctx = await resolveContext(message);
+    if (!ctx) {
+      return message.reply(
+        '❌ No active Spoopy event for this channel. Join a team first before you go poking at spooky doors.',
+      );
+    }
+    const { team, event } = ctx;
+
+    // Same preconditions as stages 1 and 2 — candybag must be unlocked and
+    // not already complete, and the gauntlet must sit at level 2 (post-
+    // !imserious). Anything else resets to 0 like the other stages.
+    const candybagId = event.board?.candybagTileId;
+    const { SpoopyTeamTile } = getModels();
+    const candybagRow = candybagId
+      ? await SpoopyTeamTile.findOne({ where: { teamId: team.teamId, tileId: candybagId } })
+      : null;
+    if (!candybagRow || candybagRow.status === 'locked') {
+      return message.reply(
+        '🚪 the door to the spooky house is barred shut. finish at least one trick-or-treat first.',
+      );
+    }
+    if (candybagRow.status === 'complete') {
+      return message.reply('🍬 you already visited the spooky house.');
+    }
+    if (team.hauntedGauntletLevel !== 2) {
+      await setGauntletLevel(team, 0);
+      return message.reply(
+        '👻 you spoke out of turn. the spooky-house door creaks shut. start over with `!stepinside`.',
+      );
+    }
+
+    const rosterSize = (team.members ?? []).length;
+    const requiredSigners = Math.min(FINAL_STEP_REQUIRED_SIGNERS, Math.max(1, rosterSize));
+    const priorSigners = Array.isArray(team.hauntedFinalStepUserIds)
+      ? team.hauntedFinalStepUserIds
+      : [];
+    const userId = message.author.id;
+    const alreadySigned = priorSigners.includes(userId);
+
+    // Dupe — acknowledge but don't advance.
+    if (alreadySigned) {
+      const remaining = requiredSigners - priorSigners.length;
+      return message.reply(
+        `🕯️ you already committed. waiting on ${remaining} more teammate${remaining === 1 ? '' : 's'} to say \`!nogoingback\`.`,
+      );
+    }
+
+    const nextSigners = [...priorSigners, userId];
+
+    // Enough voices — advance to level 3 and send the gauntlet's existing
+    // level-3 advance message. setGauntletLevel clears the signer list.
+    if (nextSigners.length >= requiredSigners) {
+      await setGauntletLevel(team, 3);
+      return message.reply(GAUNTLET_STAGES[2].advanceMsg(team));
+    }
+
+    // Not enough yet — persist the new signer and prompt for more.
+    await team.update({ hauntedFinalStepUserIds: nextSigners });
+    const remaining = requiredSigners - nextSigners.length;
+    return message.reply(
+      `💀 <@${userId}> signs the blood pact. ${remaining} more teammate${remaining === 1 ? '' : 's'} must say \`!nogoingback\` to commit.`,
+    );
+  },
+};
 
 // Explicit bail-out. Snaps the gauntlet back to 0 without needing to go
 // touch another tile. Also works at level 3 — the door was still cracked
@@ -497,50 +579,15 @@ module.exports.nevermind = {
   async execute(message) {
     const ctx = await resolveContext(message);
     if (!ctx) {
-      return message.reply(
-        '❌ No active Spoopy event for this channel. Nothing to bail out of.',
-      );
+      return message.reply('❌ No active Spoopy event for this channel. Nothing to bail out of.');
     }
     const { team } = ctx;
     if (team.hauntedGauntletLevel === 0) {
-      return message.reply(
-        "😌 you weren't even at the door. carry on with your night.",
-      );
+      return message.reply("😌 you weren't even at the door. carry on with your night.");
     }
     await setGauntletLevel(team, 0);
     return message.reply(
-      '🚪 you back away from the porch. the door creaks closed. good call.',
-    );
-  },
-};
-
-module.exports.help = {
-  name: 'spoopy',
-  aliases: ['spoopyhelp'],
-  description: 'Show the Spoopy Halloween event bot commands.',
-  async execute(message) {
-    return message.reply(
-      [
-        '🎃 **Spoopy Halloween: Commands**',
-        '',
-        '**House tiles (trick or treat):**',
-        '• `!spoopya [tile-id]`: pick option A. Alias: `!spa`.',
-        '• `!spoopyb [tile-id]`: pick option B. Alias: `!spb`.',
-        '',
-        '**Submitting proof (all tiles):**',
-        '• `!spoopysubmit [tile-id]`: attach a screenshot to submit for approval. Alias: `!sps`.',
-        '• `!spoopypre [tile-id]`: attach a pre-screenshot baseline (informational only). Alias: `!spp`.',
-        '',
-        '**Step inside the spooky house (in order, one wrong move and you start over):**',
-        '• `!stepinside`: approach the door.',
-        '• `!imserious`: you swear you can hear something inside.',
-        '• `!nogoingback`: the door slams shut. now you can `!spoopysubmit castle`.',
-        '• `!nevermind`: bail out at any time, no questions asked.',
-        '',
-        '**Tile aliases:** `start` = the ready-up tile, `castle` = the scary house at the end. Otherwise use the full tile id (shown on the site modal).',
-        '',
-        'Refs approve or deny from the site. The outcome is posted back here.',
-      ].join('\n'),
+      '🚪 you back away from the porch. the door creaks closed. you should come back when you are feeling more brave.',
     );
   },
 };

@@ -237,8 +237,10 @@ describe('spoopy bot — gauntlet reset on unrelated commands', () => {
     const msg = makeMessage();
     await bot.execute(msg, [OTHER_TILE_ID]);
     expect(mockTeam.hauntedGauntletLevel).toBe(0);
-    // Team was warned about the reset.
-    expect(msg.reply).toHaveBeenCalledWith(expect.stringContaining('gauntlet reset'));
+    // Team was warned about the reset. Match on a stable substring that
+    // appears in all three reset-copy variants (!spoopysubmit, !spoopypre,
+    // !spoopya) so copy tweaks don't re-break this.
+    expect(msg.reply).toHaveBeenCalledWith(expect.stringContaining('stepped away'));
   });
 
   test('non-candybag !spoopysubmit at level 2 resets to 0', async () => {

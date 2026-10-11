@@ -20,6 +20,14 @@ function formatCandy(gp) {
   return `${n.toLocaleString()} ${n === 1 ? 'candy' : 'candies'}`;
 }
 
+// Prepended to posts that should ping the team's role (event start, pre-
+// curfew warning, scary-house gauntlet entry, game-over). Returns '' when
+// no role is configured so the post goes out quietly for teams without a
+// discord role assigned.
+function roleMention(roleId) {
+  return roleId ? `<@&${roleId}> ` : '';
+}
+
 async function post(channelId, content) {
   if (!channelId) return;
   const token = process.env.DISCORD_BOT_TOKEN;
@@ -99,9 +107,12 @@ async function postSpoopyTileComplete({ channelId, taskLabel, rewardGp, isCandyb
             rewardGp
           )}** on top of everything you'd already banked. Sometimes it's worth facing your fears!`
         : '';
+    // Hardcoded "spooky house" copy here instead of threading `taskLabel`
+    // through — the candybag tile has no content.csv entry, so the resolved
+    // label was literally "Candybag". Nicer to just say what we mean.
     await post(
       channelId,
-      `🏚️ **${taskLabel}** complete! Your team escaped the spooky house and cashed out!${bonusLine} Happy Halloween, ghouls and ghasts <3`
+      `🏚️ **Your team escaped the spooky house and cashed out!**${bonusLine} When curfew is officially up, you'll find out how everyone else did and if you were the best trick-or-treaters of the bunch. Happy Halloween, ghouls and ghasts <3`
     );
     return;
   }
@@ -134,12 +145,12 @@ async function postSpoopyCurfewForfeit({ channelId, teamName, forfeitedGp }) {
  * channel so players know the night has started and where to go on the
  * site. Best-effort — a failed post shouldn't block the transition.
  */
-async function postSpoopyEventStarted({ channelId, eventName }) {
+async function postSpoopyEventStarted({ channelId, discordRoleId, eventName }) {
   const label = eventName ? `**${eventName}**` : 'the spooktober event';
   await post(
     channelId,
     [
-      `🎃 the night has begun. ${label} is live!`,
+      `${roleMention(discordRoleId)}🎃 the night has begun. ${label} is live!`,
       '',
       'proceed (if you dare…!) to the spoopy event dashboard:',
       'https://www.osrsbingohub.com/spoopy-event',
@@ -151,10 +162,53 @@ async function postSpoopyEventStarted({ channelId, eventName }) {
   );
 }
 
+/**
+ * One-hour pre-curfew warning. Only sent to teams that haven't cashed out
+ * yet — teams that already made it to the spooky house don't need the
+ * reminder. Scheduler guards against repeat sends via
+ * event.lastHourWarningSentAt.
+ */
+async function postSpoopyLastHourWarning({ channelId, discordRoleId }) {
+  await post(
+    channelId,
+    [
+      `${roleMention(discordRoleId)}🕯️ **ONE HOUR LEFT.** curfew is closing in and your team hasn't cashed out yet.`,
+      '',
+      "if you don't make it to the spooky house in time, every candy you've earned so far vanishes into the fog.",
+      '',
+      'wrap up what you can and get to the scary house to cash out. 🏚️',
+    ].join('\n')
+  );
+}
+
+/**
+ * Posted to every team's channel once when the event flips to COMPLETE at
+ * curfew. Teams that forfeited get the curfew-forfeit post separately
+ * (which is more pointed about the wipe); this one is the general closure
+ * notice that results are up on the site.
+ */
+async function postSpoopyGameOver({ channelId, discordRoleId, eventName }) {
+  const label = eventName ? `**${eventName}**` : 'the spooktober event';
+  await post(
+    channelId,
+    [
+      `${roleMention(discordRoleId)}🎃 the night is over. ${label} has wrapped.`,
+      '',
+      "head to the site to see the final candy totals, who finished the board, and who took home the night:",
+      'https://www.osrsbingohub.com/spoopy-event',
+      '',
+      'thanks for playing. happy halloween, ghouls and ghasts 👻',
+    ].join('\n')
+  );
+}
+
 module.exports = {
   postSpoopyPreScreenshotResult,
   postSpoopySubmissionResult,
   postSpoopyTileComplete,
   postSpoopyEventStarted,
+  postSpoopyLastHourWarning,
+  postSpoopyGameOver,
   postSpoopyCurfewForfeit,
+  roleMention,
 };
