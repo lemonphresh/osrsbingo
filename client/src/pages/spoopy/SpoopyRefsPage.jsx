@@ -38,9 +38,12 @@ import { useToastContext } from '../../providers/ToastProvider';
 import {
   playSubmissionApproved,
   playSubmissionDenied,
-  playSubmissionIncoming,
   warmUpAudio,
 } from '../../utils/soundEngine';
+import {
+  playSpoopySound,
+  warmUpSpoopySounds,
+} from '../../utils/spoopy/spoopyAudio';
 import {
   GET_ACTIVE_SPOOPY_EVENT,
   GET_SPOOPY_ADMIN_EVENT,
@@ -50,6 +53,7 @@ import {
   COMPLETE_SPOOPY_TILE,
   SPOOPY_SUBMISSION_ADDED,
   SPOOPY_SUBMISSION_REVIEWED,
+  SYNC_SPOOPY_EVENT_WOM,
 } from '../../graphql/spoopyOperations';
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from '../../organisms/spoopy/spoopyTheme';
 import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWildyLocations';
@@ -526,7 +530,7 @@ export default function SpoopyRefsPage() {
   const eventId = activeData?.getActiveSpoopyEvent?.eventId ?? null;
 
   // Full event (teams + admins) — needed to resolve team names / tile info.
-  const { data: adminData } = useQuery(GET_SPOOPY_ADMIN_EVENT, {
+  const { data: adminData, refetch: refetchAdminEvent } = useQuery(GET_SPOOPY_ADMIN_EVENT, {
     skip: !isAuthenticated,
     fetchPolicy: 'cache-and-network',
   });
@@ -588,7 +592,10 @@ export default function SpoopyRefsPage() {
     skip: !eventId || !isAuthenticated,
     onData: () => {
       setPendingNew((n) => n + 1);
-      if (soundEnabled) playSubmissionIncoming();
+      // playSpoopySound uses mp3 playback (vs. the synth chime from soundEngine)
+      // so it can carry an actual audio file. The refs sound toggle also warms
+      // the pooled Audio element so this doesn't get autoplay-blocked.
+      if (soundEnabled) playSpoopySound('grindr');
     },
   });
 
@@ -830,7 +837,7 @@ export default function SpoopyRefsPage() {
   }
   if (!isAdminOrRef) {
     return (
-      <Shell event={event}>
+      <Shell event={event} user={user} onEventRefetch={refetchAdminEvent}>
         <Center h="60vh">
           <VStack spacing={3}>
             <SpoopyUiIcon name="lock" boxSize={6} />
@@ -842,7 +849,7 @@ export default function SpoopyRefsPage() {
   }
 
   return (
-    <Shell event={event}>
+    <Shell event={event} user={user} onEventRefetch={refetchAdminEvent}>
       <VStack align="stretch" spacing={5} maxW="960px" mx="auto" py={6} px={{ base: 3, md: 6 }}>
         <HStack justify="space-between" wrap="wrap" gap={3}>
           <VStack align="start" spacing={0}>
@@ -861,7 +868,12 @@ export default function SpoopyRefsPage() {
                 onChange={(e) => {
                   const next = e.target.checked;
                   setSoundEnabled(next);
-                  if (next) warmUpAudio();
+                  if (next) {
+                    warmUpAudio();
+                    // Primes the pooled grindr Audio element so the first
+                    // incoming-submission ping isn't autoplay-blocked.
+                    warmUpSpoopySounds();
+                  }
                 }}
               />
             </HStack>
@@ -1135,7 +1147,63 @@ export default function SpoopyRefsPage() {
   );
 }
 
-function Shell({ event, children }) {
+// Minimum spacing between consecutive manual WOM sync clicks. The server-
+// side cooldown in spoopyWomSync.js is 15 minutes to protect WOM API usage
+// from the cron loop, but this button sends `force: true` to bypass it —
+// so the only guardrail here is a short 1-minute lockout to prevent
+// double-clicks and let the admin see the previous sync finish before
+// firing another. Keeping it UI-side (not server-side) because this is an
+// anti-fat-finger measure, not an API-protection measure.
+const SYNC_WOM_COOLDOWN_MS = 60_000;
+
+function SyncWomButton({ event, user, onEventRefetch }) {
+  const { showToast } = useToastContext();
+  const [syncWom, { loading }] = useMutation(SYNC_SPOOPY_EVENT_WOM, {
+    onCompleted: () => {
+      showToast({ title: 'wom sync fired', status: 'success' });
+      onEventRefetch?.();
+    },
+    onError: (e) =>
+      showToast({ title: 'wom sync failed', description: e.message, status: 'error' }),
+  });
+  // Tick every second so the countdown label ticks down live without
+  // requiring an external re-render trigger.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  if (!user?.admin) return null;
+  if (!event?.eventId) return null;
+
+  const lastSyncMs = event.lastWomSyncAt ? new Date(event.lastWomSyncAt).getTime() : 0;
+  const remaining = Math.max(0, SYNC_WOM_COOLDOWN_MS - (now - lastSyncMs));
+  const onCooldown = remaining > 0;
+  const noComp = !event.womCompetitionId;
+  const label = onCooldown
+    ? `sync wom (${Math.ceil(remaining / 1000)}s)`
+    : noComp
+    ? 'wom not linked'
+    : 'sync wom';
+  return (
+    <Button
+      size="sm"
+      variant="outline"
+      borderColor={SPOOPY_COLORS.pumpkin}
+      color={SPOOPY_COLORS.paper}
+      _hover={{ bg: SPOOPY_COLORS.nightMist }}
+      isLoading={loading}
+      isDisabled={onCooldown || noComp}
+      onClick={() => syncWom({ variables: { eventId: event.eventId, force: true } })}
+      leftIcon={<SpoopyUiIcon name="sync" />}
+    >
+      {label}
+    </Button>
+  );
+}
+
+function Shell({ event, user, onEventRefetch, children }) {
   return (
     <Box minHeight="calc(100vh - 60px)" bg={SPOOPY_COLORS.nightDeep} color={SPOOPY_COLORS.paper}>
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
@@ -1156,19 +1224,22 @@ function Shell({ event, children }) {
               </Text>
             )}
           </VStack>
-          <Button
-            as={RouterLink}
-            to="/spoopy-event"
-            size="sm"
-            variant="outline"
-            colorScheme="purple"
-            borderColor={SPOOPY_COLORS.pumpkin}
-            color={SPOOPY_COLORS.paper}
-            leftIcon={<SpoopyUiIcon name="map" />}
-            _hover={{ bg: SPOOPY_COLORS.nightMist }}
-          >
-            back to board
-          </Button>
+          <HStack spacing={2}>
+            <SyncWomButton event={event} user={user} onEventRefetch={onEventRefetch} />
+            <Button
+              as={RouterLink}
+              to="/spoopy-event"
+              size="sm"
+              variant="outline"
+              colorScheme="purple"
+              borderColor={SPOOPY_COLORS.pumpkin}
+              color={SPOOPY_COLORS.paper}
+              leftIcon={<SpoopyUiIcon name="map" />}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            >
+              back to board
+            </Button>
+          </HStack>
         </HStack>
       </Box>
       {children}

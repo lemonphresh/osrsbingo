@@ -46,6 +46,13 @@ module.exports = (sequelize) => {
       // Discord post has gone out. Null = not yet sent; non-null = sent, so
       // the next tick inside the warning window short-circuits.
       lastHourWarningSentAt: { type: DataTypes.DATE, allowNull: true },
+      // How many hours to backdate the PRE-submission anchor by when
+      // computing WOM gains. WOM per-metric snapshots can be captured a
+      // few hours before the PRE actually arrived — this buffer catches
+      // the gap. Admins nudge it up for teams whose players tend to stay
+      // logged in for long stretches. Default 12 matches the former
+      // hardcoded value. Mirrors Battleship's womShotAnchorBufferHours.
+      womPreAnchorBufferHours: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 12 },
     },
     { sequelize, modelName: 'SpoopyEvent' },
   );

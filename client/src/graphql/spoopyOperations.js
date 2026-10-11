@@ -19,6 +19,7 @@ export const SPOOPY_EVENT_FIELDS = gql`
     prizePool
     womCompetitionId
     lastWomSyncAt
+    womPreAnchorBufferHours
     createdAt
   }
 `;
@@ -286,8 +287,17 @@ export const SET_SPOOPY_EVENT_WOM_COMPETITION_ID = gql`
 `;
 
 export const SYNC_SPOOPY_EVENT_WOM = gql`
-  mutation SyncSpoopyEventWom($eventId: ID!) {
-    syncSpoopyEventWom(eventId: $eventId) { ...SpoopyEventFields }
+  mutation SyncSpoopyEventWom($eventId: ID!, $force: Boolean) {
+    syncSpoopyEventWom(eventId: $eventId, force: $force) { ...SpoopyEventFields }
+  }
+  ${SPOOPY_EVENT_FIELDS}
+`;
+
+export const SET_SPOOPY_EVENT_WOM_PRE_ANCHOR_BUFFER_HOURS = gql`
+  mutation SetSpoopyEventWomPreAnchorBufferHours($eventId: ID!, $hours: Float!) {
+    setSpoopyEventWomPreAnchorBufferHours(eventId: $eventId, hours: $hours) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;

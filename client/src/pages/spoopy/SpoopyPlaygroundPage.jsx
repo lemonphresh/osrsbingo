@@ -17,6 +17,7 @@ import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseMo
 import SpoopyCashedOutModal from '../../organisms/spoopy/SpoopyCashedOutModal';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyActivatePreflightModal from '../../organisms/spoopy/SpoopyActivatePreflightModal';
 import {
   SPOOPY_COLORS, SPOOPY_FONTS, TILE_META, STATUS_META,
 } from '../../organisms/spoopy/spoopyTheme';
@@ -123,6 +124,8 @@ export default function SpoopyPlaygroundPage() {
         <CashedOutSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <GpBannerSection />
+        <Divider borderColor={SPOOPY_COLORS.nightMist} />
+        <ActivatePreflightSection />
       </VStack>
     </Shell>
   );
@@ -891,6 +894,153 @@ function Banner({ label, bg, fg, value, icon }) {
 }
 
 // ── Shell ─────────────────────────────────────────────────────────────
+
+// ── Pre-flight overview (SETUP → ACTIVE confirmation modal) ──────────
+//
+// Three fixture scenarios so you can inspect how the modal renders at
+// different readiness levels:
+//   - happy    : every field populated, no blockers, no warnings
+//   - warnings : populated enough to be live-able, but with a bunch of
+//                yellow soft warnings (missing pw, team with 0 members,
+//                teams without role, pending drops, etc.)
+//   - blocked  : missing teams AND a candybag — "go live" button disabled
+
+const MOCK_PREFLIGHT_BASE = {
+  eventId: 'spoopy_mock',
+  eventName: 'A Spoopy Situation',
+  prizePool: 25_000_000,
+  curfewStart: '2026-10-31T18:00:00.000Z',
+  curfewEnd: '2026-11-01T00:00:00.000Z',
+  eventPassword: 'ghouls gone wild',
+  adminIds: ['site-admin-1', 'site-admin-2'],
+  womCompetitionId: '98765',
+  startingTileIds: ['t-r21-c15'],
+  board: {
+    dimensions: { rows: 22, cols: 30 },
+    candybagTileId: 't-r0-c15',
+    tiles: [
+      ...Array.from({ length: 20 }, (_, i) => ({ id: `h-${i}`, tile_type: 'house' })),
+      ...Array.from({ length: 8 }, (_, i) => ({ id: `g-${i}`, tile_type: 'ghost' })),
+      ...Array.from({ length: 6 }, (_, i) => ({ id: `gr-${i}`, tile_type: 'grave' })),
+      ...Array.from({ length: 4 }, (_, i) => ({ id: `p-${i}`, tile_type: 'pumpkin' })),
+      ...Array.from({ length: 3 }, (_, i) => ({ id: `c-${i}`, tile_type: 'black-cat' })),
+      { id: 't-r21-c15', tile_type: 'start' },
+      { id: 't-r0-c15', tile_type: 'candybag' },
+    ],
+  },
+  contentById: {},
+};
+
+const MOCK_PREFLIGHT_HAPPY_TEAMS = [
+  { teamId: 't1', teamName: 'Head Stoners', color: '#8c3a2b', members: ['u1', 'u2', 'u3', 'u4'], discordChannelId: '111', discordRoleId: '222', mossyWildyLocation: 3 },
+  { teamId: 't2', teamName: 'Casket Cases', color: '#6a4e8e', members: ['u5', 'u6', 'u7'], discordChannelId: '112', discordRoleId: '223', mossyWildyLocation: 7 },
+  { teamId: 't3', teamName: 'Just Bat It', color: '#2f6e3e', members: ['u8', 'u9', 'u10', 'u11', 'u12'], discordChannelId: '113', discordRoleId: '224', mossyWildyLocation: 1 },
+  { teamId: 't4', teamName: 'Wax On Zuk Off', color: '#d38a52', members: ['u13', 'u14', 'u15'], discordChannelId: '114', discordRoleId: '225', mossyWildyLocation: 11 },
+];
+
+const MOCK_PREFLIGHT_WARNING_TEAMS = [
+  { teamId: 't1', teamName: 'Head Stoners', color: '#8c3a2b', members: ['u1', 'u2', 'u3'], discordChannelId: '111', discordRoleId: '222', mossyWildyLocation: 3 },
+  { teamId: 't2', teamName: 'Casket Cases', color: '#6a4e8e', members: [], discordChannelId: '112', discordRoleId: null, mossyWildyLocation: 7 },
+  { teamId: 't3', teamName: 'Spin Doctors', color: '#2f6e3e', members: ['u5', 'u6'], discordChannelId: null, discordRoleId: null, mossyWildyLocation: 1 },
+];
+
+const MOCK_PREFLIGHT_BLOCKED_BASE = {
+  ...MOCK_PREFLIGHT_BASE,
+  startingTileIds: [],
+  board: {
+    dimensions: { rows: 22, cols: 30 },
+    candybagTileId: null,
+    tiles: [],
+  },
+};
+
+function makePreflightEvent({ teams, override = {} }) {
+  return {
+    ...MOCK_PREFLIGHT_BASE,
+    ...override,
+    teams,
+  };
+}
+
+function ActivatePreflightSection() {
+  const [variant, setVariant] = useState(null);
+
+  const event = useMemo(() => {
+    if (variant === 'happy') {
+      return makePreflightEvent({ teams: MOCK_PREFLIGHT_HAPPY_TEAMS });
+    }
+    if (variant === 'warnings') {
+      return makePreflightEvent({
+        teams: MOCK_PREFLIGHT_WARNING_TEAMS,
+        override: {
+          eventPassword: null,
+          womCompetitionId: null,
+          contentById: {
+            'h-0': { task: { kind: 'uniques', acceptable_drops: [] } },
+            'h-1': {
+              dialog: { options: { a: { task: { kind: 'uniques', acceptable_drops: [] } } } },
+            },
+            'h-2': {
+              dialog: { options: { b: { task: { kind: 'uniques', acceptable_drops: [] } } } },
+            },
+          },
+        },
+      });
+    }
+    if (variant === 'blocked') {
+      return {
+        ...MOCK_PREFLIGHT_BLOCKED_BASE,
+        teams: [],
+      };
+    }
+    return null;
+  }, [variant]);
+
+  return (
+    <VStack spacing={4} align="stretch">
+      <Heading size="md" fontFamily={SPOOPY_FONTS.heading}>pre-flight (setup → active)</Heading>
+      <Text fontSize="sm" opacity={0.7}>
+        confirmation modal shown before flipping the event live. three fixtures: everything clean, a
+        realistic mix of soft warnings, and a hard-blocker state where "go live" is disabled.
+      </Text>
+      <HStack flexWrap="wrap">
+        <Button
+          onClick={() => setVariant('happy')}
+          bg={SPOOPY_COLORS.pumpkin}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+        >
+          happy path
+        </Button>
+        <Button
+          onClick={() => setVariant('warnings')}
+          variant="outline"
+          borderColor={SPOOPY_COLORS.pumpkin}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.nightMist }}
+        >
+          with warnings
+        </Button>
+        <Button
+          onClick={() => setVariant('blocked')}
+          variant="outline"
+          borderColor={SPOOPY_COLORS.ember}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.nightMist }}
+        >
+          blocked (no candybag / no teams)
+        </Button>
+      </HStack>
+      <SpoopyActivatePreflightModal
+        isOpen={variant !== null}
+        onClose={() => setVariant(null)}
+        event={event}
+        isConfirming={false}
+        onConfirm={() => setVariant(null)}
+      />
+    </VStack>
+  );
+}
 
 function Shell({ children }) {
   return (

@@ -503,15 +503,35 @@ const Mutation = {
     return event;
   },
 
-  syncSpoopyEventWom: async (_, { eventId }, context) => {
+  setSpoopyEventWomPreAnchorBufferHours: async (_, { eventId, hours }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    const raw = Number(hours);
+    if (!Number.isFinite(raw)) {
+      throw new UserInputError('Pre-anchor buffer must be a number.');
+    }
+    // Clamp to non-negative. We don't cap the upper bound — big backdates
+    // just mean more WOM API range, not a correctness problem.
+    const clamped = Math.max(0, raw);
+    await event.update({ womPreAnchorBufferHours: clamped });
+    return event;
+  },
+
+  syncSpoopyEventWom: async (_, { eventId, force }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
     if (!event.womCompetitionId) {
       throw new UserInputError('No WOM competition id set on this event.');
     }
+    // force=true bypasses the per-event SYNC_COOLDOWN_MS inside the util.
+    // Site admin only — event-scoped admins can still sync, but have to
+    // wait out the cooldown like cron does. Keeps the WOM API usage sane
+    // even if we hand out event-admin roles liberally for ref duties.
+    const effectiveForce = Boolean(force) && user.admin === true;
     try {
-      await syncSpoopyEventWom(eventId);
+      await syncSpoopyEventWom(eventId, { force: effectiveForce });
     } catch (err) {
       // Cooldown / rate-limit errors bubble up as user-facing messages so
       // the admin's toast reads sensibly instead of "an error occurred".

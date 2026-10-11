@@ -39,6 +39,7 @@ import {
   SET_SPOOPY_EVENT_PASSWORD,
   SET_SPOOPY_EVENT_PRIZE_POOL,
   SET_SPOOPY_EVENT_WOM_COMPETITION_ID,
+  SET_SPOOPY_EVENT_WOM_PRE_ANCHOR_BUFFER_HOURS,
   SYNC_SPOOPY_EVENT_WOM,
   UPDATE_SPOOPY_EVENT_SCHEDULE,
   DELETE_SPOOPY_EVENT,
@@ -55,6 +56,7 @@ import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme'
 import { formatCandy, formatGp, GP_PER_CANDY } from '../../organisms/spoopy/spoopyCurrency';
 import { isDevEnv } from '../../organisms/spoopy/spoopyDevUtils';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyActivatePreflightModal from '../../organisms/spoopy/SpoopyActivatePreflightModal';
 
 // ── UI atoms — shared paper-on-night styling for form panels ────────────
 
@@ -364,6 +366,14 @@ function EventSettingsPanel({ event, refetch }) {
   const [passwordInput, setPasswordInput] = useState(event.eventPassword ?? '');
   const [prizePoolInput, setPrizePoolInput] = useState(String(event.prizePool ?? 0));
   const [womInput, setWomInput] = useState(event.womCompetitionId ?? '');
+  const [womBufferInput, setWomBufferInput] = useState(
+    String(event.womPreAnchorBufferHours ?? 12),
+  );
+  // Preflight overview modal controls the SETUP→ACTIVE transition. Replaces
+  // the old `window.confirm` with a scrollable summary of teams, board,
+  // curfew, prize pool, pending drops, etc. so there's one last human pass
+  // before going live.
+  const [preflightOpen, setPreflightOpen] = useState(false);
 
   const [setPassword, { loading: savingPassword }] = useMutation(SET_SPOOPY_EVENT_PASSWORD, {
     onCompleted: () => {
@@ -388,6 +398,16 @@ function EventSettingsPanel({ event, refetch }) {
     },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
+  const [setWomBuffer, { loading: savingWomBuffer }] = useMutation(
+    SET_SPOOPY_EVENT_WOM_PRE_ANCHOR_BUFFER_HOURS,
+    {
+      onCompleted: () => {
+        toast({ title: 'wom buffer saved', status: 'success' });
+        refetch();
+      },
+      onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
+    },
+  );
 
   const [syncWom, { loading: syncingWom }] = useMutation(SYNC_SPOOPY_EVENT_WOM, {
     onCompleted: () => {
@@ -489,20 +509,12 @@ function EventSettingsPanel({ event, refetch }) {
                 onClick={() => {
                   // Going live is irreversible in effect (team pool allocations
                   // get snapshotted, curfewStart snaps to now if unset/future).
-                  // Force a confirm so it can't happen from a stray click.
+                  // Open the pre-flight overview instead of firing the status
+                  // update directly — the modal confirms when the admin hits
+                  // "go live" there.
                   if (event.status === 'SETUP' && s === 'ACTIVE') {
-                    const teamCount = (event.teams ?? []).length;
-                    if (
-                      !window.confirm(
-                        `flip "${event.eventName}" to ACTIVE now?\n\n` +
-                          `• ${teamCount} team${teamCount === 1 ? '' : 's'} will have their prize pool share locked in\n` +
-                          '• the event will go live and boards become interactable\n' +
-                          '• curfew start time will snap to now\n\n' +
-                          'this cannot be cleanly undone.',
-                      )
-                    ) {
-                      return;
-                    }
+                    setPreflightOpen(true);
+                    return;
                   }
                   // Ending the event early runs handleCurfew on every team,
                   // which forfeits ALL banked gp for any team that hasn't
@@ -687,6 +699,43 @@ function EventSettingsPanel({ event, refetch }) {
             })}
           </Text>
         )}
+        <Divider borderColor={SPOOPY_COLORS.nightMist} opacity={0.5} />
+        <Text fontSize="xs" opacity={0.55}>
+          <Text as="span" fontWeight="bold">pre-anchor buffer (hours):</Text>{' '}
+          backdates each tile's wom lookup to catch xp/kc earned shortly before the pre-screenshot
+          was logged. default is 12 — bump up if your players tend to grind for hours before
+          submitting their pre, drop down if they're always logging out right after.
+        </Text>
+        <HStack spacing={2}>
+          <Input
+            {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+            value={womBufferInput}
+            onChange={(e) => setWomBufferInput(e.target.value)}
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="12"
+            maxW="120px"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor={SPOOPY_COLORS.nightMist}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            isLoading={savingWomBuffer}
+            onClick={() => {
+              const parsed = Number(womBufferInput);
+              if (!Number.isFinite(parsed) || parsed < 0) {
+                toast({ title: 'buffer must be a non-negative number', status: 'error' });
+                return;
+              }
+              setWomBuffer({ variables: { eventId: event.eventId, hours: parsed } });
+            }}
+          >
+            save
+          </Button>
+        </HStack>
       </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -774,6 +823,16 @@ function EventSettingsPanel({ event, refetch }) {
           </HStack>
         )}
       </VStack>
+      <SpoopyActivatePreflightModal
+        isOpen={preflightOpen}
+        onClose={() => setPreflightOpen(false)}
+        event={event}
+        isConfirming={updatingStatus}
+        onConfirm={async () => {
+          await updateStatus({ variables: { eventId: event.eventId, status: 'ACTIVE' } });
+          setPreflightOpen(false);
+        }}
+      />
     </VStack>
   );
 }

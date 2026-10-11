@@ -790,6 +790,11 @@ const typeDefs = gql`
     womCompetitionId: String
     # Last successful WOM sync (server enforces a cooldown on top of this).
     lastWomSyncAt:    DateTime
+    # Hours to backdate the PRE-submission anchor by when summing WOM gains
+    # for a tile. Catches xp/kc earned shortly before the PRE but after the
+    # last WOM snapshot. Default 12. Mirrors Battleship's
+    # womShotAnchorBufferHours.
+    womPreAnchorBufferHours: Float!
     teams:            [SpoopyTeam!]!
     admins:           [User!]!
     createdAt:        DateTime
@@ -1403,10 +1408,17 @@ const typeDefs = gql`
     # Admin-only. Sets/clears the WOM team competition id used for auto-fill
     # of skilling_xp / boss_kc tile progress. Editable at any status.
     setSpoopyEventWomCompetitionId(eventId: ID!, womCompetitionId: String): SpoopyEvent!
+    # Admin-only. Sets how many hours to backdate the PRE anchor by when
+    # summing WOM gains. Clamped non-negative server-side. Pass 12 to
+    # restore the default. Takes effect on the next sync.
+    setSpoopyEventWomPreAnchorBufferHours(eventId: ID!, hours: Float!): SpoopyEvent!
     # Admin-only. Kicks off a WOM sync for the event. Respects a server-side
     # cooldown to avoid rate-limit trouble with the WOM API. Returns the
-    # event so the client sees the fresh lastWomSyncAt timestamp.
-    syncSpoopyEventWom(eventId: ID!): SpoopyEvent!
+    # event so the client sees the fresh lastWomSyncAt timestamp. Pass
+    # force=true to bypass the per-event cooldown — reserved for site
+    # admins hitting the manual button on the refs page; cron and the
+    # per-PRE auto-hook leave it unset so they stay cooldown-bound.
+    syncSpoopyEventWom(eventId: ID!, force: Boolean): SpoopyEvent!
     createSpoopyTeam(eventId: ID!, input: CreateSpoopyTeamInput!): SpoopyTeam!
     updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
     # Update the team's Discord channel / role bindings after creation.
