@@ -5,6 +5,7 @@ import {
   Text,
   Button,
   Textarea,
+  Input,
   SimpleGrid,
   NumberInput,
   NumberInputField,
@@ -39,6 +40,16 @@ import usePageTitle from '../hooks/usePageTitle';
 import { useToastContext } from '../providers/ToastProvider';
 import { useAuth } from '../providers/AuthProvider';
 import GemTitle from '../atoms/GemTitle';
+import { getWomErrorMessage, WOM_ERROR_TOAST_DURATION } from '../utils/womErrorMessage';
+import {
+  classifyWomPlayerResults,
+  usesYearlyWomGains,
+  WOM_PLAYER_STATUS,
+} from '../utils/womPlayerResolution';
+import {
+  combineCompetitionPaces,
+  getCompetitionScoreMultiplier,
+} from '../utils/womCompetitionBalance';
 
 const PRESETS = {
   'All-Rounder': {
@@ -109,6 +120,8 @@ const TEAM_COLORS = [
 
 const WOM_STATS_BATCH_SIZE = 50;
 const CLIENT_BATCH_DELAY_MS = 500;
+const COMP_HISTORY_BATCH_SIZE = 5;
+const COMP_HISTORY_DETAIL_BUDGET = 40;
 
 // Columns shown in the player table (all except name which is sticky)
 const COLUMNS = [
@@ -134,6 +147,30 @@ function scorePlayer(womData, weights) {
     weights.coxWeight * (womData.cox ?? 0) +
     weights.tobWeight * (womData.tob ?? 0) +
     weights.toaWeight * (womData.toa ?? 0)
+  );
+}
+
+function AutoRetryCountdown({ disabled, onRetry }) {
+  const [seconds, setSeconds] = useState(30);
+  const triggered = useRef(false);
+
+  useEffect(() => {
+    if (disabled || triggered.current || seconds === 0) return undefined;
+    const timeout = setTimeout(() => setSeconds((value) => Math.max(0, value - 1)), 1000);
+    return () => clearTimeout(timeout);
+  }, [disabled, seconds]);
+
+  useEffect(() => {
+    if (seconds !== 0 || disabled || triggered.current) return;
+    triggered.current = true;
+    onRetry();
+  }, [disabled, onRetry, seconds]);
+
+  if (triggered.current) return null;
+  return (
+    <Text fontSize="10px" color="yellow.300">
+      Auto-retry in {seconds}s
+    </Text>
   );
 }
 
@@ -170,6 +207,14 @@ function fmt(n) {
   return Math.round(n).toLocaleString();
 }
 
+function formatRsnLines(players) {
+  return players
+    .map((player) =>
+      player.hoursPerDay == null ? player.rsn : `${player.rsn} - ${player.hoursPerDay}`
+    )
+    .join('\n');
+}
+
 function competitionPaceRatio(players, compData, metric) {
   const yearlyKey = metric === 'ehp' ? 'ehpy' : 'ehby';
   let actual = 0;
@@ -186,13 +231,53 @@ function competitionPaceRatio(players, compData, metric) {
   return expected > 0 ? actual / expected : null;
 }
 
+function weightedCompetitionPace(player, compData, weights) {
+  return combineCompetitionPaces(
+    {
+      ehp: competitionPaceRatio([player], compData, 'ehp'),
+      ehb: competitionPaceRatio([player], compData, 'ehb'),
+    },
+    weights
+  );
+}
+
+function calculatePlayerScore(
+  player,
+  weights,
+  hoursBaseline,
+  compData = null,
+  competitionInfluence = 0
+) {
+  const availabilityMultiplier =
+    player.hoursPerDay != null ? player.hoursPerDay / hoursBaseline : 1;
+  const baseScore = scorePlayer(player, weights) * availabilityMultiplier;
+  const competitionPace =
+    compData && competitionInfluence > 0
+      ? weightedCompetitionPace(player, compData, weights)
+      : null;
+  const competitionScoreMultiplier = getCompetitionScoreMultiplier(
+    competitionPace,
+    competitionInfluence
+  );
+
+  return {
+    ...player,
+    score: baseScore * competitionScoreMultiplier,
+    competitionPace,
+    competitionScoreMultiplier,
+  };
+}
+
 function formatPace(ratio) {
-  return ratio == null ? '—' : `${Math.round(ratio * 100)}%`;
+  return ratio == null ? 'N/A' : `${Math.round(ratio * 100)}%`;
 }
 
 function exportToCsv(teams, preset, compData) {
   const anyHours = teams.some((t) => t.players.some((p) => p.hoursPerDay !== null));
   const hasCompetitionData = compData !== null;
+  const hasCompetitionBalance = teams.some((team) =>
+    team.players.some((player) => player.competitionPace != null)
+  );
   const rows = [
     [
       'Team',
@@ -214,6 +299,7 @@ function exportToCsv(teams, preset, compData) {
             'Sampled Competitions',
             'Comp EHP Gained',
             'Comp EHB Gained',
+            ...(hasCompetitionBalance ? ['Competition Score Modifier'] : []),
           ]
         : []),
     ],
@@ -234,9 +320,9 @@ function exportToCsv(teams, preset, compData) {
         p.rsn,
         p.totalLevel ?? 0,
         Math.round(p.ehp ?? 0),
-        Math.round(p.ehpy ?? 0),
+        p.yearlyGainsUnavailable ? '' : Math.round(p.ehpy ?? 0),
         Math.round(p.ehb ?? 0),
-        Math.round(p.ehby ?? 0),
+        p.yearlyGainsUnavailable ? '' : Math.round(p.ehby ?? 0),
         Math.round(p.cox ?? 0),
         Math.round(p.tob ?? 0),
         Math.round(p.toa ?? 0),
@@ -249,6 +335,13 @@ function exportToCsv(teams, preset, compData) {
               sampledCompetitions || '',
               ehpPerformance?.gained?.toFixed(2) ?? '',
               ehbPerformance?.gained?.toFixed(2) ?? '',
+              ...(hasCompetitionBalance
+                ? [
+                    p.competitionPace == null
+                      ? ''
+                      : `${((p.competitionScoreMultiplier - 1) * 100).toFixed(1)}%`,
+                  ]
+                : []),
             ]
           : []),
       ]);
@@ -277,7 +370,7 @@ export default function TeamBalancerPage() {
   const [numTeams, setNumTeams] = useState(2);
   const [preset, setPreset] = useState(DEFAULT_PRESET);
   const [teams, setTeams] = useState(null);
-  const [notFoundRsns, setNotFoundRsns] = useState([]);
+  const [unresolvedPlayers, setUnresolvedPlayers] = useState([]);
   const [progress, setProgress] = useState(null);
 
   // Sort state: applies to all team tables simultaneously
@@ -287,12 +380,16 @@ export default function TeamBalancerPage() {
   // Competition history: rsn → { count, recent[], performance: { ehp, ehb } }
   const [compData, setCompData] = useState(null); // null = not loaded
   const [compLoading, setCompLoading] = useState(false);
+  const [compLoadingMode, setCompLoadingMode] = useState(null);
+  const [compProgress, setCompProgress] = useState(null);
+  const [competitionInfluence, setCompetitionInfluence] = useState(0.25);
+  const [appliedCompetitionInfluence, setAppliedCompetitionInfluence] = useState(null);
 
   // Drag state
   const dragInfo = useRef(null); // { rsn, fromTeamIdx }
   const [dragOverTeam, setDragOverTeam] = useState(null);
 
-  // Refetch state for not-found RSNs
+  // Retry state for players that WOM could not fully resolve
   const [refetchProgress, setRefetchProgress] = useState(null); // { fetched, total, current } | null
 
   // Manual edit tracking for rebalance confirmation
@@ -302,7 +399,7 @@ export default function TeamBalancerPage() {
   // Hours/day baseline for score multiplier (8h = 1.0×)
   const [hoursBaseline, setHoursBaseline] = useState(8);
 
-  // Custom weights — start from the selected preset, editable in Advanced
+  // Custom weights start from the selected preset and are editable in Advanced.
   const [customWeights, setCustomWeights] = useState(null); // null = use preset
 
   const activeWeights = customWeights ?? PRESETS[preset];
@@ -320,16 +417,64 @@ export default function TeamBalancerPage() {
   // When weights change: rebalance directly, or prompt if user has manual edits
   useEffect(() => {
     if (!teams) return;
+    const playersMissingWeightedYearlyStats = teams
+      .flatMap((team) => team.players)
+      .filter((player) => player.yearlyGainsUnavailable);
+    if (usesYearlyWomGains(activeWeights) && playersMissingWeightedYearlyStats.length > 0) {
+      const missingRsns = new Set(
+        playersMissingWeightedYearlyStats.map((player) => player.rsn.toLowerCase())
+      );
+      setUnresolvedPlayers((current) => [
+        ...current,
+        ...playersMissingWeightedYearlyStats
+          .filter(
+            (player) =>
+              !current.some(
+                (row) =>
+                  row.status === WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE &&
+                  row.rsn.toLowerCase() === player.rsn.toLowerCase()
+              )
+          )
+          .map((player) => ({
+            id: `yearly:${player.sourceIndex ?? player.rsn.toLowerCase()}`,
+            sourceIndex: player.sourceIndex,
+            originalRsn: player.originalRsn ?? player.rsn,
+            rsn: player.rsn,
+            draftRsn: player.rsn,
+            hoursPerDay: player.hoursPerDay,
+            status: WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE,
+            stats: player,
+          })),
+      ]);
+      setTeams((current) => {
+        const available = current
+          .flatMap((team) => team.players)
+          .filter((player) => !missingRsns.has(player.rsn.toLowerCase()))
+          .map((player) => calculatePlayerScore(player, activeWeights, hoursBaseline));
+        return balanceTeams(available, current.length);
+      });
+      setCompData(null);
+      setAppliedCompetitionInfluence(null);
+      showToast(
+        'Yearly weighting needs complete yearly stats. Affected players were moved to the attention panel.',
+        'warning',
+        WOM_ERROR_TOAST_DURATION
+      );
+      return;
+    }
     if (hasManualEdits) {
       // Re-score in place so numbers reflect new weights, but don't move anyone
       setTeams((prev) =>
         prev.map((team) => {
-          const rescored = team.players.map((p) => ({
-            ...p,
-            score:
-              scorePlayer(p, activeWeights) *
-              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
-          }));
+          const rescored = team.players.map((player) =>
+            calculatePlayerScore(
+              player,
+              activeWeights,
+              hoursBaseline,
+              compData,
+              appliedCompetitionInfluence ?? 0
+            )
+          );
           return { ...team, players: rescored, total: rescored.reduce((s, p) => s + p.score, 0) };
         })
       );
@@ -338,12 +483,15 @@ export default function TeamBalancerPage() {
       setTeams((prev) => {
         const allPlayers = prev
           .flatMap((t) => t.players)
-          .map((p) => ({
-            ...p,
-            score:
-              scorePlayer(p, activeWeights) *
-              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
-          }));
+          .map((player) =>
+            calculatePlayerScore(
+              player,
+              activeWeights,
+              hoursBaseline,
+              compData,
+              appliedCompetitionInfluence ?? 0
+            )
+          );
         return balanceTeams(allPlayers, prev.length);
       });
     }
@@ -510,6 +658,16 @@ export default function TeamBalancerPage() {
     if (parsed.length < numTeams) {
       return showToast(`Need at least ${numTeams} RSNs for ${numTeams} teams`, 'warning');
     }
+    const duplicateRsns = parsed
+      .map((player) => player.rsn.toLowerCase())
+      .filter((rsn, index, all) => all.indexOf(rsn) !== index);
+    if (duplicateRsns.length > 0) {
+      return showToast(
+        `Remove duplicate RSNs before balancing: ${[...new Set(duplicateRsns)].join(', ')}`,
+        'warning',
+        7000
+      );
+    }
 
     let allStats;
     try {
@@ -518,65 +676,205 @@ export default function TeamBalancerPage() {
         setProgress
       );
     } catch (e) {
-      showToast(`Failed to fetch stats: ${e.message}`, 'error');
+      showToast(getWomErrorMessage(e), 'error', WOM_ERROR_TOAST_DURATION);
       setProgress(null);
       return;
     }
 
     const weights = activeWeights;
-    const parsedByRsn = Object.fromEntries(parsed.map((p) => [p.rsn.toLowerCase(), p]));
-    const notFound = allStats
-      .filter((s) => s.notFound)
-      .map((s) => ({
-        rsn: s.rsn,
-        hoursPerDay: parsedByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null,
-      }));
-    setNotFoundRsns(notFound);
-
-    const found = allStats.filter((s) => !s.notFound);
-    const scored = found.map((s) => {
-      const hoursPerDay = parsedByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
+    const { ready, unresolved } = classifyWomPlayerResults(allStats, parsed, weights);
+    const scored = ready.map((stats) => {
+      const { hoursPerDay } = stats;
       return {
-        ...s,
-        hoursPerDay,
-        score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1),
+        ...stats,
+        score:
+          scorePlayer(stats, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1),
       };
     });
+    setUnresolvedPlayers(unresolved);
     setTeams(balanceTeams(scored, numTeams));
-    incrementTeamBalance().catch(() => {});
+    if (unresolved.length === 0) {
+      incrementTeamBalance().catch(() => {});
+    } else {
+      showToast(
+        `${unresolved.length} player${
+          unresolved.length === 1 ? '' : 's'
+        } need attention. Successful players are saved below while you fix or retry them.`,
+        'warning',
+        WOM_ERROR_TOAST_DURATION
+      );
+    }
     setCompData(null);
+    setAppliedCompetitionInfluence(null);
     setProgress(null);
     setHasManualEdits(false);
     setShowRebalanceConfirm(false);
   }
 
-  async function handleLoadCompHistory() {
+  async function handleLoadCompHistory({ rsns = null, forceRefresh = false } = {}) {
     if (!teams) return;
-    const allRsns = teams.flatMap((t) => t.players.map((p) => p.rsn));
+    const allRsns = rsns ?? teams.flatMap((t) => t.players.map((p) => p.rsn));
+    if (allRsns.length === 0) return;
     setCompLoading(true);
-    try {
-      const result = await apolloClient.query({
-        query: FETCH_PLAYER_COMP_HISTORY,
-        variables: { rsns: allRsns },
-        fetchPolicy: 'network-only',
+    setCompLoadingMode(rsns ? 'retry' : compData ? 'refresh' : 'initial');
+    const batchCount = Math.ceil(allRsns.length / COMP_HISTORY_BATCH_SIZE);
+    const totalDetailBudget = Math.min(COMP_HISTORY_DETAIL_BUDGET, allRsns.length * 5);
+    let remainingDetailBudget = totalDetailBudget;
+    let nextCompData = compData ? { ...compData } : {};
+    let failedBatchPlayers = 0;
+
+    for (let start = 0; start < allRsns.length; start += COMP_HISTORY_BATCH_SIZE) {
+      const batch = allRsns.slice(start, start + COMP_HISTORY_BATCH_SIZE);
+      const batchIndex = Math.floor(start / COMP_HISTORY_BATCH_SIZE);
+      const remainingBatches = batchCount - batchIndex;
+      const maxDetailRequests = Math.max(1, Math.floor(remainingDetailBudget / remainingBatches));
+      remainingDetailBudget -= maxDetailRequests;
+      setCompProgress({
+        fetched: start,
+        total: allRsns.length,
+        current: batch.length === 1 ? batch[0] : `${batch[0]} and ${batch.length - 1} more`,
       });
-      const entries = result.data?.fetchPlayerCompHistory ?? [];
-      const map = {};
-      entries.forEach((e) => {
-        map[e.rsn.toLowerCase()] = e;
+
+      let entries;
+      try {
+        const result = await apolloClient.query({
+          query: FETCH_PLAYER_COMP_HISTORY,
+          variables: { rsns: batch, forceRefresh, maxDetailRequests },
+          fetchPolicy: 'network-only',
+        });
+        entries = result.data?.fetchPlayerCompHistory ?? [];
+      } catch {
+        failedBatchPlayers += batch.length;
+        entries = batch.map((rsn) => ({
+          rsn,
+          analysisStatus: 'TEMPORARY_ERROR',
+          count: 0,
+          recent: [],
+          performance: {
+            ehp: { gained: 0, durationDays: 0, competitions: 0 },
+            ehb: { gained: 0, durationDays: 0, competitions: 0 },
+          },
+        }));
+      }
+
+      entries.forEach((entry) => {
+        nextCompData[entry.rsn.toLowerCase()] = entry;
       });
-      setCompData(map);
-    } catch (e) {
-      showToast(`Failed to fetch competition history: ${e.message}`, 'error');
+      nextCompData = { ...nextCompData };
+      setCompData(nextCompData);
+      setCompProgress({
+        fetched: Math.min(start + batch.length, allRsns.length),
+        total: allRsns.length,
+        current: null,
+      });
+    }
+
+    if (appliedCompetitionInfluence != null) {
+      setTeams((currentTeams) => {
+        if (hasManualEdits) {
+          return currentTeams.map((team) =>
+            recalcTotal({
+              ...team,
+              players: team.players.map((player) =>
+                calculatePlayerScore(
+                  player,
+                  activeWeights,
+                  hoursBaseline,
+                  nextCompData,
+                  appliedCompetitionInfluence
+                )
+              ),
+            })
+          );
+        }
+        const rescored = currentTeams
+          .flatMap((team) => team.players)
+          .map((player) =>
+            calculatePlayerScore(
+              player,
+              activeWeights,
+              hoursBaseline,
+              nextCompData,
+              appliedCompetitionInfluence
+            )
+          );
+        return balanceTeams(rescored, currentTeams.length);
+      });
+    }
+
+    const requestedEntries = allRsns.map((rsn) => nextCompData[rsn.toLowerCase()]);
+    const incompleteCount = requestedEntries.filter(
+      (entry) => !entry || entry.analysisStatus !== 'READY'
+    ).length;
+    if (incompleteCount > 0) {
+      showToast(
+        `${allRsns.length - incompleteCount} of ${
+          allRsns.length
+        } competition histories are ready. The remaining ${incompleteCount} can be retried without losing progress.`,
+        failedBatchPlayers > 0 ? 'error' : 'warning',
+        WOM_ERROR_TOAST_DURATION
+      );
+    } else if (rsns) {
+      showToast('Competition analysis is now complete.', 'success');
     }
     setCompLoading(false);
+    setCompLoadingMode(null);
+    setCompProgress(null);
+  }
+
+  function handleApplyCompetitionBalance() {
+    if (!compData || comparableCompEntries.length === 0) return;
+    setTeams((currentTeams) => {
+      const rescored = currentTeams
+        .flatMap((team) => team.players)
+        .map((player) =>
+          calculatePlayerScore(player, activeWeights, hoursBaseline, compData, competitionInfluence)
+        );
+      return balanceTeams(rescored, currentTeams.length);
+    });
+    setAppliedCompetitionInfluence(competitionInfluence);
+    setHasManualEdits(false);
+    setShowRebalanceConfirm(false);
+    setSortCol('score');
+    setSortDir('desc');
+    showToast('Teams rebalanced with competition pace included.', 'success');
+  }
+
+  function handleClearCompetitionBalance({ hideAnalysis = false } = {}) {
+    setTeams((currentTeams) => {
+      const rescored = currentTeams
+        .flatMap((team) => team.players)
+        .map((player) => calculatePlayerScore(player, activeWeights, hoursBaseline));
+      return balanceTeams(rescored, currentTeams.length);
+    });
+    setAppliedCompetitionInfluence(null);
+    setHasManualEdits(false);
+    setShowRebalanceConfirm(false);
+    if (hideAnalysis) setCompData(null);
+    showToast(
+      hideAnalysis
+        ? 'Competition analysis hidden. Teams restored to the normal balance.'
+        : 'Competition adjustment removed. Teams restored to the normal balance.',
+      'info'
+    );
+  }
+
+  function handleHideCompetitionAnalysis() {
+    if (appliedCompetitionInfluence != null) {
+      handleClearCompetitionBalance({ hideAnalysis: true });
+    } else {
+      setCompData(null);
+    }
   }
 
   function handleReset() {
     setTeams(null);
-    setNotFoundRsns([]);
+    setUnresolvedPlayers([]);
     setProgress(null);
     setCompData(null);
+    setCompLoadingMode(null);
+    setCompProgress(null);
+    setAppliedCompetitionInfluence(null);
     setRefetchProgress(null);
     setSortCol('score');
     setSortDir('desc');
@@ -584,62 +882,186 @@ export default function TeamBalancerPage() {
     setShowRebalanceConfirm(false);
   }
 
-  async function handleRefetchNotFound() {
+  async function handleRetryPlayers(ids, { isAutoRetry = false } = {}) {
     const weights = activeWeights;
+    const rows = unresolvedPlayers.filter((player) => ids.includes(player.id));
+    if (rows.length === 0) return;
+    if (rows.some((player) => !player.draftRsn.trim())) {
+      showToast('Enter an RSN for every selected row before retrying.', 'warning');
+      return;
+    }
+
+    const occupiedRsns = [
+      ...teams.flatMap((team) => team.players.map((player) => player.rsn)),
+      ...unresolvedPlayers
+        .filter((player) => !ids.includes(player.id))
+        .map((player) => player.draftRsn),
+    ].map((rsn) => rsn.trim().toLowerCase());
+    const retryRsns = rows.map((player) => player.draftRsn.trim().toLowerCase());
+    const duplicateRsn = retryRsns.find(
+      (rsn, index) => occupiedRsns.includes(rsn) || retryRsns.indexOf(rsn) !== index
+    );
+    if (duplicateRsn) {
+      showToast(`"${duplicateRsn}" is already in this balance. Use a unique RSN.`, 'warning', 7000);
+      return;
+    }
+
+    setUnresolvedPlayers((current) =>
+      current.map((player) =>
+        ids.includes(player.id)
+          ? {
+              ...player,
+              isRetrying: true,
+              autoRetryAttempted: player.autoRetryAttempted || isAutoRetry,
+            }
+          : player
+      )
+    );
+
     let allStats;
     try {
       allStats = await fetchWomStatsInBatches(
-        notFoundRsns.map((player) => player.rsn),
-        setRefetchProgress
+        rows.map((player) => player.draftRsn.trim()),
+        rows.length > 1 ? setRefetchProgress : () => {}
       );
     } catch (e) {
-      showToast(`Failed to refetch: ${e.message}`, 'error');
+      showToast(getWomErrorMessage(e), 'error', WOM_ERROR_TOAST_DURATION);
+      setUnresolvedPlayers((current) =>
+        current.map((player) =>
+          ids.includes(player.id) ? { ...player, isRetrying: false } : player
+        )
+      );
       setRefetchProgress(null);
       return;
     }
 
-    const notFoundByRsn = Object.fromEntries(notFoundRsns.map((p) => [p.rsn.toLowerCase(), p]));
-    const stillNotFound = allStats
-      .filter((s) => s.notFound)
-      .map((s) => ({
-        rsn: s.rsn,
-        hoursPerDay: notFoundByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null,
-      }));
-    const nowFound = allStats.filter((s) => !s.notFound);
-
-    if (nowFound.length === 0) {
-      showToast('Still not found on WOM — check the usernames', 'warning');
-      setRefetchProgress(null);
-      return;
-    }
-
-    // Merge newly found players into the existing pool and rebalance everything
-    const existingPlayers = teams.flatMap((t) => t.players);
-    const allPlayers = [
-      ...existingPlayers,
-      ...nowFound.map((s) => {
-        const hoursPerDay = notFoundByRsn[s.rsn.toLowerCase()]?.hoursPerDay ?? null;
-        return {
-          ...s,
-          hoursPerDay,
-          score: scorePlayer(s, weights) * (hoursPerDay != null ? hoursPerDay / hoursBaseline : 1),
+    const resolved = [];
+    const sourceUpdates = [];
+    const replacements = new Map();
+    rows.forEach((row, index) => {
+      const classified = classifyWomPlayerResults(
+        [allStats[index]],
+        [{ rsn: row.draftRsn, hoursPerDay: row.hoursPerDay }],
+        weights
+      );
+      if (classified.ready.length > 0) {
+        const readyStats = {
+          ...classified.ready[0],
+          sourceIndex: row.sourceIndex,
+          originalRsn: row.originalRsn,
         };
-      }),
-    ];
-    setTeams(balanceTeams(allPlayers, teams.length));
-    setNotFoundRsns(stillNotFound);
+        resolved.push(readyStats);
+        sourceUpdates.push({ sourceIndex: row.sourceIndex, rsn: readyStats.rsn });
+        replacements.set(row.id, null);
+      } else {
+        replacements.set(row.id, {
+          ...classified.unresolved[0],
+          id: row.id,
+          originalRsn: row.originalRsn,
+          sourceIndex: row.sourceIndex,
+          autoRetryAttempted: row.autoRetryAttempted || isAutoRetry,
+          isRetrying: false,
+        });
+      }
+    });
+
+    if (resolved.length > 0) {
+      const updatedSource = parseRsnInput();
+      sourceUpdates.forEach(({ sourceIndex, rsn }) => {
+        if (updatedSource[sourceIndex]) updatedSource[sourceIndex].rsn = rsn;
+      });
+      setRsnText(formatRsnLines(updatedSource));
+
+      setTeams((currentTeams) => {
+        const existingPlayers = currentTeams.flatMap((team) => team.players);
+        const newlyScored = resolved.map((stats) => ({
+          ...stats,
+          score:
+            scorePlayer(stats, weights) *
+            (stats.hoursPerDay != null ? stats.hoursPerDay / hoursBaseline : 1),
+        }));
+        return balanceTeams([...existingPlayers, ...newlyScored], currentTeams.length);
+      });
+    }
+
+    setUnresolvedPlayers((current) =>
+      current
+        .map((player) => (replacements.has(player.id) ? replacements.get(player.id) : player))
+        .filter(Boolean)
+    );
     setCompData(null);
+    setAppliedCompetitionInfluence(null);
     setRefetchProgress(null);
     setHasManualEdits(false);
     setShowRebalanceConfirm(false);
     setSortCol('score');
     setSortDir('desc');
 
-    if (stillNotFound.length === 0) {
-      showToast(`Found all players — teams rebalanced!`, 'success');
+    const remainingCount = unresolvedPlayers.length - resolved.length;
+    if (remainingCount === 0) {
+      incrementTeamBalance().catch(() => {});
+      showToast('All players resolved. Teams rebalanced!', 'success');
+    } else if (resolved.length > 0) {
+      showToast(`Resolved ${resolved.length}; ${remainingCount} still need attention.`, 'warning');
     } else {
-      showToast(`Found ${nowFound.length}, still missing ${stillNotFound.length}`, 'warning');
+      showToast('Those players still need attention. You can edit their RSNs or retry.', 'warning');
     }
+  }
+
+  function handleRetryPlayer(id) {
+    return handleRetryPlayers([id]);
+  }
+
+  function handleRetryAll() {
+    return handleRetryPlayers(unresolvedPlayers.map((player) => player.id));
+  }
+
+  function handleResolutionEdit(id, draftRsn) {
+    setUnresolvedPlayers((current) =>
+      current.map((player) => (player.id === id ? { ...player, draftRsn } : player))
+    );
+  }
+
+  function handleRemoveUnresolved(id) {
+    setUnresolvedPlayers((current) => current.filter((player) => player.id !== id));
+    if (unresolvedPlayers.length === 1) {
+      incrementTeamBalance().catch(() => {});
+      showToast('Player removed. The remaining teams are now final.', 'info');
+    }
+  }
+
+  function handleContinueWithoutYearly() {
+    const yearlyRows = unresolvedPlayers.filter(
+      (player) => player.status === WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE
+    );
+    if (yearlyRows.length === 0) return;
+
+    const weights = { ...activeWeights, ehbyWeight: 0, ehpyWeight: 0 };
+    setCustomWeights(weights);
+    setTeams((currentTeams) => {
+      const players = [
+        ...currentTeams.flatMap((team) => team.players),
+        ...yearlyRows.map((row) => ({
+          ...row.stats,
+          sourceIndex: row.sourceIndex,
+          originalRsn: row.originalRsn,
+          hoursPerDay: row.hoursPerDay,
+        })),
+      ].map((player) => ({
+        ...player,
+        score:
+          scorePlayer(player, weights) *
+          (player.hoursPerDay != null ? player.hoursPerDay / hoursBaseline : 1),
+      }));
+      return balanceTeams(players, currentTeams.length);
+    });
+    setUnresolvedPlayers((current) =>
+      current.filter((player) => player.status !== WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE)
+    );
+    if (unresolvedPlayers.length === yearlyRows.length) {
+      incrementTeamBalance().catch(() => {});
+    }
+    showToast('Yearly EHP/EHB weights set to zero. Partial players were added.', 'warning', 7000);
   }
 
   function handleSortCol(col) {
@@ -705,16 +1127,41 @@ export default function TeamBalancerPage() {
   const parsed = parseRsnInput();
   const hasEnough = parsed.length >= numTeams;
   const isFetching = progress !== null;
+  const isResolvingPlayers = unresolvedPlayers.some((player) => player.isRetrying);
+  const autoRetryPlayerIds = unresolvedPlayers
+    .filter(
+      (player) =>
+        player.status === WOM_PLAYER_STATUS.TEMPORARY_ERROR &&
+        !player.autoRetryAttempted &&
+        !player.isRetrying &&
+        player.draftRsn.trim() === player.rsn
+    )
+    .map((player) => player.id);
+  const autoRetryLeadId = autoRetryPlayerIds[0];
 
+  const assignedPlayerCount = teams?.reduce((sum, team) => sum + team.players.length, 0) ?? 0;
+  const maxTeamTotal = teams ? Math.max(...teams.map((team) => team.total)) : 0;
+  const compEntries = compData ? Object.values(compData) : [];
+  const incompleteCompEntries = compEntries.filter((entry) => entry.analysisStatus !== 'READY');
+  const comparableCompEntries = compEntries.filter(
+    (entry) =>
+      Math.max(
+        entry.performance?.ehp?.competitions ?? 0,
+        entry.performance?.ehb?.competitions ?? 0
+      ) > 0
+  );
+  const noCompHistoryEntries = compEntries.filter(
+    (entry) => entry.analysisStatus === 'READY' && entry.count === 0
+  );
   const balanceRatio =
-    teams && teams.length > 1
-      ? Math.min(...teams.map((t) => t.total)) / Math.max(...teams.map((t) => t.total))
+    teams && teams.length > 1 && assignedPlayerCount > 0 && maxTeamTotal > 0
+      ? Math.min(...teams.map((team) => team.total)) / maxTeamTotal
       : null;
 
   // Show Hrs/D column only when at least one player has hours specified
   const hasHoursData = teams?.some((t) => t.players.some((p) => p.hoursPerDay !== null)) ?? false;
 
-  // Determine columns to show — add Hrs/D and Comps when applicable
+  // Determine columns to show, including Hrs/D and competition pace when applicable.
   const visibleColumns = [
     ...COLUMNS.filter((c) => c.key !== 'score'),
     ...(hasHoursData
@@ -722,7 +1169,13 @@ export default function TeamBalancerPage() {
       : []),
     COLUMNS.find((c) => c.key === 'score'),
     ...(compData
-      ? [{ key: '__comps', label: 'Comps', title: 'Finished competition history on WOM' }]
+      ? [
+          {
+            key: '__comps',
+            label: 'Comp Pace',
+            title: 'Finished WOM competitions and EHP/EHB pace versus normal',
+          },
+        ]
       : []),
   ];
 
@@ -817,6 +1270,11 @@ export default function TeamBalancerPage() {
                 fontSize="sm"
                 isDisabled={isFetching}
               />
+              <Text fontSize="xs" color="yellow.300" mt={2} lineHeight="1.5">
+                Large player lists can trigger Wise Old Man rate limits and may need a few retry
+                rounds. Successful lookups are kept between retries, so you will not need to start
+                over.
+              </Text>
             </Box>
 
             {parsed.some((p) => p.hoursPerDay !== null) && (
@@ -1030,11 +1488,24 @@ export default function TeamBalancerPage() {
           >
             <VStack spacing={0} align="flex-start">
               <Text fontWeight="bold">
-                {teams.reduce((sum, t) => sum + t.players.length, 0)} players → {teams.length} teams
+                {assignedPlayerCount} ready player{assignedPlayerCount === 1 ? '' : 's'} →{' '}
+                {teams.length} teams
               </Text>
-              <Text fontSize="xs" color="gray.400">
-                {preset} metric
-              </Text>
+              <HStack spacing={2}>
+                <Text fontSize="xs" color="gray.400">
+                  {preset} metric
+                </Text>
+                {unresolvedPlayers.length > 0 && (
+                  <Badge colorScheme="orange" fontSize="9px">
+                    Provisional · {unresolvedPlayers.length} need attention
+                  </Badge>
+                )}
+                {appliedCompetitionInfluence != null && (
+                  <Badge colorScheme="cyan" fontSize="9px">
+                    Competition pace applied
+                  </Badge>
+                )}
+              </HStack>
             </VStack>
 
             {balanceRatio !== null && (
@@ -1068,55 +1539,248 @@ export default function TeamBalancerPage() {
             )}
 
             <HStack spacing={2} ml="auto" flexWrap="wrap">
-              {!compData && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  colorScheme="blue"
-                  onClick={handleLoadCompHistory}
-                  isLoading={compLoading}
-                  loadingText="Loading..."
-                >
-                  Load Competition History
-                </Button>
-              )}
               <Button
                 size="sm"
                 variant="ghost"
                 colorScheme="whiteAlpha"
                 onClick={() => exportToCsv(teams, preset, compData)}
+                isDisabled={unresolvedPlayers.length > 0 || compLoading}
               >
                 Export CSV
               </Button>
-              <Button size="sm" variant="ghost" colorScheme="whiteAlpha" onClick={handleReset}>
+              <Button
+                size="sm"
+                variant="ghost"
+                colorScheme="whiteAlpha"
+                onClick={handleReset}
+                isDisabled={isResolvingPlayers || compLoading}
+              >
                 Start Over
               </Button>
             </HStack>
           </HStack>
 
           <Text fontSize="xs" color="gray.500" px={1}>
-            This is not perfect team balancing! You know your players better than any algorithm
-            does. Drag players between teams to adjust, scores recalculate automatically.
+            {unresolvedPlayers.length > 0
+              ? 'These teams are provisional. Resolve the attention rows before exporting or manually rearranging players.'
+              : 'This is not perfect team balancing! You know your players better than any algorithm does. Drag players between teams to adjust; scores recalculate automatically.'}
           </Text>
 
-          {compData && (
-            <Box
-              px={3}
-              py={2}
-              bg="blue.900"
-              border="1px solid"
-              borderColor="blue.700"
-              borderRadius="md"
-            >
-              <Text fontSize="xs" color="blue.100">
-                <Text as="span" fontWeight="bold">
-                  Competition pace
-                </Text>{' '}
-                compares EHP/EHB earned during up to five of each player’s most recent finished
-                competitions with their usual past-year pace. 100% = usual pace.
-              </Text>
-            </Box>
-          )}
+          <Box
+            px={4}
+            py={3}
+            bg="blue.900"
+            border="1px solid"
+            borderColor="blue.700"
+            borderRadius="lg"
+          >
+            <HStack align="flex-start" justify="space-between" spacing={4} flexWrap="wrap">
+              <Box flex="1 1 460px">
+                <Text fontSize="sm" color="blue.100" fontWeight="bold">
+                  Do they go full sweat during competitions?
+                </Text>
+                <Text fontSize="xs" color="blue.200" mt={1} lineHeight="1.6">
+                  Compare each player’s EHP and EHB rate during up to five recent finished WOM
+                  competitions against their normal past-year rate. For example, 150% means they
+                  progressed 50% faster in competitions than usual.
+                </Text>
+                <Text fontSize="10px" color="blue.300" mt={1}>
+                  This is extra context only. It does not change scores or rebalance the teams.
+                  Large rosters may take a little while because WOM requests are paced.
+                </Text>
+                {unresolvedPlayers.length > 0 && (
+                  <Text fontSize="10px" color="orange.300" mt={1}>
+                    Resolve the player rows needing attention before running this comparison.
+                  </Text>
+                )}
+              </Box>
+
+              {!compData ? (
+                <Button
+                  size="sm"
+                  colorScheme="blue"
+                  onClick={() => handleLoadCompHistory()}
+                  isLoading={compLoading}
+                  isDisabled={unresolvedPlayers.length > 0}
+                  loadingText="Comparing..."
+                >
+                  Compare Competition Pace
+                </Button>
+              ) : (
+                <HStack spacing={2} flexWrap="wrap">
+                  {incompleteCompEntries.length > 0 && (
+                    <Button
+                      size="sm"
+                      colorScheme="orange"
+                      variant="outline"
+                      onClick={() =>
+                        handleLoadCompHistory({
+                          rsns: incompleteCompEntries.map((entry) => entry.rsn),
+                          forceRefresh: false,
+                        })
+                      }
+                      isLoading={compLoading && compLoadingMode === 'retry'}
+                      isDisabled={compLoading}
+                      loadingText="Retrying..."
+                    >
+                      Retry {incompleteCompEntries.length} Incomplete
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    colorScheme="blue"
+                    variant="outline"
+                    onClick={() => handleLoadCompHistory({ forceRefresh: true })}
+                    isLoading={compLoading && compLoadingMode === 'refresh'}
+                    isDisabled={compLoading}
+                    loadingText="Rechecking..."
+                  >
+                    Recheck All
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    onClick={handleHideCompetitionAnalysis}
+                    isDisabled={compLoading}
+                  >
+                    {appliedCompetitionInfluence == null ? 'Hide' : 'Hide and Restore Normal'}
+                  </Button>
+                </HStack>
+              )}
+            </HStack>
+
+            {compData && (
+              <HStack spacing={2} mt={3} flexWrap="wrap">
+                <Badge colorScheme="blue">Checked {compEntries.length} players</Badge>
+                <Badge colorScheme="green">{comparableCompEntries.length} with pace data</Badge>
+                <Badge colorScheme="gray">
+                  {noCompHistoryEntries.length} with no finished competitions
+                </Badge>
+                {incompleteCompEntries.length > 0 && (
+                  <Badge colorScheme="orange">
+                    {incompleteCompEntries.length} incomplete, safe to retry
+                  </Badge>
+                )}
+              </HStack>
+            )}
+            {compLoading && (
+              <Box mt={3}>
+                <HStack justify="space-between" mb={1}>
+                  <Text fontSize="10px" color="blue.300">
+                    {compProgress?.current
+                      ? `Checking ${compProgress.current}`
+                      : 'Saving completed competition results'}
+                  </Text>
+                  <Text fontSize="10px" color="blue.200" fontWeight="bold">
+                    {compProgress?.fetched ?? 0} / {compProgress?.total ?? 0} players
+                  </Text>
+                </HStack>
+                <Progress
+                  size="xs"
+                  colorScheme="blue"
+                  value={
+                    compProgress?.total ? (compProgress.fetched / compProgress.total) * 100 : 0
+                  }
+                  borderRadius="full"
+                />
+                <Text fontSize="10px" color="blue.300" mt={1}>
+                  {compLoadingMode === 'retry'
+                    ? 'Retrying only incomplete players. Existing results remain in place.'
+                    : compLoadingMode === 'refresh'
+                    ? 'Rechecking every player and replacing the previous analysis as each batch finishes.'
+                    : 'Results are saved every five players. Large rosters commonly take a couple minutes at least, so go touch some grass.'}
+                </Text>
+              </Box>
+            )}
+
+            {compData && comparableCompEntries.length > 0 && (
+              <Box mt={4} pt={3} borderTop="1px solid" borderColor="blue.700">
+                <HStack justify="space-between" align="flex-start" spacing={4} flexWrap="wrap">
+                  <Box flex="1 1 440px">
+                    <HStack spacing={2} flexWrap="wrap">
+                      <Text fontSize="sm" color="blue.100" fontWeight="bold">
+                        Balance teams with competition pace considered
+                      </Text>
+                      {appliedCompetitionInfluence != null && (
+                        <Badge colorScheme="green">
+                          Applied at {Math.round(appliedCompetitionInfluence * 100)}% influence
+                        </Badge>
+                      )}
+                    </HStack>
+                    <Text fontSize="xs" color="blue.200" mt={1} lineHeight="1.6">
+                      This applies a controlled modifier to each player’s normal score. At the
+                      current setting, a player at 150% of their usual pace receives a{' '}
+                      {(competitionInfluence * 50).toFixed(1)}% score increase. Pace is capped
+                      between 50% and 200%, and players without comparable data are unchanged.
+                    </Text>
+                    {incompleteCompEntries.length > 0 && (
+                      <Text fontSize="10px" color="orange.300" mt={1}>
+                        {incompleteCompEntries.length} incomplete player
+                        {incompleteCompEntries.length === 1 ? '' : 's'} will use available data or
+                        receive no adjustment. Retry them first for the fairest result.
+                      </Text>
+                    )}
+                    {hasManualEdits && (
+                      <Text fontSize="10px" color="orange.300" mt={1}>
+                        {appliedCompetitionInfluence == null
+                          ? 'Applying this will replace your manual team moves.'
+                          : 'Updating or restoring the balance will replace your manual team moves.'}
+                      </Text>
+                    )}
+                  </Box>
+
+                  <Box minW="220px" flex="0 1 300px">
+                    <HStack justify="space-between" mb={1}>
+                      <Text fontSize="xs" color="blue.200">
+                        Competition influence
+                      </Text>
+                      <Text fontSize="xs" color="white" fontWeight="bold">
+                        {Math.round(competitionInfluence * 100)}%
+                      </Text>
+                    </HStack>
+                    <Slider
+                      min={0.1}
+                      max={0.5}
+                      step={0.05}
+                      value={competitionInfluence}
+                      onChange={setCompetitionInfluence}
+                      isDisabled={compLoading}
+                      focusThumbOnChange={false}
+                    >
+                      <SliderTrack bg="blue.800">
+                        <SliderFilledTrack bg="cyan.400" />
+                      </SliderTrack>
+                      <SliderThumb boxSize={3} />
+                    </Slider>
+                    <HStack spacing={2} mt={2} justify="flex-end" flexWrap="wrap">
+                      {appliedCompetitionInfluence != null && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          colorScheme="whiteAlpha"
+                          onClick={() => handleClearCompetitionBalance()}
+                          isDisabled={compLoading}
+                        >
+                          Restore Normal Balance
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        colorScheme="cyan"
+                        onClick={handleApplyCompetitionBalance}
+                        isDisabled={compLoading}
+                      >
+                        {appliedCompetitionInfluence == null
+                          ? 'Balance With Competition Pace'
+                          : 'Update Competition Balance'}
+                      </Button>
+                    </HStack>
+                  </Box>
+                </HStack>
+              </Box>
+            )}
+          </Box>
 
           {/* Preset + weight controls available in results view too */}
           <Box bg="gray.700" borderRadius="lg" p={4} border="1px solid" borderColor="gray.600">
@@ -1129,6 +1793,7 @@ export default function TeamBalancerPage() {
                     variant={preset === name && !customWeights ? 'solid' : 'outline'}
                     colorScheme="pink"
                     onClick={() => handlePresetChange(name)}
+                    isDisabled={isResolvingPlayers}
                   >
                     {name}
                   </Button>
@@ -1160,6 +1825,7 @@ export default function TeamBalancerPage() {
                     step={1}
                     value={hoursBaseline}
                     onChange={setHoursBaseline}
+                    isDisabled={isResolvingPlayers}
                     focusThumbOnChange={false}
                   >
                     <SliderTrack bg="gray.600">
@@ -1215,6 +1881,7 @@ export default function TeamBalancerPage() {
                               value={val}
                               onChange={(v) => setWeight(key, v)}
                               flex={1}
+                              isDisabled={isResolvingPlayers}
                               focusThumbOnChange={false}
                             >
                               <SliderTrack bg="gray.600">
@@ -1240,7 +1907,7 @@ export default function TeamBalancerPage() {
                         colorScheme="whiteAlpha"
                         alignSelf="flex-start"
                         onClick={() => setCustomWeights(null)}
-                        isDisabled={!customWeights}
+                        isDisabled={!customWeights || isResolvingPlayers}
                       >
                         Reset to preset
                       </Button>
@@ -1273,12 +1940,15 @@ export default function TeamBalancerPage() {
                       setTeams((prev) => {
                         const allPlayers = prev
                           .flatMap((t) => t.players)
-                          .map((p) => ({
-                            ...p,
-                            score:
-                              scorePlayer(p, activeWeights) *
-                              (p.hoursPerDay != null ? p.hoursPerDay / hoursBaseline : 1),
-                          }));
+                          .map((player) =>
+                            calculatePlayerScore(
+                              player,
+                              activeWeights,
+                              hoursBaseline,
+                              compData,
+                              appliedCompetitionInfluence ?? 0
+                            )
+                          );
                         return balanceTeams(allPlayers, prev.length);
                       });
                       setHasManualEdits(false);
@@ -1419,12 +2089,12 @@ export default function TeamBalancerPage() {
                             <Box
                               as="tr"
                               key={player.rsn}
-                              draggable
+                              draggable={unresolvedPlayers.length === 0}
                               onDragStart={() => onDragStart(player.rsn, i)}
                               onDragEnd={onDragEnd}
                               bg="gray.800"
                               _hover={{ bg: 'gray.750' }}
-                              cursor="grab"
+                              cursor={unresolvedPlayers.length === 0 ? 'grab' : 'default'}
                               borderBottom={pi < sorted.length - 1 ? '1px solid' : 'none'}
                               borderColor="gray.700"
                               style={{ transition: 'background 0.1s' }}
@@ -1454,11 +2124,15 @@ export default function TeamBalancerPage() {
                                     return (
                                       <Box as="td" key="__comps" px={3} py={2} textAlign="right">
                                         <Text fontSize="xs" color="gray.600">
-                                          —
+                                          N/A
                                         </Text>
                                       </Box>
                                     );
                                   }
+                                  const analysisUnavailable =
+                                    compEntry.analysisStatus === 'TEMPORARY_ERROR' ||
+                                    compEntry.analysisStatus === 'NOT_FOUND';
+                                  const analysisPartial = compEntry.analysisStatus === 'PARTIAL';
                                   return (
                                     <Box as="td" key="__comps" px={3} py={2} textAlign="right">
                                       <Popover
@@ -1470,7 +2144,11 @@ export default function TeamBalancerPage() {
                                         <PopoverTrigger>
                                           <Badge
                                             colorScheme={
-                                              compEntry.count >= 15
+                                              analysisUnavailable
+                                                ? 'red'
+                                                : analysisPartial
+                                                ? 'orange'
+                                                : compEntry.count >= 15
                                                 ? 'green'
                                                 : compEntry.count >= 5
                                                 ? 'yellow'
@@ -1479,7 +2157,11 @@ export default function TeamBalancerPage() {
                                             fontSize="10px"
                                             cursor="pointer"
                                           >
-                                            {compEntry.count}
+                                            {analysisUnavailable
+                                              ? 'Unavailable'
+                                              : analysisPartial
+                                              ? `${compEntry.count} · partial`
+                                              : compEntry.count}
                                           </Badge>
                                         </PopoverTrigger>
                                         <PopoverContent
@@ -1493,77 +2175,159 @@ export default function TeamBalancerPage() {
                                           _focus={{ outline: 'none' }}
                                         >
                                           <PopoverBody p={3} textAlign="left">
-                                            <Text fontWeight="bold" mb={2} fontSize="sm">
-                                              {compEntry.count} competition
-                                              {compEntry.count !== 1 ? 's' : ''} on WOM
-                                            </Text>
-                                            <Text fontSize="xs" color="gray.400" mb={2}>
-                                              Most recent finished competitions:
-                                            </Text>
-                                            {['ehp', 'ehb'].map((metric) => {
-                                              const performance = compEntry.performance?.[metric];
-                                              const yearlyGain =
-                                                player[metric === 'ehp' ? 'ehpy' : 'ehby'] ?? 0;
-                                              const expected =
-                                                yearlyGain > 0 && performance?.durationDays > 0
-                                                  ? (yearlyGain / 365) * performance.durationDays
-                                                  : 0;
-                                              const ratio =
-                                                expected > 0 ? performance.gained / expected : null;
-                                              return (
-                                                <Box key={metric} mb={1}>
-                                                  <Text fontSize="xs" color="gray.300">
-                                                    {metric.toUpperCase()}:{' '}
-                                                    <Text
-                                                      as="span"
-                                                      fontWeight="bold"
-                                                      color="blue.200"
-                                                    >
-                                                      {ratio == null
-                                                        ? 'Not enough data'
-                                                        : `${formatPace(ratio)} of usual pace`}
-                                                    </Text>
-                                                  </Text>{' '}
-                                                  <Text fontSize="10px" color="gray.500">
-                                                    {ratio == null
-                                                      ? 'Needs both past-year activity and finished competition history.'
-                                                      : `${performance.gained.toFixed(
-                                                          1
-                                                        )} ${metric.toUpperCase()} across ${
-                                                          performance.competitions
-                                                        } sampled competition${
-                                                          performance.competitions === 1 ? '' : 's'
-                                                        }.`}
-                                                  </Text>
-                                                </Box>
-                                              );
-                                            })}
-                                            {compEntry.recent.length > 0 && (
-                                              <VStack align="stretch" spacing={0.5} mt={2}>
-                                                {compEntry.recent.map((c, ci) => {
-                                                  return (
-                                                    <Box
-                                                      key={ci}
-                                                      as="a"
-                                                      href={`https://wiseoldman.net/competitions/${c.id}`}
-                                                      target="_blank"
-                                                      rel="noopener noreferrer"
-                                                      display="block"
-                                                      borderRadius="sm"
-                                                      px={1.5}
-                                                      py={1}
-                                                      _hover={{
-                                                        bg: 'gray.700',
-                                                        textDecoration: 'none',
-                                                      }}
-                                                    >
-                                                      <Text fontSize="xs" color="gray.300">
-                                                        {c.title}
-                                                      </Text>
-                                                    </Box>
-                                                  );
-                                                })}
+                                            {analysisUnavailable ? (
+                                              <VStack align="stretch" spacing={2}>
+                                                <Text fontWeight="bold" fontSize="sm">
+                                                  Competition history unavailable
+                                                </Text>
+                                                <Text fontSize="xs" color="gray.400">
+                                                  WOM did not return this player’s history. This is
+                                                  not the same as having zero competitions and is
+                                                  safe to retry.
+                                                </Text>
+                                                <Button
+                                                  size="xs"
+                                                  colorScheme="orange"
+                                                  variant="outline"
+                                                  onClick={() =>
+                                                    handleLoadCompHistory({
+                                                      rsns: [player.rsn],
+                                                      forceRefresh: false,
+                                                    })
+                                                  }
+                                                  isLoading={compLoading}
+                                                >
+                                                  Retry this player
+                                                </Button>
                                               </VStack>
+                                            ) : (
+                                              <>
+                                                <Text fontWeight="bold" mb={1} fontSize="sm">
+                                                  {compEntry.count} finished competition
+                                                  {compEntry.count !== 1 ? 's' : ''} on WOM
+                                                </Text>
+                                                {analysisPartial && (
+                                                  <Text fontSize="10px" color="orange.300" mb={2}>
+                                                    Only part of the recent sample loaded. The pace
+                                                    shown below is usable but incomplete.
+                                                  </Text>
+                                                )}
+                                                {compEntry.count === 0 ? (
+                                                  <Text fontSize="xs" color="gray.400">
+                                                    No finished WOM competitions were found for this
+                                                    player.
+                                                  </Text>
+                                                ) : (
+                                                  <>
+                                                    <Text fontSize="xs" color="gray.400" mb={2}>
+                                                      Competition pace versus their usual past-year
+                                                      pace:
+                                                    </Text>
+                                                    {['ehp', 'ehb'].map((metric) => {
+                                                      const performance =
+                                                        compEntry.performance?.[metric];
+                                                      const yearlyGain =
+                                                        player[
+                                                          metric === 'ehp' ? 'ehpy' : 'ehby'
+                                                        ] ?? 0;
+                                                      const expected =
+                                                        yearlyGain > 0 &&
+                                                        performance?.durationDays > 0
+                                                          ? (yearlyGain / 365) *
+                                                            performance.durationDays
+                                                          : 0;
+                                                      const ratio =
+                                                        expected > 0
+                                                          ? performance.gained / expected
+                                                          : null;
+                                                      return (
+                                                        <Box key={metric} mb={1}>
+                                                          <Text fontSize="xs" color="gray.300">
+                                                            {metric.toUpperCase()}:{' '}
+                                                            <Text
+                                                              as="span"
+                                                              fontWeight="bold"
+                                                              color="blue.200"
+                                                            >
+                                                              {ratio == null
+                                                                ? 'Not enough data'
+                                                                : `${formatPace(
+                                                                    ratio
+                                                                  )} of usual pace`}
+                                                            </Text>
+                                                          </Text>{' '}
+                                                          <Text fontSize="10px" color="gray.500">
+                                                            {ratio == null
+                                                              ? 'Needs both past-year activity and an analyzed competition.'
+                                                              : `${performance.gained.toFixed(
+                                                                  1
+                                                                )} ${metric.toUpperCase()} across ${
+                                                                  performance.competitions
+                                                                } sampled competition${
+                                                                  performance.competitions === 1
+                                                                    ? ''
+                                                                    : 's'
+                                                                }.`}
+                                                          </Text>
+                                                        </Box>
+                                                      );
+                                                    })}
+                                                    {player.competitionPace != null && (
+                                                      <Box
+                                                        mt={2}
+                                                        pt={2}
+                                                        borderTop="1px solid"
+                                                        borderColor="gray.700"
+                                                      >
+                                                        <Text fontSize="xs" color="cyan.200">
+                                                          Balance modifier:{' '}
+                                                          <Text as="span" fontWeight="bold">
+                                                            {player.competitionScoreMultiplier >= 1
+                                                              ? '+'
+                                                              : ''}
+                                                            {(
+                                                              (player.competitionScoreMultiplier -
+                                                                1) *
+                                                              100
+                                                            ).toFixed(1)}
+                                                            % score
+                                                          </Text>
+                                                        </Text>
+                                                        <Text fontSize="10px" color="gray.500">
+                                                          Combined competition pace:{' '}
+                                                          {formatPace(player.competitionPace)} of
+                                                          normal.
+                                                        </Text>
+                                                      </Box>
+                                                    )}
+                                                    {compEntry.recent.length > 0 && (
+                                                      <VStack align="stretch" spacing={0.5} mt={2}>
+                                                        {compEntry.recent.map((c) => (
+                                                          <Box
+                                                            key={c.id}
+                                                            as="a"
+                                                            href={`https://wiseoldman.net/competitions/${c.id}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            display="block"
+                                                            borderRadius="sm"
+                                                            px={1.5}
+                                                            py={1}
+                                                            _hover={{
+                                                              bg: 'gray.700',
+                                                              textDecoration: 'none',
+                                                            }}
+                                                          >
+                                                            <Text fontSize="xs" color="gray.300">
+                                                              {c.title}
+                                                            </Text>
+                                                          </Box>
+                                                        ))}
+                                                      </VStack>
+                                                    )}
+                                                  </>
+                                                )}
+                                              </>
                                             )}
                                           </PopoverBody>
                                         </PopoverContent>
@@ -1580,11 +2344,14 @@ export default function TeamBalancerPage() {
                                           player.hoursPerDay !== null ? 'cyan.300' : 'gray.600'
                                         }
                                       >
-                                        {player.hoursPerDay !== null ? player.hoursPerDay : '—'}
+                                        {player.hoursPerDay !== null ? player.hoursPerDay : 'N/A'}
                                       </Text>
                                     </Box>
                                   );
                                 }
+                                const yearlyUnavailable =
+                                  player.yearlyGainsUnavailable &&
+                                  (col.key === 'ehpy' || col.key === 'ehby');
                                 const val = player[col.key] ?? 0;
                                 const isScore = col.key === 'score';
                                 return (
@@ -1594,7 +2361,7 @@ export default function TeamBalancerPage() {
                                       fontWeight={isScore ? 'bold' : 'normal'}
                                       color={isScore ? color : 'gray.200'}
                                     >
-                                      {fmt(val)}
+                                      {yearlyUnavailable ? 'N/A' : fmt(val)}
                                     </Text>
                                   </Box>
                                 );
@@ -1610,8 +2377,13 @@ export default function TeamBalancerPage() {
                   {team.players.length > 0 && (
                     <Box px={4} py={2} borderTop="1px solid" borderColor="gray.700" bg="gray.750">
                       {(() => {
-                        const avg = (key) =>
-                          team.players.reduce((s, p) => s + (p[key] ?? 0), 0) / team.players.length;
+                        const avg = (key) => {
+                          const values = team.players
+                            .map((player) => player[key])
+                            .filter((value) => value != null);
+                          if (values.length === 0) return null;
+                          return values.reduce((sum, value) => sum + value, 0) / values.length;
+                        };
                         const stats = [
                           { label: 'avg EHP', val: avg('ehp') },
                           { label: 'avg EHP/Y', val: avg('ehpy') },
@@ -1626,7 +2398,7 @@ export default function TeamBalancerPage() {
                               <Text key={label} fontSize="9px" color="gray.500">
                                 {label}:{' '}
                                 <Text as="span" color="gray.300">
-                                  {fmt(val)}
+                                  {val == null ? 'N/A' : fmt(val)}
                                 </Text>
                               </Text>
                             ))}
@@ -1635,7 +2407,7 @@ export default function TeamBalancerPage() {
                             </Text>
                             {compData && (
                               <Tooltip
-                                label="EHP/EHB earned during sampled competitions versus each player's past-year pace, normalized for competition duration. This measures efficiency gains—not placement, rank, or the competition's original metric. — means there is not enough history to compare."
+                                label="EHP/EHB earned during sampled competitions versus each player's past-year pace, normalized for competition duration. This measures efficiency gains, not placement, rank, or the competition's original metric. N/A means there is not enough history to compare."
                                 placement="top"
                               >
                                 <Text fontSize="9px" color="blue.300" cursor="help">
@@ -1654,8 +2426,8 @@ export default function TeamBalancerPage() {
             })}
           </SimpleGrid>
 
-          {/* Not-found players */}
-          {notFoundRsns.length > 0 && (
+          {/* Players whose WOM data needs attention */}
+          {unresolvedPlayers.length > 0 && (
             <Box
               bg="gray.800"
               border="1px solid"
@@ -1664,81 +2436,181 @@ export default function TeamBalancerPage() {
               overflow="hidden"
             >
               <Box bg="gray.700" px={4} py={3} borderBottom="1px solid" borderColor="orange.700">
-                <HStack spacing={2}>
-                  <Box w={3} h={3} borderRadius="full" bg="orange.400" flexShrink={0} />
-                  <Text fontWeight="black" fontSize="md">
-                    Not Found on WOM
-                  </Text>
-                  <Text fontSize="xs" color="gray.400">
-                    — not assigned to a team
-                  </Text>
+                <HStack spacing={3} justify="space-between" flexWrap="wrap">
+                  <Box>
+                    <HStack spacing={2}>
+                      <Box w={3} h={3} borderRadius="full" bg="orange.400" flexShrink={0} />
+                      <Text fontWeight="black" fontSize="md">
+                        Players need attention
+                      </Text>
+                    </HStack>
+                    <Text fontSize="xs" color="gray.400" mt={1}>
+                      Ready players are saved above. Fix, retry, or remove these rows before export.
+                    </Text>
+                    <Text fontSize="xs" color="yellow.300" mt={1} maxW="650px">
+                      Rate limits can clear gradually, especially for large lists. Retry only checks
+                      the unresolved players, and it is normal to need a few rounds.
+                    </Text>
+                  </Box>
+                  <HStack spacing={2}>
+                    {unresolvedPlayers.some(
+                      (player) => player.status === WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE
+                    ) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        colorScheme="yellow"
+                        onClick={handleContinueWithoutYearly}
+                        isDisabled={isResolvingPlayers}
+                      >
+                        Continue without yearly metrics
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      colorScheme="orange"
+                      onClick={handleRetryAll}
+                      isLoading={unresolvedPlayers.some((player) => player.isRetrying)}
+                      loadingText="Retrying"
+                    >
+                      Retry all
+                    </Button>
+                  </HStack>
                 </HStack>
               </Box>
-              <VStack spacing={0} align="stretch" px={4} py={2}>
-                {notFoundRsns.map(({ rsn }, i) => (
-                  <Text
-                    key={rsn}
-                    fontSize="sm"
-                    color="orange.300"
-                    py={1.5}
-                    borderBottom={i < notFoundRsns.length - 1 ? '1px solid' : 'none'}
-                    borderColor="gray.700"
-                  >
-                    {rsn}
-                  </Text>
-                ))}
+              {refetchProgress && (
+                <Box px={4} py={3} borderBottom="1px solid" borderColor="gray.700">
+                  <HStack justify="space-between" mb={1}>
+                    <Text fontSize="xs" color="gray.400">
+                      Retrying{' '}
+                      <Text as="span" color="white" fontWeight="semibold">
+                        {refetchProgress.current}
+                      </Text>
+                      ...
+                    </Text>
+                    <Text fontSize="xs" color="orange.300" fontWeight="bold">
+                      {refetchProgress.fetched} / {refetchProgress.total}
+                    </Text>
+                  </HStack>
+                  <Progress
+                    value={(refetchProgress.fetched / refetchProgress.total) * 100}
+                    colorScheme="orange"
+                    size="xs"
+                    borderRadius="full"
+                  />
+                </Box>
+              )}
+              <VStack spacing={0} align="stretch">
+                {unresolvedPlayers.map((player, index) => {
+                  const isEdited = player.draftRsn.trim() !== player.rsn;
+                  const isTemporary = player.status === WOM_PLAYER_STATUS.TEMPORARY_ERROR;
+                  const isYearly = player.status === WOM_PLAYER_STATUS.YEARLY_UNAVAILABLE;
+                  const description = isTemporary
+                    ? player.errorCode === 'RATE_LIMITED'
+                      ? isEdited
+                        ? 'Name changed. Save and retry when you are ready.'
+                        : player.autoRetryAttempted
+                        ? 'WOM still rate-limited this lookup. Retry again when you are ready.'
+                        : 'WOM rate-limited this lookup. It will retry once automatically.'
+                      : player.autoRetryAttempted
+                      ? 'WOM is still unavailable for this lookup. Retry again when you are ready.'
+                      : 'WOM was temporarily unavailable. It will retry once automatically.'
+                    : isYearly
+                    ? 'Core stats loaded, but yearly EHP/EHB is unavailable and currently weighted.'
+                    : 'No WOM player matched this exact name. Check spelling and spacing.';
+
+                  return (
+                    <Box
+                      key={player.id}
+                      px={4}
+                      py={3}
+                      borderBottom={index < unresolvedPlayers.length - 1 ? '1px solid' : 'none'}
+                      borderColor="gray.700"
+                    >
+                      <HStack spacing={3} align="center" flexWrap="wrap">
+                        <Box minW="145px" flex="1 1 240px">
+                          <HStack spacing={2} mb={1}>
+                            <Badge
+                              colorScheme={isTemporary ? 'yellow' : isYearly ? 'purple' : 'orange'}
+                            >
+                              {isTemporary
+                                ? 'Temporary error'
+                                : isYearly
+                                ? 'Yearly stats'
+                                : 'Not found'}
+                            </Badge>
+                            {player.id === autoRetryLeadId && (
+                              <AutoRetryCountdown
+                                disabled={isResolvingPlayers}
+                                onRetry={() =>
+                                  handleRetryPlayers(autoRetryPlayerIds, { isAutoRetry: true })
+                                }
+                              />
+                            )}
+                          </HStack>
+                          <Text fontSize="xs" color="gray.400">
+                            {description}
+                          </Text>
+                        </Box>
+                        <Input
+                          size="sm"
+                          value={player.draftRsn}
+                          onChange={(event) => handleResolutionEdit(player.id, event.target.value)}
+                          isDisabled={player.isRetrying}
+                          aria-label={`RSN for ${player.rsn}`}
+                          maxW="240px"
+                          fontFamily="mono"
+                        />
+                        <HStack spacing={2}>
+                          <Button
+                            size="sm"
+                            colorScheme="orange"
+                            variant="outline"
+                            onClick={() => handleRetryPlayer(player.id)}
+                            isLoading={player.isRetrying}
+                            loadingText="Retrying"
+                            isDisabled={isResolvingPlayers || !player.draftRsn.trim()}
+                          >
+                            {isEdited ? 'Save & retry' : 'Retry now'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            colorScheme="whiteAlpha"
+                            onClick={() => handleRemoveUnresolved(player.id)}
+                            isDisabled={
+                              isResolvingPlayers ||
+                              assignedPlayerCount + unresolvedPlayers.length <= numTeams
+                            }
+                            title={
+                              assignedPlayerCount + unresolvedPlayers.length <= numTeams
+                                ? `Keep at least ${numTeams} players for ${numTeams} teams`
+                                : 'Remove this player from this balance'
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </HStack>
+                      </HStack>
+                    </Box>
+                  );
+                })}
               </VStack>
               <Box px={4} py={3} borderTop="1px solid" borderColor="gray.700">
-                {refetchProgress ? (
-                  <Box>
-                    <HStack justify="space-between" mb={1}>
-                      <Text fontSize="xs" color="gray.400">
-                        Retrying{' '}
-                        <Text as="span" color="white" fontWeight="semibold">
-                          {refetchProgress.current}
-                        </Text>
-                        ...
-                      </Text>
-                      <Text fontSize="xs" color="orange.300" fontWeight="bold">
-                        {refetchProgress.fetched} / {refetchProgress.total}
-                      </Text>
-                    </HStack>
-                    <Progress
-                      value={(refetchProgress.fetched / refetchProgress.total) * 100}
-                      colorScheme="orange"
-                      size="xs"
-                      borderRadius="full"
-                    />
-                  </Box>
-                ) : (
-                  <VStack align="stretch" spacing={2}>
-                    <Text fontSize="xs" color="gray.400">
-                      Are these RSNs correct? If so, try refetching — WOM may have been
-                      rate-limited.
-                    </Text>
-                    <HStack spacing={2}>
-                      <Button
-                        size="sm"
-                        colorScheme="orange"
-                        variant="outline"
-                        onClick={handleRefetchNotFound}
-                      >
-                        Retry{' '}
-                        {notFoundRsns.length === 1
-                          ? 'this player'
-                          : `these ${notFoundRsns.length} players`}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        colorScheme="whiteAlpha"
-                        onClick={handleReset}
-                      >
-                        Go back and edit
-                      </Button>
-                    </HStack>
-                  </VStack>
-                )}
+                <HStack spacing={2}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    colorScheme="whiteAlpha"
+                    onClick={handleReset}
+                    isDisabled={isResolvingPlayers}
+                  >
+                    Go back to full list
+                  </Button>
+                  <Text fontSize="xs" color="gray.500">
+                    Editing here preserves each player’s hours/day value.
+                  </Text>
+                </HStack>
               </Box>
             </Box>
           )}

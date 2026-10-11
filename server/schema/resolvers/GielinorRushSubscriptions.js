@@ -4,7 +4,7 @@ const logger = require('../../utils/logger');
 const createSubscription = (topicFn) => ({
   subscribe: (_, args) => {
     const topic = topicFn(args);
-    logger.info('🔥 Subscribing to:', topic);
+    logger.info({ topic }, '🔥 Subscribing');
     const iterator = pubsub.asyncIterableIterator(topic);
 
     //cleanup when client disconnects
@@ -13,7 +13,7 @@ const createSubscription = (topicFn) => ({
         return iterator;
       },
       return() {
-        logger.info('🧹 Cleaning up subscription:', topic);
+        logger.info({ topic }, '🧹 Cleaning up subscription');
         if (iterator.return) iterator.return();
         return Promise.resolve({ done: true });
       },

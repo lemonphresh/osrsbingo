@@ -68,9 +68,9 @@ const CustomToast = ({ message, status, onClose }) => {
 export const ToastProvider = ({ children }) => {
   const toast = useToast();
 
-  const showToast = (message, status = 'success') => {
+  const showToast = (message, status = 'success', duration = 4000) => {
     toast({
-      duration: 4000,
+      duration,
       isClosable: true,
       position: 'bottom-right',
       render: ({ onClose }) => <CustomToast message={message} status={status} onClose={onClose} />,

@@ -36,6 +36,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CREATE_DRAFT_ROOM } from '../../graphql/draftOperations';
 import { useToastContext } from '../../providers/ToastProvider';
+import { getWomErrorMessage, WOM_ERROR_TOAST_DURATION } from '../../utils/womErrorMessage';
 
 const STEPS = ['Room Setup', 'Player Pool'];
 
@@ -135,7 +136,8 @@ export default function CreateRoomForm() {
   const [rsnText, setRsnText] = useState('');
 
   const [createRoom, { loading }] = useMutation(CREATE_DRAFT_ROOM, {
-    onError: (e) => showToast(`Failed to create room: ${e.message}`, 'error'),
+    onError: (e) =>
+      showToast(getWomErrorMessage(e), 'error', WOM_ERROR_TOAST_DURATION),
   });
 
   function handleNumTeamsChange(val) {
@@ -160,7 +162,7 @@ export default function CreateRoomForm() {
     if (!roomName.trim()) return showToast('Enter a room name', 'warning');
     if (rsns.length < numTeams) {
       return showToast(
-        `Not enough players — need at least ${numTeams} RSNs for ${numTeams} teams`,
+        `Not enough players. Add at least ${numTeams} RSNs for ${numTeams} teams.`,
         'warning'
       );
     }
@@ -420,7 +422,7 @@ export default function CreateRoomForm() {
                     </Checkbox>
                     {useTiers && (
                       <VStack spacing={3} w="100%" align="stretch" pl={4}>
-                        {/* preset buttons — ADD THIS BLOCK */}
+                        {/* Preset buttons */}
                         <Box w="100%">
                           <Text fontSize="xs" color="gray.500" mb={2}>
                             Start with a preset:
@@ -568,7 +570,7 @@ export default function CreateRoomForm() {
         <ModalOverlay />
         <ModalContent bg="gray.800" borderColor="gray.600" border="1px solid">
           <ModalHeader color="white" fontSize="md" pb={2}>
-            Tier Badge Weights — What Do They Mean?
+            Tier Badge Weights: What Do They Mean?
           </ModalHeader>
           <ModalCloseButton color="white" />
           <ModalBody pb={6}>
@@ -581,12 +583,12 @@ export default function CreateRoomForm() {
 
               {[
                 {
-                  label: 'EHP — Efficient Hours Played',
+                  label: 'EHP: Efficient Hours Played',
                   color: 'green.300',
                   desc: 'Lifetime skilling hours, calculated by WOM based on XP rates. A reliable proxy for how long and seriously someone has played. Maxed skillers sit around 800–1200 EHP.',
                 },
                 {
-                  label: 'EHB — Efficient Hours Bossing',
+                  label: 'EHB: Efficient Hours Bossing',
                   color: 'red.300',
                   desc: 'Lifetime bossing hours based on kill counts. High EHB means someone spends serious time at bosses. Most active PvMers sit in the 100–500 range.',
                 },

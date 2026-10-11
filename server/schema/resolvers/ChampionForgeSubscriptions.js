@@ -6,7 +6,7 @@ const logger = require('../../utils/logger');
 const createSubscription = (topicFn) => ({
   subscribe: (_, args) => {
     const topic = topicFn(args);
-    logger.info('🔥 [CF] Subscribing to:', topic);
+    logger.info({ topic }, '🔥 [CF] Subscribing');
     const iterator = pubsub.asyncIterableIterator(topic);
 
     return {
@@ -14,7 +14,7 @@ const createSubscription = (topicFn) => ({
         return iterator;
       },
       return() {
-        logger.info('🧹 [CF] Cleaning up subscription:', topic);
+        logger.info({ topic }, '🧹 [CF] Cleaning up subscription');
         if (iterator.return) iterator.return();
         return Promise.resolve({ done: true });
       },
