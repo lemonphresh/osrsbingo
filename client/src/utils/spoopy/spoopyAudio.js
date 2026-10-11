@@ -3,6 +3,7 @@ import taskCompleteSound from '../../assets/spoopy/spoopytaskcomplete.mp3';
 import gameOverSound from '../../assets/spoopy/this_is_halloween.mp3';
 import flashlightClickSound from '../../assets/spoopy/flashlightclick.mp3';
 import skeleSound from '../../assets/spoopy/skelesound.mp3';
+import grindrSound from '../../assets/grindr.mp3';
 
 // Each entry is { src, loop? }. loop:true keeps the clip running until
 // stopSpoopySound is called; omit for one-shot playback. The skele clip
@@ -14,6 +15,9 @@ const SOURCES = {
   gameOver:        { src: gameOverSound },
   flashlightClick: { src: flashlightClickSound },
   skele:           { src: skeleSound },
+  // Ref-only notification. Plays on new submission subscriptions in the
+  // refs page when the sound toggle is on.
+  grindr:          { src: grindrSound },
 };
 
 const audioByName = new Map();

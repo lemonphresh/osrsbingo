@@ -503,15 +503,20 @@ const Mutation = {
     return event;
   },
 
-  syncSpoopyEventWom: async (_, { eventId }, context) => {
+  syncSpoopyEventWom: async (_, { eventId, force }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
     if (!event.womCompetitionId) {
       throw new UserInputError('No WOM competition id set on this event.');
     }
+    // force=true bypasses the per-event SYNC_COOLDOWN_MS inside the util.
+    // Site admin only — event-scoped admins can still sync, but have to
+    // wait out the cooldown like cron does. Keeps the WOM API usage sane
+    // even if we hand out event-admin roles liberally for ref duties.
+    const effectiveForce = Boolean(force) && user.admin === true;
     try {
-      await syncSpoopyEventWom(eventId);
+      await syncSpoopyEventWom(eventId, { force: effectiveForce });
     } catch (err) {
       // Cooldown / rate-limit errors bubble up as user-facing messages so
       // the admin's toast reads sensibly instead of "an error occurred".

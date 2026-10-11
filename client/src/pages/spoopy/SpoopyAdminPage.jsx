@@ -55,6 +55,7 @@ import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme'
 import { formatCandy, formatGp, GP_PER_CANDY } from '../../organisms/spoopy/spoopyCurrency';
 import { isDevEnv } from '../../organisms/spoopy/spoopyDevUtils';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyActivatePreflightModal from '../../organisms/spoopy/SpoopyActivatePreflightModal';
 
 // ── UI atoms — shared paper-on-night styling for form panels ────────────
 
@@ -364,6 +365,11 @@ function EventSettingsPanel({ event, refetch }) {
   const [passwordInput, setPasswordInput] = useState(event.eventPassword ?? '');
   const [prizePoolInput, setPrizePoolInput] = useState(String(event.prizePool ?? 0));
   const [womInput, setWomInput] = useState(event.womCompetitionId ?? '');
+  // Preflight overview modal controls the SETUP→ACTIVE transition. Replaces
+  // the old `window.confirm` with a scrollable summary of teams, board,
+  // curfew, prize pool, pending drops, etc. so there's one last human pass
+  // before going live.
+  const [preflightOpen, setPreflightOpen] = useState(false);
 
   const [setPassword, { loading: savingPassword }] = useMutation(SET_SPOOPY_EVENT_PASSWORD, {
     onCompleted: () => {
@@ -489,20 +495,12 @@ function EventSettingsPanel({ event, refetch }) {
                 onClick={() => {
                   // Going live is irreversible in effect (team pool allocations
                   // get snapshotted, curfewStart snaps to now if unset/future).
-                  // Force a confirm so it can't happen from a stray click.
+                  // Open the pre-flight overview instead of firing the status
+                  // update directly — the modal confirms when the admin hits
+                  // "go live" there.
                   if (event.status === 'SETUP' && s === 'ACTIVE') {
-                    const teamCount = (event.teams ?? []).length;
-                    if (
-                      !window.confirm(
-                        `flip "${event.eventName}" to ACTIVE now?\n\n` +
-                          `• ${teamCount} team${teamCount === 1 ? '' : 's'} will have their prize pool share locked in\n` +
-                          '• the event will go live and boards become interactable\n' +
-                          '• curfew start time will snap to now\n\n' +
-                          'this cannot be cleanly undone.',
-                      )
-                    ) {
-                      return;
-                    }
+                    setPreflightOpen(true);
+                    return;
                   }
                   // Ending the event early runs handleCurfew on every team,
                   // which forfeits ALL banked gp for any team that hasn't
@@ -774,6 +772,16 @@ function EventSettingsPanel({ event, refetch }) {
           </HStack>
         )}
       </VStack>
+      <SpoopyActivatePreflightModal
+        isOpen={preflightOpen}
+        onClose={() => setPreflightOpen(false)}
+        event={event}
+        isConfirming={updatingStatus}
+        onConfirm={async () => {
+          await updateStatus({ variables: { eventId: event.eventId, status: 'ACTIVE' } });
+          setPreflightOpen(false);
+        }}
+      />
     </VStack>
   );
 }

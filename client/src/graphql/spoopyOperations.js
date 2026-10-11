@@ -286,8 +286,8 @@ export const SET_SPOOPY_EVENT_WOM_COMPETITION_ID = gql`
 `;
 
 export const SYNC_SPOOPY_EVENT_WOM = gql`
-  mutation SyncSpoopyEventWom($eventId: ID!) {
-    syncSpoopyEventWom(eventId: $eventId) { ...SpoopyEventFields }
+  mutation SyncSpoopyEventWom($eventId: ID!, $force: Boolean) {
+    syncSpoopyEventWom(eventId: $eventId, force: $force) { ...SpoopyEventFields }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;

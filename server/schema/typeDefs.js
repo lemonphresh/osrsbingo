@@ -1405,8 +1405,11 @@ const typeDefs = gql`
     setSpoopyEventWomCompetitionId(eventId: ID!, womCompetitionId: String): SpoopyEvent!
     # Admin-only. Kicks off a WOM sync for the event. Respects a server-side
     # cooldown to avoid rate-limit trouble with the WOM API. Returns the
-    # event so the client sees the fresh lastWomSyncAt timestamp.
-    syncSpoopyEventWom(eventId: ID!): SpoopyEvent!
+    # event so the client sees the fresh lastWomSyncAt timestamp. Pass
+    # force=true to bypass the per-event cooldown — reserved for site
+    # admins hitting the manual button on the refs page; cron and the
+    # per-PRE auto-hook leave it unset so they stay cooldown-bound.
+    syncSpoopyEventWom(eventId: ID!, force: Boolean): SpoopyEvent!
     createSpoopyTeam(eventId: ID!, input: CreateSpoopyTeamInput!): SpoopyTeam!
     updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
     # Update the team's Discord channel / role bindings after creation.
