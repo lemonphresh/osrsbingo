@@ -357,6 +357,11 @@ export default function SpoopyActivatePreflightModal({
                   <Text as="span" opacity={0.5}>— unset —</Text>
                 )}
               </Row>
+              <Row label="wom pre-anchor buffer">
+                {event.womPreAnchorBufferHours != null
+                  ? `${event.womPreAnchorBufferHours}h`
+                  : '12h (default)'}
+              </Row>
               <Row label="site admins">{(event.adminIds ?? []).length}</Row>
             </VStack>
 

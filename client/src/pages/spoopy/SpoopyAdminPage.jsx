@@ -39,6 +39,7 @@ import {
   SET_SPOOPY_EVENT_PASSWORD,
   SET_SPOOPY_EVENT_PRIZE_POOL,
   SET_SPOOPY_EVENT_WOM_COMPETITION_ID,
+  SET_SPOOPY_EVENT_WOM_PRE_ANCHOR_BUFFER_HOURS,
   SYNC_SPOOPY_EVENT_WOM,
   UPDATE_SPOOPY_EVENT_SCHEDULE,
   DELETE_SPOOPY_EVENT,
@@ -365,6 +366,9 @@ function EventSettingsPanel({ event, refetch }) {
   const [passwordInput, setPasswordInput] = useState(event.eventPassword ?? '');
   const [prizePoolInput, setPrizePoolInput] = useState(String(event.prizePool ?? 0));
   const [womInput, setWomInput] = useState(event.womCompetitionId ?? '');
+  const [womBufferInput, setWomBufferInput] = useState(
+    String(event.womPreAnchorBufferHours ?? 12),
+  );
   // Preflight overview modal controls the SETUP→ACTIVE transition. Replaces
   // the old `window.confirm` with a scrollable summary of teams, board,
   // curfew, prize pool, pending drops, etc. so there's one last human pass
@@ -394,6 +398,16 @@ function EventSettingsPanel({ event, refetch }) {
     },
     onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
   });
+  const [setWomBuffer, { loading: savingWomBuffer }] = useMutation(
+    SET_SPOOPY_EVENT_WOM_PRE_ANCHOR_BUFFER_HOURS,
+    {
+      onCompleted: () => {
+        toast({ title: 'wom buffer saved', status: 'success' });
+        refetch();
+      },
+      onError: (e) => toast({ title: 'save failed', description: e.message, status: 'error' }),
+    },
+  );
 
   const [syncWom, { loading: syncingWom }] = useMutation(SYNC_SPOOPY_EVENT_WOM, {
     onCompleted: () => {
@@ -685,6 +699,43 @@ function EventSettingsPanel({ event, refetch }) {
             })}
           </Text>
         )}
+        <Divider borderColor={SPOOPY_COLORS.nightMist} opacity={0.5} />
+        <Text fontSize="xs" opacity={0.55}>
+          <Text as="span" fontWeight="bold">pre-anchor buffer (hours):</Text>{' '}
+          backdates each tile's wom lookup to catch xp/kc earned shortly before the pre-screenshot
+          was logged. default is 12 — bump up if your players tend to grind for hours before
+          submitting their pre, drop down if they're always logging out right after.
+        </Text>
+        <HStack spacing={2}>
+          <Input
+            {...themedInput({ size: 'sm', fontFamily: 'mono' })}
+            value={womBufferInput}
+            onChange={(e) => setWomBufferInput(e.target.value)}
+            type="number"
+            min="0"
+            step="0.5"
+            placeholder="12"
+            maxW="120px"
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            borderColor={SPOOPY_COLORS.nightMist}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.nightMist }}
+            isLoading={savingWomBuffer}
+            onClick={() => {
+              const parsed = Number(womBufferInput);
+              if (!Number.isFinite(parsed) || parsed < 0) {
+                toast({ title: 'buffer must be a non-negative number', status: 'error' });
+                return;
+              }
+              setWomBuffer({ variables: { eventId: event.eventId, hours: parsed } });
+            }}
+          >
+            save
+          </Button>
+        </HStack>
       </VStack>
 
       <Divider borderColor={SPOOPY_COLORS.nightMist} />

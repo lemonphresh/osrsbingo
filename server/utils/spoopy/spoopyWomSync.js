@@ -29,11 +29,12 @@ const {
 // there don't need a per-event re-onboarding.
 const WOM_GROUP_ID = 9738;
 const SYNC_COOLDOWN_MS = 15 * 60 * 1000;
-// Backdate the PRE anchor by this much before querying. WOM's per-metric
-// snapshot for a player might have been captured a few hours before the
-// PRE was actually submitted — a 12h buffer keeps us conservative and
-// captures xp/kc earned in that window instead of losing it.
-const PRE_BACKDATE_MS = 12 * 60 * 60 * 1000;
+// Default anchor-buffer when an event has no explicit value set. WOM's
+// per-metric snapshot for a player might have been captured a few hours
+// before the PRE was actually submitted — backdating the anchor by this
+// much captures xp/kc earned in that window instead of losing it. Admins
+// can override per-event via `event.womPreAnchorBufferHours`.
+const DEFAULT_PRE_ANCHOR_BUFFER_HOURS = 12;
 
 const getModels = () => require('../../db/models');
 const getPubsub = () => require('../../schema/pubsub').pubsub;
@@ -85,6 +86,16 @@ function resolveTileTask(tile, content, teamTile) {
   return content.task ?? null;
 }
 
+// Resolves the per-event PRE anchor buffer to milliseconds, clamped to a
+// non-negative value. Falls back to the module default (12h) when the
+// event's field is missing / NaN — covers rows written before the field
+// existed and any accidental null writes.
+function preAnchorBufferMs(event) {
+  const raw = Number(event?.womPreAnchorBufferHours);
+  const hours = Number.isFinite(raw) ? Math.max(0, raw) : DEFAULT_PRE_ANCHOR_BUFFER_HOURS;
+  return hours * 60 * 60 * 1000;
+}
+
 function msUntilNextSyncAllowed(event) {
   if (!event?.lastWomSyncAt) return 0;
   const elapsed = Date.now() - new Date(event.lastWomSyncAt).getTime();
@@ -97,7 +108,16 @@ function isOnCooldown(event) {
 
 // Runs a single-team, single-tile sync. Returns true if progress was
 // updated, false otherwise. Safe to call from a per-PRE background hook.
-async function _syncOneTile({ team, tile, teamTile, task, roster, usernameMap, womCompetitionId }) {
+async function _syncOneTile({
+  team,
+  tile,
+  teamTile,
+  task,
+  roster,
+  usernameMap,
+  womCompetitionId,
+  preAnchorBufferMs,
+}) {
   const { SpoopySubmission } = getModels();
   // Anchor timestamp: earliest APPROVED PRE for this tile+team. If none
   // exists yet, this tile isn't trackable — bail out early.
@@ -112,7 +132,7 @@ async function _syncOneTile({ team, tile, teamTile, task, roster, usernameMap, w
   });
   if (!pre) return false;
   const anchorRaw = pre.reviewedAt ?? pre.submittedAt;
-  const preStartDate = new Date(new Date(anchorRaw).getTime() - PRE_BACKDATE_MS);
+  const preStartDate = new Date(new Date(anchorRaw).getTime() - preAnchorBufferMs);
   const metric = task.target;
 
   let gains;
@@ -192,6 +212,7 @@ async function syncSpoopyEventWom(eventId, { force = false } = {}) {
   const teams = await SpoopyTeam.findAll({ where: { eventId } });
   const boardTiles = event.board?.tiles ?? [];
   const contentById = event.contentById ?? {};
+  const bufferMs = preAnchorBufferMs(event);
 
   let updatedTiles = 0;
   const teamsAffected = new Set();
@@ -216,6 +237,7 @@ async function syncSpoopyEventWom(eventId, { force = false } = {}) {
           team, tile, teamTile, task,
           roster, usernameMap,
           womCompetitionId: event.womCompetitionId,
+          preAnchorBufferMs: bufferMs,
         });
         if (updated) {
           updatedTiles += 1;
@@ -270,6 +292,7 @@ async function syncSpoopyTileForPreApproval({ teamId, tileId }) {
     team, tile: boardTile, teamTile, task,
     roster, usernameMap,
     womCompetitionId: event.womCompetitionId,
+    preAnchorBufferMs: preAnchorBufferMs(event),
   });
 
   if (updated) {

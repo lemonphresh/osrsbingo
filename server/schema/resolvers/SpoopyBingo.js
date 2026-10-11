@@ -503,6 +503,21 @@ const Mutation = {
     return event;
   },
 
+  setSpoopyEventWomPreAnchorBufferHours: async (_, { eventId, hours }, context) => {
+    const user = requireUser(context);
+    const event = await getEventOrThrow(eventId);
+    requireAdmin(event, user);
+    const raw = Number(hours);
+    if (!Number.isFinite(raw)) {
+      throw new UserInputError('Pre-anchor buffer must be a number.');
+    }
+    // Clamp to non-negative. We don't cap the upper bound — big backdates
+    // just mean more WOM API range, not a correctness problem.
+    const clamped = Math.max(0, raw);
+    await event.update({ womPreAnchorBufferHours: clamped });
+    return event;
+  },
+
   syncSpoopyEventWom: async (_, { eventId, force }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
