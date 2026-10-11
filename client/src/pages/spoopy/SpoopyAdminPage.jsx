@@ -1503,17 +1503,20 @@ export default function SpoopyAdminPage() {
 
   const events = data?.spoopyEvents ?? [];
   const event = events[0] ?? null;
-  const isEventAdmin = event
-    ? user?.admin || (event.adminIds ?? []).map(String).includes(String(user?.id))
-    : user?.admin;
+  // Site-admin only. Event-scoped admins (adminIds) can still review
+  // submissions on /spoopy-event/refs but they must not see event settings,
+  // teams, prize pool, dev tools, etc. — the ref role should feel like a
+  // review surface, not a lower-tier admin surface. Nav link on the event
+  // page is also site-admin-gated so refs never see it exists.
+  const isSiteAdmin = user?.admin === true;
 
-  if (!isEventAdmin) {
+  if (!isSiteAdmin) {
     return (
       <Shell>
         <Center py={20}>
           <VStack>
             <SpoopyUiIcon name="lock" boxSize={6} />
-            <Text opacity={0.7}>admin access only</Text>
+            <Text opacity={0.7}>site admin access only</Text>
           </VStack>
         </Center>
       </Shell>
