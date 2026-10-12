@@ -22,6 +22,7 @@ import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
 import HubButton from '../atoms/HubButton';
 import Chip from '../atoms/Chip';
+import FeatureCard from '../atoms/FeatureCard';
 import theme from '../theme';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER, GET_ASSOCIATED_EVENTS } from '../graphql/queries';
@@ -169,7 +170,15 @@ const UserDetails = () => {
           <GemTitle textAlign="center">
             {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
           </GemTitle>
-          <Text fontSize="22px" textAlign="center">
+          <Text
+            fontSize={['sm', 'md']}
+            textAlign="center"
+            color="whiteAlpha.800"
+            fontWeight="500"
+            maxWidth="520px"
+            mx="auto"
+            marginTop="-16px"
+          >
             {isCurrentUser
               ? 'Welcome to your Bingo Hub. Kick your feet up.'
               : 'Oh, snooping, I see. Enjoy the view.'}
@@ -185,8 +194,11 @@ const UserDetails = () => {
             minWidth={['100%', '325px']}
           >
             {shownUser?.admin ? (
-              <Flex alignItems="baseline" gridGap="8px" justifyContent="center" width="100%">
-                <StarIcon color={theme.colors.yellow[400]} /> Admin
+              <Flex justifyContent="center" width="100%" marginBottom="4px">
+                <Chip variant="warn" size="md">
+                  <StarIcon marginRight="6px" boxSize="10px" />
+                  Admin
+                </Chip>
               </Flex>
             ) : null}
             {user?.admin && !isCurrentUser ? (
@@ -504,108 +516,44 @@ const UserDetails = () => {
               Create Events
             </GemTitle>
             <SimpleGrid columns={[1, 3]} spacing={4}>
-              <Box
-                as={Link}
+              <FeatureCard
                 to="/bingo"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.purple[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.purple[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.purple[300]} mb={1}>
-                  Bingo Boards
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Create and manage your custom bingo boards. Track your progress and share with
-                  friends for some friendly competition.
-                </Text>
-              </Box>
+                accentColor={theme.colors.purple[300]}
+                accentHover={theme.colors.purple[300]}
+                title="Bingo Boards"
+                description="Create and manage your custom bingo boards. Track your progress and share with friends for some friendly competition."
+              />
               {isGielinorRushEnabled(user) && (
-                <Box
-                  as={Link}
+                <FeatureCard
                   to="/gielinor-rush"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.yellow[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.yellow[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
-                    Gielinor Rush
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Host live treasure hunt competitions with your friends and clanmates, complete
-                    with an auto-generated map and submission support.
-                  </Text>
-                </Box>
+                  accentColor={theme.colors.yellow[300]}
+                  title="Gielinor Rush"
+                  description="Host live treasure hunt competitions with your friends and clanmates, complete with an auto-generated map and submission support."
+                />
               )}
               {isBattleshipEnabled(user) && (
-                <Box
-                  as={Link}
+                <FeatureCard
                   to="/battleship"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor="#47b3d1"
-                  p={5}
-                  _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color="#76e4f7" mb={1}>
-                    Battleship
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
-                    sink the enemy.
-                  </Text>
-                </Box>
+                  accentColor="#76e4f7"
+                  title="Battleship"
+                  description="Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to sink the enemy."
+                />
               )}
               {isChampionForgeEnabled(user) && (
-                <Box
-                  as={Link}
+                <FeatureCard
                   to="/champion-forge"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.red[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.red[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
-                    Champion Forge
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    It takes a village to build a champion. Group up, earn gear, and battle for
-                    glory in this competitive clan event. Good for short term events.
-                  </Text>
-                </Box>
+                  accentColor={theme.colors.red[300]}
+                  title="Champion Forge"
+                  description="It takes a village to build a champion. Group up, earn gear, and battle for glory in this competitive clan event. Good for short term events."
+                />
               )}
               {isGroupDashboardEnabled(user) && (
-                <Box
-                  as={Link}
+                <FeatureCard
                   to="/group"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.orange[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.orange[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.orange[300]} mb={1}>
-                    Group Goals Dashboard
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Create shared goals and track group progress over time with this dashboard built
-                    for clans, GIMs, and pals.
-                  </Text>
-                </Box>
+                  accentColor={theme.colors.orange[300]}
+                  title="Group Goals Dashboard"
+                  description="Create shared goals and track group progress over time with this dashboard built for clans, GIMs, and pals."
+                />
               )}
             </SimpleGrid>
           </Section>
@@ -617,45 +565,19 @@ const UserDetails = () => {
               Tools
             </GemTitle>
             <SimpleGrid columns={[1, 3]} spacing={4}>
-              <Box
-                as={Link}
+              <FeatureCard
                 to="/team-balancer"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.green[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.green[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.green[300]} mb={1}>
-                  Team Balancer
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Auto-balance a list of RSNs into fair teams using WOM stats. Perfect before
-                  planning an event.
-                </Text>
-              </Box>
+                accentColor={theme.colors.green[300]}
+                title="Team Balancer"
+                description="Auto-balance a list of RSNs into fair teams using WOM stats. Perfect before planning an event."
+              />
               {isBlindDraftEnabled(user) && (
-                <Box
-                  as={Link}
+                <FeatureCard
                   to="/blind-draft"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.pink[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
-                    Blind Draft
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Anonymous player draft rooms for fair team selection. Both captains pick live
-                    from anonymous cards.
-                  </Text>
-                </Box>
+                  accentColor={theme.colors.pink[300]}
+                  title="Blind Draft"
+                  description="Anonymous player draft rooms for fair team selection. Both captains pick live from anonymous cards."
+                />
               )}
             </SimpleGrid>
           </Section>
@@ -666,61 +588,31 @@ const UserDetails = () => {
             Discover
           </GemTitle>
           <SimpleGrid columns={[1, 2]} spacing={4}>
-            <Box
-              as={Link}
+            <FeatureCard
+              variant="muted"
               to="/boards"
-              bg={theme.colors.teal[800]}
-              borderRadius="lg"
-              border="1px solid"
-              borderColor={theme.colors.teal[600]}
-              p={5}
-              _hover={{ borderColor: theme.colors.purple[400], transform: 'translateY(-2px)' }}
-              transition="all 0.15s"
-            >
-              <Text fontWeight="bold" color={theme.colors.purple[200]} mb={1}>
-                Browse Public Bingo Boards
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Explore boards shared by the community
-              </Text>
-            </Box>
-            <Box
-              as={Link}
+              accentColor={theme.colors.purple[200]}
+              accentHover={theme.colors.purple[400]}
+              title="Browse Public Bingo Boards"
+              description="Explore boards shared by the community"
+            />
+            <FeatureCard
+              variant="muted"
               to="/gielinor-rush/active"
-              bg={theme.colors.teal[800]}
-              borderRadius="lg"
-              border="1px solid"
-              borderColor={theme.colors.teal[600]}
-              p={5}
-              _hover={{ borderColor: theme.colors.yellow[400], transform: 'translateY(-2px)' }}
-              transition="all 0.15s"
-            >
-              <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
-                Active Gielinor Rush Events
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                See all live and recent treasure hunt competitions
-              </Text>
-            </Box>
+              accentColor={theme.colors.yellow[300]}
+              accentHover={theme.colors.yellow[400]}
+              title="Active Gielinor Rush Events"
+              description="See all live and recent treasure hunt competitions"
+            />
             {isChampionForgeEnabled(user) && (
-              <Box
-                as={Link}
+              <FeatureCard
+                variant="muted"
                 to="/champion-forge/gallery"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="1px solid"
-                borderColor={theme.colors.teal[600]}
-                p={5}
-                _hover={{ borderColor: theme.colors.red[400], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
-                  Champion Forge: Battle Gallery
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Watch replays from past Champion Forge tourneys
-                </Text>
-              </Box>
+                accentColor={theme.colors.red[300]}
+                accentHover={theme.colors.red[400]}
+                title="Champion Forge: Battle Gallery"
+                description="Watch replays from past Champion Forge tourneys"
+              />
             )}
           </SimpleGrid>
         </Section>
@@ -793,11 +685,21 @@ const UserDetails = () => {
             onClose={onCloseDeleteAlert}
           >
             <AlertDialogOverlay>
-              <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="semibold">
+              <AlertDialogContent
+                bg="gray.800"
+                color="white"
+                borderWidth="1px"
+                borderColor="gray.700"
+              >
+                <AlertDialogHeader
+                  fontFamily={theme.fonts.heading}
+                  fontSize="lg"
+                  fontWeight="700"
+                  letterSpacing="-0.01em"
+                >
                   Delete User
                 </AlertDialogHeader>
-                <AlertDialogBody>
+                <AlertDialogBody color="whiteAlpha.800" lineHeight="1.6">
                   Are you sure? This will also delete their associated Bingo Boards and any
                   invitations they've sent. You can't undo this action afterwards.
                 </AlertDialogBody>
@@ -818,9 +720,9 @@ const UserDetails = () => {
       {isCurrentUser && (
         <HubButton
           variant="ghost"
-          size="lg"
+          size="md"
           leftIcon={<Icon as={MdDoorBack} />}
-          marginTop="48px"
+          marginTop="32px"
           onClick={logout}
           as={Link}
           to="/"
