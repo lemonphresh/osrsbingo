@@ -3,7 +3,6 @@ import {
   VStack,
   HStack,
   Text,
-  Badge,
   SimpleGrid,
   Skeleton,
   Button,
@@ -14,6 +13,8 @@ import { useQuery } from '@apollo/client';
 import { GET_DRAFT_ROOM } from '../../graphql/draftOperations';
 import PlayerCard from '../../organisms/DraftRoom/PlayerCard';
 import usePageTitle from '../../hooks/usePageTitle';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
 export default function DraftResultsPage() {
   usePageTitle('Draft Results');
@@ -31,7 +32,7 @@ export default function DraftResultsPage() {
   if (loading) {
     return (
       <Box maxW="900px" mx="auto" px={4} py={8}>
-        <Skeleton h="200px" borderRadius="lg" />
+        <Skeleton h="200px" borderRadius="2px" startColor={HUD.bgSurface} endColor={HUD.bgElevated} />
       </Box>
     );
   }
@@ -39,10 +40,18 @@ export default function DraftResultsPage() {
   if (error || !data?.getDraftRoom) {
     return (
       <Box maxW="900px" mx="auto" px={4} py={8} textAlign="center">
-        <Text fontSize="xl" fontWeight="bold" mb={2}>
+        <Text
+          fontFamily={HUD_FONT_DISPLAY}
+          fontSize="xl"
+          fontWeight="700"
+          color={HUD.textPrimary}
+          mb={2}
+        >
           Results not available
         </Text>
-        <Text color="gray.400">This room doesn't exist or results haven't been revealed yet.</Text>
+        <Text color={HUD.textSecondary}>
+          This room doesn't exist or results haven't been revealed yet.
+        </Text>
       </Box>
     );
   }
@@ -53,13 +62,35 @@ export default function DraftResultsPage() {
   if (!revealed) {
     return (
       <Box my="48px" maxW="900px" mx="auto" px={4} py={8} textAlign="center">
-        <Text fontSize="xl" fontWeight="bold" mb={2}>
+        <Text
+          fontFamily={HUD_FONT_DISPLAY}
+          fontSize="xl"
+          fontWeight="700"
+          color={HUD.textPrimary}
+          mb={2}
+        >
           Results not yet revealed
         </Text>
-        <Text color="gray.400" mb={4}>
+        <Text color={HUD.textSecondary} mb={5}>
           The organizer hasn't revealed names yet.
         </Text>
-        <Button colorScheme="purple" onClick={() => navigate(`/blind-draft/${roomId}`)}>
+        <Button
+          onClick={() => navigate(`/blind-draft/${roomId}`)}
+          bg="transparent"
+          color={HUD.cyan}
+          borderWidth="1px"
+          borderStyle="solid"
+          borderColor={HUD.cyan}
+          borderRadius="2px"
+          fontFamily={HUD_FONT_MONO}
+          fontSize="11px"
+          fontWeight="500"
+          textTransform="uppercase"
+          letterSpacing="0.1em"
+          h="34px"
+          px={5}
+          _hover={{ bg: HUD.cyanGlow, boxShadow: `0 0 12px ${HUD.cyanGlow}` }}
+        >
           Go to Draft Room
         </Button>
       </Box>
@@ -69,26 +100,78 @@ export default function DraftResultsPage() {
   return (
     <Box my="48px" maxW="1100px" mx="auto" px={4} py={8}>
       {/* Header */}
-      <VStack align="flex-start" spacing={1} mb={6}>
-        <HStack flexWrap="wrap" gap={2}>
-          <Text fontSize="2xl" fontWeight="black">
+      <VStack align="flex-start" spacing={2} mb={6}>
+        <HStack spacing={3} align="center">
+          <Box
+            w="6px"
+            h="20px"
+            bg={HUD.cyan}
+            boxShadow={`0 0 10px ${HUD.cyanGlow}`}
+            borderRadius="1px"
+          />
+          <Text
+            fontFamily={HUD_FONT_MONO}
+            fontSize="10px"
+            color={HUD.cyan}
+            textTransform="uppercase"
+            letterSpacing="0.3em"
+          >
+            Draft Results
+          </Text>
+        </HStack>
+        <HStack flexWrap="wrap" gap={3} align="center">
+          <Text
+            fontFamily={HUD_FONT_DISPLAY}
+            fontSize="3xl"
+            fontWeight="700"
+            lineHeight="1"
+            letterSpacing="-0.01em"
+            color={HUD.textPrimary}
+          >
             {room.roomName}
           </Text>
-          <Badge colorScheme="green">Results</Badge>
+          <HudChip mode="active">Results</HudChip>
         </HStack>
-        <HStack spacing={2} flexWrap="wrap">
-          <Badge variant="outline">{room.draftFormat} Draft</Badge>
-          <Badge variant="outline">{room.players.length} Players</Badge>
-          <Badge variant="outline">{room.numberOfTeams} Teams</Badge>
+        <HStack spacing={1.5} flexWrap="wrap" mt={1}>
+          <HudChip>{room.draftFormat} Draft</HudChip>
+          <HudChip>{room.players.length} Players</HudChip>
+          <HudChip>{room.numberOfTeams} Teams</HudChip>
         </HStack>
       </VStack>
 
       {/* Share */}
-      <HStack mb={8}>
-        <Text fontSize="sm" color="gray.400">
+      <HStack mb={8} spacing={3}>
+        <Text
+          fontFamily={HUD_FONT_MONO}
+          fontSize="10px"
+          color={HUD.textSecondary}
+          textTransform="uppercase"
+          letterSpacing="0.15em"
+        >
           Share these results:
         </Text>
-        <Button size="xs" colorScheme="yellow" variant="ghost" onClick={onCopy}>
+        <Button
+          size="xs"
+          onClick={onCopy}
+          bg="transparent"
+          color={hasCopied ? HUD.cyan : HUD.textSecondary}
+          borderWidth="1px"
+          borderStyle="solid"
+          borderColor={hasCopied ? HUD.cyan : HUD.border}
+          borderRadius="2px"
+          fontFamily={HUD_FONT_MONO}
+          fontSize="10px"
+          fontWeight="500"
+          textTransform="uppercase"
+          letterSpacing="0.1em"
+          h="26px"
+          px={3}
+          _hover={{
+            borderColor: HUD.cyan,
+            color: HUD.cyan,
+            bg: HUD.cyanGlow,
+          }}
+        >
           {hasCopied ? 'Copied!' : 'Copy Link'}
         </Button>
       </HStack>
@@ -103,21 +186,39 @@ export default function DraftResultsPage() {
           return (
             <Box
               key={team.index}
-              bg="gray.700"
+              bg={HUD.bgSurface}
               border="1px solid"
-              borderColor="gray.600"
-              borderRadius="xl"
+              borderColor={HUD.border}
+              borderRadius="2px"
               p={4}
+              position="relative"
+              _before={{
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '3px',
+                bg: HUD.cyan,
+                boxShadow: `0 0 10px ${HUD.cyanGlow}`,
+              }}
             >
-              <Text fontWeight="black" fontSize="lg" mb={3}>
+              <Text
+                fontFamily={HUD_FONT_DISPLAY}
+                fontWeight="700"
+                fontSize="lg"
+                color={HUD.textPrimary}
+                mb={3}
+                mt={1}
+              >
                 {team.name}
               </Text>
               <VStack spacing={2} align="stretch">
-                {drafted.map((player, i) => (
+                {drafted.map((player) => (
                   <PlayerCard key={player.id} player={player} />
                 ))}
                 {drafted.length === 0 && (
-                  <Text fontSize="sm" color="gray.500" fontStyle="italic">
+                  <Text fontSize="sm" color={HUD.textMuted} fontStyle="italic">
                     No players drafted
                   </Text>
                 )}
@@ -129,9 +230,21 @@ export default function DraftResultsPage() {
 
       <Box mt={8} textAlign="center">
         <Button
-          colorScheme="purple"
-          variant="ghost"
           onClick={() => navigate(`/blind-draft/${roomId}`)}
+          bg="transparent"
+          color={HUD.textSecondary}
+          borderWidth="1px"
+          borderStyle="solid"
+          borderColor={HUD.border}
+          borderRadius="2px"
+          fontFamily={HUD_FONT_MONO}
+          fontSize="11px"
+          fontWeight="500"
+          textTransform="uppercase"
+          letterSpacing="0.1em"
+          h="30px"
+          px={4}
+          _hover={{ bg: HUD.bgElevated, borderColor: HUD.borderBright, color: HUD.textPrimary }}
         >
           ← Back to Draft Room
         </Button>

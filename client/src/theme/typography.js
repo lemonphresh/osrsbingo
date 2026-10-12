@@ -1,8 +1,15 @@
+// Hub typography. Swapped in during the 2026 refresh:
+//   - heading / introText → Outfit (display sans with warmth)
+//   - body                → Inter (neutral, extremely legible)
+//   - mono                → IBM Plex Mono (data readouts)
+// System fallbacks are included so an offline load / blocked Google Fonts
+// request still gives a readable face. Event-specific themes (battleship
+// Special Elite, spoopy's hand font, etc.) opt out via explicit overrides.
 const fonts = {
-  body: `'Open Sans', sans-serif`,
-  introText: `'Raleway', sans-serif`,
-  heading: `'Raleway', sans-serif`,
-  mono: 'Menlo, monospace',
+  body: `'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`,
+  introText: `'Outfit', 'Inter', -apple-system, sans-serif`,
+  heading: `'Outfit', 'Inter', -apple-system, sans-serif`,
+  mono: `'IBM Plex Mono', ui-monospace, Menlo, monospace`,
 };
 
 const fontSizes = {

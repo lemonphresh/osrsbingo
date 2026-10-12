@@ -59,6 +59,21 @@
       crossorigin=""
     />
 
+    <!-- Space Grotesk (display) + IBM Plex Mono (data readouts) — used
+         explicitly by pages that opt in via font-family. Rest of the site
+         keeps whatever Chakra defaults were already in effect. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Hub typography:
+         - Outfit (display) → headings, section labels, hero titles
+         - Inter (body)     → everything readable
+         - IBM Plex Mono    → stats, timestamps, data readouts
+         - Space Grotesk    → kept for the Team Balancer HUD only -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+    />
+
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

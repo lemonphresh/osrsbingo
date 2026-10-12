@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Badge,
-  Box,
   Card,
   CardBody,
   CardHeader,
@@ -58,13 +57,31 @@ const EventCard = ({ event, clickedEventId, colorMode, c, isMobile, onDeleteClic
       alt=""
       aria-hidden
       position="absolute"
-      right="-15px"
-      top="15px"
-      width="100px"
-      height="100px"
-      opacity={0.25}
+      right="-30px"
+      bottom="-20px"
+      width="110px"
+      height="110px"
+      opacity={0.15}
       pointerEvents="none"
     />
+    {/* Status pill in the top-right so the footer row stays clean. */}
+    <Badge
+      position="absolute"
+      top={3}
+      right={10}
+      bg={getStatusColor(event.status, c)}
+      color="white"
+      px={2.5}
+      py={1}
+      borderRadius="md"
+      fontWeight="semibold"
+      textTransform="uppercase"
+      fontSize="10px"
+      letterSpacing="wider"
+      zIndex={1}
+    >
+      {event.status}
+    </Badge>
     {clickedEventId === event.eventId && (
       <Flex
         position="absolute"
@@ -112,51 +129,32 @@ const EventCard = ({ event, clickedEventId, colorMode, c, isMobile, onDeleteClic
       </Heading>
     </CardHeader>
     <CardBody pt={0} display="flex" flexDirection="column" flex="1">
-      <VStack align="stretch" spacing={2} flex="1">
+      <VStack align="stretch" spacing={2.5} flex="1">
         {[
           ['Start', formatDisplayDate(event.startDate)],
           ['End', formatDisplayDate(event.endDate)],
+          ['Teams', event.teams.length],
         ].map(([label, val]) => (
-          <HStack key={label}>
+          <HStack key={label} spacing={3}>
+            <Text
+              fontSize="xs"
+              color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
+              minW="50px"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              fontWeight="semibold"
+            >
+              {label}
+            </Text>
             <Text
               fontSize="sm"
-              color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-              minW="45px"
+              color={label === 'Teams' ? c.purple.base : c.textColor}
+              fontWeight={label === 'Teams' ? 'bold' : 'medium'}
             >
-              {label}:
-            </Text>
-            <Text fontSize="sm" color={c.textColor} fontWeight="medium">
               {val}
             </Text>
           </HStack>
         ))}
-        <Box flex="1" />
-        <HStack justify="space-between" align="center">
-          <HStack>
-            <Text
-              fontSize="sm"
-              color={colorMode === 'dark' ? 'gray.400' : 'gray.600'}
-              minW="45px"
-            >
-              Teams:
-            </Text>
-            <Text fontSize="sm" fontWeight="semibold" color={c.purple.base}>
-              {event.teams.length}
-            </Text>
-          </HStack>
-          <Badge
-            bg={getStatusColor(event.status, c)}
-            color="white"
-            px={2}
-            py={1}
-            borderRadius="md"
-            fontWeight="semibold"
-            textTransform="uppercase"
-            fontSize="xs"
-          >
-            {event.status}
-          </Badge>
-        </HStack>
       </VStack>
     </CardBody>
   </Card>

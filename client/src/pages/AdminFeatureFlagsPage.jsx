@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Badge,
   Box,
   Button,
   ButtonGroup,
@@ -12,6 +11,8 @@ import {
   Tooltip,
   VStack,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
+import Chip from '../atoms/Chip';
 import { QuestionOutlineIcon, RepeatIcon } from '@chakra-ui/icons';
 import { useAuth } from '../providers/AuthProvider';
 import usePageTitle from '../hooks/usePageTitle';
@@ -105,20 +106,15 @@ export default function AdminFeatureFlagsPage() {
                 uses the value bundled into this deployment, which is what every non-admin sees.
               </Text>
             </Box>
-            <Button
-              leftIcon={<RepeatIcon />}
-              variant="outline"
+            <HubButton
+              variant="neutral"
               size="sm"
+              leftIcon={<RepeatIcon />}
               alignSelf={{ base: 'flex-start', md: 'auto' }}
-              color="gray.100"
-              borderColor="gray.400"
-              bg="transparent"
-              _hover={{ bg: 'whiteAlpha.200', borderColor: 'gray.200' }}
-              _active={{ bg: 'whiteAlpha.300' }}
               onClick={resetAll}
             >
               Reset all
-            </Button>
+            </HubButton>
           </Flex>
         </Box>
 
@@ -141,12 +137,12 @@ export default function AdminFeatureFlagsPage() {
                 <HStack spacing={2} flexWrap="wrap">
                   <Heading size="sm">{flag.label}</Heading>
                   <FlagHelpTooltip flag={flag} />
-                  <Badge colorScheme={flag.environmentEnabled ? 'green' : 'gray'}>
+                  <Chip variant={flag.environmentEnabled ? 'success' : 'default'}>
                     Environment: {flag.environmentEnabled ? 'on' : 'off'}
-                  </Badge>
-                  <Badge colorScheme={flag.effectiveEnabled ? 'teal' : 'red'}>
+                  </Chip>
+                  <Chip variant={flag.effectiveEnabled ? 'info' : 'danger'}>
                     You see: {flag.effectiveEnabled ? 'on' : 'off'}
-                  </Badge>
+                  </Chip>
                 </HStack>
                 <Text color="gray.500" fontSize="xs" mt={2} fontFamily="mono">
                   {flag.envName}

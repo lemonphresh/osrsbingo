@@ -1,5 +1,6 @@
 import React from 'react';
-import { Link as ChakraLink, Image, Text, Box, Badge, VStack, HStack } from '@chakra-ui/react';
+import { Link as ChakraLink, Image, Text, Box, VStack, HStack } from '@chakra-ui/react';
+import Chip from '../atoms/Chip';
 import Section from '../atoms/Section';
 import GnomeChild from '../assets/gnomechild-small.webp';
 import {
@@ -354,6 +355,26 @@ const getTypeColor = (type) => {
   }
 };
 
+// Maps the semantic type to a Chip variant. Mirrors getTypeColor but uses
+// the Chip component's variant vocabulary (default / accent / success /
+// warn / info). Kept separate so getTypeColor can stay around for the
+// non-chip color decisions elsewhere on the page.
+const getTypeChipVariant = (type) => {
+  switch (type) {
+    case 'major':
+      return 'accent';
+    case 'feature':
+      return 'success';
+    case 'fix':
+      return 'warn';
+    case 'improvement':
+      return 'info';
+    case 'upcoming':
+    default:
+      return 'default';
+  }
+};
+
 const getTypeLabel = (type) => {
   switch (type) {
     case 'upcoming':
@@ -404,16 +425,9 @@ const ChangelogEntry = ({ entry, isLatest }) => {
       {/* Content */}
       <VStack align="start" spacing={3}>
         <HStack spacing={3} flexWrap="wrap">
-          <Badge
-            bg={`${getTypeColor(entry.type)}.500`}
-            color="white"
-            px={2}
-            py={1}
-            borderRadius="md"
-            fontSize="xs"
-          >
+          <Chip variant={getTypeChipVariant(entry.type)}>
             {getTypeLabel(entry.type)}
-          </Badge>
+          </Chip>
           <Text fontSize="sm" color="rgba(255,255,255,0.5)">
             v{entry.version} • {entry.date}
           </Text>

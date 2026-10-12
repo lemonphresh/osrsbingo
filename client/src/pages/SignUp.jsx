@@ -1,7 +1,6 @@
 import {
   Alert,
   Box,
-  Button,
   Checkbox,
   Flex,
   FormControl,
@@ -13,6 +12,7 @@ import {
   Text,
   VStack,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
 import React, { useCallback, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { InfoIcon, LockIcon, WarningIcon } from '@chakra-ui/icons';
@@ -310,10 +310,9 @@ const SignUp = () => {
             </Checkbox>
           </Box>
 
-          <Button
+          <HubButton
             alignSelf="center"
-            backgroundColor={theme.colors.green[200]}
-            color={isValid ? theme.colors.gray[700] : theme.colors.gray[400]}
+            size="lg"
             isDisabled={!isValid}
             isLoading={loading}
             loadingText="Creating account..."
@@ -322,12 +321,9 @@ const SignUp = () => {
             }}
             marginTop="8px"
             width={['100%', '250px']}
-            _hover={{
-              backgroundColor: isValid ? theme.colors.green[300] : theme.colors.green[200],
-            }}
           >
             Sign Up
-          </Button>
+          </HubButton>
         </Flex>
       </Section>
     </Flex>

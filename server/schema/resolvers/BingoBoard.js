@@ -444,17 +444,54 @@ module.exports = {
       try {
         const categoryFilter = category ? { category } : { category: { [Op.ne]: 'Featured' } };
 
+        // Search matches on the board name OR the creator's username /
+        // displayName / rsn. Empty query (no filter typed) short-circuits
+        // to just the public + category filter so we skip the User join
+        // when it isn't needed — the join is small but the query is one
+        // of the hottest on the site. The `required` option on the User
+        // include stays false so boards whose user row is missing still
+        // show up (soft-deleted / orphan cases). The actual OR filter is
+        // nested at the top level via `[Op.or]` referencing the included
+        // User columns with `$user.<col>$` so Sequelize generates the
+        // right JOIN + WHERE combination.
+        const trimmedQuery = (searchQuery || '').trim();
+        const includeUser = {
+          model: User,
+          as: 'user',
+          attributes: [],
+          required: false,
+        };
+        const searchWhere = trimmedQuery
+          ? {
+              [Op.or]: [
+                { name: { [Op.iLike]: `%${trimmedQuery}%` } },
+                { '$user.username$': { [Op.iLike]: `%${trimmedQuery}%` } },
+                { '$user.displayName$': { [Op.iLike]: `%${trimmedQuery}%` } },
+                { '$user.rsn$': { [Op.iLike]: `%${trimmedQuery}%` } },
+              ],
+            }
+          : {};
+
+        const where = { isPublic: true, ...categoryFilter, ...searchWhere };
+
+        // `distinct: true` on count stops Sequelize from inflating totals
+        // when the include joins multiple rows per board (shouldn't here,
+        // but belt-and-suspenders for when editors joins arrive later).
         const totalCount = await BingoBoard.count({
-          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
+          where,
+          include: [includeUser],
+          distinct: true,
+          col: 'id',
         });
 
-        // ✅ Minimal attributes - field resolvers can add tiles/editors if requested
         const boards = await BingoBoard.findAll({
-          where: { isPublic: true, name: { [Op.iLike]: `%${searchQuery}%` }, ...categoryFilter },
+          where,
+          include: [includeUser],
           attributes: ['id', 'createdAt', 'category', 'name', 'layout', 'theme'],
           order: [['createdAt', 'DESC']],
           limit: limit || 10,
           offset: offset || 0,
+          subQuery: false,
         });
 
         return { boards: boards || [], totalCount };

@@ -51,6 +51,13 @@ import {
   getCompetitionScoreMultiplier,
 } from '../utils/womCompetitionBalance';
 
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../atoms/hudTheme';
+import HudChip from '../atoms/HudChip';
+// Local alias so the existing JSX below can keep using <Chip mode="..."/>
+// without a sweeping rename. HudChip is identical to the Chip helper that
+// used to live inline in this file.
+const Chip = HudChip;
+
 const PRESETS = {
   'All-Rounder': {
     ehpWeight: 0.25,
@@ -1181,11 +1188,33 @@ export default function TeamBalancerPage() {
 
   return (
     <Box flex="1" my="36px" maxW="1100px" mx="auto" w="100%" px={4} py={8}>
-      <VStack align="flex-start" spacing={1} mb={4}>
-        <GemTitle fontSize="2xl" fontWeight="black">
+      <VStack align="flex-start" spacing={2} mb={6}>
+        <HStack spacing={3} align="center">
+          <Box
+            w="6px"
+            h="22px"
+            bg={HUD.cyan}
+            boxShadow={`0 0 10px ${HUD.cyanGlow}`}
+            borderRadius="1px"
+          />
+          <Text
+            fontFamily={HUD_FONT_MONO}
+            fontSize="10px"
+            color={HUD.cyan}
+            textTransform="uppercase"
+            letterSpacing="0.3em"
+          >
+            Nerd Balancing Terminal
+          </Text>
+        </HStack>
+        <GemTitle
+          fontSize="3xl"
+          fontWeight="700"
+          style={{ fontFamily: HUD_FONT_DISPLAY, letterSpacing: '-0.01em' }}
+        >
           Team Balancer
         </GemTitle>
-        <Text color="gray.400" fontSize="sm">
+        <Text color={HUD.textSecondary} fontSize="sm" maxW="640px" lineHeight="1.6">
           Paste RSNs, pick a metric, and get auto-balanced teams based on WOM stats.
         </Text>
       </VStack>
@@ -1193,52 +1222,60 @@ export default function TeamBalancerPage() {
       <Accordion allowToggle mb={6}>
         <AccordionItem border="none">
           <AccordionButton px={0} py={1} _hover={{ bg: 'transparent' }} w="fit-content">
-            <Text fontSize="xs" color="gray.500" mr={1}>
-              How it works
+            <Text
+              fontFamily={HUD_FONT_MONO}
+              fontSize="10px"
+              color={HUD.textSecondary}
+              textTransform="uppercase"
+              letterSpacing="0.2em"
+              mr={1}
+            >
+              [ How it works ]
             </Text>
-            <AccordionIcon color="gray.500" boxSize={3} />
+            <AccordionIcon color={HUD.textMuted} boxSize={3} />
           </AccordionButton>
           <AccordionPanel px={0} pt={2} pb={4}>
             <VStack
               align="stretch"
               spacing={3}
-              bg="gray.800"
+              bg={HUD.bgSurface}
               border="1px solid"
-              borderColor="gray.700"
-              borderRadius="lg"
+              borderColor={HUD.border}
+              borderRadius="2px"
               p={4}
               maxW="640px"
             >
               {[
                 {
-                  step: '1',
+                  step: '01',
                   text: 'Paste RSNs one per line. Optionally add " - N" after any name (i.e. "Zezima - 4") to weight that player by their estimated hours of play per day.',
                 },
                 {
-                  step: '2',
+                  step: '02',
                   text: 'Pick a balancing preset based on your event type: All-Rounder works for most events; PvM Focused or Raid Specialist prioritize bosses; Skilling Focused ignores combat entirely.',
                 },
                 {
-                  step: '3',
+                  step: '03',
                   text: 'Stats are pulled live from Wise Old Man: EHP, EHB, EHP/Y, EHB/Y, and raid KCs (CoX, ToB, ToA). Each player gets a weighted score, then teams are distributed to minimize the gap.',
                 },
                 {
-                  step: '4',
+                  step: '04',
                   text: "After balancing, drag players between teams to fine-tune. Export to CSV when you're happy.",
                 },
               ].map(({ step, text }) => (
                 <HStack key={step} align="flex-start" spacing={3}>
                   <Text
-                    fontSize="xs"
-                    fontWeight="bold"
-                    color="pink.300"
+                    fontFamily={HUD_FONT_MONO}
+                    fontSize="11px"
+                    fontWeight="600"
+                    color={HUD.cyan}
                     flexShrink={0}
-                    mt="1px"
-                    w="14px"
+                    mt="2px"
+                    w="22px"
                   >
-                    {step}.
+                    {step}
                   </Text>
-                  <Text fontSize="xs" color="gray.400" lineHeight="1.6">
+                  <Text fontSize="xs" color={HUD.textSecondary} lineHeight="1.65">
                     {text}
                   </Text>
                 </HStack>
@@ -1249,14 +1286,45 @@ export default function TeamBalancerPage() {
       </Accordion>
 
       {!teams ? (
-        <Box bg="gray.700" borderRadius="xl" p={6} border="1px solid" borderColor="gray.600">
+        <Box
+          bg={HUD.bgSurface}
+          borderRadius="2px"
+          p={6}
+          border="1px solid"
+          borderColor={HUD.border}
+          position="relative"
+          _before={{
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '1px',
+            bg: `linear-gradient(90deg, transparent 0%, ${HUD.cyan} 20%, ${HUD.cyan} 80%, transparent 100%)`,
+            opacity: 0.4,
+          }}
+        >
           <VStack spacing={5} align="stretch">
             <Box>
-              <HStack justify="space-between" mb={1}>
-                <Text fontSize="sm">RSNs</Text>
-                <Text fontSize="xs" color={hasEnough ? 'green.300' : 'orange.300'}>
+              <HStack justify="space-between" mb={1.5}>
+                <Text
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="10px"
+                  color={HUD.textSecondary}
+                  textTransform="uppercase"
+                  letterSpacing="0.15em"
+                >
+                  RSNs
+                </Text>
+                <Text
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="10px"
+                  color={hasEnough ? HUD.cyan : HUD.amber}
+                  textTransform="uppercase"
+                  letterSpacing="0.1em"
+                >
                   {parsed.length} player{parsed.length !== 1 ? 's' : ''}
-                  {!hasEnough && parsed.length > 0 ? ` (need at least ${numTeams})` : ''}
+                  {!hasEnough && parsed.length > 0 ? ` · need ${numTeams}+` : ''}
                 </Text>
               </HStack>
               <Textarea
@@ -1315,7 +1383,14 @@ export default function TeamBalancerPage() {
 
             <HStack spacing={6} flexWrap="wrap">
               <Box>
-                <Text fontSize="sm" mb={1}>
+                <Text
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="10px"
+                  color={HUD.textSecondary}
+                  textTransform="uppercase"
+                  letterSpacing="0.15em"
+                  mb={1.5}
+                >
                   Number of Teams
                 </Text>
                 <NumberInput
@@ -1335,24 +1410,56 @@ export default function TeamBalancerPage() {
               </Box>
 
               <Box flex={1}>
-                <Text fontSize="sm" mb={1}>
+                <Text
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="10px"
+                  color={HUD.textSecondary}
+                  textTransform="uppercase"
+                  letterSpacing="0.15em"
+                  mb={1.5}
+                >
                   Balancing Metric
                 </Text>
-                <HStack flexWrap="wrap" spacing={2}>
-                  {Object.keys(PRESETS).map((name) => (
-                    <Button
-                      key={name}
-                      size="sm"
-                      variant={preset === name ? 'solid' : 'outline'}
-                      colorScheme="pink"
-                      onClick={() => handlePresetChange(name)}
-                      isDisabled={isFetching}
-                    >
-                      {name}
-                    </Button>
-                  ))}
+                <HStack flexWrap="wrap" spacing={1.5}>
+                  {Object.keys(PRESETS).map((name) => {
+                    const active = preset === name;
+                    return (
+                      <Button
+                        key={name}
+                        size="sm"
+                        onClick={() => handlePresetChange(name)}
+                        isDisabled={isFetching}
+                        bg={active ? HUD.cyanGlow : 'transparent'}
+                        color={active ? HUD.cyan : HUD.textSecondary}
+                        borderWidth="1px"
+                        borderStyle="solid"
+                        borderColor={active ? HUD.cyan : HUD.border}
+                        borderRadius="2px"
+                        fontFamily={HUD_FONT_MONO}
+                        fontSize="11px"
+                        fontWeight="500"
+                        textTransform="uppercase"
+                        letterSpacing="0.08em"
+                        px={3}
+                        h="30px"
+                        boxShadow={active ? `0 0 10px ${HUD.cyanGlow}` : 'none'}
+                        _hover={{
+                          bg: active ? HUD.cyanGlow : HUD.bgElevated,
+                          borderColor: active ? HUD.cyan : HUD.borderBright,
+                          color: active ? HUD.cyan : HUD.textPrimary,
+                        }}
+                        _disabled={{
+                          opacity: 0.4,
+                          cursor: 'not-allowed',
+                          _hover: {},
+                        }}
+                      >
+                        {name}
+                      </Button>
+                    );
+                  })}
                 </HStack>
-                <Text fontSize="xs" color="gray.400" mt={1}>
+                <Text fontSize="xs" color={HUD.textMuted} mt={2} lineHeight="1.6">
                   {PRESET_DESCRIPTIONS[preset]}
                 </Text>
               </Box>
@@ -1468,8 +1575,35 @@ export default function TeamBalancerPage() {
                 </Text>
               </Box>
             ) : (
-              <Button colorScheme="green" isDisabled={!hasEnough} onClick={handleBalance} size="lg">
-                Balance Teams
+              <Button
+                isDisabled={!hasEnough}
+                onClick={handleBalance}
+                size="lg"
+                h="56px"
+                bg={HUD.cyan}
+                color={HUD.bgDeep}
+                fontFamily={HUD_FONT_DISPLAY}
+                fontWeight="700"
+                fontSize="md"
+                textTransform="uppercase"
+                letterSpacing="0.15em"
+                borderRadius="2px"
+                boxShadow={`0 0 24px ${HUD.cyanGlow}, inset 0 0 0 1px ${HUD.cyan}`}
+                _hover={{
+                  bg: HUD.cyan,
+                  filter: 'brightness(1.1)',
+                  boxShadow: `0 0 32px ${HUD.cyan}, inset 0 0 0 1px ${HUD.cyan}`,
+                }}
+                _active={{ filter: 'brightness(0.95)' }}
+                _disabled={{
+                  bg: HUD.bgElevated,
+                  color: HUD.textMuted,
+                  boxShadow: 'none',
+                  cursor: 'not-allowed',
+                  _hover: {},
+                }}
+              >
+                ▸ Balance Teams
               </Button>
             )}
           </VStack>
@@ -1478,32 +1612,43 @@ export default function TeamBalancerPage() {
         <VStack spacing={5} align="stretch">
           {/* Summary bar */}
           <HStack
-            bg="gray.700"
-            borderRadius="lg"
-            p={4}
+            bg={HUD.bgSurface}
+            borderRadius="2px"
+            px={6}
+            py={5}
             border="1px solid"
-            borderColor="gray.600"
+            borderColor={HUD.border}
             flexWrap="wrap"
-            gap={3}
+            gap={6}
+            align="center"
           >
-            <VStack spacing={0} align="flex-start">
-              <Text fontWeight="bold">
-                {assignedPlayerCount} ready player{assignedPlayerCount === 1 ? '' : 's'} →{' '}
+            <VStack spacing={3} align="flex-start">
+              <Text
+                fontFamily={HUD_FONT_DISPLAY}
+                fontWeight="600"
+                fontSize="lg"
+                color={HUD.textPrimary}
+                lineHeight="1.1"
+              >
+                {assignedPlayerCount} ready player{assignedPlayerCount === 1 ? '' : 's'}{' '}
+                <Text as="span" color={HUD.cyan} mx={2} fontFamily={HUD_FONT_MONO} fontWeight="500">
+                  →
+                </Text>{' '}
                 {teams.length} teams
               </Text>
-              <HStack spacing={2}>
-                <Text fontSize="xs" color="gray.400">
+              <HStack spacing={2} flexWrap="wrap">
+                <Chip py={1} px={2.5}>
                   {preset} metric
-                </Text>
+                </Chip>
                 {unresolvedPlayers.length > 0 && (
-                  <Badge colorScheme="orange" fontSize="9px">
+                  <Chip mode="warn" py={1} px={2.5}>
                     Provisional · {unresolvedPlayers.length} need attention
-                  </Badge>
+                  </Chip>
                 )}
                 {appliedCompetitionInfluence != null && (
-                  <Badge colorScheme="cyan" fontSize="9px">
+                  <Chip mode="active" py={1} px={2.5}>
                     Competition pace applied
-                  </Badge>
+                  </Chip>
                 )}
               </HStack>
             </VStack>
@@ -1513,21 +1658,32 @@ export default function TeamBalancerPage() {
                 label="Balance ratio: min team score ÷ max team score. Closer to 1.0 = more balanced."
                 placement="top"
               >
-                <VStack spacing={0} align="flex-start" cursor="help">
+                <VStack spacing={1} align="flex-start" cursor="help">
                   <Text
-                    fontSize="sm"
-                    fontWeight="bold"
+                    fontFamily={HUD_FONT_MONO}
+                    fontSize="10px"
+                    color={HUD.textSecondary}
+                    textTransform="uppercase"
+                    letterSpacing="0.2em"
+                  >
+                    Balance
+                  </Text>
+                  <Text
+                    fontFamily={HUD_FONT_DISPLAY}
+                    fontSize="3xl"
+                    fontWeight="700"
+                    lineHeight="1"
                     color={
                       balanceRatio > 0.9
-                        ? 'green.300'
+                        ? HUD.cyan
                         : balanceRatio > 0.75
-                        ? 'yellow.300'
-                        : 'orange.300'
+                        ? HUD.textPrimary
+                        : HUD.amber
                     }
                   >
-                    Balance: {(balanceRatio * 100).toFixed(1)}%
+                    {(balanceRatio * 100).toFixed(1)}%
                   </Text>
-                  <Text fontSize="xs" color="gray.400">
+                  <Text fontSize="xs" color={HUD.textMuted}>
                     {balanceRatio > 0.9
                       ? 'Very balanced'
                       : balanceRatio > 0.75
@@ -1568,28 +1724,44 @@ export default function TeamBalancerPage() {
 
           <Box
             px={4}
-            py={3}
-            bg="blue.900"
+            py={3.5}
+            bg={HUD.bgSurface}
             border="1px solid"
-            borderColor="blue.700"
-            borderRadius="lg"
+            borderColor={HUD.border}
+            borderRadius="2px"
+            position="relative"
+            _before={{
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              bottom: 0,
+              width: '3px',
+              bg: HUD.cyan,
+              boxShadow: `0 0 10px ${HUD.cyanGlow}`,
+            }}
           >
             <HStack align="flex-start" justify="space-between" spacing={4} flexWrap="wrap">
               <Box flex="1 1 460px">
-                <Text fontSize="sm" color="blue.100" fontWeight="bold">
+                <Text
+                  fontFamily={HUD_FONT_DISPLAY}
+                  fontSize="md"
+                  color={HUD.textPrimary}
+                  fontWeight="600"
+                >
                   Do they go full sweat during competitions?
                 </Text>
-                <Text fontSize="xs" color="blue.200" mt={1} lineHeight="1.6">
+                <Text fontSize="xs" color={HUD.textSecondary} mt={1.5} lineHeight="1.6">
                   Compare each player’s EHP and EHB rate during up to five recent finished WOM
                   competitions against their normal past-year rate. For example, 150% means they
                   progressed 50% faster in competitions than usual.
                 </Text>
-                <Text fontSize="10px" color="blue.300" mt={1}>
+                <Text fontSize="10px" color={HUD.textMuted} mt={1.5} lineHeight="1.6">
                   This is extra context only. It does not change scores or rebalance the teams.
                   Large rosters may take a little while because WOM requests are paced.
                 </Text>
                 {unresolvedPlayers.length > 0 && (
-                  <Text fontSize="10px" color="orange.300" mt={1}>
+                  <Text fontSize="10px" color={HUD.amber} mt={1.5}>
                     Resolve the player rows needing attention before running this comparison.
                   </Text>
                 )}
@@ -1598,21 +1770,33 @@ export default function TeamBalancerPage() {
               {!compData ? (
                 <Button
                   size="sm"
-                  colorScheme="blue"
                   onClick={() => handleLoadCompHistory()}
                   isLoading={compLoading}
                   isDisabled={unresolvedPlayers.length > 0}
                   loadingText="Comparing..."
+                  bg="transparent"
+                  color={HUD.cyan}
+                  borderWidth="1px"
+                  borderStyle="solid"
+                  borderColor={HUD.cyan}
+                  borderRadius="2px"
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="11px"
+                  fontWeight="500"
+                  textTransform="uppercase"
+                  letterSpacing="0.1em"
+                  px={4}
+                  h="32px"
+                  _hover={{ bg: HUD.cyanGlow, boxShadow: `0 0 12px ${HUD.cyanGlow}` }}
+                  _disabled={{ opacity: 0.4, cursor: 'not-allowed', _hover: {} }}
                 >
                   Compare Competition Pace
                 </Button>
               ) : (
-                <HStack spacing={2} flexWrap="wrap">
+                <HStack spacing={1.5} flexWrap="wrap">
                   {incompleteCompEntries.length > 0 && (
                     <Button
                       size="sm"
-                      colorScheme="orange"
-                      variant="outline"
                       onClick={() =>
                         handleLoadCompHistory({
                           rsns: incompleteCompEntries.map((entry) => entry.rsn),
@@ -1622,29 +1806,69 @@ export default function TeamBalancerPage() {
                       isLoading={compLoading && compLoadingMode === 'retry'}
                       isDisabled={compLoading}
                       loadingText="Retrying..."
+                      bg="transparent"
+                      color={HUD.amber}
+                      borderWidth="1px"
+                      borderStyle="solid"
+                      borderColor={HUD.amberDim}
+                      borderRadius="2px"
+                      fontFamily={HUD_FONT_MONO}
+                      fontSize="11px"
+                      fontWeight="500"
+                      textTransform="uppercase"
+                      letterSpacing="0.1em"
+                      px={3}
+                      h="30px"
+                      _hover={{ bg: 'rgba(255,184,77,0.08)', borderColor: HUD.amber }}
+                      _disabled={{ opacity: 0.4, cursor: 'not-allowed', _hover: {} }}
                     >
                       Retry {incompleteCompEntries.length} Incomplete
                     </Button>
                   )}
                   <Button
                     size="sm"
-                    colorScheme="blue"
-                    variant="outline"
                     onClick={() => handleLoadCompHistory({ forceRefresh: true })}
                     isLoading={compLoading && compLoadingMode === 'refresh'}
                     isDisabled={compLoading}
                     loadingText="Rechecking..."
+                    bg="transparent"
+                    color={HUD.textSecondary}
+                    borderWidth="1px"
+                    borderStyle="solid"
+                    borderColor={HUD.border}
+                    borderRadius="2px"
+                    fontFamily={HUD_FONT_MONO}
+                    fontSize="11px"
+                    fontWeight="500"
+                    textTransform="uppercase"
+                    letterSpacing="0.1em"
+                    px={3}
+                    h="30px"
+                    _hover={{
+                      bg: HUD.bgElevated,
+                      borderColor: HUD.borderBright,
+                      color: HUD.textPrimary,
+                    }}
+                    _disabled={{ opacity: 0.4, cursor: 'not-allowed', _hover: {} }}
                   >
                     Recheck All
                   </Button>
                   <Button
                     size="sm"
                     variant="ghost"
-                    colorScheme="whiteAlpha"
                     onClick={handleHideCompetitionAnalysis}
                     isDisabled={compLoading}
+                    color={HUD.textMuted}
+                    fontFamily={HUD_FONT_MONO}
+                    fontSize="11px"
+                    fontWeight="500"
+                    textTransform="uppercase"
+                    letterSpacing="0.1em"
+                    h="30px"
+                    _hover={{ bg: HUD.bgElevated, color: HUD.textPrimary }}
+                    _disabled={{ opacity: 0.4, cursor: 'not-allowed', _hover: {} }}
                   >
-                    {appliedCompetitionInfluence == null ? 'Hide' : 'Hide and Restore Normal'}
+                    {appliedCompetitionInfluence == null ? 'Hide' : 'Hide and Restore'}
                   </Button>
                 </HStack>
               )}
@@ -1783,26 +2007,57 @@ export default function TeamBalancerPage() {
           </Box>
 
           {/* Preset + weight controls available in results view too */}
-          <Box bg="gray.700" borderRadius="lg" p={4} border="1px solid" borderColor="gray.600">
+          <Box
+            bg={HUD.bgSurface}
+            borderRadius="2px"
+            p={4}
+            border="1px solid"
+            borderColor={HUD.border}
+          >
             <VStack spacing={3} align="stretch">
-              <HStack flexWrap="wrap" spacing={2}>
-                {Object.keys(PRESETS).map((name) => (
-                  <Button
-                    key={name}
-                    size="sm"
-                    variant={preset === name && !customWeights ? 'solid' : 'outline'}
-                    colorScheme="pink"
-                    onClick={() => handlePresetChange(name)}
-                    isDisabled={isResolvingPlayers}
-                  >
-                    {name}
-                  </Button>
-                ))}
+              <HStack flexWrap="wrap" spacing={1.5}>
+                {Object.keys(PRESETS).map((name) => {
+                  const active = preset === name && !customWeights;
+                  return (
+                    <Button
+                      key={name}
+                      size="sm"
+                      onClick={() => handlePresetChange(name)}
+                      isDisabled={isResolvingPlayers}
+                      bg={active ? HUD.cyanGlow : 'transparent'}
+                      color={active ? HUD.cyan : HUD.textSecondary}
+                      borderWidth="1px"
+                      borderStyle="solid"
+                      borderColor={active ? HUD.cyan : HUD.border}
+                      borderRadius="2px"
+                      fontFamily={HUD_FONT_MONO}
+                      fontSize="11px"
+                      fontWeight="500"
+                      textTransform="uppercase"
+                      letterSpacing="0.08em"
+                      px={3}
+                      h="30px"
+                      boxShadow={active ? `0 0 10px ${HUD.cyanGlow}` : 'none'}
+                      _hover={{
+                        bg: active ? HUD.cyanGlow : HUD.bgElevated,
+                        borderColor: active ? HUD.cyan : HUD.borderBright,
+                        color: active ? HUD.cyan : HUD.textPrimary,
+                      }}
+                      _disabled={{
+                        opacity: 0.4,
+                        cursor: 'not-allowed',
+                        _hover: {},
+                      }}
+                    >
+                      {name}
+                    </Button>
+                  );
+                })}
               </HStack>
-              <Text fontSize="xs" color="gray.400">
+              <Text fontSize="xs" color={HUD.textSecondary} lineHeight="1.6">
                 {PRESET_DESCRIPTIONS[preset]}
               </Text>
-              <Text fontSize="xs" color="gray.500" px={1}>
+              <Text fontSize="xs" color={HUD.textMuted} px={1} lineHeight="1.6">
                 Score = a weighted sum of EHP, EHB, Total Level, EHP/Y, EHB/Y, and raid KCs (CoX,
                 ToB, ToA) based on the selected preset. EHP/Y and EHB/Y (gains over the past year)
                 are weighted heavily since they reflect how active a player has been recently, not
@@ -1980,33 +2235,72 @@ export default function TeamBalancerPage() {
               return (
                 <Box
                   key={team.index}
-                  bg="gray.800"
-                  border="2px solid"
-                  borderColor={isDragTarget ? color : 'gray.600'}
-                  borderRadius="xl"
+                  bg={HUD.bgSurface}
+                  border="1px solid"
+                  borderColor={isDragTarget ? color : HUD.border}
+                  borderRadius="2px"
                   overflow="hidden"
-                  transition="border-color 0.15s"
+                  transition="border-color 0.15s, box-shadow 0.15s"
+                  boxShadow={isDragTarget ? `0 0 24px ${color}44` : 'none'}
+                  position="relative"
+                  _before={{
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '3px',
+                    bg: color,
+                    boxShadow: `0 0 12px ${color}66`,
+                  }}
                   onDragOver={(e) => onDragOver(e, i)}
                   onDragLeave={onDragLeave}
                   onDrop={(e) => onDrop(e, i)}
                 >
-                  {/* Team header */}
-                  <Box bg="gray.700" px={4} py={3} borderBottom="1px solid" borderColor="gray.600">
-                    <HStack justify="space-between">
-                      <HStack spacing={2}>
-                        <Box w={3} h={3} borderRadius="full" bg={color} flexShrink={0} />
-                        <Text fontWeight="black" fontSize="md">
-                          Team {i + 1}
+                  {/* Team header — scoreboard moment */}
+                  <Box px={4} py={3.5} borderBottom="1px solid" borderColor={HUD.border}>
+                    <HStack justify="space-between" align="center">
+                      <HStack spacing={3} align="baseline">
+                        <Text
+                          fontFamily={HUD_FONT_MONO}
+                          fontSize="10px"
+                          color={HUD.textMuted}
+                          textTransform="uppercase"
+                          letterSpacing="0.2em"
+                        >
+                          Team
                         </Text>
-                        <Text fontSize="xs" color="gray.400">
-                          ({team.players.length})
+                        <Text
+                          fontFamily={HUD_FONT_DISPLAY}
+                          fontWeight="700"
+                          fontSize="xl"
+                          color={color}
+                          lineHeight="1"
+                        >
+                          {String(i + 1).padStart(2, '0')}
+                        </Text>
+                        <Text fontFamily={HUD_FONT_MONO} fontSize="10px" color={HUD.textMuted}>
+                          · {team.players.length} player{team.players.length === 1 ? '' : 's'}
                         </Text>
                       </HStack>
                       <VStack spacing={0} align="flex-end">
-                        <Text fontSize="xs" color="gray.400">
+                        <Text
+                          fontFamily={HUD_FONT_MONO}
+                          fontSize="9px"
+                          color={HUD.textMuted}
+                          textTransform="uppercase"
+                          letterSpacing="0.2em"
+                        >
                           Score
                         </Text>
-                        <Text fontWeight="bold" fontSize="sm" color={color}>
+                        <Text
+                          fontFamily={HUD_FONT_DISPLAY}
+                          fontWeight="700"
+                          fontSize="2xl"
+                          color={color}
+                          lineHeight="1"
+                          mt={0.5}
+                        >
                           {fmt(team.total)}
                         </Text>
                       </VStack>
@@ -2022,24 +2316,25 @@ export default function TeamBalancerPage() {
                     >
                       {/* Column headers */}
                       <Box as="thead">
-                        <Box as="tr" bg="gray.750">
+                        <Box as="tr" bg={HUD.bgRecessed}>
                           {/* Sticky name column header */}
                           <Box
                             as="th"
                             position="sticky"
                             left={0}
                             zIndex={1}
-                            bg="gray.750"
+                            bg={HUD.bgRecessed}
                             px={4}
-                            py={1.5}
+                            py={2}
                             textAlign="left"
+                            fontFamily={HUD_FONT_MONO}
                             fontSize="9px"
-                            color="gray.400"
-                            fontWeight="semibold"
+                            color={HUD.textMuted}
+                            fontWeight="500"
                             textTransform="uppercase"
-                            letterSpacing="wide"
+                            letterSpacing="0.15em"
                             borderBottom="1px solid"
-                            borderColor="gray.700"
+                            borderColor={HUD.border}
                             whiteSpace="nowrap"
                             minW="120px"
                           >
@@ -2050,18 +2345,19 @@ export default function TeamBalancerPage() {
                               as="th"
                               key={col.key}
                               px={3}
-                              py={1.5}
+                              py={2}
                               textAlign="right"
+                              fontFamily={HUD_FONT_MONO}
                               fontSize="9px"
-                              color={sortCol === col.key ? 'purple.300' : 'gray.400'}
-                              fontWeight="semibold"
+                              color={sortCol === col.key ? HUD.cyan : HUD.textMuted}
+                              fontWeight="500"
                               textTransform="uppercase"
-                              letterSpacing="wide"
+                              letterSpacing="0.15em"
                               borderBottom="1px solid"
-                              borderColor="gray.700"
+                              borderColor={HUD.border}
                               cursor="pointer"
                               whiteSpace="nowrap"
-                              _hover={{ color: 'gray.200' }}
+                              _hover={{ color: HUD.textPrimary }}
                               onClick={() => col.key !== '__comps' && handleSortCol(col.key)}
                               title={col.title}
                             >

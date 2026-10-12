@@ -6,7 +6,6 @@ import {
   AccordionIcon,
   Alert,
   Box,
-  Button,
   Flex,
   FormControl,
   FormLabel,
@@ -15,6 +14,7 @@ import {
   VStack,
   Link as ChakraLink,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
 import React, { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { WarningIcon } from '@chakra-ui/icons';
@@ -135,9 +135,9 @@ const Login = () => {
             />
           </FormControl>
 
-          <Button
+          <HubButton
             alignSelf="center"
-            backgroundColor={theme.colors.green[200]}
+            size="lg"
             isLoading={isLoading}
             loadingText="Logging in..."
             marginTop="8px"
@@ -145,7 +145,7 @@ const Login = () => {
             width={['100%', '250px']}
           >
             Log In
-          </Button>
+          </HubButton>
         </Flex>
 
         {/* Forgot Password */}

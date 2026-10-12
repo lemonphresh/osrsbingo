@@ -10,8 +10,8 @@ import {
   SimpleGrid,
   Skeleton,
   SkeletonText,
-  Badge,
 } from '@chakra-ui/react';
+import Chip from '../../atoms/Chip';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useMemo, useState, useEffect } from 'react';
@@ -138,13 +138,13 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading, my
         {/* Status row */}
         <HStack justify="space-between" mb={3} minH="22px">
           {isCompleted ? (
-            <Badge colorScheme="teal" fontSize="xs" px={2} py={0.5} borderRadius="full">
+            <Chip variant="info" size="sm">
               COMPLETED
-            </Badge>
+            </Chip>
           ) : isUpcoming ? (
-            <Badge colorScheme="purple" fontSize="xs" px={2} py={0.5} borderRadius="full">
+            <Chip accentColor={c.purple.base} size="sm">
               UPCOMING
-            </Badge>
+            </Chip>
           ) : (
             <HStack spacing={1.5}>
               <Box
@@ -188,16 +188,13 @@ const EventCard = ({ event, isCompleted, isUpcoming, now, onClick, isLoading, my
             </Text>
           )}
           {myRole && (
-            <Badge
-              colorScheme={myRole === 'Admin' ? 'orange' : myRole === 'Ref' ? 'blue' : 'gray'}
-              fontSize="xs"
-              px={2}
-              py={0.5}
-              borderRadius="full"
+            <Chip
+              size="sm"
               ml="auto"
+              variant={myRole === 'Admin' ? 'warn' : myRole === 'Ref' ? 'info' : 'default'}
             >
               {myRole}
-            </Badge>
+            </Chip>
           )}
         </HStack>
 
@@ -400,9 +397,9 @@ const GielinorRushActiveEvents = () => {
               <Heading size="sm" color={c.textColor}>
                 Your Events
               </Heading>
-              <Badge colorScheme="purple" fontSize="xs" borderRadius="full" px={2}>
+              <Chip accentColor={c.purple.base} size="sm">
                 {myEvents.length}
-              </Badge>
+              </Chip>
             </HStack>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {myEvents.map((event) => (
@@ -428,9 +425,9 @@ const GielinorRushActiveEvents = () => {
               Live Now
             </Heading>
             {activeEvents.length > 0 && (
-              <Badge colorScheme="green" fontSize="xs" borderRadius="full" px={2}>
+              <Chip variant="success" size="sm">
                 {activeEvents.length} live
-              </Badge>
+              </Chip>
             )}
           </HStack>
 
@@ -475,9 +472,9 @@ const GielinorRushActiveEvents = () => {
               <Heading size="sm" color={c.textColor}>
                 Upcoming Events
               </Heading>
-              <Badge colorScheme="purple" fontSize="xs" borderRadius="full" px={2}>
+              <Chip accentColor={c.purple.base} size="sm">
                 {upcomingEvents.length}
-              </Badge>
+              </Chip>
             </HStack>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {upcomingEvents.map((event) => (
@@ -501,9 +498,7 @@ const GielinorRushActiveEvents = () => {
               <Heading size="sm" color="gray.400">
                 Past Events
               </Heading>
-              <Badge colorScheme="gray" fontSize="xs" borderRadius="full" px={2}>
-                {completedEvents.length}
-              </Badge>
+              <Chip size="sm">{completedEvents.length}</Chip>
             </HStack>
             <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
               {completedEvents.map((event) => (

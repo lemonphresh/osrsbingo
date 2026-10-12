@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Avatar,
-  Badge,
   Box,
-  Button,
   Divider,
   Flex,
   HStack,
@@ -16,6 +14,9 @@ import {
   useToast,
   VStack,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
+import Chip from '../atoms/Chip';
+import theme from '../theme';
 import { CheckIcon, CloseIcon, CopyIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { useLazyQuery, useMutation, useQuery } from '@apollo/client';
@@ -156,9 +157,9 @@ function UserRow({ u, onDelete, isCurrentUser }) {
             {u.username}
           </Text>
           {u.admin && (
-            <Badge colorScheme="orange" fontSize="xs">
+            <Chip variant="warn" size="sm">
               Admin
-            </Badge>
+            </Chip>
           )}
         </HStack>
         {u.displayName !== u.username && (
@@ -188,9 +189,11 @@ function UserRow({ u, onDelete, isCurrentUser }) {
       <Box minW="160px">
         {isLinked ? (
           <>
-            <Badge colorScheme="blue" fontSize="xs" mb={1}>
-              Discord Linked
-            </Badge>
+            <Box mb={1}>
+              <Chip variant="info" size="sm">
+                Discord Linked
+              </Chip>
+            </Box>
             <Text color="gray.300" fontSize="sm">
               {u.discordUsername || '—'}
             </Text>
@@ -202,9 +205,7 @@ function UserRow({ u, onDelete, isCurrentUser }) {
             </HStack>
           </>
         ) : (
-          <Badge colorScheme="gray" fontSize="xs">
-            Not Linked
-          </Badge>
+          <Chip size="sm">Not Linked</Chip>
         )}
       </Box>
 
@@ -322,19 +323,19 @@ function BulkLookupPanel() {
         mb={3}
       />
       <HStack wrap="wrap">
-        <Button
+        <HubButton
           size="sm"
-          colorScheme="purple"
+          accentColor={theme.colors.purple[400]}
           onClick={handleLookup}
           isLoading={loading}
           isDisabled={!requestedIds.length}
         >
           Look up {requestedIds.length || ''} ID{requestedIds.length === 1 ? '' : 's'}
-        </Button>
+        </HubButton>
         {called && (
-          <Button size="sm" variant="ghost" color="gray.400" onClick={() => setText('')}>
+          <HubButton size="sm" variant="ghost" onClick={() => setText('')}>
             Clear
-          </Button>
+          </HubButton>
         )}
       </HStack>
 
@@ -370,15 +371,15 @@ function BulkLookupPanel() {
                   hasArrow
                   placement="top"
                 >
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    colorScheme={copiedMentions ? 'green' : 'yellow'}
+                  <HubButton
+                    size="sm"
+                    variant="secondary"
+                    accentColor={copiedMentions ? theme.colors.green[300] : theme.colors.yellow[300]}
                     leftIcon={copiedMentions ? <CheckIcon /> : <CopyIcon />}
                     onClick={handleCopyMissingMentions}
                   >
                     {copiedMentions ? 'Copied!' : 'Copy as Discord mentions'}
-                  </Button>
+                  </HubButton>
                 </Tooltip>
               </HStack>
               <Text color="gray.400" fontSize="xs" fontFamily="mono" wordBreak="break-all">

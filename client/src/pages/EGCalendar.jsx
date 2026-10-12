@@ -20,6 +20,7 @@ import {
   useDisclosure,
   useToast,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
 import { Calendar as RBCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
 import enUS from 'date-fns/locale/en-US';
@@ -72,13 +73,9 @@ function ChakraToolbar({ label, onNavigate, onView, views, view }) {
           size="sm"
           _hover={{ bg: 'dark.turquoise.light' }}
         />
-        <Button
-          _hover={{ bg: 'dark.turquoise.light' }}
-          size="sm"
-          onClick={() => onNavigate('TODAY')}
-        >
+        <HubButton size="sm" variant="neutral" onClick={() => onNavigate('TODAY')}>
           Today
-        </Button>
+        </HubButton>
         <IconButton
           aria-label="Next"
           _hover={{ bg: 'dark.turquoise.light' }}
@@ -498,17 +495,14 @@ export default function EGCalendar({ authed, setAuthed }) {
           {user?.admin && (
           <HStack spacing={2}>
             {savedDiscordChannelId && !editingChannelId ? (
-              <Button
+              <HubButton
                 size="sm"
-                variant="outline"
-                borderColor="gray.600"
-                color="gray.400"
-                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                variant="neutral"
                 onClick={() => setEditingChannelId(true)}
                 flexShrink={0}
               >
                 Channel: {discordChannelId}
-              </Button>
+              </HubButton>
             ) : (
               <>
                 <Input
@@ -522,33 +516,28 @@ export default function EGCalendar({ authed, setAuthed }) {
                   width="200px"
                   borderRadius="md"
                 />
-                <Button
+                <HubButton
                   size="sm"
+                  accentColor={channelIdSaved ? theme.colors.green[400] : undefined}
                   onClick={() => {
                     saveChannelId();
                     setEditingChannelId(false);
                   }}
-                  bg={channelIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
-                  _hover={{ bg: 'dark.turquoise.logoDark' }}
-                  color="white"
                   flexShrink={0}
                 >
                   {channelIdSaved ? 'Saved!' : 'Save'}
-                </Button>
+                </HubButton>
               </>
             )}
             {savedDiscordRoleId && !editingRoleId ? (
-              <Button
+              <HubButton
                 size="sm"
-                variant="outline"
-                borderColor="gray.600"
-                color="gray.400"
-                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                variant="neutral"
                 onClick={() => setEditingRoleId(true)}
                 flexShrink={0}
               >
                 Role: {discordRoleId}
-              </Button>
+              </HubButton>
             ) : (
               <>
                 <Input
@@ -562,33 +551,28 @@ export default function EGCalendar({ authed, setAuthed }) {
                   width="200px"
                   borderRadius="md"
                 />
-                <Button
+                <HubButton
                   size="sm"
+                  accentColor={roleIdSaved ? theme.colors.green[400] : undefined}
                   onClick={() => {
                     saveRoleId();
                     setEditingRoleId(false);
                   }}
-                  bg={roleIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
-                  _hover={{ bg: 'dark.turquoise.logoDark' }}
-                  color="white"
                   flexShrink={0}
                 >
                   {roleIdSaved ? 'Saved!' : 'Save'}
-                </Button>
+                </HubButton>
               </>
             )}
             {savedTrackscapeChannelId && !editingTrackscapeId ? (
-              <Button
+              <HubButton
                 size="sm"
-                variant="outline"
-                borderColor="gray.600"
-                color="gray.400"
-                _hover={{ bg: 'whiteAlpha.100', borderColor: 'gray.500' }}
+                variant="neutral"
                 onClick={() => setEditingTrackscapeId(true)}
                 flexShrink={0}
               >
                 TrackScape: {trackscapeChannelId}
-              </Button>
+              </HubButton>
             ) : (
               <>
                 <Input
@@ -602,39 +586,33 @@ export default function EGCalendar({ authed, setAuthed }) {
                   width="200px"
                   borderRadius="md"
                 />
-                <Button
+                <HubButton
                   size="sm"
+                  accentColor={trackscapeIdSaved ? theme.colors.green[400] : undefined}
                   onClick={() => {
                     saveTrackscapeId();
                     setEditingTrackscapeId(false);
                   }}
-                  bg={trackscapeIdSaved ? 'dark.green.base' : 'dark.turquoise.dark'}
-                  _hover={{ bg: 'dark.turquoise.logoDark' }}
-                  color="white"
                   flexShrink={0}
                 >
                   {trackscapeIdSaved ? 'Saved!' : 'Save'}
-                </Button>
+                </HubButton>
               </>
             )}
-            <Button
+            <HubButton
               size="sm"
               onClick={openDiscordModal}
               isLoading={posting}
               isDisabled={!discordChannelId}
-              bg="dark.sapphire.base"
-              _hover={{ bg: 'dark.sapphire.light' }}
-              color="white"
+              accentColor={theme.colors.blue[400]}
               flexShrink={0}
             >
               Post to Discord
-            </Button>
+            </HubButton>
             {process.env.NODE_ENV !== 'production' && (
-              <Button
+              <HubButton
                 size="sm"
                 variant="ghost"
-                color="gray.500"
-                _hover={{ color: 'gray.300' }}
                 flexShrink={0}
                 onClick={async () => {
                   const r = await fetch('/api/calendar/reset-message-id', { method: 'POST', credentials: 'include' });
@@ -648,7 +626,7 @@ export default function EGCalendar({ authed, setAuthed }) {
                 }}
               >
                 [dev] reset month
-              </Button>
+              </HubButton>
             )}
           </HStack>
           )}
@@ -844,18 +822,16 @@ export default function EGCalendar({ authed, setAuthed }) {
             </FormControl>
           </ModalBody>
           <ModalFooter>
-            <Button mr={3} variant="ghost" onClick={discordModal.onClose}>
+            <HubButton mr={3} variant="ghost" onClick={discordModal.onClose}>
               Cancel
-            </Button>
-            <Button
+            </HubButton>
+            <HubButton
               onClick={postToDiscord}
               isLoading={posting}
-              bg="dark.sapphire.base"
-              _hover={{ bg: 'dark.sapphire.light' }}
-              color="white"
+              accentColor={theme.colors.blue[400]}
             >
               Post
-            </Button>
+            </HubButton>
           </ModalFooter>
         </ModalContent>
       </Modal>

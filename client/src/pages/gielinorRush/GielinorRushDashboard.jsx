@@ -1,6 +1,5 @@
 import {
   Flex,
-  Button,
   VStack,
   HStack,
   Text,
@@ -27,6 +26,7 @@ import {
   Tooltip,
   useBreakpointValue,
 } from '@chakra-ui/react';
+import HubButton from '../../atoms/HubButton';
 import { AddIcon, QuestionIcon, SearchIcon } from '@chakra-ui/icons';
 import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery } from '@apollo/client';
@@ -207,12 +207,20 @@ const GielinorRushDashboard = () => {
   return (
     <Flex flex="1" flexDirection="column" px={['16px', '24px', '64px']} pt="64px" pb="48px">
       <Flex maxW="900px" w="100%" mx="auto" flexDirection="column" gap={5}>
-        {/* Header row */}
-        <HStack justify="space-between" flexWrap="wrap" gap={3}>
+        {/* Header row — title left, actions right. On narrow screens the
+            actions wrap under the title; the gap between them stays steady.
+            Spectate pill, New Event CTA, and guide icon get a bit more
+            breathing room so they stop reading as one mashed cluster. */}
+        <Flex
+          justify="space-between"
+          align={{ base: 'flex-start', md: 'center' }}
+          flexDir={{ base: 'column', md: 'row' }}
+          gap={4}
+        >
           <GemTitle size="xl" gemColor="yellow">
             Your Gielinor Rush Events
           </GemTitle>
-          <HStack>
+          <HStack spacing={3} flexWrap="wrap">
             {isGielinorRushEnabled(user) && (
               <Box
                 as="button"
@@ -261,33 +269,37 @@ const GielinorRushDashboard = () => {
                 </HStack>
               </Box>
             )}
-            <Button
-              leftIcon={<AddIcon />}
-              bg={c.purple.base}
-              color="white"
-              size={isMobile ? 'sm' : 'md'}
-              _hover={{ bg: c.purple.light, transform: 'translateY(-2px)', shadow: 'lg' }}
-              _active={{ bg: c.purple.dark }}
-              onClick={handleCreateEventClick}
-              transition="all 0.2s"
-            >
-              New Event
-            </Button>{' '}
-            <Tooltip label="Event guide" hasArrow>
-              <IconButton
-                as="a"
-                href="/gielinor-rush/guide"
-                target="_blank"
-                icon={<QuestionIcon />}
-                size="sm"
-                variant="solid"
-                aria-label="Event guide"
-              />
-            </Tooltip>
+            <HStack spacing={2}>
+              <HubButton
+                leftIcon={<AddIcon />}
+                accentColor={c.purple.base}
+                size={isMobile ? 'sm' : 'md'}
+                onClick={handleCreateEventClick}
+              >
+                New Event
+              </HubButton>
+              <Tooltip label="Event guide" hasArrow>
+                <IconButton
+                  as="a"
+                  href="/gielinor-rush/guide"
+                  target="_blank"
+                  icon={<QuestionIcon />}
+                  size={isMobile ? 'sm' : 'md'}
+                  variant="outline"
+                  borderColor="gray.600"
+                  color="gray.300"
+                  _hover={{ borderColor: 'gray.400', color: 'white', bg: 'whiteAlpha.100' }}
+                  aria-label="Event guide"
+                />
+              </Tooltip>
+            </HStack>
           </HStack>
-        </HStack>
+        </Flex>
 
-        {/* Inline filter bar */}
+        {/* Inline filter bar — inputs are forced dark regardless of color
+            mode because the page shell is always dark. In light mode the
+            previous `bg={c.cardBg}` resolved to white, which rendered the
+            placeholder nearly invisible on the dark page. */}
         <HStack spacing={3} flexWrap="wrap">
           <InputGroup flex={2} minW="180px">
             <InputLeftElement pointerEvents="none">
@@ -297,8 +309,11 @@ const GielinorRushDashboard = () => {
               placeholder="Search events..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              bg={c.cardBg}
+              bg="gray.800"
+              color="gray.100"
               borderColor="gray.600"
+              _placeholder={{ color: 'gray.500' }}
+              _hover={{ borderColor: 'gray.500' }}
               _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
             />
           </InputGroup>
@@ -307,9 +322,11 @@ const GielinorRushDashboard = () => {
             minW="130px"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            bg={c.cardBg}
+            bg="gray.800"
+            color="gray.100"
             borderColor="gray.600"
-            color="gray.200"
+            iconColor="gray.400"
+            _hover={{ borderColor: 'gray.500' }}
             _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
           >
             <option value="ALL" style={{ background: '#1A202C', color: '#E2E8F0' }}>All Status</option>
@@ -323,9 +340,11 @@ const GielinorRushDashboard = () => {
             minW="130px"
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            bg={c.cardBg}
-            color="gray.200"
+            bg="gray.800"
+            color="gray.100"
             borderColor="gray.600"
+            iconColor="gray.400"
+            _hover={{ borderColor: 'gray.500' }}
             _focus={{ borderColor: c.purple.base, boxShadow: `0 0 0 1px ${c.purple.base}` }}
           >
             <option value="name" style={{ background: '#1A202C', color: '#E2E8F0' }}>Sort: Name</option>
@@ -340,8 +359,8 @@ const GielinorRushDashboard = () => {
             <Text fontSize="sm" color="gray.400">
               Showing {filteredAndSortedEvents.length} of {events.length} events
             </Text>
-            <Button
-              size="xs"
+            <HubButton
+              size="sm"
               variant="ghost"
               onClick={() => {
                 setSearchQuery('');
@@ -349,7 +368,7 @@ const GielinorRushDashboard = () => {
               }}
             >
               Clear filters
-            </Button>
+            </HubButton>
           </HStack>
         )}
 
@@ -364,7 +383,14 @@ const GielinorRushDashboard = () => {
             </Text>
           </Box>
         ) : (
-          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          <SimpleGrid
+            columns={{
+              base: 1,
+              md: Math.min(filteredAndSortedEvents.length, 2),
+              lg: Math.min(filteredAndSortedEvents.length, 3),
+            }}
+            spacing={4}
+          >
             {filteredAndSortedEvents.map((event) => (
               <EventCard
                 key={event.eventId}
@@ -406,12 +432,12 @@ const GielinorRushDashboard = () => {
               </Text>
             </AlertDialogBody>
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsDeleteOpen(false)}>
+              <HubButton ref={cancelRef} variant="neutral" onClick={() => setIsDeleteOpen(false)}>
                 Cancel
-              </Button>
-              <Button colorScheme="red" onClick={handleConfirmDelete} ml={3} isLoading={deleting}>
+              </HubButton>
+              <HubButton variant="danger" onClick={handleConfirmDelete} ml={3} isLoading={deleting}>
                 Delete Permanently
-              </Button>
+              </HubButton>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialogOverlay>

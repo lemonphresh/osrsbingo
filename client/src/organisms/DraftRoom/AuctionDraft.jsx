@@ -3,7 +3,6 @@ import {
   VStack,
   HStack,
   Text,
-  Badge,
   Button,
   NumberInput,
   NumberInputField,
@@ -19,8 +18,35 @@ import PlayerCard from './PlayerCard';
 import DraftBoard from './DraftBoard';
 import TimerBar from './TimerBar';
 import { useToastContext } from '../../providers/ToastProvider';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
 const IS_DEV = process.env.NODE_ENV !== 'production';
+
+function SectionLabel({ children, ...rest }) {
+  return (
+    <Text
+      fontFamily={HUD_FONT_MONO}
+      fontSize="10px"
+      color={HUD.textSecondary}
+      textTransform="uppercase"
+      letterSpacing="0.15em"
+      {...rest}
+    >
+      {children}
+    </Text>
+  );
+}
+
+// NumberInput styled for HUD surfaces — thin cyan accent on focus.
+const hudNumberInputStyles = {
+  bg: HUD.bgRecessed,
+  borderColor: HUD.border,
+  color: HUD.textPrimary,
+  _hover: { borderColor: HUD.borderBright },
+  _focus: { borderColor: HUD.cyan, boxShadow: `0 0 0 1px ${HUD.cyan}` },
+  fontFamily: HUD_FONT_MONO,
+};
 
 export default function AuctionDraft({ room, userRole, userId, captainToken }) {
   const { showToast } = useToastContext();
@@ -80,21 +106,32 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
   return (
     <VStack spacing={5} align="stretch">
       {/* auction header */}
-      <Box bg="gray.700" border="2px solid" borderColor="yellow.400" borderRadius="lg" p={4}>
-        <HStack justify="space-between" mb={2} flexWrap="wrap" gap={2}>
-          <VStack align="flex-start" spacing={0}>
-            <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-              Auction Round
-            </Text>
-            <Text fontWeight="bold" fontSize="lg">
-              Up for bid:
+      <Box
+        bg={HUD.bgSurface}
+        border="1px solid"
+        borderColor={HUD.amber}
+        borderRadius="2px"
+        p={4}
+        boxShadow="0 0 18px rgba(255, 184, 77, 0.18)"
+      >
+        <HStack justify="space-between" mb={3} flexWrap="wrap" gap={3} align="start">
+          <VStack align="flex-start" spacing={1}>
+            <SectionLabel color={HUD.amber}>Auction Round</SectionLabel>
+            <Text
+              fontFamily={HUD_FONT_DISPLAY}
+              fontWeight="700"
+              fontSize="xl"
+              color={HUD.textPrimary}
+              lineHeight="1.1"
+            >
+              Up for bid
             </Text>
           </VStack>
-          <HStack>
-            <Badge colorScheme="yellow">AUCTION</Badge>
-            <Badge colorScheme="gray">
+          <HStack spacing={1.5} flexWrap="wrap">
+            <HudChip mode="warn">AUCTION</HudChip>
+            <HudChip>
               {bidCount}/{totalTeams} bids in
-            </Badge>
+            </HudChip>
           </HStack>
         </HStack>
         <TimerBar startedAt={room.currentPickStartedAt} totalSeconds={room.pickTimeSeconds} />
@@ -109,12 +146,19 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
 
       {/* bid UI */}
       {myTeam && !iHaveBid && (
-        <Box bg="gray.700" borderRadius="lg" p={4} border="1px solid" borderColor="gray.600">
-          <Text fontWeight="semibold" mb={1}>
-            Your bid
-          </Text>
-          <Text fontSize="xs" color="gray.400" mb={3}>
-            Budget remaining: <strong>{myBudget} pts</strong>
+        <Box
+          bg={HUD.bgSurface}
+          borderRadius="2px"
+          p={4}
+          border="1px solid"
+          borderColor={HUD.border}
+        >
+          <SectionLabel mb={1}>Your bid</SectionLabel>
+          <Text fontSize="xs" color={HUD.textSecondary} mb={3}>
+            Budget remaining:{' '}
+            <Text as="span" color={HUD.cyan} fontFamily={HUD_FONT_MONO} fontWeight="600">
+              {myBudget} pts
+            </Text>
           </Text>
           <HStack>
             <NumberInput
@@ -125,24 +169,47 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
               size="sm"
               maxW="120px"
             >
-              <NumberInputField />
+              <NumberInputField {...hudNumberInputStyles} />
               <NumberInputStepper>
-                <NumberIncrementStepper />
-                <NumberDecrementStepper />
+                <NumberIncrementStepper color={HUD.textSecondary} borderColor={HUD.border} />
+                <NumberDecrementStepper color={HUD.textSecondary} borderColor={HUD.border} />
               </NumberInputStepper>
             </NumberInput>
-            <Button colorScheme="yellow" size="sm" onClick={handleBid} isLoading={loading}>
+            <Button
+              size="sm"
+              onClick={handleBid}
+              isLoading={loading}
+              bg={HUD.cyan}
+              color={HUD.bgDeep}
+              fontFamily={HUD_FONT_MONO}
+              fontWeight="600"
+              fontSize="11px"
+              textTransform="uppercase"
+              letterSpacing="0.1em"
+              h="32px"
+              px={4}
+              borderRadius="2px"
+              _hover={{ filter: 'brightness(1.1)', boxShadow: `0 0 14px ${HUD.cyanGlow}` }}
+              _active={{ filter: 'brightness(0.95)' }}
+            >
               Submit Bid
             </Button>
             <Button
-              variant="ghost"
               size="sm"
               onClick={() => {
                 setBidAmount(0);
                 handleBid();
               }}
               isLoading={loading}
-              color="gray.400"
+              bg="transparent"
+              color={HUD.textMuted}
+              fontFamily={HUD_FONT_MONO}
+              fontWeight="500"
+              fontSize="11px"
+              textTransform="uppercase"
+              letterSpacing="0.1em"
+              h="32px"
+              _hover={{ color: HUD.textPrimary, bg: HUD.bgElevated }}
             >
               Pass
             </Button>
@@ -151,30 +218,54 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
       )}
 
       {iHaveBid && (
-        <Text fontSize="sm" color="green.300" fontWeight="semibold">
-          Your bid: {bids[myTeamIndex]} pts — waiting for other captains...
+        <Text
+          fontFamily={HUD_FONT_MONO}
+          fontSize="11px"
+          color={HUD.cyan}
+          fontWeight="500"
+          textTransform="uppercase"
+          letterSpacing="0.12em"
+        >
+          ▸ Your bid: {bids[myTeamIndex]} pts — waiting for other captains...
         </Text>
       )}
 
       {/* per-team bid status */}
       <Box>
-        <Text fontWeight="semibold" mb={2}>
-          Bid Status
-        </Text>
+        <SectionLabel mb={2}>Bid Status</SectionLabel>
         <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={2}>
           {room.teams.map((team) => {
             const hasBid = bids[team.index] !== undefined;
             return (
-              <Box key={team.index} bg="gray.800" borderRadius="md" p={2}>
-                <Text fontSize="xs" fontWeight="bold" noOfLines={1}>
+              <Box
+                key={team.index}
+                bg={HUD.bgSurface}
+                border="1px solid"
+                borderColor={hasBid ? HUD.cyan : HUD.border}
+                borderRadius="2px"
+                p={2}
+                boxShadow={hasBid ? `0 0 10px ${HUD.cyanGlow}` : 'none'}
+              >
+                <Text
+                  fontFamily={HUD_FONT_DISPLAY}
+                  fontSize="xs"
+                  fontWeight="600"
+                  color={HUD.textPrimary}
+                  noOfLines={1}
+                >
                   {team.name}
                 </Text>
-                <HStack mt={1}>
-                  <Badge colorScheme={hasBid ? 'green' : 'gray'} fontSize="9px">
+                <HStack mt={1.5}>
+                  <HudChip mode={hasBid ? 'active' : 'default'} fontSize="9px">
                     {hasBid ? 'Bid in' : 'Waiting'}
-                  </Badge>
-                  <Text fontSize="xs" color="gray.400">
-                    {team.budget ?? 100} pts left
+                  </HudChip>
+                  <Text
+                    fontFamily={HUD_FONT_MONO}
+                    fontSize="10px"
+                    color={HUD.textMuted}
+                    letterSpacing="0.1em"
+                  >
+                    {team.budget ?? 100} pts
                   </Text>
                 </HStack>
               </Box>
@@ -187,35 +278,46 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
       {IS_DEV && isOrganizer && unbidTeams.length > 0 && (
         <Box
           border="1px dashed"
-          borderColor="yellow.600"
-          borderRadius="lg"
+          borderColor={HUD.amberDim}
+          borderRadius="2px"
           p={3}
-          bg="yellow.900"
-          opacity={0.85}
+          bg="rgba(255, 184, 77, 0.06)"
         >
           <HStack justify="space-between" mb={2} flexWrap="wrap" gap={2}>
-            <VStack align="flex-start" spacing={0}>
+            <VStack align="flex-start" spacing={0.5}>
               <Text
-                fontSize="xs"
-                fontWeight="bold"
-                color="yellow.300"
+                fontFamily={HUD_FONT_MONO}
+                fontSize="10px"
+                fontWeight="500"
+                color={HUD.amber}
                 textTransform="uppercase"
-                letterSpacing="wider"
+                letterSpacing="0.2em"
               >
                 Dev Tools
               </Text>
-              <Text fontSize="xs" color="yellow.200">
+              <Text fontSize="xs" color={HUD.amberDim}>
                 Submit bids for {unbidTeams.length} team(s) still waiting. Set amounts or leave at 0
                 to pass.
               </Text>
             </VStack>
             <Button
               size="sm"
-              colorScheme="yellow"
-              variant="outline"
               onClick={handleDevPassAll}
               isLoading={devBidding}
               loadingText="Bidding..."
+              bg="transparent"
+              color={HUD.amber}
+              borderWidth="1px"
+              borderStyle="solid"
+              borderColor={HUD.amberDim}
+              borderRadius="2px"
+              fontFamily={HUD_FONT_MONO}
+              fontSize="11px"
+              fontWeight="500"
+              textTransform="uppercase"
+              letterSpacing="0.1em"
+              h="30px"
+              _hover={{ bg: 'rgba(255,184,77,0.08)', borderColor: HUD.amber }}
             >
               Submit All
             </Button>
@@ -223,7 +325,13 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
           <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={2} mt={2}>
             {unbidTeams.map((team) => (
               <HStack key={team.index} spacing={2}>
-                <Text fontSize="xs" color="yellow.200" minW="80px" noOfLines={1}>
+                <Text
+                  fontFamily={HUD_FONT_MONO}
+                  fontSize="xs"
+                  color={HUD.amberDim}
+                  minW="80px"
+                  noOfLines={1}
+                >
                   {team.name}
                 </Text>
                 <NumberInput
@@ -236,10 +344,10 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
                   }
                   maxW="80px"
                 >
-                  <NumberInputField />
+                  <NumberInputField {...hudNumberInputStyles} />
                   <NumberInputStepper>
-                    <NumberIncrementStepper />
-                    <NumberDecrementStepper />
+                    <NumberIncrementStepper color={HUD.textSecondary} borderColor={HUD.border} />
+                    <NumberDecrementStepper color={HUD.textSecondary} borderColor={HUD.border} />
                   </NumberInputStepper>
                 </NumberInput>
               </HStack>
@@ -250,9 +358,7 @@ export default function AuctionDraft({ room, userRole, userId, captainToken }) {
 
       {/* team rosters */}
       <Box>
-        <Text fontWeight="semibold" mb={3}>
-          Team Rosters
-        </Text>
+        <SectionLabel mb={3}>Team Rosters</SectionLabel>
         <DraftBoard room={room} currentTeamIndex={null} />
       </Box>
     </VStack>

@@ -15,19 +15,20 @@ import {
   Box,
   VStack,
   HStack,
-  Badge,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
+import HubButton from '../atoms/HubButton';
+import Chip from '../atoms/Chip';
 import theme from '../theme';
 import { useMutation, useQuery } from '@apollo/client';
 import { GET_USER, GET_ASSOCIATED_EVENTS } from '../graphql/queries';
 
 import EditField from '../molecules/EditField';
 import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
-import { DeleteIcon, StarIcon } from '@chakra-ui/icons';
+import { ArrowRightIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import { MdDoorBack } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
@@ -189,9 +190,10 @@ const UserDetails = () => {
               </Flex>
             ) : null}
             {user?.admin && !isCurrentUser ? (
-              <Button
-                gridGap="8px"
-                justifyContent="center"
+              <HubButton
+                variant="ghost"
+                width="100%"
+                leftIcon={<StarIcon />}
                 onClick={async () => {
                   const { data } = await updateUser({
                     variables: {
@@ -209,12 +211,9 @@ const UserDetails = () => {
                     });
                   }
                 }}
-                width="100%"
-                variant="ghost"
               >
-                <StarIcon color={theme.colors.gray[300]} />{' '}
                 {shownUser?.admin ? 'Remove as' : 'Make'} Admin
-              </Button>
+              </HubButton>
             ) : null}
             {isCurrentUser && (
               <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
@@ -461,37 +460,37 @@ const UserDetails = () => {
                     {e.eventName}
                   </Text>
                   <HStack spacing={1} flexShrink={0}>
-                    <Badge
-                      colorScheme={
+                    <Chip
+                      size="sm"
+                      accentColor={
                         e.type === 'champion-forge'
-                          ? 'red'
+                          ? theme.colors.red[400]
                           : e.type === 'battleship'
-                          ? 'cyan'
-                          : 'yellow'
+                          ? theme.colors.cyan[400]
+                          : theme.colors.yellow[400]
                       }
-                      fontSize="xs"
                     >
                       {e.type === 'champion-forge'
                         ? 'Champion Forge'
                         : e.type === 'battleship'
                         ? 'Battleship'
                         : 'Gielinor Rush'}
-                    </Badge>
-                    <Badge
-                      colorScheme={
+                    </Chip>
+                    <Chip
+                      variant={
                         e.role === 'Creator'
-                          ? 'purple'
+                          ? 'accent'
                           : e.role === 'Admin'
-                          ? 'orange'
+                          ? 'warn'
                           : e.role === 'Ref'
-                          ? 'blue'
-                          : 'gray'
+                          ? 'info'
+                          : 'default'
                       }
-                      fontSize="xs"
-                      variant="outline"
+                      size="sm"
                     >
                       {e.role}
-                    </Badge>
+                    </Chip>
+                    <ArrowRightIcon ml={4} />
                   </HStack>
                 </HStack>
               ))}
@@ -779,14 +778,14 @@ const UserDetails = () => {
 
       {!isCurrentUser && user?.admin && (
         <>
-          <Button
-            colorScheme="red"
+          <HubButton
+            variant="danger"
             leftIcon={<DeleteIcon />}
             marginTop="48px"
             onClick={onOpenDeleteAlert}
           >
             Delete User
-          </Button>
+          </HubButton>
 
           <AlertDialog
             isOpen={isDeleteAlertOpen}
@@ -803,12 +802,12 @@ const UserDetails = () => {
                   invitations they've sent. You can't undo this action afterwards.
                 </AlertDialogBody>
                 <AlertDialogFooter>
-                  <Button ref={cancelRef} onClick={onCloseDeleteAlert}>
+                  <HubButton ref={cancelRef} variant="neutral" onClick={onCloseDeleteAlert}>
                     Cancel
-                  </Button>
-                  <Button colorScheme="red" onClick={onDelete} ml={3}>
+                  </HubButton>
+                  <HubButton variant="danger" onClick={onDelete} ml={3}>
                     Delete
-                  </Button>
+                  </HubButton>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialogOverlay>
@@ -817,21 +816,17 @@ const UserDetails = () => {
       )}
 
       {isCurrentUser && (
-        <Button
+        <HubButton
           variant="ghost"
+          size="lg"
           leftIcon={<Icon as={MdDoorBack} />}
           marginTop="48px"
-          _hover={{
-            backgroundColor: 'gray.600',
-          }}
           onClick={logout}
           as={Link}
           to="/"
-          color="white"
-          fontSize="18px"
         >
           Logout
-        </Button>
+        </HubButton>
       )}
     </Flex>
   );
