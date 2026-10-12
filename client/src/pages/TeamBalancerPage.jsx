@@ -125,7 +125,7 @@ const TEAM_COLORS = [
   'red.400',
 ];
 
-const WOM_STATS_BATCH_SIZE = 50;
+const WOM_STATS_BATCH_SIZE = 10;
 const CLIENT_BATCH_DELAY_MS = 500;
 const COMP_HISTORY_BATCH_SIZE = 5;
 const COMP_HISTORY_DETAIL_BUDGET = 40;
@@ -647,12 +647,32 @@ export default function TeamBalancerPage() {
         total: rsns.length,
         current: batch.length === 1 ? batch[0] : `${batch[0]} + ${batch.length - 1} more`,
       });
-      const result = await apolloClient.query({
-        query: FETCH_WOM_STATS,
-        variables: { rsns: batch },
-        fetchPolicy: 'network-only',
-      });
-      allStats.push(...(result.data?.fetchWomStats ?? []));
+      try {
+        const result = await apolloClient.query({
+          query: FETCH_WOM_STATS,
+          variables: { rsns: batch },
+          fetchPolicy: 'network-only',
+        });
+        allStats.push(...(result.data?.fetchWomStats ?? []));
+      } catch (error) {
+        const message = [
+          error?.message,
+          ...(error?.graphQLErrors?.map((entry) => entry.message) ?? []),
+        ]
+          .filter(Boolean)
+          .join(' ');
+        if (/cannot query field|unknown argument|unauthenticated|forbidden/i.test(message)) {
+          throw error;
+        }
+        allStats.push(
+          ...batch.map((rsn) => ({
+            rsn: rsn.trim(),
+            notFound: false,
+            fetchStatus: 'TEMPORARY_ERROR',
+            errorCode: /\b429\b|rate[ -]?limit/i.test(message) ? 'RATE_LIMITED' : 'UNAVAILABLE',
+          }))
+        );
+      }
       if (start + batch.length < rsns.length) {
         await new Promise((resolve) => setTimeout(resolve, CLIENT_BATCH_DELAY_MS));
       }
@@ -764,9 +784,9 @@ export default function TeamBalancerPage() {
         }));
       }
 
-      entries.forEach((entry) => {
+      for (const entry of entries) {
         nextCompData[entry.rsn.toLowerCase()] = entry;
-      });
+      }
       nextCompData = { ...nextCompData };
       setCompData(nextCompData);
       setCompProgress({
@@ -1762,7 +1782,8 @@ export default function TeamBalancerPage() {
                 </Text>
                 {unresolvedPlayers.length > 0 && (
                   <Text fontSize="10px" color={HUD.amber} mt={1.5}>
-                    Resolve the player rows needing attention before running this comparison.
+                    Resolve the player rows (bottom of page) needing attention before running this
+                    comparison.
                   </Text>
                 )}
               </Box>

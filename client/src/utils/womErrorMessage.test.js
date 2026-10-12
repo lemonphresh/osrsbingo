@@ -17,7 +17,25 @@ describe('getWomErrorMessage', () => {
 
   test('does not expose an unknown technical error', () => {
     expect(getWomErrorMessage(new Error('ECONNRESET at internal-host:443'))).toBe(
-      'Player stats could not be loaded. Nothing was changed. Try again shortly.'
+      'The player-stat request failed before any results came back. Nothing was changed. Try again shortly.'
     );
+  });
+
+  test('identifies a gateway timeout from Apollo network metadata', () => {
+    expect(
+      getWomErrorMessage({
+        message: 'Response not successful',
+        networkError: { statusCode: 504 },
+      })
+    ).toContain('timed out');
+  });
+
+  test('identifies a temporary 503 response', () => {
+    expect(
+      getWomErrorMessage({
+        message: 'Response not successful: Received status code 503',
+        networkError: { statusCode: 503 },
+      })
+    ).toContain('temporarily unavailable');
   });
 });
