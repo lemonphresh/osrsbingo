@@ -1,4 +1,6 @@
-import { Box, Text, VStack, HStack, Badge, SimpleGrid } from '@chakra-ui/react';
+import { Box, Text, VStack, HStack, SimpleGrid } from '@chakra-ui/react';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
 /** side panel showing each team's drafted players. */
 export default function DraftBoard({ room, currentTeamIndex }) {
@@ -16,48 +18,71 @@ export default function DraftBoard({ room, currentTeamIndex }) {
         return (
           <Box
             key={team.index}
-            bg="gray.700"
-            border="2px solid"
-            borderColor={isActive ? 'purple.400' : 'gray.600'}
-            borderRadius="lg"
+            bg={HUD.bgSurface}
+            border="1px solid"
+            borderColor={isActive ? HUD.cyan : HUD.border}
+            borderRadius="2px"
             p={3}
+            boxShadow={isActive ? `0 0 14px ${HUD.cyanGlow}` : 'none'}
+            transition="all 0.15s ease"
           >
-            <HStack justify="space-between" mb={2}>
-              <Text fontWeight="bold" fontSize="sm" noOfLines={1}>
+            <HStack justify="space-between" mb={2} align="center">
+              <Text
+                fontFamily={HUD_FONT_DISPLAY}
+                fontWeight="700"
+                fontSize="sm"
+                color={HUD.textPrimary}
+                noOfLines={1}
+              >
                 {team.name}
               </Text>
-              {isActive && (
-                <Badge colorScheme="purple" fontSize="9px">
-                  Picking
-                </Badge>
-              )}
+              {isActive && <HudChip mode="active">Picking</HudChip>}
             </HStack>
 
             <VStack align="stretch" spacing={1}>
               {drafted.length === 0 ? (
-                <Text fontSize="xs" color="gray.500" fontStyle="italic">
+                <Text fontSize="xs" color={HUD.textMuted} fontStyle="italic">
                   No picks yet
                 </Text>
               ) : (
                 drafted.map((p) => (
-                  <HStack key={p.id} spacing={1}>
-                    <Text fontSize="xs" color="gray.400" minW="18px">
+                  <HStack key={p.id} spacing={1.5}>
+                    <Text
+                      fontFamily={HUD_FONT_MONO}
+                      fontSize="xs"
+                      color={HUD.textMuted}
+                      minW="20px"
+                    >
                       #{(p.pickOrder ?? 0) + 1}
                     </Text>
-                    <Text fontSize="xs" fontWeight="medium" noOfLines={1}>
+                    <Text fontSize="xs" fontWeight="500" color={HUD.textPrimary} noOfLines={1}>
                       {revealed ? p.rsn : p.alias}
                     </Text>
                     {p.tierBadge && (
-                      <Badge fontSize="9px" colorScheme="purple" flexShrink={0}>
+                      <Text
+                        fontFamily={HUD_FONT_MONO}
+                        fontSize="9px"
+                        fontWeight="700"
+                        color={HUD.cyan}
+                        letterSpacing="0.1em"
+                        flexShrink={0}
+                      >
                         {p.tierBadge}
-                      </Badge>
+                      </Text>
                     )}
                   </HStack>
                 ))
               )}
             </VStack>
 
-            <Text fontSize="xs" color="gray.500" mt={2}>
+            <Text
+              fontFamily={HUD_FONT_MONO}
+              fontSize="10px"
+              color={HUD.textMuted}
+              mt={2}
+              textTransform="uppercase"
+              letterSpacing="0.1em"
+            >
               {drafted.length} player{drafted.length !== 1 ? 's' : ''}
             </Text>
           </Box>

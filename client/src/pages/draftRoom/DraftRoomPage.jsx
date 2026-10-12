@@ -1,4 +1,4 @@
-import { Box, VStack, HStack, Text, Badge, Skeleton, Button } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, Skeleton, Button } from '@chakra-ui/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client';
 import { useEffect } from 'react';
@@ -11,12 +11,14 @@ import AuctionDraft from '../../organisms/DraftRoom/AuctionDraft';
 import RevealScreen from '../../organisms/DraftRoom/RevealScreen';
 import usePageTitle from '../../hooks/usePageTitle';
 import { loadCaptainSession } from '../../utils/draftSession';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
-const STATUS_COLORS = {
-  LOBBY: 'gray',
-  DRAFTING: 'purple',
-  REVEALED: 'green',
-  COMPLETED: 'teal',
+const STATUS_MODE = {
+  LOBBY: 'default',
+  DRAFTING: 'active',
+  REVEALED: 'active',
+  COMPLETED: 'default',
 };
 
 /** Derive the user's role in this room (supports anonymous captains via localStorage token). */
@@ -24,14 +26,12 @@ function deriveRole(room, userId, session) {
   const uid = userId;
   if (uid && (room.organizerUserId === uid || room.organizerUserId === String(uid)))
     return 'organizer';
-  // Logged-in captain
   if (uid) {
     const captainTeam = room.teams.find(
       (t) => t.captainUserId === uid || t.captainUserId === String(uid)
     );
     if (captainTeam) return `captain:${captainTeam.index}`;
   }
-  // Anonymous captain — matched by stored session token index
   if (session) {
     const slot = room.teams.find((t) => t.index === session.teamIndex && t.captainJoined);
     if (slot) return `captain:${session.teamIndex}`;
@@ -39,12 +39,37 @@ function deriveRole(room, userId, session) {
   return 'spectator';
 }
 
+// Shared outline-style back button for header navigation. Same geometry
+// as HudChip-adjacent buttons used elsewhere on the HUD surfaces.
+function BackButton({ children, ...rest }) {
+  return (
+    <Button
+      bg="transparent"
+      color={HUD.textSecondary}
+      borderWidth="1px"
+      borderStyle="solid"
+      borderColor={HUD.border}
+      borderRadius="2px"
+      fontFamily={HUD_FONT_MONO}
+      fontSize="11px"
+      fontWeight="500"
+      textTransform="uppercase"
+      letterSpacing="0.1em"
+      h="30px"
+      px={3}
+      _hover={{ bg: HUD.bgElevated, borderColor: HUD.borderBright, color: HUD.textPrimary }}
+      {...rest}
+    >
+      {children}
+    </Button>
+  );
+}
+
 export default function DraftRoomPage() {
   const { roomId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // No roomId = creation mode
   const isCreating = !roomId;
   usePageTitle(isCreating ? 'Create Draft Room' : 'Draft Room');
 
@@ -54,7 +79,6 @@ export default function DraftRoomPage() {
     fetchPolicy: 'network-only',
   });
 
-  // Subscribe to real-time updates
   useEffect(() => {
     if (isCreating || !roomId) return;
 
@@ -74,18 +98,38 @@ export default function DraftRoomPage() {
   if (isCreating) {
     return (
       <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8}>
-        <HStack mb={6} spacing={3}>
-          <Button
-            color="white"
-            variant="outline"
-            size="sm"
-            onClick={() => navigate('/blind-draft')}
-          >
-            ← Back
-          </Button>
-          <Text fontSize="2xl" fontWeight="black">
-            Create Draft Room
-          </Text>
+        <HStack mb={6} spacing={4} align="center">
+          <BackButton onClick={() => navigate('/blind-draft')}>← Back</BackButton>
+          <VStack align="flex-start" spacing={1}>
+            <HStack spacing={3} align="center">
+              <Box
+                w="6px"
+                h="20px"
+                bg={HUD.cyan}
+                boxShadow={`0 0 10px ${HUD.cyanGlow}`}
+                borderRadius="1px"
+              />
+              <Text
+                fontFamily={HUD_FONT_MONO}
+                fontSize="10px"
+                color={HUD.cyan}
+                textTransform="uppercase"
+                letterSpacing="0.3em"
+              >
+                New Room
+              </Text>
+            </HStack>
+            <Text
+              fontFamily={HUD_FONT_DISPLAY}
+              fontSize="2xl"
+              fontWeight="700"
+              lineHeight="1"
+              letterSpacing="-0.01em"
+              color={HUD.textPrimary}
+            >
+              Create Draft Room
+            </Text>
+          </VStack>
         </HStack>
         <CreateRoomForm />
       </Box>
@@ -95,8 +139,8 @@ export default function DraftRoomPage() {
   if (loading) {
     return (
       <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8}>
-        <Skeleton h="40px" mb={4} borderRadius="md" />
-        <Skeleton h="200px" borderRadius="lg" />
+        <Skeleton h="40px" mb={4} borderRadius="2px" startColor={HUD.bgSurface} endColor={HUD.bgElevated} />
+        <Skeleton h="200px" borderRadius="2px" startColor={HUD.bgSurface} endColor={HUD.bgElevated} />
       </Box>
     );
   }
@@ -104,15 +148,19 @@ export default function DraftRoomPage() {
   if (error || !data?.getDraftRoom) {
     return (
       <Box flex="1" my="48px" maxW="900px" mx="auto" px={4} py={8} textAlign="center">
-        <Text fontSize="xl" fontWeight="bold" mb={2}>
+        <Text
+          fontFamily={HUD_FONT_DISPLAY}
+          fontSize="xl"
+          fontWeight="700"
+          color={HUD.textPrimary}
+          mb={2}
+        >
           Room not found
         </Text>
-        <Text color="gray.400" mb={4}>
+        <Text color={HUD.textSecondary} mb={5}>
           This draft room doesn't exist or has been deleted.
         </Text>
-        <Button colorScheme="purple" onClick={() => navigate('/blind-draft')}>
-          Back to Dashboard
-        </Button>
+        <BackButton onClick={() => navigate('/blind-draft')}>Back to Dashboard</BackButton>
       </Box>
     );
   }
@@ -125,27 +173,33 @@ export default function DraftRoomPage() {
   return (
     <Box flex="1" my="48px" maxW="1100px" mx="auto" px={4} py={6}>
       {/* header */}
-      <HStack justify="space-between" mb={5} flexWrap="wrap" gap={3}>
-        <VStack align="flex-start" spacing={0}>
-          <HStack>
-            <Text fontSize="xl" fontWeight="black">
+      <HStack justify="space-between" mb={6} flexWrap="wrap" gap={3} align="center">
+        <VStack align="flex-start" spacing={1}>
+          <HStack spacing={3} align="center" flexWrap="wrap">
+            <Text
+              fontFamily={HUD_FONT_DISPLAY}
+              fontSize="2xl"
+              fontWeight="700"
+              lineHeight="1"
+              letterSpacing="-0.01em"
+              color={HUD.textPrimary}
+            >
               {room.roomName}
             </Text>
-            <Badge colorScheme={STATUS_COLORS[room.status] ?? 'gray'}>{room.status}</Badge>
+            <HudChip mode={STATUS_MODE[room.status] ?? 'default'}>{room.status}</HudChip>
           </HStack>
-          <Text fontSize="xs" color="gray.400">
+          <Text
+            fontFamily={HUD_FONT_MONO}
+            fontSize="10px"
+            color={HUD.textSecondary}
+            textTransform="uppercase"
+            letterSpacing="0.12em"
+          >
             {room.draftFormat} draft · {room.players.length} players · {room.numberOfTeams} teams
             {userRole !== 'spectator' ? ` · You: ${userRole}` : ' · Spectating'}
           </Text>
         </VStack>
-        <Button
-          colorScheme="yellow"
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate('/blind-draft')}
-        >
-          ← Dashboard
-        </Button>
+        <BackButton onClick={() => navigate('/blind-draft')}>← Dashboard</BackButton>
       </HStack>
 
       {/* Content based on status */}

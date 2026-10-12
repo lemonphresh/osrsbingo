@@ -218,14 +218,19 @@ const Query = {
   async fetchWomStats(_, { rsns }) {
     if (!rsns || rsns.length === 0) return [];
     const capped = rsns.slice(0, 50);
-    const stats = await fetchAllPlayerStats(capped);
+    const stats = await fetchAllPlayerStats(capped, { settleErrors: true });
     return stats;
   },
 
-  async fetchPlayerCompHistory(_, { rsns }) {
+  async fetchPlayerCompHistory(_, { rsns, forceRefresh = false, maxDetailRequests }) {
     if (!rsns || rsns.length === 0) return [];
     const capped = rsns.slice(0, 50);
-    return fetchAllPlayerCompetitions(capped);
+    const detailLimit =
+      maxDetailRequests == null ? undefined : Math.max(1, Math.min(40, maxDetailRequests));
+    return fetchAllPlayerCompetitions(capped, {
+      forceRefresh,
+      ...(detailLimit == null ? {} : { maxCompDetailRequests: detailLimit }),
+    });
   },
 };
 
@@ -266,6 +271,19 @@ const Mutation = {
     // Fetch WOM stats for all RSNs concurrently
     logger.info(`Fetching WOM stats for ${rsns.length} players...`);
     const statsArray = await fetchAllPlayerStats(rsns);
+
+    const usesYearlyGains =
+      tierFormula && ((tierFormula.ehbyWeight ?? 0) !== 0 || (tierFormula.ehpyWeight ?? 0) !== 0);
+    const missingYearlyGains = usesYearlyGains
+      ? statsArray.filter((stats) => !stats.notFound && stats.yearlyGainsUnavailable)
+      : [];
+    if (missingYearlyGains.length > 0) {
+      throw new Error(
+        `WOM yearly gains are temporarily unavailable for ${missingYearlyGains
+          .map((stats) => stats.rsn)
+          .join(', ')}`
+      );
+    }
 
     // Shuffle RSNs (stats are paired with RSN, so shuffle together)
     const shuffledStats = shuffle([...statsArray]);

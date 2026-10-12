@@ -188,42 +188,58 @@ const BoardViewAll = () => {
       {/* Search + filter bar */}
       <Flex
         alignItems="center"
-        flexDirection={['column', 'column', 'row']}
-        gap="12px"
+        flexDirection="column"
+        gap="6px"
         justifyContent="center"
         marginBottom="24px"
         maxWidth="900px"
         width="100%"
       >
-        <InputGroup maxWidth={['100%', '280px']} flexShrink={0}>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color={theme.colors.gray[500]} />
-          </InputLeftElement>
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            placeholder="Search boards..."
-            backgroundColor={theme.colors.gray[200]}
-            color={theme.colors.gray[800]}
-            borderRadius="8px"
-            _placeholder={{ color: theme.colors.gray[500] }}
-          />
-        </InputGroup>
+        <Flex
+          alignItems="center"
+          flexDirection={['column', 'column', 'row']}
+          gap="12px"
+          justifyContent="center"
+          width="100%"
+        >
+          <InputGroup maxWidth={['100%', '280px']} flexShrink={0}>
+            <InputLeftElement pointerEvents="none">
+              <SearchIcon color={theme.colors.gray[500]} />
+            </InputLeftElement>
+            <Input
+              type="text"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              placeholder="Search boards..."
+              backgroundColor={theme.colors.gray[200]}
+              color={theme.colors.gray[800]}
+              borderRadius="8px"
+              _placeholder={{ color: theme.colors.gray[500] }}
+            />
+          </InputGroup>
 
-        <HStack spacing={2} flexWrap="wrap" justifyContent="center">
-          {CATEGORIES.map((category) => (
-            <Button
-              key={category}
-              onClick={() => handleCategoryChange(category)}
-              colorScheme={category === selectedCategory ? 'teal' : 'gray'}
-              size="sm"
-              variant="solid"
-            >
-              {category}
-            </Button>
-          ))}
-        </HStack>
+          <HStack spacing={2} flexWrap="wrap" justifyContent="center">
+            {CATEGORIES.map((category) => (
+              <Button
+                key={category}
+                onClick={() => handleCategoryChange(category)}
+                colorScheme={category === selectedCategory ? 'teal' : 'gray'}
+                size="sm"
+                variant="solid"
+              >
+                {category}
+              </Button>
+            ))}
+          </HStack>
+        </Flex>
+        <Text
+          fontSize="xs"
+          color={theme.colors.gray[400]}
+          alignSelf="center"
+          marginLeft={['0', '0', '8px']}
+        >
+          Matches on board name, creator username, or RSN.
+        </Text>
       </Flex>
 
       {/* Board list */}

@@ -55,6 +55,13 @@ jest.mock('../../providers/AuthProvider', () => ({
 // ─── Mock GemTitle atom ───────────────────────────────────────────────────────
 jest.mock('../../atoms/GemTitle', () => ({ children }) => <span>{children}</span>);
 
+// ─── Mock Chip atom ───────────────────────────────────────────────────────────
+// Chip imports the full Chakra theme (via `theme/theme.js` → extendTheme),
+// which blows up under the `@chakra-ui/react` mock above since extendTheme
+// isn't provided. Swap it for a plain span so the import chain never
+// evaluates — same approach used for GemTitle.
+jest.mock('../../atoms/Chip', () => ({ children }) => <span>{children}</span>);
+
 // ─── Mock the gem image asset ─────────────────────────────────────────────────
 jest.mock('../../assets/gemoji.png', () => 'gemoji.png');
 

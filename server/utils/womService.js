@@ -2,12 +2,22 @@ const logger = require('./logger');
 
 const WOM_BASE = 'https://api.wiseoldman.net/v2';
 const LEAGUES_WOM_BASE = 'https://api.wiseoldman.net/league';
-
-// When rate-limited, wait this long before retrying.
 const RATE_LIMIT_RETRY_MS = 5000;
-
-// Delay between players when processing a list (avoids WOM rate limits)
 const SEQUENTIAL_DELAY_MS = 500;
+
+// Player lookups are coordinated process-wide. A lookup makes two WOM calls,
+// so spacing individual HTTP requests (rather than only spacing players) keeps
+// concurrent GraphQL requests from producing bursts.
+const PLAYER_REQUEST_INTERVAL_MS = Math.max(
+  0,
+  Number(process.env.WOM_PLAYER_REQUEST_INTERVAL_MS ?? 250)
+);
+const PLAYER_FETCH_MAX_RETRIES = Math.max(0, Number(process.env.WOM_PLAYER_FETCH_MAX_RETRIES ?? 2));
+const PLAYER_FETCH_BACKOFF_MS = Math.max(
+  0,
+  Number(process.env.WOM_PLAYER_FETCH_BACKOFF_MS ?? 5000)
+);
+const TRANSIENT_WOM_STATUSES = new Set([429, 500, 502, 503, 504, 520, 522, 524]);
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -17,6 +27,11 @@ const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
 const statsCache = new Map();
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour
+const playerStatsInFlight = new Map();
+
+let playerRequestQueue = Promise.resolve();
+let nextPlayerRequestAt = 0;
+let playerRateLimitedUntil = 0;
 
 function getCachedStats(rsn) {
   const key = rsn.toLowerCase().trim();
@@ -33,90 +48,176 @@ function setCachedStats(rsn, data) {
   statsCache.set(rsn.toLowerCase().trim(), { data, ts: Date.now() });
 }
 
+function getRetryDelay(res, attempt) {
+  const retryAfter = res?.headers?.get?.('retry-after');
+  if (retryAfter != null) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) return seconds * 1000;
+    const retryAt = Date.parse(retryAfter);
+    if (Number.isFinite(retryAt)) return Math.max(0, retryAt - Date.now());
+  }
+  return PLAYER_FETCH_BACKOFF_MS * 2 ** attempt;
+}
+
+/** Serialize and space player-stat HTTP calls across all callers in this process. */
+function queuePlayerRequest(url) {
+  const request = playerRequestQueue.then(async () => {
+    const waitMs = Math.max(
+      0,
+      nextPlayerRequestAt - Date.now(),
+      playerRateLimitedUntil - Date.now()
+    );
+    if (waitMs > 0) await sleep(waitMs);
+
+    nextPlayerRequestAt = Date.now() + PLAYER_REQUEST_INTERVAL_MS;
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'OSRSBingoHub/1.0', Accept: 'application/json' },
+    });
+
+    // Apply the server's cooldown before allowing the next queued request to
+    // start. The retry loop below may extend this with exponential backoff.
+    if (res.status === 429) {
+      playerRateLimitedUntil = Math.max(playerRateLimitedUntil, Date.now() + getRetryDelay(res, 0));
+    }
+    return res;
+  });
+
+  // A rejected request must not poison the queue for future callers.
+  playerRequestQueue = request.catch(() => undefined);
+  return request;
+}
+
+async function fetchPlayerResponse(url, rsn, label, { optional = false } = {}) {
+  let lastFailure = 'unknown error';
+
+  for (let attempt = 0; attempt <= PLAYER_FETCH_MAX_RETRIES; attempt++) {
+    let res;
+    try {
+      res = await queuePlayerRequest(url);
+      if (res.ok || res.status === 404) return res;
+      lastFailure = `HTTP ${res.status}`;
+
+      if (!TRANSIENT_WOM_STATUSES.has(res.status)) break;
+    } catch (err) {
+      lastFailure = err.message;
+    }
+
+    if (attempt === PLAYER_FETCH_MAX_RETRIES) break;
+
+    const delay = getRetryDelay(res, attempt);
+    playerRateLimitedUntil = Math.max(playerRateLimitedUntil, Date.now() + delay);
+    logger.warn(
+      { rsn, label, status: res?.status ?? null, delay, attempt: attempt + 1 },
+      'WOM player request failed; retrying'
+    );
+  }
+
+  const message = `WOM ${label} unavailable for "${rsn}" after ${
+    PLAYER_FETCH_MAX_RETRIES + 1
+  } attempts (${lastFailure})`;
+  if (optional) {
+    logger.warn({ rsn, label, error: lastFailure }, message);
+    return null;
+  }
+  throw new Error(message);
+}
+
 // ---------------------------------------------------------------------------
 
 /**
  * Fetch a single player's stats from Wise Old Man API.
- * Checks the in-memory cache first; on a miss makes two concurrent requests:
- * player details + yearly gains (for ehby).
+ * Checks the in-memory cache and in-flight requests first. On a miss, player
+ * details and yearly gains are fetched through the shared request limiter.
  * Returns a normalized stat object, or { rsn, notFound: true } on 404.
- * On 429 waits RATE_LIMIT_RETRY_MS before one retry.
+ * Temporary failures are retried and then thrown so they are not mislabeled as
+ * a player who does not exist.
  */
-async function fetchPlayerStats(rsn, retries = 1) {
-  const cached = getCachedStats(rsn);
+async function fetchPlayerStats(rsn) {
+  const normalizedRsn = rsn.trim();
+  const cached = getCachedStats(normalizedRsn);
   if (cached) return cached;
 
-  const encoded = encodeURIComponent(rsn.trim());
-  try {
-    const [detailsRes, gainsRes] = await Promise.allSettled([
-      fetch(`${WOM_BASE}/players/${encoded}`),
-      fetch(`${WOM_BASE}/players/${encoded}/gained?period=year`),
-    ]);
+  const key = normalizedRsn.toLowerCase();
+  const existing = playerStatsInFlight.get(key);
+  if (existing) return existing;
 
-    const details = detailsRes.status === 'fulfilled' ? detailsRes.value : null;
-
-    if (!details) {
-      return { rsn, notFound: true };
-    }
-
-    if (details.status === 429 && retries > 0) {
-      logger.warn(`WOM rate limited for "${rsn}", waiting ${RATE_LIMIT_RETRY_MS}ms`);
-      await sleep(RATE_LIMIT_RETRY_MS);
-      return fetchPlayerStats(rsn, retries - 1);
-    }
-
+  const request = (async () => {
+    const encoded = encodeURIComponent(normalizedRsn);
+    const details = await fetchPlayerResponse(
+      `${WOM_BASE}/players/${encoded}`,
+      normalizedRsn,
+      'details'
+    );
     if (details.status === 404) {
-      return { rsn, notFound: true };
+      return { rsn: normalizedRsn, notFound: true, fetchStatus: 'NOT_FOUND' };
     }
 
-    if (!details.ok) {
-      logger.warn(`WOM API error for "${rsn}": ${details.status}`);
-      return { rsn, notFound: true };
+    let data;
+    try {
+      data = await details.json();
+    } catch (err) {
+      throw new Error(`WOM returned invalid player data for "${normalizedRsn}" (${err.message})`);
     }
 
-    const data = await details.json();
+    const gains = await fetchPlayerResponse(
+      `${WOM_BASE}/players/${encoded}/gained?period=year`,
+      normalizedRsn,
+      'yearly gains',
+      { optional: true }
+    );
 
-    let ehby = 0;
-    let ehpy = 0;
-    if (gainsRes.status === 'fulfilled' && gainsRes.value.ok) {
+    let ehby = null;
+    let ehpy = null;
+    let yearlyGainsUnavailable = !gains?.ok;
+    if (gains?.ok) {
       try {
-        const gainsData = await gainsRes.value.json();
+        const gainsData = await gains.json();
         ehby = gainsData?.data?.computed?.ehb?.value?.gained ?? 0;
         ehpy = gainsData?.data?.computed?.ehp?.value?.gained ?? 0;
       } catch {
-        // gains fetch failed — not critical, default to 0
+        yearlyGainsUnavailable = true;
       }
     }
 
-    const result = normalizeWomData(rsn, data, ehby, ehpy);
-    setCachedStats(rsn, result);
+    const result = normalizeWomData(
+      normalizedRsn,
+      data,
+      ehby,
+      ehpy,
+      yearlyGainsUnavailable
+    );
+    // Keep partial results out of the hour-long cache so Retry can attempt the
+    // yearly-gains request again as soon as WOM recovers.
+    if (!yearlyGainsUnavailable) setCachedStats(normalizedRsn, result);
     return result;
-  } catch (err) {
-    logger.error(`WOM fetch failed for "${rsn}":`, err.message);
-    return { rsn, notFound: true };
+  })();
+
+  playerStatsInFlight.set(key, request);
+  try {
+    return await request;
+  } finally {
+    playerStatsInFlight.delete(key);
   }
 }
 
 /**
- * Fetch stats for an array of RSNs one at a time with a delay between
- * each to avoid WOM rate limits. Cache hits skip the delay.
+ * Fetch stats for an array of RSNs one at a time. Individual HTTP calls are
+ * paced by the process-wide queue above.
  */
-async function fetchAllPlayerStats(rsns) {
+async function fetchAllPlayerStats(rsns, { settleErrors = false } = {}) {
   const results = [];
-  let madeRequest = false;
   for (let i = 0; i < rsns.length; i++) {
     const cached = getCachedStats(rsns[i]);
     try {
-      if (cached) {
-        results.push(cached);
-      } else {
-        if (madeRequest) await sleep(SEQUENTIAL_DELAY_MS);
-        results.push(await fetchPlayerStats(rsns[i]));
-        madeRequest = true;
-      }
+      results.push(cached ?? (await fetchPlayerStats(rsns[i])));
     } catch (err) {
-      logger.warn(`WOM fetch rejected for "${rsns[i]}":`, err.message);
-      results.push({ rsn: rsns[i], notFound: true });
+      if (!settleErrors) throw err;
+      results.push({
+        rsn: rsns[i].trim(),
+        notFound: false,
+        fetchStatus: 'TEMPORARY_ERROR',
+        errorCode: /\b429\b|rate[ -]?limit/i.test(err.message) ? 'RATE_LIMITED' : 'UNAVAILABLE',
+      });
     }
   }
   return results;
@@ -127,7 +228,7 @@ async function fetchAllPlayerStats(rsns) {
  * ehby: yearly EHB gains, fetched separately and passed in.
  * ehpy: yearly EHP gains, fetched separately and passed in.
  */
-function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
+function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0, yearlyGainsUnavailable = false) {
   const skills = raw.latestSnapshot?.data?.skills ?? {};
   const bosses = raw.latestSnapshot?.data?.bosses ?? {};
   const computed = raw.latestSnapshot?.data?.computed ?? {};
@@ -143,6 +244,7 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
   return {
     rsn,
     notFound: false,
+    fetchStatus: yearlyGainsUnavailable ? 'YEARLY_UNAVAILABLE' : 'READY',
     accountType: raw.type ?? 'REGULAR',
     combatLevel: raw.combatLevel ?? 3,
     totalLevel: skills.overall?.level ?? 0,
@@ -150,6 +252,7 @@ function normalizeWomData(rsn, raw, ehby = 0, ehpy = 0) {
     ehb: computed.ehb?.value ?? 0,
     ehby,
     ehpy,
+    yearlyGainsUnavailable,
     // Explicit raid KCs (sum normal + hard/CM variants)
     cox: kc('chambers_of_xeric') + kc('chambers_of_xeric_challenge_mode'),
     tob: kc('theatre_of_blood') + kc('theatre_of_blood_hard_mode'),
@@ -177,8 +280,6 @@ const MAX_COMPETITION_DETAIL_REQUESTS = 40;
 const COMPETITION_FETCH_TIMEOUT_MS = 8000;
 const COMPETITION_FETCH_MAX_RETRIES = 2;
 const COMPETITION_FETCH_BACKOFF_MS = 1000;
-const TRANSIENT_WOM_STATUSES = new Set([429, 500, 502, 503, 504, 520, 522, 524]);
-
 function getCompetitionRetryDelay(res, attempt) {
   const retryAfter = res?.headers?.get?.('retry-after');
   if (retryAfter != null) {
@@ -243,10 +344,12 @@ async function fetchCompetitionJson(url, label) {
  * Returns recent finished competition metadata. Performance is added in bulk by
  * fetchAllPlayerCompetitions so shared competitions only cost one WOM request.
  */
-async function fetchPlayerCompetitions(rsn) {
+async function fetchPlayerCompetitions(rsn, { forceRefresh = false } = {}) {
   const key = rsn.toLowerCase().trim();
   const cached = playerCompCache.get(key);
-  if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
+  if (!forceRefresh && cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
+    return { ...cached.data, recent: [...cached.data.recent] };
+  }
 
   const encoded = encodeURIComponent(rsn.trim());
   const response = await fetchCompetitionJson(
@@ -254,11 +357,14 @@ async function fetchPlayerCompetitions(rsn) {
     `competition history for "${rsn}"`
   );
   if (!response.data) {
-    const result = { rsn, count: 0, recent: [] };
-    // A real 404 is stable; transient failures should be retried on the next load.
-    if (response.status === 404) {
-      playerCompCache.set(key, { data: result, ts: Date.now() });
-    }
+    const result = {
+      rsn,
+      analysisStatus: response.status === 404 ? 'NOT_FOUND' : 'TEMPORARY_ERROR',
+      count: 0,
+      recent: [],
+    };
+    // Do not cache unavailable history responses. A later retry should always
+    // get another chance to distinguish a stale WOM 404 from no history.
     return result;
   }
 
@@ -270,6 +376,7 @@ async function fetchPlayerCompetitions(rsn) {
       .sort((a, b) => new Date(b.competition.endsAt) - new Date(a.competition.endsAt));
     const result = {
       rsn,
+      analysisStatus: 'READY',
       count: finished.length,
       recent: finished.slice(0, PLAYER_COMP_SAMPLE_SIZE).map((c) => ({
         id: String(c.competition?.id ?? ''),
@@ -280,10 +387,10 @@ async function fetchPlayerCompetitions(rsn) {
       })),
     };
     playerCompCache.set(key, { data: result, ts: Date.now() });
-    return result;
+    return { ...result, recent: [...result.recent] };
   } catch (err) {
     logger.warn(`WOM competition history parse failed for "${rsn}": ${err.message}`);
-    return { rsn, count: 0, recent: [] };
+    return { rsn, analysisStatus: 'TEMPORARY_ERROR', count: 0, recent: [] };
   }
 }
 
@@ -300,9 +407,9 @@ function getEfficiencyGain(participation, metric) {
   return Number.isFinite(gained) ? Math.max(0, gained) : 0;
 }
 
-async function fetchCompetitionEfficiency(competition) {
+async function fetchCompetitionEfficiency(competition, { forceRefresh = false } = {}) {
   const cached = competitionEfficiencyCache.get(competition.id);
-  if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
+  if (!forceRefresh && cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) return cached.data;
 
   const params = new URLSearchParams();
   params.append('metrics', 'ehp');
@@ -350,17 +457,18 @@ async function fetchCompetitionEfficiency(competition) {
 async function fetchAllPlayerCompetitions(rsns, options = {}) {
   const maxCompDetailRequests = options.maxCompDetailRequests ?? MAX_COMPETITION_DETAIL_REQUESTS;
   const sampleSize = options.sampleSize ?? PLAYER_COMP_SAMPLE_SIZE;
+  const forceRefresh = options.forceRefresh === true;
 
   const results = [];
   let madeHistoryRequest = false;
   for (let i = 0; i < rsns.length; i++) {
     const key = rsns[i].toLowerCase().trim();
     const cached = playerCompCache.get(key);
-    if (cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
-      results.push(cached.data);
+    if (!forceRefresh && cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS) {
+      results.push({ ...cached.data, recent: [...cached.data.recent] });
     } else {
       if (madeHistoryRequest) await sleep(SEQUENTIAL_DELAY_MS);
-      results.push(await fetchPlayerCompetitions(rsns[i]));
+      results.push(await fetchPlayerCompetitions(rsns[i], { forceRefresh }));
       madeHistoryRequest = true;
     }
   }
@@ -368,15 +476,18 @@ async function fetchAllPlayerCompetitions(rsns, options = {}) {
   // Select competitions round-robin so a roster with unrelated histories gives
   // every player a recent sample before the request budget is exhausted.
   const selected = new Map();
+  let uncachedSelectionCount = 0;
   for (let depth = 0; depth < sampleSize; depth++) {
     for (const result of results) {
       const competition = result.recent[depth];
-      if (competition?.id && !selected.has(competition.id)) {
-        selected.set(competition.id, competition);
-        if (selected.size >= maxCompDetailRequests) break;
-      }
+      if (!competition?.id || selected.has(competition.id)) continue;
+      const cached = competitionEfficiencyCache.get(competition.id);
+      const cacheIsFresh =
+        !forceRefresh && cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS;
+      if (!cacheIsFresh && uncachedSelectionCount >= maxCompDetailRequests) continue;
+      selected.set(competition.id, competition);
+      if (!cacheIsFresh) uncachedSelectionCount += 1;
     }
-    if (selected.size >= maxCompDetailRequests) break;
   }
 
   const details = new Map();
@@ -385,9 +496,13 @@ async function fetchAllPlayerCompetitions(rsns, options = {}) {
   for (let i = 0; i < competitions.length; i++) {
     const competition = competitions[i];
     const cached = competitionEfficiencyCache.get(competition.id);
-    const cacheIsFresh = cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS;
+    const cacheIsFresh =
+      !forceRefresh && cached && Date.now() - cached.ts < PLAYER_COMP_TTL_MS;
     if (!cacheIsFresh && madeDetailRequest) await sleep(SEQUENTIAL_DELAY_MS);
-    details.set(competition.id, await fetchCompetitionEfficiency(competition));
+    details.set(
+      competition.id,
+      await fetchCompetitionEfficiency(competition, { forceRefresh })
+    );
     if (!cacheIsFresh) madeDetailRequest = true;
   }
 
@@ -407,6 +522,13 @@ async function fetchAllPlayerCompetitions(rsns, options = {}) {
       }
     }
     result.performance = totals;
+    const expectedSampleCount = Math.min(result.recent.length, sampleSize);
+    if (
+      result.analysisStatus === 'READY' &&
+      totals.ehp.competitions < expectedSampleCount
+    ) {
+      result.analysisStatus = 'PARTIAL';
+    }
   }
 
   return results;

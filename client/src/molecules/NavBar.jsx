@@ -9,9 +9,10 @@ import {
   VStack,
   HStack,
   Badge,
-  Button,
   Switch,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
+import Chip from '../atoms/Chip';
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useLoginUrl } from '../utils/loginRedirect';
@@ -518,9 +519,9 @@ const NavBar = () => {
                   <Text color={theme.colors.gray[400]} fontSize="sm" textAlign="center">
                     Battleship
                   </Text>
-                  <Badge colorScheme="yellow" fontSize="xs">
+                  <Chip variant="warn" size="sm">
                     Soon
-                  </Badge>
+                  </Chip>
                 </HStack>
               )}
             </Flex>
@@ -903,9 +904,9 @@ const NavBar = () => {
                               )}
                             </HStack>
                             {item.isNew && (
-                              <Badge colorScheme="yellow" fontSize="xs">
+                              <Chip variant="accent" size="sm">
                                 New
-                              </Badge>
+                              </Chip>
                             )}
                           </HStack>
                         </Link>
@@ -940,21 +941,16 @@ const NavBar = () => {
                       </HStack>
                     </Link>
                   </PleaseEffect>
-                  <Button
+                  <HubButton
                     variant="ghost"
+                    size="sm"
                     leftIcon={<Icon as={MdDoorBack} />}
-                    _hover={{
-                      backgroundColor: 'gray.600',
-                    }}
                     onClick={logout}
                     as={Link}
                     to="/"
-                    color="white"
-                    fontSize="14px"
-                    fontWeight="normal"
                   >
                     Logout
-                  </Button>
+                  </HubButton>
                 </VStack>
               </Box>
             </>

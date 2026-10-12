@@ -77,9 +77,18 @@ export const FETCH_WOM_STATS = gql`
 `;
 
 export const FETCH_PLAYER_COMP_HISTORY = gql`
-  query FetchPlayerCompHistory($rsns: [String!]!) {
-    fetchPlayerCompHistory(rsns: $rsns) {
+  query FetchPlayerCompHistory(
+    $rsns: [String!]!
+    $forceRefresh: Boolean = false
+    $maxDetailRequests: Int
+  ) {
+    fetchPlayerCompHistory(
+      rsns: $rsns
+      forceRefresh: $forceRefresh
+      maxDetailRequests: $maxDetailRequests
+    ) {
       rsn
+      analysisStatus
       count
       recent {
         id

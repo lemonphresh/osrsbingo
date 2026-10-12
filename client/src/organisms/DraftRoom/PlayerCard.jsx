@@ -4,7 +4,6 @@ import {
   Text,
   VStack,
   HStack,
-  Badge,
   SimpleGrid,
   Popover,
   PopoverTrigger,
@@ -12,7 +11,11 @@ import {
   PopoverBody,
 } from '@chakra-ui/react';
 import useContentRegistry from '../../hooks/useContentRegistry';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
+// Tier badge colors — kept distinct from the HUD cyan accent so the tier
+// is visually independent from the "active pick" indicator.
 const TIER_COLORS = {
   S: { bg: '#FFD700', color: '#1A202C' },
   A: { bg: '#9B84FF', color: '#1A202C' },
@@ -24,10 +27,23 @@ const TIER_COLORS = {
 function StatChip({ label, value }) {
   return (
     <VStack spacing={0} align="center">
-      <Text fontSize="10px" color="gray.400" lineHeight={1}>
+      <Text
+        fontFamily={HUD_FONT_MONO}
+        fontSize="9px"
+        color={HUD.textMuted}
+        textTransform="uppercase"
+        letterSpacing="0.1em"
+        lineHeight={1}
+      >
         {label}
       </Text>
-      <Text fontSize="xs" fontWeight="bold" lineHeight={1.3}>
+      <Text
+        fontFamily={HUD_FONT_MONO}
+        fontSize="xs"
+        fontWeight="600"
+        color={HUD.textPrimary}
+        lineHeight={1.3}
+      >
         {value}
       </Text>
     </VStack>
@@ -37,10 +53,10 @@ function StatChip({ label, value }) {
 function StatRow({ label, value }) {
   return (
     <HStack justify="space-between" w="100%">
-      <Text fontSize="xs" color="gray.400">
+      <Text fontSize="xs" color={HUD.textSecondary}>
         {label}
       </Text>
-      <Text fontSize="xs" fontWeight="bold">
+      <Text fontFamily={HUD_FONT_MONO} fontSize="xs" fontWeight="600" color={HUD.textPrimary}>
         {value}
       </Text>
     </HStack>
@@ -56,7 +72,14 @@ function SkillsPopover({ womData }) {
 
   return (
     <VStack align="stretch" spacing={1}>
-      <Text fontSize="xs" fontWeight="bold" color="gray.300" mb={1}>
+      <Text
+        fontFamily={HUD_FONT_MONO}
+        fontSize="10px"
+        color={HUD.textSecondary}
+        textTransform="uppercase"
+        letterSpacing="0.15em"
+        mb={1}
+      >
         All Skills
       </Text>
       <SimpleGrid columns={2} spacing={1}>
@@ -105,94 +128,103 @@ export default function PlayerCard({
 
   const tierColor = TIER_COLORS[player.tierBadge];
 
-  const borderColor =
-    isCurrentPick || isAuctionTarget ? 'purple.400' : drafted ? 'green.600' : 'gray.600';
+  const highlighted = isCurrentPick || isAuctionTarget;
+  const borderColor = highlighted ? HUD.cyan : drafted ? HUD.cyanDim : HUD.border;
 
   const womData = player.womData ?? {};
-  // handle both old topBossKcs and new bossKcs field
   const bossKcs = womData.bossKcs ?? womData.topBossKcs ?? [];
 
   const card = (
     <Box
-      border="2px solid"
+      border="1px solid"
       borderColor={borderColor}
-      borderRadius="xl"
+      borderRadius="2px"
       overflow="hidden"
       cursor={isPickable && !drafted ? 'pointer' : 'default'}
       opacity={drafted && !isCurrentPick && !isAuctionTarget ? 0.5 : 1}
       onClick={isPickable && !drafted ? onClick : undefined}
-      transition="all 0.15s"
+      transition="all 0.15s ease"
       _hover={
-        isPickable && !drafted ? { borderColor: 'purple.300', transform: 'translateY(-2px)' } : {}
+        isPickable && !drafted
+          ? { borderColor: HUD.cyan, transform: 'translateY(-1px)', boxShadow: `0 0 14px ${HUD.cyanGlow}` }
+          : {}
       }
+      boxShadow={highlighted ? `0 0 18px ${HUD.cyanGlow}` : 'none'}
       w="100%"
       minW="140px"
-      bg="gray.800"
+      bg={HUD.bgSurface}
     >
       {/* header */}
-      <Box bg={isCurrentPick || isAuctionTarget ? 'purple.700' : 'gray.700'} px={2.5} py={1.5}>
+      <Box
+        bg={highlighted ? HUD.cyanGlow : HUD.bgRecessed}
+        px={2.5}
+        py={1.5}
+        borderBottom="1px solid"
+        borderColor={HUD.border}
+      >
         <HStack justify="space-between" align="flex-start" spacing={1}>
           <VStack spacing={0} align="flex-start" flex={1} minW={0}>
             <Text
-              fontWeight="black"
+              fontFamily={HUD_FONT_DISPLAY}
+              fontWeight="700"
               fontSize="sm"
               noOfLines={1}
               lineHeight={1.3}
-              color={revealed ? 'white' : 'gray.100'}
+              color={HUD.textPrimary}
             >
               {revealed ? player.rsn : player.alias}
             </Text>
             {revealed && (
-              <Text fontSize="10px" color="gray.400" noOfLines={1}>
+              <Text
+                fontFamily={HUD_FONT_MONO}
+                fontSize="10px"
+                color={HUD.textMuted}
+                noOfLines={1}
+                letterSpacing="0.05em"
+              >
                 {player.alias}
               </Text>
             )}
           </VStack>
           {tierColor && (
-            <Badge
+            <Box
               bg={tierColor.bg}
               color={tierColor.color}
+              fontFamily={HUD_FONT_DISPLAY}
               fontSize="xs"
-              fontWeight="black"
+              fontWeight="700"
               px={1.5}
-              borderRadius="sm"
+              py={0.5}
+              borderRadius="2px"
               flexShrink={0}
+              lineHeight={1.2}
             >
               {player.tierBadge}
-            </Badge>
+            </Box>
           )}
         </HStack>
       </Box>
 
       {womData.notFound ? (
         <Box px={2.5} py={2}>
-          <Text fontSize="xs" color="orange.300">
-            Not on WOM
-          </Text>
+          <HudChip mode="warn">Not on WOM</HudChip>
         </Box>
       ) : (
         <Box
           css={{
-            '&::-webkit-scrollbar': {
-              width: '8px',
-            },
-            '&::-webkit-scrollbar-track': {
-              background: 'transparent',
-              borderRadius: '10px',
-            },
+            '&::-webkit-scrollbar': { width: '8px' },
+            '&::-webkit-scrollbar-track': { background: 'transparent', borderRadius: '10px' },
             '&::-webkit-scrollbar-thumb': {
-              background: '#abb8ceff',
+              background: HUD.borderBright,
               borderRadius: '10px',
-              '&:hover': {
-                background: '#718096',
-              },
+              '&:hover': { background: HUD.textMuted },
             },
             scrollbarWidth: 'thin',
-            scrollbarColor: '#abb8ceff transparent',
+            scrollbarColor: `${HUD.borderBright} transparent`,
           }}
         >
           {/* key stats row */}
-          <Box px={2.5} py={2} borderBottom="1px solid" borderColor="gray.700">
+          <Box px={2.5} py={2} borderBottom="1px solid" borderColor={HUD.border}>
             <SimpleGrid columns={5} spacing={1}>
               <StatChip label="Cmbt" value={womData.combatLevel ?? '?'} />
               <StatChip label="Total" value={(womData.totalLevel ?? 0).toLocaleString()} />
@@ -206,10 +238,11 @@ export default function PlayerCard({
           {bossKcs.length > 0 && (
             <Box px={2.5} py={2} maxH="160px" overflowY="auto">
               <Text
-                fontSize="10px"
-                color="gray.500"
+                fontFamily={HUD_FONT_MONO}
+                fontSize="9px"
+                color={HUD.textMuted}
                 textTransform="uppercase"
-                letterSpacing="wider"
+                letterSpacing="0.15em"
                 mb={1}
               >
                 Boss KCs
@@ -217,10 +250,16 @@ export default function PlayerCard({
               <VStack spacing={0.5} align="stretch">
                 {bossKcs.map((b) => (
                   <HStack key={b.boss} justify="space-between" spacing={1}>
-                    <Text fontSize="10px" color="gray.400" noOfLines={1}>
+                    <Text fontSize="10px" color={HUD.textSecondary} noOfLines={1}>
                       {formatBossName(b.boss)}
                     </Text>
-                    <Text fontSize="10px" fontWeight="bold" flexShrink={0}>
+                    <Text
+                      fontFamily={HUD_FONT_MONO}
+                      fontSize="10px"
+                      fontWeight="600"
+                      color={HUD.textPrimary}
+                      flexShrink={0}
+                    >
                       {b.kc.toLocaleString()}
                     </Text>
                   </HStack>
@@ -231,7 +270,7 @@ export default function PlayerCard({
 
           {bossKcs.length === 0 && (
             <Box px={2.5} py={2}>
-              <Text fontSize="10px" color="gray.600" fontStyle="italic">
+              <Text fontSize="10px" color={HUD.textMuted} fontStyle="italic">
                 No boss KCs
               </Text>
             </Box>
@@ -241,9 +280,7 @@ export default function PlayerCard({
 
       {drafted && (
         <Box px={2.5} pb={1.5}>
-          <Badge colorScheme="green" fontSize="9px">
-            Drafted
-          </Badge>
+          <HudChip mode="active">Drafted</HudChip>
         </Box>
       )}
     </Box>
@@ -255,7 +292,13 @@ export default function PlayerCard({
     return (
       <Popover trigger="hover" placement="right" isLazy openDelay={300}>
         <PopoverTrigger>{card}</PopoverTrigger>
-        <PopoverContent bg="gray.800" borderColor="gray.600" maxW="210px">
+        <PopoverContent
+          bg={HUD.bgSurface}
+          borderColor={HUD.border}
+          borderRadius="2px"
+          maxW="210px"
+          boxShadow={`0 10px 40px rgba(0,0,0,0.6), 0 0 10px ${HUD.cyanGlow}`}
+        >
           <PopoverBody>
             <SkillsPopover womData={womData} />
           </PopoverBody>

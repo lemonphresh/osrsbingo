@@ -10,7 +10,6 @@ import {
   Center,
   SimpleGrid,
   IconButton,
-  Button,
   HStack,
   Modal,
   ModalOverlay,
@@ -19,6 +18,7 @@ import {
   ModalCloseButton,
   useDisclosure,
 } from '@chakra-ui/react';
+import HubButton from '../atoms/HubButton';
 import { ExternalLinkIcon, ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { Calendar as RBCalendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay } from 'date-fns';
@@ -231,16 +231,9 @@ function ReadOnlyCalendarToolbar({ label, onNavigate }) {
           onClick={() => onNavigate('PREV')}
           _hover={{ bg: 'whiteAlpha.100' }}
         />
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => onNavigate('TODAY')}
-          _hover={{ bg: 'whiteAlpha.100' }}
-          fontSize="xs"
-          color="whiteAlpha.700"
-        >
+        <HubButton size="sm" variant="ghost" onClick={() => onNavigate('TODAY')}>
           Today
-        </Button>
+        </HubButton>
         <IconButton
           aria-label="Next"
           icon={<ChevronRightIcon />}

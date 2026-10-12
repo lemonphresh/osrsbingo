@@ -1,17 +1,33 @@
-import { Box, VStack, HStack, Text, Badge, SimpleGrid } from '@chakra-ui/react';
+import { Box, VStack, HStack, Text, SimpleGrid } from '@chakra-ui/react';
 import { useMutation } from '@apollo/client';
 import { MAKE_DRAFT_PICK } from '../../graphql/draftOperations';
 import PlayerCard from './PlayerCard';
 import DraftBoard from './DraftBoard';
 import TimerBar from './TimerBar';
 import { useToastContext } from '../../providers/ToastProvider';
+import { HUD, HUD_FONT_DISPLAY, HUD_FONT_MONO } from '../../atoms/hudTheme';
+import HudChip from '../../atoms/HudChip';
 
 function getCurrentTeamIndex(format, numberOfTeams, currentPickIndex) {
   if (format === 'LINEAR') return currentPickIndex % numberOfTeams;
-  // SNAKE
   const round = Math.floor(currentPickIndex / numberOfTeams);
   const pos = currentPickIndex % numberOfTeams;
   return round % 2 === 0 ? pos : numberOfTeams - 1 - pos;
+}
+
+function SectionLabel({ children, ...rest }) {
+  return (
+    <Text
+      fontFamily={HUD_FONT_MONO}
+      fontSize="10px"
+      color={HUD.textSecondary}
+      textTransform="uppercase"
+      letterSpacing="0.15em"
+      {...rest}
+    >
+      {children}
+    </Text>
+  );
 }
 
 export default function ActiveDraft({ room, userRole, userId, captainToken }) {
@@ -52,7 +68,6 @@ export default function ActiveDraft({ room, userRole, userId, captainToken }) {
     });
   }
 
-  // build draft order preview (next 5 picks)
   function getUpcomingOrder() {
     const picks = [];
     let idx = room.currentPickIndex;
@@ -74,50 +89,75 @@ export default function ActiveDraft({ room, userRole, userId, captainToken }) {
   return (
     <VStack spacing={5} align="stretch">
       {/* header: whose turn */}
-      <Box bg="gray.700" border="2px solid" borderColor="purple.400" borderRadius="lg" p={4}>
-        <HStack justify="space-between" mb={2} flexWrap="wrap" gap={2}>
-          <VStack align="flex-start" spacing={0}>
-            <Text fontSize="xs" color="gray.400" textTransform="uppercase" letterSpacing="wider">
-              Pick #{room.currentPickIndex + 1}
-            </Text>
-            <Text fontWeight="bold" fontSize="lg">
+      <Box
+        bg={HUD.bgSurface}
+        border="1px solid"
+        borderColor={HUD.cyan}
+        borderRadius="2px"
+        p={4}
+        boxShadow={`0 0 18px ${HUD.cyanGlow}`}
+      >
+        <HStack justify="space-between" mb={3} flexWrap="wrap" gap={3} align="start">
+          <VStack align="flex-start" spacing={1}>
+            <SectionLabel color={HUD.cyan}>Pick #{room.currentPickIndex + 1}</SectionLabel>
+            <Text
+              fontFamily={HUD_FONT_DISPLAY}
+              fontWeight="700"
+              fontSize="xl"
+              color={HUD.textPrimary}
+              lineHeight="1.1"
+            >
               {currentTeam?.name ?? '—'} is picking
             </Text>
           </VStack>
-          <HStack spacing={2}>
-            <Badge colorScheme="purple">{room.draftFormat}</Badge>
-            <Badge colorScheme="gray">{undraftedPlayers.length} remaining</Badge>
+          <HStack spacing={1.5} flexWrap="wrap">
+            <HudChip mode="active">{room.draftFormat}</HudChip>
+            <HudChip>{undraftedPlayers.length} remaining</HudChip>
           </HStack>
         </HStack>
         <TimerBar startedAt={room.currentPickStartedAt} totalSeconds={room.pickTimeSeconds} />
         {canPick && (
-          <Text fontSize="xs" color="purple.300" mt={2} fontWeight="semibold">
+          <Text
+            fontFamily={HUD_FONT_MONO}
+            fontSize="11px"
+            color={HUD.cyan}
+            mt={2.5}
+            fontWeight="500"
+            textTransform="uppercase"
+            letterSpacing="0.12em"
+          >
             {isOrganizer
-              ? "It's your turn (organizer override)"
-              : "It's your turn — click a player to pick!"}
+              ? "▸ Your turn (organizer override)"
+              : '▸ Your turn — click a player to pick'}
           </Text>
         )}
       </Box>
 
       {/* upcoming picks */}
       <Box>
-        <Text fontSize="xs" color="gray.400" mb={1} textTransform="uppercase" letterSpacing="wider">
-          Coming up
-        </Text>
-        <HStack spacing={2} flexWrap="wrap">
+        <SectionLabel mb={2}>Coming up</SectionLabel>
+        <HStack spacing={1.5} flexWrap="wrap">
           {getUpcomingOrder().map((item, i) => (
-            <Badge key={item.pickNumber} colorScheme={i === 0 ? 'purple' : 'gray'} fontSize="10px">
+            <HudChip key={item.pickNumber} mode={i === 0 ? 'active' : 'default'}>
               #{item.pickNumber} {item.team?.name}
-            </Badge>
+            </HudChip>
           ))}
         </HStack>
       </Box>
 
       {/* player pool */}
       <Box>
-        <Text fontWeight="semibold" mb={3}>
-          Available Players ({undraftedPlayers.length})
-        </Text>
+        <HStack justify="space-between" mb={3} align="baseline">
+          <SectionLabel>Available Players</SectionLabel>
+          <Text
+            fontFamily={HUD_FONT_MONO}
+            fontSize="10px"
+            color={HUD.cyan}
+            letterSpacing="0.1em"
+          >
+            {undraftedPlayers.length}
+          </Text>
+        </HStack>
         <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} spacing={3}>
           {undraftedPlayers.map((player) => (
             <PlayerCard
@@ -132,9 +172,7 @@ export default function ActiveDraft({ room, userRole, userId, captainToken }) {
 
       {/* draft board */}
       <Box>
-        <Text fontWeight="semibold" mb={3}>
-          Team Rosters
-        </Text>
+        <SectionLabel mb={3}>Team Rosters</SectionLabel>
         <DraftBoard room={room} currentTeamIndex={currentTeamIdx} />
       </Box>
     </VStack>

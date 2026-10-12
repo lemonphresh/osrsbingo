@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
-import { Button, Flex, Image, Text, HStack, Box, SimpleGrid } from '@chakra-ui/react';
+import { Flex, Image, Text, HStack, Box, SimpleGrid } from '@chakra-ui/react';
 import GemTitle from '../atoms/GemTitle';
+import HubButton from '../atoms/HubButton';
+import Chip from '../atoms/Chip';
 import OsrsWikiLogo from '../assets/osrswikilogo.png';
 import ExampleGR from '../assets/exampleGR.png';
 import ExampleBoard from '../assets/ExampleBoard.png';
@@ -89,30 +91,12 @@ const Landing = () => {
           </Text>
 
           <HStack justifyContent="center" spacing={4} flexWrap="wrap">
-            <NavLink to="/signup">
-              <Button
-                backgroundColor={theme.colors.blue[400]}
-                height="52px"
-                paddingX="36px"
-                fontSize="md"
-                fontWeight="semibold"
-                _hover={{ backgroundColor: theme.colors.blue[300] }}
-              >
-                Sign Up Free
-              </Button>
-            </NavLink>
-            <NavLink to="/login">
-              <Button
-                variant="outline"
-                borderColor="whiteAlpha.500"
-                color="white"
-                height="52px"
-                paddingX="32px"
-                _hover={{ borderColor: 'white', backgroundColor: 'whiteAlpha.100' }}
-              >
-                Log In
-              </Button>
-            </NavLink>
+            <HubButton as={NavLink} to="/signup" size="lg" px={9}>
+              Sign Up Free
+            </HubButton>
+            <HubButton as={NavLink} to="/login" variant="secondary" size="lg" px={8}>
+              Log In
+            </HubButton>
           </HStack>
         </Flex>
       </Box>
@@ -161,15 +145,15 @@ const Landing = () => {
               Create custom bingo boards to track any goals: boss kills, collection log slots, skill
               milestones, or anything else. Share with your clan or browse public boards for ideas.
             </Text>
-            <Link to="/boards" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={theme.colors.purple[500]}
-                _hover={{ backgroundColor: theme.colors.purple[600] }}
-              >
-                Browse Public Boards
-              </Button>
-            </Link>
+            <HubButton
+              as={Link}
+              to="/boards"
+              width="100%"
+              marginTop="auto"
+              accentColor={theme.colors.purple[500]}
+            >
+              Browse Public Boards
+            </HubButton>
           </Box>
 
           {/* Group Dashboard */}
@@ -193,9 +177,7 @@ const Landing = () => {
                 >
                   Group Goals Dashboard
                 </Text>
-                <Text fontSize="xs" bg={theme.colors.orange[700]} px={2} py={1} borderRadius="full">
-                  NEW
-                </Text>
+                <Chip variant="accent">NEW</Chip>
               </HStack>
               <Flex justifyContent="center" marginBottom="20px">
                 <Image
@@ -213,15 +195,15 @@ const Landing = () => {
                 clear dashboard across any OSRS activity for any duration. Great for clans, GIMs, or
                 any group of friends working towards shared milestones.
               </Text>
-              <Link to="/group" style={{ marginTop: 'auto' }}>
-                <Button
-                  width="100%"
-                  backgroundColor={theme.colors.orange[600]}
-                  _hover={{ backgroundColor: theme.colors.orange[700] }}
-                >
-                  Track Your Group
-                </Button>
-              </Link>
+              <HubButton
+                as={Link}
+                to="/group"
+                width="100%"
+                marginTop="auto"
+                accentColor={theme.colors.orange[600]}
+              >
+                Track Your Group
+              </HubButton>
             </Box>
           )}
 
@@ -245,25 +227,9 @@ const Landing = () => {
               >
                 Champion Forge
               </Text>
-              <Text
-                fontSize="xs"
-                bg={
-                  isChampionForgeEnabled(user) ? theme.colors.blue[600] : 'rgba(244, 211, 94, 0.12)'
-                }
-                border={
-                  isChampionForgeEnabled(user) ? 'none' : '1px solid rgba(244, 211, 94, 0.35)'
-                }
-                color={
-                  isChampionForgeEnabled(user) ? theme.colors.gray[900] : theme.colors.blue[300]
-                }
-                px={2}
-                py={1}
-                borderRadius="full"
-                fontWeight="semibold"
-                whiteSpace="nowrap"
-              >
+              <Chip variant={isChampionForgeEnabled(user) ? 'accent' : 'warn'}>
                 {isChampionForgeEnabled(user) ? 'NEW' : 'SOON'}
-              </Text>
+              </Chip>
             </HStack>
             <Flex
               justifyContent="center"
@@ -288,27 +254,16 @@ const Landing = () => {
               turn-based battles. Earn gear through OSRS tasks, build your champion, and fight for
               glory in a bracket.
             </Text>
-            <Link to="/champion-forge" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={
-                  isChampionForgeEnabled(user) ? theme.colors.blue[600] : 'transparent'
-                }
-                color={
-                  isChampionForgeEnabled(user) ? theme.colors.gray[900] : theme.colors.blue[300]
-                }
-                border={
-                  isChampionForgeEnabled(user) ? 'none' : `1px solid ${theme.colors.blue[600]}`
-                }
-                _hover={{
-                  backgroundColor: isChampionForgeEnabled(user)
-                    ? theme.colors.blue[500]
-                    : 'rgba(244, 211, 94, 0.1)',
-                }}
-              >
-                {isChampionForgeEnabled(user) ? 'Start Forging' : 'Learn More'}
-              </Button>
-            </Link>
+            <HubButton
+              as={Link}
+              to="/champion-forge"
+              width="100%"
+              marginTop="auto"
+              variant={isChampionForgeEnabled(user) ? 'primary' : 'secondary'}
+              accentColor={theme.colors.blue[500]}
+            >
+              {isChampionForgeEnabled(user) ? 'Start Forging' : 'Learn More'}
+            </HubButton>
           </Box>
         </Flex>
 
@@ -335,19 +290,9 @@ const Landing = () => {
               <Text fontFamily="Raleway" fontSize="xl" fontWeight="semibold" color="#76e4f7">
                 Battleship
               </Text>
-              <Text
-                fontSize="xs"
-                bg={isBattleshipEnabled(user) ? '#0e7490' : 'rgba(244, 211, 94, 0.12)'}
-                border={isBattleshipEnabled(user) ? 'none' : '1px solid rgba(244, 211, 94, 0.35)'}
-                color={isBattleshipEnabled(user) ? theme.colors.gray[900] : '#76e4f7'}
-                px={2}
-                py={1}
-                borderRadius="full"
-                fontWeight="semibold"
-                whiteSpace="nowrap"
-              >
+              <Chip variant={isBattleshipEnabled(user) ? 'accent' : 'warn'}>
                 {isBattleshipEnabled(user) ? 'NEW' : 'SOON'}
-              </Text>
+              </Chip>
             </HStack>
             <Box
               marginBottom="20px"
@@ -381,21 +326,16 @@ const Landing = () => {
               fleet, fire shots at the enemy board, and complete OSRS tasks to score hits. First
               team to sink all ships wins.
             </Text>
-            <Link to="/battleship" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={isBattleshipEnabled(user) ? '#0e7490' : 'transparent'}
-                color={isBattleshipEnabled(user) ? theme.colors.gray[900] : '#76e4f7'}
-                border={isBattleshipEnabled(user) ? 'none' : '1px solid #0e7490'}
-                _hover={{
-                  backgroundColor: isBattleshipEnabled(user)
-                    ? '#0891b2'
-                    : 'rgba(14, 116, 144, 0.1)',
-                }}
-              >
-                {isBattleshipEnabled(user) ? 'Set Sail' : 'Learn More'}
-              </Button>
-            </Link>
+            <HubButton
+              as={Link}
+              to="/battleship"
+              width="100%"
+              marginTop="auto"
+              variant={isBattleshipEnabled(user) ? 'primary' : 'secondary'}
+              accentColor="#0e7490"
+            >
+              {isBattleshipEnabled(user) ? 'Set Sail' : 'Learn More'}
+            </HubButton>
           </Box>
         </Flex>
 
@@ -438,15 +378,15 @@ const Landing = () => {
                 Host fair team drafts where captains pick players by stats alone, no names visible
                 until it's over. Supports snake, linear, and auction formats with a real-time timer.
               </Text>
-              <Link to="/blind-draft" style={{ marginTop: 'auto' }}>
-                <Button
-                  width="100%"
-                  backgroundColor={theme.colors.pink[600]}
-                  _hover={{ backgroundColor: theme.colors.pink[700] }}
-                >
-                  Draft Teams
-                </Button>
-              </Link>
+              <HubButton
+                as={Link}
+                to="/blind-draft"
+                width="100%"
+                marginTop="auto"
+                accentColor={theme.colors.pink[600]}
+              >
+                Draft Teams
+              </HubButton>
             </Box>
           )}
 
@@ -470,9 +410,7 @@ const Landing = () => {
               >
                 Team Balancer
               </Text>
-              <Text fontSize="xs" bg={theme.colors.green[700]} px={2} py={1} borderRadius="full">
-                NEW
-              </Text>
+              <Chip variant="accent">NEW</Chip>
             </HStack>
             <Flex justifyContent="center" marginBottom="20px">
               <Image
@@ -490,15 +428,15 @@ const Landing = () => {
               Choose a preset (All-Rounder, PvM, Skilling, or Raid) and get teams sorted by EHB/Y,
               EHP/Y, raid KCs, and more. No account needed.
             </Text>
-            <Link to="/team-balancer" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={theme.colors.green[600]}
-                _hover={{ backgroundColor: theme.colors.green[700] }}
-              >
-                Balance Teams
-              </Button>
-            </Link>
+            <HubButton
+              as={Link}
+              to="/team-balancer"
+              width="100%"
+              marginTop="auto"
+              accentColor={theme.colors.green[600]}
+            >
+              Balance Teams
+            </HubButton>
           </Box>
 
           {/* Gielinor Rush */}
@@ -538,15 +476,15 @@ const Landing = () => {
               skilling, and collection objectives. Discord integration for submissions and
               guaranteed GP payouts.
             </Text>
-            <Link to="/gielinor-rush" style={{ marginTop: 'auto' }}>
-              <Button
-                width="100%"
-                backgroundColor={theme.colors.yellow[500]}
-                _hover={{ backgroundColor: theme.colors.yellow[600] }}
-              >
-                {isGielinorRushEnabled(user) ? 'Feel the Rush' : 'Learn More'}
-              </Button>
-            </Link>
+            <HubButton
+              as={Link}
+              to="/gielinor-rush"
+              width="100%"
+              marginTop="auto"
+              accentColor={theme.colors.yellow[500]}
+            >
+              {isGielinorRushEnabled(user) ? 'Feel the Rush' : 'Learn More'}
+            </HubButton>
           </Box>
         </Flex>
 

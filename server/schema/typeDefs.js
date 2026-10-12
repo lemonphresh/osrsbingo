@@ -556,6 +556,7 @@ const typeDefs = gql`
 
   type PlayerCompHistory {
     rsn: String!
+    analysisStatus: String!
     count: Int!
     recent: [PlayerCompRecentEntry!]!
     performance: PlayerCompPerformance!
@@ -1057,7 +1058,11 @@ const typeDefs = gql`
     getDraftRoom(roomId: ID!): DraftRoom
     getMyDraftRooms: [DraftRoom!]!
     fetchWomStats(rsns: [String!]!): [JSON!]!
-    fetchPlayerCompHistory(rsns: [String!]!): [PlayerCompHistory!]!
+    fetchPlayerCompHistory(
+      rsns: [String!]!
+      forceRefresh: Boolean = false
+      maxDetailRequests: Int
+    ): [PlayerCompHistory!]!
 
     # --- Champion Forge ---
     getCFEvent(eventId: ID!): CFEvent

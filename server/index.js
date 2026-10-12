@@ -507,7 +507,10 @@ const serverCleanup = useServer(
             logger.warn({ err: err.message }, 'failed to refresh user fields from DB (ws)');
           }
           user = { id: decoded.userId, admin: freshAdmin, discordUserId: freshDiscordUserId };
-          logger.info({ userId: user.id }, 'WebSocket authenticated');
+          logger.info(
+            { userId: user.id, operation: msg.payload?.operationName ?? null },
+            'WebSocket operation authenticated'
+          );
         } catch (err) {
           logger.warn('Invalid WebSocket token');
         }
