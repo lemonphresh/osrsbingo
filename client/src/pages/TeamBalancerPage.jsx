@@ -669,9 +669,7 @@ export default function TeamBalancerPage() {
             rsn: rsn.trim(),
             notFound: false,
             fetchStatus: 'TEMPORARY_ERROR',
-            errorCode: /\b429\b|rate[ -]?limit/i.test(message)
-              ? 'RATE_LIMITED'
-              : 'UNAVAILABLE',
+            errorCode: /\b429\b|rate[ -]?limit/i.test(message) ? 'RATE_LIMITED' : 'UNAVAILABLE',
           }))
         );
       }
@@ -1784,7 +1782,8 @@ export default function TeamBalancerPage() {
                 </Text>
                 {unresolvedPlayers.length > 0 && (
                   <Text fontSize="10px" color={HUD.amber} mt={1.5}>
-                    Resolve the player rows needing attention before running this comparison.
+                    Resolve the player rows (bottom of page) needing attention before running this
+                    comparison.
                   </Text>
                 )}
               </Box>
