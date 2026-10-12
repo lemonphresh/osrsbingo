@@ -9,9 +9,17 @@ import {
   Link,
   Text,
   Box,
+  HStack,
+  Input,
+  InputGroup,
+  InputLeftElement,
+  InputRightElement,
+  IconButton,
   useColorMode,
+  VStack,
 } from '@chakra-ui/react';
-import React from 'react';
+import { SearchIcon, CloseIcon } from '@chakra-ui/icons';
+import React, { useMemo, useState } from 'react';
 import theme from '../theme';
 import Section from '../atoms/Section';
 import GemTitle from '../atoms/GemTitle';
@@ -25,6 +33,9 @@ import {
 } from '../config/featureFlags';
 import { useAuth } from '../providers/AuthProvider';
 
+// Section definitions. Each `title` begins with an emoji glyph that gets
+// split out and rendered as a colored tile beside the title text; the
+// rest of the title string becomes the heading itself.
 const FAQ_SECTIONS = (user) =>
   [
     isGroupDashboardEnabled(user) && {
@@ -358,37 +369,225 @@ const FAQ_SECTIONS = (user) =>
     },
   ].filter(Boolean);
 
-const FaqSection = ({ title, colorKey, items, colorMode }) => (
-  <Box marginTop="32px" marginBottom="24px">
-    <Heading size="md" color={theme.colors[colorMode][colorKey].base} marginBottom="16px">
-      {title}
-    </Heading>
-    <Accordion allowToggle borderColor="transparent" width="100%">
-      {items.map((item, idx) => (
-        <AccordionItem backgroundColor="whiteAlpha.200" borderRadius="12px" marginY="8px" key={idx}>
-          <AccordionButton height="64px">
-            <Flex flex="1">
-              <Heading size="sm" textAlign="left">
-                {item.q}
-              </Heading>
-            </Flex>
-            <AccordionIcon />
-          </AccordionButton>
-          <AccordionPanel paddingY={4} textAlign="left">
-            <Text>{item.a}</Text>
-          </AccordionPanel>
-        </AccordionItem>
-      ))}
-    </Accordion>
+// Extract a leading emoji + rest of the title. The current section titles
+// follow the shape "<emoji> Title Words", so splitting on the first space
+// isolates the glyph so we can render it in its own colored tile and the
+// title text as plain prose.
+function splitEmoji(title) {
+  const [maybeEmoji, ...rest] = title.split(' ');
+  return { emoji: maybeEmoji, label: rest.join(' ') };
+}
+
+// Case-insensitive substring match that also walks JSX children. Lets the
+// search bar find questions whose answers contain JSX (<code> snippets,
+// <strong> labels, etc.) rather than falling back on the raw q-only match.
+function stringify(node) {
+  if (node == null || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(stringify).join(' ');
+  if (React.isValidElement(node)) return stringify(node.props.children);
+  return '';
+}
+
+function sectionAnchorId(title) {
+  return `faq-section-${title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')}`;
+}
+
+// Chip-ish count tag used both on the section header and on the empty-state
+// summary row.
+const CountTag = ({ children, colorMode, colorKey }) => (
+  <Box
+    as="span"
+    display="inline-flex"
+    alignItems="center"
+    px={2}
+    py={0.5}
+    borderRadius="full"
+    bg={`${theme.colors[colorMode][colorKey].base}20`}
+    color={theme.colors[colorMode][colorKey].base}
+    fontSize="xs"
+    fontWeight="bold"
+    letterSpacing="wider"
+    textTransform="uppercase"
+  >
+    {children}
   </Box>
 );
+
+// Tile holding the section emoji. Lightly-tinted square that reinforces
+// the section's accent color.
+const EmojiTile = ({ emoji, colorMode, colorKey }) => (
+  <Flex
+    alignItems="center"
+    justifyContent="center"
+    width="48px"
+    height="48px"
+    flexShrink={0}
+    borderRadius="12px"
+    bg={`${theme.colors[colorMode][colorKey].base}1a`}
+    border="1px solid"
+    borderColor={`${theme.colors[colorMode][colorKey].base}33`}
+    fontSize="24px"
+    lineHeight="1"
+  >
+    {emoji}
+  </Flex>
+);
+
+const FaqSection = ({ title, colorKey, items, colorMode, matchingIndices, isSearching }) => {
+  const { emoji, label } = splitEmoji(title);
+  const accent = theme.colors[colorMode][colorKey].base;
+
+  // When the user is searching, we expand matching items by default so
+  // the hit is visible without an extra click.
+  const defaultIndex = isSearching ? matchingIndices : [];
+
+  return (
+    <Box
+      id={sectionAnchorId(title)}
+      marginTop="24px"
+      marginBottom="8px"
+      position="relative"
+      pl={['14px', '20px']}
+      _before={{
+        content: '""',
+        position: 'absolute',
+        left: 0,
+        top: '18px',
+        bottom: '18px',
+        width: '3px',
+        bg: accent,
+        borderRadius: '2px',
+        opacity: 0.75,
+      }}
+    >
+      {/* Section header */}
+      <HStack spacing={3} marginBottom="14px" alignItems="center">
+        <EmojiTile emoji={emoji} colorMode={colorMode} colorKey={colorKey} />
+        <VStack align="flex-start" spacing={1} flex="1" minW={0}>
+          <Heading
+            size="md"
+            color={accent}
+            noOfLines={1}
+            fontFamily={theme.fonts.heading}
+            letterSpacing="-0.01em"
+          >
+            {label}
+          </Heading>
+          <CountTag colorMode={colorMode} colorKey={colorKey}>
+            {items.length} {items.length === 1 ? 'question' : 'questions'}
+          </CountTag>
+        </VStack>
+      </HStack>
+
+      <Accordion
+        allowMultiple
+        borderColor="transparent"
+        width="100%"
+        {...(isSearching
+          ? { key: `search-${defaultIndex.join('-')}`, defaultIndex }
+          : { key: 'default' })}
+      >
+        {items.map((item, idx) => (
+          <AccordionItem
+            key={idx}
+            backgroundColor="whiteAlpha.100"
+            borderRadius="12px"
+            marginY="8px"
+            border="1px solid"
+            borderColor="whiteAlpha.100"
+            overflow="hidden"
+          >
+            <AccordionButton
+              minHeight="56px"
+              paddingY="12px"
+              paddingX="16px"
+              _expanded={{ bg: `${accent}1a` }}
+            >
+              <Box
+                as="span"
+                flex="1"
+                textAlign="left"
+                fontSize="sm"
+                fontFamily={theme.fonts.heading}
+                fontWeight="600"
+              >
+                <Box
+                  as="span"
+                  fontFamily="mono"
+                  fontSize="xs"
+                  color={accent}
+                  opacity={0.7}
+                  marginRight="12px"
+                >
+                  {String(idx + 1).padStart(2, '0')}
+                </Box>
+                {item.q}
+              </Box>
+              <AccordionIcon color={accent} />
+            </AccordionButton>
+            <AccordionPanel paddingY={4} paddingX={{ base: 4, md: 6 }} textAlign="left">
+              <Text lineHeight="1.75">{item.a}</Text>
+            </AccordionPanel>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </Box>
+  );
+};
 
 const Faq = () => {
   const { colorMode } = useColorMode();
   const { user } = useAuth();
   usePageTitle('FAQ');
 
-  const sections = FAQ_SECTIONS(user);
+  const [query, setQuery] = useState('');
+
+  const allSections = useMemo(() => FAQ_SECTIONS(user), [user]);
+  const totalQuestions = useMemo(
+    () => allSections.reduce((sum, s) => sum + s.items.length, 0),
+    [allSections]
+  );
+
+  const trimmedQuery = query.trim().toLowerCase();
+  const isSearching = trimmedQuery.length > 0;
+
+  // Filtered sections: keep only sections that have at least one matching
+  // Q or A. Each kept section carries the indices of its matching items so
+  // we can auto-expand them in the accordion.
+  const filteredSections = useMemo(() => {
+    if (!isSearching) {
+      return allSections.map((s) => ({
+        ...s,
+        matchingIndices: [],
+      }));
+    }
+    const needle = trimmedQuery;
+    return allSections
+      .map((section) => {
+        const matches = [];
+        section.items.forEach((item, idx) => {
+          const haystack = `${item.q} ${stringify(item.a)}`.toLowerCase();
+          if (haystack.includes(needle)) matches.push(idx);
+        });
+        if (matches.length === 0) return null;
+        return { ...section, matchingIndices: matches };
+      })
+      .filter(Boolean);
+  }, [allSections, isSearching, trimmedQuery]);
+
+  const matchCount = useMemo(
+    () => filteredSections.reduce((sum, s) => sum + s.matchingIndices.length, 0),
+    [filteredSections]
+  );
+
+  function scrollToSection(title) {
+    const el = document.getElementById(sectionAnchorId(title));
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <Flex
@@ -400,10 +599,149 @@ const Faq = () => {
       paddingX={['16px', '24px']}
       width="100%"
     >
-      <Section flexDirection="column" width="100%" maxWidth="800px">
-        <GemTitle>FAQ</GemTitle>
-        {sections.map((section, idx) => (
-          <FaqSection key={idx} {...section} colorMode={colorMode} />
+      <Section flexDirection="column" width="100%" maxWidth="840px">
+        {/* Hero: title + supporting line + total count */}
+        <Flex direction="column" alignItems="center" width="100%">
+          <GemTitle>FAQ</GemTitle>
+          <Text
+            marginTop="-8px"
+            marginBottom="18px"
+            textAlign="center"
+            maxWidth="520px"
+            color="white"
+            fontSize={['sm', 'md']}
+            fontWeight="500"
+            lineHeight="1.6"
+          >
+            Everything you've been wondering about, from boards to battle, drafts to dashboards.
+          </Text>
+          <Box marginBottom="20px">
+            <CountTag colorMode={colorMode} colorKey="turquoise">
+              {totalQuestions} questions answered
+            </CountTag>
+          </Box>
+        </Flex>
+
+        {/* Search */}
+        <InputGroup marginBottom="18px">
+          <InputLeftElement pointerEvents="none">
+            <SearchIcon color="gray.500" />
+          </InputLeftElement>
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search questions or answers..."
+            bg="white"
+            color="gray.900"
+            borderColor="whiteAlpha.400"
+            fontWeight="500"
+            _hover={{ borderColor: 'whiteAlpha.600' }}
+            _focus={{
+              borderColor: theme.colors[colorMode].turquoise.base,
+              boxShadow: `0 0 0 1px ${theme.colors[colorMode].turquoise.base}`,
+            }}
+            _placeholder={{ color: 'gray.500' }}
+          />
+          {query && (
+            <InputRightElement>
+              <IconButton
+                aria-label="Clear search"
+                icon={<CloseIcon boxSize={2.5} />}
+                size="xs"
+                variant="ghost"
+                color="gray.600"
+                _hover={{ bg: 'blackAlpha.100' }}
+                onClick={() => setQuery('')}
+              />
+            </InputRightElement>
+          )}
+        </InputGroup>
+
+        {/* Section quick-nav (jump to). Only shown when NOT searching. */}
+        {!isSearching && (
+          <HStack
+            spacing={2}
+            flexWrap="wrap"
+            marginBottom="12px"
+            justifyContent={['flex-start', 'center']}
+          >
+            {allSections.map((section) => {
+              const { emoji, label } = splitEmoji(section.title);
+              const accent = theme.colors[colorMode][section.colorKey].base;
+              return (
+                <Box
+                  as="button"
+                  key={section.title}
+                  onClick={() => scrollToSection(section.title)}
+                  display="inline-flex"
+                  alignItems="center"
+                  gap={1.5}
+                  px={3}
+                  py={1.5}
+                  borderRadius="full"
+                  border="1px solid"
+                  borderColor={`${accent}44`}
+                  bg={`${accent}0d`}
+                  color={accent}
+                  fontSize="xs"
+                  fontWeight="semibold"
+                  _hover={{ bg: `${accent}1f`, borderColor: `${accent}88` }}
+                  transition="all 0.15s ease"
+                >
+                  <Text as="span" fontSize="sm" lineHeight="1">
+                    {emoji}
+                  </Text>
+                  <Text as="span">{label}</Text>
+                </Box>
+              );
+            })}
+          </HStack>
+        )}
+
+        {/* Search results summary */}
+        {isSearching && (
+          <Text
+            marginBottom="8px"
+            fontSize="sm"
+            color="white"
+            fontWeight="500"
+            textAlign="center"
+          >
+            {matchCount > 0
+              ? `${matchCount} ${matchCount === 1 ? 'match' : 'matches'} for "${query}"`
+              : `No matches for "${query}"`}
+          </Text>
+        )}
+
+        {/* Empty state */}
+        {isSearching && filteredSections.length === 0 && (
+          <Flex
+            direction="column"
+            alignItems="center"
+            justifyContent="center"
+            paddingY="48px"
+            opacity={0.75}
+          >
+            <Text fontSize="3xl" marginBottom="8px">
+              👻
+            </Text>
+            <Text fontSize="md" fontWeight="semibold">
+              Nothing here matches that.
+            </Text>
+            <Text fontSize="sm" color="white">
+              Try fewer words, or clear the search to see every section.
+            </Text>
+          </Flex>
+        )}
+
+        {/* Sections */}
+        {filteredSections.map((section) => (
+          <FaqSection
+            key={section.title}
+            {...section}
+            colorMode={colorMode}
+            isSearching={isSearching}
+          />
         ))}
       </Section>
     </Flex>
