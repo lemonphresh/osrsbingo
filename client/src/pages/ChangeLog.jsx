@@ -30,6 +30,20 @@ import { useAuth } from '../providers/AuthProvider';
 const getChangelogEntries = (user) => {
   const entries = [
     {
+      version: '2.3.1',
+      date: 'October 2026',
+      title: 'Style Cohesiveness Pass',
+      type: 'improvement',
+      icon: FaPalette,
+      details:
+        'The site has grown a lot and some corners had started to feel a little mismatched. Spent some time buttoning things up so pages feel like they belong to the same hub.',
+      highlights: [
+        'Reused shared atoms (chips, buttons, cards) across pages that had drifted into one-off styles',
+        'Tightened up spacing, typography, and color usage so sections read more consistently',
+        'Polished a bunch of pages that were overdue for a little love',
+      ],
+    },
+    {
       version: '2.3.0',
       date: isChampionForgeEnabled(user) ? 'September 2026' : 'Coming Soon',
       title: 'Champion Forge ⚔️',
