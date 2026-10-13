@@ -36,6 +36,7 @@ const MiniStats = ({ showLink = true }) => {
     <Flex
       flexDirection="column"
       align="center"
+      width="100%"
       bg={
         colorMode === 'dark'
           ? 'linear-gradient(145deg, rgba(128, 90, 213, 0.15) 0%, rgba(49, 130, 206, 0.3) 100%)'

@@ -7,14 +7,24 @@ import {
   AlertDialogHeader,
   AlertDialogOverlay,
   Button,
+  Divider,
+  Drawer,
+  DrawerBody,
+  DrawerCloseButton,
+  DrawerContent,
+  DrawerHeader,
+  DrawerOverlay,
   Flex,
   Icon,
   Text,
   useDisclosure,
-  SimpleGrid,
   Box,
   VStack,
   HStack,
+  Select,
+  Switch,
+  Avatar,
+  AvatarBadge,
 } from '@chakra-ui/react';
 import { useAuth } from '../providers/AuthProvider';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -28,7 +38,7 @@ import { GET_USER, GET_ASSOCIATED_EVENTS } from '../graphql/queries';
 
 import EditField from '../molecules/EditField';
 import { DELETE_USER, UPDATE_USER } from '../graphql/mutations';
-import { ArrowRightIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
+import { ArrowRightIcon, CheckIcon, DeleteIcon, StarIcon } from '@chakra-ui/icons';
 import { MdDoorBack } from 'react-icons/md';
 import InvitationSection from '../organisms/InvitationsSection';
 import { useToastContext } from '../providers/ToastProvider';
@@ -47,7 +57,6 @@ import {
   isWhodunnitEnabled,
   isWhodunnitSeason,
 } from '../config/featureFlags';
-import { Switch, Select } from '@chakra-ui/react';
 import {
   HOLIDAY_PREF_KEY,
   HOLIDAY_PREF_EVENT,
@@ -56,6 +65,40 @@ import {
   isHolidayActive,
 } from '../atoms/HolidayEmojiFall';
 
+const BuildStripe = ({ to, accent, title, description }) => (
+  <Box
+    as={Link}
+    to={to}
+    display="flex"
+    alignItems="center"
+    gap={4}
+    bg={theme.colors.teal[800]}
+    borderRadius="md"
+    borderLeft="4px solid"
+    borderLeftColor={accent}
+    px={4}
+    py={3}
+    _hover={{ bg: theme.colors.teal[700], transform: 'translateX(2px)' }}
+    transition="all 0.15s"
+  >
+    <Box flex={1} minW={0}>
+      <Text
+        fontWeight="bold"
+        color={accent}
+        fontFamily={theme.fonts.heading}
+        letterSpacing="-0.005em"
+        fontSize={['sm', 'md']}
+      >
+        {title}
+      </Text>
+      <Text fontSize="xs" color="gray.400" lineHeight="1.5">
+        {description}
+      </Text>
+    </Box>
+    <ArrowRightIcon color="gray.500" boxSize={3} flexShrink={0} />
+  </Box>
+);
+
 const UserDetails = () => {
   const { isCheckingAuth, logout, setUser, user } = useAuth();
   const { showToast } = useToastContext();
@@ -63,6 +106,11 @@ const UserDetails = () => {
     isOpen: isDeleteAlertOpen,
     onOpen: onOpenDeleteAlert,
     onClose: onCloseDeleteAlert,
+  } = useDisclosure();
+  const {
+    isOpen: isEditProfileOpen,
+    onOpen: onOpenEditProfile,
+    onClose: onCloseEditProfile,
   } = useDisclosure();
   const cancelRef = useRef();
 
@@ -137,6 +185,11 @@ const UserDetails = () => {
   }, [user]);
 
   const showWhodunnitBanner = isWhodunnitEnabled(user) && isWhodunnitSeason();
+  const discordLinked = Boolean(shownUser?.discordUserId);
+  const discordAvatarUrl =
+    discordLinked && shownUser?.discordAvatar
+      ? `https://cdn.discordapp.com/avatars/${shownUser.discordUserId}/${shownUser.discordAvatar}.png`
+      : undefined;
 
   return (
     <Flex
@@ -164,35 +217,43 @@ const UserDetails = () => {
           ctaBorder="#c44046"
         />
       </Box>
-      <Section flexDirection="column" gridGap="16px" maxWidth="860px" width="100%">
-        <Flex flexDirection="column" pt="16px" gridGap="24px">
+
+      <Section flexDirection="column" gridGap="24px" maxWidth="860px" width="100%">
+        {/* HERO */}
+        <Flex flexDirection="column" pt="16px" gridGap="12px">
           <GemTitle textAlign="center">
             {isCurrentUser ? `Howdy, ${user?.displayName}!` : `${shownUser?.displayName}'s Profile`}
           </GemTitle>
-          <Text fontSize="22px" textAlign="center">
-            {isCurrentUser
-              ? 'Welcome to your Bingo Hub. Kick your feet up.'
-              : 'Oh, snooping, I see. Enjoy the view.'}
-          </Text>
-          <Section
-            backgroundColor="rgba(0, 225, 200, 0.4)"
-            flexDirection="column"
-            gridGap="4px"
-            key={user}
-            margin="0 auto"
-            marginY="16px"
-            maxWidth={['100%', '100%', '75%', '50%']}
-            minWidth={['100%', '325px']}
-          >
-            {shownUser?.admin ? (
-              <Flex alignItems="baseline" gridGap="8px" justifyContent="center" width="100%">
-                <StarIcon color={theme.colors.yellow[400]} /> Admin
-              </Flex>
-            ) : null}
-            {user?.admin && !isCurrentUser ? (
+          {isCurrentUser && (
+            <HStack justify="center" spacing={2} flexWrap="wrap">
+              <Chip variant="info" size="sm">
+                {activeEvents.length} active {activeEvents.length === 1 ? 'event' : 'events'}
+              </Chip>
+              {shownUser?.admin && (
+                <Chip variant="warn" size="sm">
+                  <StarIcon marginRight="6px" boxSize="10px" />
+                  Admin
+                </Chip>
+              )}
+              {discordLinked && (
+                <Chip variant="accent" size="sm">
+                  Discord linked
+                </Chip>
+              )}
+            </HStack>
+          )}
+          {!isCurrentUser && shownUser?.admin && (
+            <Flex justify="center">
+              <Chip variant="warn" size="md">
+                <StarIcon marginRight="6px" boxSize="10px" />
+                Admin
+              </Chip>
+            </Flex>
+          )}
+          {user?.admin && !isCurrentUser && (
+            <Flex justify="center">
               <HubButton
                 variant="ghost"
-                width="100%"
                 leftIcon={<StarIcon />}
                 onClick={async () => {
                   const { data } = await updateUser({
@@ -214,226 +275,17 @@ const UserDetails = () => {
               >
                 {shownUser?.admin ? 'Remove as' : 'Make'} Admin
               </HubButton>
-            ) : null}
-            {isCurrentUser && (
-              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
-                <Text width="100%">
-                  <Text
-                    as="span"
-                    color={theme.colors.teal[200]}
-                    display="inline"
-                    fontWeight="semibold"
-                    marginRight="4px"
-                  >
-                    Username:
-                  </Text>
-                  {'  '}
-                  {shownUser?.username}
-                </Text>
-              </Flex>
-            )}
-            {!fieldsEditing.displayName ? (
-              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
-                <Text width="100%">
-                  <Text
-                    as="span"
-                    color={theme.colors.teal[200]}
-                    display="inline"
-                    fontWeight="semibold"
-                    marginRight="4px"
-                  >
-                    Public Display Name:
-                  </Text>
-                  {'  '}
-                  {shownUser?.displayName ? shownUser.displayName : 'N/A'}
-                </Text>
-                {isCurrentUser && (
-                  <Button
-                    _hover={{ backgroundColor: theme.colors.teal[800] }}
-                    color={theme.colors.teal[200]}
-                    marginLeft="16px"
-                    onClick={() =>
-                      setFieldsEditing({
-                        ...fieldsEditing,
-                        displayName: true,
-                      })
-                    }
-                    textDecoration="underline"
-                    variant="ghost"
-                  >
-                    Edit
-                  </Button>
-                )}
-              </Flex>
-            ) : (
-              <EditField
-                entityId={user.id}
-                fieldName="displayName"
-                MUTATION={UPDATE_USER}
-                onSave={(data) => {
-                  setUser({
-                    token: user.token,
-                    ...data.updateUser,
-                  });
-                  setFieldsEditing({
-                    ...fieldsEditing,
-                    displayName: false,
-                  });
-                }}
-                value={user.displayName}
-              />
-            )}
-            {!fieldsEditing.rsn ? (
-              <Flex alignItems="center" minHeight="40px" flexDirection="space-between" width="100%">
-                <Text width="100%">
-                  <Text
-                    as="span"
-                    color={theme.colors.teal[200]}
-                    display="inline"
-                    fontWeight="semibold"
-                    marginRight="4px"
-                  >
-                    RSN:
-                  </Text>
-                  {'  '}
-                  {shownUser?.rsn ? shownUser.rsn : 'N/A'}
-                </Text>
-                {isCurrentUser && (
-                  <Button
-                    _hover={{ backgroundColor: theme.colors.teal[800] }}
-                    color={theme.colors.teal[200]}
-                    marginLeft="16px"
-                    onClick={() =>
-                      setFieldsEditing({
-                        ...fieldsEditing,
-                        rsn: true,
-                      })
-                    }
-                    textDecoration="underline"
-                    variant="ghost"
-                  >
-                    Edit
-                  </Button>
-                )}
-              </Flex>
-            ) : (
-              <EditField
-                entityId={user.id}
-                fieldName="rsn"
-                MUTATION={UPDATE_USER}
-                onSave={(data) => {
-                  setUser({
-                    token: user.token,
-                    ...data.updateUser,
-                  });
-                  setFieldsEditing({
-                    ...fieldsEditing,
-                    rsn: false,
-                  });
-                }}
-                value={user.rsn}
-              />
-            )}
-
-            {/* HOLIDAY EMOJIS TOGGLE */}
-            {isCurrentUser && isHolidayActive() && (
-              <Flex
-                alignItems="center"
-                minHeight="40px"
-                justifyContent="space-between"
-                width="100%"
-              >
-                <Text>
-                  <Text
-                    as="span"
-                    color={theme.colors.teal[200]}
-                    fontWeight="semibold"
-                    marginRight="4px"
-                  >
-                    Holiday Emojis:
-                  </Text>
-                  {holidayEmojisOn ? 'On' : 'Off'}
-                </Text>
-                <Switch
-                  isChecked={holidayEmojisOn}
-                  onChange={() => {
-                    const next = !holidayEmojisOn;
-                    setHolidayEmojisOn(next);
-                    if (next) {
-                      localStorage.removeItem(HOLIDAY_PREF_KEY);
-                    } else {
-                      localStorage.setItem(HOLIDAY_PREF_KEY, '1');
-                    }
-                    window.dispatchEvent(new Event(HOLIDAY_PREF_EVENT));
-                  }}
-                  colorScheme="teal"
-                  marginLeft="16px"
-                />
-              </Flex>
-            )}
-
-            {/* ADMIN: TEST HOLIDAY EFFECTS */}
-            {isCurrentUser && user?.admin && (
-              <Flex
-                alignItems="center"
-                minHeight="40px"
-                justifyContent="space-between"
-                width="100%"
-                gap={2}
-              >
-                <Text flexShrink={0}>
-                  <Text
-                    as="span"
-                    color={theme.colors.teal[200]}
-                    fontWeight="semibold"
-                    marginRight="4px"
-                  >
-                    Test Holiday:
-                  </Text>
-                </Text>
-                <Select
-                  size="sm"
-                  bg="gray.800"
-                  borderColor="gray.600"
-                  color="gray.100"
-                  placeholder="Pick a holiday..."
-                  onChange={(e) => {
-                    if (!e.target.value) return;
-                    window.dispatchEvent(
-                      new CustomEvent(HOLIDAY_TEST_EVENT, { detail: HOLIDAYS[e.target.value] })
-                    );
-                    e.target.value = '';
-                  }}
-                >
-                  {Object.keys(HOLIDAYS).map((name) => (
-                    <option key={name} value={name} style={{ background: '#1A202C' }}>
-                      {name}
-                    </option>
-                  ))}
-                </Select>
-              </Flex>
-            )}
-
-            {/* DISCORD INTEGRATION SECTION */}
-            {isCurrentUser && (
-              <DiscordLinkSection
-                user={user}
-                shownUser={shownUser}
-                setUser={setUser}
-                setShownUser={setShownUser}
-                showToast={showToast}
-              />
-            )}
-          </Section>
-          {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
+            </Flex>
+          )}
         </Flex>
 
+        {/* ACTIVE EVENTS (promoted) */}
         {isCurrentUser && activeEvents.length > 0 && (
           <Section flexDirection="column" width="100%">
             <GemTitle size="sm" textAlign="center" mb={4}>
               Your Active Events
             </GemTitle>
-            <VStack align="stretch" spacing={2} maxH="300px" overflowY="auto">
+            <VStack align="stretch" spacing={2} maxH="320px" overflowY="auto">
               {activeEvents.map((e) => (
                 <HStack
                   key={`${e.type}-${e.eventId}`}
@@ -498,232 +350,162 @@ const UserDetails = () => {
           </Section>
         )}
 
+        {/* INVITATIONS */}
+        {isCurrentUser && <InvitationSection setShownUser={setShownUser} />}
+
+        {/* PROFILE SUMMARY ROW */}
+        {isCurrentUser && (
+          <Flex
+            align="center"
+            justify="space-between"
+            flexDirection={['column', 'row']}
+            gap={3}
+            bg={theme.colors.teal[800]}
+            borderRadius="lg"
+            border="1px solid"
+            borderColor={theme.colors.teal[700]}
+            px={5}
+            py={4}
+          >
+            <Flex
+              align="center"
+              gap={2}
+              flexWrap="wrap"
+              justify={['center', 'flex-start']}
+              fontSize="sm"
+            >
+              <Text as="span" color="white" fontWeight="semibold">
+                @{shownUser?.username}
+              </Text>
+              {shownUser?.displayName && (
+                <>
+                  <Text as="span" color="gray.500">
+                    ·
+                  </Text>
+                  <Text as="span" color="whiteAlpha.800">
+                    {shownUser.displayName}
+                  </Text>
+                </>
+              )}
+              <Text as="span" color="gray.500">
+                ·
+              </Text>
+              <Text as="span" color="whiteAlpha.700">
+                <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold">
+                  RSN:
+                </Text>{' '}
+                {shownUser?.rsn || 'none set'}
+              </Text>
+              <Text as="span" color="gray.500">
+                ·
+              </Text>
+              {discordLinked ? (
+                <HStack
+                  spacing={2}
+                  bg="rgba(88, 101, 242, 0.15)"
+                  border="1px solid"
+                  borderColor="rgba(88, 101, 242, 0.5)"
+                  borderRadius="full"
+                  pl={1}
+                  pr={3}
+                  py={1}
+                >
+                  <Avatar
+                    size="xs"
+                    src={discordAvatarUrl}
+                    name={shownUser?.discordUsername || shownUser?.displayName}
+                    bg="#5865F2"
+                  >
+                    <AvatarBadge
+                      boxSize="1.1em"
+                      bg="green.400"
+                      borderColor="rgba(88, 101, 242, 0.9)"
+                      borderWidth="2px"
+                    >
+                      <CheckIcon color="white" boxSize="0.5em" />
+                    </AvatarBadge>
+                  </Avatar>
+                  <Text as="span" fontSize="xs" color="white" fontWeight="semibold">
+                    {shownUser?.discordUsername || 'Discord linked'}
+                  </Text>
+                </HStack>
+              ) : (
+                <Text as="span" color="whiteAlpha.600">
+                  <Text as="span" color={theme.colors.teal[200]} fontWeight="semibold">
+                    Discord:
+                  </Text>{' '}
+                  not linked
+                </Text>
+              )}
+            </Flex>
+            <HubButton size="sm" variant="ghost" onClick={onOpenEditProfile}>
+              Edit profile
+            </HubButton>
+          </Flex>
+        )}
+
+        {/* BUILD RAIL */}
         {isCurrentUser && (
           <Section flexDirection="column" width="100%">
             <GemTitle size="sm" textAlign="center" mb={4}>
-              Create Events
+              Toolkit
             </GemTitle>
-            <SimpleGrid columns={[1, 3]} spacing={4}>
-              <Box
-                as={Link}
+            <VStack align="stretch" spacing={2}>
+              <BuildStripe
                 to="/bingo"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.purple[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.purple[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.purple[300]} mb={1}>
-                  Bingo Boards
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Create and manage your custom bingo boards. Track your progress and share with
-                  friends for some friendly competition.
-                </Text>
-              </Box>
+                accent={theme.colors.purple[300]}
+                title="Bingo Boards"
+                description="Create and manage custom bingo boards. Track progress and share with friends."
+              />
               {isGielinorRushEnabled(user) && (
-                <Box
-                  as={Link}
+                <BuildStripe
                   to="/gielinor-rush"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.yellow[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.yellow[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
-                    Gielinor Rush
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Host live treasure hunt competitions with your friends and clanmates, complete
-                    with an auto-generated map and submission support.
-                  </Text>
-                </Box>
+                  accent={theme.colors.yellow[300]}
+                  title="Gielinor Rush"
+                  description="Host live treasure hunt competitions with an auto-generated map and submission support."
+                />
               )}
               {isBattleshipEnabled(user) && (
-                <Box
-                  as={Link}
+                <BuildStripe
                   to="/battleship"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor="#47b3d1"
-                  p={5}
-                  _hover={{ borderColor: '#76e4f7', transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color="#76e4f7" mb={1}>
-                    Battleship
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to
-                    sink the enemy.
-                  </Text>
-                </Box>
+                  accent="#76e4f7"
+                  title="Battleship"
+                  description="Two big teams, one big ocean. Place your fleet, fire shots, complete tasks to sink the enemy."
+                />
               )}
               {isChampionForgeEnabled(user) && (
-                <Box
-                  as={Link}
+                <BuildStripe
                   to="/champion-forge"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.red[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.red[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
-                    Champion Forge
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    It takes a village to build a champion. Group up, earn gear, and battle for
-                    glory in this competitive clan event. Good for short term events.
-                  </Text>
-                </Box>
+                  accent={theme.colors.red[300]}
+                  title="Champion Forge"
+                  description="Group up, earn gear, and battle for glory. Good for short-term clan events."
+                />
               )}
               {isGroupDashboardEnabled(user) && (
-                <Box
-                  as={Link}
+                <BuildStripe
                   to="/group"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.orange[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.orange[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.orange[300]} mb={1}>
-                    Group Goals Dashboard
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Create shared goals and track group progress over time with this dashboard built
-                    for clans, GIMs, and pals.
-                  </Text>
-                </Box>
+                  accent={theme.colors.orange[300]}
+                  title="Group Goals Dashboard"
+                  description="Shared goals and group progress for clans, GIMs, and pals."
+                />
               )}
-            </SimpleGrid>
-          </Section>
-        )}
-
-        {isCurrentUser && (
-          <Section flexDirection="column" width="100%">
-            <GemTitle size="sm" textAlign="center" mb={4}>
-              Tools
-            </GemTitle>
-            <SimpleGrid columns={[1, 3]} spacing={4}>
-              <Box
-                as={Link}
+              <BuildStripe
                 to="/team-balancer"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="2px solid"
-                borderColor={theme.colors.green[500]}
-                p={5}
-                _hover={{ borderColor: theme.colors.green[300], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.green[300]} mb={1}>
-                  Team Balancer
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Auto-balance a list of RSNs into fair teams using WOM stats. Perfect before
-                  planning an event.
-                </Text>
-              </Box>
+                accent={theme.colors.green[300]}
+                title="Team Balancer"
+                description="Auto-balance a list of RSNs into fair teams using WOM stats."
+              />
               {isBlindDraftEnabled(user) && (
-                <Box
-                  as={Link}
+                <BuildStripe
                   to="/blind-draft"
-                  bg={theme.colors.teal[800]}
-                  borderRadius="lg"
-                  border="2px solid"
-                  borderColor={theme.colors.pink[500]}
-                  p={5}
-                  _hover={{ borderColor: theme.colors.pink[300], transform: 'translateY(-2px)' }}
-                  transition="all 0.15s"
-                >
-                  <Text fontWeight="bold" color={theme.colors.pink[300]} mb={1}>
-                    Blind Draft
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Anonymous player draft rooms for fair team selection. Both captains pick live
-                    from anonymous cards.
-                  </Text>
-                </Box>
+                  accent={theme.colors.pink[300]}
+                  title="Blind Draft"
+                  description="Anonymous player draft rooms. Both captains pick live from anonymous cards."
+                />
               )}
-            </SimpleGrid>
+            </VStack>
           </Section>
         )}
-
-        <Section flexDirection="column" width="100%">
-          <GemTitle size="sm" gemColor="purple" textAlign="center" mb={4}>
-            Discover
-          </GemTitle>
-          <SimpleGrid columns={[1, 2]} spacing={4}>
-            <Box
-              as={Link}
-              to="/boards"
-              bg={theme.colors.teal[800]}
-              borderRadius="lg"
-              border="1px solid"
-              borderColor={theme.colors.teal[600]}
-              p={5}
-              _hover={{ borderColor: theme.colors.purple[400], transform: 'translateY(-2px)' }}
-              transition="all 0.15s"
-            >
-              <Text fontWeight="bold" color={theme.colors.purple[200]} mb={1}>
-                Browse Public Bingo Boards
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                Explore boards shared by the community
-              </Text>
-            </Box>
-            <Box
-              as={Link}
-              to="/gielinor-rush/active"
-              bg={theme.colors.teal[800]}
-              borderRadius="lg"
-              border="1px solid"
-              borderColor={theme.colors.teal[600]}
-              p={5}
-              _hover={{ borderColor: theme.colors.yellow[400], transform: 'translateY(-2px)' }}
-              transition="all 0.15s"
-            >
-              <Text fontWeight="bold" color={theme.colors.yellow[300]} mb={1}>
-                Active Gielinor Rush Events
-              </Text>
-              <Text fontSize="sm" color="gray.400">
-                See all live and recent treasure hunt competitions
-              </Text>
-            </Box>
-            {isChampionForgeEnabled(user) && (
-              <Box
-                as={Link}
-                to="/champion-forge/gallery"
-                bg={theme.colors.teal[800]}
-                borderRadius="lg"
-                border="1px solid"
-                borderColor={theme.colors.teal[600]}
-                p={5}
-                _hover={{ borderColor: theme.colors.red[400], transform: 'translateY(-2px)' }}
-                transition="all 0.15s"
-              >
-                <Text fontWeight="bold" color={theme.colors.red[300]} mb={1}>
-                  Champion Forge: Battle Gallery
-                </Text>
-                <Text fontSize="sm" color="gray.400">
-                  Watch replays from past Champion Forge tourneys
-                </Text>
-              </Box>
-            )}
-          </SimpleGrid>
-        </Section>
 
         <MiniStats />
 
@@ -774,59 +556,262 @@ const UserDetails = () => {
             </Link>
           </PleaseEffect>
         </Flex>
+
+        {/* QUIET FOOTER BAR */}
+        {(isCurrentUser || (!isCurrentUser && user?.admin)) && (
+          <>
+            <Divider borderColor="whiteAlpha.200" mt={4} />
+            <Flex
+              justify="space-between"
+              align="center"
+              flexDirection={['column', 'row']}
+              gap={3}
+              pt={2}
+              pb={4}
+            >
+              {!isCurrentUser && user?.admin ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  color="red.300"
+                  leftIcon={<DeleteIcon />}
+                  onClick={onOpenDeleteAlert}
+                  _hover={{ bg: 'whiteAlpha.100', color: 'red.200' }}
+                >
+                  Delete user
+                </Button>
+              ) : (
+                <Box />
+              )}
+              {isCurrentUser && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  color="whiteAlpha.700"
+                  leftIcon={<Icon as={MdDoorBack} />}
+                  onClick={logout}
+                  as={Link}
+                  to="/"
+                  _hover={{ bg: 'whiteAlpha.100', color: 'white' }}
+                >
+                  Logout
+                </Button>
+              )}
+            </Flex>
+          </>
+        )}
       </Section>
 
+      {/* EDIT PROFILE DRAWER */}
+      <Drawer isOpen={isEditProfileOpen} placement="right" onClose={onCloseEditProfile} size="md">
+        <DrawerOverlay />
+        <DrawerContent bg="gray.800" color="white">
+          <DrawerCloseButton />
+          <DrawerHeader
+            fontFamily={theme.fonts.heading}
+            fontWeight="700"
+            letterSpacing="-0.01em"
+            borderBottomWidth="1px"
+            borderColor="whiteAlpha.200"
+          >
+            Edit profile
+          </DrawerHeader>
+          <DrawerBody>
+            <VStack align="stretch" spacing={5} py={2}>
+              {/* DISPLAY NAME */}
+              <Box>
+                <Text fontSize="xs" color={theme.colors.teal[200]} fontWeight="semibold" mb={2}>
+                  Public display name
+                </Text>
+                {!fieldsEditing.displayName ? (
+                  <Flex align="center" justify="space-between">
+                    <Text fontSize="sm" color="white">
+                      {shownUser?.displayName || 'N/A'}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color={theme.colors.teal[200]}
+                      textDecoration="underline"
+                      _hover={{ bg: theme.colors.teal[700] }}
+                      onClick={() => setFieldsEditing({ ...fieldsEditing, displayName: true })}
+                    >
+                      Edit
+                    </Button>
+                  </Flex>
+                ) : (
+                  <EditField
+                    entityId={user.id}
+                    fieldName="displayName"
+                    MUTATION={UPDATE_USER}
+                    onSave={(data) => {
+                      setUser({ token: user.token, ...data.updateUser });
+                      setFieldsEditing({ ...fieldsEditing, displayName: false });
+                    }}
+                    value={user.displayName}
+                  />
+                )}
+              </Box>
+
+              <Divider borderColor="whiteAlpha.200" />
+
+              {/* RSN */}
+              <Box>
+                <Text fontSize="xs" color={theme.colors.teal[200]} fontWeight="semibold" mb={2}>
+                  RSN
+                </Text>
+                {!fieldsEditing.rsn ? (
+                  <Flex align="center" justify="space-between">
+                    <Text fontSize="sm" color="white">
+                      {shownUser?.rsn || 'N/A'}
+                    </Text>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      color={theme.colors.teal[200]}
+                      textDecoration="underline"
+                      _hover={{ bg: theme.colors.teal[700] }}
+                      onClick={() => setFieldsEditing({ ...fieldsEditing, rsn: true })}
+                    >
+                      Edit
+                    </Button>
+                  </Flex>
+                ) : (
+                  <EditField
+                    entityId={user.id}
+                    fieldName="rsn"
+                    MUTATION={UPDATE_USER}
+                    onSave={(data) => {
+                      setUser({ token: user.token, ...data.updateUser });
+                      setFieldsEditing({ ...fieldsEditing, rsn: false });
+                    }}
+                    value={user.rsn}
+                  />
+                )}
+              </Box>
+
+              <Divider borderColor="whiteAlpha.200" />
+
+              {/* DISCORD */}
+              <Box>
+                <Text fontSize="xs" color={theme.colors.teal[200]} fontWeight="semibold" mb={2}>
+                  Discord
+                </Text>
+                <DiscordLinkSection
+                  user={user}
+                  shownUser={shownUser}
+                  setUser={setUser}
+                  setShownUser={setShownUser}
+                  showToast={showToast}
+                />
+              </Box>
+
+              {/* HOLIDAY EMOJIS */}
+              {isHolidayActive() && (
+                <>
+                  <Divider borderColor="whiteAlpha.200" />
+                  <Flex align="center" justify="space-between">
+                    <Box>
+                      <Text fontSize="xs" color={theme.colors.teal[200]} fontWeight="semibold">
+                        Holiday emojis
+                      </Text>
+                      <Text fontSize="sm" color="whiteAlpha.800">
+                        {holidayEmojisOn ? 'On' : 'Off'}
+                      </Text>
+                    </Box>
+                    <Switch
+                      isChecked={holidayEmojisOn}
+                      onChange={() => {
+                        const next = !holidayEmojisOn;
+                        setHolidayEmojisOn(next);
+                        if (next) {
+                          localStorage.removeItem(HOLIDAY_PREF_KEY);
+                        } else {
+                          localStorage.setItem(HOLIDAY_PREF_KEY, '1');
+                        }
+                        window.dispatchEvent(new Event(HOLIDAY_PREF_EVENT));
+                      }}
+                      colorScheme="teal"
+                    />
+                  </Flex>
+                </>
+              )}
+
+              {/* ADMIN HOLIDAY TEST */}
+              {user?.admin && (
+                <>
+                  <Divider borderColor="whiteAlpha.200" />
+                  <Box>
+                    <Text fontSize="xs" color={theme.colors.teal[200]} fontWeight="semibold" mb={2}>
+                      Test holiday (admin)
+                    </Text>
+                    <Select
+                      size="sm"
+                      bg="gray.900"
+                      borderColor="gray.600"
+                      color="gray.100"
+                      placeholder="Pick a holiday..."
+                      onChange={(e) => {
+                        if (!e.target.value) return;
+                        window.dispatchEvent(
+                          new CustomEvent(HOLIDAY_TEST_EVENT, {
+                            detail: HOLIDAYS[e.target.value],
+                          })
+                        );
+                        e.target.value = '';
+                      }}
+                    >
+                      {Object.keys(HOLIDAYS).map((name) => (
+                        <option key={name} value={name} style={{ background: '#1A202C' }}>
+                          {name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Box>
+                </>
+              )}
+            </VStack>
+          </DrawerBody>
+        </DrawerContent>
+      </Drawer>
+
+      {/* DELETE USER ALERT */}
       {!isCurrentUser && user?.admin && (
-        <>
-          <HubButton
-            variant="danger"
-            leftIcon={<DeleteIcon />}
-            marginTop="48px"
-            onClick={onOpenDeleteAlert}
-          >
-            Delete User
-          </HubButton>
-
-          <AlertDialog
-            isOpen={isDeleteAlertOpen}
-            leastDestructiveRef={cancelRef}
-            onClose={onCloseDeleteAlert}
-          >
-            <AlertDialogOverlay>
-              <AlertDialogContent>
-                <AlertDialogHeader fontSize="lg" fontWeight="semibold">
-                  Delete User
-                </AlertDialogHeader>
-                <AlertDialogBody>
-                  Are you sure? This will also delete their associated Bingo Boards and any
-                  invitations they've sent. You can't undo this action afterwards.
-                </AlertDialogBody>
-                <AlertDialogFooter>
-                  <HubButton ref={cancelRef} variant="neutral" onClick={onCloseDeleteAlert}>
-                    Cancel
-                  </HubButton>
-                  <HubButton variant="danger" onClick={onDelete} ml={3}>
-                    Delete
-                  </HubButton>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialogOverlay>
-          </AlertDialog>
-        </>
-      )}
-
-      {isCurrentUser && (
-        <HubButton
-          variant="ghost"
-          size="lg"
-          leftIcon={<Icon as={MdDoorBack} />}
-          marginTop="48px"
-          onClick={logout}
-          as={Link}
-          to="/"
+        <AlertDialog
+          isOpen={isDeleteAlertOpen}
+          leastDestructiveRef={cancelRef}
+          onClose={onCloseDeleteAlert}
         >
-          Logout
-        </HubButton>
+          <AlertDialogOverlay>
+            <AlertDialogContent
+              bg="gray.800"
+              color="white"
+              borderWidth="1px"
+              borderColor="gray.700"
+            >
+              <AlertDialogHeader
+                fontFamily={theme.fonts.heading}
+                fontSize="lg"
+                fontWeight="700"
+                letterSpacing="-0.01em"
+              >
+                Delete User
+              </AlertDialogHeader>
+              <AlertDialogBody color="whiteAlpha.800" lineHeight="1.6">
+                Are you sure? This will also delete their associated Bingo Boards and any
+                invitations they've sent. You can't undo this action afterwards.
+              </AlertDialogBody>
+              <AlertDialogFooter>
+                <HubButton ref={cancelRef} variant="neutral" onClick={onCloseDeleteAlert}>
+                  Cancel
+                </HubButton>
+                <HubButton variant="danger" onClick={onDelete} ml={3}>
+                  Delete
+                </HubButton>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialogOverlay>
+        </AlertDialog>
       )}
     </Flex>
   );
