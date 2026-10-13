@@ -10,7 +10,7 @@ import { GET_SPOOPY_ADMIN_EVENT } from '../../graphql/spoopyOperations';
 import SpoopyTile from '../../organisms/spoopy/SpoopyTile';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
 import SpoopyTileDialog from '../../organisms/spoopy/SpoopyTileDialog';
-import SpoopyTaskCard from '../../organisms/spoopy/SpoopyTaskCard';
+import SpoopyTaskCard, { taskLine, AcceptableUniquesDrops } from '../../organisms/spoopy/SpoopyTaskCard';
 import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
@@ -118,6 +118,8 @@ export default function SpoopyPlaygroundPage() {
         <DialogSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <TaskCardSection />
+        <Divider borderColor={SPOOPY_COLORS.nightMist} />
+        <RefsGoalPanelSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <HauntedHouseSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -776,6 +778,119 @@ function TaskCardSection() {
           status="complete"
         />
       </SimpleGrid>
+    </VStack>
+  );
+}
+
+// Mirrors the "goal" panel + accepted-drops grid that renders inside each
+// TileGroup on SpoopyRefsPage. Examples are copy-pasted from
+// server/utils/spoopy/fixtures/content.csv so refs can preview what a real
+// custom / uniques / house-choice tile looks like in the review flow.
+const REFS_GOAL_EXAMPLES = [
+  {
+    coord: 'r19-c1',
+    tileType: 'ghost',
+    note: 'custom task with multi-boss drop pool override',
+    task: {
+      kind: 'custom',
+      target: "any uniques from K'ril or Bandos combined",
+      amount: 4,
+      acceptable_drops: [
+        'Staff of the Dead', 'Zamorakian Spear', 'Steam Battlestaff',
+        'Zamorak Hilt', "K'ril Tsutsaroth Jr.", 'Bandos Chestplate',
+        'Bandos Tassets', 'Bandos Boots', 'Bandos Hilt', 'General Graardor Jr.',
+      ],
+    },
+  },
+  {
+    coord: 'r9-c8',
+    tileType: 'ghost',
+    flavorText: null,
+    note: 'standard uniques tile — registry-fallback would also work',
+    task: {
+      kind: 'uniques',
+      target: 'vorkath',
+      amount: 5,
+      acceptable_drops: [
+        'Dragonbone Necklace', 'Jar of Decay', "Vorkath's Head (not 50kc one)",
+        'Vorki', 'Skeletal Visage', 'Draconic Visage',
+      ],
+    },
+  },
+  {
+    coord: 'r12-c8',
+    tileType: 'house',
+    note: 'Mossy Way treat option — custom sentence IS the goal',
+    task: {
+      kind: 'custom',
+      target: 'Travel to a spooky spot in the Wilderness. Draw a Jack o\' lantern on the minimap using dropped bat bones',
+      amount: 1,
+    },
+  },
+];
+
+function RefsGoalPanelSection() {
+  return (
+    <VStack spacing={4} align="stretch">
+      <Heading size="md" fontFamily={SPOOPY_FONTS.heading}>refs goal panel</Heading>
+      <Text fontSize="sm" opacity={0.7}>
+        the "what was the player supposed to do" block that sits above the progress
+        slider on each tile group in the refs page. especially matters for custom
+        tasks where the sentence IS the whole requirement.
+      </Text>
+      <VStack align="stretch" spacing={3}>
+        {REFS_GOAL_EXAMPLES.map(({ coord, tileType, task, flavorText, note }) => (
+          <Box
+            key={coord}
+            bg={SPOOPY_COLORS.nightDeep}
+            borderRadius="lg"
+            border="1px solid"
+            borderColor={SPOOPY_COLORS.nightMist}
+            p={4}
+          >
+            <HStack mb={3} spacing={2}>
+              <Text fontSize="xs" fontFamily="mono" color={SPOOPY_COLORS.pumpkinLight} fontWeight="bold" letterSpacing="wider">
+                {coord}
+              </Text>
+              <Text fontSize="xs" color={SPOOPY_COLORS.paper} opacity={0.7}>
+                {TILE_META[tileType]?.label ?? tileType}
+              </Text>
+              <Text fontSize="xs" color={SPOOPY_COLORS.paper} opacity={0.5}>· {note}</Text>
+            </HStack>
+
+            <VStack align="stretch" spacing={3}>
+              <Box
+                bg={SPOOPY_COLORS.night}
+                border="1px solid"
+                borderColor={SPOOPY_COLORS.nightMist}
+                borderRadius="md"
+                px={3}
+                py={2}
+              >
+                <Text
+                  fontSize="10px"
+                  color={SPOOPY_COLORS.pumpkinLight}
+                  fontWeight="bold"
+                  textTransform="uppercase"
+                  letterSpacing="wider"
+                  mb={1}
+                >
+                  goal
+                </Text>
+                <Text fontSize="sm" color={SPOOPY_COLORS.paper} fontFamily={SPOOPY_FONTS.hand}>
+                  {taskLine(task)}
+                </Text>
+                {flavorText && (
+                  <Text fontSize="xs" color={SPOOPY_COLORS.paper} opacity={0.65} mt={1}>
+                    {flavorText}
+                  </Text>
+                )}
+              </Box>
+              <AcceptableUniquesDrops task={task} />
+            </VStack>
+          </Box>
+        ))}
+      </VStack>
     </VStack>
   );
 }

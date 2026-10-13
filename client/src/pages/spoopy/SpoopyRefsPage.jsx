@@ -58,7 +58,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from '../../organisms/spoopy/spoopyTheme';
 import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWildyLocations';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
-import { AcceptableUniquesDrops } from '../../organisms/spoopy/SpoopyTaskCard';
+import { AcceptableUniquesDrops, taskLine } from '../../organisms/spoopy/SpoopyTaskCard';
 
 // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -312,6 +312,7 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
     isComplete,
     progress,
     task,
+    flavorText,
     mossyWildyLocation,
   } = group;
   const pending = submissions.filter((s) => s.status === 'PENDING');
@@ -425,6 +426,40 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
                   {getMossyWildyLocationName(mossyWildyLocation) ?? 'no clue assignment found'}
                 </Text>
               </HStack>
+            </Box>
+          )}
+
+          {task && (
+            <Box
+              bg={SPOOPY_COLORS.night}
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              px={3}
+              py={2}
+            >
+              <Text
+                fontSize="10px"
+                color={SPOOPY_COLORS.pumpkinLight}
+                fontWeight="bold"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={1}
+              >
+                goal
+              </Text>
+              <Text
+                fontSize="sm"
+                color={SPOOPY_COLORS.paper}
+                fontFamily={SPOOPY_FONTS.hand}
+              >
+                {taskLine(task)}
+              </Text>
+              {flavorText && (
+                <Text fontSize="xs" color={SPOOPY_COLORS.paper} opacity={0.65} mt={1}>
+                  {flavorText}
+                </Text>
+              )}
             </Box>
           )}
 
@@ -644,6 +679,7 @@ export default function SpoopyRefsPage() {
           teamName: team?.teamName ?? sub.teamId,
           tile: boardTile,
           task: resolveTask(sub.tileId, tileType, sub.teamTile),
+          flavorText: contentById[sub.tileId]?.flavor_text ?? null,
           mossyWildyLocation: team?.mossyWildyLocation ?? null,
           teamTileOutcome: sub.teamTile?.outcome ?? null,
           submissions: [],
