@@ -656,7 +656,7 @@ export default function SpoopyBoard({
               bg={surfaceBg}
               borderRadius="lg"
               boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 40px rgba(0,0,0,0.55)`}
-              overflowX="auto"
+              // overflowX="auto"
               maxWidth="fit-content"
               // Zoom lives on the outer HStack now so decor + paper scale as
               // one surface. Paper itself no longer zooms individually.
@@ -861,7 +861,6 @@ export default function SpoopyBoard({
                     so the sticker squares paint over the line and the trail
                     reads as "ducking under" each house. */}
                 <BoardPathOverlay cells={cells} dims={dims} cellSize={cellSize} />
-
 
                 {/* Real tiles as paper stickers */}
                 {tiles.map((tile) => {
@@ -1124,10 +1123,10 @@ export default function SpoopyBoard({
 // emitted exactly once. Handles branching layouts (main road + side
 // streets) naturally — every link gets a dash.
 const FWD_DIRS = [
-  [0, 1],   // right
-  [1, 0],   // down
-  [1, 1],   // down-right
-  [1, -1],  // down-left
+  [0, 1], // right
+  [1, 0], // down
+  [1, 1], // down-right
+  [1, -1], // down-left
 ];
 function computeSpoopyPathEdges(cells, dims) {
   if (!cells || !dims?.rows || !dims?.cols) return [];
@@ -1157,7 +1156,10 @@ function computeSpoopyPathEdges(cells, dims) {
         if (nr < 0 || nr >= rows || nc < 0 || nc >= cols) continue;
         if (!onPath(nr, nc)) continue;
         if (!canStep(r, c, nr, nc)) continue;
-        edges.push([[r, c], [nr, nc]]);
+        edges.push([
+          [r, c],
+          [nr, nc],
+        ]);
       }
     }
   }
@@ -1171,10 +1173,7 @@ function computeSpoopyPathEdges(cells, dims) {
 // that ducks under each house. Pumpkin-orange dashes with a soft dark
 // shadow for lift.
 function BoardPathOverlay({ cells, dims, cellSize }) {
-  const edges = useMemo(
-    () => computeSpoopyPathEdges(cells, dims),
-    [cells, dims],
-  );
+  const edges = useMemo(() => computeSpoopyPathEdges(cells, dims), [cells, dims]);
   if (edges.length === 0) return null;
   const width = dims.cols * cellSize;
   const height = dims.rows * cellSize;
