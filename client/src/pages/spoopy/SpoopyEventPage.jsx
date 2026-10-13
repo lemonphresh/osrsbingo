@@ -41,6 +41,7 @@ import SpoopyRulesModal, { getSpoopyRulesKey } from '../../organisms/spoopy/Spoo
 import SpoopyTutorial, { hasSeenSpoopyTutorial } from '../../organisms/spoopy/SpoopyTutorial';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyContentGallery from '../../organisms/spoopy/SpoopyContentGallery';
 import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevUtils';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp } from '../../organisms/spoopy/spoopyCurrency';
@@ -1379,6 +1380,30 @@ function CompleteRecap({ event, myTeam }) {
           </Text>
         </VStack>
 
+        {/* Scrapbook — the server unredacts contentById once the event is
+            COMPLETE, so players can flip through every house dialog and see
+            both the trick and treat branches, including the one they didn't
+            pick. Rendered inline under allure's drawing so it reads as part
+            of the signoff rather than a separate feature. */}
+        <VStack spacing={3} pt={4} w="100%">
+          <VStack spacing={1}>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="sm"
+              opacity={0.6}
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              — the scrapbook —
+            </Text>
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.75}>
+              every house, every trick, every treat. feel free to peruse what your evil clanmates
+              did to you and everyone else.
+            </Text>
+          </VStack>
+          <SpoopyContentGallery event={event} inline housesOnly />
+        </VStack>
+
         <Text
           fontFamily={SPOOPY_FONTS.heading}
           fontSize={{ base: 'xl', md: '2xl' }}
@@ -1389,10 +1414,10 @@ function CompleteRecap({ event, myTeam }) {
           🎃 happy halloween, ghouls and ghasts, now please go shake some ass 🎃
         </Text>
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7} mt="16px">
-          i hope you had fun. i had a lot of fun building this one. special thanks to allure for
-          help with the art and the great trick-or-treat related idea in the first place :) i hope
-          y'all look forward to the last lemon event i'm running in december, and as always, thank
-          you for playing.{' '}
+          i hope you had fun. i had a lot of fun building this one. special thanks to allure for the
+          great trick-or-treat related idea in the first place :) i hope y'all look forward to the
+          last lemon event (choose your own teams or do it solo..!) i'm running in december, and as
+          always, thank you for playing.{' '}
         </Text>
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7}>
           love, lemon{' '}

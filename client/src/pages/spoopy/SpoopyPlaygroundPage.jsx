@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Box, Heading, Text, VStack, HStack, SimpleGrid, Divider, Button, Center, Badge,
-  Select, IconButton, Tag,
+  Tag,
 } from '@chakra-ui/react';
-import { ChevronLeftIcon, ChevronRightIcon } from '@chakra-ui/icons';
 import { useQuery } from '@apollo/client';
 import { useAuth } from '../../providers/AuthProvider';
 import { GET_SPOOPY_ADMIN_EVENT } from '../../graphql/spoopyOperations';
@@ -11,13 +10,13 @@ import SpoopyTile from '../../organisms/spoopy/SpoopyTile';
 import SpoopyBoard from '../../organisms/spoopy/SpoopyBoard';
 import SpoopyTileDialog from '../../organisms/spoopy/SpoopyTileDialog';
 import SpoopyTaskCard, { taskLine, AcceptableUniquesDrops } from '../../organisms/spoopy/SpoopyTaskCard';
-import SpoopyTaskModal from '../../organisms/spoopy/SpoopyTaskModal';
 import SpoopyStartModal from '../../organisms/spoopy/SpoopyStartModal';
 import SpoopyHauntedHouseModal from '../../organisms/spoopy/SpoopyHauntedHouseModal';
 import SpoopyCashedOutModal from '../../organisms/spoopy/SpoopyCashedOutModal';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import SpoopyActivatePreflightModal from '../../organisms/spoopy/SpoopyActivatePreflightModal';
+import SpoopyContentGallery, { buildSpoopyContentEntries } from '../../organisms/spoopy/SpoopyContentGallery';
 import {
   SPOOPY_COLORS, SPOOPY_FONTS, TILE_META, STATUS_META,
 } from '../../organisms/spoopy/spoopyTheme';
@@ -163,86 +162,14 @@ function Intro() {
 // This is NOT the live board. Nothing here writes state. It's an inline
 // preview for pre-flight content QA.
 
-// Builds the flat list of previewable "entries" from an event. Each entry
-// knows what modal to render and (for houses) which option to lock in.
-function buildPreviewEntries(event) {
-  if (!event) return [];
-  const tiles = event.board?.tiles ?? [];
-  const contentById = event.contentById ?? {};
-  const sorted = [...tiles].sort((a, b) => {
-    if (a.position?.row !== b.position?.row) return (a.position?.row ?? 0) - (b.position?.row ?? 0);
-    return (a.position?.col ?? 0) - (b.position?.col ?? 0);
-  });
-
-  const entries = [];
-  for (const tile of sorted) {
-    const content = contentById[tile.id];
-    if (tile.tile_type === 'house') {
-      // Even if content is missing we still emit entries so the user sees
-      // "this tile has no content yet" rather than skipping silently.
-      //
-      // Three entries per house: the pre-choice state (what players see when
-      // they first click the tile, with both options and the discord
-      // commands) plus one for each locked-in option so you can confirm the
-      // revealed task card reads correctly on either branch.
-      const outcomeA = content?.dialog?.options?.a?.outcome;
-      const outcomeB = content?.dialog?.options?.b?.outcome;
-      entries.push({
-        key: `${tile.id}:pick`,
-        tileId: tile.id,
-        tileType: 'house',
-        variant: null,
-        label: `${tile.id} · trick or treat?`,
-        tile,
-        content,
-      });
-      entries.push({
-        key: `${tile.id}:a`,
-        tileId: tile.id,
-        tileType: 'house',
-        variant: 'a',
-        label: `${tile.id} · option a${outcomeA ? ` (${outcomeA})` : ''}`,
-        tile,
-        content,
-      });
-      entries.push({
-        key: `${tile.id}:b`,
-        tileId: tile.id,
-        tileType: 'house',
-        variant: 'b',
-        label: `${tile.id} · option b${outcomeB ? ` (${outcomeB})` : ''}`,
-        tile,
-        content,
-      });
-    } else {
-      entries.push({
-        key: tile.id,
-        tileId: tile.id,
-        tileType: tile.tile_type,
-        variant: null,
-        label: `${tile.id} · ${tile.tile_type}`,
-        tile,
-        content,
-      });
-    }
-  }
-  return entries;
-}
-
 function ContentPreviewSection() {
   const { data, loading, error, refetch } = useQuery(GET_SPOOPY_ADMIN_EVENT, {
     fetchPolicy: 'cache-and-network',
   });
   const event = data?.spoopyEvents?.[0] ?? null;
-  const entries = useMemo(() => buildPreviewEntries(event), [event]);
+  const entries = useMemo(() => buildSpoopyContentEntries(event), [event]);
 
-  const [idx, setIdx] = useState(0);
   const [open, setOpen] = useState(false);
-
-  const entry = entries[idx] ?? null;
-
-  const prev = () => setIdx((i) => Math.max(0, i - 1));
-  const next = () => setIdx((i) => Math.min(entries.length - 1, i + 1));
 
   return (
     <VStack spacing={3} align="stretch">
@@ -278,10 +205,7 @@ function ContentPreviewSection() {
             bg={SPOOPY_COLORS.pumpkin}
             color={SPOOPY_COLORS.paper}
             _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
-            onClick={() => {
-              setIdx(0);
-              setOpen(true);
-            }}
+            onClick={() => setOpen(true)}
             isDisabled={entries.length === 0}
           >
             open preview
@@ -300,265 +224,12 @@ function ContentPreviewSection() {
         </HStack>
       )}
 
-      {open && entry && (
-        <PreviewOverlay
-          event={event}
-          entry={entry}
-          idx={idx}
-          total={entries.length}
-          entries={entries}
-          onPrev={prev}
-          onNext={next}
-          onJump={(i) => setIdx(i)}
-          onClose={() => setOpen(false)}
-        />
-      )}
+      <SpoopyContentGallery
+        event={event}
+        isOpen={open}
+        onClose={() => setOpen(false)}
+      />
     </VStack>
-  );
-}
-
-// Renders the matching modal for an entry (dialog for houses, task modal
-// for non-house, start modal for the start tile, haunted-house for the
-// candybag), plus a fixed-position nav bar at the bottom for prev / next /
-// jump-to. Nav bar sits above the modal overlay so it's always clickable.
-function PreviewOverlay({ event, entry, idx, total, entries, onPrev, onNext, onJump, onClose }) {
-  // Arrow-key navigation. Left/right to flip entries, escape to close. Doesn't
-  // intercept keypresses targeted at a form control (the entry-select dropdown)
-  // so you can still type-ahead inside it. Attached to window so you don't
-  // have to focus the overlay first.
-  useEffect(() => {
-    const handler = (e) => {
-      const tag = e.target?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        onPrev();
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        onNext();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onPrev, onNext, onClose]);
-
-  // Build a synthetic "team state" entry for the tile so the task modal gets
-  // sensible defaults (unlocked status, 0 progress, no submission). Only
-  // used by SpoopyTaskModal which reads from tileState for the progress bar.
-  const syntheticTileState = {
-    status: 'unlocked',
-    choice: entry.variant,
-    progress: 0,
-    submissionId: null,
-  };
-
-  // No-op handlers for the modals. Preview is read-only — if the user clicks
-  // an action we just do nothing. onClose on each modal closes the overlay.
-  const noop = () => {};
-
-  let modal = null;
-
-  if (entry.tileType === 'house') {
-    const dialog = entry.content?.dialog;
-    if (!dialog) {
-      modal = <MissingContentModal entry={entry} onClose={onClose} />;
-    } else {
-      const chosenOptionData = dialog.options?.[entry.variant] ?? null;
-      modal = (
-        <SpoopyTileDialog
-          isOpen
-          onClose={onClose}
-          dialog={dialog}
-          choiceMade={entry.variant}
-          onChoose={noop}
-          tileId={entry.tileId}
-          womEnabled={Boolean(event?.womCompetitionId)}
-          resolvedTaskNode={
-            chosenOptionData ? (
-              <VStack align="stretch" spacing={3}>
-                <SpoopyTaskCard task={chosenOptionData.task} status="unlocked" />
-                {entry.tileId === 't-r12-c8' && chosenOptionData.outcome === 'trick' && (
-                  <SpoopyMossyWildyClue locationNumber={4} />
-                )}
-              </VStack>
-            ) : null
-          }
-        />
-      );
-    }
-  } else if (entry.tileType === 'start') {
-    modal = (
-      <SpoopyStartModal
-        isOpen
-        onClose={onClose}
-        story={entry.content?.story}
-        eventPassword={event?.eventPassword}
-      />
-    );
-  } else if (entry.tileType === 'candybag') {
-    modal = (
-      <SpoopyHauntedHouseModal
-        isOpen
-        onClose={onClose}
-        warningDialog={event?.hauntedHouse?.warningTiers?.[0]?.dialog}
-        msRemaining={6 * 60 * 60 * 1000}
-        currentGp={0}
-        bonusTask={event?.hauntedHouse?.task}
-        bonusRewardGp={null}
-        tileId={entry.tileId}
-        gauntletLevel={0}
-        onSubmit={onClose}
-      />
-    );
-  } else if (!entry.content) {
-    modal = <MissingContentModal entry={entry} onClose={onClose} />;
-  } else {
-    modal = (
-      <SpoopyTaskModal
-        isOpen
-        onClose={onClose}
-        content={entry.content}
-        tileState={syntheticTileState}
-        tileType={entry.tileType}
-        womEnabled={Boolean(event?.womCompetitionId)}
-      />
-    );
-  }
-
-  return (
-    <>
-      {modal}
-      <Box
-        position="fixed"
-        bottom={4}
-        left="50%"
-        transform="translateX(-50%)"
-        zIndex={2000}
-        bg={SPOOPY_COLORS.nightDeep}
-        border="1px solid"
-        borderColor={SPOOPY_COLORS.nightMist}
-        borderRadius="full"
-        px={3}
-        py={2}
-        boxShadow="0 10px 30px rgba(0,0,0,0.5)"
-      >
-        <HStack spacing={2}>
-          <IconButton
-            size="sm"
-            aria-label="previous tile"
-            icon={<ChevronLeftIcon />}
-            onClick={onPrev}
-            isDisabled={idx === 0}
-            bg={SPOOPY_COLORS.night}
-            color={SPOOPY_COLORS.paper}
-            _hover={{ bg: SPOOPY_COLORS.nightMist }}
-          />
-          {/* Admin-only "owner" tag — uses flavor_text as a mnemonic for
-              whose trick-or-treat this is. Only renders when the entry has
-              flavor text set (common on houses once we start annotating). */}
-          {entry.content?.flavor_text && (
-            <Tag
-              bg={SPOOPY_COLORS.pumpkin}
-              color={SPOOPY_COLORS.paper}
-              fontFamily={SPOOPY_FONTS.hand}
-              fontSize="sm"
-              px={2}
-              py={1}
-            >
-              <HStack spacing={1.5}>
-                <SpoopyUiIcon name="user" />
-                <Text>{entry.content.flavor_text}</Text>
-              </HStack>
-            </Tag>
-          )}
-          <Select
-            size="sm"
-            value={entry.key}
-            onChange={(e) => {
-              const i = entries.findIndex((x) => x.key === e.target.value);
-              if (i >= 0) onJump(i);
-            }}
-            bg={SPOOPY_COLORS.night}
-            color={SPOOPY_COLORS.paper}
-            borderColor={SPOOPY_COLORS.nightMist}
-            fontFamily="mono"
-            minW="240px"
-          >
-            {entries.map((e, i) => (
-              <option
-                key={e.key}
-                value={e.key}
-                style={{ color: '#000' }}
-              >
-                {i + 1}/{total} · {e.label}
-              </option>
-            ))}
-          </Select>
-          <IconButton
-            size="sm"
-            aria-label="next tile"
-            icon={<ChevronRightIcon />}
-            onClick={onNext}
-            isDisabled={idx === total - 1}
-            bg={SPOOPY_COLORS.night}
-            color={SPOOPY_COLORS.paper}
-            _hover={{ bg: SPOOPY_COLORS.nightMist }}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            color={SPOOPY_COLORS.paper}
-            _hover={{ bg: SPOOPY_COLORS.nightMist }}
-            onClick={onClose}
-          >
-            close
-          </Button>
-        </HStack>
-      </Box>
-    </>
-  );
-}
-
-// Placeholder for tiles whose content is missing or malformed — we still
-// show a modal so the user can see "this tile needs attention" in the
-// carousel flow, rather than silently skipping.
-function MissingContentModal({ entry, onClose }) {
-  return (
-    <Box
-      position="fixed"
-      inset={0}
-      bg="rgba(20, 12, 26, 0.85)"
-      backdropFilter="blur(4px)"
-      zIndex={1400}
-      display="flex"
-      alignItems="center"
-      justifyContent="center"
-      onClick={onClose}
-    >
-      <Box
-        bg={SPOOPY_COLORS.paper}
-        color={SPOOPY_COLORS.paperInk}
-        borderRadius="md"
-        p={8}
-        maxW="md"
-        textAlign="center"
-      >
-        <Heading size="md" mb={3} fontFamily={SPOOPY_FONTS.heading}>
-          <HStack as="span" justify="center" spacing={2}>
-            <SpoopyUiIcon name="candle" />
-            <Text as="span">no content for this tile</Text>
-          </HStack>
-        </Heading>
-        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
-          <code>{entry.tileId}</code> is a <strong>{entry.tileType}</strong>
-          {entry.variant ? ` (option ${entry.variant})` : ''} but has no matching entry in the
-          event's content. fill it in via the content csv or an admin edit.
-        </Text>
-      </Box>
-    </Box>
   );
 }
 

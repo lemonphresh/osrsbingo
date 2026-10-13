@@ -1262,6 +1262,10 @@ const SpoopyEvent = {
     const user = context?.user;
     if (!user) return {}; // queries also gate this via requireUser, belt-and-braces
     if (isAdmin(event, user)) return event.contentById || {};
+    // Once the event is over, the "what would have happened" spoiler guard
+    // stops mattering — unredact so the post-game scrapbook can show every
+    // house option, trick/treat task, and reward.
+    if (event.status === 'COMPLETE') return event.contentById || {};
 
     const discordUserId = user.discordUserId ? String(user.discordUserId) : null;
     let team = null;
