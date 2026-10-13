@@ -41,6 +41,7 @@ import SpoopyRulesModal, { getSpoopyRulesKey } from '../../organisms/spoopy/Spoo
 import SpoopyTutorial, { hasSeenSpoopyTutorial } from '../../organisms/spoopy/SpoopyTutorial';
 import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyContentGallery from '../../organisms/spoopy/SpoopyContentGallery';
 import { isDevEnv, MOCK_SCREENSHOT_URL } from '../../organisms/spoopy/spoopyDevUtils';
 import { SPOOPY_COLORS, SPOOPY_FONTS } from '../../organisms/spoopy/spoopyTheme';
 import { formatCandy, formatGp } from '../../organisms/spoopy/spoopyCurrency';
@@ -1126,7 +1127,7 @@ function SetupPlaceholder({ event }) {
   );
 }
 
-function CompleteRecap({ event, myTeam }) {
+export function CompleteRecap({ event, myTeam }) {
   const teams = event?.teams ?? [];
   // Sort by final haul, high → low. Forfeited teams naturally end up at
   // the bottom since gpEarned is zeroed on curfew.
@@ -1135,6 +1136,15 @@ function CompleteRecap({ event, myTeam }) {
   const cashedOutCount = teams.filter((t) => t.cashedOut && !t.cashedOut.forfeited).length;
   const forfeitedCount = teams.filter((t) => t.cashedOut?.forfeited).length;
   const totalGp = teams.reduce((sum, t) => sum + (t.gpEarned ?? 0), 0);
+  // Any part of the prize pool that no team ended up banking — unfinished
+  // tiles, forfeited teams, and floor-division dust from the per-team /
+  // per-house splits. If there's a winner, the whole leftover rolls into
+  // their pot. If every team forfeited (no winner), the leftover goes
+  // nowhere and we just don't display a sweep.
+  const prizePool = event?.prizePool ?? 0;
+  const sweepGp = winner ? Math.max(0, prizePool - totalGp) : 0;
+  const winnerFinalGp = (winner?.gpEarned ?? 0) + sweepGp;
+  const bankedTotal = totalGp + sweepGp;
 
   return (
     <Center py={{ base: 8, md: 16 }} px={4}>
@@ -1197,7 +1207,7 @@ function CompleteRecap({ event, myTeam }) {
           <StatCard
             icon="candy"
             iconColor={SPOOPY_COLORS.pumpkin}
-            value={formatCandy(totalGp)}
+            value={formatCandy(bankedTotal)}
             label="candies banked"
           />
           <StatCard
@@ -1257,12 +1267,28 @@ function CompleteRecap({ event, myTeam }) {
                 fontSize={{ base: 'xl', md: '2xl' }}
                 color={SPOOPY_COLORS.paper}
               >
-                {formatCandy(winner.gpEarned ?? 0)}
+                {formatCandy(winnerFinalGp)}
               </Text>
             </HStack>
             <Text fontSize="xs" opacity={0.7}>
-              ({formatGp(winner.gpEarned ?? 0)})
+              ({formatGp(winnerFinalGp)})
             </Text>
+            {sweepGp > 0 && (
+              <VStack spacing={0} mt={1}>
+                <HStack
+                  spacing={2}
+                  fontFamily={SPOOPY_FONTS.hand}
+                  fontSize="sm"
+                  color={SPOOPY_COLORS.pumpkinLight}
+                >
+                  <Text>{formatCandy(winner.gpEarned ?? 0)} earned</Text>
+                  <Text opacity={0.6}>+</Text>
+                  <Text>{formatCandy(sweepGp)} swept</Text>
+                  <Text opacity={0.6}>=</Text>
+                  <Text fontWeight="bold">{formatCandy(winnerFinalGp)} total</Text>
+                </HStack>
+              </VStack>
+            )}
             {myTeam && winner.teamId === myTeam.teamId && (
               <Text
                 fontFamily={SPOOPY_FONTS.hand}
@@ -1311,6 +1337,7 @@ function CompleteRecap({ event, myTeam }) {
                   team={team}
                   rank={i + 1}
                   isYou={myTeam && team.teamId === myTeam.teamId}
+                  sweepGp={winner && team.teamId === winner.teamId ? sweepGp : 0}
                 />
               ))}
             </VStack>
@@ -1379,6 +1406,30 @@ function CompleteRecap({ event, myTeam }) {
           </Text>
         </VStack>
 
+        {/* Scrapbook — the server unredacts contentById once the event is
+            COMPLETE, so players can flip through every house dialog and see
+            both the trick and treat branches, including the one they didn't
+            pick. Rendered inline under allure's drawing so it reads as part
+            of the signoff rather than a separate feature. */}
+        <VStack spacing={3} pt={4} w="100%">
+          <VStack spacing={1}>
+            <Text
+              fontFamily={SPOOPY_FONTS.hand}
+              fontSize="sm"
+              opacity={0.6}
+              letterSpacing="widest"
+              textTransform="uppercase"
+            >
+              — the scrapbook —
+            </Text>
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.75}>
+              every house, every trick, every treat. feel free to peruse what your evil clanmates
+              did to you and everyone else.
+            </Text>
+          </VStack>
+          <SpoopyContentGallery event={event} inline housesOnly />
+        </VStack>
+
         <Text
           fontFamily={SPOOPY_FONTS.heading}
           fontSize={{ base: 'xl', md: '2xl' }}
@@ -1389,10 +1440,10 @@ function CompleteRecap({ event, myTeam }) {
           🎃 happy halloween, ghouls and ghasts, now please go shake some ass 🎃
         </Text>
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7} mt="16px">
-          i hope you had fun. i had a lot of fun building this one. special thanks to allure for
-          help with the art and the great trick-or-treat related idea in the first place :) i hope
-          y'all look forward to the last lemon event i'm running in december, and as always, thank
-          you for playing.{' '}
+          i hope you had fun. i had a lot of fun building this one. special thanks to allure for the
+          great trick-or-treat related idea in the first place :) i hope y'all look forward to the
+          last lemon event (choose your own teams or do it solo..!) i'm running in december, and as
+          always, thank you for playing.{' '}
         </Text>
         <Text fontFamily={SPOOPY_FONTS.hand} fontSize="sm" opacity={0.7}>
           love, lemon{' '}
@@ -1473,59 +1524,84 @@ function StatCard({ icon, iconColor, value, label }) {
   );
 }
 
-function TeamHaulRow({ team, rank, isYou }) {
+function TeamHaulRow({ team, rank, isYou, sweepGp = 0 }) {
   const forfeited = team.cashedOut?.forfeited;
-  const gp = team.gpEarned ?? 0;
+  const earned = team.gpEarned ?? 0;
+  const gp = earned + sweepGp;
+  const memberCount = team.members?.length ?? 0;
+  // Floor-divide so no one is promised a fraction of a gp. Any dust from the
+  // division goes "to the team's shared slush fund" conceptually — we just
+  // don't attribute it in the per-member display.
+  const perMember = memberCount > 0 ? Math.floor(gp / memberCount) : 0;
   const medalColor = rank === 1 ? '#b8860b' : rank === 2 ? '#6f7782' : '#a05a2c';
   return (
     <Box
-      display="flex"
-      justifyContent="space-between"
-      alignItems="center"
       bg={isYou ? SPOOPY_COLORS.paperShadow : 'transparent'}
       border={isYou ? '2px dashed' : '1px solid'}
       borderColor={isYou ? SPOOPY_COLORS.pumpkin : 'rgba(0,0,0,0.1)'}
       borderRadius="md"
       px={4}
       py={3}
-      gap={3}
     >
-      <Box display="flex" alignItems="center" gap={3} minW={0}>
-        {rank <= 3 ? (
-          <SpoopyUiIcon name="medal" color={medalColor} boxSize={5} minW="32px" />
-        ) : (
-          <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" minW="32px">
-            #{rank}
-          </Text>
-        )}
-        <VStack align="start" spacing={0} minW={0}>
-          <Text fontWeight="bold" fontSize="md" isTruncated>
-            {team.teamName}
-            {isYou && (
-              <Text as="span" ml={2} fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
-                (your team)
-              </Text>
-            )}
-          </Text>
-          {forfeited && (
-            <HStack
-              fontSize="xs"
-              color={SPOOPY_COLORS.emberDeep}
-              fontFamily={SPOOPY_FONTS.hand}
-              spacing={1}
-            >
-              <SpoopyUiIcon name="candle" />
-              <Text>forfeited at curfew</Text>
-            </HStack>
+      <Box display="flex" justifyContent="space-between" alignItems="center" gap={3}>
+        <Box display="flex" alignItems="center" gap={3} minW={0}>
+          {rank <= 3 ? (
+            <SpoopyUiIcon name="medal" color={medalColor} boxSize={5} minW="32px" />
+          ) : (
+            <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" minW="32px">
+              #{rank}
+            </Text>
           )}
+          <VStack align="start" spacing={0} minW={0}>
+            <Text fontWeight="bold" fontSize="md" isTruncated>
+              {team.teamName}
+              {isYou && (
+                <Text as="span" ml={2} fontSize="xs" opacity={0.7} fontFamily={SPOOPY_FONTS.hand}>
+                  (your team)
+                </Text>
+              )}
+            </Text>
+            {forfeited && (
+              <HStack
+                fontSize="xs"
+                color={SPOOPY_COLORS.emberDeep}
+                fontFamily={SPOOPY_FONTS.hand}
+                spacing={1}
+              >
+                <SpoopyUiIcon name="candle" />
+                <Text>forfeited at curfew</Text>
+              </HStack>
+            )}
+            {sweepGp > 0 && (
+              <HStack
+                fontSize="xs"
+                color={SPOOPY_COLORS.pumpkinDeep}
+                fontFamily={SPOOPY_FONTS.hand}
+                spacing={1}
+                flexWrap="wrap"
+              >
+                <Text>{formatCandy(earned)} earned</Text>
+                <Text opacity={0.5}>+</Text>
+                <Text>{formatCandy(sweepGp)} swept</Text>
+                <Text opacity={0.5}>=</Text>
+                <Text fontWeight="bold">{formatCandy(gp)} total</Text>
+              </HStack>
+            )}
+          </VStack>
+        </Box>
+        <VStack align="end" spacing={0}>
+          <CandyStat gp={gp} size={18} color={SPOOPY_COLORS.pumpkinDeep} />
+          <Text fontSize="xs" opacity={0.65}>
+            {formatGp(gp)}
+          </Text>
         </VStack>
       </Box>
-      <VStack align="end" spacing={0}>
-        <CandyStat gp={gp} size={18} color={SPOOPY_COLORS.pumpkinDeep} />
-        <Text fontSize="xs" opacity={0.65}>
-          {formatGp(gp)}
+      {gp > 0 && memberCount > 0 && (
+        <Text fontFamily={SPOOPY_FONTS.hand} fontSize="xs" opacity={0.7} textAlign="right" mt={2}>
+          that's {formatCandy(perMember)} ({formatGp(perMember)}) for each of {memberCount} team
+          member{memberCount === 1 ? '' : 's'}
         </Text>
-      </VStack>
+      )}
     </Box>
   );
 }

@@ -48,28 +48,17 @@ export default function SpoopyTileDialog({
   onMockChoose = null,
   mockChoosingLetter = null,
   womEnabled = false,
+  // When true, renders inline on the page instead of as a modal overlay.
+  // Used by the post-event scrapbook on the game-over screen.
+  inline = false,
 }) {
   const options = dialog?.options ?? {};
   const chosenOption = choiceMade ? options[choiceMade] : null;
   const { darkMode, surfaceBg, surfaceInk, surfaceEdge, surfaceRecessed } = useSpoopyTheme();
   const titleColor = darkMode ? SPOOPY_COLORS.slime : SPOOPY_COLORS.pumpkinDeep;
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
-      <ModalOverlay bg="rgba(20, 12, 26, 0.75)" backdropFilter="blur(3px)" />
-      <ModalContent
-        bg={surfaceBg}
-        color={surfaceInk}
-        border="3px solid"
-        borderColor={surfaceEdge}
-        boxShadow={`0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(0,0,0,0.6)`}
-        backgroundImage="radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)"
-        backgroundSize="4px 4px"
-        transform="rotate(-0.5deg)"
-      >
-        <ModalCloseButton color={surfaceInk} />
-        <ModalBody py={8} px={{ base: 6, md: 10 }}>
-          <VStack spacing={5} align="stretch">
+  const body = (
+    <VStack spacing={5} align="stretch">
             <Heading
               size="md"
               fontFamily={SPOOPY_FONTS.heading}
@@ -91,10 +80,14 @@ export default function SpoopyTileDialog({
               <VStack spacing={3} align="stretch" pt={2}>
                 <OptionCard label={options.a?.label} optionLetter="a" />
                 <OptionCard label={options.b?.label} optionLetter="b" />
-                <Text fontSize="xs" opacity={0.65} textAlign="center" pt={1}>
-                  once you pick, there's no take-backsies
-                </Text>
-                {tileId && <DiscordChoiceHint tileId={tileId} />}
+                {/* Submission-flow bits are only relevant mid-game. The
+                    inline scrapbook on the game-over screen hides them. */}
+                {!inline && (
+                  <Text fontSize="xs" opacity={0.65} textAlign="center" pt={1}>
+                    once you pick, there's no take-backsies
+                  </Text>
+                )}
+                {!inline && tileId && <DiscordChoiceHint tileId={tileId} />}
                 {onMockChoose && (
                   <MockDevChoiceButtons
                     onChoose={onMockChoose}
@@ -119,7 +112,7 @@ export default function SpoopyTileDialog({
                   <Text fontFamily={SPOOPY_FONTS.hand}>{chosenOption?.label}</Text>
                 </Box>
                 {resolvedTaskNode}
-                {tileId && (
+                {!inline && tileId && (
                   <DiscordSubmitHint
                     tileId={tileId}
                     taskKind={chosenOption?.task?.kind}
@@ -130,6 +123,36 @@ export default function SpoopyTileDialog({
               </VStack>
             )}
           </VStack>
+  );
+
+  // Shared paper-sticker card styling. Used as the ModalContent in the normal
+  // flow and as a standalone Box when `inline` (post-event scrapbook).
+  const cardProps = {
+    bg: surfaceBg,
+    color: surfaceInk,
+    border: '3px solid',
+    borderColor: surfaceEdge,
+    boxShadow: `0 20px 0 ${surfaceRecessed}, 0 30px 60px rgba(0,0,0,0.6)`,
+    backgroundImage: 'radial-gradient(rgba(0,0,0,0.045) 1px, transparent 1px)',
+    backgroundSize: '4px 4px',
+    transform: 'rotate(-0.5deg)',
+  };
+
+  if (inline) {
+    return (
+      <Box {...cardProps} py={8} px={{ base: 6, md: 10 }} borderRadius="md">
+        {body}
+      </Box>
+    );
+  }
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg" isCentered>
+      <ModalOverlay bg="rgba(20, 12, 26, 0.75)" backdropFilter="blur(3px)" />
+      <ModalContent {...cardProps}>
+        <ModalCloseButton color={surfaceInk} />
+        <ModalBody py={8} px={{ base: 6, md: 10 }}>
+          {body}
         </ModalBody>
       </ModalContent>
     </Modal>

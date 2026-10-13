@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useLoginUrl } from '../../utils/loginRedirect';
-import { useQuery, useMutation } from '@apollo/client';
+import { useQuery, useMutation, useLazyQuery } from '@apollo/client';
 import {
   Box,
   Center,
@@ -26,7 +26,7 @@ import {
 } from '@chakra-ui/react';
 import { AddIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../providers/AuthProvider';
-import { SEARCH_USERS } from '../../graphql/queries';
+import { SEARCH_USERS, GET_USERS_BY_DISCORD_IDS } from '../../graphql/queries';
 import {
   GET_SPOOPY_ADMIN_EVENT,
   CREATE_SPOOPY_EVENT,
@@ -1382,6 +1382,148 @@ function DropOverrideRow({ event, entry, refetch }) {
   );
 }
 
+// ── Payouts CSV export ──────────────────────────────────────────────────
+//
+// Builds one row per team member: RSN, Disc ID, Event, GP Amount, Leader
+// who Paid, Status, Iron Banked, Column 1. Values match the sweep math on
+// the game-over recap — the winner's per-member share includes the leftover
+// rolled in from unfinished / forfeited tiles.
+
+function csvEscape(value) {
+  const s = value == null ? '' : String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadCsv(filename, rows) {
+  const content = rows.map((r) => r.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function buildPayoutRows(event, usersByDiscordId) {
+  const teams = event?.teams ?? [];
+  // Winner-sweep math mirrors the game-over recap: the leftover from the
+  // prize pool rolls into the top-ranked non-forfeited team's pot.
+  const ranked = [...teams].sort((a, b) => (b.gpEarned ?? 0) - (a.gpEarned ?? 0));
+  const winner = ranked.find((t) => !t.cashedOut?.forfeited && (t.gpEarned ?? 0) > 0) ?? null;
+  const totalGp = teams.reduce((s, t) => s + (t.gpEarned ?? 0), 0);
+  const sweepGp = winner ? Math.max(0, (event?.prizePool ?? 0) - totalGp) : 0;
+
+  const rows = [[
+    'RSN', 'Disc ID', 'Event', 'GP Amount', 'Leader who Paid', 'Status', 'Iron Banked', 'Column 1',
+  ]];
+
+  for (const team of teams) {
+    const members = team.members ?? [];
+    if (members.length === 0) continue;
+    const teamGp = (team.gpEarned ?? 0) + (team.teamId === winner?.teamId ? sweepGp : 0);
+    if (teamGp <= 0) continue;
+    const perMember = Math.floor(teamGp / members.length);
+    for (const discordId of members) {
+      const user = usersByDiscordId.get(String(discordId));
+      // Prefer linked site RSN. Fall back to displayName / username so the
+      // row isn't anonymous. If nothing matched the discord ID at all, we
+      // stash the ID itself in RSN as a last resort so the admin can still
+      // identify who the payout is for.
+      const rsn = user?.rsn || user?.displayName || user?.username || discordId;
+      rows.push([
+        rsn,
+        '', // Disc ID left blank per the template
+        event?.eventName ?? '',
+        perMember.toLocaleString('en-US'),
+        'Not Done',
+        'Not Paid',
+        'FALSE',
+        '',
+      ]);
+    }
+  }
+
+  return rows;
+}
+
+function PayoutsPanel({ event }) {
+  const toast = useToast();
+  const [fetchUsers, { loading }] = useLazyQuery(GET_USERS_BY_DISCORD_IDS, {
+    fetchPolicy: 'network-only',
+  });
+
+  const uniqueMemberIds = useMemo(() => {
+    const set = new Set();
+    for (const team of event?.teams ?? []) {
+      for (const id of team.members ?? []) set.add(String(id));
+    }
+    return Array.from(set);
+  }, [event]);
+
+  const totalPayoutRows = useMemo(() => {
+    let n = 0;
+    for (const team of event?.teams ?? []) {
+      const gp = (team.gpEarned ?? 0);
+      if (gp > 0 && (team.members?.length ?? 0) > 0) n += team.members.length;
+    }
+    return n;
+  }, [event]);
+
+  const onExport = async () => {
+    if (uniqueMemberIds.length === 0) {
+      toast({ status: 'warning', title: 'no team members to export' });
+      return;
+    }
+    try {
+      const result = await fetchUsers({ variables: { discordUserIds: uniqueMemberIds } });
+      const users = result?.data?.getUsersByDiscordIds ?? [];
+      const byId = new Map(users.map((u) => [String(u.discordUserId), u]));
+      const rows = buildPayoutRows(event, byId);
+      if (rows.length <= 1) {
+        toast({ status: 'warning', title: 'no payouts to export (all teams at 0 gp)' });
+        return;
+      }
+      downloadCsv('Spoopy Payouts.csv', rows);
+      toast({ status: 'success', title: `exported ${rows.length - 1} payout rows` });
+    } catch (err) {
+      toast({ status: 'error', title: 'export failed', description: err.message });
+    }
+  };
+
+  return (
+    <VStack align="stretch" spacing={3}>
+      <Text fontSize="sm" opacity={0.75}>
+        exports one row per team member with their share of the team's final payout — including
+        the leftover candies swept into the winner's pot. matches the game-over recap. open the
+        file in a spreadsheet and fill in Leader / Status / Disc ID as payouts go out.
+      </Text>
+      <HStack spacing={3} wrap="wrap">
+        <Button
+          onClick={onExport}
+          isLoading={loading}
+          loadingText="building csv"
+          bg={SPOOPY_COLORS.pumpkin}
+          color={SPOOPY_COLORS.paper}
+          _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+          leftIcon={<SpoopyUiIcon name="candy" />}
+          isDisabled={!event || uniqueMemberIds.length === 0}
+        >
+          export payouts csv
+        </Button>
+        <Text fontSize="xs" opacity={0.6}>
+          {totalPayoutRows} rows · {uniqueMemberIds.length} unique members
+        </Text>
+      </HStack>
+    </VStack>
+  );
+}
+
 // ── Admin manager ────────────────────────────────────────────────────────
 
 function AdminManager({ event, refetch }) {
@@ -1718,6 +1860,25 @@ export default function SpoopyAdminPage() {
               </AccordionButton>
               <AccordionPanel px={4} pb={4} bg={SPOOPY_COLORS.nightDeep}>
                 <DropOverrideManager event={event} refetch={refetch} />
+              </AccordionPanel>
+            </AccordionItem>
+
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.nightMist}
+              borderRadius="md"
+              mb={3}
+            >
+              <AccordionButton px={4} py={3} _hover={{ bg: SPOOPY_COLORS.night }} borderRadius="md">
+                <Box flex={1} textAlign="left">
+                  <Text fontWeight="semibold" fontFamily={SPOOPY_FONTS.hand}>
+                    payouts csv
+                  </Text>
+                </Box>
+                <AccordionIcon color={SPOOPY_COLORS.paper} />
+              </AccordionButton>
+              <AccordionPanel px={4} pb={4} bg={SPOOPY_COLORS.nightDeep}>
+                <PayoutsPanel event={event} />
               </AccordionPanel>
             </AccordionItem>
 
