@@ -17,6 +17,7 @@ import SpoopyMossyWildyClue from '../../organisms/spoopy/SpoopyMossyWildyClue';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import SpoopyActivatePreflightModal from '../../organisms/spoopy/SpoopyActivatePreflightModal';
 import SpoopyContentGallery, { buildSpoopyContentEntries } from '../../organisms/spoopy/SpoopyContentGallery';
+import { CompleteRecap } from './SpoopyEventPage';
 import {
   SPOOPY_COLORS, SPOOPY_FONTS, TILE_META, STATUS_META,
 } from '../../organisms/spoopy/spoopyTheme';
@@ -127,6 +128,8 @@ export default function SpoopyPlaygroundPage() {
         <GpBannerSection />
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
         <ActivatePreflightSection />
+        <Divider borderColor={SPOOPY_COLORS.nightMist} />
+        <GameOverSection />
       </VStack>
     </Shell>
   );
@@ -824,6 +827,166 @@ function ActivatePreflightSection() {
         isConfirming={false}
         onConfirm={() => setVariant(null)}
       />
+    </VStack>
+  );
+}
+
+// Mock event + teams for the game-over recap. Prize pool is 100M; teams
+// bank 75M between them so the sweep math has 25M of leftover to roll into
+// the winner's pot. Includes one forfeited team so the "forfeited at
+// curfew" row renders and one small haul to show the per-member tagline
+// on multiple ranks.
+const MOCK_RECAP_TEAMS = [
+  {
+    teamId: 'recap-team-a',
+    teamName: 'the trick-or-treaters',
+    members: ['u1', 'u2', 'u3'],
+    gpEarned: 40_000_000,
+    cashedOut: { forfeited: false, bonusEarned: 10_000_000 },
+    poolAllocation: 25_000_000,
+    __typename: 'SpoopyTeam',
+  },
+  {
+    teamId: 'recap-team-b',
+    teamName: 'the pumpkin patch',
+    members: ['u4', 'u5', 'u6', 'u7'],
+    gpEarned: 25_000_000,
+    cashedOut: { forfeited: false, bonusEarned: 0 },
+    poolAllocation: 25_000_000,
+    __typename: 'SpoopyTeam',
+  },
+  {
+    teamId: 'recap-team-c',
+    teamName: 'bram bo bettas',
+    members: ['u8', 'u9'],
+    gpEarned: 10_000_000,
+    cashedOut: { forfeited: false, bonusEarned: 0 },
+    poolAllocation: 25_000_000,
+    __typename: 'SpoopyTeam',
+  },
+  {
+    teamId: 'recap-team-d',
+    teamName: 'spooked out',
+    members: ['u10', 'u11', 'u12'],
+    gpEarned: 0,
+    cashedOut: { forfeited: true, bonusEarned: 0 },
+    poolAllocation: 25_000_000,
+    __typename: 'SpoopyTeam',
+  },
+];
+
+// A couple of real-ish houses so the inline scrapbook has something to flip
+// through underneath the leaderboard. Copied from the shape in content.csv.
+const MOCK_RECAP_EVENT = {
+  __typename: 'SpoopyEvent',
+  eventId: 'playground-recap',
+  eventName: 'spooktober playground',
+  status: 'COMPLETE',
+  prizePool: 100_000_000,
+  curfewStart: '2026-10-31T22:00:00.000Z',
+  curfewEnd: '2026-11-01T06:00:00.000Z',
+  teams: MOCK_RECAP_TEAMS,
+  board: {
+    tiles: [
+      { id: 't-r1-c4', tile_type: 'house', position: { row: 1, col: 4 } },
+      { id: 't-r7-c17', tile_type: 'house', position: { row: 7, col: 17 } },
+    ],
+  },
+  contentById: {
+    't-r1-c4': {
+      tile_type: 'house',
+      flavor_text: 'Lyreth',
+      dialog: {
+        prompt:
+          "The door opens on its own. Actually no, Lyreth's dog Batman opens it. He is wearing a tiny Batman cowl. Lyreth is nowhere to be seen. Batman stares at you expectantly.",
+        options: {
+          a: {
+            label: '"I\'m da jokaaa" and laugh at your own joke',
+            outcome: 'trick',
+            task: { kind: 'skilling_xp', target: 'agility', amount: 800_000 },
+          },
+          b: {
+            label: 'Do your best Batman impression',
+            outcome: 'treat',
+            task: {
+              kind: 'custom',
+              target: '800 giant mole kc with the best possible team fashionscape',
+              amount: 1,
+            },
+          },
+        },
+      },
+    },
+    't-r7-c17': {
+      tile_type: 'house',
+      flavor_text: 'Pirate Kanye',
+      dialog: {
+        prompt:
+          'Pirate Kanye swings the door open. Behind her, two very cute dogs in tiny pumpkin and ghost costumes race around her ankles yapping.',
+        options: {
+          a: {
+            label: 'Kneel down and greet the ghost dog first',
+            outcome: 'trick',
+            task: { kind: 'custom', target: 'Teleport anchoring scroll', amount: 1 },
+          },
+          b: {
+            label: 'Kneel down and greet the pumpkin dog first',
+            outcome: 'treat',
+            task: { kind: 'skilling_xp', target: 'sailing', amount: 1_000_000 },
+          },
+        },
+      },
+    },
+  },
+};
+
+const MOCK_RECAP_MY_TEAM_OPTIONS = [
+  { value: 'winner',    label: 'as the winning team',   teamId: 'recap-team-a' },
+  { value: 'midpack',   label: 'as a mid-pack team',    teamId: 'recap-team-b' },
+  { value: 'forfeited', label: 'as a forfeited team',   teamId: 'recap-team-d' },
+  { value: 'spectator', label: 'as a logged-out spectator', teamId: null },
+];
+
+function GameOverSection() {
+  const [perspective, setPerspective] = useState('winner');
+  const option = MOCK_RECAP_MY_TEAM_OPTIONS.find((o) => o.value === perspective)
+    ?? MOCK_RECAP_MY_TEAM_OPTIONS[0];
+  const myTeam = option.teamId
+    ? MOCK_RECAP_TEAMS.find((t) => t.teamId === option.teamId)
+    : null;
+
+  return (
+    <VStack spacing={4} align="stretch">
+      <Heading size="md" fontFamily={SPOOPY_FONTS.heading}>game-over recap</Heading>
+      <Text fontSize="sm" opacity={0.75} maxW="lg">
+        full post-curfew recap on mock data. prize pool is 100M, four teams bank 75M between them,
+        so the sweep rolls the leftover 25M into the winner's pot. flip the "viewing as" selector
+        to see the forfeit note, the "that's you" winner highlight, or the spectator layout.
+      </Text>
+      <HStack spacing={3} wrap="wrap">
+        <Text fontSize="sm" opacity={0.7}>viewing as:</Text>
+        {MOCK_RECAP_MY_TEAM_OPTIONS.map((o) => (
+          <Button
+            key={o.value}
+            size="sm"
+            bg={perspective === o.value ? SPOOPY_COLORS.pumpkin : SPOOPY_COLORS.night}
+            color={SPOOPY_COLORS.paper}
+            _hover={{ bg: SPOOPY_COLORS.pumpkinDeep }}
+            onClick={() => setPerspective(o.value)}
+          >
+            {o.label}
+          </Button>
+        ))}
+      </HStack>
+      <Box
+        bg={SPOOPY_COLORS.nightDeep}
+        border="1px solid"
+        borderColor={SPOOPY_COLORS.nightMist}
+        borderRadius="md"
+        overflow="hidden"
+      >
+        <CompleteRecap event={MOCK_RECAP_EVENT} myTeam={myTeam} />
+      </Box>
     </VStack>
   );
 }
