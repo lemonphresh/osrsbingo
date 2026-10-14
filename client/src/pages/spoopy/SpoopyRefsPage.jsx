@@ -58,6 +58,7 @@ import {
 import { SPOOPY_COLORS, SPOOPY_FONTS, TILE_META } from '../../organisms/spoopy/spoopyTheme';
 import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWildyLocations';
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
+import SpoopyRulesModal from '../../organisms/spoopy/SpoopyRulesModal';
 import { AcceptableUniquesDrops, taskLine } from '../../organisms/spoopy/SpoopyTaskCard';
 
 // ── Utilities ────────────────────────────────────────────────────────────
@@ -1240,6 +1241,7 @@ function SyncWomButton({ event, user, onEventRefetch }) {
 }
 
 function Shell({ event, user, onEventRefetch, children }) {
+  const [rulesOpen, setRulesOpen] = useState(false);
   return (
     <Box minHeight="calc(100vh - 60px)" bg={SPOOPY_COLORS.nightDeep} color={SPOOPY_COLORS.paper}>
       <Box borderBottom="2px solid" borderColor={SPOOPY_COLORS.nightMist} py={3} px={6}>
@@ -1263,6 +1265,17 @@ function Shell({ event, user, onEventRefetch, children }) {
           <HStack spacing={2}>
             <SyncWomButton event={event} user={user} onEventRefetch={onEventRefetch} />
             <Button
+              size="sm"
+              variant="outline"
+              borderColor={SPOOPY_COLORS.nightMist}
+              color={SPOOPY_COLORS.paper}
+              onClick={() => setRulesOpen(true)}
+              _hover={{ bg: SPOOPY_COLORS.nightMist }}
+              leftIcon={<SpoopyUiIcon name="rules" />}
+            >
+              rules
+            </Button>
+            <Button
               as={RouterLink}
               to="/spoopy-event"
               size="sm"
@@ -1279,6 +1292,11 @@ function Shell({ event, user, onEventRefetch, children }) {
         </HStack>
       </Box>
       {children}
+      <SpoopyRulesModal
+        isOpen={rulesOpen}
+        onClose={() => setRulesOpen(false)}
+        event={event}
+      />
     </Box>
   );
 }

@@ -245,6 +245,11 @@ export default function SpoopyRulesModal({
                   Either choice may reveal a trick or a treat. Complete the revealed task to finish
                   the house and bank any reward it grants.
                 </RuleRow>
+                <RuleRow badge="only houses pay" color={SPOOPY_COLORS.emberDeep}>
+                  Only houses hand out candy. Pumpkins, ghosts, graves, and black cats unlock the
+                  paths forward but pay zero candy on their own, much like real life. The scary
+                  house at the end is where everything gets cashed out.
+                </RuleRow>
               </VStack>
             </Box>
 
