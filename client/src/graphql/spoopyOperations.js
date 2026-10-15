@@ -115,10 +115,16 @@ export const MY_SPOOPY_SITUATION = gql`
     mySpoopySituation(eventId: $eventId) {
       event {
         ...SpoopyEventFields
-        teams { ...SpoopyTeamFields }
+        teams {
+          ...SpoopyTeamFields
+        }
       }
-      myTeam { ...SpoopyTeamFields }
-      teamBoard { ...SpoopyTeamBoardFields }
+      myTeam {
+        ...SpoopyTeamFields
+      }
+      teamBoard {
+        ...SpoopyTeamBoardFields
+      }
     }
   }
   ${SPOOPY_EVENT_FIELDS}
@@ -128,7 +134,9 @@ export const MY_SPOOPY_SITUATION = gql`
 
 export const GET_ACTIVE_SPOOPY_EVENT = gql`
   query GetActiveSpoopyEvent {
-    getActiveSpoopyEvent { ...SpoopyEventFields }
+    getActiveSpoopyEvent {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -183,80 +191,101 @@ export const GET_SPOOPY_SPECTATOR_ALL_TEAM_BOARDS = gql`
 // round trip. If no event exists returns null.
 export const GET_SPOOPY_ADMIN_EVENT = gql`
   query GetSpoopyAdminEvent {
-    spoopyEvents { ...SpoopyAdminEventFields }
+    spoopyEvents {
+      ...SpoopyAdminEventFields
+    }
   }
   ${SPOOPY_ADMIN_EVENT_FIELDS}
 `;
 
 export const GET_SPOOPY_EVENT = gql`
   query SpoopyEvent($eventId: ID!) {
-    spoopyEvent(eventId: $eventId) { ...SpoopyEventFields }
+    spoopyEvent(eventId: $eventId) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const GET_SPOOPY_EVENTS = gql`
   query SpoopyEvents {
-    spoopyEvents { ...SpoopyEventFields }
+    spoopyEvents {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const GET_SPOOPY_TEAM = gql`
   query SpoopyTeam($teamId: ID!) {
-    spoopyTeam(teamId: $teamId) { ...SpoopyTeamFields }
+    spoopyTeam(teamId: $teamId) {
+      ...SpoopyTeamFields
+    }
   }
   ${SPOOPY_TEAM_FIELDS}
 `;
 
 export const GET_SPOOPY_ALL_TEAM_BOARDS = gql`
   query GetSpoopyAllTeamBoards($eventId: ID!) {
-    spoopyAllTeamBoards(eventId: $eventId) { ...SpoopyTeamBoardFields }
+    spoopyAllTeamBoards(eventId: $eventId) {
+      ...SpoopyTeamBoardFields
+    }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
 `;
 
 export const GET_SPOOPY_TEAM_BOARD = gql`
   query SpoopyTeamBoard($teamId: ID!) {
-    spoopyTeamBoard(teamId: $teamId) { ...SpoopyTeamBoardFields }
+    spoopyTeamBoard(teamId: $teamId) {
+      ...SpoopyTeamBoardFields
+    }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
 `;
 
 export const GET_SPOOPY_TEAM_BOARD_BY_TOKEN = gql`
   query SpoopyTeamBoardByToken($token: String!) {
-    spoopyTeamBoardByToken(token: $token) { ...SpoopyTeamBoardFields }
+    spoopyTeamBoardByToken(token: $token) {
+      ...SpoopyTeamBoardFields
+    }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
 `;
 
 export const GET_SPOOPY_SUBMISSIONS = gql`
-  query SpoopySubmissions($eventId: ID!, $status: String) {
-    spoopySubmissions(eventId: $eventId, status: $status) { ...SpoopySubmissionFields }
+  query SpoopySubmissions($eventId: ID!, $status: String, $completed: Boolean) {
+    spoopySubmissions(eventId: $eventId, status: $status, completed: $completed) {
+      ...SpoopySubmissionFields
+    }
   }
   ${SPOOPY_SUBMISSION_FIELDS}
 `;
-
 
 // ── Admin mutations ──────────────────────────────────────────────────────
 
 export const CREATE_SPOOPY_EVENT = gql`
   mutation CreateSpoopyEvent($input: CreateSpoopyEventInput!) {
-    createSpoopyEvent(input: $input) { ...SpoopyEventFields }
+    createSpoopyEvent(input: $input) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const UPDATE_SPOOPY_EVENT_STATUS = gql`
   mutation UpdateSpoopyEventStatus($eventId: ID!, $status: SpoopyEventStatus!) {
-    updateSpoopyEventStatus(eventId: $eventId, status: $status) { ...SpoopyEventFields }
+    updateSpoopyEventStatus(eventId: $eventId, status: $status) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const SET_SPOOPY_EVENT_PASSWORD = gql`
   mutation SetSpoopyEventPassword($eventId: ID!, $password: String) {
-    setSpoopyEventPassword(eventId: $eventId, password: $password) { ...SpoopyEventFields }
+    setSpoopyEventPassword(eventId: $eventId, password: $password) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -272,7 +301,9 @@ export const UPDATE_SPOOPY_EVENT_SCHEDULE = gql`
 
 export const SET_SPOOPY_EVENT_PRIZE_POOL = gql`
   mutation SetSpoopyEventPrizePool($eventId: ID!, $prizePool: Int!) {
-    setSpoopyEventPrizePool(eventId: $eventId, prizePool: $prizePool) { ...SpoopyEventFields }
+    setSpoopyEventPrizePool(eventId: $eventId, prizePool: $prizePool) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -288,7 +319,9 @@ export const SET_SPOOPY_EVENT_WOM_COMPETITION_ID = gql`
 
 export const SYNC_SPOOPY_EVENT_WOM = gql`
   mutation SyncSpoopyEventWom($eventId: ID!, $force: Boolean) {
-    syncSpoopyEventWom(eventId: $eventId, force: $force) { ...SpoopyEventFields }
+    syncSpoopyEventWom(eventId: $eventId, force: $force) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -316,28 +349,42 @@ export const UPDATE_SPOOPY_EVENT_BOARD = gql`
       contentById: $contentById
       hauntedHouse: $hauntedHouse
       startingTileIds: $startingTileIds
-    ) { ...SpoopyEventFields }
+    ) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const CREATE_SPOOPY_TEAM = gql`
   mutation CreateSpoopyTeam($eventId: ID!, $input: CreateSpoopyTeamInput!) {
-    createSpoopyTeam(eventId: $eventId, input: $input) { ...SpoopyTeamFields }
+    createSpoopyTeam(eventId: $eventId, input: $input) {
+      ...SpoopyTeamFields
+    }
   }
   ${SPOOPY_TEAM_FIELDS}
 `;
 
 export const UPDATE_SPOOPY_TEAM_MEMBERS = gql`
   mutation UpdateSpoopyTeamMembers($teamId: ID!, $members: [String!]!) {
-    updateSpoopyTeamMembers(teamId: $teamId, members: $members) { ...SpoopyTeamFields }
+    updateSpoopyTeamMembers(teamId: $teamId, members: $members) {
+      ...SpoopyTeamFields
+    }
   }
   ${SPOOPY_TEAM_FIELDS}
 `;
 
 export const UPDATE_SPOOPY_TEAM_DISCORD = gql`
-  mutation UpdateSpoopyTeamDiscord($teamId: ID!, $discordChannelId: String, $discordRoleId: String) {
-    updateSpoopyTeamDiscord(teamId: $teamId, discordChannelId: $discordChannelId, discordRoleId: $discordRoleId) {
+  mutation UpdateSpoopyTeamDiscord(
+    $teamId: ID!
+    $discordChannelId: String
+    $discordRoleId: String
+  ) {
+    updateSpoopyTeamDiscord(
+      teamId: $teamId
+      discordChannelId: $discordChannelId
+      discordRoleId: $discordRoleId
+    ) {
       ...SpoopyTeamFields
     }
   }
@@ -346,28 +393,36 @@ export const UPDATE_SPOOPY_TEAM_DISCORD = gql`
 
 export const ADD_SPOOPY_ADMIN = gql`
   mutation AddSpoopyAdmin($eventId: ID!, $userId: ID!) {
-    addSpoopyAdmin(eventId: $eventId, userId: $userId) { ...SpoopyEventFields }
+    addSpoopyAdmin(eventId: $eventId, userId: $userId) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const REMOVE_SPOOPY_ADMIN = gql`
   mutation RemoveSpoopyAdmin($eventId: ID!, $userId: ID!) {
-    removeSpoopyAdmin(eventId: $eventId, userId: $userId) { ...SpoopyEventFields }
+    removeSpoopyAdmin(eventId: $eventId, userId: $userId) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const SEED_SPOOPY_MOCK_EVENT = gql`
   mutation SeedSpoopyMockEvent {
-    seedSpoopyMockEvent { ...SpoopyEventFields }
+    seedSpoopyMockEvent {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
 
 export const REFRESH_SPOOPY_EVENT_FROM_MOCK = gql`
   mutation RefreshSpoopyEventFromMock($eventId: ID!) {
-    refreshSpoopyEventFromMock(eventId: $eventId) { ...SpoopyEventFields }
+    refreshSpoopyEventFromMock(eventId: $eventId) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -383,7 +438,9 @@ export const IMPORT_SPOOPY_EVENT_FROM_FIXTURES = gql`
       boardFilename: $boardFilename
       contentFilename: $contentFilename
     ) {
-      event { ...SpoopyEventFields }
+      event {
+        ...SpoopyEventFields
+      }
       warnings
     }
   }
@@ -402,7 +459,9 @@ export const SET_SPOOPY_TILE_ACCEPTABLE_DROPS = gql`
       tileId: $tileId
       option: $option
       drops: $drops
-    ) { ...SpoopyEventFields }
+    ) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
@@ -441,7 +500,11 @@ export const COMPLETE_SPOOPY_TILE = gql`
 
 export const REVIEW_SPOOPY_SUBMISSION = gql`
   mutation ReviewSpoopySubmission($submissionId: ID!, $approved: Boolean!, $denialReason: String) {
-    reviewSpoopySubmission(submissionId: $submissionId, approved: $approved, denialReason: $denialReason) {
+    reviewSpoopySubmission(
+      submissionId: $submissionId
+      approved: $approved
+      denialReason: $denialReason
+    ) {
       ...SpoopySubmissionFields
     }
   }
@@ -452,14 +515,18 @@ export const REVIEW_SPOOPY_SUBMISSION = gql`
 
 export const CREATE_SPOOPY_CHOICE = gql`
   mutation CreateSpoopyChoice($input: CreateSpoopyChoiceInput!) {
-    createSpoopyChoice(input: $input) { ...SpoopyTeamBoardFields }
+    createSpoopyChoice(input: $input) {
+      ...SpoopyTeamBoardFields
+    }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
 `;
 
 export const CREATE_SPOOPY_SUBMISSION = gql`
   mutation CreateSpoopySubmission($input: CreateSpoopySubmissionInput!) {
-    createSpoopySubmission(input: $input) { ...SpoopySubmissionFields }
+    createSpoopySubmission(input: $input) {
+      ...SpoopySubmissionFields
+    }
   }
   ${SPOOPY_SUBMISSION_FIELDS}
 `;
@@ -479,21 +546,27 @@ export const ENTER_SPOOPY_HAUNTED_HOUSE = gql`
 
 export const SPOOPY_SUBMISSION_ADDED = gql`
   subscription SpoopySubmissionAdded($eventId: ID!) {
-    spoopySubmissionAdded(eventId: $eventId) { ...SpoopySubmissionFields }
+    spoopySubmissionAdded(eventId: $eventId) {
+      ...SpoopySubmissionFields
+    }
   }
   ${SPOOPY_SUBMISSION_FIELDS}
 `;
 
 export const SPOOPY_SUBMISSION_REVIEWED = gql`
   subscription SpoopySubmissionReviewed($eventId: ID!) {
-    spoopySubmissionReviewed(eventId: $eventId) { ...SpoopySubmissionFields }
+    spoopySubmissionReviewed(eventId: $eventId) {
+      ...SpoopySubmissionFields
+    }
   }
   ${SPOOPY_SUBMISSION_FIELDS}
 `;
 
 export const SPOOPY_TEAM_BOARD_UPDATED = gql`
   subscription SpoopyTeamBoardUpdated($teamId: ID!) {
-    spoopyTeamBoardUpdated(teamId: $teamId) { ...SpoopyTeamBoardFields }
+    spoopyTeamBoardUpdated(teamId: $teamId) {
+      ...SpoopyTeamBoardFields
+    }
   }
   ${SPOOPY_TEAM_BOARD_FIELDS}
 `;
@@ -521,7 +594,9 @@ export const SPOOPY_SPECTATOR_EVENT_UPDATED = gql`
 
 export const SPOOPY_EVENT_UPDATED = gql`
   subscription SpoopyEventUpdated($eventId: ID!) {
-    spoopyEventUpdated(eventId: $eventId) { ...SpoopyEventFields }
+    spoopyEventUpdated(eventId: $eventId) {
+      ...SpoopyEventFields
+    }
   }
   ${SPOOPY_EVENT_FIELDS}
 `;
