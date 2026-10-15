@@ -1,4 +1,7 @@
-import { formatReviewedApprovalBadge, needsTileCompletion } from './spoopySubmissionLabels';
+import {
+  formatReviewedApprovalBadge,
+  isReviewedGroupReadyToComplete,
+} from './spoopySubmissionLabels';
 
 describe('formatReviewedApprovalBadge', () => {
   test('separates approved pre-screenshots from final submissions', () => {
@@ -14,13 +17,22 @@ describe('formatReviewedApprovalBadge', () => {
     );
   });
 
-  test('shows zero counts and pluralizes both categories', () => {
+  test('omits the pre-screenshot count when it is zero', () => {
     expect(
       formatReviewedApprovalBadge([
         { status: 'APPROVED', type: 'FINAL' },
         { status: 'APPROVED', type: 'FINAL' },
       ])
-    ).toBe('approved: 0 pre-screenshots and 2 submissions');
+    ).toBe('approved: 2 submissions');
+  });
+
+  test('omits the submission count when it is zero', () => {
+    expect(
+      formatReviewedApprovalBadge([
+        { status: 'APPROVED', type: 'PRE' },
+        { status: 'DENIED', type: 'FINAL' },
+      ])
+    ).toBe('approved: 1 pre-screenshot');
   });
 
   test('uses singular labels for one of each', () => {
@@ -33,37 +45,17 @@ describe('formatReviewedApprovalBadge', () => {
   });
 });
 
-describe('needsTileCompletion', () => {
+describe('isReviewedGroupReadyToComplete', () => {
   const approvedSubmission = { status: 'APPROVED', type: 'FINAL' };
 
-  test('identifies an incomplete tile at 100% with an approved submission', () => {
+  test('identifies a reviewed group at 100% with an approval', () => {
     expect(
-      needsTileCompletion({
+      isReviewedGroupReadyToComplete({
         isComplete: false,
         progress: 100,
         submissions: [approvedSubmission],
       })
     ).toBe(true);
-  });
-
-  test('does not surface a tile that still has a pending submission', () => {
-    expect(
-      needsTileCompletion({
-        isComplete: false,
-        progress: 100,
-        submissions: [approvedSubmission, { status: 'PENDING', type: 'FINAL' }],
-      })
-    ).toBe(false);
-  });
-
-  test('does not treat an approved pre-screenshot as a completed task submission', () => {
-    expect(
-      needsTileCompletion({
-        isComplete: false,
-        progress: 100,
-        submissions: [{ status: 'APPROVED', type: 'PRE' }],
-      })
-    ).toBe(false);
   });
 
   test.each([
@@ -73,7 +65,15 @@ describe('needsTileCompletion', () => {
       'without an approval',
       { isComplete: false, progress: 100, submissions: [{ status: 'DENIED', type: 'FINAL' }] },
     ],
-  ])('returns false when the tile is %s', (_label, group) => {
-    expect(needsTileCompletion(group)).toBe(false);
+    [
+      'with pending review',
+      {
+        isComplete: false,
+        progress: 100,
+        submissions: [approvedSubmission, { status: 'PENDING', type: 'FINAL' }],
+      },
+    ],
+  ])('returns false when the group is %s', (_label, group) => {
+    expect(isReviewedGroupReadyToComplete(group)).toBe(false);
   });
 });
