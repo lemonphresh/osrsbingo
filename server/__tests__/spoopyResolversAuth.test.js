@@ -6,7 +6,7 @@ process.env.NODE_ENV = 'test';
 // We mock the entire module so auth checks can be exercised without touching
 // a real database. Auth short-circuits before any DB-write path is reached.
 const EVENT_ID = 'sp_test';
-const TEAM_ID  = 'spt_test';
+const TEAM_ID = 'spt_test';
 const EVENT_ADMIN_USER_ID = 'admin-1';
 const TEAM_MEMBER_DISCORD_ID = 'discord-member';
 
@@ -61,13 +61,17 @@ jest.mock('../db/models', () => ({
 }));
 
 const { Mutation, Query, Subscription } = require('../schema/resolvers/SpoopyBingo');
+const { Op } = require('sequelize');
+const { SpoopySubmission } = require('../db/models');
 
-const NO_CTX             = {};
-const NON_ADMIN_CTX      = { user: { id: 'u-42', admin: false, discordUserId: 'discord-stranger' } };
-const EVENT_ADMIN_CTX    = { user: { id: EVENT_ADMIN_USER_ID, admin: false, discordUserId: null } };
-const SITE_ADMIN_CTX     = { user: { id: 'u-99', admin: true,  discordUserId: null } };
-const TEAM_MEMBER_CTX    = { user: { id: 'u-77', admin: false, discordUserId: TEAM_MEMBER_DISCORD_ID } };
-const MEMBER_NO_DISCORD  = { user: { id: 'u-88', admin: false, discordUserId: null } };
+const NO_CTX = {};
+const NON_ADMIN_CTX = { user: { id: 'u-42', admin: false, discordUserId: 'discord-stranger' } };
+const EVENT_ADMIN_CTX = { user: { id: EVENT_ADMIN_USER_ID, admin: false, discordUserId: null } };
+const SITE_ADMIN_CTX = { user: { id: 'u-99', admin: true, discordUserId: null } };
+const TEAM_MEMBER_CTX = {
+  user: { id: 'u-77', admin: false, discordUserId: TEAM_MEMBER_DISCORD_ID },
+};
+const MEMBER_NO_DISCORD = { user: { id: 'u-88', admin: false, discordUserId: null } };
 
 // ── Mutations: admin-gated ────────────────────────────────────────────
 
@@ -91,24 +95,34 @@ describe('admin-gated mutations reject unauthenticated callers', () => {
   });
 });
 
-describe('site-admin-only mutations (seed + refresh + delete) reject event admins who aren\'t site admins', () => {
+describe("site-admin-only mutations (seed + refresh + delete) reject event admins who aren't site admins", () => {
   test('seedSpoopyMockEvent throws for non-site-admin', async () => {
-    await expect(Mutation.seedSpoopyMockEvent(null, {}, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+    await expect(Mutation.seedSpoopyMockEvent(null, {}, EVENT_ADMIN_CTX)).rejects.toThrow(
+      /site admin/i
+    );
   });
   test('seedSpoopyMockEvent throws for unauthenticated', async () => {
     await expect(Mutation.seedSpoopyMockEvent(null, {}, NO_CTX)).rejects.toThrow(/logged in/i);
   });
   test('refreshSpoopyEventFromMock throws for non-site-admin', async () => {
-    await expect(Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+    await expect(
+      Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)
+    ).rejects.toThrow(/site admin/i);
   });
   test('refreshSpoopyEventFromMock throws for unauthenticated', async () => {
-    await expect(Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+    await expect(
+      Mutation.refreshSpoopyEventFromMock(null, { eventId: EVENT_ID }, NO_CTX)
+    ).rejects.toThrow(/logged in/i);
   });
   test('deleteSpoopyEvent throws for non-site-admin', async () => {
-    await expect(Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)).rejects.toThrow(/site admin/i);
+    await expect(
+      Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)
+    ).rejects.toThrow(/site admin/i);
   });
   test('deleteSpoopyEvent throws for unauthenticated', async () => {
-    await expect(Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+    await expect(Mutation.deleteSpoopyEvent(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(
+      /logged in/i
+    );
   });
 });
 
@@ -131,7 +145,11 @@ describe('admin-gated mutations reject non-admin users', () => {
 
   test('a team member is not automatically an event admin', async () => {
     await expect(
-      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'ACTIVE' }, TEAM_MEMBER_CTX)
+      Mutation.updateSpoopyEventStatus(
+        null,
+        { eventId: EVENT_ID, status: 'ACTIVE' },
+        TEAM_MEMBER_CTX
+      )
     ).rejects.toThrow(/admin only/i);
   });
 });
@@ -169,18 +187,24 @@ describe('team-member mutations accept the site admin override', () => {
   test('createSpoopyChoice accepts site admin (even without discordUserId)', async () => {
     // Won't reach the state machine because tile lookup will fail — but we want
     // to prove auth *passes* for site admins. The error, if any, is NOT auth-related.
-    const call = () => Mutation.createSpoopyChoice(
-      null, { input: { teamId: TEAM_ID, tileId: 't-does-not-exist', option: 'a' } }, SITE_ADMIN_CTX
-    );
+    const call = () =>
+      Mutation.createSpoopyChoice(
+        null,
+        { input: { teamId: TEAM_ID, tileId: 't-does-not-exist', option: 'a' } },
+        SITE_ADMIN_CTX
+      );
     await expect(call()).rejects.not.toThrow(/team member|logged in|admin only/i);
   });
 });
 
 describe('team-member mutations accept a team member whose linked discord id matches', () => {
   test('createSpoopyChoice does not throw an auth error for a team member', async () => {
-    const call = () => Mutation.createSpoopyChoice(
-      null, { input: { teamId: TEAM_ID, tileId: 't-does-not-exist', option: 'a' } }, TEAM_MEMBER_CTX
-    );
+    const call = () =>
+      Mutation.createSpoopyChoice(
+        null,
+        { input: { teamId: TEAM_ID, tileId: 't-does-not-exist', option: 'a' } },
+        TEAM_MEMBER_CTX
+      );
     // Any error thrown is NOT an auth error (state machine will complain about
     // the unknown tile, which is fine for this test).
     await expect(call()).rejects.not.toThrow(/team member|logged in|admin only/i);
@@ -191,7 +215,9 @@ describe('team-member mutations accept a team member whose linked discord id mat
 
 describe('queries require authentication', () => {
   test('spoopyEvent throws when unauthenticated', async () => {
-    await expect(Query.spoopyEvent(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+    await expect(Query.spoopyEvent(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(
+      /logged in/i
+    );
   });
   test('spoopyEvents throws when unauthenticated', async () => {
     await expect(Query.spoopyEvents(null, {}, NO_CTX)).rejects.toThrow(/logged in/i);
@@ -206,7 +232,9 @@ describe('queries require authentication', () => {
     await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
   });
   test('spoopyTeamBoard throws when unauthenticated', async () => {
-    await expect(Query.spoopyTeamBoard(null, { teamId: TEAM_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+    await expect(Query.spoopyTeamBoard(null, { teamId: TEAM_ID }, NO_CTX)).rejects.toThrow(
+      /logged in/i
+    );
   });
 });
 
@@ -236,11 +264,7 @@ describe('public spectator queries expose only active-event projections', () => 
 
   test('returns all active team boards without authentication', async () => {
     SpoopyTeam.findAll.mockResolvedValueOnce([mockTeam]);
-    const result = await Query.spoopySpectatorAllTeamBoards(
-      null,
-      { eventId: EVENT_ID },
-      NO_CTX
-    );
+    const result = await Query.spoopySpectatorAllTeamBoards(null, { eventId: EVENT_ID }, NO_CTX);
     expect(result).toHaveLength(1);
     expect(result[0].teamId).toBe(TEAM_ID);
   });
@@ -312,7 +336,7 @@ describe('mySpoopySituation returns empty state gracefully', () => {
 
   test('falls back to a COMPLETE event when no SETUP/ACTIVE exists', async () => {
     const completeEvent = { ...mockEvent, status: 'COMPLETE' };
-    SpoopyEvent.findOne.mockResolvedValueOnce(null);          // no SETUP/ACTIVE
+    SpoopyEvent.findOne.mockResolvedValueOnce(null); // no SETUP/ACTIVE
     SpoopyEvent.findOne.mockResolvedValueOnce(completeEvent); // any status
     SpoopyTeam.findAll.mockResolvedValueOnce([]);
     const result = await Query.mySpoopySituation(null, {}, TEAM_MEMBER_CTX);
@@ -351,37 +375,75 @@ describe('mySpoopySituation returns empty state gracefully', () => {
 
 describe('team-scoped queries require team membership or staff', () => {
   test('spoopyTeam rejects a non-member logged-in user', async () => {
-    await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, NON_ADMIN_CTX)).rejects.toThrow(/team member/i);
+    await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, NON_ADMIN_CTX)).rejects.toThrow(
+      /team member/i
+    );
   });
   test('spoopyTeamBoard rejects a non-member logged-in user', async () => {
-    await expect(Query.spoopyTeamBoard(null, { teamId: TEAM_ID }, NON_ADMIN_CTX)).rejects.toThrow(/team member/i);
+    await expect(Query.spoopyTeamBoard(null, { teamId: TEAM_ID }, NON_ADMIN_CTX)).rejects.toThrow(
+      /team member/i
+    );
   });
   test('spoopyTeam accepts an event admin (staff override)', async () => {
-    await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, EVENT_ADMIN_CTX)).resolves.toBeTruthy();
+    await expect(
+      Query.spoopyTeam(null, { teamId: TEAM_ID }, EVENT_ADMIN_CTX)
+    ).resolves.toBeTruthy();
   });
   test('spoopyTeam accepts a site admin', async () => {
     await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, SITE_ADMIN_CTX)).resolves.toBeTruthy();
   });
   test('spoopyTeam accepts a linked team member', async () => {
-    await expect(Query.spoopyTeam(null, { teamId: TEAM_ID }, TEAM_MEMBER_CTX)).resolves.toBeTruthy();
+    await expect(
+      Query.spoopyTeam(null, { teamId: TEAM_ID }, TEAM_MEMBER_CTX)
+    ).resolves.toBeTruthy();
   });
 });
 
 describe('spoopySubmissions is admin-gated', () => {
+  beforeEach(() => {
+    SpoopySubmission.findAll.mockClear();
+  });
+
   test('throws when unauthenticated', async () => {
-    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(/logged in/i);
+    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, NO_CTX)).rejects.toThrow(
+      /logged in/i
+    );
   });
   test('throws for logged-in non-admin', async () => {
-    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, NON_ADMIN_CTX)).rejects.toThrow(/admin only/i);
+    await expect(
+      Query.spoopySubmissions(null, { eventId: EVENT_ID }, NON_ADMIN_CTX)
+    ).rejects.toThrow(/admin only/i);
   });
   test('throws even for a team member (staff-only queue)', async () => {
-    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, TEAM_MEMBER_CTX)).rejects.toThrow(/admin only/i);
+    await expect(
+      Query.spoopySubmissions(null, { eventId: EVENT_ID }, TEAM_MEMBER_CTX)
+    ).rejects.toThrow(/admin only/i);
   });
   test('accepts an event admin', async () => {
-    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)).resolves.toEqual([]);
+    await expect(
+      Query.spoopySubmissions(null, { eventId: EVENT_ID }, EVENT_ADMIN_CTX)
+    ).resolves.toEqual([]);
   });
   test('accepts a site admin', async () => {
-    await expect(Query.spoopySubmissions(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)).resolves.toEqual([]);
+    await expect(
+      Query.spoopySubmissions(null, { eventId: EVENT_ID }, SITE_ADMIN_CTX)
+    ).resolves.toEqual([]);
+  });
+
+  test('excludes completed team/tile pairs from the active queue', async () => {
+    await Query.spoopySubmissions(null, { eventId: EVENT_ID, completed: false }, EVENT_ADMIN_CTX);
+
+    const { where } = SpoopySubmission.findAll.mock.calls[0][0];
+    expect(where[Op.and].val).toContain('NOT EXISTS');
+    expect(where[Op.and].val).toContain('"teamTile"."status" = \'complete\'');
+  });
+
+  test('loads only completed team/tile pairs for lazy history', async () => {
+    await Query.spoopySubmissions(null, { eventId: EVENT_ID, completed: true }, EVENT_ADMIN_CTX);
+
+    const { where } = SpoopySubmission.findAll.mock.calls[0][0];
+    expect(where[Op.and].val.trimStart()).toMatch(/^EXISTS/);
+    expect(where[Op.and].val).not.toContain('NOT EXISTS');
   });
 });
 
@@ -450,7 +512,11 @@ describe('updateSpoopyEventStatus enforces forward-only transitions', () => {
   test('COMPLETE → ACTIVE is rejected', async () => {
     SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'COMPLETE' });
     await expect(
-      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'ACTIVE' }, SITE_ADMIN_CTX)
+      Mutation.updateSpoopyEventStatus(
+        null,
+        { eventId: EVENT_ID, status: 'ACTIVE' },
+        SITE_ADMIN_CTX
+      )
     ).rejects.toThrow(/Cannot transition/i);
   });
   test('COMPLETE → SETUP is rejected', async () => {
@@ -462,7 +528,11 @@ describe('updateSpoopyEventStatus enforces forward-only transitions', () => {
   test('ACTIVE → COMPLETE is allowed', async () => {
     SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
     await expect(
-      Mutation.updateSpoopyEventStatus(null, { eventId: EVENT_ID, status: 'COMPLETE' }, SITE_ADMIN_CTX)
+      Mutation.updateSpoopyEventStatus(
+        null,
+        { eventId: EVENT_ID, status: 'COMPLETE' },
+        SITE_ADMIN_CTX
+      )
     ).resolves.toBeTruthy();
   });
 });
@@ -473,14 +543,22 @@ describe('updateSpoopyEventSchedule guards curfewEnd on ACTIVE events', () => {
     SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'ACTIVE' });
     const past = new Date(Date.now() - 60 * 1000).toISOString();
     await expect(
-      Mutation.updateSpoopyEventSchedule(null, { eventId: EVENT_ID, curfewEnd: past }, SITE_ADMIN_CTX)
+      Mutation.updateSpoopyEventSchedule(
+        null,
+        { eventId: EVENT_ID, curfewEnd: past },
+        SITE_ADMIN_CTX
+      )
     ).rejects.toThrow(/past/i);
   });
   test('allows curfewEnd in the past when event is SETUP (pre-launch backfill)', async () => {
     SpoopyEvent.findByPk.mockResolvedValueOnce({ ...mockEvent, status: 'SETUP' });
     const past = new Date(Date.now() - 60 * 1000).toISOString();
     await expect(
-      Mutation.updateSpoopyEventSchedule(null, { eventId: EVENT_ID, curfewEnd: past }, SITE_ADMIN_CTX)
+      Mutation.updateSpoopyEventSchedule(
+        null,
+        { eventId: EVENT_ID, curfewEnd: past },
+        SITE_ADMIN_CTX
+      )
     ).resolves.toBeTruthy();
   });
 });
@@ -499,23 +577,27 @@ describe('SpoopyTeam.teamToken field resolver', () => {
     await expect(SpoopyTeam.teamToken(teamWithToken, {}, NON_ADMIN_CTX)).resolves.toBeNull();
   });
   test('returns the token for an event admin', async () => {
-    await expect(SpoopyTeam.teamToken(teamWithToken, {}, EVENT_ADMIN_CTX)).resolves.toBe('tok_abc123');
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, EVENT_ADMIN_CTX)).resolves.toBe(
+      'tok_abc123'
+    );
   });
   test('returns the token for a site admin', async () => {
-    await expect(SpoopyTeam.teamToken(teamWithToken, {}, SITE_ADMIN_CTX)).resolves.toBe('tok_abc123');
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, SITE_ADMIN_CTX)).resolves.toBe(
+      'tok_abc123'
+    );
   });
   test('returns the token for a linked team member', async () => {
-    await expect(SpoopyTeam.teamToken(teamWithToken, {}, TEAM_MEMBER_CTX)).resolves.toBe('tok_abc123');
+    await expect(SpoopyTeam.teamToken(teamWithToken, {}, TEAM_MEMBER_CTX)).resolves.toBe(
+      'tok_abc123'
+    );
   });
 
-  test('hides another team\'s Mossy clue but exposes the caller\'s own clue', async () => {
+  test("hides another team's Mossy clue but exposes the caller's own clue", async () => {
     const assignedTeam = { ...mockTeam, mossyWildyLocation: 7 };
     await expect(
-      SpoopyTeam.mossyWildyLocation(assignedTeam, {}, NON_ADMIN_CTX),
+      SpoopyTeam.mossyWildyLocation(assignedTeam, {}, NON_ADMIN_CTX)
     ).resolves.toBeNull();
-    await expect(
-      SpoopyTeam.mossyWildyLocation(assignedTeam, {}, TEAM_MEMBER_CTX),
-    ).resolves.toBe(7);
+    await expect(SpoopyTeam.mossyWildyLocation(assignedTeam, {}, TEAM_MEMBER_CTX)).resolves.toBe(7);
   });
 });
 
@@ -528,38 +610,35 @@ describe('createSpoopyTeam assigns a unique Mossy Way clue', () => {
   });
 
   test('randomly chooses from the locations not already used by the event', async () => {
-    SpoopyTeam.findAll.mockResolvedValue([
-      { mossyWildyLocation: 1 },
-      { mossyWildyLocation: 3 },
-    ]);
+    SpoopyTeam.findAll.mockResolvedValue([{ mossyWildyLocation: 1 }, { mossyWildyLocation: 3 }]);
     const randomSpy = jest.spyOn(Math, 'random').mockReturnValue(0);
 
     try {
       await Mutation.createSpoopyTeam(
         null,
         { eventId: EVENT_ID, input: { teamName: 'new team', discordChannelId: 'new-channel' } },
-        SITE_ADMIN_CTX,
+        SITE_ADMIN_CTX
       );
     } finally {
       randomSpy.mockRestore();
     }
 
     expect(SpoopyTeam.create).toHaveBeenLastCalledWith(
-      expect.objectContaining({ mossyWildyLocation: 2 }),
+      expect.objectContaining({ mossyWildyLocation: 2 })
     );
   });
 
   test('refuses a thirteenth assignment instead of repeating a clue', async () => {
     SpoopyTeam.findAll.mockResolvedValue(
-      Array.from({ length: 12 }, (_, index) => ({ mossyWildyLocation: index + 1 })),
+      Array.from({ length: 12 }, (_, index) => ({ mossyWildyLocation: index + 1 }))
     );
 
     await expect(
       Mutation.createSpoopyTeam(
         null,
         { eventId: EVENT_ID, input: { teamName: 'team 13', discordChannelId: 'channel-13' } },
-        SITE_ADMIN_CTX,
-      ),
+        SITE_ADMIN_CTX
+      )
     ).rejects.toThrow(/all 12.*already assigned/i);
   });
 });

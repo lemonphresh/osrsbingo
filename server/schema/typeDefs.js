@@ -614,7 +614,7 @@ const typeDefs = gql`
 
   type SyncTeamWomResult {
     updatedTiles: Int!
-    lastWomSync:  DateTime
+    lastWomSync: DateTime
   }
 
   type StartTeamWomSyncResult {
@@ -652,278 +652,301 @@ const typeDefs = gql`
   # RAINBOW BINGO
   # ============================================================
 
-  enum RainbowEventStatus { SETUP ACTIVE COMPLETE }
-  enum RainbowTileStatus  { LOCKED UNLOCKED SUBMITTED COMPLETE }
-  enum RainbowSubmissionType   { PRE FINAL }
-  enum RainbowSubmissionStatus { PENDING APPROVED DENIED }
+  enum RainbowEventStatus {
+    SETUP
+    ACTIVE
+    COMPLETE
+  }
+  enum RainbowTileStatus {
+    LOCKED
+    UNLOCKED
+    SUBMITTED
+    COMPLETE
+  }
+  enum RainbowSubmissionType {
+    PRE
+    FINAL
+  }
+  enum RainbowSubmissionStatus {
+    PENDING
+    APPROVED
+    DENIED
+  }
 
   type RainbowTileDef {
-    tileCode:      String!
-    color:         String!
-    colorIndex:    Int!
-    bossOrSkill:   String!
-    metricType:    String!
-    metricTarget:  Float
-    metricUnit:    String
-    metricLabel:   String!
+    tileCode: String!
+    color: String!
+    colorIndex: Int!
+    bossOrSkill: String!
+    metricType: String!
+    metricTarget: Float
+    metricUnit: String
+    metricLabel: String!
     hoursEstimate: Float
-    theme:         String
-    funName:       String
-    validDrops:    [String]
-    notes:         String
+    theme: String
+    funName: String
+    validDrops: [String]
+    notes: String
   }
 
   type RainbowEvent {
-    eventId:          ID!
-    eventName:        String!
-    status:           RainbowEventStatus!
-    startDate:        DateTime
-    endDate:          DateTime
-    adminIds:         [String!]!
-    staffChannelId:   String
-    guildId:          String
+    eventId: ID!
+    eventName: String!
+    status: RainbowEventStatus!
+    startDate: DateTime
+    endDate: DateTime
+    adminIds: [String!]!
+    staffChannelId: String
+    guildId: String
     womCompetitionId: String
-    tileGraph:        JSON!
-    teams:            [RainbowTeam!]!
-    admins:           [User!]!
-    createdAt:        DateTime
-    updatedAt:        DateTime
+    tileGraph: JSON!
+    teams: [RainbowTeam!]!
+    admins: [User!]!
+    createdAt: DateTime
+    updatedAt: DateTime
   }
 
   type RainbowTeam {
-    teamId:           ID!
-    eventId:          ID!
-    teamName:         String!
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
     discordChannelId: String!
-    discordRoleId:    String
+    discordRoleId: String
     captainDiscordId: String
-    notes:            String
-    teamToken:        String
-    tiles:            [RainbowTeamTile!]!
-    createdAt:        DateTime
-    lastWomSync:      DateTime
+    notes: String
+    teamToken: String
+    tiles: [RainbowTeamTile!]!
+    createdAt: DateTime
+    lastWomSync: DateTime
   }
 
   type RainbowTeamTile {
-    teamTileId:     ID!
-    teamId:         ID!
-    eventId:        ID!
-    tileCode:       String!
-    status:         RainbowTileStatus!
-    progress:       Int!
-    womBaseline:    Float
-    unlockedAt:     DateTime
-    completedAt:    DateTime
-    tileDef:        RainbowTileDef!
+    teamTileId: ID!
+    teamId: ID!
+    eventId: ID!
+    tileCode: String!
+    status: RainbowTileStatus!
+    progress: Int!
+    womBaseline: Float
+    unlockedAt: DateTime
+    completedAt: DateTime
+    tileDef: RainbowTileDef!
     hasSubmissions: Boolean!
   }
 
   type RainbowSubmission {
-    submissionId:     ID!
-    teamId:           ID!
-    eventId:          ID!
-    tileCode:         String!
-    type:             RainbowSubmissionType!
-    screenshotUrl:    String
+    submissionId: ID!
+    teamId: ID!
+    eventId: ID!
+    tileCode: String!
+    type: RainbowSubmissionType!
+    screenshotUrl: String
     discordMessageId: String
-    channelId:        String!
-    status:           RainbowSubmissionStatus!
-    discordUsername:  String
-    discordUserId:    String
-    reviewedBy:       String
-    reviewedAt:       DateTime
-    denialReason:     String
-    submittedAt:      DateTime
-    team:             RainbowTeam
+    channelId: String!
+    status: RainbowSubmissionStatus!
+    discordUsername: String
+    discordUserId: String
+    reviewedBy: String
+    reviewedAt: DateTime
+    denialReason: String
+    submittedAt: DateTime
+    team: RainbowTeam
   }
 
   input CreateRainbowEventInput {
-    eventName:      String!
-    startDate:      DateTime
-    endDate:        DateTime
+    eventName: String!
+    startDate: DateTime
+    endDate: DateTime
     staffChannelId: String
   }
 
   input CreateRainbowTeamInput {
-    teamName:         String!
+    teamName: String!
     discordChannelId: String!
-    discordRoleId:    String
+    discordRoleId: String
   }
 
   input CreateRainbowSubmissionInput {
-    tileCode:         String!
-    type:             RainbowSubmissionType!
-    screenshotUrl:    String
+    tileCode: String!
+    type: RainbowSubmissionType!
+    screenshotUrl: String
     discordMessageId: String
-    channelId:        String!
-    submittedAt:      DateTime
-    discordUsername:  String
-    discordUserId:    String
+    channelId: String!
+    submittedAt: DateTime
+    discordUsername: String
+    discordUserId: String
   }
 
   # ============================================================
   # SPOOPY (halloween trick-or-treat)
   # ============================================================
 
-  enum SpoopyEventStatus { SETUP ACTIVE COMPLETE }
+  enum SpoopyEventStatus {
+    SETUP
+    ACTIVE
+    COMPLETE
+  }
   # Tile statuses are exchanged as strings ('locked'|'unlocked'|'submitted'|'complete')
   # to match the state machine's lowercase constants exactly.
 
   type SpoopyEvent {
-    eventId:          ID!
-    eventName:        String!
-    status:           SpoopyEventStatus!
-    curfewStart:      DateTime
-    curfewEnd:        DateTime
-    eventPassword:    String
-    adminIds:         [String!]!
-    staffChannelId:   String
-    board:            JSON!
-    contentById:      JSON!
-    hauntedHouse:     JSON
-    startingTileIds:  [String!]!
+    eventId: ID!
+    eventName: String!
+    status: SpoopyEventStatus!
+    curfewStart: DateTime
+    curfewEnd: DateTime
+    eventPassword: String
+    adminIds: [String!]!
+    staffChannelId: String
+    board: JSON!
+    contentById: JSON!
+    hauntedHouse: JSON
+    startingTileIds: [String!]!
     # Total gp budget the admin allocated for house rewards. Editable while
     # status=SETUP via setSpoopyEventPrizePool. Split evenly across teams at
     # activation; haunted house pays 3× the per-house share on top.
-    prizePool:        Int!
+    prizePool: Int!
     # WOM team competition id — enables auto-fill of tile progress for
     # skilling_xp / boss_kc tasks. Editable at any time.
     womCompetitionId: String
     # Last successful WOM sync (server enforces a cooldown on top of this).
-    lastWomSyncAt:    DateTime
+    lastWomSyncAt: DateTime
     # Hours to backdate the PRE-submission anchor by when summing WOM gains
     # for a tile. Catches xp/kc earned shortly before the PRE but after the
     # last WOM snapshot. Default 12. Mirrors Battleship's
     # womShotAnchorBufferHours.
     womPreAnchorBufferHours: Float!
-    teams:            [SpoopyTeam!]!
-    admins:           [User!]!
-    createdAt:        DateTime
-    updatedAt:        DateTime
+    teams: [SpoopyTeam!]!
+    admins: [User!]!
+    createdAt: DateTime
+    updatedAt: DateTime
   }
 
   type SpoopyTeam {
-    teamId:           ID!
-    eventId:          ID!
-    teamName:         String!
-    color:            String
-    members:          [String!]!
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
+    color: String
+    members: [String!]!
     discordChannelId: String!
-    discordRoleId:    String
-    teamToken:        String
-    gpEarned:         Int!
-    cashedOut:        JSON
+    discordRoleId: String
+    teamToken: String
+    gpEarned: Int!
+    cashedOut: JSON
     # Escalating counter for the spooky-house step-inside gauntlet. See
     # bot/commands/spoopy.js for the command sequence and reset rules.
     hauntedGauntletLevel: Int!
     # Snapshot of the team's share of event.prizePool, set at SETUP→ACTIVE.
-    poolAllocation:   Int!
+    poolAllocation: Int!
     mossyWildyLocation: Int
-    createdAt:        DateTime
+    createdAt: DateTime
   }
 
   # Snapshot of a team's per-tile progress, returned by spoopyTeamBoard(teamId).
   type SpoopyTeamBoardState {
-    eventId:   ID!
-    teamId:    ID!
-    roster:    [String!]!
-    gpEarned:  Int!
+    eventId: ID!
+    teamId: ID!
+    roster: [String!]!
+    gpEarned: Int!
     cashedOut: JSON
     # Mirrors SpoopyTeam.hauntedGauntletLevel — surfaced here so the
     # team-board subscription can drive live updates to the spooky-house
     # modal without a separate team query.
     hauntedGauntletLevel: Int!
-    tiles:     JSON!   # { [tileId]: { status, choice, outcome, submissionId, completedAt, rewardEarned } }
+    tiles: JSON! # { [tileId]: { status, choice, outcome, submissionId, completedAt, rewardEarned } }
   }
 
   # Public, read-only projection used by the live spectator page. Deliberately
   # excludes rosters, Discord configuration, team tokens, event passwords,
   # hidden content, and haunted-house state.
   type SpoopySpectatorEvent {
-    eventId:      ID!
-    eventName:    String!
-    status:       String!
-    curfewStart:  DateTime
-    curfewEnd:    DateTime
-    board:        JSON!
-    teams:        [SpoopySpectatorTeam!]!
+    eventId: ID!
+    eventName: String!
+    status: String!
+    curfewStart: DateTime
+    curfewEnd: DateTime
+    board: JSON!
+    teams: [SpoopySpectatorTeam!]!
   }
 
   type SpoopySpectatorTeam {
-    teamId:    ID!
-    eventId:   ID!
-    teamName:  String!
-    color:     String
-    gpEarned:  Int!
+    teamId: ID!
+    eventId: ID!
+    teamName: String!
+    color: String
+    gpEarned: Int!
     cashedOut: JSON
   }
 
   type SpoopySpectatorBoardState {
-    eventId:   ID!
-    teamId:    ID!
-    gpEarned:  Int!
+    eventId: ID!
+    teamId: ID!
+    gpEarned: Int!
     cashedOut: JSON
-    tiles:     JSON!
+    tiles: JSON!
   }
 
   type SpoopySpectatorEventUpdate {
     eventId: ID!
-    status:  String!
+    status: String!
   }
 
-  enum SpoopySubmissionType { PRE FINAL }
+  enum SpoopySubmissionType {
+    PRE
+    FINAL
+  }
 
   # Per-team, per-tile state used by refs (progress slider) and the team's
   # tile-detail modal. Field resolver on SpoopySubmission surfaces the current
   # row for the submitting team so we don't need extra client round-trips.
   type SpoopyTeamTile {
-    teamTileId:   ID!
-    teamId:       ID!
-    eventId:      ID!
-    tileId:       String!
-    status:       String!
-    choice:       String
-    outcome:      String
+    teamTileId: ID!
+    teamId: ID!
+    eventId: ID!
+    tileId: String!
+    status: String!
+    choice: String
+    outcome: String
     submissionId: String
-    completedAt:  DateTime
+    completedAt: DateTime
     rewardEarned: Int
-    progress:     Int!
+    progress: Int!
   }
 
   type SpoopySubmission {
-    submissionId:     ID!
-    teamId:           ID!
-    eventId:          ID!
-    tileId:           String!
-    type:             SpoopySubmissionType!
-    screenshotUrl:    String
+    submissionId: ID!
+    teamId: ID!
+    eventId: ID!
+    tileId: String!
+    type: SpoopySubmissionType!
+    screenshotUrl: String
     discordMessageId: String
-    channelId:        String!
-    status:           String!
-    discordUsername:  String
-    discordUserId:    String
-    reviewedBy:       String
-    reviewedAt:       DateTime
-    denialReason:     String
-    submittedAt:      DateTime
-    teamTile:         SpoopyTeamTile
+    channelId: String!
+    status: String!
+    discordUsername: String
+    discordUserId: String
+    reviewedBy: String
+    reviewedAt: DateTime
+    denialReason: String
+    submittedAt: DateTime
+    teamTile: SpoopyTeamTile
   }
 
   # Returned by enterSpoopyHauntedHouse — the team must acknowledge the warning
   # before the candybag task is actually attempted (via createSpoopySubmission).
   type SpoopyHauntedHouseResult {
-    warningDialog:    String
-    msRemaining:      Float!
-    candybagTileId:   String
-    currentGp:        Int!
+    warningDialog: String
+    msRemaining: Float!
+    candybagTileId: String
+    currentGp: Int!
   }
 
   # One-shot response used by /spoopy-event: gives the client everything it
   # needs to render (event, caller's team on this event, and team board state).
   # All fields may be null so the page can render empty states cleanly.
   type SpoopySituation {
-    event:     SpoopyEvent
-    myTeam:    SpoopyTeam
+    event: SpoopyEvent
+    myTeam: SpoopyTeam
     teamBoard: SpoopyTeamBoardState
   }
 
@@ -931,28 +954,28 @@ const typeDefs = gql`
   # soft warnings surfaced by parseBoard (isolated tiles, ambiguous cells, etc.)
   # so the admin can see them in the toast without having to check server logs.
   type SpoopyImportResult {
-    event:    SpoopyEvent!
+    event: SpoopyEvent!
     warnings: [String!]!
   }
 
   input CreateSpoopyEventInput {
-    eventName:        String!
-    curfewStart:      DateTime
-    curfewEnd:        DateTime
-    eventPassword:    String
-    staffChannelId:   String
-    board:            JSON
-    contentById:      JSON
-    hauntedHouse:     JSON
-    startingTileIds:  [String!]
+    eventName: String!
+    curfewStart: DateTime
+    curfewEnd: DateTime
+    eventPassword: String
+    staffChannelId: String
+    board: JSON
+    contentById: JSON
+    hauntedHouse: JSON
+    startingTileIds: [String!]
   }
 
   input CreateSpoopyTeamInput {
-    teamName:         String!
-    color:            String
-    members:          [String!]
+    teamName: String!
+    color: String
+    members: [String!]
     discordChannelId: String!
-    discordRoleId:    String
+    discordRoleId: String
   }
 
   # Team-member actions — caller must be logged in with a Discord id linked
@@ -961,26 +984,26 @@ const typeDefs = gql`
   # access, matching the battleship pattern.
 
   input CreateSpoopyChoiceInput {
-    teamId:           ID!
-    tileId:           String!
-    option:           String!   # 'a' | 'b'
+    teamId: ID!
+    tileId: String!
+    option: String! # 'a' | 'b'
   }
 
   input CreateSpoopySubmissionInput {
-    teamId:           ID!
-    tileId:           String!
-    type:             SpoopySubmissionType!
-    screenshotUrl:    String
+    teamId: ID!
+    tileId: String!
+    type: SpoopySubmissionType!
+    screenshotUrl: String
     discordMessageId: String
-    submittedAt:      DateTime
+    submittedAt: DateTime
     # Staff may override discordUserId / discordUsername (dev/testing).
     # Regular members are always recorded as themselves.
-    discordUsername:  String
-    discordUserId:    String
+    discordUsername: String
+    discordUserId: String
   }
 
   input EnterSpoopyHauntedHouseInput {
-    teamId:           ID!
+    teamId: ID!
   }
 
   # ============================================================
@@ -1045,10 +1068,7 @@ const typeDefs = gql`
     getGREventLeaderboard(eventId: ID!): [GRTeam!]
     getGRActivities(eventId: ID!, limit: Int, offset: Int): [GRActivity!]
     verifyDiscordGuild(guildId: String!): DiscordVerifyResponse!
-    checkDiscordChannels(
-      guildId: String!
-      eventId: ID!
-    ): DiscordChannelCheckResult!
+    checkDiscordChannels(guildId: String!, eventId: ID!): DiscordChannelCheckResult!
 
     # --- Analytics ---
     getVisitCount: Int!
@@ -1070,7 +1090,12 @@ const typeDefs = gql`
     getMyCFEvents: [CFEvent!]!
     getCFTeam(eventId: ID!, teamId: ID!): CFTeam
     getCFWarChest(teamId: ID!): [CFItem!]!
-    getCFSubmissions(eventId: ID!, status: CFSubmissionStatus, limit: Int, offset: Int): [CFSubmission!]!
+    getCFSubmissions(
+      eventId: ID!
+      status: CFSubmissionStatus
+      limit: Int
+      offset: Int
+    ): [CFSubmission!]!
     getCFSubmissionSummaries(eventId: ID!): [CFSubmissionSummary!]!
     getCFTaskSubmissions(eventId: ID!, taskId: String!, teamId: ID!): [CFSubmission!]!
     getCFPreScreenshots(eventId: ID!, limit: Int, offset: Int): [CFPreScreenshot!]!
@@ -1087,7 +1112,12 @@ const typeDefs = gql`
     getRainbowTeams(eventId: ID!): [RainbowTeam!]!
     getRainbowTeamBoard(teamId: ID!): [RainbowTeamTile!]!
     getRainbowTeamByToken(token: String!): RainbowTeam
-    getRainbowSubmissions(eventId: ID!, status: RainbowSubmissionStatus, teamId: ID, tileCode: String): [RainbowSubmission!]!
+    getRainbowSubmissions(
+      eventId: ID!
+      status: RainbowSubmissionStatus
+      teamId: ID
+      tileCode: String
+    ): [RainbowSubmission!]!
     getRainbowTileDefs: [RainbowTileDef!]!
     getRainbowSyncInProgress: Boolean!
 
@@ -1107,7 +1137,7 @@ const typeDefs = gql`
     # Admin-only. Returns the current board state for every team on the event
     # in a single call so the spectator view can overlay all teams at once.
     spoopyAllTeamBoards(eventId: ID!): [SpoopyTeamBoardState!]!
-    spoopySubmissions(eventId: ID!, status: String): [SpoopySubmission!]!
+    spoopySubmissions(eventId: ID!, status: String, completed: Boolean): [SpoopySubmission!]!
 
     # --- Group Goal Dashboard ---
     getGroupDashboard(slug: String!): GroupDashboard
@@ -1220,12 +1250,7 @@ const typeDefs = gql`
     deleteGRTeam(eventId: ID!, teamId: ID!): MutationResponse!
 
     # --- Gielinor Rush: Node Completion ---
-    adminCompleteNode(
-      eventId: ID!
-      teamId: ID!
-      nodeId: ID!
-      congratsMessage: String
-    ): GRTeam!
+    adminCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!, congratsMessage: String): GRTeam!
     visitInn(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam
     adminUncompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
     adminSilentReCompleteNode(eventId: ID!, teamId: ID!, nodeId: ID!): GRTeam!
@@ -1340,12 +1365,7 @@ const typeDefs = gql`
     leaveBattleView(eventId: ID!): Boolean
     setCaptainReady(eventId: ID!, teamId: ID!): CFEvent!
     startCFBattle(eventId: ID!, team1Id: ID!, team2Id: ID!, force: Boolean): CFBattle!
-    submitBattleAction(
-      battleId: ID!
-      teamId: ID!
-      action: CFBattleAction!
-      itemId: ID
-    ): CFBattle!
+    submitBattleAction(battleId: ID!, teamId: ID!, action: CFBattleAction!, itemId: ID): CFBattle!
 
     # Dev-only: seed all CF scenario events; adds caller to adminIds on each
     devSeedCfEvent: Boolean!
@@ -1363,7 +1383,12 @@ const typeDefs = gql`
     updateGroupGoalEvent(id: ID!, input: GroupGoalEventInput!): GroupGoalEvent!
     deleteGroupGoalEvent(id: ID!): Boolean!
     deleteGroupDashboard(id: ID!): Boolean!
-    confirmGroupDashboardDiscord(id: ID!, guildId: String!, channelId: String!, roleId: String): GroupDashboard!
+    confirmGroupDashboardDiscord(
+      id: ID!
+      guildId: String!
+      channelId: String!
+      roleId: String
+    ): GroupDashboard!
     updateGroupDiscordNotifications(id: ID!, notifications: JSON!): GroupDashboard!
     sendTestGroupDiscordMessage(id: ID!): Boolean!
     refreshGroupGoalData(eventId: ID!): GroupGoalEvent!
@@ -1388,7 +1413,11 @@ const typeDefs = gql`
     setRainbowEventGuildId(eventId: ID!, guildId: String!): RainbowEvent!
     setRainbowEventWomCompetitionId(eventId: ID!, womCompetitionId: String): RainbowEvent!
     createRainbowSubmission(input: CreateRainbowSubmissionInput!): RainbowSubmission!
-    reviewRainbowSubmission(submissionId: ID!, approved: Boolean!, denialReason: String): RainbowSubmission!
+    reviewRainbowSubmission(
+      submissionId: ID!
+      approved: Boolean!
+      denialReason: String
+    ): RainbowSubmission!
     completeRainbowTile(teamId: ID!, tileCode: String!): RainbowTeamTile!
     setRainbowTileProgress(teamId: ID!, tileCode: String!, progress: Int!): RainbowTeamTile!
     undoRainbowTileComplete(teamId: ID!, tileCode: String!): Boolean!
@@ -1402,11 +1431,21 @@ const typeDefs = gql`
     # --- Spoopy Halloween ---
     createSpoopyEvent(input: CreateSpoopyEventInput!): SpoopyEvent!
     updateSpoopyEventStatus(eventId: ID!, status: SpoopyEventStatus!): SpoopyEvent!
-    updateSpoopyEventBoard(eventId: ID!, board: JSON, contentById: JSON, hauntedHouse: JSON, startingTileIds: [String!]): SpoopyEvent!
+    updateSpoopyEventBoard(
+      eventId: ID!
+      board: JSON
+      contentById: JSON
+      hauntedHouse: JSON
+      startingTileIds: [String!]
+    ): SpoopyEvent!
     setSpoopyEventPassword(eventId: ID!, password: String): SpoopyEvent!
     # Admin-only. Updates the event's curfew window. Either arg may be omitted;
     # only the provided one is patched. Editable at any status.
-    updateSpoopyEventSchedule(eventId: ID!, curfewStart: DateTime, curfewEnd: DateTime): SpoopyEvent!
+    updateSpoopyEventSchedule(
+      eventId: ID!
+      curfewStart: DateTime
+      curfewEnd: DateTime
+    ): SpoopyEvent!
     # Admin-only, SETUP-only. Total gp budget for house rewards. Each team's
     # share is snapshotted at SETUP→ACTIVE and cannot be changed after.
     setSpoopyEventPrizePool(eventId: ID!, prizePool: Int!): SpoopyEvent!
@@ -1428,10 +1467,18 @@ const typeDefs = gql`
     updateSpoopyTeamMembers(teamId: ID!, members: [String!]!): SpoopyTeam!
     # Update the team's Discord channel / role bindings after creation.
     # Either arg may be omitted; only the provided one is written.
-    updateSpoopyTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String): SpoopyTeam!
+    updateSpoopyTeamDiscord(
+      teamId: ID!
+      discordChannelId: String
+      discordRoleId: String
+    ): SpoopyTeam!
     addSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
     removeSpoopyAdmin(eventId: ID!, userId: ID!): SpoopyEvent!
-    reviewSpoopySubmission(submissionId: ID!, approved: Boolean!, denialReason: String): SpoopySubmission!
+    reviewSpoopySubmission(
+      submissionId: ID!
+      approved: Boolean!
+      denialReason: String
+    ): SpoopySubmission!
     setSpoopyTileProgress(teamId: ID!, tileId: String!, progress: Int!): SpoopyTeamBoardState!
     completeSpoopyTile(teamId: ID!, tileId: String!): SpoopyTeamBoardState!
     # Admin-only. Writes a custom accepted-drops list for a uniques tile that
@@ -1473,7 +1520,12 @@ const typeDefs = gql`
     deleteBSEvent(eventId: ID!): MutationResponse!
     addBSTeam(eventId: ID!, input: CreateBSTeamInput!): BSTeam!
     updateBSTeamMembers(teamId: ID!, members: [String!]!): BSTeam!
-    updateBSTeamDiscord(teamId: ID!, discordChannelId: String, discordRoleId: String, womTeamName: String): BSTeam!
+    updateBSTeamDiscord(
+      teamId: ID!
+      discordChannelId: String
+      discordRoleId: String
+      womTeamName: String
+    ): BSTeam!
     sendBSTestDiscordMessages(eventId: ID!): JSON!
     joinBSTeam(teamId: ID!): BSTeam!
     addBSAdmin(eventId: ID!, userId: ID!): BSEvent!
@@ -1485,10 +1537,19 @@ const typeDefs = gql`
     addBSTask(eventId: ID!, input: BSTaskInput!): BSTask!
     updateBSTask(taskId: ID!, input: BSTaskInput!): BSTask!
     removeBSTask(taskId: ID!): Boolean!
-    importBSDraftWorkbook(eventId: ID!, contentBase64: String!, apply: Boolean = false): BSDraftWorkbookImportResult!
+    importBSDraftWorkbook(
+      eventId: ID!
+      contentBase64: String!
+      apply: Boolean = false
+    ): BSDraftWorkbookImportResult!
 
     # --- Battleship: Ship Templates ---
-    setBSShipTemplate(eventId: ID!, shipType: BSShipType!, cellIndex: Int!, taskId: ID!): BSShipTemplate!
+    setBSShipTemplate(
+      eventId: ID!
+      shipType: BSShipType!
+      cellIndex: Int!
+      taskId: ID!
+    ): BSShipTemplate!
 
     # --- Battleship: Placement Phase ---
     updateBSContentSelections(eventId: ID!, contentSelections: JSON!): BSEvent!
@@ -1532,7 +1593,12 @@ const typeDefs = gql`
 
     # --- A Gielinor Whodunnit ---
     createWhodunnitCampaign(agencyName: String, teammateDiscordIds: [String!]): WhodunnitCampaign!
-    submitWhodunnitAnswer(campaignId: ID!, nodeId: String!, clueId: String!, answer: String!): WhodunnitClueAnswer!
+    submitWhodunnitAnswer(
+      campaignId: ID!
+      nodeId: String!
+      clueId: String!
+      answer: String!
+    ): WhodunnitClueAnswer!
     advanceWhodunnitNode(campaignId: ID!, nextNodeId: String!): WhodunnitCampaign!
     completeWhodunnitCampaign(campaignId: ID!): WhodunnitCampaign!
     useWhodunnitHint(campaignId: ID!, nodeId: String!, clueId: String!): WhodunnitNodeProgress!
@@ -2094,8 +2160,16 @@ const typeDefs = gql`
     shotAt: DateTime!
   }
 
-  enum BSProposalLogKind { SHOT SKIP }
-  enum BSProposalLogStatus { APPROVED REJECTED EXPIRED CLEARED }
+  enum BSProposalLogKind {
+    SHOT
+    SKIP
+  }
+  enum BSProposalLogStatus {
+    APPROVED
+    REJECTED
+    EXPIRED
+    CLEARED
+  }
 
   type BSProposalLogEntry {
     logId: ID!
@@ -2117,8 +2191,17 @@ const typeDefs = gql`
     resolvedAt: DateTime!
   }
 
-  enum BSProposalStatus { PENDING APPROVED REJECTED CLEARED }
-  enum BSSubmissionStatus { PENDING APPROVED DENIED }
+  enum BSProposalStatus {
+    PENDING
+    APPROVED
+    REJECTED
+    CLEARED
+  }
+  enum BSSubmissionStatus {
+    PENDING
+    APPROVED
+    DENIED
+  }
 
   type BSProposal {
     proposalId: ID

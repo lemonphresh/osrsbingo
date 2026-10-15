@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, Link as RouterLink } from 'react-router-dom';
 import { useLoginUrl } from '../../utils/loginRedirect';
-import { useMutation, useQuery, useSubscription } from '@apollo/client';
+import { useLazyQuery, useMutation, useQuery, useSubscription } from '@apollo/client';
 import {
   Accordion,
   AccordionButton,
@@ -35,15 +35,8 @@ import TileReviewControls, {
 import { BellIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../providers/AuthProvider';
 import { useToastContext } from '../../providers/ToastProvider';
-import {
-  playSubmissionApproved,
-  playSubmissionDenied,
-  warmUpAudio,
-} from '../../utils/soundEngine';
-import {
-  playSpoopySound,
-  warmUpSpoopySounds,
-} from '../../utils/spoopy/spoopyAudio';
+import { playSubmissionApproved, playSubmissionDenied, warmUpAudio } from '../../utils/soundEngine';
+import { playSpoopySound, warmUpSpoopySounds } from '../../utils/spoopy/spoopyAudio';
 import {
   GET_ACTIVE_SPOOPY_EVENT,
   GET_SPOOPY_ADMIN_EVENT,
@@ -449,11 +442,7 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
               >
                 goal
               </Text>
-              <Text
-                fontSize="sm"
-                color={SPOOPY_COLORS.paper}
-                fontFamily={SPOOPY_FONTS.hand}
-              >
+              <Text fontSize="sm" color={SPOOPY_COLORS.paper} fontFamily={SPOOPY_FONTS.hand}>
                 {taskLine(task)}
               </Text>
               {flavorText && (
@@ -576,10 +565,14 @@ export default function SpoopyRefsPage() {
     null;
 
   const { data: subsData, refetch: refetchSubs } = useQuery(GET_SPOOPY_SUBMISSIONS, {
-    variables: { eventId },
+    variables: { eventId, completed: false },
     skip: !isAuthenticated || !eventId,
     fetchPolicy: 'network-only',
   });
+  const [loadCompletedSubmissions, completedSubmissionsQuery] = useLazyQuery(
+    GET_SPOOPY_SUBMISSIONS,
+    { fetchPolicy: 'network-only' }
+  );
 
   const [doReview] = useMutation(REVIEW_SPOOPY_SUBMISSION);
   const [doSetProgress] = useMutation(SET_SPOOPY_TILE_PROGRESS);
@@ -591,6 +584,7 @@ export default function SpoopyRefsPage() {
   const [openKeys, setOpenKeys] = useState(new Set());
   const [reviewedOpenKeys, setReviewedOpenKeys] = useState(new Set());
   const [completedOpenKeys, setCompletedOpenKeys] = useState(new Set());
+  const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
   const [stableGroupOrder, setStableGroupOrder] = useState(null);
   const [stickyGroupKeys, setStickyGroupKeys] = useState(new Set());
   const stickyTimersRef = useRef({});
@@ -638,14 +632,20 @@ export default function SpoopyRefsPage() {
   useSubscription(SPOOPY_SUBMISSION_REVIEWED, {
     variables: { eventId },
     skip: !eventId || !isAuthenticated,
-    onData: () => refetchSubs(),
+    onData: () => {
+      refetchSubs();
+      if (completedSubmissionsQuery.called) completedSubmissionsQuery.refetch();
+    },
   });
 
   // Group submissions by team + tile, split into three pools mirroring
   // battleship. The same tile can be active for several teams at once and
   // must remain separate so refs see the correct team-specific state/clue.
   const { activeGroups, reviewedGroups, completedGroups } = useMemo(() => {
-    const allSubs = subsData?.spoopySubmissions ?? [];
+    const allSubs = [
+      ...(subsData?.spoopySubmissions ?? []),
+      ...(completedSubmissionsQuery.data?.spoopySubmissions ?? []),
+    ];
     const teamMap = Object.fromEntries((event?.teams ?? []).map((t) => [t.teamId, t]));
     const boardTiles = Object.fromEntries((event?.board?.tiles ?? []).map((t) => [t.id, t]));
     const contentById = event?.contentById ?? {};
@@ -719,7 +719,7 @@ export default function SpoopyRefsPage() {
     });
 
     return { activeGroups: active, reviewedGroups: reviewed, completedGroups: completed };
-  }, [subsData, event, stickyGroupKeys]);
+  }, [subsData, completedSubmissionsQuery.data, event, stickyGroupKeys]);
 
   const totalPending = useMemo(
     () =>
@@ -769,7 +769,19 @@ export default function SpoopyRefsPage() {
     setPendingNew(0);
     setStableGroupOrder(null);
     refetchSubs();
-  }, [refetchSubs]);
+    if (completedSubmissionsQuery.called) completedSubmissionsQuery.refetch();
+  }, [completedSubmissionsQuery, refetchSubs]);
+
+  const handleCompletedSectionChange = useCallback(
+    (index) => {
+      const isOpening = index === 0;
+      setCompletedSectionOpen(isOpening);
+      if (isOpening && !completedSubmissionsQuery.called) {
+        loadCompletedSubmissions({ variables: { eventId, completed: true } });
+      }
+    },
+    [completedSubmissionsQuery.called, eventId, loadCompletedSubmissions]
+  );
 
   // Auto-refresh when the tab regains focus so refs coming back from Discord
   // don't stare at stale data.
@@ -794,15 +806,14 @@ export default function SpoopyRefsPage() {
 
   const handleApprove = async (submissionId) => {
     setLoadingId(submissionId + '-approve');
-    const submission = subsData?.spoopySubmissions?.find(
-      (s) => s.submissionId === submissionId
-    );
+    const submission = subsData?.spoopySubmissions?.find((s) => s.submissionId === submissionId);
     if (submission) addStickyGroup(`${submission.teamId}:${submission.tileId}`);
     try {
       await doReview({ variables: { submissionId, approved: true } });
       if (soundEnabled) playSubmissionApproved();
       showToast('submission approved', 'success');
       await refetchSubs();
+      if (completedSubmissionsQuery.called) await completedSubmissionsQuery.refetch();
     } catch (e) {
       showToast(e.message ?? 'failed to approve', 'error');
     } finally {
@@ -826,6 +837,7 @@ export default function SpoopyRefsPage() {
       await doCompleteTile({ variables: { teamId, tileId } });
       showToast('tile marked complete', 'success');
       await refetchSubs();
+      if (completedSubmissionsQuery.called) await completedSubmissionsQuery.refetch();
     } catch (e) {
       showToast(e.message ?? 'failed to complete tile', 'error');
     } finally {
@@ -835,9 +847,7 @@ export default function SpoopyRefsPage() {
 
   const handleDeny = async (submissionId, denialReason) => {
     setLoadingId(submissionId + '-deny');
-    const submission = subsData?.spoopySubmissions?.find(
-      (s) => s.submissionId === submissionId
-    );
+    const submission = subsData?.spoopySubmissions?.find((s) => s.submissionId === submissionId);
     if (submission) addStickyGroup(`${submission.teamId}:${submission.tileId}`);
     try {
       await doReview({
@@ -846,6 +856,7 @@ export default function SpoopyRefsPage() {
       if (soundEnabled) playSubmissionDenied();
       showToast('submission denied', 'info');
       await refetchSubs();
+      if (completedSubmissionsQuery.called) await completedSubmissionsQuery.refetch();
     } catch (e) {
       showToast(e.message ?? 'failed to deny', 'error');
     } finally {
@@ -976,8 +987,8 @@ export default function SpoopyRefsPage() {
               <Text as="span" color={SPOOPY_COLORS.green} fontWeight="semibold">
                 mark complete
               </Text>{' '}
-              once all approvals are in. that's what unlocks neighbors, banks gp, and cashes out
-              the scary castle.
+              once all approvals are in. that's what unlocks neighbors, banks gp, and cashes out the
+              scary castle.
             </Text>
             <Text opacity={0.7}>
               pre-screenshots are informational only. they don't advance the tile.
@@ -1001,7 +1012,9 @@ export default function SpoopyRefsPage() {
           >
             <HStack fontSize="sm" fontWeight="semibold" color={SPOOPY_COLORS.paper} spacing={2}>
               <SpoopyUiIcon name="pumpkin" />
-              <Text>{pendingNew} new submission{pendingNew !== 1 ? 's' : ''}. click to load</Text>
+              <Text>
+                {pendingNew} new submission{pendingNew !== 1 ? 's' : ''}. click to load
+              </Text>
             </HStack>
           </Box>
         )}
@@ -1109,61 +1122,99 @@ export default function SpoopyRefsPage() {
             </Accordion>
           )}
 
-          {completedGroups.length > 0 && (
-            <Accordion allowToggle mt={2}>
-              <AccordionItem
-                border="1px solid"
-                borderColor={SPOOPY_COLORS.greenDeep}
+          <Accordion
+            allowToggle
+            mt={2}
+            index={completedSectionOpen ? 0 : -1}
+            onChange={handleCompletedSectionChange}
+          >
+            <AccordionItem
+              border="1px solid"
+              borderColor={SPOOPY_COLORS.greenDeep}
+              borderRadius="md"
+            >
+              <AccordionButton
+                px={4}
+                py={3}
+                bg={SPOOPY_COLORS.night}
+                _hover={{ bg: SPOOPY_COLORS.nightMist }}
                 borderRadius="md"
               >
-                <AccordionButton
-                  px={4}
-                  py={3}
-                  bg={SPOOPY_COLORS.night}
-                  _hover={{ bg: SPOOPY_COLORS.nightMist }}
-                  borderRadius="md"
-                >
-                  <HStack flex={1} spacing={2}>
-                    <Text
-                      fontSize="sm"
-                      fontWeight="semibold"
-                      color={SPOOPY_COLORS.green}
-                      fontFamily={SPOOPY_FONTS.hand}
-                    >
-                      completed tiles
-                    </Text>
-                    <Badge bg={SPOOPY_COLORS.green} color={SPOOPY_COLORS.paper} fontSize="xs">
-                      {completedGroups.length}
-                    </Badge>
-                  </HStack>
-                  <AccordionIcon color={SPOOPY_COLORS.paper} />
-                </AccordionButton>
-                <AccordionPanel px={0} pb={2}>
-                  <Accordion
-                    allowMultiple
-                    index={completedOpenIndices}
-                    onChange={(newIndices) =>
-                      setCompletedOpenKeys(
-                        new Set(newIndices.map((i) => completedGroups[i]?.groupKey).filter(Boolean))
-                      )
-                    }
+                <HStack flex={1} spacing={2}>
+                  <Text
+                    fontSize="sm"
+                    fontWeight="semibold"
+                    color={SPOOPY_COLORS.green}
+                    fontFamily={SPOOPY_FONTS.hand}
                   >
-                    {completedGroups.map((group) => (
-                      <TileGroup
-                        key={group.groupKey}
-                        group={group}
-                        onApprove={handleApprove}
-                        onDeny={handleDeny}
-                        onSetProgress={handleSetProgress}
-                        onComplete={handleCompleteTile}
-                        loadingId={loadingId}
-                      />
-                    ))}
-                  </Accordion>
-                </AccordionPanel>
-              </AccordionItem>
-            </Accordion>
-          )}
+                    completed tiles
+                  </Text>
+                  {completedSubmissionsQuery.called &&
+                    !completedSubmissionsQuery.loading &&
+                    !completedSubmissionsQuery.error && (
+                      <Badge bg={SPOOPY_COLORS.green} color={SPOOPY_COLORS.paper} fontSize="xs">
+                        {completedGroups.length}
+                      </Badge>
+                    )}
+                </HStack>
+                <AccordionIcon color={SPOOPY_COLORS.paper} />
+              </AccordionButton>
+              <AccordionPanel px={0} pb={2}>
+                {completedSubmissionsQuery.loading && (
+                  <Center py={6}>
+                    <Spinner size="sm" color={SPOOPY_COLORS.green} />
+                  </Center>
+                )}
+                {completedSubmissionsQuery.error && (
+                  <Center py={6}>
+                    <VStack spacing={2}>
+                      <Text fontSize="sm" color={SPOOPY_COLORS.emberDeep}>
+                        failed to load completed submissions
+                      </Text>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => completedSubmissionsQuery.refetch()}
+                      >
+                        retry
+                      </Button>
+                    </VStack>
+                  </Center>
+                )}
+                {completedSubmissionsQuery.called &&
+                  !completedSubmissionsQuery.loading &&
+                  !completedSubmissionsQuery.error &&
+                  completedGroups.length === 0 && (
+                    <Center py={6}>
+                      <Text fontSize="sm" opacity={0.65}>
+                        no completed tile submissions
+                      </Text>
+                    </Center>
+                  )}
+                <Accordion
+                  allowMultiple
+                  index={completedOpenIndices}
+                  onChange={(newIndices) =>
+                    setCompletedOpenKeys(
+                      new Set(newIndices.map((i) => completedGroups[i]?.groupKey).filter(Boolean))
+                    )
+                  }
+                >
+                  {completedGroups.map((group) => (
+                    <TileGroup
+                      key={group.groupKey}
+                      group={group}
+                      onApprove={handleApprove}
+                      onDeny={handleDeny}
+                      onSetProgress={handleSetProgress}
+                      onComplete={handleCompleteTile}
+                      loadingId={loadingId}
+                    />
+                  ))}
+                </Accordion>
+              </AccordionPanel>
+            </AccordionItem>
+          </Accordion>
         </Box>
 
         <Divider borderColor={SPOOPY_COLORS.nightMist} />
@@ -1292,11 +1343,7 @@ function Shell({ event, user, onEventRefetch, children }) {
         </HStack>
       </Box>
       {children}
-      <SpoopyRulesModal
-        isOpen={rulesOpen}
-        onClose={() => setRulesOpen(false)}
-        event={event}
-      />
+      <SpoopyRulesModal isOpen={rulesOpen} onClose={() => setRulesOpen(false)} event={event} />
     </Box>
   );
 }

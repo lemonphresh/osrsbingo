@@ -1,6 +1,7 @@
 'use strict';
 
 const { UserInputError, AuthenticationError, ForbiddenError } = require('apollo-server-express');
+const { Op, literal } = require('sequelize');
 const { pubsub } = require('../pubsub');
 const {
   loadTeamState,
@@ -181,9 +182,9 @@ async function getTeamOrThrow(teamId) {
 }
 
 function requireEventActive(event) {
-  if (event.status === 'SETUP')    throw new UserInputError('Event has not started yet');
+  if (event.status === 'SETUP') throw new UserInputError('Event has not started yet');
   if (event.status === 'COMPLETE') throw new UserInputError('Event has ended');
-  if (event.status !== 'ACTIVE')   throw new UserInputError('No active event');
+  if (event.status !== 'ACTIVE') throw new UserInputError('No active event');
 }
 
 async function publishBoardUpdated(team) {
@@ -350,8 +351,7 @@ const Query = {
         (await SpoopyEvent.findOne({
           where: { status: ['SETUP', 'ACTIVE'] },
           order: [['createdAt', 'DESC']],
-        })) ||
-        (await SpoopyEvent.findOne({ order: [['createdAt', 'DESC']] }));
+        })) || (await SpoopyEvent.findOne({ order: [['createdAt', 'DESC']] }));
     }
     if (!event) return { event: null, myTeam: null, teamBoard: null };
 
@@ -414,13 +414,24 @@ const Query = {
     return loadTeamState(team.teamId);
   },
 
-  spoopySubmissions: async (_, { eventId, status }, context) => {
+  spoopySubmissions: async (_, { eventId, status, completed }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
     const { SpoopySubmission } = getModels();
     const where = { eventId };
     if (status) where.status = status;
+
+    if (completed != null) {
+      const completedTileExists = `EXISTS (
+        SELECT 1 FROM "SpoopyTeamTiles" AS "teamTile"
+        WHERE "teamTile"."teamId" = "SpoopySubmission"."teamId"
+          AND "teamTile"."tileId" = "SpoopySubmission"."tileId"
+          AND "teamTile"."status" = 'complete'
+      )`;
+      where[Op.and] = literal(completed ? completedTileExists : `NOT ${completedTileExists}`);
+    }
+
     return SpoopySubmission.findAll({ where, order: [['submittedAt', 'DESC']] });
   },
 };
@@ -473,7 +484,9 @@ const Mutation = {
     // team on the next cron tick. If an admin really needs to end the event
     // early, they should flip status to COMPLETE instead.
     if (event.status === 'ACTIVE' && patch.curfewEnd && patch.curfewEnd <= new Date()) {
-      throw new UserInputError('Cannot set curfew end to the past on an active event — flip the event to COMPLETE instead.');
+      throw new UserInputError(
+        'Cannot set curfew end to the past on an active event — flip the event to COMPLETE instead.'
+      );
     }
     if (Object.keys(patch).length === 0) return event;
     await event.update(patch);
@@ -551,8 +564,8 @@ const Mutation = {
     // and would desync with the "pre-activation" state the status implies.
     // Allow no-op same-status updates so the UI's "confirm" button is idempotent.
     const allowed = {
-      SETUP:    new Set(['SETUP', 'ACTIVE']),
-      ACTIVE:   new Set(['ACTIVE', 'COMPLETE']),
+      SETUP: new Set(['SETUP', 'ACTIVE']),
+      ACTIVE: new Set(['ACTIVE', 'COMPLETE']),
       COMPLETE: new Set(['COMPLETE']),
     };
     if (!allowed[event.status]?.has(status)) {
@@ -599,7 +612,7 @@ const Mutation = {
             team.teamId,
             lockedEvent.board,
             lockedEvent.startingTileIds,
-            { transaction: t },
+            { transaction: t }
           );
         }
         // Snap curfewStart to now if it was null or still in the future.
@@ -624,7 +637,11 @@ const Mutation = {
     return event;
   },
 
-  updateSpoopyEventBoard: async (_, { eventId, board, contentById, hauntedHouse, startingTileIds }, context) => {
+  updateSpoopyEventBoard: async (
+    _,
+    { eventId, board, contentById, hauntedHouse, startingTileIds },
+    context
+  ) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
@@ -642,8 +659,7 @@ const Mutation = {
     validateBoardShape({
       board: board !== undefined ? board : event.board,
       contentById: contentById !== undefined ? contentById : event.contentById,
-      startingTileIds:
-        startingTileIds !== undefined ? startingTileIds : event.startingTileIds,
+      startingTileIds: startingTileIds !== undefined ? startingTileIds : event.startingTileIds,
     });
     const patch = {};
     if (board !== undefined) patch.board = board;
@@ -661,17 +677,18 @@ const Mutation = {
     const { SpoopyTeam } = getModels();
 
     const assignedLocations = new Set(
-      (await SpoopyTeam.findAll({
-        where: { eventId },
-        attributes: ['mossyWildyLocation'],
-      }))
+      (
+        await SpoopyTeam.findAll({
+          where: { eventId },
+          attributes: ['mossyWildyLocation'],
+        })
+      )
         .map((existingTeam) => existingTeam.mossyWildyLocation)
-        .filter(Number.isInteger),
+        .filter(Number.isInteger)
     );
-    const availableLocations = Array.from(
-      { length: 12 },
-      (_, index) => index + 1,
-    ).filter((location) => !assignedLocations.has(location));
+    const availableLocations = Array.from({ length: 12 }, (_, index) => index + 1).filter(
+      (location) => !assignedLocations.has(location)
+    );
     if (availableLocations.length === 0) {
       throw new UserInputError('All 12 Mossy Way wilderness clues are already assigned.');
     }
@@ -835,14 +852,12 @@ const Mutation = {
   importSpoopyEventFromFixtures: async (
     _,
     { eventId, boardFilename, contentFilename },
-    context,
+    context
   ) => {
     const user = requireUser(context);
     if (!user.admin) throw new AuthenticationError('Site admin only');
     const event = await getEventOrThrow(eventId);
-    const {
-      buildImportedEventPayloadFromFixtures,
-    } = require('../../utils/spoopy/spoopyImport');
+    const { buildImportedEventPayloadFromFixtures } = require('../../utils/spoopy/spoopyImport');
 
     let payload;
     try {
@@ -881,7 +896,7 @@ const Mutation = {
           eventId,
           team.teamId,
           payload.board,
-          payload.startingTileIds,
+          payload.startingTileIds
         );
         if (added || dropped) {
           await pubsub.publish(`SPOOPY_TEAM_BOARD_UPDATED_${team.teamId}`, {
@@ -950,7 +965,7 @@ const Mutation = {
         toEventDefinition(event),
         tileId,
         new Date(),
-        team.poolAllocation ?? 0,
+        team.poolAllocation ?? 0
       );
       await persistTeamState(lockedState, computed, { transaction: t });
       return { next: computed, rewardTile: computed.tiles?.[tileId] };
@@ -989,10 +1004,7 @@ const Mutation = {
 
     const clamped = Math.max(0, Math.min(100, Math.round(progress ?? 0)));
     const { SpoopyTeamTile } = getModels();
-    await SpoopyTeamTile.update(
-      { progress: clamped },
-      { where: { teamId, tileId } },
-    );
+    await SpoopyTeamTile.update({ progress: clamped }, { where: { teamId, tileId } });
     await publishBoardUpdated(team);
     return loadTeamState(teamId);
   },
@@ -1003,11 +1015,7 @@ const Mutation = {
   // for non-house tiles, or contentById[tileId].dialog.options[option].task
   // .acceptable_drops for house options. Only overwrites the array, never
   // the surrounding task fields.
-  setSpoopyTileAcceptableDrops: async (
-    _,
-    { eventId, tileId, option, drops },
-    context,
-  ) => {
+  setSpoopyTileAcceptableDrops: async (_, { eventId, tileId, option, drops }, context) => {
     const user = requireUser(context);
     const event = await getEventOrThrow(eventId);
     requireAdmin(event, user);
@@ -1110,7 +1118,7 @@ const Mutation = {
           tileId: submission.tileId,
         }).catch((err) => {
           require('../../utils/logger').warn(
-            `[spoopyWomSync] PRE-approval hook failed: ${err.message}`,
+            `[spoopyWomSync] PRE-approval hook failed: ${err.message}`
           );
         });
       }
@@ -1168,11 +1176,9 @@ const Mutation = {
     // themselves — mirrors the battleship submissions gating.
     const isStaff = isAdmin(event, user);
     const submitterDiscordId = isStaff
-      ? (input.discordUserId ?? user.discordUserId ?? null)
-      : (user.discordUserId ?? null);
-    const submitterDiscordName = isStaff
-      ? (input.discordUsername ?? null)
-      : null;
+      ? input.discordUserId ?? user.discordUserId ?? null
+      : user.discordUserId ?? null;
+    const submitterDiscordName = isStaff ? input.discordUsername ?? null : null;
 
     const submission = await SpoopySubmission.create({
       submissionId,
@@ -1181,7 +1187,11 @@ const Mutation = {
       tileId: input.tileId,
       type,
       screenshotUrl: boundedString(input.screenshotUrl, MAX_URL_LEN, 'screenshotUrl'),
-      discordMessageId: boundedString(input.discordMessageId, MAX_DISCORD_ID_LEN, 'discordMessageId'),
+      discordMessageId: boundedString(
+        input.discordMessageId,
+        MAX_DISCORD_ID_LEN,
+        'discordMessageId'
+      ),
       channelId: team.discordChannelId,
       status: 'PENDING',
       submittedAt: input.submittedAt ?? new Date(),
@@ -1214,7 +1224,7 @@ const Mutation = {
     // can preview the modal without running the ritual themselves.
     if (!isAdmin(event, user) && (team.hauntedGauntletLevel ?? 0) < 3) {
       throw new UserInputError(
-        "the door is stuck. finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first",
+        'the door is stuck. finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first'
       );
     }
 
@@ -1374,10 +1384,12 @@ function spectatorEventSubscription() {
 }
 
 const Subscription = {
-  spoopySubmissionAdded:    makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_ADDED_${eventId}`),
-  spoopySubmissionReviewed: makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_REVIEWED_${eventId}`),
-  spoopyTeamBoardUpdated:   makeSubscription(({ teamId })  => `SPOOPY_TEAM_BOARD_UPDATED_${teamId}`),
-  spoopyEventUpdated:       makeSubscription(({ eventId }) => `SPOOPY_EVENT_UPDATED_${eventId}`),
+  spoopySubmissionAdded: makeSubscription(({ eventId }) => `SPOOPY_SUBMISSION_ADDED_${eventId}`),
+  spoopySubmissionReviewed: makeSubscription(
+    ({ eventId }) => `SPOOPY_SUBMISSION_REVIEWED_${eventId}`
+  ),
+  spoopyTeamBoardUpdated: makeSubscription(({ teamId }) => `SPOOPY_TEAM_BOARD_UPDATED_${teamId}`),
+  spoopyEventUpdated: makeSubscription(({ eventId }) => `SPOOPY_EVENT_UPDATED_${eventId}`),
   spoopySpectatorBoardUpdated: spectatorBoardSubscription(),
   spoopySpectatorEventUpdated: spectatorEventSubscription(),
 };

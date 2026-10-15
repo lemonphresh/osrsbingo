@@ -1490,8 +1490,8 @@ describe('Spoopy Queries', () => {
 
   test('SPOOPY_SUBMISSIONS', () => {
     const result = validateOperation(`
-      query SpoopySubmissions($eventId: ID!, $status: String) {
-        spoopySubmissions(eventId: $eventId, status: $status) {
+      query SpoopySubmissions($eventId: ID!, $status: String, $completed: Boolean) {
+        spoopySubmissions(eventId: $eventId, status: $status, completed: $completed) {
           submissionId
           teamId
           tileId
