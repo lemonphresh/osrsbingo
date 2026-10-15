@@ -53,6 +53,10 @@ import { getMossyWildyLocationName } from '../../organisms/spoopy/spoopyMossyWil
 import SpoopyUiIcon from '../../organisms/spoopy/SpoopyUiIcon';
 import SpoopyRulesModal from '../../organisms/spoopy/SpoopyRulesModal';
 import { AcceptableUniquesDrops, taskLine } from '../../organisms/spoopy/SpoopyTaskCard';
+import {
+  formatReviewedApprovalBadge,
+  needsTileCompletion,
+} from '../../utils/spoopy/spoopySubmissionLabels';
 
 // ── Utilities ────────────────────────────────────────────────────────────
 
@@ -294,7 +298,15 @@ function SubmissionCard({ sub, onApprove, onDeny, loadingId }) {
 
 // ── Tile group (accordion item per unique tile) ─────────────────────────
 
-function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadingId }) {
+function TileGroup({
+  group,
+  onApprove,
+  onDeny,
+  onSetProgress,
+  onComplete,
+  loadingId,
+  showApprovedBreakdown = false,
+}) {
   const {
     tileId,
     tileTypeLabel,
@@ -312,10 +324,11 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
   const pending = submissions.filter((s) => s.status === 'PENDING');
   const approved = submissions.filter((s) => s.status === 'APPROVED');
   const denied = submissions.filter((s) => s.status === 'DENIED');
+  const hasApprovedFinal = approved.some((submission) => submission.type === 'FINAL');
   const coord = tilePosLabel(tile);
   const canComplete = canMarkTileComplete({
     isComplete,
-    hasApproved: approved.length > 0,
+    hasApproved: hasApprovedFinal,
     hasPending: pending.length > 0,
     progress,
   });
@@ -372,7 +385,9 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
             )}
             {approved.length > 0 && !isComplete && (
               <Badge bg={SPOOPY_COLORS.purpleLight} color={SPOOPY_COLORS.paper} fontSize="xs">
-                {approved.length} approved
+                {showApprovedBreakdown
+                  ? formatReviewedApprovalBadge(submissions)
+                  : `${approved.length} approved`}
               </Badge>
             )}
             {isComplete && (
@@ -456,7 +471,7 @@ function TileGroup({ group, onApprove, onDeny, onSetProgress, onComplete, loadin
           <TileReviewControls
             progress={progress}
             onSetProgress={(pct) => onSetProgress(teamId, tileId, pct)}
-            hasApproved={approved.length > 0}
+            hasApproved={hasApprovedFinal}
             hasPending={pending.length > 0}
             isComplete={isComplete}
             loading={loadingId === `${teamId}:${tileId}-complete`}
@@ -582,6 +597,7 @@ export default function SpoopyRefsPage() {
   const [pendingNew, setPendingNew] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [openKeys, setOpenKeys] = useState(new Set());
+  const [needsCompletionOpenKeys, setNeedsCompletionOpenKeys] = useState(new Set());
   const [reviewedOpenKeys, setReviewedOpenKeys] = useState(new Set());
   const [completedOpenKeys, setCompletedOpenKeys] = useState(new Set());
   const [completedSectionOpen, setCompletedSectionOpen] = useState(false);
@@ -638,10 +654,10 @@ export default function SpoopyRefsPage() {
     },
   });
 
-  // Group submissions by team + tile, split into three pools mirroring
+  // Group submissions by team + tile, split into workflow pools mirroring
   // battleship. The same tile can be active for several teams at once and
   // must remain separate so refs see the correct team-specific state/clue.
-  const { activeGroups, reviewedGroups, completedGroups } = useMemo(() => {
+  const { activeGroups, needsCompletionGroups, reviewedGroups, completedGroups } = useMemo(() => {
     const allSubs = [
       ...(subsData?.spoopySubmissions ?? []),
       ...(completedSubmissionsQuery.data?.spoopySubmissions ?? []),
@@ -701,6 +717,7 @@ export default function SpoopyRefsPage() {
     }
 
     const active = [];
+    const needsCompletion = [];
     const reviewed = [];
     const completed = [];
     for (const group of map.values()) {
@@ -708,7 +725,9 @@ export default function SpoopyRefsPage() {
         completed.push(group);
       } else {
         const pendingCount = group.submissions.filter((s) => s.status === 'PENDING').length;
-        if (pendingCount > 0 || stickyGroupKeys.has(group.groupKey)) active.push(group);
+        if (pendingCount > 0) active.push(group);
+        else if (needsTileCompletion(group)) needsCompletion.push(group);
+        else if (stickyGroupKeys.has(group.groupKey)) active.push(group);
         else reviewed.push(group);
       }
     }
@@ -718,7 +737,12 @@ export default function SpoopyRefsPage() {
       return pc(b) - pc(a);
     });
 
-    return { activeGroups: active, reviewedGroups: reviewed, completedGroups: completed };
+    return {
+      activeGroups: active,
+      needsCompletionGroups: needsCompletion,
+      reviewedGroups: reviewed,
+      completedGroups: completed,
+    };
   }, [subsData, completedSubmissionsQuery.data, event, stickyGroupKeys]);
 
   const totalPending = useMemo(
@@ -760,6 +784,10 @@ export default function SpoopyRefsPage() {
   const completedOpenIndices = completedGroups
     .map((g, i) => (completedOpenKeys.has(g.groupKey) ? i : -1))
     .filter((i) => i !== -1);
+
+  const needsCompletionOpenIndices = needsCompletionGroups
+    .map((group, index) => (needsCompletionOpenKeys.has(group.groupKey) ? index : -1))
+    .filter((index) => index !== -1);
 
   const reviewedOpenIndices = reviewedGroups
     .map((g, i) => (reviewedOpenKeys.has(g.groupKey) ? i : -1))
@@ -1033,6 +1061,7 @@ export default function SpoopyRefsPage() {
           </HStack>
 
           {activeGroups.length === 0 &&
+            needsCompletionGroups.length === 0 &&
             reviewedGroups.length === 0 &&
             completedGroups.length === 0 && (
               <Center py={10}>
@@ -1063,6 +1092,67 @@ export default function SpoopyRefsPage() {
                   loadingId={loadingId}
                 />
               ))}
+            </Accordion>
+          )}
+
+          {needsCompletionGroups.length > 0 && (
+            <Accordion allowToggle mt={2} defaultIndex={0}>
+              <AccordionItem
+                border="1px solid"
+                borderColor={SPOOPY_COLORS.pumpkinDeep}
+                borderRadius="md"
+              >
+                <AccordionButton
+                  px={4}
+                  py={3}
+                  bg={SPOOPY_COLORS.night}
+                  _hover={{ bg: SPOOPY_COLORS.nightMist }}
+                  borderRadius="md"
+                >
+                  <HStack flex={1} spacing={2}>
+                    <Text
+                      fontSize="sm"
+                      fontWeight="semibold"
+                      color={SPOOPY_COLORS.pumpkinLight}
+                      fontFamily={SPOOPY_FONTS.hand}
+                    >
+                      needs to be completed
+                    </Text>
+                    <Badge bg={SPOOPY_COLORS.pumpkin} color={SPOOPY_COLORS.paper} fontSize="xs">
+                      {needsCompletionGroups.length}
+                    </Badge>
+                  </HStack>
+                  <AccordionIcon color={SPOOPY_COLORS.paper} />
+                </AccordionButton>
+                <AccordionPanel px={0} pb={2}>
+                  <Accordion
+                    allowMultiple
+                    index={needsCompletionOpenIndices}
+                    onChange={(newIndices) =>
+                      setNeedsCompletionOpenKeys(
+                        new Set(
+                          newIndices
+                            .map((index) => needsCompletionGroups[index]?.groupKey)
+                            .filter(Boolean)
+                        )
+                      )
+                    }
+                  >
+                    {needsCompletionGroups.map((group) => (
+                      <TileGroup
+                        key={group.groupKey}
+                        group={group}
+                        showApprovedBreakdown
+                        onApprove={handleApprove}
+                        onDeny={handleDeny}
+                        onSetProgress={handleSetProgress}
+                        onComplete={handleCompleteTile}
+                        loadingId={loadingId}
+                      />
+                    ))}
+                  </Accordion>
+                </AccordionPanel>
+              </AccordionItem>
             </Accordion>
           )}
 
@@ -1109,6 +1199,7 @@ export default function SpoopyRefsPage() {
                       <TileGroup
                         key={group.groupKey}
                         group={group}
+                        showApprovedBreakdown
                         onApprove={handleApprove}
                         onDeny={handleDeny}
                         onSetProgress={handleSetProgress}
