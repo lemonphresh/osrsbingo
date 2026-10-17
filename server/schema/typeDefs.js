@@ -838,6 +838,9 @@ const typeDefs = gql`
     hauntedGauntletLevel: Int!
     # Snapshot of the team's share of event.prizePool, set at SETUP→ACTIVE.
     poolAllocation: Int!
+    # Count of SpoopyTeamTile rows with status='complete' for this team.
+    # Used by the game-over recap as a tiebreaker when two teams tie on gp.
+    tilesCompleted: Int!
     mossyWildyLocation: Int
     createdAt: DateTime
   }

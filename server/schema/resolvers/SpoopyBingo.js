@@ -1294,6 +1294,16 @@ const SpoopyEvent = {
 // callers who already have authority over the team: event/site admins, or a
 // Discord-linked team member. Everyone else sees null.
 const SpoopyTeam = {
+  // Count of complete tiles for this team. Non-sensitive — anyone who can
+  // see the team can see the count. Fires one COUNT per team on the admin
+  // event query; fine at spoopy's scale (<20 teams). Swap for a GROUP BY
+  // if that stops being true.
+  tilesCompleted: async (team) => {
+    const { SpoopyTeamTile } = getModels();
+    return SpoopyTeamTile.count({
+      where: { teamId: team.teamId, status: 'complete' },
+    });
+  },
   teamToken: async (team, _args, context) => {
     const user = context?.user;
     if (!user) return null;

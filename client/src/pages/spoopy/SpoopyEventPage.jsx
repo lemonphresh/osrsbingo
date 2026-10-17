@@ -1129,9 +1129,20 @@ function SetupPlaceholder({ event }) {
 
 export function CompleteRecap({ event, myTeam }) {
   const teams = event?.teams ?? [];
-  // Sort by final haul, high → low. Forfeited teams naturally end up at
-  // the bottom since gpEarned is zeroed on curfew.
-  const ranked = [...teams].sort((a, b) => (b.gpEarned ?? 0) - (a.gpEarned ?? 0));
+  // Primary sort by final haul, high → low. On a tie, break by tiles
+  // completed (someone who did more of the board edges out someone who got
+  // lucky on fewer tiles). If still tied, a team that cashed out beats a
+  // team that didn't — reaching the scary house is the whole point.
+  // Forfeited teams naturally end up at the bottom since gpEarned is
+  // zeroed on curfew.
+  const cashedOutRank = (t) => (t.cashedOut && !t.cashedOut.forfeited ? 1 : 0);
+  const ranked = [...teams].sort((a, b) => {
+    const gpDiff = (b.gpEarned ?? 0) - (a.gpEarned ?? 0);
+    if (gpDiff !== 0) return gpDiff;
+    const tileDiff = (b.tilesCompleted ?? 0) - (a.tilesCompleted ?? 0);
+    if (tileDiff !== 0) return tileDiff;
+    return cashedOutRank(b) - cashedOutRank(a);
+  });
   const winner = ranked.find((t) => !t.cashedOut?.forfeited && (t.gpEarned ?? 0) > 0) ?? null;
   const cashedOutCount = teams.filter((t) => t.cashedOut && !t.cashedOut.forfeited).length;
   const forfeitedCount = teams.filter((t) => t.cashedOut?.forfeited).length;
