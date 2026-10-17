@@ -63,6 +63,7 @@ export const SPOOPY_TEAM_FIELDS = gql`
     cashedOut
     hauntedGauntletLevel
     poolAllocation
+    tilesCompleted
     mossyWildyLocation
   }
 `;

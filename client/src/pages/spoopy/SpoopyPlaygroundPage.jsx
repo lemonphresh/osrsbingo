@@ -844,6 +844,7 @@ const MOCK_RECAP_TEAMS = [
     gpEarned: 40_000_000,
     cashedOut: { forfeited: false, bonusEarned: 10_000_000 },
     poolAllocation: 25_000_000,
+    tilesCompleted: 18,
     __typename: 'SpoopyTeam',
   },
   {
@@ -853,6 +854,7 @@ const MOCK_RECAP_TEAMS = [
     gpEarned: 25_000_000,
     cashedOut: { forfeited: false, bonusEarned: 0 },
     poolAllocation: 25_000_000,
+    tilesCompleted: 12,
     __typename: 'SpoopyTeam',
   },
   {
@@ -862,6 +864,7 @@ const MOCK_RECAP_TEAMS = [
     gpEarned: 10_000_000,
     cashedOut: { forfeited: false, bonusEarned: 0 },
     poolAllocation: 25_000_000,
+    tilesCompleted: 6,
     __typename: 'SpoopyTeam',
   },
   {
@@ -871,6 +874,7 @@ const MOCK_RECAP_TEAMS = [
     gpEarned: 0,
     cashedOut: { forfeited: true, bonusEarned: 0 },
     poolAllocation: 25_000_000,
+    tilesCompleted: 4,
     __typename: 'SpoopyTeam',
   },
 ];
