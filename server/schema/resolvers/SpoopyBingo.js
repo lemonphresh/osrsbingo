@@ -1218,16 +1218,9 @@ const Mutation = {
     requireTeamMemberOrStaff(event, team, user);
     requireEventActive(event);
 
-    // Mirror the bot's gauntlet gate: the candybag can only be entered after
-    // the team has walked through the three-step Discord ritual
-    // (!stepinside → !imserious → !nogoingback). Admins can bypass so they
-    // can preview the modal without running the ritual themselves.
-    if (!isAdmin(event, user) && (team.hauntedGauntletLevel ?? 0) < 3) {
-      throw new UserInputError(
-        'the door is stuck. finish the discord gauntlet (!stepinside → !imserious → !nogoingback) first'
-      );
-    }
-
+    // This is a read-only preview used throughout the Discord gauntlet, so it
+    // must be available at every gauntlet level. The bot still gates the final
+    // candybag submission until the team completes all three steps.
     const state = await loadTeamState(team.teamId);
     const { warningTier, msRemaining } = sm.enterHauntedHouse(state, toEventDefinition(event));
 

@@ -53,6 +53,7 @@ export function formatMsRemaining(ms) {
 //   isOpen, onClose
 //   warningDialog   string — server-supplied prose for stage 1 severity
 //   msRemaining     number — used for the countdown line
+//   isLoading       boolean — true while warning/countdown data is loading
 //   currentGp       number — shown so the team sees what's at stake
 //   bonusTask       optional { kind, target, amount }
 //   bonusRewardGp   optional number
@@ -90,7 +91,8 @@ export default function SpoopyHauntedHouseModal({
   isOpen,
   onClose,
   warningDialog,
-  msRemaining = 0,
+  msRemaining = null,
+  isLoading = false,
   currentGp = 0,
   bonusTask,
   bonusRewardGp,
@@ -154,7 +156,7 @@ export default function SpoopyHauntedHouseModal({
                 <HStack justify="space-between" fontSize="sm" opacity={0.75}>
                   <Text>time until curfew</Text>
                   <Text fontFamily={SPOOPY_FONTS.hand} fontSize="md">
-                    {formatMsRemaining(msRemaining)}
+                    {isLoading ? 'checking curfew…' : formatMsRemaining(msRemaining)}
                   </Text>
                 </HStack>
 
@@ -175,7 +177,9 @@ export default function SpoopyHauntedHouseModal({
                     spacing={2}
                   >
                     <SpoopyUiIcon name={currentStage.icon} />
-                    <Text>stage {currentStage.level} of 3: {currentStage.heading}</Text>
+                    <Text>
+                      stage {currentStage.level} of 3: {currentStage.heading}
+                    </Text>
                   </HStack>
                   {gauntletLevel === 0 && warningDialog && (
                     <Text

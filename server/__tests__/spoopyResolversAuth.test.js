@@ -16,7 +16,7 @@ const mockEvent = {
   adminIds: [EVENT_ADMIN_USER_ID],
   board: { candybagTileId: 't-r0-c0', tiles: [] },
   contentById: {},
-  hauntedHouse: null,
+  hauntedHouse: { warningTiers: [] },
   startingTileIds: [],
   curfewStart: null,
   curfewEnd: new Date(Date.now() + 60 * 60 * 1000),
@@ -208,6 +208,32 @@ describe('team-member mutations accept a team member whose linked discord id mat
     // Any error thrown is NOT an auth error (state machine will complain about
     // the unknown tile, which is fine for this test).
     await expect(call()).rejects.not.toThrow(/team member|logged in|admin only/i);
+  });
+
+  test('enterSpoopyHauntedHouse returns the countdown before the Discord gauntlet is complete', async () => {
+    const { SpoopyTeamTile } = require('../db/models');
+    SpoopyTeamTile.findAll.mockResolvedValueOnce([
+      {
+        tileId: mockEvent.board.candybagTileId,
+        status: 'unlocked',
+        choice: null,
+        outcome: null,
+        submissionId: null,
+        completedAt: null,
+        rewardEarned: 0,
+        progress: 0,
+      },
+    ]);
+    mockTeam.hauntedGauntletLevel = 0;
+
+    const result = await Mutation.enterSpoopyHauntedHouse(
+      null,
+      { input: { teamId: TEAM_ID } },
+      TEAM_MEMBER_CTX
+    );
+
+    expect(result.msRemaining).toBeGreaterThan(0);
+    expect(result.candybagTileId).toBe(mockEvent.board.candybagTileId);
   });
 });
 
