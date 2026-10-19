@@ -670,11 +670,11 @@ router.post('/auth/login', async (req, res) => {
       username: user.rows[0].username,
       discordUserId: user.rows[0].discordUserId ?? null,
     };
-    const token = jwt.sign(payload, SECRET, { expiresIn: '3d' });
+    const token = jwt.sign(payload, SECRET, { expiresIn: '14d' });
 
     res.cookie('token', token, {
       httpOnly: true,
-      maxAge: 3 * 24 * 60 * 60 * 1000,
+      maxAge: 14 * 24 * 60 * 60 * 1000,
     });
     logger.info({ username }, 'login success');
 

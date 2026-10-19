@@ -25,7 +25,7 @@ module.exports = {
         const token = jwt.sign(
           { userId: newUser.id, admin: newUser.admin, username: newUser.username },
           jwtSecret,
-          { expiresIn: '7d' }
+          { expiresIn: '14d' }
         );
 
         return {
@@ -81,7 +81,7 @@ module.exports = {
         const token = jwt.sign(
           { userId: user.id, admin: user.admin, discordUserId: user.discordUserId ?? null },
           context.jwtSecret,
-          { expiresIn: '7d' }
+          { expiresIn: '14d' }
         );
 
         return { user, token };
@@ -136,7 +136,7 @@ module.exports = {
         const token = jwt.sign(
           { userId: user.id, admin: user.admin, discordUserId: user.discordUserId ?? null },
           context.jwtSecret,
-          { expiresIn: '7d' }
+          { expiresIn: '14d' }
         );
 
         return { user, token };

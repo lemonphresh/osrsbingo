@@ -99,21 +99,27 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(screen.getByText('!nogoingback')).toBeInTheDocument();
   });
 
-  test('confirm (gauntletLevel>=3) reveals the bonus task but no gp amount', () => {
+  test('confirm uses the one-off good-faith team-photo instructions instead of event task data', () => {
     // bonusRewardGp display was intentionally stripped — real payout is the
     // state machine's 3× per-house share, not whatever's on this prop. The
-    // task description still renders so players know what to submit.
+    // fixed task description still renders so players know what to submit.
     render(
       <SpoopyHauntedHouseModal
         isOpen
         gauntletLevel={3}
-        bonusTask={{ kind: 'custom', target: 'group photo', amount: 1 }}
+        bonusTask={{ kind: 'custom', target: 'old imported instructions', amount: 1 }}
         bonusRewardGp={1000000}
         onSubmit={() => {}}
         onClose={() => {}}
       />
     );
-    expect(screen.getByText(/group photo/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/spoopy group photo with as many members of your team together/i)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/good-faith effort—the whole team is not required/i)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/old imported instructions/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/\+1,000,000 gp/)).not.toBeInTheDocument();
   });
 
