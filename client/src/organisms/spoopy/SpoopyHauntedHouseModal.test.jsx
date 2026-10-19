@@ -116,9 +116,7 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(
       screen.getByText(/spoopy group photo with as many members of your team together/i)
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(/good-faith effort—the whole team is not required/i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/good-faith effort.*new friends/i)).toBeInTheDocument();
     expect(screen.queryByText(/old imported instructions/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/\+1,000,000 gp/)).not.toBeInTheDocument();
   });
