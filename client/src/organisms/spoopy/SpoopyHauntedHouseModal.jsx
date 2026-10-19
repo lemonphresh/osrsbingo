@@ -55,11 +55,17 @@ export function formatMsRemaining(ms) {
 //   msRemaining     number — used for the countdown line
 //   isLoading       boolean — true while warning/countdown data is loading
 //   currentGp       number — shown so the team sees what's at stake
-//   bonusTask       optional { kind, target, amount }
-//   bonusRewardGp   optional number
 //   tileId          candybag tile id — used in the submit command
 //   gauntletLevel   0-3, live from server (drives which stage renders)
 //   onSubmit        fn() — close callback for the terminal phase
+//
+// This one-off event intentionally keeps its final submission instructions
+// here instead of reading hauntedHouse.task. That lets the live event use the
+// clearer good-faith team-photo requirement even if its imported data still
+// contains the original terse copy.
+const HAUNTED_HOUSE_SUBMISSION_INSTRUCTIONS =
+  'Take a spoopy group photo with as many members of your team together as reasonably possible. This is a good-faith effort, the whole team is not required, but you are all so cute and we wanna see you with your new friends.';
+
 const GAUNTLET_STAGES = [
   {
     level: 1,
@@ -94,8 +100,6 @@ export default function SpoopyHauntedHouseModal({
   msRemaining = null,
   isLoading = false,
   currentGp = 0,
-  bonusTask,
-  bonusRewardGp,
   onSubmit,
   tileId = null,
   gauntletLevel = 0,
@@ -248,9 +252,7 @@ export default function SpoopyHauntedHouseModal({
                 </Badge>
                 <Box bg={surfaceRecessed} color={surfaceInk} p={4} borderRadius="md">
                   <Text fontFamily={SPOOPY_FONTS.hand} fontSize="lg" lineHeight={1.4}>
-                    {bonusTask
-                      ? `${bonusTask.amount ?? 1}× ${bonusTask.target ?? 'complete the bonus'}`
-                      : 'complete the bonus'}
+                    {HAUNTED_HOUSE_SUBMISSION_INSTRUCTIONS}
                   </Text>
                 </Box>
                 {/* Bonus amount is intentionally not displayed. Real payout is
