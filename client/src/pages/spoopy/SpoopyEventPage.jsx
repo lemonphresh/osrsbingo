@@ -354,7 +354,9 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
   // (via ENTER_SPOOPY_HAUNTED_HOUSE) but the phase is driven purely by
   // teamBoard.hauntedGauntletLevel, which streams live via the team-board
   // subscription while the team runs !stepinside / !imserious / etc.
-  const [enterHauntedHouse] = useMutation(ENTER_SPOOPY_HAUNTED_HOUSE);
+  const [enterHauntedHouse, { loading: hauntedInfoLoading }] = useMutation(
+    ENTER_SPOOPY_HAUNTED_HOUSE
+  );
   const [hauntedInfo, setHauntedInfo] = useState(null);
 
   // Admin dev shortcut — locks in option A or B without going through the
@@ -435,14 +437,19 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
     // warning depends on how far from curfew we are, so fetch fresh each
     // click. All other tile types just open their local modal.
     if (tile.tile_type === 'candybag') {
+      setHauntedInfo(null);
       setOpenTileId(tileId);
       try {
         const { data } = await enterHauntedHouse({
           variables: { input: { teamId: team.teamId } },
         });
-        setHauntedInfo(data?.enterSpoopyHauntedHouse ?? null);
+        const info = data?.enterSpoopyHauntedHouse;
+        if (!info) throw new Error('the haunted house did not return its curfew');
+        setHauntedInfo(info);
       } catch (err) {
         toast({ title: 'the door is stuck', description: err.message, status: 'error' });
+        setOpenTileId(null);
+        setHauntedInfo(null);
       }
       return;
     }
@@ -537,7 +544,8 @@ function ActiveBoard({ event, team, teamBoard, refetch }) {
           isOpen
           onClose={closeHauntedHouse}
           warningDialog={hauntedInfo?.warningDialog}
-          msRemaining={hauntedInfo?.msRemaining ?? 0}
+          msRemaining={hauntedInfo?.msRemaining}
+          isLoading={hauntedInfoLoading}
           currentGp={hauntedInfo?.currentGp ?? teamBoard?.gpEarned ?? 0}
           bonusTask={event.hauntedHouse?.task}
           bonusRewardGp={event.hauntedHouse?.bonusReward_gp}

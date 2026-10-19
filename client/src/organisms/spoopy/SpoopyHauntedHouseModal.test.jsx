@@ -4,8 +4,10 @@ import '@testing-library/jest-dom';
 
 jest.mock('@chakra-ui/react', () => {
   const React = require('react');
-  const passthrough = (tag) => ({ children, as, onClick, ...props }) =>
-    React.createElement(as || tag, { onClick, ...props }, children);
+  const passthrough =
+    (tag) =>
+    ({ children, as, onClick, ...props }) =>
+      React.createElement(as || tag, { onClick, ...props }, children);
   return {
     Box: passthrough('div'),
     VStack: passthrough('div'),
@@ -61,7 +63,7 @@ describe('SpoopyHauntedHouseModal', () => {
         msRemaining={3600000}
         currentGp={1000000}
         onClose={() => {}}
-      />,
+      />
     );
     expect(screen.getByText('you sure about this?')).toBeInTheDocument();
     expect(screen.getByText(/stage 1 of 3/i)).toBeInTheDocument();
@@ -71,28 +73,28 @@ describe('SpoopyHauntedHouseModal', () => {
     expect(screen.getByText(/1h 0m/)).toBeInTheDocument();
   });
 
-  test('stage 2 (gauntletLevel=1) shows !imserious', () => {
+  test('shows a loading state instead of claiming curfew passed before data arrives', () => {
     render(
       <SpoopyHauntedHouseModal
         isOpen
-        gauntletLevel={1}
-        currentGp={0}
+        gauntletLevel={0}
+        isLoading
+        msRemaining={null}
         onClose={() => {}}
-      />,
+      />
     );
+    expect(screen.getByText('checking curfew…')).toBeInTheDocument();
+    expect(screen.queryByText('curfew passed')).not.toBeInTheDocument();
+  });
+
+  test('stage 2 (gauntletLevel=1) shows !imserious', () => {
+    render(<SpoopyHauntedHouseModal isOpen gauntletLevel={1} currentGp={0} onClose={() => {}} />);
     expect(screen.getByText(/stage 2 of 3/i)).toBeInTheDocument();
     expect(screen.getByText('!imserious')).toBeInTheDocument();
   });
 
   test('stage 3 (gauntletLevel=2) shows !nogoingback', () => {
-    render(
-      <SpoopyHauntedHouseModal
-        isOpen
-        gauntletLevel={2}
-        currentGp={0}
-        onClose={() => {}}
-      />,
-    );
+    render(<SpoopyHauntedHouseModal isOpen gauntletLevel={2} currentGp={0} onClose={() => {}} />);
     expect(screen.getByText(/stage 3 of 3/i)).toBeInTheDocument();
     expect(screen.getByText('!nogoingback')).toBeInTheDocument();
   });
@@ -109,7 +111,7 @@ describe('SpoopyHauntedHouseModal', () => {
         bonusRewardGp={1000000}
         onSubmit={() => {}}
         onClose={() => {}}
-      />,
+      />
     );
     expect(screen.getByText(/group photo/)).toBeInTheDocument();
     expect(screen.queryByText(/\+1,000,000 gp/)).not.toBeInTheDocument();
@@ -124,7 +126,7 @@ describe('SpoopyHauntedHouseModal', () => {
         bonusTask={{ kind: 'custom', target: 'photo', amount: 1 }}
         onSubmit={() => {}}
         onClose={() => {}}
-      />,
+      />
     );
     expect(screen.getByText(/!spoopypre t-r99-c99/)).toBeInTheDocument();
     expect(screen.getByText(/!spoopysubmit t-r99-c99/)).toBeInTheDocument();
@@ -139,7 +141,7 @@ describe('SpoopyHauntedHouseModal', () => {
         bonusTask={{ kind: 'custom', target: 'photo', amount: 1 }}
         onSubmit={submit}
         onClose={() => {}}
-      />,
+      />
     );
     fireEvent.click(screen.getByText(/^close$/i));
     expect(submit).toHaveBeenCalledTimes(1);
