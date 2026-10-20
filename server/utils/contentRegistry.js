@@ -2365,6 +2365,49 @@ const RAIDS = {
     killsPerHour: null,
     cw: null,
   },
+  the_fractured_archive: {
+    womKey: 'the_fractured_archive',
+    id: 'theFracturedArchive',
+    displayName: 'The Fractured Archive',
+    shortName: 'TFA',
+    tags: ['raid'],
+    enabled: true,
+    quantities: {
+      // kc usually
+      short: { min: 5, max: 15 },
+      medium: { min: 10, max: 20 },
+      long: { min: 10, max: 25 },
+    },
+    drops: [
+      'Elemental Fragments',
+      'Rondache',
+      "Zorya's Tome",
+      'Zeal',
+      'Ascension Crossbows',
+      'Obligator',
+      'Orion',
+    ],
+    dropQuantities: {
+      medium: { min: 1, max: 1 },
+      long: { min: 2, max: 2 },
+    },
+    killsPerHour: null,
+    cfTasks: [
+      {
+        id: 'pvm_theFracturedArchive',
+        role: 'PVMER',
+        type: 'item_collection',
+        difficulty: 'adept',
+        label: '', // TODO: label
+        descriptionTemplate: 'Obtain {quantity} drops from The Fractured Archive.',
+        quantities: {
+          casual: { min: 1, max: 1 },
+          standard: { min: 1, max: 1 },
+          hardcore: { min: 1, max: 2 },
+        },
+      },
+    ],
+  },
 };
 
 // ── SKILLS ─────────────────────────────────────────────────────────────────────
