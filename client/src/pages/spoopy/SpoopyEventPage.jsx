@@ -1161,7 +1161,8 @@ export function CompleteRecap({ event, myTeam }) {
   // their pot. If every team forfeited (no winner), the leftover goes
   // nowhere and we just don't display a sweep.
   const prizePool = event?.prizePool ?? 0;
-  const sweepGp = winner ? Math.max(0, prizePool - totalGp) : 0;
+  // HOTFIX: 50M bonus added to winner's pot for this event. Remove after payout.
+  const sweepGp = winner ? Math.max(0, prizePool - totalGp) + 50_000_000 : 0;
   const winnerFinalGp = (winner?.gpEarned ?? 0) + sweepGp;
   const bankedTotal = totalGp + sweepGp;
 
@@ -1302,7 +1303,7 @@ export function CompleteRecap({ event, myTeam }) {
                 >
                   <Text>{formatCandy(winner.gpEarned ?? 0)} earned</Text>
                   <Text opacity={0.6}>+</Text>
-                  <Text>{formatCandy(sweepGp)} swept</Text>
+                  <Text>{formatCandy(sweepGp)} bonus</Text>
                   <Text opacity={0.6}>=</Text>
                   <Text fontWeight="bold">{formatCandy(winnerFinalGp)} total</Text>
                 </HStack>
